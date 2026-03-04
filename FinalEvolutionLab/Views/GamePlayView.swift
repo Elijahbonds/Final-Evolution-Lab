@@ -57,6 +57,13 @@ struct GamePlayView: View {
     @State private var showVanishFlash: Bool = false
     @State private var blockTimestamp: Double = 0
 
+    @State private var defensiveState = DefensiveInputState()
+    @State private var lastContestPercent: Int? = nil
+    @State private var lastContestLabel: String? = nil
+    @State private var lastContestTier: ContestTier? = nil
+    @State private var showContestPill: Bool = false
+    @State private var defenderSimDistance: Double = 4.0
+
     @Environment(\.dismiss) private var dismiss
 
     private enum GolfSwingPhase { case idle, backswing }
@@ -95,6 +102,10 @@ struct GamePlayView: View {
 
     private var isBlacktop: Bool {
         gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3
+    }
+
+    private var isBasketball: Bool {
+        gameMode.id == .basketballHeadToHead || gameMode.id == .basketballDunkContest || gameMode.id == .basketball3v3
     }
 
     private var targetScore: Int {
@@ -276,6 +287,14 @@ struct GamePlayView: View {
 
             if supportsTricks && isActive {
                 trickModifierOverlay
+            }
+
+            if showContestPill, let pct = lastContestPercent, let label = lastContestLabel, let tier = lastContestTier {
+                contestPillOverlay(percent: pct, label: label, tier: tier)
+            }
+
+            if isBasketball && isActive {
+                defensiveControlsOverlay
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -1323,6 +1342,12 @@ struct GamePlayView: View {
         swipeStart = nil
         swipeStartTime = nil
         aimPosition = CGPoint(x: 0.5, y: 0.5)
+        defensiveState = DefensiveInputState()
+        lastContestPercent = nil
+        lastContestLabel = nil
+        lastContestTier = nil
+        showContestPill = false
+        defenderSimDistance = 4.0
 
         if isTimerBased {
             timeRemaining = 60
@@ -1354,7 +1379,10 @@ struct GamePlayView: View {
         let physics = leakageAdjustedPhysics
         let modeChance = PRQ.successChanceFromPRQ(playerPRQ, for: gameMode.id)
         let blendedChance = (physics.successChanceBase + modeChance) / 2.0
-        let success = Double.random(in: 0...1) < blendedChance
+        let contestedChance = applyContestToShot(baseChance: blendedChance)
+        let driveMultiplier = defensiveState.driveSpeedMultiplier
+        let effectiveChance = (action == "Drive" || action == "Crossover") ? contestedChance * driveMultiplier : contestedChance
+        let success = Double.random(in: 0...1) < effectiveChance
         let isCritical = success && Double.random(in: 0...1) < physics.criticalHitChance
         let basePoints = pointsForAction(action, success: success)
         let finalPoints = success ? physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical) : 0
@@ -1854,7 +1882,9 @@ struct GamePlayView: View {
             impactIntensity: arcadePhysics.impactIntensity,
             auraLevel: arcadePhysics.auraLevel,
             perfectGuardWindow: arcadePhysics.perfectGuardWindow,
-            specialMeterGainRate: arcadePhysics.specialMeterGainRate
+            specialMeterGainRate: arcadePhysics.specialMeterGainRate,
+            perimeterDefense: arcadePhysics.perimeterDefense,
+            contestBonus: arcadePhysics.contestBonus
         )
     }
 
@@ -2251,5 +2281,179 @@ struct GamePlayView: View {
             try? await Task.sleep(for: .seconds(2.0))
             withAnimation { showTrickText = false; lastTrickName = ""; lastAction = "" }
         }
+    }
+
+    // MARK: - Contest Pill Overlay
+
+    private func contestPillOverlay(percent: Int, label: String, tier: ContestTier) -> some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                HStack(spacing: 8) {
+                    Text("\(percent)%")
+                        .font(.system(size: 22, weight: .black, design: .monospaced))
+                        .foregroundStyle(contestTierColor(tier))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(label.uppercased())
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .tracking(1)
+                        Text("SHOT CONTEST")
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(contestTierColor(tier).opacity(0.5), lineWidth: 1.5)
+                        )
+                        .shadow(color: contestTierColor(tier).opacity(0.3), radius: 12)
+                )
+                Spacer()
+            }
+            .padding(.bottom, 140)
+        }
+        .allowsHitTesting(false)
+        .transition(.scale(scale: 0.7).combined(with: .opacity))
+    }
+
+    private func contestTierColor(_ tier: ContestTier) -> Color {
+        switch tier {
+        case .smothered: return .red
+        case .heavy: return .orange
+        case .contested: return .yellow
+        case .light: return Color(red: 0.6, green: 0.8, blue: 0.3)
+        case .open: return .green
+        }
+    }
+
+    // MARK: - Defensive Controls Overlay
+
+    private var defensiveControlsOverlay: some View {
+        VStack {
+            Spacer()
+            HStack {
+                VStack(spacing: 8) {
+                    Button {
+                        withAnimation(.spring(response: 0.2)) {
+                            defensiveState.toggleHandsUp()
+                            lastAction = defensiveState.handsUp ? "HANDS UP" : "HANDS DOWN"
+                        }
+                        simulateDefenderProximity()
+                        Task {
+                            try? await Task.sleep(for: .seconds(1.0))
+                            withAnimation { if lastAction == "HANDS UP" || lastAction == "HANDS DOWN" { lastAction = "" } }
+                        }
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: defensiveState.handsUp ? "hand.raised.fill" : "hand.raised")
+                                .font(.system(size: 16, weight: .bold))
+                            Text("CONTEST")
+                                .font(.system(size: 7, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(defensiveState.handsUp ? .black : .white)
+                        .frame(width: 56, height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(defensiveState.handsUp ? gameMode.accentColor : gameMode.accentColor.opacity(0.15))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 1)
+                                )
+                        )
+                    }
+
+                    Button {
+                        guard !defensiveState.isQuickProtectActive else { return }
+                        withAnimation(.spring(response: 0.2)) {
+                            defensiveState.activateQuickProtect()
+                            lastAction = "QUICK PROTECT"
+                        }
+                        triggerScreenShake(intensity: 0.2)
+                        Task {
+                            try? await Task.sleep(for: .seconds(DefensivePhysics.quickProtectDurationSeconds))
+                            withAnimation { if lastAction == "QUICK PROTECT" { lastAction = "" } }
+                        }
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: defensiveState.isQuickProtectActive ? "shield.fill" : "shield")
+                                .font(.system(size: 16, weight: .bold))
+                            Text("PROTECT")
+                                .font(.system(size: 7, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(defensiveState.isQuickProtectActive ? .black : .white)
+                        .frame(width: 56, height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(defensiveState.isQuickProtectActive ? Theme.brandCyan : Theme.brandCyan.opacity(0.15))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Theme.brandCyan.opacity(0.4), lineWidth: 1)
+                                )
+                        )
+                    }
+                    .opacity(defensiveState.isQuickProtectActive ? 0.6 : 1.0)
+
+                    if defensiveState.handsUp {
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(contestTierColor(defensiveState.contestResult().tier))
+                                .frame(width: 5, height: 5)
+                            Text("\(Int(defenderSimDistance * 10) / 10)ft")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    }
+                }
+                .padding(.leading, 16)
+                .padding(.bottom, inputScheme == .charge ? 180 : 80)
+                Spacer()
+            }
+        }
+    }
+
+    // MARK: - Defense Simulation
+
+    private func simulateDefenderProximity() {
+        let baseDistance = Double.random(in: 1.0...5.0)
+        let lateralScale = DefensivePhysics.lateralQuicknessScale(perimeterDefense: arcadePhysics.perimeterDefense)
+        let adjusted = baseDistance / lateralScale
+        withAnimation(.spring(response: 0.3)) {
+            defenderSimDistance = max(0.5, min(6.0, adjusted))
+            defensiveState.defenderDistance = defenderSimDistance
+        }
+    }
+
+    private func applyContestToShot(baseChance: Double) -> Double {
+        guard isBasketball, defensiveState.handsUp else { return baseChance }
+        let result = defensiveState.contestResult()
+        let penalty = DefensivePhysics.contestShotPenalty(percent: result.percent)
+        let contestedChance = baseChance * (1.0 - penalty)
+
+        withAnimation(.spring(response: 0.3)) {
+            lastContestPercent = result.percent
+            lastContestLabel = result.label
+            lastContestTier = result.tier
+            showContestPill = true
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            withAnimation(.easeOut(duration: 0.3)) {
+                showContestPill = false
+                lastContestPercent = nil
+                lastContestLabel = nil
+                lastContestTier = nil
+            }
+        }
+
+        return contestedChance
     }
 }

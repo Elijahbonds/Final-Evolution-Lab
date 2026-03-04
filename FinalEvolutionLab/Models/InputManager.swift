@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 nonisolated struct InputManager: Sendable {
     static let ps2PollIntervalMs: Double = 17
@@ -124,6 +125,47 @@ nonisolated enum CombatOutcome: String, Sendable {
     case standardBlock
     case perfectGuard
     case vanishCounter
+}
+
+nonisolated struct DefensiveInputState: Sendable {
+    var handsUp: Bool = false
+    var quickProtectEndTime: Double = 0
+    var defenderDistance: Double = 4.0
+    var isBodyUp: Bool = false
+
+    var isQuickProtectActive: Bool {
+        CACurrentMediaTime() < quickProtectEndTime
+    }
+
+    var driveSpeedMultiplier: Double {
+        isQuickProtectActive ? DefensivePhysics.quickProtectSpeedMultiplier : 1.0
+    }
+
+    var isStealIgnored: Bool {
+        isQuickProtectActive
+    }
+
+    func contestResult() -> (percent: Int, label: String, tier: ContestTier) {
+        let pct = DefensivePhysics.contestPercent(distance: defenderDistance, handsUp: handsUp)
+        let label = DefensivePhysics.contestLabel(percent: pct)
+        let tier = DefensivePhysics.contestMeterColor(percent: pct)
+        return (pct, label, tier)
+    }
+
+    mutating func activateQuickProtect() {
+        quickProtectEndTime = CACurrentMediaTime() + DefensivePhysics.quickProtectDurationSeconds
+    }
+
+    mutating func toggleHandsUp() {
+        handsUp.toggle()
+    }
+
+    mutating func updateDefenderDistance(shooterPos: SIMD3<Double>, defenderPos: SIMD3<Double>) {
+        let dx = shooterPos.x - defenderPos.x
+        let dy = (shooterPos.y - defenderPos.y) * 0.5
+        let dz = shooterPos.z - defenderPos.z
+        defenderDistance = sqrt(dx * dx + dy * dy + dz * dz)
+    }
 }
 
 nonisolated struct PS2MovementConfig: Sendable {

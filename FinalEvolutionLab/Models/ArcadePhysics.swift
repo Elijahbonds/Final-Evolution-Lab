@@ -13,6 +13,8 @@ nonisolated struct ArcadePhysics: Sendable {
     let auraLevel: AuraLevel
     let perfectGuardWindow: Double
     let specialMeterGainRate: Double
+    let perimeterDefense: Double
+    let contestBonus: Double
 
     static func fromPRQ(_ prq: Double, neuralDrive: Double, audit: BiomechanicsAudit? = nil) -> ArcadePhysics {
         let normalized = min(max(prq / 100.0, 0), 1)
@@ -51,7 +53,9 @@ nonisolated struct ArcadePhysics: Sendable {
             impactIntensity: 0.5 + normalized * 0.5 + (isEliteNeural ? 0.3 : 0),
             auraLevel: aura,
             perfectGuardWindow: 0.1 + normalized * 0.05,
-            specialMeterGainRate: 8.0 + normalized * 12.0
+            specialMeterGainRate: 8.0 + normalized * 12.0,
+            perimeterDefense: 30 + normalized * 70,
+            contestBonus: normalized * 0.15
         )
     }
 
