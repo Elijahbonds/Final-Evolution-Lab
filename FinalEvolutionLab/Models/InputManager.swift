@@ -45,6 +45,22 @@ nonisolated struct ComboResolver: Sendable {
     static let comboWindowSeconds: Double = 0.5
     static let doubleTapWindowSeconds: Double = 0.3
 
+    static var dunkModes: Set<GameModeId> {
+        [.basketballHeadToHead, .basketballDunkContest, .basketball3v3]
+    }
+
+    static var combatModes: Set<GameModeId> {
+        [.karate]
+    }
+
+    static func isDunkAllowed(for mode: GameModeId) -> Bool {
+        dunkModes.contains(mode)
+    }
+
+    static func isCombatAllowed(for mode: GameModeId) -> Bool {
+        combatModes.contains(mode)
+    }
+
     static func resolve(inputs: [ComboInput], mode: GameModeId) -> TrickCombo? {
         guard !inputs.isEmpty else { return nil }
 
@@ -66,6 +82,12 @@ nonisolated struct ComboResolver: Sendable {
 
     static func resolveFromAction(_ action: String, direction: ComboDirection, isModifierHeld: Bool, mode: GameModeId) -> TrickCombo? {
         guard isModifierHeld else { return nil }
+        if action == "Dunk" || action == "Power Dunk" || action == "360 Dunk" || action == "Windmill" {
+            guard isDunkAllowed(for: mode) else { return nil }
+        }
+        if action == "Punch" || action == "Kick" || action == "Block" {
+            guard isCombatAllowed(for: mode) else { return nil }
+        }
         return TrickCombo.resolve(direction: direction.trickDirection, mode: mode)
     }
 }
@@ -78,8 +100,10 @@ nonisolated struct CombatInputResolver: Sendable {
         blockPressed: Bool,
         blockTimestamp: Double,
         impactTimestamp: Double,
-        stickDirection: ComboDirection?
+        stickDirection: ComboDirection?,
+        mode: GameModeId = .karate
     ) -> CombatOutcome {
+        guard ComboResolver.isCombatAllowed(for: mode) else { return .hit }
         guard blockPressed else { return .hit }
 
         let reactionTime = abs(impactTimestamp - blockTimestamp)

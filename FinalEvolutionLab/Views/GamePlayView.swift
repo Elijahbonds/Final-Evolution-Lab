@@ -1630,7 +1630,16 @@ struct GamePlayView: View {
         let physics = leakageAdjustedPhysics
         let modeChance = PRQ.successChanceFromPRQ(playerPRQ, for: gameMode.id)
         let blendedBase = (physics.successChanceBase + modeChance) / 2.0
-        let inSweetSpot = chargeValue >= 0.35 && chargeValue <= 0.75
+        let ddaWindow = DynamicDifficulty.scaledSuccessWindow(
+            baseWindow: 0.40,
+            playerScore: score,
+            aiScore: opponentScore,
+            targetScore: targetScore,
+            mode: gameMode.id
+        )
+        let sweetSpotLow = max(0.1, 0.35 - (ddaWindow - 0.40))
+        let sweetSpotHigh = min(0.95, 0.75 + (ddaWindow - 0.40))
+        let inSweetSpot = chargeValue >= sweetSpotLow && chargeValue <= sweetSpotHigh
         let baseChance = inSweetSpot ? blendedBase + 0.15 : blendedBase * chargeValue
         let success = Double.random(in: 0...1) < baseChance
         let action = actionsForMode.first ?? "Action"
@@ -1853,7 +1862,6 @@ struct GamePlayView: View {
 
     private var specialMeterOverlay: some View {
         VStack {
-            Spacer()
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 4) {
@@ -1902,7 +1910,8 @@ struct GamePlayView: View {
                 Spacer()
             }
             .padding(.leading, 16)
-            .padding(.bottom, 8)
+            .padding(.top, 8)
+            Spacer()
         }
         .allowsHitTesting(false)
     }
@@ -1986,7 +1995,7 @@ struct GamePlayView: View {
                     }
                 }
                 .padding(.trailing, 16)
-                .padding(.bottom, 80)
+                .padding(.bottom, inputScheme == .charge ? 180 : 80)
             }
         }
     }

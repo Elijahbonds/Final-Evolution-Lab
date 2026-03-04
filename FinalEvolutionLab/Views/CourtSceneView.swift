@@ -32,11 +32,15 @@ struct CourtSceneView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: SCNView, context: Context) {
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 0.2
+        SCNTransaction.disableActions = false
         context.coordinator.neuralDrive = neuralDrive
         context.coordinator.verticalPotential = verticalPotential
         context.coordinator.auraLevel = auraLevel
         context.coordinator.movementSignature = movementSignature
         context.coordinator.updateAura()
+        SCNTransaction.commit()
     }
 
     func makeCoordinator() -> Coordinator {
@@ -476,6 +480,10 @@ struct CourtSceneView: UIViewRepresentable {
 
         func updateAura() {
             guard let auraNode, let particles = auraNode.particleSystems?.first else { return }
+
+            if let trail = trailEmitter?.particleSystems?.first {
+                trail.particleColor = auraLevel == .maxIntent ? neonMagenta.withAlphaComponent(0.5) : brandCyan.withAlphaComponent(0.3)
+            }
 
             switch auraLevel {
             case .maxIntent:
@@ -988,10 +996,17 @@ struct CourtSceneView: UIViewRepresentable {
         }
 
         private func triggerDunkImpact() {
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0.15
             cameraShakeIntensity = 0.7
             isImpactZoom = true
+            SCNTransaction.commit()
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                SCNTransaction.begin()
+                SCNTransaction.animationDuration = 0.3
                 self?.isImpactZoom = false
+                SCNTransaction.commit()
             }
 
             flashRim()

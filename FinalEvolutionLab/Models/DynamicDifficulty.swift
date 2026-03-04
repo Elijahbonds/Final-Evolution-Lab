@@ -55,6 +55,45 @@ nonisolated struct DynamicDifficulty: Sendable {
         return 1.0
     }
 
+    static func getDDAWindowScale(playerScore: Int, aiScore: Int, targetScore: Int) -> Double {
+        guard targetScore > 0 else { return 1.0 }
+        let playerProgress = Double(playerScore) / Double(targetScore)
+        let aiProgress = Double(aiScore) / Double(targetScore)
+        let gap = aiProgress - playerProgress
+
+        if gap > 0.25 {
+            return 1.35
+        } else if gap > 0.1 {
+            return 1.15
+        } else if gap < -0.25 {
+            return 0.75
+        } else if gap < -0.1 {
+            return 0.9
+        }
+        return 1.0
+    }
+
+    static func scaledSuccessWindow(
+        baseWindow: Double,
+        playerScore: Int,
+        aiScore: Int,
+        targetScore: Int,
+        mode: GameModeId
+    ) -> Double {
+        let windowScale = getDDAWindowScale(playerScore: playerScore, aiScore: aiScore, targetScore: targetScore)
+        let modeAdjust: Double
+        switch mode {
+        case .baseball: modeAdjust = 1.1
+        case .golf: modeAdjust = 0.9
+        case .football: modeAdjust = 1.2
+        case .soccer: modeAdjust = 1.0
+        case .tennis: modeAdjust = 1.0
+        case .volleyball: modeAdjust = 1.05
+        default: modeAdjust = 1.0
+        }
+        return baseWindow * windowScale * modeAdjust
+    }
+
     static func scaledOpponentChance(
         baseChance: Double,
         playerScore: Int,
