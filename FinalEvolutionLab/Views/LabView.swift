@@ -311,24 +311,34 @@ struct LabView: View {
     private var courtSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("3D COURT")
-                    .font(.system(.caption2, design: .monospaced, weight: .bold))
-                    .foregroundStyle(Theme.brandBlue)
-                    .tracking(2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("FREESTYLE DUNK PRACTICE")
+                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                        .foregroundStyle(Theme.brandBlue)
+                        .tracking(2)
+
+                    Text("Venice Beach Court")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
 
-                Button {
-                    withAnimation(.spring(response: 0.4)) {
-                        showCourtExpanded.toggle()
+                HStack(spacing: 6) {
+                    NeuralAuraBadge(auraLevel: viewModel.arcadePhysics.auraLevel)
+
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                            showCourtExpanded.toggle()
+                        }
+                    } label: {
+                        Image(systemName: showCourtExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Theme.brandBlue)
+                            .padding(8)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(Circle())
                     }
-                } label: {
-                    Image(systemName: showCourtExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Theme.brandBlue)
-                        .padding(8)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(Circle())
                 }
             }
 
@@ -340,19 +350,30 @@ struct LabView: View {
                         auraLevel: viewModel.arcadePhysics.auraLevel,
                         movementSignature: viewModel.activeMovementSignature,
                         onDunkTriggered: {
-                            withAnimation(.easeOut(duration: 0.15)) { dunkFlash = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                withAnimation(.easeIn(duration: 0.3)) { dunkFlash = false }
+                            withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) { dunkFlash = true }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { dunkFlash = false }
                             }
                         }
                     )
-                    .frame(height: showCourtExpanded ? 380 : 240)
+                    .frame(height: showCourtExpanded ? 420 : 280)
                     .clipShape(.rect(cornerRadius: 20))
-                    .transition(.opacity)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandBlue.opacity(0.3), Theme.brandCyan.opacity(0.15), .clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
                     RoundedRectangle(cornerRadius: 20)
                         .fill(Theme.cardBackground)
-                        .frame(height: 240)
+                        .frame(height: 280)
                         .overlay {
                             VStack(spacing: 12) {
                                 ProgressView()
@@ -367,20 +388,44 @@ struct LabView: View {
 
                 if dunkFlash {
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(Theme.brandBlue.opacity(0.15))
+                        .fill(
+                            RadialGradient(
+                                colors: [Theme.brandCyan.opacity(0.2), Theme.brandBlue.opacity(0.08), .clear],
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: 200
+                            )
+                        )
                         .allowsHitTesting(false)
+                        .transition(.opacity)
                 }
             }
 
-            HStack(spacing: 6) {
-                Image(systemName: "hand.tap.fill")
-                    .font(.system(size: 10))
-                Text("Tap court to trigger dunk")
-                    .font(.system(.caption2, design: .monospaced, weight: .medium))
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 10))
-                Text("Drag to orbit camera")
-                    .font(.system(.caption2, design: .monospaced, weight: .medium))
+            HStack(spacing: 16) {
+                HStack(spacing: 5) {
+                    Image(systemName: "hand.tap.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.brandBlue)
+                    Text("Tap to dunk")
+                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                }
+
+                HStack(spacing: 5) {
+                    Image(systemName: "hand.tap")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.brandCyan)
+                    Text("Double-tap for special")
+                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                }
+
+                Spacer()
+
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 10))
+                    Text("Orbit")
+                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                }
             }
             .foregroundStyle(.secondary)
         }
