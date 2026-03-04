@@ -873,7 +873,7 @@ struct GameSceneFactory {
     }
 
     private static func addAvatarPoseAnimations(root: SCNNode, lArm: SCNNode, rArm: SCNNode, lLeg: SCNNode, rLeg: SCNNode, torso: SCNNode) {
-        let blendDuration = AvatarStateMachine.blendTimeSeconds
+        let blend = AvatarStateMachine.blendTimeSeconds
 
         let breathe = SCNAction.sequence([
             SCNAction.moveBy(x: 0, y: 0.03, z: 0, duration: 1.2),
@@ -883,14 +883,12 @@ struct GameSceneFactory {
 
         let gatherPose = SCNAction.sequence([
             SCNAction.group([
-                SCNAction.moveBy(x: 0, y: -0.15, z: 0, duration: blendDuration),
-                SCNAction.customAction(duration: blendDuration) { node, elapsed in
-                    let t = Float(elapsed / blendDuration)
-                    let targetRotX = AvatarStateMachine.poseRotationX(for: .gather)
-                    node.eulerAngles.x = t * targetRotX
-                    let scale = AvatarStateMachine.poseScale(for: .gather)
-                    let lerped = 1.0 + t * (scale.x - 1.0)
-                    node.scale = SCNVector3(lerped, 1.0 + t * (scale.y - 1.0), lerped)
+                SCNAction.moveBy(x: 0, y: -0.15, z: 0, duration: blend),
+                SCNAction.customAction(duration: blend) { node, elapsed in
+                    let t = Float(elapsed / blend)
+                    node.eulerAngles.x = t * AvatarStateMachine.poseRotationX(for: .gather)
+                    let s = AvatarStateMachine.poseScale(for: .gather)
+                    node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.x - 1.0))
                 }
             ]),
             SCNAction.wait(duration: 0.1)
@@ -901,12 +899,8 @@ struct GameSceneFactory {
                 SCNAction.moveBy(x: 0, y: 0.4, z: 0, duration: 0.3),
                 SCNAction.customAction(duration: 0.3) { node, elapsed in
                     let t = Float(elapsed / 0.3)
-                    let scale = AvatarStateMachine.poseScale(for: .jump)
-                    node.scale = SCNVector3(
-                        1.0 + t * (scale.x - 1.0),
-                        1.0 + t * (scale.y - 1.0),
-                        1.0 + t * (scale.z - 1.0)
-                    )
+                    let s = AvatarStateMachine.poseScale(for: .jump)
+                    node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
                 }
             ]),
             SCNAction.group([
@@ -916,11 +910,9 @@ struct GameSceneFactory {
                     node.scale = SCNVector3(1.0 + t * 0.04, 1.0 - t * 0.06, 1.0 + t * 0.04)
                 }
             ]),
-            SCNAction.customAction(duration: blendDuration) { node, elapsed in
-                let t = Float(elapsed / blendDuration)
-                let sx = 1.04 - t * 0.04
-                let sy = 0.94 + t * 0.06
-                node.scale = SCNVector3(sx, sy, sx)
+            SCNAction.customAction(duration: blend) { node, elapsed in
+                let t = Float(elapsed / blend)
+                node.scale = SCNVector3(1.04 - t * 0.04, 0.94 + t * 0.06, 1.04 - t * 0.04)
             }
         ])
 
@@ -929,14 +921,9 @@ struct GameSceneFactory {
                 SCNAction.moveBy(x: 0, y: 0.6, z: 0, duration: 0.4),
                 SCNAction.customAction(duration: 0.4) { node, elapsed in
                     let t = Float(elapsed / 0.4)
-                    let targetRotX = AvatarStateMachine.poseRotationX(for: .dunk)
-                    node.eulerAngles.x = t * targetRotX
-                    let scale = AvatarStateMachine.poseScale(for: .dunk)
-                    node.scale = SCNVector3(
-                        1.0 + t * (scale.x - 1.0),
-                        1.0 + t * (scale.y - 1.0),
-                        1.0 + t * (scale.z - 1.0)
-                    )
+                    node.eulerAngles.x = t * AvatarStateMachine.poseRotationX(for: .dunk)
+                    let s = AvatarStateMachine.poseScale(for: .dunk)
+                    node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
                 }
             ]),
             SCNAction.wait(duration: 0.4),
@@ -951,33 +938,145 @@ struct GameSceneFactory {
         ])
 
         let sprintPose = SCNAction.sequence([
-            SCNAction.customAction(duration: blendDuration) { node, elapsed in
-                let t = Float(elapsed / blendDuration)
-                let targetRotX = AvatarStateMachine.poseRotationX(for: .sprint)
-                node.eulerAngles.x = t * targetRotX
-                let scale = AvatarStateMachine.poseScale(for: .sprint)
-                node.scale = SCNVector3(
-                    1.0 + t * (scale.x - 1.0),
-                    1.0 + t * (scale.y - 1.0),
-                    1.0 + t * (scale.z - 1.0)
-                )
+            SCNAction.customAction(duration: blend) { node, elapsed in
+                let t = Float(elapsed / blend)
+                node.eulerAngles.x = t * AvatarStateMachine.poseRotationX(for: .sprint)
+                let s = AvatarStateMachine.poseScale(for: .sprint)
+                node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
             },
             SCNAction.wait(duration: 1.0),
-            SCNAction.customAction(duration: blendDuration) { node, _ in
+            SCNAction.customAction(duration: blend) { node, _ in
                 node.eulerAngles.x = 0
                 node.scale = SCNVector3(1, 1, 1)
             }
         ])
 
+        let swingPose = SCNAction.sequence([
+            SCNAction.customAction(duration: blend * 0.8) { node, elapsed in
+                let t = Float(elapsed / (blend * 0.8))
+                node.eulerAngles.x = t * 0.2
+                node.eulerAngles.y = t * -0.4
+            },
+            SCNAction.customAction(duration: 0.15) { node, elapsed in
+                let t = Float(elapsed / 0.15)
+                node.eulerAngles.x = 0.2 + t * 0.1
+                node.eulerAngles.y = -0.4 + t * 1.2
+                let s = AvatarStateMachine.poseScale(for: .swing)
+                node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
+            },
+            SCNAction.wait(duration: 0.3),
+            SCNAction.customAction(duration: blend) { node, elapsed in
+                let t = Float(elapsed / blend)
+                node.eulerAngles.x = 0.3 * (1 - t)
+                node.eulerAngles.y = 0.8 * (1 - t)
+                node.scale = SCNVector3(1, 1, 1)
+            }
+        ])
+
+        let kickPose = SCNAction.sequence([
+            SCNAction.customAction(duration: blend * 0.6) { node, elapsed in
+                let t = Float(elapsed / (blend * 0.6))
+                node.eulerAngles.x = t * -0.15
+            },
+            SCNAction.customAction(duration: 0.12) { node, elapsed in
+                let t = Float(elapsed / 0.12)
+                node.eulerAngles.x = -0.15 + t * (-0.1)
+                let s = AvatarStateMachine.poseScale(for: .kick)
+                node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
+            },
+            SCNAction.wait(duration: 0.25),
+            SCNAction.customAction(duration: blend) { node, elapsed in
+                let t = Float(elapsed / blend)
+                node.eulerAngles.x = -0.25 * (1 - t)
+                node.scale = SCNVector3(1, 1, 1)
+            }
+        ])
+
+        let spikePose = SCNAction.sequence([
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: 0.5, z: 0, duration: 0.3),
+                SCNAction.customAction(duration: 0.3) { node, elapsed in
+                    let t = Float(elapsed / 0.3)
+                    let s = AvatarStateMachine.poseScale(for: .spike)
+                    node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
+                    node.eulerAngles.x = t * AvatarStateMachine.poseRotationX(for: .spike)
+                }
+            ]),
+            SCNAction.wait(duration: 0.15),
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: -0.5, z: 0, duration: 0.3),
+                SCNAction.customAction(duration: 0.3) { node, elapsed in
+                    let t = Float(elapsed / 0.3)
+                    node.eulerAngles.x = AvatarStateMachine.poseRotationX(for: .spike) * (1 - t)
+                    node.scale = SCNVector3(1, 1, 1)
+                }
+            ])
+        ])
+
+        let celebratePose = SCNAction.sequence([
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: 0.2, z: 0, duration: 0.2),
+                SCNAction.customAction(duration: 0.2) { node, elapsed in
+                    let t = Float(elapsed / 0.2)
+                    node.scale = SCNVector3(1.0 + t * 0.08, 1.0 + t * 0.08, 1.0 + t * 0.08)
+                }
+            ]),
+            SCNAction.moveBy(x: 0, y: -0.2, z: 0, duration: 0.25),
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: 0.15, z: 0, duration: 0.2),
+                SCNAction.customAction(duration: 0.2) { node, _ in
+                    node.eulerAngles.x = -0.1
+                }
+            ]),
+            SCNAction.moveBy(x: 0, y: -0.15, z: 0, duration: 0.2),
+            SCNAction.customAction(duration: blend) { node, elapsed in
+                let t = Float(elapsed / blend)
+                node.eulerAngles.x = -0.1 * (1 - t)
+                node.scale = SCNVector3(1.08 - t * 0.08, 1.08 - t * 0.08, 1.08 - t * 0.08)
+            }
+        ])
+
         let armSwing = SCNAction.sequence([
-            SCNAction.rotateTo(x: -0.8, y: 0, z: 0.4, duration: blendDuration),
+            SCNAction.rotateTo(x: -0.8, y: 0, z: 0.4, duration: blend),
             SCNAction.wait(duration: 0.5),
-            SCNAction.rotateTo(x: 0, y: 0, z: 0.4, duration: blendDuration + 0.1)
+            SCNAction.rotateTo(x: 0, y: 0, z: 0.4, duration: blend + 0.1)
         ])
         let rArmSwing = SCNAction.sequence([
-            SCNAction.rotateTo(x: -0.8, y: 0, z: -0.4, duration: blendDuration),
+            SCNAction.rotateTo(x: -0.8, y: 0, z: -0.4, duration: blend),
             SCNAction.wait(duration: 0.5),
-            SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: blendDuration + 0.1)
+            SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: blend + 0.1)
+        ])
+
+        let swingArmAction = SCNAction.sequence([
+            SCNAction.rotateTo(x: -1.2, y: 0, z: -0.6, duration: blend * 0.8),
+            SCNAction.rotateTo(x: 0.5, y: 0, z: 0.3, duration: 0.12),
+            SCNAction.wait(duration: 0.3),
+            SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: blend)
+        ])
+
+        let kickLegAction = SCNAction.sequence([
+            SCNAction.rotateTo(x: -0.3, y: 0, z: 0, duration: blend * 0.6),
+            SCNAction.rotateTo(x: 0.8, y: 0, z: 0, duration: 0.12),
+            SCNAction.wait(duration: 0.2),
+            SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: blend)
+        ])
+
+        let spikeArmAction = SCNAction.sequence([
+            SCNAction.rotateTo(x: -2.0, y: 0, z: -0.4, duration: 0.25),
+            SCNAction.rotateTo(x: 0.3, y: 0, z: -0.4, duration: 0.1),
+            SCNAction.wait(duration: 0.15),
+            SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: blend)
+        ])
+
+        let celebrateArmsAction = SCNAction.sequence([
+            SCNAction.rotateTo(x: 0, y: 0, z: -2.5, duration: 0.2),
+            SCNAction.wait(duration: 0.6),
+            SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.3)
+        ])
+        let celebrateLArmsAction = SCNAction.sequence([
+            SCNAction.rotateTo(x: 0, y: 0, z: 2.5, duration: 0.2),
+            SCNAction.wait(duration: 0.6),
+            SCNAction.rotateTo(x: 0, y: 0, z: 0.4, duration: 0.3)
         ])
 
         let poseSequence = SCNAction.sequence([
@@ -986,8 +1085,16 @@ struct GameSceneFactory {
             SCNAction.wait(duration: 1.5),
             gatherPose,
             jumpPose,
-            SCNAction.wait(duration: 2.0),
+            SCNAction.wait(duration: 1.5),
             dunkPose,
+            SCNAction.wait(duration: 1.5),
+            swingPose,
+            SCNAction.wait(duration: 1.5),
+            kickPose,
+            SCNAction.wait(duration: 1.5),
+            spikePose,
+            SCNAction.wait(duration: 1.5),
+            celebratePose,
             SCNAction.wait(duration: 1.5),
         ])
         root.runAction(SCNAction.repeatForever(poseSequence), forKey: "poses")
@@ -995,28 +1102,50 @@ struct GameSceneFactory {
         let armCycle = SCNAction.sequence([
             SCNAction.wait(duration: 4.0),
             armSwing,
-            SCNAction.wait(duration: 5.0),
+            SCNAction.wait(duration: 3.0),
+            swingArmAction,
+            SCNAction.wait(duration: 3.0),
+            celebrateLArmsAction,
+            SCNAction.wait(duration: 3.0),
         ])
         lArm.runAction(SCNAction.repeatForever(armCycle), forKey: "armPose")
 
         let rArmCycle = SCNAction.sequence([
             SCNAction.wait(duration: 6.0),
             rArmSwing,
-            SCNAction.wait(duration: 3.5),
+            SCNAction.wait(duration: 2.0),
+            spikeArmAction,
+            SCNAction.wait(duration: 3.0),
+            celebrateArmsAction,
+            SCNAction.wait(duration: 2.0),
         ])
         rArm.runAction(SCNAction.repeatForever(rArmCycle), forKey: "rArmPose")
 
         let legShift = SCNAction.sequence([
-            SCNAction.rotateTo(x: 0.15, y: 0, z: 0, duration: blendDuration + 0.6),
-            SCNAction.rotateTo(x: -0.15, y: 0, z: 0, duration: blendDuration + 0.6),
-            SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: blendDuration + 0.4)
+            SCNAction.rotateTo(x: 0.15, y: 0, z: 0, duration: blend + 0.6),
+            SCNAction.rotateTo(x: -0.15, y: 0, z: 0, duration: blend + 0.6),
+            SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: blend + 0.4)
         ])
         let legCycle = SCNAction.sequence([
             SCNAction.wait(duration: 2.0),
             legShift,
-            SCNAction.wait(duration: 3.0)
+            SCNAction.wait(duration: 1.5),
+            kickLegAction,
+            SCNAction.wait(duration: 2.5)
         ])
         lLeg.runAction(SCNAction.repeatForever(legCycle), forKey: "legPose")
+
+        let rLegShift = SCNAction.sequence([
+            SCNAction.rotateTo(x: -0.15, y: 0, z: 0, duration: blend + 0.6),
+            SCNAction.rotateTo(x: 0.15, y: 0, z: 0, duration: blend + 0.6),
+            SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: blend + 0.4)
+        ])
+        let rLegCycle = SCNAction.sequence([
+            SCNAction.wait(duration: 3.0),
+            rLegShift,
+            SCNAction.wait(duration: 3.0)
+        ])
+        rLeg.runAction(SCNAction.repeatForever(rLegCycle), forKey: "rLegPose")
     }
 
     // MARK: - Cinematic Impact Effects

@@ -252,7 +252,12 @@ struct GamePlayView: View {
             }
 
             if isActive && inputScheme == .charge {
-                PS2ControllerShellView()
+                PS2GamepadOverlay(
+                    onFaceButton: { button in handlePS2FaceButton(button) },
+                    onDPad: { direction in handlePS2DPad(direction) },
+                    accentColor: gameMode.accentColor,
+                    isActive: isActive
+                )
             }
 
             if supportsTricks && isActive {
@@ -628,7 +633,11 @@ struct GamePlayView: View {
         VStack(spacing: 12) {
             switch inputScheme {
             case .charge:
-                ps2ActionButtons
+                if !isActive {
+                    ps2ActionButtons
+                } else {
+                    chargeModeLiveHint
+                }
             case .swipe:
                 swipeHintView
             case .swipeGolf:
@@ -681,6 +690,32 @@ struct GamePlayView: View {
         }
         .padding(16)
         .background(Theme.cardBackground.opacity(0.9))
+    }
+
+    private var chargeModeLiveHint: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "gamecontroller.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(gameMode.accentColor)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("USE CONTROLLER")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                Text("\u{25B3} Shoot \u{25A1} Drive \u{25CB} Style \u{2715} Jump")
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(gameMode.accentColor.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(gameMode.accentColor.opacity(0.15), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - Swipe Hint (Baseball / Soccer)
@@ -1973,6 +2008,53 @@ struct GamePlayView: View {
             withAnimation(.easeIn(duration: 0.3)) {
                 isSlowMo = false
             }
+        }
+    }
+
+    // MARK: - PS2 Controller Handlers
+
+    private func handlePS2FaceButton(_ button: PS2FaceButton) {
+        guard isActive else { return }
+        switch button {
+        case .triangle:
+            performAction(actionsForMode.first ?? "Shoot")
+        case .square:
+            if actionsForMode.count > 1 {
+                performAction(actionsForMode[1])
+            } else {
+                performAction(actionsForMode.first ?? "Drive")
+            }
+        case .circle:
+            if actionsForMode.count > 2 {
+                performAction(actionsForMode[2])
+            } else {
+                if isModifierHeld {
+                    executeTrickCombo(direction: currentTrickDirection)
+                } else {
+                    performAction(actionsForMode.last ?? "Style")
+                }
+            }
+        case .cross:
+            if isKarate {
+                handleBlock()
+            } else {
+                performAction(actionsForMode.first ?? "Jump")
+            }
+        }
+    }
+
+    private func handlePS2DPad(_ direction: PS2DPadDirection) {
+        guard isActive else { return }
+        let comboDir: ComboDirection
+        switch direction {
+        case .up: comboDir = .up
+        case .down: comboDir = .down
+        case .left: comboDir = .left
+        case .right: comboDir = .right
+        }
+        currentTrickDirection = comboDir
+        if isModifierHeld {
+            executeTrickCombo(direction: comboDir)
         }
     }
 

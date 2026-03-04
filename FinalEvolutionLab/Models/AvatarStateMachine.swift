@@ -13,6 +13,12 @@ nonisolated enum AvatarPoseState: String, Sendable {
     case vanish
     case hitStun
     case special
+    case swing
+    case kick
+    case spike
+    case serve
+    case catch_ball
+    case celebrate
 }
 
 nonisolated struct AvatarStateMachine: Sendable {
@@ -66,18 +72,24 @@ nonisolated struct AvatarStateMachine: Sendable {
 
     var canTransitionTo: Set<AvatarPoseState> {
         switch currentState {
-        case .idle: return [.sprint, .gather, .jump, .shoot, .block, .special]
-        case .sprint: return [.idle, .gather, .jump, .block]
+        case .idle: return [.sprint, .gather, .jump, .shoot, .block, .special, .swing, .kick, .spike, .serve, .catch_ball]
+        case .sprint: return [.idle, .gather, .jump, .block, .catch_ball]
         case .gather: return [.jump, .dunk, .idle]
-        case .jump: return [.dunk, .shoot, .land, .idle]
-        case .dunk: return [.land, .idle]
+        case .jump: return [.dunk, .shoot, .land, .idle, .spike]
+        case .dunk: return [.land, .idle, .celebrate]
         case .shoot: return [.idle, .land]
-        case .land: return [.idle, .sprint, .gather]
+        case .land: return [.idle, .sprint, .gather, .celebrate]
         case .block: return [.idle, .counter, .vanish, .hitStun]
         case .counter: return [.idle, .special]
         case .vanish: return [.idle, .counter, .special]
         case .hitStun: return [.idle]
-        case .special: return [.idle, .land]
+        case .special: return [.idle, .land, .celebrate]
+        case .swing: return [.idle, .celebrate]
+        case .kick: return [.idle, .celebrate]
+        case .spike: return [.idle, .land, .celebrate]
+        case .serve: return [.idle]
+        case .catch_ball: return [.idle, .sprint]
+        case .celebrate: return [.idle]
         }
     }
 
@@ -95,6 +107,12 @@ nonisolated struct AvatarStateMachine: Sendable {
         case .vanish: return 0
         case .hitStun: return -0.3
         case .special: return 0.4
+        case .swing: return 0.3
+        case .kick: return -0.25
+        case .spike: return 0.4
+        case .serve: return -0.15
+        case .catch_ball: return 0.05
+        case .celebrate: return -0.1
         }
     }
 
@@ -124,6 +142,18 @@ nonisolated struct AvatarStateMachine: Sendable {
             return (weightScale * 1.1, heightScale * 0.88, weightScale * 1.1)
         case .special:
             return (1.12, 1.12, 1.12)
+        case .swing:
+            return (weightScale * 1.06, heightScale * 0.97, weightScale * 0.94)
+        case .kick:
+            return (weightScale * 0.95, heightScale * 1.06, weightScale * 0.95)
+        case .spike:
+            return (weightScale * 0.94, heightScale * 1.10, weightScale * 0.94)
+        case .serve:
+            return (weightScale * 0.98, heightScale * 1.04, weightScale * 0.98)
+        case .catch_ball:
+            return (weightScale * 1.04, heightScale * 0.96, weightScale * 1.04)
+        case .celebrate:
+            return (1.08, 1.08, 1.08)
         }
     }
 }
