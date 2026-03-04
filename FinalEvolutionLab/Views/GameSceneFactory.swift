@@ -604,16 +604,20 @@ struct GameSceneFactory {
 
         for i in 0..<defPositions.count {
             guard let def = scene.rootNode.childNode(withName: "def\(i)", recursively: true) else { continue }
-            let speed = Double.random(in: 0.03...0.06)
+            let speed = Double.random(in: 0.04...0.08)
+            let lateralDrift = Float.random(in: -0.02...0.02)
             let homing = SCNAction.customAction(duration: 1000) { node, elapsed in
                 guard let returner = node.parent?.childNode(withName: "returner", recursively: true) else { return }
                 let dx = returner.position.x - node.position.x
                 let dz = returner.position.z - node.position.z
                 let dist = sqrt(dx * dx + dz * dz)
-                guard dist > 0.5 else { return }
+                guard dist > 0.4 else { return }
                 let factor = Float(speed)
-                node.position.x += dx / dist * factor
+                let wobble = sin(Float(elapsed) * 2.5 + Float(i)) * lateralDrift
+                node.position.x += (dx / dist * factor) + wobble
                 node.position.z += dz / dist * factor
+                let angle = atan2(dx, dz)
+                node.eulerAngles.y = angle
             }
             def.runAction(SCNAction.repeatForever(homing), forKey: "homing")
         }
@@ -691,12 +695,32 @@ struct GameSceneFactory {
 
         if let gk = scene.rootNode.childNode(withName: "goalkeeper", recursively: true) {
             let sway = SCNAction.sequence([
-                SCNAction.moveBy(x: 0.6, y: 0, z: 0, duration: 0.8),
-                SCNAction.moveBy(x: -1.2, y: 0, z: 0, duration: 1.6),
-                SCNAction.moveBy(x: 0.6, y: 0, z: 0, duration: 0.8)
+                SCNAction.moveBy(x: 0.8, y: 0, z: 0, duration: 0.7),
+                SCNAction.moveBy(x: -1.6, y: 0, z: 0, duration: 1.4),
+                SCNAction.moveBy(x: 0.8, y: 0, z: 0, duration: 0.7)
             ])
             sway.timingMode = .easeInEaseOut
             gk.runAction(SCNAction.repeatForever(sway), forKey: "sway")
+
+            if let rArm = gk.childNode(withName: "rArm", recursively: false) {
+                let readyArm = SCNAction.sequence([
+                    SCNAction.rotateTo(x: 0, y: 0, z: -0.8, duration: 0.5),
+                    SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.5)
+                ])
+                rArm.runAction(SCNAction.repeatForever(readyArm), forKey: "ready")
+            }
+        }
+
+        if let kicker = scene.rootNode.childNode(withName: "kicker", recursively: true),
+           let rLeg = kicker.childNode(withName: "rLeg", recursively: false) {
+            let kickLeg = SCNAction.sequence([
+                SCNAction.wait(duration: 3.0),
+                SCNAction.rotateTo(x: -1.5, y: 0, z: 0, duration: 0.12),
+                SCNAction.rotateTo(x: 0.8, y: 0, z: 0, duration: 0.08),
+                SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: 0.3),
+                SCNAction.wait(duration: 0.5)
+            ])
+            rLeg.runAction(SCNAction.repeatForever(kickLeg), forKey: "kick")
         }
 
         let soccerBall = SCNSphere(radius: 0.11)
@@ -762,6 +786,37 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(holeNode)
 
         addAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
+
+        let club = SCNCylinder(radius: 0.012, height: 1.0)
+        let clubMat = SCNMaterial()
+        clubMat.diffuse.contents = UIColor(white: 0.6, alpha: 1)
+        clubMat.metalness.contents = 0.8
+        club.materials = [clubMat]
+        let clubNode = SCNNode(geometry: club)
+        clubNode.position = SCNVector3(0.2, 0.5, 3)
+        clubNode.eulerAngles.z = 0.3
+        scene.rootNode.addChildNode(clubNode)
+
+        let clubHead = SCNBox(width: 0.06, height: 0.02, length: 0.04, chamferRadius: 0.005)
+        let chMat = SCNMaterial()
+        chMat.diffuse.contents = UIColor(white: 0.5, alpha: 1)
+        chMat.metalness.contents = 0.9
+        clubHead.materials = [chMat]
+        let chNode = SCNNode(geometry: clubHead)
+        chNode.position = SCNVector3(0.35, 0.05, 3)
+        scene.rootNode.addChildNode(chNode)
+
+        if let golfer = scene.rootNode.childNode(withName: "golfer", recursively: true),
+           let rArm = golfer.childNode(withName: "rArm", recursively: false) {
+            let swingAnim = SCNAction.sequence([
+                SCNAction.wait(duration: 2.0),
+                SCNAction.rotateTo(x: -2.0, y: 0, z: -0.4, duration: 0.4),
+                SCNAction.rotateTo(x: 1.0, y: 0, z: -0.4, duration: 0.15),
+                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.3),
+                SCNAction.wait(duration: 2.0)
+            ])
+            rArm.runAction(SCNAction.repeatForever(swingAnim), forKey: "swing")
+        }
 
         let golfBall = SCNSphere(radius: 0.022)
         let gbMat = SCNMaterial()
@@ -864,21 +919,22 @@ struct GameSceneFactory {
         bNode.name = "tennisball"
         scene.rootNode.addChildNode(bNode)
 
-        let rallyForward = SCNAction.group([
-            SCNAction.move(to: SCNVector3(Float.random(in: -1.5...1.5), 1.5, -3.5), duration: 0.6),
-        ])
-        rallyForward.timingMode = .easeInEaseOut
-        let rallyBack = SCNAction.group([
-            SCNAction.move(to: SCNVector3(Float.random(in: -1.5...1.5), 1.2, 3.5), duration: 0.7),
-        ])
-        rallyBack.timingMode = .easeInEaseOut
-        let rally = SCNAction.sequence([
-            rallyForward,
-            SCNAction.wait(duration: 0.4),
-            rallyBack,
-            SCNAction.wait(duration: 0.3)
-        ])
-        bNode.runAction(SCNAction.repeatForever(rally), forKey: "rally")
+        let rallyAction = SCNAction.customAction(duration: 1000) { node, elapsed in
+            let cycle = Float(elapsed.truncatingRemainder(dividingBy: 2.0))
+            let phase = cycle / 2.0
+            let t = phase < 0.5 ? phase * 2.0 : 2.0 - phase * 2.0
+            let eased = t * t * (3.0 - 2.0 * t)
+            let xWobble = sin(Float(elapsed) * 1.7) * 1.5
+            let zStart: Float = 3.5
+            let zEnd: Float = -3.5
+            let yArc: Float = 1.2 + sin(eased * .pi) * 0.8
+            node.position = SCNVector3(
+                xWobble,
+                yArc,
+                zStart + (zEnd - zStart) * eased
+            )
+        }
+        bNode.runAction(SCNAction.repeatForever(rallyAction), forKey: "rally")
 
         if let opponent = scene.rootNode.childNode(withName: "opponent", recursively: true) {
             let oMove = SCNAction.sequence([
@@ -989,14 +1045,22 @@ struct GameSceneFactory {
         vbNode.name = "volleyball"
         scene.rootNode.addChildNode(vbNode)
 
-        let vForward = SCNAction.group([
-            SCNAction.move(to: SCNVector3(Float.random(in: -1...1), 3.0, -2), duration: 0.5),
-        ])
-        let vBack = SCNAction.group([
-            SCNAction.move(to: SCNVector3(Float.random(in: -1...1), 2.5, 2), duration: 0.6),
-        ])
-        let vRally = SCNAction.sequence([vForward, SCNAction.wait(duration: 0.3), vBack, SCNAction.wait(duration: 0.3)])
-        vbNode.runAction(SCNAction.repeatForever(vRally), forKey: "rally")
+        let vRallyAction = SCNAction.customAction(duration: 1000) { node, elapsed in
+            let cycle = Float(elapsed.truncatingRemainder(dividingBy: 1.8))
+            let phase = cycle / 1.8
+            let t = phase < 0.5 ? phase * 2.0 : 2.0 - phase * 2.0
+            let eased = t * t * (3.0 - 2.0 * t)
+            let xWobble = sin(Float(elapsed) * 2.1) * 1.2
+            let zStart: Float = 2.0
+            let zEnd: Float = -2.0
+            let yArc: Float = 2.5 + sin(eased * .pi) * 1.2
+            node.position = SCNVector3(
+                xWobble,
+                yArc,
+                zStart + (zEnd - zStart) * eased
+            )
+        }
+        vbNode.runAction(SCNAction.repeatForever(vRallyAction), forKey: "rally")
 
         addVeniceBeachWalls(to: scene)
         addParticles(to: scene, color: UIColor(red: 0.96, green: 0.75, blue: 0.14, alpha: 0.1), area: SCNVector3(9, 0.1, 9))
@@ -1132,21 +1196,43 @@ struct GameSceneFactory {
     private static func addGymnasticsAnimations(to scene: SCNScene) {
         guard let gymnast = scene.rootNode.childNode(withName: "gymnast", recursively: true) else { return }
 
+        let tumblePass1 = SCNAction.group([
+            SCNAction.moveBy(x: 1.2, y: 0.6, z: 0, duration: 0.3),
+            SCNAction.rotateBy(x: .pi * 2, y: 0, z: 0, duration: 0.3)
+        ])
+        tumblePass1.timingMode = .easeOut
+        let land1 = SCNAction.moveBy(x: 0, y: -0.6, z: 0, duration: 0.15)
+        land1.timingMode = .easeIn
+        let squash1 = SCNAction.sequence([
+            SCNAction.customAction(duration: 0.06) { node, _ in
+                node.scale = SCNVector3(1.08, 0.92, 1.08)
+            },
+            SCNAction.customAction(duration: 0.12) { node, elapsed in
+                let t = Float(elapsed / 0.12)
+                node.scale = SCNVector3(1.08 - t * 0.08, 0.92 + t * 0.08, 1.08 - t * 0.08)
+            }
+        ])
+
+        let tumblePass2 = SCNAction.group([
+            SCNAction.moveBy(x: 1.0, y: 0.9, z: 0.3, duration: 0.35),
+            SCNAction.rotateBy(x: .pi * 2, y: .pi, z: 0, duration: 0.35)
+        ])
+        tumblePass2.timingMode = .easeOut
+        let land2 = SCNAction.moveBy(x: 0, y: -0.9, z: 0, duration: 0.18)
+        land2.timingMode = .easeIn
+
+        let returnHome = SCNAction.move(to: SCNVector3(0, 0, 0), duration: 0.6)
+        returnHome.timingMode = .easeInEaseOut
+        let resetRotation = SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: 0.3)
+        resetRotation.timingMode = .easeInEaseOut
+
         let tumble = SCNAction.sequence([
-            SCNAction.wait(duration: 1.5),
-            SCNAction.group([
-                SCNAction.moveBy(x: 1, y: 0.5, z: 0, duration: 0.3),
-                SCNAction.rotateBy(x: .pi * 2, y: 0, z: 0, duration: 0.3)
-            ]),
-            SCNAction.moveBy(x: 0, y: -0.5, z: 0, duration: 0.2),
-            SCNAction.wait(duration: 0.5),
-            SCNAction.group([
-                SCNAction.moveBy(x: 1, y: 0.8, z: 0, duration: 0.35),
-                SCNAction.rotateBy(x: .pi * 2, y: .pi, z: 0, duration: 0.35)
-            ]),
-            SCNAction.moveBy(x: 0, y: -0.8, z: 0, duration: 0.25),
-            SCNAction.wait(duration: 1.0),
-            SCNAction.move(to: SCNVector3(0, 0, 0), duration: 0.5)
+            SCNAction.wait(duration: 1.2),
+            tumblePass1, land1, squash1,
+            SCNAction.wait(duration: 0.3),
+            tumblePass2, land2, squash1,
+            SCNAction.wait(duration: 0.8),
+            SCNAction.group([returnHome, resetRotation])
         ])
         gymnast.runAction(SCNAction.repeatForever(tumble), forKey: "tumble")
     }
