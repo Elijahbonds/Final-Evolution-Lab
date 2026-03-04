@@ -2352,9 +2352,7 @@ struct GamePlayView: View {
             triggerImpactFlash()
             resetStreakTimer()
 
-            if isDunkContest {
-                handleDunkJudging()
-            }
+
         } else {
             withAnimation(.spring(response: 0.3)) {
                 combo = 0
@@ -2603,9 +2601,6 @@ struct GamePlayView: View {
         }
     }
 
-    private func handleDunkJudging() {
-        executeDunkScoring()
-    }
 
     private func resetStreakTimer() {
         streakTimer?.cancel()
@@ -2844,11 +2839,20 @@ struct GamePlayView: View {
                     lastAction = "TACKLED!"
                     lastActionIsCritical = false
                     lastActionIsBurst = false
+                    combo = 0
+                    runMeter = 0
                 }
-                applyOutcomeFromCharge(0)
+                triggerScreenShake(intensity: 0.4)
                 Task {
-                    try? await Task.sleep(for: .seconds(1.5))
+                    try? await Task.sleep(for: .milliseconds(500))
+                    withAnimation { opponentScore += 1 }
+                    try? await Task.sleep(for: .seconds(1.0))
                     withAnimation { lastAction = "" }
+                    if roundNumber >= maxRounds {
+                        endGame()
+                    } else {
+                        withAnimation { roundNumber += 1 }
+                    }
                 }
             }
         }
