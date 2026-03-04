@@ -7,6 +7,11 @@ struct CourtSceneView: UIViewRepresentable {
     let auraLevel: AuraLevel
     let movementSignature: MovementSignature
     let onDunkTriggered: () -> Void
+    var dunkPhase: DunkPhase = .idle
+    var selectedTrick: DunkTrickSlot = .tomahawk
+    var sprintCharge: Double = 0
+    var jumpHeight: Double = 0
+    var rotationProgress: Double = 0
 
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
@@ -40,6 +45,7 @@ struct CourtSceneView: UIViewRepresentable {
         context.coordinator.auraLevel = auraLevel
         context.coordinator.movementSignature = movementSignature
         context.coordinator.updateAura()
+        context.coordinator.updateDunkPhase(dunkPhase, trick: selectedTrick, sprintCharge: sprintCharge, jumpHeight: jumpHeight, rotationProgress: rotationProgress)
         SCNTransaction.commit()
     }
 
@@ -75,6 +81,8 @@ struct CourtSceneView: UIViewRepresentable {
         private var neonStripNodes: [SCNNode] = []
         private var rimNode: SCNNode?
         private var trailEmitter: SCNNode?
+        private var currentDunkPhase: DunkPhase = .idle
+        private var engineDrivenDunk = false
 
         private let brandBlue = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
         private let brandCyan = UIColor(red: 0, green: 0.95, blue: 0.9, alpha: 1)
@@ -642,8 +650,68 @@ struct CourtSceneView: UIViewRepresentable {
             scene.rootNode.runAction(SCNAction.repeatForever(pulseAction), forKey: "neonPulse")
         }
 
+        func updateDunkPhase(_ phase: DunkPhase, trick: DunkTrickSlot, sprintCharge: Double, jumpHeight: Double, rotationProgress: Double) {
+            guard phase != currentDunkPhase else {
+                if phase == .approach {
+                    let chargeScale = Float(0.88 + sprintCharge * 0.12)
+                    avatarRoot?.scale = SCNVector3(1.0, chargeScale, 1.0)
+                }
+                if phase == .airborne {
+                    let rotY = Float(rotationProgress * .pi * 2)
+                    avatarRoot?.eulerAngles.y = rotY
+                }
+                return
+            }
+            currentDunkPhase = phase
+
+            switch phase {
+            case .idle:
+                if engineDrivenDunk {
+                    engineDrivenDunk = false
+                    completeDunk()
+                }
+            case .approach:
+                engineDrivenDunk = true
+                isDunking = true
+                avatarRoot?.removeAction(forKey: "idle")
+                avatarStateMachine = avatarStateMachine.transitioning(to: .sprint, at: CACurrentMediaTime())
+                enableTrail()
+            case .launch:
+                avatarStateMachine = avatarStateMachine.transitioning(to: .gather, at: CACurrentMediaTime())
+                let crouch = crouchAction()
+                avatarRoot?.runAction(crouch, forKey: "gather")
+            case .airborne:
+                avatarStateMachine = avatarStateMachine.transitioning(to: .jump, at: CACurrentMediaTime())
+                let height = dunkJumpHeight() * Float(max(0.5, jumpHeight))
+                let moveUp = SCNAction.moveBy(x: 3.0, y: Double(height), z: 0, duration: 0.5)
+                moveUp.timingMode = .easeOut
+                avatarRoot?.childNode(withName: "rUpperArm", recursively: false)?.eulerAngles.z = -2.8
+                avatarRoot?.childNode(withName: "lLeg", recursively: false)?.eulerAngles.x = -0.6
+                avatarRoot?.runAction(moveUp, forKey: "airJump")
+                ballNode?.runAction(SCNAction.move(to: SCNVector3(x: 3.25, y: 3.35, z: 0), duration: 0.6))
+            case .landing:
+                break
+            case .scored:
+                avatarStateMachine = avatarStateMachine.transitioning(to: .dunk, at: CACurrentMediaTime())
+                triggerDunkImpact()
+                avatarRoot?.childNode(withName: "rUpperArm", recursively: false)?.eulerAngles = SCNVector3(0, 0, -0.8)
+                let slamDown = SCNAction.moveBy(x: 0.5, y: Double(-dunkJumpHeight() * 0.6), z: 0, duration: 0.2)
+                slamDown.timingMode = .easeIn
+                avatarRoot?.runAction(slamDown, forKey: "slam")
+                animateBallThroughRim(delay: 0.05)
+                Task { @MainActor in
+                    onDunk()
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                    self?.currentDunkPhase = .idle
+                    self?.engineDrivenDunk = false
+                    self?.completeDunk()
+                }
+            }
+        }
+
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
-            guard !isDunking else { return }
+            guard !isDunking, !engineDrivenDunk else { return }
             isDunking = true
             avatarStateMachine = avatarStateMachine.transitioning(to: .gather, at: CACurrentMediaTime())
             Task { @MainActor in
@@ -653,7 +721,7 @@ struct CourtSceneView: UIViewRepresentable {
         }
 
         @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
-            guard !isDunking else { return }
+            guard !isDunking, !engineDrivenDunk else { return }
             isDunking = true
             avatarStateMachine = avatarStateMachine.transitioning(to: .gather, at: CACurrentMediaTime())
             Task { @MainActor in
