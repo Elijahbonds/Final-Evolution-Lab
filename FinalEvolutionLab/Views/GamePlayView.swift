@@ -11,6 +11,7 @@ struct GamePlayView: View {
     @State private var timeRemaining: Int = 60
     @State private var isActive = false
     @State private var showResults = false
+    @State private var gameReady = false
     @State private var roundNumber: Int = 1
     @State private var combo: Int = 0
     @State private var maxCombo: Int = 0
@@ -149,7 +150,34 @@ struct GamePlayView: View {
             }
 
             if showResults {
-                resultsOverlay
+                ResultScreen(
+                    winner: score > opponentScore ? .p1 : (score == opponentScore ? .draw : .p2),
+                    p1Score: score,
+                    p2Score: opponentScore,
+                    title: gameMode.name,
+                    accentColor: gameMode.accentColor,
+                    onReturn: {
+                        finalizeResults()
+                        dismiss()
+                    }
+                )
+            }
+
+            if !gameReady && !showResults {
+                GetReadyScreen(
+                    title: gameMode.name,
+                    subtitle: gameMode.hint,
+                    countdown: 3,
+                    accentColor: gameMode.accentColor,
+                    onComplete: {
+                        gameReady = true
+                        startGame()
+                    }
+                )
+            }
+
+            if isActive && inputScheme == .charge {
+                PS2ControllerShellView()
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -187,7 +215,7 @@ struct GamePlayView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .onAppear { startGame() }
+        .onAppear { }
         .onDisappear { multipeerService.stop() }
     }
 

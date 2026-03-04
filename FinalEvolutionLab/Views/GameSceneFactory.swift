@@ -805,6 +805,7 @@ struct GameSceneFactory {
     private static func addAvatar(to scene: SCNScene, at position: SCNVector3, color: UIColor) {
         let root = SCNNode()
         root.position = position
+        root.name = "avatar"
 
         func limb(radius: CGFloat, height: CGFloat) -> SCNNode {
             let geo = SCNCapsule(capRadius: radius, height: height)
@@ -826,32 +827,41 @@ struct GameSceneFactory {
 
         let head = joint(radius: 0.12)
         head.position = SCNVector3(0, 1.85, 0)
+        head.name = "head"
 
         let torso = limb(radius: 0.05, height: 0.6)
         torso.position = SCNVector3(0, 1.4, 0)
+        torso.name = "torso"
 
         let lArm = limb(radius: 0.03, height: 0.35)
         lArm.position = SCNVector3(-0.2, 1.55, 0)
         lArm.eulerAngles.z = 0.4
+        lArm.name = "lArm"
 
         let rArm = limb(radius: 0.03, height: 0.35)
         rArm.position = SCNVector3(0.2, 1.55, 0)
         rArm.eulerAngles.z = -0.4
+        rArm.name = "rArm"
 
         let lLeg = limb(radius: 0.04, height: 0.5)
         lLeg.position = SCNVector3(-0.1, 0.75, 0)
+        lLeg.name = "lLeg"
 
         let rLeg = limb(radius: 0.04, height: 0.5)
         rLeg.position = SCNVector3(0.1, 0.75, 0)
+        rLeg.name = "rLeg"
 
         let lShin = limb(radius: 0.035, height: 0.45)
         lShin.position = SCNVector3(-0.1, 0.3, 0)
+        lShin.name = "lShin"
 
         let rShin = limb(radius: 0.035, height: 0.45)
         rShin.position = SCNVector3(0.1, 0.3, 0)
+        rShin.name = "rShin"
 
         let hip = joint(radius: 0.06)
         hip.position = SCNVector3(0, 1.05, 0)
+        hip.name = "hip"
 
         for node in [head, torso, lArm, rArm, lLeg, rLeg, lShin, rShin, hip] {
             root.addChildNode(node)
@@ -859,11 +869,98 @@ struct GameSceneFactory {
 
         scene.rootNode.addChildNode(root)
 
+        addAvatarPoseAnimations(root: root, lArm: lArm, rArm: rArm, lLeg: lLeg, rLeg: rLeg, torso: torso)
+    }
+
+    private static func addAvatarPoseAnimations(root: SCNNode, lArm: SCNNode, rArm: SCNNode, lLeg: SCNNode, rLeg: SCNNode, torso: SCNNode) {
         let breathe = SCNAction.sequence([
             SCNAction.moveBy(x: 0, y: 0.03, z: 0, duration: 1.2),
             SCNAction.moveBy(x: 0, y: -0.03, z: 0, duration: 1.2)
         ])
-        root.runAction(SCNAction.repeatForever(breathe))
+        root.runAction(SCNAction.repeatForever(breathe), forKey: "breathe")
+
+        let jumpPose = SCNAction.sequence([
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: 0.4, z: 0, duration: 0.3),
+                SCNAction.customAction(duration: 0.3) { node, elapsed in
+                    let t = Float(elapsed / 0.3)
+                    node.scale = SCNVector3(1.0 - t * 0.04, 1.0 + t * 0.08, 1.0 - t * 0.04)
+                }
+            ]),
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: -0.4, z: 0, duration: 0.35),
+                SCNAction.customAction(duration: 0.35) { node, elapsed in
+                    let t = Float(elapsed / 0.35)
+                    node.scale = SCNVector3(1.0 + t * 0.04, 1.0 - t * 0.06, 1.0 + t * 0.04)
+                }
+            ]),
+            SCNAction.customAction(duration: 0.2) { node, elapsed in
+                let t = Float(elapsed / 0.2)
+                let sx = 1.04 - t * 0.04
+                let sy = 0.94 + t * 0.06
+                node.scale = SCNVector3(sx, sy, sx)
+            }
+        ])
+
+        let dunkPose = SCNAction.sequence([
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: 0.6, z: 0, duration: 0.4),
+                SCNAction.rotateBy(x: 0.35, y: 0, z: 0, duration: 0.4),
+                SCNAction.scale(to: 1.05, duration: 0.4)
+            ]),
+            SCNAction.wait(duration: 0.4),
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: -0.6, z: 0, duration: 0.3),
+                SCNAction.rotateBy(x: -0.35, y: 0, z: 0, duration: 0.3),
+                SCNAction.scale(to: 1.0, duration: 0.3)
+            ])
+        ])
+
+        let armSwing = SCNAction.sequence([
+            SCNAction.rotateTo(x: -0.8, y: 0, z: 0.4, duration: 0.25),
+            SCNAction.wait(duration: 0.5),
+            SCNAction.rotateTo(x: 0, y: 0, z: 0.4, duration: 0.3)
+        ])
+        let rArmSwing = SCNAction.sequence([
+            SCNAction.rotateTo(x: -0.8, y: 0, z: -0.4, duration: 0.25),
+            SCNAction.wait(duration: 0.5),
+            SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.3)
+        ])
+
+        let poseSequence = SCNAction.sequence([
+            SCNAction.wait(duration: 3.0),
+            jumpPose,
+            SCNAction.wait(duration: 2.5),
+            dunkPose,
+            SCNAction.wait(duration: 2.0),
+        ])
+        root.runAction(SCNAction.repeatForever(poseSequence), forKey: "poses")
+
+        let armCycle = SCNAction.sequence([
+            SCNAction.wait(duration: 4.0),
+            armSwing,
+            SCNAction.wait(duration: 5.0),
+        ])
+        lArm.runAction(SCNAction.repeatForever(armCycle), forKey: "armPose")
+
+        let rArmCycle = SCNAction.sequence([
+            SCNAction.wait(duration: 6.0),
+            rArmSwing,
+            SCNAction.wait(duration: 3.5),
+        ])
+        rArm.runAction(SCNAction.repeatForever(rArmCycle), forKey: "rArmPose")
+
+        let legShift = SCNAction.sequence([
+            SCNAction.rotateTo(x: 0.15, y: 0, z: 0, duration: 0.8),
+            SCNAction.rotateTo(x: -0.15, y: 0, z: 0, duration: 0.8),
+            SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: 0.6)
+        ])
+        let legCycle = SCNAction.sequence([
+            SCNAction.wait(duration: 2.0),
+            legShift,
+            SCNAction.wait(duration: 3.0)
+        ])
+        lLeg.runAction(SCNAction.repeatForever(legCycle), forKey: "legPose")
     }
 
     private static func addBall(to scene: SCNScene, at position: SCNVector3, color: UIColor) {
