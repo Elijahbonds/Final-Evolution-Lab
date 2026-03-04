@@ -108,9 +108,9 @@ struct BlueprintsView: View {
 
                     Spacer()
 
-                    Link(destination: URL(string: "https://ai.studio/apps/6c9d99ff-4538-45fc-9c87-72fe74457430")!) {
+                    Link(destination: URL(string: "https://youtube.com/@FinalEvolutionFitness")!) {
                         HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.right")
+                            Image(systemName: "play.rectangle.fill")
                                 .font(.system(size: 9, weight: .bold))
                             Text("FULL LIBRARY")
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))

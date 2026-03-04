@@ -7,6 +7,7 @@ struct LabView: View {
     @State private var pulsePhase: CGFloat = 0
     @State private var dunkFlash: Bool = false
     @State private var showCourtExpanded: Bool = false
+    @State private var courtLoaded: Bool = false
     @State private var showSystemScan: Bool = false
     @State private var showBiomechanicsDetail: Bool = false
     @State private var showGlobalMatchmaking: Bool = false
@@ -44,6 +45,10 @@ struct LabView: View {
         .background(Theme.deepBlack)
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
+            Task {
+                try? await Task.sleep(for: .milliseconds(600))
+                withAnimation(.spring(response: 0.4)) { courtLoaded = true }
+            }
         }
         .sheet(isPresented: $showSystemScan) {
             SystemScanView(
@@ -328,20 +333,37 @@ struct LabView: View {
             }
 
             ZStack {
-                CourtSceneView(
-                    neuralDrive: effectiveMetrics.neuralDrive,
-                    verticalPotential: effectiveMetrics.verticalPotential,
-                    auraLevel: viewModel.arcadePhysics.auraLevel,
-                    movementSignature: viewModel.activeMovementSignature,
-                    onDunkTriggered: {
-                        withAnimation(.easeOut(duration: 0.15)) { dunkFlash = true }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            withAnimation(.easeIn(duration: 0.3)) { dunkFlash = false }
+                if courtLoaded {
+                    CourtSceneView(
+                        neuralDrive: effectiveMetrics.neuralDrive,
+                        verticalPotential: effectiveMetrics.verticalPotential,
+                        auraLevel: viewModel.arcadePhysics.auraLevel,
+                        movementSignature: viewModel.activeMovementSignature,
+                        onDunkTriggered: {
+                            withAnimation(.easeOut(duration: 0.15)) { dunkFlash = true }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                withAnimation(.easeIn(duration: 0.3)) { dunkFlash = false }
+                            }
                         }
-                    }
-                )
-                .frame(height: showCourtExpanded ? 380 : 240)
-                .clipShape(.rect(cornerRadius: 20))
+                    )
+                    .frame(height: showCourtExpanded ? 380 : 240)
+                    .clipShape(.rect(cornerRadius: 20))
+                    .transition(.opacity)
+                } else {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Theme.cardBackground)
+                        .frame(height: 240)
+                        .overlay {
+                            VStack(spacing: 12) {
+                                ProgressView()
+                                    .tint(Theme.brandBlue)
+                                Text("LOADING COURT")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(Theme.brandBlue.opacity(0.6))
+                                    .tracking(2)
+                            }
+                        }
+                }
 
                 if dunkFlash {
                     RoundedRectangle(cornerRadius: 20)

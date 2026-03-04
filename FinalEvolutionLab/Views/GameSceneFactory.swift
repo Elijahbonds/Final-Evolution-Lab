@@ -5,10 +5,42 @@ struct GameSceneFactory {
     private static let brandBlue = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
     private static let brandCyan = UIColor(red: 0, green: 0.95, blue: 0.9, alpha: 1)
 
+    struct ArenaTheme {
+        let wallColor: UIColor
+        let wallAccent: UIColor
+        let floorColor: UIColor
+        let ceilingColor: UIColor
+        let ambientIntensity: CGFloat
+        let sunColor: UIColor
+    }
+
+    private static func arenaTheme(for mode: GameModeId) -> ArenaTheme {
+        switch mode {
+        case .basketballHeadToHead:
+            return ArenaTheme(wallColor: UIColor(red: 0.55, green: 0.41, blue: 0.08, alpha: 1), wallAccent: UIColor(red: 0, green: 0.33, blue: 1.0, alpha: 1), floorColor: UIColor(red: 0, green: 0.33, blue: 1.0, alpha: 1), ceilingColor: UIColor(red: 0.10, green: 0.23, blue: 0.36, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1))
+        case .basketballDunkContest:
+            return ArenaTheme(wallColor: UIColor(red: 0.42, green: 0.33, blue: 0.27, alpha: 1), wallAccent: UIColor(red: 0.83, green: 0.33, blue: 0.0, alpha: 1), floorColor: UIColor(red: 0, green: 0.33, blue: 1.0, alpha: 1), ceilingColor: UIColor(red: 0.17, green: 0.09, blue: 0.06, alpha: 1), ambientIntensity: 750, sunColor: UIColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1))
+        case .basketball3v3:
+            return ArenaTheme(wallColor: UIColor(red: 0.35, green: 0.48, blue: 0.54, alpha: 1), wallAccent: UIColor(red: 0, green: 0.95, blue: 1.0, alpha: 1), floorColor: UIColor(red: 0, green: 0.2, blue: 0.4, alpha: 1), ceilingColor: UIColor(red: 0.1, green: 0.17, blue: 0.21, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 0.67, green: 0.87, blue: 1.0, alpha: 1))
+        case .karate:
+            return ArenaTheme(wallColor: UIColor(red: 0.24, green: 0.16, blue: 0.08, alpha: 1), wallAccent: UIColor(red: 0.55, green: 0.27, blue: 0.07, alpha: 1), floorColor: UIColor(red: 0.17, green: 0.09, blue: 0.06, alpha: 1), ceilingColor: UIColor(red: 0.1, green: 0.06, blue: 0.03, alpha: 1), ambientIntensity: 600, sunColor: UIColor(red: 0.91, green: 0.77, blue: 0.63, alpha: 1))
+        case .baseball:
+            return ArenaTheme(wallColor: UIColor(red: 0.18, green: 0.29, blue: 0.18, alpha: 1), wallAccent: UIColor(red: 0.13, green: 0.55, blue: 0.13, alpha: 1), floorColor: UIColor(red: 0.06, green: 0.17, blue: 0.08, alpha: 1), ceilingColor: UIColor(red: 0.05, green: 0.12, blue: 0.05, alpha: 1), ambientIntensity: 650, sunColor: UIColor(red: 0.56, green: 0.93, blue: 0.56, alpha: 1))
+        case .golf:
+            return ArenaTheme(wallColor: UIColor(red: 0.1, green: 0.24, blue: 0.1, alpha: 1), wallAccent: UIColor(red: 0.18, green: 0.35, blue: 0.18, alpha: 1), floorColor: UIColor(red: 0.05, green: 0.16, blue: 0.09, alpha: 1), ceilingColor: UIColor(red: 0.04, green: 0.12, blue: 0.04, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 0.72, green: 0.9, blue: 0.72, alpha: 1))
+        case .football:
+            return ArenaTheme(wallColor: UIColor(red: 0.12, green: 0.23, blue: 0.37, alpha: 1), wallAccent: UIColor(red: 0.23, green: 0.51, blue: 0.96, alpha: 1), floorColor: UIColor(red: 0.06, green: 0.09, blue: 0.17, alpha: 1), ceilingColor: UIColor(red: 0.05, green: 0.07, blue: 0.13, alpha: 1), ambientIntensity: 600, sunColor: UIColor(red: 0.58, green: 0.77, blue: 0.99, alpha: 1))
+        case .soccer:
+            return ArenaTheme(wallColor: UIColor(red: 0.1, green: 0.28, blue: 0.17, alpha: 1), wallAccent: UIColor(red: 0.13, green: 0.77, blue: 0.37, alpha: 1), floorColor: UIColor(red: 0.05, green: 0.16, blue: 0.09, alpha: 1), ceilingColor: UIColor(red: 0.04, green: 0.12, blue: 0.04, alpha: 1), ambientIntensity: 650, sunColor: UIColor(red: 0.53, green: 0.94, blue: 0.67, alpha: 1))
+        case .tennis:
+            return ArenaTheme(wallColor: UIColor(red: 0.42, green: 0.33, blue: 0.27, alpha: 1), wallAccent: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), floorColor: UIColor(red: 0.05, green: 0.15, blue: 0.08, alpha: 1), ceilingColor: UIColor(red: 0.17, green: 0.09, blue: 0.06, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 1.0, green: 0.85, blue: 0.5, alpha: 1))
+        }
+    }
+
     static func buildScene(for mode: GameModeId) -> SCNScene {
         switch mode {
         case .basketballHeadToHead, .basketballDunkContest, .basketball3v3:
-            return buildBasketballScene()
+            return buildBasketballScene(mode: mode)
         case .karate:
             return buildDojoScene()
         case .baseball:
@@ -24,9 +56,66 @@ struct GameSceneFactory {
         }
     }
 
+    // MARK: - Themed Arena Walls
+
+    private static func addArenaWalls(to scene: SCNScene, mode: GameModeId, width: Float = 16, depth: Float = 14, height: Float = 4) {
+        let theme = arenaTheme(for: mode)
+        let halfW = width / 2
+        let halfD = depth / 2
+        let halfH = height / 2
+        let thick: Float = 0.15
+
+        func wallMat(_ color: UIColor) -> SCNMaterial {
+            let m = SCNMaterial()
+            m.diffuse.contents = color
+            m.emission.contents = color.withAlphaComponent(0.05)
+            m.roughness.contents = 0.85
+            m.isDoubleSided = true
+            return m
+        }
+
+        let backWall = SCNBox(width: CGFloat(width + 0.4), height: CGFloat(height), length: CGFloat(thick), chamferRadius: 0)
+        backWall.materials = [wallMat(theme.wallColor)]
+        let backNode = SCNNode(geometry: backWall)
+        backNode.position = SCNVector3(0, halfH, -halfD)
+        scene.rootNode.addChildNode(backNode)
+
+        let frontWall = SCNBox(width: CGFloat(width + 0.4), height: CGFloat(height), length: CGFloat(thick), chamferRadius: 0)
+        frontWall.materials = [wallMat(theme.wallColor)]
+        let frontNode = SCNNode(geometry: frontWall)
+        frontNode.position = SCNVector3(0, halfH, halfD)
+        scene.rootNode.addChildNode(frontNode)
+
+        let leftWall = SCNBox(width: CGFloat(thick), height: CGFloat(height), length: CGFloat(depth + 0.4), chamferRadius: 0)
+        leftWall.materials = [wallMat(theme.wallColor)]
+        let leftNode = SCNNode(geometry: leftWall)
+        leftNode.position = SCNVector3(-halfW, halfH, 0)
+        scene.rootNode.addChildNode(leftNode)
+
+        let rightWall = SCNBox(width: CGFloat(thick), height: CGFloat(height), length: CGFloat(depth + 0.4), chamferRadius: 0)
+        rightWall.materials = [wallMat(theme.wallColor)]
+        let rightNode = SCNNode(geometry: rightWall)
+        rightNode.position = SCNVector3(halfW, halfH, 0)
+        scene.rootNode.addChildNode(rightNode)
+
+        let accentMat = SCNMaterial()
+        accentMat.diffuse.contents = theme.wallAccent
+        accentMat.emission.contents = theme.wallAccent.withAlphaComponent(0.08)
+        accentMat.roughness.contents = 0.7
+
+        let accentH: Float = 0.15
+        for xPos in [-halfW, halfW] {
+            let stripe = SCNBox(width: 0.1, height: CGFloat(accentH), length: CGFloat(depth), chamferRadius: 0)
+            stripe.materials = [accentMat]
+            let sNode = SCNNode(geometry: stripe)
+            sNode.position = SCNVector3(xPos, accentH + 0.1, 0)
+            scene.rootNode.addChildNode(sNode)
+        }
+    }
+
     // MARK: - Basketball (Venice Beach Court)
 
-    private static func buildBasketballScene() -> SCNScene {
+    private static func buildBasketballScene(mode: GameModeId = .basketballDunkContest) -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.04, alpha: 1)
 
@@ -99,6 +188,7 @@ struct GameSceneFactory {
         let redTint = UIColor(red: 1.0, green: 0.15, blue: 0.1, alpha: 1)
         addAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint)
         addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan)
+        addArenaWalls(to: scene, mode: .karate, width: 12, depth: 12, height: 5)
         addParticles(to: scene, color: UIColor.red.withAlphaComponent(0.15), area: SCNVector3(6, 0.1, 6))
 
         return scene
@@ -153,6 +243,7 @@ struct GameSceneFactory {
         ])
         ballNode.runAction(SCNAction.repeatForever(bob))
 
+        addArenaWalls(to: scene, mode: .baseball, width: 16, depth: 14, height: 5)
         addParticles(to: scene, color: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.15), area: SCNVector3(8, 0.1, 8))
 
         return scene
@@ -215,6 +306,7 @@ struct GameSceneFactory {
         fbNode.position = SCNVector3(0, 1.3, 2)
         scene.rootNode.addChildNode(fbNode)
 
+        addArenaWalls(to: scene, mode: .football, width: 18, depth: 14, height: 5)
         addParticles(to: scene, color: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 0.1), area: SCNVector3(10, 0.1, 6))
 
         return scene
@@ -258,6 +350,7 @@ struct GameSceneFactory {
         sbNode.position = SCNVector3(0, 0.11, 1.5)
         scene.rootNode.addChildNode(sbNode)
 
+        addArenaWalls(to: scene, mode: .soccer, width: 16, depth: 14, height: 4)
         addParticles(to: scene, color: UIColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 0.15), area: SCNVector3(8, 0.1, 5))
 
         return scene
@@ -322,6 +415,7 @@ struct GameSceneFactory {
         gbNode.position = SCNVector3(0, 0.04, 2.8)
         scene.rootNode.addChildNode(gbNode)
 
+        addArenaWalls(to: scene, mode: .golf, width: 16, depth: 14, height: 4)
         addParticles(to: scene, color: UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 0.1), area: SCNVector3(8, 0.1, 8))
 
         return scene
@@ -415,41 +509,48 @@ struct GameSceneFactory {
 
     private static func addVeniceBeachWalls(to scene: SCNScene) {
         let wallHeight: CGFloat = 4
-        let wallThickness: CGFloat = 0.05
+        let wallThickness: CGFloat = 0.15
 
         let sandColor = UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1)
         let skyColor = UIColor(red: 0.15, green: 0.35, blue: 0.65, alpha: 1)
         let boardwalkColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1)
         let palmGreen = UIColor(red: 0.15, green: 0.45, blue: 0.15, alpha: 1)
+        let oceanColor = UIColor(red: 0.12, green: 0.30, blue: 0.55, alpha: 1)
 
-        func wallMaterial(topColor: UIColor, bottomColor: UIColor) -> SCNMaterial {
+        func wallMaterial(_ color: UIColor) -> SCNMaterial {
             let mat = SCNMaterial()
-            mat.diffuse.contents = bottomColor
-            mat.emission.contents = bottomColor.withAlphaComponent(0.05)
+            mat.diffuse.contents = color
+            mat.emission.contents = color.withAlphaComponent(0.05)
             mat.isDoubleSided = true
             return mat
         }
 
         let backWall = SCNBox(width: 16, height: wallHeight, length: wallThickness, chamferRadius: 0)
-        backWall.materials = [wallMaterial(topColor: skyColor, bottomColor: sandColor)]
+        backWall.materials = [wallMaterial(sandColor)]
         let backNode = SCNNode(geometry: backWall)
         backNode.position = SCNVector3(0, Float(wallHeight / 2), -6)
         scene.rootNode.addChildNode(backNode)
 
+        let skyPanel = SCNBox(width: 16, height: wallHeight * 0.4, length: 0.01, chamferRadius: 0)
+        skyPanel.materials = [wallMaterial(skyColor)]
+        let skyNode = SCNNode(geometry: skyPanel)
+        skyNode.position = SCNVector3(0, Float(wallHeight * 0.8), -5.95)
+        scene.rootNode.addChildNode(skyNode)
+
         let frontWall = SCNBox(width: 16, height: wallHeight, length: wallThickness, chamferRadius: 0)
-        frontWall.materials = [wallMaterial(topColor: skyColor, bottomColor: UIColor(red: 0.12, green: 0.30, blue: 0.55, alpha: 1))]
+        frontWall.materials = [wallMaterial(oceanColor)]
         let frontNode = SCNNode(geometry: frontWall)
         frontNode.position = SCNVector3(0, Float(wallHeight / 2), 8)
         scene.rootNode.addChildNode(frontNode)
 
         let leftWall = SCNBox(width: wallThickness, height: wallHeight, length: 14, chamferRadius: 0)
-        leftWall.materials = [wallMaterial(topColor: skyColor, bottomColor: boardwalkColor)]
+        leftWall.materials = [wallMaterial(boardwalkColor)]
         let leftNode = SCNNode(geometry: leftWall)
         leftNode.position = SCNVector3(-8, Float(wallHeight / 2), 1)
         scene.rootNode.addChildNode(leftNode)
 
         let rightWall = SCNBox(width: wallThickness, height: wallHeight, length: 14, chamferRadius: 0)
-        rightWall.materials = [wallMaterial(topColor: skyColor, bottomColor: boardwalkColor)]
+        rightWall.materials = [wallMaterial(boardwalkColor)]
         let rightNode = SCNNode(geometry: rightWall)
         rightNode.position = SCNVector3(8, Float(wallHeight / 2), 1)
         scene.rootNode.addChildNode(rightNode)
@@ -517,7 +618,7 @@ struct GameSceneFactory {
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
-        ambient.light?.color = UIColor(white: 0.12, alpha: 1)
+        ambient.light?.color = UIColor(white: 0.15, alpha: 1)
         scene.rootNode.addChildNode(ambient)
 
         let spot = SCNNode()
