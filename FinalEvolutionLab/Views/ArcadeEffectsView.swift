@@ -170,38 +170,42 @@ struct GameActionFeedback: View {
     let text: String
     let isCritical: Bool
     let isNeuralBurst: Bool
+    var isKarate: Bool = false
 
     var body: some View {
         HStack(spacing: 6) {
-            if isCritical {
+            if isCritical && !isKarate {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Theme.brandCyan)
             }
 
-            if isNeuralBurst {
+            if isNeuralBurst && !isKarate {
                 Image(systemName: "brain.head.profile.fill")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Theme.elitePurple)
             }
 
             Text(text)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.9))
+                .font(.system(size: isKarate ? 22 : 11, weight: .black, design: .monospaced))
+                .foregroundStyle(isKarate ? .orange : .white.opacity(0.9))
+                .shadow(color: isKarate ? .orange.opacity(0.7) : .clear, radius: 12)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, isKarate ? 16 : 12)
+        .padding(.vertical, isKarate ? 10 : 6)
         .background(
-            isCritical ? AnyShapeStyle(Theme.brandCyan.opacity(0.15)) :
-            (isNeuralBurst ? AnyShapeStyle(Theme.elitePurple.opacity(0.15)) : AnyShapeStyle(.ultraThinMaterial))
+            isKarate ? AnyShapeStyle(.orange.opacity(0.12)) :
+            (isCritical ? AnyShapeStyle(Theme.brandCyan.opacity(0.15)) :
+            (isNeuralBurst ? AnyShapeStyle(Theme.elitePurple.opacity(0.15)) : AnyShapeStyle(.ultraThinMaterial)))
         )
         .clipShape(Capsule())
         .overlay(
             Capsule()
                 .stroke(
-                    isCritical ? Theme.brandCyan.opacity(0.3) :
-                    (isNeuralBurst ? Theme.elitePurple.opacity(0.3) : Color.white.opacity(0.1)),
-                    lineWidth: 0.5
+                    isKarate ? Color.orange.opacity(0.4) :
+                    (isCritical ? Theme.brandCyan.opacity(0.3) :
+                    (isNeuralBurst ? Theme.elitePurple.opacity(0.3) : Color.white.opacity(0.1))),
+                    lineWidth: isKarate ? 1.5 : 0.5
                 )
         )
     }

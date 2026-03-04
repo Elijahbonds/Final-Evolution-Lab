@@ -27,7 +27,16 @@ struct GamePlayView: View {
     @State private var showBiomechanicsHUD: Bool = true
     @State private var liveLeakagePenalty: Double = 0
     @State private var leakageFlashJoint: JointType?
+
+    @State private var dunkRound: Int = 1
+    @State private var lastJudgeScores: (Int, Int, Int)?
+    @State private var crowdMessage: String = ""
+    @State private var chakraBar: Double = 0
+    @State private var karateHitFlash: Bool = false
+
     @Environment(\.dismiss) private var dismiss
+
+    private var isKarate: Bool { gameMode.id == .karate }
 
     private var arcadePhysics: ArcadePhysics {
         ArcadePhysics.fromPRQ(
@@ -43,6 +52,18 @@ struct GamePlayView: View {
 
     private var isTimerBased: Bool {
         gameMode.multiplayerType == .realtime
+    }
+
+    private var isDunkContest: Bool {
+        gameMode.id == .basketballDunkContest
+    }
+
+    private var isBlacktop: Bool {
+        gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3
+    }
+
+    private var targetScore: Int {
+        gameMode.id == .basketball3v3 ? 15 : 21
     }
 
     private var maxRounds: Int {
@@ -106,6 +127,13 @@ struct GamePlayView: View {
                 .transition(.opacity)
             }
 
+            if isKarate && karateHitFlash {
+                Color.red.opacity(0.35)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+
             if showResults {
                 resultsOverlay
             }
@@ -149,59 +177,109 @@ struct GamePlayView: View {
         .onDisappear { multipeerService.stop() }
     }
 
+    // MARK: - HUD Bar
+
     private var hudBar: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("YOU")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                Text("\(score)")
-                    .font(.system(size: 32, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .contentTransition(.numericText())
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 4) {
-                Image(systemName: gameMode.iconName)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(gameMode.accentColor)
-
-                if isTimerBased {
-                    Text(timeFormatted)
-                        .font(.system(size: 18, weight: .black, design: .monospaced))
-                        .foregroundStyle(timeRemaining <= 10 ? .red : gameMode.accentColor)
+        ZStack {
+            HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("YOU")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Text("\(score)")
+                        .font(.system(size: 32, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
                         .contentTransition(.numericText())
-                } else {
-                    Text("R\(roundNumber)/\(maxRounds)")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: 4) {
+                    Image(systemName: gameMode.iconName)
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(gameMode.accentColor)
-                }
 
-                if arcadePhysics.neuralBurstActive {
-                    HStack(spacing: 3) {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 8))
-                        Text("1.5x")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                    if isDunkContest {
+                        Text("Round \(dunkRound)/3")
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .foregroundStyle(.orange)
+                    } else if isBlacktop {
+                        Text("First to \(targetScore)")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(gameMode.accentColor)
+                    } else if isTimerBased {
+                        Text(timeFormatted)
+                            .font(.system(size: 18, weight: .black, design: .monospaced))
+                            .foregroundStyle(timeRemaining <= 10 ? .red : gameMode.accentColor)
+                            .contentTransition(.numericText())
+                    } else {
+                        Text("R\(roundNumber)/\(maxRounds)")
+                            .font(.system(size: 14, weight: .black, design: .monospaced))
+                            .foregroundStyle(gameMode.accentColor)
                     }
-                    .foregroundStyle(Theme.elitePurple)
-                }
-            }
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("OPP")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                Text("\(opponentScore)")
-                    .font(.system(size: 32, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .contentTransition(.numericText())
+                    if arcadePhysics.neuralBurstActive {
+                        HStack(spacing: 3) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 8))
+                            Text("1.5x")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(Theme.elitePurple)
+                    }
+                }
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("OPP")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Text("\(opponentScore)")
+                        .font(.system(size: 32, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .contentTransition(.numericText())
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+
+            if isKarate {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("CHAKRA")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.orange.opacity(0.9))
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(Color.black.opacity(0.5))
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.orange, .yellow],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .frame(width: geo.size.width * (chakraBar / 100))
+                                        .animation(.spring(response: 0.3), value: chakraBar)
+                                }
+                            }
+                            .frame(width: 80, height: 6)
+                            .clipShape(.rect(cornerRadius: 3))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 3)
+                                    .stroke(.orange.opacity(0.4), lineWidth: 0.5)
+                            )
+                        }
+                        .padding(.trailing, 20)
+                    }
+                }
+                .padding(.bottom, 4)
+            }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
         .background(Theme.cardBackground.opacity(0.8))
     }
 
@@ -210,6 +288,8 @@ struct GamePlayView: View {
         let secs = timeRemaining % 60
         return String(format: "%d:%02d", mins, secs)
     }
+
+    // MARK: - Scene Area
 
     private var sceneArea: some View {
         ZStack {
@@ -222,16 +302,22 @@ struct GamePlayView: View {
                     HStack {
                         Spacer()
                         VStack(spacing: 4) {
-                            Text("\(combo)x COMBO")
-                                .font(.system(size: 16, weight: .black, design: .monospaced))
-                                .foregroundStyle(combo >= 5 ? Theme.brandCyan : gameMode.accentColor)
-                            Text(String(format: "%.1fx", arcadePhysics.comboMultiplier(for: combo)))
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.6))
+                            Text(isKarate ? "\(combo) HIT COMBO!" : "\(combo)x COMBO")
+                                .font(.system(size: isKarate ? 20 : 16, weight: .black, design: .monospaced))
+                                .foregroundStyle(isKarate ? .orange : (combo >= 5 ? Theme.brandCyan : gameMode.accentColor))
+                                .shadow(color: isKarate ? .orange.opacity(0.6) : .clear, radius: 8)
+                            if !isKarate {
+                                Text(String(format: "%.1fx", arcadePhysics.comboMultiplier(for: combo)))
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.white.opacity(0.6))
+                            }
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(combo >= 5 ? Theme.brandCyan.opacity(0.2) : gameMode.accentColor.opacity(0.15))
+                        .background(
+                            isKarate ? .orange.opacity(0.15) :
+                            (combo >= 5 ? Theme.brandCyan.opacity(0.2) : gameMode.accentColor.opacity(0.15))
+                        )
                         .clipShape(.rect(cornerRadius: 12))
                         .scaleEffect(combo >= 5 ? 1.1 : 1.0)
                         .animation(.spring(response: 0.2, dampingFraction: 0.5), value: combo)
@@ -256,19 +342,77 @@ struct GamePlayView: View {
                     GameActionFeedback(
                         text: lastAction,
                         isCritical: lastActionIsCritical,
-                        isNeuralBurst: lastActionIsBurst
+                        isNeuralBurst: lastActionIsBurst,
+                        isKarate: isKarate
                     )
                     .padding(.top, 8)
                     Spacer()
                 }
             }
+
+            if let judges = lastJudgeScores {
+                dunkJudgeOverlay(j1: judges.0, j2: judges.1, j3: judges.2)
+            }
         }
         .frame(maxHeight: .infinity)
     }
 
+    // MARK: - Dunk Judge Overlay
+
+    private func dunkJudgeOverlay(j1: Int, j2: Int, j3: Int) -> some View {
+        VStack(spacing: 8) {
+            Spacer()
+
+            VStack(spacing: 10) {
+                HStack(spacing: 20) {
+                    judgeScoreView(label: "Judge 1", score: j1)
+                    judgeScoreView(label: "Judge 2", score: j2)
+                    judgeScoreView(label: "Judge 3", score: j3)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.black.opacity(0.8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(.orange.opacity(0.5), lineWidth: 2)
+                        )
+                )
+
+                Text("Total: \(j1 + j2 + j3)")
+                    .font(.system(size: 28, weight: .black))
+                    .foregroundStyle(.white)
+
+                if !crowdMessage.isEmpty {
+                    Text(crowdMessage)
+                        .font(.system(size: 16, weight: .black, design: .monospaced))
+                        .foregroundStyle(.orange)
+                        .tracking(2)
+                }
+            }
+            .padding(.bottom, 80)
+        }
+        .allowsHitTesting(false)
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
+    }
+
+    private func judgeScoreView(label: String, score: Int) -> some View {
+        VStack(spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.6))
+            Text("\(score)")
+                .font(.system(size: 28, weight: .black, design: .monospaced))
+                .foregroundStyle(.orange)
+        }
+    }
+
+    // MARK: - Control Panel
+
     private var controlPanel: some View {
         VStack(spacing: 12) {
-            actionButtons
+            ps2ActionButtons
 
             if !isActive && !showResults {
                 Button {
@@ -314,29 +458,62 @@ struct GamePlayView: View {
         .background(Theme.cardBackground.opacity(0.9))
     }
 
-    private var actionButtons: some View {
-        HStack(spacing: 10) {
-            ForEach(actionsForMode, id: \.self) { action in
+    // MARK: - PS2-Style Action Buttons
+
+    private var ps2ActionButtons: some View {
+        let actions = actionsForMode
+        let ps2Layout = ps2ButtonLayout(for: actions)
+
+        return HStack(spacing: 12) {
+            ForEach(Array(ps2Layout.enumerated()), id: \.offset) { index, btn in
                 Button {
-                    performAction(action)
+                    performAction(btn.action)
                 } label: {
-                    Text(action.uppercased())
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(gameMode.accentColor.opacity(0.2))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(gameMode.accentColor.opacity(0.3), lineWidth: 1)
-                                )
-                        )
+                    VStack(spacing: 4) {
+                        Text(btn.symbol)
+                            .font(.system(size: 18, weight: .black))
+                            .foregroundStyle(btn.color)
+                        Text(btn.action.uppercased())
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(btn.color.opacity(0.12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(btn.color.opacity(0.3), lineWidth: 1.5)
+                            )
+                    )
                 }
                 .disabled(!isActive)
                 .opacity(isActive ? 1 : 0.4)
+                .accessibilityLabel("\(btn.label) – \(btn.action)")
             }
+        }
+    }
+
+    private struct PS2Button {
+        let symbol: String
+        let color: Color
+        let label: String
+        let action: String
+    }
+
+    private func ps2ButtonLayout(for actions: [String]) -> [PS2Button] {
+        let ps2Colors: [(String, Color, String)] = [
+            ("△", Color(red: 0.3, green: 0.78, blue: 0.47), "Triangle"),
+            ("□", Color(red: 0.96, green: 0.44, blue: 0.71), "Square"),
+            ("○", Color(red: 0.97, green: 0.44, blue: 0.44), "Circle"),
+            ("✕", Color(red: 0.38, green: 0.65, blue: 0.98), "Cross"),
+        ]
+
+        return actions.enumerated().map { index, action in
+            let ps2 = ps2Colors[index % ps2Colors.count]
+            return PS2Button(symbol: ps2.0, color: ps2.1, label: ps2.2, action: action)
         }
     }
 
@@ -387,6 +564,8 @@ struct GamePlayView: View {
             }
         }
     }
+
+    // MARK: - Results Overlay
 
     private var resultsOverlay: some View {
         VStack(spacing: 24) {
@@ -543,6 +722,8 @@ struct GamePlayView: View {
         return base + (sessionReadiness / 100.0) * 0.5
     }
 
+    // MARK: - Game Logic
+
     private func startGame() {
         withAnimation { isActive = true }
         score = 0
@@ -551,6 +732,10 @@ struct GamePlayView: View {
         maxCombo = 0
         criticalHits = 0
         roundNumber = 1
+        dunkRound = 1
+        lastJudgeScores = nil
+        crowdMessage = ""
+        chakraBar = 0
         showResults = false
 
         if isTimerBased {
@@ -593,7 +778,10 @@ struct GamePlayView: View {
                 maxCombo = max(maxCombo, combo)
                 lastActionIsCritical = isCritical
                 lastActionIsBurst = arcadePhysics.neuralBurstActive
-                if isCritical {
+
+                if isKarate {
+                    lastAction = karateSuccessFeedback(action: action, isCritical: isCritical, points: finalPoints)
+                } else if isCritical {
                     criticalHits += 1
                     lastAction = "CRITICAL \(action.uppercased()) +\(finalPoints)"
                 } else if arcadePhysics.neuralBurstActive {
@@ -602,7 +790,18 @@ struct GamePlayView: View {
                     lastAction = "\(action.uppercased()) +\(finalPoints)"
                 }
             }
-            if isCritical {
+
+            if isKarate {
+                withAnimation(.spring(response: 0.2)) {
+                    chakraBar = min(100, chakraBar + 25)
+                }
+                triggerKarateHitFlash()
+                triggerScreenShake(intensity: isCritical ? 0.8 : 0.5)
+                if isCritical {
+                    criticalHits += 1
+                    triggerCriticalFlash()
+                }
+            } else if isCritical {
                 triggerCriticalFlash()
                 triggerScreenShake(intensity: 0.6)
             } else {
@@ -612,10 +811,19 @@ struct GamePlayView: View {
 
             triggerImpactFlash()
             resetStreakTimer()
+
+            if isDunkContest {
+                handleDunkJudging()
+            }
         } else {
             withAnimation(.spring(response: 0.3)) {
                 combo = 0
-                lastAction = "MISSED"
+                if isKarate {
+                    lastAction = karateFailFeedback()
+                    chakraBar = max(0, chakraBar - 10)
+                } else {
+                    lastAction = "MISSED"
+                }
                 lastActionIsCritical = false
                 lastActionIsBurst = false
             }
@@ -636,16 +844,81 @@ struct GamePlayView: View {
             multipeerService.sendAction(action, score: score)
         }
 
-        if !isTimerBased {
+        if isBlacktop && score >= targetScore {
+            endGame()
+        } else if !isTimerBased && !isDunkContest && !isBlacktop {
             roundNumber += 1
             if roundNumber > maxRounds {
                 endGame()
             }
         }
 
+        let clearDelay: Double = isKarate ? 1.5 : 2.0
         Task {
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(clearDelay))
             withAnimation { lastAction = "" }
+        }
+    }
+
+    // MARK: - Karate Feedback
+
+    private func karateSuccessFeedback(action: String, isCritical: Bool, points: Int) -> String {
+        let successStrings = ["IPPON!", "STRIKE!", "COUNTER!", "HIT!", "BURST!", "CRITICAL!"]
+        let base = successStrings.randomElement() ?? "HIT!"
+        if isCritical {
+            return "⚡ \(base) +\(points)"
+        }
+        return "\(base) +\(points)"
+    }
+
+    private func karateFailFeedback() -> String {
+        let failStrings = ["BLOCKED!", "MISS!", "SUBSTITUTION!", "DODGED!"]
+        return failStrings.randomElement() ?? "BLOCKED!"
+    }
+
+    private func triggerKarateHitFlash() {
+        withAnimation(.easeOut(duration: 0.05)) { karateHitFlash = true }
+        Task {
+            try? await Task.sleep(for: .milliseconds(120))
+            withAnimation(.easeIn(duration: 0.1)) { karateHitFlash = false }
+        }
+    }
+
+    // MARK: - Dunk Contest Judging
+
+    private func handleDunkJudging() {
+        let pop = Double(physicsConfig.jumpHeight)
+        let isElite = pop > 3.0
+        let base = isElite ? 46 : 40
+        let spread = isElite ? 5 : 8
+        let j1 = min(50, base + Int.random(in: 0..<spread))
+        let j2 = min(50, base + Int.random(in: 0..<spread))
+        let j3 = min(50, base + Int.random(in: 0..<spread))
+        let total = j1 + j2 + j3
+
+        withAnimation(.spring(response: 0.3)) {
+            lastJudgeScores = (j1, j2, j3)
+            if total >= 145 {
+                crowdMessage = "CROWD GOES WILD!"
+            } else if total >= 135 {
+                crowdMessage = "BOOM!"
+            } else {
+                crowdMessage = "NICE DUNK!"
+            }
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(3.5))
+            withAnimation(.easeOut(duration: 0.3)) {
+                lastJudgeScores = nil
+                crowdMessage = ""
+            }
+            withAnimation {
+                dunkRound = min(3, dunkRound + 1)
+            }
+            if dunkRound > 3 {
+                endGame()
+            }
         }
     }
 
