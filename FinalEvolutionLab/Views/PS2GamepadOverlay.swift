@@ -14,33 +14,33 @@ struct PS2GamepadOverlay: View {
                 Spacer()
                 HStack(alignment: .bottom) {
                     dPadCluster
-                        .padding(.leading, 16)
-                        .padding(.bottom, 50)
+                        .padding(.leading, 12)
+                        .padding(.bottom, 44)
 
                     Spacer()
 
                     faceButtonCluster
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 50)
+                        .padding(.trailing, 12)
+                        .padding(.bottom, 44)
                 }
             }
         }
     }
 
     private var dPadCluster: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 2) {
             dPadButton(.up, icon: "chevron.up")
 
-            HStack(spacing: 0) {
+            HStack(spacing: 2) {
                 dPadButton(.left, icon: "chevron.left")
 
-                RoundedRectangle(cornerRadius: 2)
+                RoundedRectangle(cornerRadius: 3)
                     .fill(Color(white: 0.10))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 20, height: 20)
                     .overlay(
                         Circle()
                             .fill(Color(white: 0.08))
-                            .frame(width: 10, height: 10)
+                            .frame(width: 8, height: 8)
                     )
 
                 dPadButton(.right, icon: "chevron.right")
@@ -56,22 +56,22 @@ struct PS2GamepadOverlay: View {
             onDPad(direction)
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white.opacity(0.6))
-                .frame(width: 36, height: 36)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white.opacity(0.7))
+                .frame(width: 52, height: 52)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 6)
                         .fill(
                             LinearGradient(
-                                colors: [Color(white: 0.18), Color(white: 0.10)],
+                                colors: [Color(white: 0.20), Color(white: 0.11)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(Color(white: 0.06), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color(white: 0.08), lineWidth: 1)
                 )
         }
         .disabled(!isActive)
@@ -79,12 +79,12 @@ struct PS2GamepadOverlay: View {
     }
 
     private var faceButtonCluster: some View {
-        let btnSize: CGFloat = 44
+        let btnSize: CGFloat = 56
 
-        return VStack(spacing: 4) {
+        return VStack(spacing: 6) {
             ps2FaceButton(.triangle, symbol: "△", color: Color(red: 0.3, green: 0.78, blue: 0.47), size: btnSize)
 
-            HStack(spacing: 20) {
+            HStack(spacing: 24) {
                 ps2FaceButton(.square, symbol: "□", color: Color(red: 0.96, green: 0.44, blue: 0.71), size: btnSize)
                 ps2FaceButton(.circle, symbol: "○", color: Color(red: 0.97, green: 0.44, blue: 0.44), size: btnSize)
             }
@@ -99,18 +99,18 @@ struct PS2GamepadOverlay: View {
             onFaceButton(button)
         } label: {
             Text(symbol)
-                .font(.system(size: 16, weight: .black))
+                .font(.system(size: 22, weight: .black))
                 .foregroundStyle(color)
                 .frame(width: size, height: size)
                 .background(
                     Circle()
-                        .fill(color.opacity(0.12))
+                        .fill(color.opacity(0.15))
                         .overlay(
                             Circle()
-                                .stroke(color.opacity(0.35), lineWidth: 2)
+                                .stroke(color.opacity(0.4), lineWidth: 2.5)
                         )
                 )
-                .shadow(color: color.opacity(0.2), radius: 4)
+                .shadow(color: color.opacity(0.25), radius: 6)
         }
         .disabled(!isActive)
     }

@@ -35,7 +35,7 @@ struct PS2ControllerShellView: View {
                         .stroke(Color(white: 0.04), lineWidth: 3)
                     )
                     .shadow(color: .black.opacity(0.6), radius: 16, y: 4)
-                    .frame(height: 160)
+                    .frame(height: 200)
                 }
 
                 if showShoulders {
@@ -56,7 +56,7 @@ struct PS2ControllerShellView: View {
                             }
                             .padding(.trailing, 20)
                         }
-                        .padding(.bottom, 140)
+                        .padding(.bottom, 180)
                     }
                 }
 
@@ -64,14 +64,14 @@ struct PS2ControllerShellView: View {
                     Spacer()
                     HStack(alignment: .bottom) {
                         analogStickWell
-                            .padding(.leading, 24)
-                            .padding(.bottom, 24)
+                            .padding(.leading, 28)
+                            .padding(.bottom, 28)
 
                         Spacer()
 
                         analogStickWell
-                            .padding(.trailing, 24)
-                            .padding(.bottom, 24)
+                            .padding(.trailing, 28)
+                            .padding(.bottom, 28)
                     }
                 }
 

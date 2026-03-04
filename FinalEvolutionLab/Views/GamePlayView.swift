@@ -108,6 +108,10 @@ struct GamePlayView: View {
         gameMode.id == .basketballHeadToHead || gameMode.id == .basketballDunkContest || gameMode.id == .basketball3v3
     }
 
+    private var supportsDefense: Bool {
+        gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3
+    }
+
     private var targetScore: Int {
         gameMode.id == .basketball3v3 ? 15 : 21
     }
@@ -272,7 +276,7 @@ struct GamePlayView: View {
                 )
             }
 
-            if isActive && inputScheme == .charge {
+            if isActive && inputScheme == .charge && !isDunkContest {
                 PS2GamepadOverlay(
                     onFaceButton: { button in handlePS2FaceButton(button) },
                     onDPad: { direction in handlePS2DPad(direction) },
@@ -293,7 +297,7 @@ struct GamePlayView: View {
                 contestPillOverlay(percent: pct, label: label, tier: tier)
             }
 
-            if isBasketball && isActive {
+            if supportsDefense && isActive {
                 defensiveControlsOverlay
             }
         }
@@ -740,7 +744,9 @@ struct GamePlayView: View {
         VStack(spacing: 12) {
             switch inputScheme {
             case .charge:
-                if !isActive {
+                if isDunkContest {
+                    dunkContestActionButtons
+                } else if !isActive {
                     ps2ActionButtons
                 } else {
                     chargeModeLiveHint
@@ -1035,6 +1041,61 @@ struct GamePlayView: View {
             }
             .disabled(!isActive)
             .opacity(isActive ? 1 : 0.4)
+        }
+    }
+
+    // MARK: - Dunk Contest Action Buttons
+
+    private var dunkContestActionButtons: some View {
+        let dunkActions = actionsForMode
+        let colors: [Color] = [
+            .orange,
+            Color(red: 1.0, green: 0.3, blue: 0.5),
+            Color(red: 0.3, green: 0.7, blue: 1.0)
+        ]
+
+        return VStack(spacing: 10) {
+            ForEach(Array(dunkActions.enumerated()), id: \.offset) { index, action in
+                Button {
+                    performAction(action)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: dunkIcon(for: action))
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(colors[index % colors.count])
+                            .frame(width: 36)
+                        Text(action.uppercased())
+                            .font(.system(size: 14, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.3))
+                    }
+                    .padding(.horizontal, 18)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 58)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(colors[index % colors.count].opacity(0.12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(colors[index % colors.count].opacity(0.35), lineWidth: 1.5)
+                            )
+                    )
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.5)
+            }
+        }
+    }
+
+    private func dunkIcon(for action: String) -> String {
+        switch action {
+        case "Power Dunk": return "bolt.fill"
+        case "360 Dunk": return "arrow.trianglehead.2.clockwise.rotate.90"
+        case "Windmill": return "wind"
+        default: return "figure.basketball"
         }
     }
 
@@ -2432,7 +2493,7 @@ struct GamePlayView: View {
     }
 
     private func applyContestToShot(baseChance: Double) -> Double {
-        guard isBasketball, defensiveState.handsUp else { return baseChance }
+        guard supportsDefense, defensiveState.handsUp else { return baseChance }
         let result = defensiveState.contestResult()
         let penalty = DefensivePhysics.contestShotPenalty(percent: result.percent)
         let contestedChance = baseChance * (1.0 - penalty)
