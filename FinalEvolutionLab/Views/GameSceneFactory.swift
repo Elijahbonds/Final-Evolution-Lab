@@ -1759,6 +1759,89 @@ struct GameSceneFactory {
         }
     }
 
+    static func updateDunkCamera(in scene: SCNScene, phase: DunkPhase, jumpHeight: Double) {
+        guard let camera = scene.rootNode.childNode(withName: "mainCamera", recursively: true) else { return }
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 0.4
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        switch phase {
+        case .approach:
+            camera.camera?.fieldOfView = CGFloat(DunkCameraConfig.normalFOV)
+            camera.position = SCNVector3(3, 4, 8)
+        case .launch:
+            camera.camera?.fieldOfView = CGFloat(DunkCameraConfig.gatherFOV)
+            camera.position = SCNVector3(2.5, 3.5, 7)
+        case .airborne:
+            camera.camera?.fieldOfView = CGFloat(DunkCameraConfig.flightFOV)
+            let heightOffset = Float(jumpHeight) * 1.5
+            camera.position = SCNVector3(4, 4.5 + heightOffset, 9)
+        case .landing, .scored:
+            camera.camera?.fieldOfView = CGFloat(DunkCameraConfig.impactFOV)
+            camera.position = SCNVector3(1.5, 1.5, 5)
+        case .idle:
+            camera.camera?.fieldOfView = CGFloat(DunkCameraConfig.normalFOV)
+            camera.position = SCNVector3(3, 4, 8)
+        }
+        SCNTransaction.commit()
+    }
+
+    static func triggerRimDistortion(in scene: SCNScene, config: RimDistortionConfig) {
+        guard let hoop = scene.rootNode.childNode(withName: "hoop", recursively: true) ??
+              scene.rootNode.childNodes(passingTest: { node, _ in
+                  node.geometry is SCNTorus && node.position.y > 2.5
+              }).first else { return }
+        let backboardNodes = scene.rootNode.childNodes(passingTest: { node, _ in
+            guard let box = node.geometry as? SCNBox else { return false }
+            return box.width > 1.0 && box.height > 0.5 && node.position.y > 2.5
+        })
+        let flexAmount = Float(config.flexAmount)
+        let flexAction = SCNAction.sequence([
+            SCNAction.moveBy(x: 0, y: CGFloat(-flexAmount * 0.5), z: CGFloat(flexAmount), duration: 0.06),
+            SCNAction.moveBy(x: 0, y: CGFloat(flexAmount * 0.3), z: CGFloat(-flexAmount * 0.7), duration: 0.08),
+            SCNAction.moveBy(x: 0, y: CGFloat(flexAmount * 0.15), z: CGFloat(-flexAmount * 0.2), duration: 0.06),
+            SCNAction.moveBy(x: 0, y: CGFloat(flexAmount * 0.05), z: CGFloat(-flexAmount * 0.1), duration: 0.04)
+        ])
+        hoop.runAction(flexAction, forKey: "rimFlex")
+        for bb in backboardNodes {
+            let bbFlex = SCNAction.sequence([
+                SCNAction.moveBy(x: 0, y: 0, z: CGFloat(config.backboardBounce * 0.3), duration: 0.05),
+                SCNAction.moveBy(x: 0, y: 0, z: CGFloat(-config.backboardBounce * 0.25), duration: 0.08),
+                SCNAction.moveBy(x: 0, y: 0, z: CGFloat(-config.backboardBounce * 0.05), duration: 0.06)
+            ])
+            bb.runAction(bbFlex, forKey: "backboardFlex")
+        }
+    }
+
+    static func triggerDunkImpactParticles(in scene: SCNScene, at position: SCNVector3, modifier: DunkModifier) {
+        let emitter = SCNNode()
+        let particles = SCNParticleSystem()
+        particles.birthRate = modifier == .power ? 60 : (modifier == .signature ? 80 : 30)
+        particles.particleLifeSpan = 0.6
+        particles.particleSize = 0.02
+        particles.particleSizeVariation = 0.015
+        let color: UIColor
+        switch modifier {
+        case .standard: color = UIColor.orange.withAlphaComponent(0.6)
+        case .flashy: color = UIColor(red: 0.8, green: 0.2, blue: 0.9, alpha: 0.7)
+        case .power: color = UIColor(red: 1.0, green: 0.3, blue: 0.1, alpha: 0.8)
+        case .signature: color = UIColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 0.9)
+        }
+        particles.particleColor = color
+        particles.emitterShape = SCNSphere(radius: 0.3)
+        particles.spreadingAngle = 180
+        particles.particleVelocity = 2.0
+        particles.particleVelocityVariation = 1.0
+        particles.blendMode = .additive
+        particles.loops = false
+        particles.emissionDuration = 0.15
+        emitter.addParticleSystem(particles)
+        emitter.position = position
+        scene.rootNode.addChildNode(emitter)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            emitter.removeFromParentNode()
+        }
+    }
+
     static func triggerVanishEffect(in scene: SCNScene, at position: SCNVector3, color: UIColor) {
         let flash = SCNNode()
         let flashGeo = SCNSphere(radius: 0.5)

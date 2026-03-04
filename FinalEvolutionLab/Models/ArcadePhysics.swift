@@ -76,6 +76,51 @@ nonisolated struct ArcadePhysics: Sendable {
         let burst = neuralBurstActive ? Int(Double(base) * 0.5) : 0
         return base + speedBonus + burst
     }
+
+    func dunkContestMultiplier(modifier: DunkModifier, chainLength: Int) -> Double {
+        let modBonus = modifier.scoreMultiplier
+        let chainBonus = 1.0 + Double(max(0, chainLength - 1)) * 0.15
+        let burstBonus = neuralBurstActive ? neuralBurstMultiplier : 1.0
+        return modBonus * chainBonus * burstBonus
+    }
+}
+
+nonisolated struct RimDistortionConfig: Sendable {
+    let flexAmount: Double
+    let shakeIntensity: Double
+    let radialBlurRadius: Double
+    let backboardBounce: Double
+
+    static func forDunk(modifier: DunkModifier, jumpHeight: Double, impactIntensity: Double) -> RimDistortionConfig {
+        let baseFlex: Double
+        switch modifier {
+        case .standard: baseFlex = 0.05
+        case .flashy: baseFlex = 0.08
+        case .power: baseFlex = 0.15
+        case .signature: baseFlex = 0.20
+        }
+        let heightBonus = jumpHeight * 0.05
+        let totalFlex = min(0.25, baseFlex + heightBonus)
+        return RimDistortionConfig(
+            flexAmount: totalFlex,
+            shakeIntensity: impactIntensity * (modifier == .power ? 1.5 : 1.0),
+            radialBlurRadius: modifier == .power ? 12.0 : (modifier == .signature ? 16.0 : 6.0),
+            backboardBounce: totalFlex * 2.0
+        )
+    }
+}
+
+nonisolated struct DunkCameraConfig: Sendable {
+    static let highAngleDeclination: Float = 27.0
+    static let gatherZoomIn: Float = 0.85
+    static let flightZoomOut: Float = 1.3
+    static let impactZoomIn: Float = 0.7
+    static let normalFOV: Float = 48
+    static let gatherFOV: Float = 42
+    static let flightFOV: Float = 55
+    static let impactFOV: Float = 38
+    static let hypeCamFloorLevel: Float = 0.3
+    static let slowMoApexTrack: Bool = true
 }
 
 nonisolated enum AuraLevel: String, Sendable {

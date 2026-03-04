@@ -22,6 +22,188 @@ nonisolated struct InputManager: Sendable {
     }
 }
 
+nonisolated enum ArcadeFaceButton: String, Sendable, CaseIterable {
+    case square
+    case triangle
+    case circle
+    case cross
+
+    var dunkCategory: String {
+        switch self {
+        case .square: return "Windmill"
+        case .triangle: return "Contortion"
+        case .circle: return "Power"
+        case .cross: return "Technical"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .square: return "□"
+        case .triangle: return "△"
+        case .circle: return "○"
+        case .cross: return "✕"
+        }
+    }
+
+    var displayColor: (r: Double, g: Double, b: Double) {
+        switch self {
+        case .square: return (0.96, 0.44, 0.71)
+        case .triangle: return (0.3, 0.78, 0.47)
+        case .circle: return (0.97, 0.44, 0.44)
+        case .cross: return (0.38, 0.65, 0.98)
+        }
+    }
+}
+
+nonisolated enum DunkModifier: String, Sendable {
+    case standard
+    case flashy
+    case power
+    case signature
+
+    var label: String {
+        switch self {
+        case .standard: return "STANDARD"
+        case .flashy: return "FLASHY"
+        case .power: return "POWER"
+        case .signature: return "SIGNATURE"
+        }
+    }
+
+    var scoreMultiplier: Double {
+        switch self {
+        case .standard: return 1.0
+        case .flashy: return 1.25
+        case .power: return 1.35
+        case .signature: return 1.8
+        }
+    }
+}
+
+nonisolated struct InputBufferEntry: Sendable {
+    let button: ArcadeFaceButton
+    let timestamp: Double
+    let modifier: DunkModifier
+}
+
+nonisolated struct ArcadeInputBuffer: Sendable {
+    static let bufferWindowFrames: Int = 4
+    static let bufferWindowSeconds: Double = Double(bufferWindowFrames) / 60.0
+    static let doubleTapWindow: Double = 0.25
+    static let comboChainWindow: Double = 0.4
+
+    let entries: [InputBufferEntry]
+
+    init(entries: [InputBufferEntry] = []) {
+        self.entries = entries
+    }
+
+    func adding(_ entry: InputBufferEntry) -> ArcadeInputBuffer {
+        var updated = entries.filter { entry.timestamp - $0.timestamp < Self.comboChainWindow }
+        updated.append(entry)
+        if updated.count > 8 { updated = Array(updated.suffix(8)) }
+        return ArcadeInputBuffer(entries: updated)
+    }
+
+    var lastEntry: InputBufferEntry? { entries.last }
+
+    func isDoubleTap(_ button: ArcadeFaceButton) -> Bool {
+        let matching = entries.filter { $0.button == button }
+        guard matching.count >= 2 else { return false }
+        let last = matching[matching.count - 1]
+        let prev = matching[matching.count - 2]
+        return (last.timestamp - prev.timestamp) < Self.doubleTapWindow
+    }
+
+    func comboChain() -> [ArcadeFaceButton] {
+        guard let last = entries.last else { return [] }
+        return entries
+            .filter { last.timestamp - $0.timestamp < Self.comboChainWindow }
+            .map { $0.button }
+    }
+
+    var chainLength: Int { comboChain().count }
+
+    func isMidAirBranch() -> Bool {
+        let chain = comboChain()
+        guard chain.count >= 2 else { return false }
+        return chain[chain.count - 1] != chain[chain.count - 2]
+    }
+}
+
+nonisolated struct MidAirTrickState: Sendable {
+    var activeTricks: [ArcadeFaceButton] = []
+    var branchCount: Int = 0
+    var comboMultiplier: Double = 1.0
+    var totalStylePoints: Int = 0
+    var isStyleLandingAvailable: Bool = false
+
+    static let maxBranches: Int = 3
+    static let branchBonusMultiplier: Double = 0.3
+
+    mutating func addTrick(_ button: ArcadeFaceButton) {
+        let isBranch = !activeTricks.isEmpty && activeTricks.last != button
+        activeTricks.append(button)
+        if isBranch && branchCount < Self.maxBranches {
+            branchCount += 1
+            comboMultiplier += Self.branchBonusMultiplier
+        }
+    }
+
+    mutating func addStylePoints(_ points: Int) {
+        totalStylePoints += Int(Double(points) * comboMultiplier)
+    }
+
+    mutating func styleLandingRevert() -> Int {
+        guard isStyleLandingAvailable else { return 0 }
+        isStyleLandingAvailable = false
+        let bonus = Int(Double(totalStylePoints) * 0.25)
+        comboMultiplier += 0.5
+        return bonus
+    }
+
+    mutating func reset() {
+        activeTricks = []
+        branchCount = 0
+        comboMultiplier = 1.0
+        totalStylePoints = 0
+        isStyleLandingAvailable = false
+    }
+
+    var trickChainLabel: String {
+        activeTricks.map { $0.dunkCategory }.joined(separator: " → ")
+    }
+}
+
+nonisolated struct DunkTrickResolver: Sendable {
+    static func resolve(button: ArcadeFaceButton, modifier: DunkModifier, isDoubleTap: Bool) -> DunkTrickSlot {
+        switch button {
+        case .square:
+            if isDoubleTap { return .freeThrowLine }
+            return modifier == .power ? .doubleClutch : .windmill
+        case .triangle:
+            if isDoubleTap { return .elbowHang }
+            return modifier == .flashy ? .betweenLegs : .threeSixty
+        case .circle:
+            if isDoubleTap { return .reverseJam }
+            return modifier == .power ? .freeThrowLine : .tomahawk
+        case .cross:
+            if isDoubleTap { return .doubleClutch }
+            return modifier == .flashy ? .elbowHang : .reverseJam
+        }
+    }
+
+    static func freestylePoints(button: ArcadeFaceButton, modifier: DunkModifier, isDoubleTap: Bool, chainLength: Int) -> Int {
+        let trick = resolve(button: button, modifier: modifier, isDoubleTap: isDoubleTap)
+        let base = trick.baseStylePoints
+        let modBonus = Int(Double(base) * (modifier.scoreMultiplier - 1.0))
+        let chainBonus = chainLength > 1 ? (chainLength - 1) * 3 : 0
+        let doubleTapBonus = isDoubleTap ? 5 : 0
+        return base + modBonus + chainBonus + doubleTapBonus
+    }
+}
+
 nonisolated enum ComboDirection: String, Sendable {
     case up, down, left, right, neutral
 
@@ -189,9 +371,22 @@ nonisolated struct PS2MovementConfig: Sendable {
         cameraTargetLerpFactor: 10
     )
 
+    static let dunkContest = PS2MovementConfig(
+        topSpeed: 10.0,
+        acceleration: 50,
+        deceleration: 80,
+        airControl: 0.65,
+        baseJump: 8.0,
+        chargedJump: 16.0,
+        cameraLerpFactor: 6,
+        cameraTargetLerpFactor: 8
+    )
+
     static func forMode(_ mode: GameModeId) -> PS2MovementConfig {
         switch mode {
-        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3:
+        case .basketballDunkContest:
+            return .dunkContest
+        case .basketballHeadToHead, .basketball3v3:
             return .standard
         case .karate:
             return PS2MovementConfig(

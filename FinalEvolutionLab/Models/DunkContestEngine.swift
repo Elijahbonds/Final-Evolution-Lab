@@ -49,6 +49,15 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
     var baseStylePoints: Int {
         Int(complexity * 20)
     }
+
+    var faceButtonCategory: ArcadeFaceButton {
+        switch self {
+        case .windmill, .freeThrowLine, .doubleClutch: return .square
+        case .betweenLegs, .threeSixty, .elbowHang: return .triangle
+        case .tomahawk, .reverseJam: return .circle
+        case .freeThrowLine: return .cross
+        }
+    }
 }
 
 struct DunkContestState {
@@ -59,12 +68,12 @@ struct DunkContestState {
     var roundScores: [(round: Int, score: Int, message: String)] = []
 
     var sprintCharge: Double = 0
-    var sprintChargeRate: Double = 1.8
+    var sprintChargeRate: Double = 2.2
     var isSprintHeld: Bool = false
 
     var launchTiming: Double = 0
     var launchTimingDirection: Double = 1
-    var launchTimingSpeed: Double = 2.2
+    var launchTimingSpeed: Double = 2.5
     var launchGreenZone: ClosedRange<Double> = 0.4...0.7
 
     var selectedTrick: DunkTrickSlot = .tomahawk
@@ -86,6 +95,15 @@ struct DunkContestState {
     var impactIntensity: Double = 0
     var crowdReaction: String = ""
     var judgeScores: (Int, Int, Int)?
+
+    var activeModifier: DunkModifier = .standard
+    var midAirState = MidAirTrickState()
+    var inputBuffer = ArcadeInputBuffer()
+    var freestyleComboMultiplier: Double = 1.0
+    var styleLandingWindow: Bool = false
+    var styleLandingSuccess: Bool = false
+    var totalFreestylePoints: Int = 0
+    var rimDistortionAmount: Double = 0
 
     var isComplete: Bool {
         round > totalRounds
@@ -117,16 +135,73 @@ struct DunkContestState {
         min(1.0, rotationAmount / rotationTarget)
     }
 
+    var dunkDifficulty: Double {
+        let complexityScore = selectedTrick.complexity
+        let heightScore = jumpHeight
+        let contortionScore = Double(midAirState.branchCount) * 0.2
+        return complexityScore * heightScore * (1.0 + contortionScore)
+    }
+
+    mutating func processArcadeInput(button: ArcadeFaceButton) {
+        guard phase == .airborne else { return }
+        let entry = InputBufferEntry(
+            button: button,
+            timestamp: CACurrentMediaTime(),
+            modifier: activeModifier
+        )
+        inputBuffer = inputBuffer.adding(entry)
+        let isDouble = inputBuffer.isDoubleTap(button)
+        let trick = DunkTrickResolver.resolve(
+            button: button,
+            modifier: activeModifier,
+            isDoubleTap: isDouble
+        )
+        selectedTrick = trick
+        midAirState.addTrick(button)
+        let points = DunkTrickResolver.freestylePoints(
+            button: button,
+            modifier: activeModifier,
+            isDoubleTap: isDouble,
+            chainLength: inputBuffer.chainLength
+        )
+        midAirState.addStylePoints(points)
+        totalFreestylePoints += Int(Double(points) * midAirState.comboMultiplier)
+        if !isRotating { isRotating = true }
+    }
+
+    mutating func setModifier(styleTrigger: Bool, powerTrigger: Bool) {
+        if styleTrigger && powerTrigger {
+            activeModifier = .signature
+        } else if styleTrigger {
+            activeModifier = .flashy
+        } else if powerTrigger {
+            activeModifier = .power
+        } else {
+            activeModifier = .standard
+        }
+    }
+
     mutating func calculateDunkScore(prq: Double, neuralBurst: Bool) -> (total: Int, j1: Int, j2: Int, j3: Int, message: String) {
         let normalized = min(max(prq / 100.0, 0), 1)
 
-        let heightScore = jumpHeight * 25
-        let trickScore = selectedTrick.complexity * 30
-        let executionScore = ((launchQuality + landingQuality) / 2.0) * 25
-        let rotationScore = completedRotation * 10
-        let originalityBonus: Double = trickHistory.filter({ $0 == selectedTrick }).count <= 1 ? 10 : 0
+        let heightScore = jumpHeight * 20
+        let trickScore = selectedTrick.complexity * 25
+        let executionScore = ((launchQuality + landingQuality) / 2.0) * 20
+        let rotationScore = completedRotation * 8
 
-        var rawScore = heightScore + trickScore + executionScore + rotationScore + originalityBonus
+        var originalityBonus: Double = 0
+        let previousCount = trickHistory.filter { $0 == selectedTrick }.count
+        if previousCount == 0 { originalityBonus = 12 }
+        else if previousCount == 1 { originalityBonus = 5 }
+
+        let freestyleBonus = Double(min(totalFreestylePoints, 30))
+        let chainBonus = Double(midAirState.branchCount) * 5
+        let modifierBonus = (activeModifier.scoreMultiplier - 1.0) * 15
+
+        let styleLandingBonus: Double = styleLandingSuccess ? 8 : 0
+
+        var rawScore = heightScore + trickScore + executionScore + rotationScore +
+                       originalityBonus + freestyleBonus + chainBonus + modifierBonus + styleLandingBonus
         rawScore *= (0.85 + normalized * 0.15)
         if neuralBurst { rawScore *= 1.12 }
 
@@ -139,13 +214,15 @@ struct DunkContestState {
 
         let message: String
         if total >= 145 { message = "PERFECT DUNK!" }
-        else if total >= 138 { message = "CROWD GOES WILD!" }
+        else if total >= 140 { message = "LEGENDARY!" }
+        else if total >= 135 { message = "CROWD GOES WILD!" }
         else if total >= 130 { message = "ELECTRIFYING!" }
         else if total >= 120 { message = "POWERFUL!" }
         else if total >= 110 { message = "SOLID DUNK" }
         else { message = "NEEDS WORK" }
 
         impactIntensity = jumpHeight * landingQuality
+        rimDistortionAmount = activeModifier == .power ? 0.15 : (activeModifier == .signature ? 0.2 : 0.08)
         trickHistory.append(selectedTrick)
 
         return (total, j1, j2, j3, message)
@@ -165,6 +242,14 @@ struct DunkContestState {
         impactIntensity = 0
         crowdReaction = ""
         judgeScores = nil
+        midAirState.reset()
+        inputBuffer = ArcadeInputBuffer()
+        freestyleComboMultiplier = 1.0
+        styleLandingWindow = false
+        styleLandingSuccess = false
+        totalFreestylePoints = 0
+        rimDistortionAmount = 0
+        activeModifier = .standard
     }
 
     mutating func releaseSprint() {
@@ -178,28 +263,29 @@ struct DunkContestState {
         let greenWidth = max(0.15, 0.35 - difficulty * 0.12)
         let center = 0.5 + Double.random(in: -0.08...0.08)
         launchGreenZone = (center - greenWidth / 2)...(center + greenWidth / 2)
-        launchTimingSpeed = 2.0 + difficulty * 0.8
+        launchTimingSpeed = 2.2 + difficulty * 0.8
     }
 
     mutating func confirmLaunch() {
         guard phase == .launch else { return }
         phase = .airborne
         airPhaseStart = CACurrentMediaTime()
-        maxAirTime = 1.8 + jumpHeight * 0.8
+        maxAirTime = 2.0 + jumpHeight * 0.8
         rotationTarget = 0.5 + selectedTrick.complexity * 0.5
 
         let difficulty = selectedTrick.complexity
-        let landGreenWidth = max(0.12, 0.30 - difficulty * 0.1)
+        let dd = dunkDifficulty
+        let landGreenWidth = max(0.10, 0.30 - dd * 0.08)
         let landCenter = 0.5 + Double.random(in: -0.06...0.06)
         landingGreenZone = (landCenter - landGreenWidth / 2)...(landCenter + landGreenWidth / 2)
-        landingTimingSpeed = 2.4 + difficulty * 0.6
+        landingTimingSpeed = 2.6 + difficulty * 0.6
     }
 
     mutating func updateAirborne(delta: Double) {
         guard phase == .airborne else { return }
         airTime += delta
         if isRotating {
-            rotationAmount += delta * (1.2 + jumpHeight * 0.5)
+            rotationAmount += delta * (1.4 + jumpHeight * 0.6)
         }
         landingTiming += landingTimingDirection * landingTimingSpeed * delta
         if landingTiming >= 1.0 { landingTimingDirection = -1 }
@@ -210,9 +296,22 @@ struct DunkContestState {
         showApexFreeze = airTime >= apexThreshold && airTime <= apexThreshold + 0.3
         showSlowMo = airTime >= maxAirTime * 0.3 && airTime <= maxAirTime * 0.7
 
+        if airTime >= maxAirTime * 0.85 {
+            styleLandingWindow = true
+            midAirState.isStyleLandingAvailable = true
+        }
+
         if airTime >= maxAirTime {
             phase = .landing
         }
+    }
+
+    mutating func attemptStyleLanding() -> Int {
+        guard styleLandingWindow else { return 0 }
+        styleLandingSuccess = true
+        freestyleComboMultiplier += 0.5
+        let bonus = midAirState.styleLandingRevert()
+        return bonus
     }
 
     mutating func confirmLanding() {
@@ -224,5 +323,8 @@ struct DunkContestState {
         round += 1
         phase = .idle
         selectedTrick = .tomahawk
+        midAirState.reset()
+        inputBuffer = ArcadeInputBuffer()
+        totalFreestylePoints = 0
     }
 }

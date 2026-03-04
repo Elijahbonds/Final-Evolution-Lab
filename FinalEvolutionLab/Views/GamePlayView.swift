@@ -37,6 +37,13 @@ struct GamePlayView: View {
 
     @State private var dunkEngine = DunkContestState()
     @State private var dunkTimerTask: Task<Void, Never>?
+    @State private var styleTriggerHeld: Bool = false
+    @State private var powerTriggerHeld: Bool = false
+    @State private var showComboChain: Bool = false
+    @State private var comboChainText: String = ""
+    @State private var showStyleLanding: Bool = false
+    @State private var styleLandingBonus: Int = 0
+    @State private var showRimDistortion: Bool = false
 
     @State private var golfCharge: Double = 0
     @State private var golfPhase: GolfSwingPhase = .idle
@@ -1370,25 +1377,100 @@ struct GamePlayView: View {
         .allowsHitTesting(false)
     }
 
-    // MARK: - Dunk Contest Controls (Phase-Based)
+    // MARK: - Dunk Contest Controls (Arcade-Tactical)
 
     private var dunkContestActionButtons: some View {
         VStack(spacing: 10) {
             switch dunkEngine.phase {
             case .idle:
                 dunkTrickSelector
+                dunkModifierBar
                 dunkStartButton
             case .approach:
                 dunkSprintChargeView
             case .launch:
                 dunkLaunchTimingView
             case .airborne:
-                dunkAirborneControls
+                dunkArcadeAirborneControls
             case .landing:
                 dunkLandingTimingView
             case .scored:
                 EmptyView()
             }
+        }
+    }
+
+    private var dunkModifierBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                withAnimation(.spring(response: 0.15)) {
+                    styleTriggerHeld.toggle()
+                    dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "l2.button.roundedbottom.horizontal")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("STYLE")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                }
+                .foregroundStyle(styleTriggerHeld ? .black : .purple)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(styleTriggerHeld ? Color.purple : Color.purple.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.purple.opacity(0.4), lineWidth: 1)
+                        )
+                )
+            }
+
+            VStack(spacing: 2) {
+                Text(dunkEngine.activeModifier.label)
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(modifierLabelColor)
+                    .tracking(1)
+                Text(String(format: "%.1fx", dunkEngine.activeModifier.scoreMultiplier))
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .frame(width: 70)
+
+            Button {
+                withAnimation(.spring(response: 0.15)) {
+                    powerTriggerHeld.toggle()
+                    dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "r2.button.roundedbottom.horizontal")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("POWER")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                }
+                .foregroundStyle(powerTriggerHeld ? .black : .red)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(powerTriggerHeld ? Color.red : Color.red.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.red.opacity(0.4), lineWidth: 1)
+                        )
+                )
+            }
+        }
+    }
+
+    private var modifierLabelColor: Color {
+        switch dunkEngine.activeModifier {
+        case .standard: return .white.opacity(0.6)
+        case .flashy: return .purple
+        case .power: return .red
+        case .signature: return .yellow
         }
     }
 
@@ -1575,28 +1657,37 @@ struct GamePlayView: View {
         }
     }
 
-    private var dunkAirborneControls: some View {
-        VStack(spacing: 10) {
+    private var dunkArcadeAirborneControls: some View {
+        VStack(spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "figure.highintensity.intervaltraining")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.purple)
                 Text(dunkEngine.selectedTrick.rawValue)
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
                     .foregroundStyle(.white)
                     .tracking(1)
                 Spacer()
+                if dunkEngine.midAirState.branchCount > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "link")
+                            .font(.system(size: 8, weight: .bold))
+                        Text("\(dunkEngine.midAirState.branchCount)x CHAIN")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.yellow)
+                }
                 Text("\(Int(dunkEngine.completedRotation * 100))%")
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
                     .foregroundStyle(dunkEngine.completedRotation >= 0.9 ? .green : .purple)
                     .contentTransition(.numericText())
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: 5)
                         .fill(Color.black.opacity(0.6))
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: 5)
                         .fill(
                             LinearGradient(
                                 colors: [.purple, dunkEngine.completedRotation >= 0.9 ? .green : .pink],
@@ -1608,46 +1699,100 @@ struct GamePlayView: View {
                         .animation(.linear(duration: 0.05), value: dunkEngine.completedRotation)
                 }
             }
-            .frame(height: 10)
-            .clipShape(.rect(cornerRadius: 6))
+            .frame(height: 8)
+            .clipShape(.rect(cornerRadius: 5))
+
+            if !dunkEngine.midAirState.trickChainLabel.isEmpty {
+                Text(dunkEngine.midAirState.trickChainLabel)
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.cyan.opacity(0.8))
+                    .lineLimit(1)
+                    .transition(.opacity)
+            }
+
+            HStack(spacing: 6) {
+                ForEach(ArcadeFaceButton.allCases, id: \.rawValue) { button in
+                    Button {
+                        handleArcadeDunkButton(button)
+                    } label: {
+                        VStack(spacing: 3) {
+                            Text(button.symbol)
+                                .font(.system(size: 18, weight: .black))
+                                .foregroundStyle(Color(
+                                    red: button.displayColor.r,
+                                    green: button.displayColor.g,
+                                    blue: button.displayColor.b
+                                ))
+                            Text(button.dunkCategory.uppercased())
+                                .font(.system(size: 6, weight: .black, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(
+                                    red: button.displayColor.r,
+                                    green: button.displayColor.g,
+                                    blue: button.displayColor.b
+                                ).opacity(0.12))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color(
+                                            red: button.displayColor.r,
+                                            green: button.displayColor.g,
+                                            blue: button.displayColor.b
+                                        ).opacity(0.35), lineWidth: 1.5)
+                                )
+                        )
+                    }
+                }
+            }
+
+            HStack(spacing: 8) {
+                dunkModifierBar
+            }
 
             HStack(spacing: 10) {
-                Button {
-                    withAnimation(.spring(response: 0.15)) {
-                        dunkEngine.isRotating.toggle()
+                if dunkEngine.styleLandingWindow {
+                    Button {
+                        handleStyleLanding()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "l1.button.roundedbottom.horizontal")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("STYLE LAND")
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            LinearGradient(
+                                colors: [.cyan, .blue],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(.rect(cornerRadius: 12))
+                        .shadow(color: .cyan.opacity(0.4), radius: 8)
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: dunkEngine.isRotating ? "arrow.trianglehead.2.clockwise.rotate.90" : "play.fill")
-                            .font(.system(size: 14, weight: .bold))
-                        Text(dunkEngine.isRotating ? "ROTATING" : "SPIN")
-                            .font(.system(size: 11, weight: .black, design: .monospaced))
-                    }
-                    .foregroundStyle(dunkEngine.isRotating ? .black : .purple)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(
-                        dunkEngine.isRotating ? AnyShapeStyle(Color.purple) : AnyShapeStyle(Color.purple.opacity(0.15))
-                    )
-                    .clipShape(.rect(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.purple.opacity(0.4), lineWidth: 1)
-                    )
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
                 }
 
                 Button {
                     confirmDunkLanding()
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Image(systemName: "arrow.down.to.line.compact")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 13, weight: .bold))
                         Text("SLAM!")
-                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
                     }
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 48)
+                    .frame(height: 44)
                     .background(
                         LinearGradient(
                             colors: [.orange, .yellow],
@@ -1658,6 +1803,23 @@ struct GamePlayView: View {
                     .clipShape(.rect(cornerRadius: 12))
                     .shadow(color: .orange.opacity(0.4), radius: 8)
                 }
+            }
+
+            if dunkEngine.totalFreestylePoints > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.yellow)
+                    Text("FREESTYLE: +\(dunkEngine.totalFreestylePoints)")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.yellow)
+                    if dunkEngine.midAirState.comboMultiplier > 1.0 {
+                        Text(String(format: "(%.1fx)", dunkEngine.midAirState.comboMultiplier))
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.yellow.opacity(0.7))
+                    }
+                }
+                .transition(.opacity)
             }
         }
     }
@@ -2066,6 +2228,13 @@ struct GamePlayView: View {
         dunkEngine = DunkContestState()
         dunkTimerTask?.cancel()
         dunkTimerTask = nil
+        styleTriggerHeld = false
+        powerTriggerHeld = false
+        showComboChain = false
+        comboChainText = ""
+        showStyleLanding = false
+        styleLandingBonus = 0
+        showRimDistortion = false
         chakraBar = 0
         specialMeter = 0
         isModifierHeld = false
@@ -2255,6 +2424,43 @@ struct GamePlayView: View {
         Task {
             try? await Task.sleep(for: .milliseconds(120))
             withAnimation(.easeIn(duration: 0.1)) { karateHitFlash = false }
+        }
+    }
+
+    // MARK: - Arcade Dunk Button Handler
+
+    private func handleArcadeDunkButton(_ button: ArcadeFaceButton) {
+        guard isActive, dunkEngine.phase == .airborne else { return }
+        withAnimation(.spring(response: 0.15, dampingFraction: 0.6)) {
+            dunkEngine.processArcadeInput(button: button)
+            let trick = dunkEngine.selectedTrick
+            lastTrickName = trick.rawValue
+            showTrickText = true
+            lastAction = "+\(dunkEngine.totalFreestylePoints)"
+        }
+        triggerFlash()
+        triggerScreenShake(intensity: 0.3)
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation { showTrickText = false; lastTrickName = "" }
+        }
+    }
+
+    private func handleStyleLanding() {
+        guard isActive, dunkEngine.styleLandingWindow else { return }
+        let bonus = dunkEngine.attemptStyleLanding()
+        if bonus > 0 {
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+                styleLandingBonus = bonus
+                showStyleLanding = true
+                lastAction = "STYLE LANDING! +\(bonus)"
+            }
+            triggerFlash()
+            triggerScreenShake(intensity: 0.5)
+            Task {
+                try? await Task.sleep(for: .seconds(2.0))
+                withAnimation { showStyleLanding = false; lastAction = "" }
+            }
         }
     }
 
