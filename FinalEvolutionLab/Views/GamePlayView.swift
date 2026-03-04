@@ -35,6 +35,9 @@ struct GamePlayView: View {
     @State private var chakraBar: Double = 0
     @State private var karateHitFlash: Bool = false
 
+    @State private var dunkEngine = DunkContestState()
+    @State private var dunkTimerTask: Task<Void, Never>?
+
     @State private var golfCharge: Double = 0
     @State private var golfPhase: GolfSwingPhase = .idle
     @State private var aimPosition: CGPoint = CGPoint(x: 0.5, y: 0.5)
@@ -565,6 +568,10 @@ struct GamePlayView: View {
 
             if let judges = lastJudgeScores {
                 dunkJudgeOverlay(j1: judges.0, j2: judges.1, j3: judges.2)
+            }
+
+            if isDunkContest && isActive && dunkEngine.phase != .idle && dunkEngine.phase != .scored {
+                dunkPhaseOverlay
             }
 
             if (inputScheme == .dragTap || inputScheme == .rallyAce || inputScheme == .penaltyKick) && isActive {
@@ -1363,58 +1370,413 @@ struct GamePlayView: View {
         .allowsHitTesting(false)
     }
 
-    // MARK: - Dunk Contest Action Buttons
+    // MARK: - Dunk Contest Controls (Phase-Based)
 
     private var dunkContestActionButtons: some View {
-        let dunkActions = actionsForMode
-        let colors: [Color] = [
-            .orange,
-            Color(red: 1.0, green: 0.3, blue: 0.5),
-            Color(red: 0.3, green: 0.7, blue: 1.0)
-        ]
-
-        return VStack(spacing: 10) {
-            ForEach(Array(dunkActions.enumerated()), id: \.offset) { index, action in
-                Button {
-                    performAction(action)
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: dunkIcon(for: action))
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(colors[index % colors.count])
-                            .frame(width: 36)
-                        Text(action.uppercased())
-                            .font(.system(size: 14, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.3))
-                    }
-                    .padding(.horizontal, 18)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 58)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(colors[index % colors.count].opacity(0.12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(colors[index % colors.count].opacity(0.35), lineWidth: 1.5)
-                            )
-                    )
-                }
-                .disabled(!isActive)
-                .opacity(isActive ? 1 : 0.5)
+        VStack(spacing: 10) {
+            switch dunkEngine.phase {
+            case .idle:
+                dunkTrickSelector
+                dunkStartButton
+            case .approach:
+                dunkSprintChargeView
+            case .launch:
+                dunkLaunchTimingView
+            case .airborne:
+                dunkAirborneControls
+            case .landing:
+                dunkLandingTimingView
+            case .scored:
+                EmptyView()
             }
         }
     }
 
-    private func dunkIcon(for action: String) -> String {
-        switch action {
-        case "Power Dunk": return "bolt.fill"
-        case "360 Dunk": return "arrow.trianglehead.2.clockwise.rotate.90"
-        case "Windmill": return "wind"
-        default: return "figure.basketball"
+    private var dunkTrickSelector: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.orange)
+                Text("SELECT TRICK")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.orange)
+                    .tracking(2)
+                Spacer()
+                Text("R\(dunkEngine.round)/\(dunkEngine.totalRounds)")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(DunkTrickSlot.allCases, id: \.rawValue) { trick in
+                        Button {
+                            withAnimation(.spring(response: 0.2)) {
+                                dunkEngine.selectedTrick = trick
+                            }
+                        } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: trick.icon)
+                                    .font(.system(size: 16, weight: .bold))
+                                Text(trick.rawValue)
+                                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                                HStack(spacing: 2) {
+                                    ForEach(0..<5, id: \.self) { i in
+                                        Circle()
+                                            .fill(Double(i) / 5.0 < trick.complexity ? .orange : .white.opacity(0.15))
+                                            .frame(width: 4, height: 4)
+                                    }
+                                }
+                            }
+                            .foregroundStyle(dunkEngine.selectedTrick == trick ? .black : .white)
+                            .frame(width: 72, height: 70)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(dunkEngine.selectedTrick == trick ? .orange : .orange.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(dunkEngine.selectedTrick == trick ? .orange : .orange.opacity(0.25), lineWidth: 1.5)
+                                    )
+                            )
+                        }
+                        .disabled(!isActive)
+                    }
+                }
+            }
+            .contentMargins(.horizontal, 0)
+        }
+    }
+
+    private var dunkStartButton: some View {
+        Button {
+            startDunkApproach()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "figure.run")
+                    .font(.system(size: 18, weight: .bold))
+                Text("START APPROACH")
+                    .font(.system(size: 14, weight: .black, design: .monospaced))
+            }
+            .foregroundStyle(.black)
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(
+                LinearGradient(
+                    colors: [.orange, Color(red: 1.0, green: 0.5, blue: 0.0)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(.rect(cornerRadius: 16))
+            .shadow(color: .orange.opacity(0.3), radius: 12)
+        }
+        .disabled(!isActive)
+        .opacity(isActive ? 1 : 0.5)
+    }
+
+    private var dunkSprintChargeView: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.cyan)
+                Text("HOLD TO SPRINT")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .tracking(1)
+                Spacer()
+                Text("\(Int(dunkEngine.sprintCharge * 100))%")
+                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                    .foregroundStyle(.cyan)
+                    .contentTransition(.numericText())
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.black.opacity(0.6))
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(
+                            LinearGradient(
+                                colors: [.cyan, dunkEngine.sprintCharge > 0.8 ? .orange : .blue],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * dunkEngine.sprintCharge)
+                        .animation(.linear(duration: 0.05), value: dunkEngine.sprintCharge)
+                }
+            }
+            .frame(height: 14)
+            .clipShape(.rect(cornerRadius: 6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(.cyan.opacity(0.4), lineWidth: 1)
+            )
+
+            Button {
+                releaseDunkSprint()
+            } label: {
+                Text("RELEASE TO LAUNCH")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(
+                        LinearGradient(
+                            colors: [.cyan, .blue],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(.rect(cornerRadius: 14))
+            }
+        }
+    }
+
+    private var dunkLaunchTimingView: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.green)
+                Text("TAP TO JUMP")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .tracking(1)
+                Spacer()
+            }
+
+            dunkTimingBar(
+                value: dunkEngine.launchTiming,
+                greenZone: dunkEngine.launchGreenZone,
+                accentColor: .green
+            )
+
+            Button {
+                confirmDunkLaunch()
+            } label: {
+                Text("JUMP!")
+                    .font(.system(size: 16, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(
+                        dunkEngine.launchGreenZone.contains(dunkEngine.launchTiming)
+                            ? Color.green
+                            : Color.green.opacity(0.4)
+                    )
+                    .clipShape(.rect(cornerRadius: 14))
+                    .shadow(color: .green.opacity(0.3), radius: 8)
+            }
+        }
+    }
+
+    private var dunkAirborneControls: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "figure.highintensity.intervaltraining")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.purple)
+                Text(dunkEngine.selectedTrick.rawValue)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .tracking(1)
+                Spacer()
+                Text("\(Int(dunkEngine.completedRotation * 100))%")
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(dunkEngine.completedRotation >= 0.9 ? .green : .purple)
+                    .contentTransition(.numericText())
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.black.opacity(0.6))
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(
+                            LinearGradient(
+                                colors: [.purple, dunkEngine.completedRotation >= 0.9 ? .green : .pink],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * min(1, dunkEngine.completedRotation))
+                        .animation(.linear(duration: 0.05), value: dunkEngine.completedRotation)
+                }
+            }
+            .frame(height: 10)
+            .clipShape(.rect(cornerRadius: 6))
+
+            HStack(spacing: 10) {
+                Button {
+                    withAnimation(.spring(response: 0.15)) {
+                        dunkEngine.isRotating.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: dunkEngine.isRotating ? "arrow.trianglehead.2.clockwise.rotate.90" : "play.fill")
+                            .font(.system(size: 14, weight: .bold))
+                        Text(dunkEngine.isRotating ? "ROTATING" : "SPIN")
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(dunkEngine.isRotating ? .black : .purple)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        dunkEngine.isRotating ? AnyShapeStyle(Color.purple) : AnyShapeStyle(Color.purple.opacity(0.15))
+                    )
+                    .clipShape(.rect(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.purple.opacity(0.4), lineWidth: 1)
+                    )
+                }
+
+                Button {
+                    confirmDunkLanding()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.to.line.compact")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("SLAM!")
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        LinearGradient(
+                            colors: [.orange, .yellow],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(.rect(cornerRadius: 12))
+                    .shadow(color: .orange.opacity(0.4), radius: 8)
+                }
+            }
+        }
+    }
+
+    private var dunkLandingTimingView: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.down.to.line.compact")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.orange)
+                Text("STICK THE LANDING!")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .tracking(1)
+                Spacer()
+            }
+
+            dunkTimingBar(
+                value: dunkEngine.landingTiming,
+                greenZone: dunkEngine.landingGreenZone,
+                accentColor: .orange
+            )
+
+            Button {
+                confirmDunkLanding()
+            } label: {
+                Text("LAND!")
+                    .font(.system(size: 16, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(
+                        dunkEngine.landingGreenZone.contains(dunkEngine.landingTiming)
+                            ? Color.orange
+                            : Color.orange.opacity(0.4)
+                    )
+                    .clipShape(.rect(cornerRadius: 14))
+                    .shadow(color: .orange.opacity(0.3), radius: 8)
+            }
+        }
+    }
+
+    private func dunkTimingBar(value: Double, greenZone: ClosedRange<Double>, accentColor: Color) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.black.opacity(0.6))
+
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(accentColor.opacity(0.25))
+                    .frame(
+                        width: geo.size.width * (greenZone.upperBound - greenZone.lowerBound)
+                    )
+                    .offset(x: geo.size.width * greenZone.lowerBound)
+
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(greenZone.contains(value) ? accentColor : .red)
+                    .frame(width: 4)
+                    .offset(x: geo.size.width * value - 2)
+                    .animation(.linear(duration: 0.03), value: value)
+            }
+        }
+        .frame(height: 20)
+        .clipShape(.rect(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(accentColor.opacity(0.3), lineWidth: 1)
+        )
+    }
+
+    private var dunkPhaseOverlay: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                VStack(spacing: 6) {
+                    Text(dunkPhaseLabel)
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(dunkPhaseColor)
+                        .tracking(2)
+                    if dunkEngine.phase == .airborne {
+                        Text(String(format: "HEIGHT: %.0f%%", dunkEngine.jumpHeight * 100))
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.black.opacity(0.6))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(dunkPhaseColor.opacity(0.3), lineWidth: 1)
+                        )
+                )
+                .padding(.trailing, 16)
+                .padding(.bottom, 100)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private var dunkPhaseLabel: String {
+        switch dunkEngine.phase {
+        case .approach: return "SPRINTING"
+        case .launch: return "GATHER"
+        case .airborne: return "IN THE AIR"
+        case .landing: return "LANDING"
+        default: return ""
+        }
+    }
+
+    private var dunkPhaseColor: Color {
+        switch dunkEngine.phase {
+        case .approach: return .cyan
+        case .launch: return .green
+        case .airborne: return .purple
+        case .landing: return .orange
+        default: return .white
         }
     }
 
@@ -1701,6 +2063,9 @@ struct GamePlayView: View {
         dunkRound = 1
         lastJudgeScores = nil
         crowdMessage = ""
+        dunkEngine = DunkContestState()
+        dunkTimerTask?.cancel()
+        dunkTimerTask = nil
         chakraBar = 0
         specialMeter = 0
         isModifierHeld = false
@@ -1893,43 +2258,141 @@ struct GamePlayView: View {
         }
     }
 
-    // MARK: - Dunk Contest Judging
+    // MARK: - Dunk Contest Phase Logic
 
-    private func handleDunkJudging() {
-        let pop = Double(physicsConfig.jumpHeight)
-        let prqBonus = Int(playerPRQ / 25.0)
-        let isElite = pop > 3.0 || playerPRQ >= PRQ.legendaryThreshold
-        let base = (isElite ? 46 : 40) + prqBonus
-        let spread = isElite ? 5 : 8
-        let j1 = min(50, base + Int.random(in: 0..<spread))
-        let j2 = min(50, base + Int.random(in: 0..<spread))
-        let j3 = min(50, base + Int.random(in: 0..<spread))
-        let total = j1 + j2 + j3
+    private func startDunkApproach() {
+        guard isActive, dunkEngine.phase == .idle else { return }
+        withAnimation(.spring(response: 0.2)) {
+            dunkEngine.startApproach()
+        }
+        dunkTimerTask?.cancel()
+        dunkTimerTask = Task {
+            while !Task.isCancelled && dunkEngine.phase == .approach && dunkEngine.isSprintHeld {
+                try? await Task.sleep(for: .milliseconds(16))
+                guard !Task.isCancelled else { return }
+                withAnimation(.linear(duration: 0.016)) {
+                    dunkEngine.sprintCharge = min(1.0, dunkEngine.sprintCharge + 0.016 * dunkEngine.sprintChargeRate)
+                }
+                if dunkEngine.sprintCharge >= 1.0 {
+                    releaseDunkSprint()
+                    return
+                }
+            }
+        }
+    }
 
-        withAnimation(.spring(response: 0.3)) {
-            lastJudgeScores = (j1, j2, j3)
-            if total >= 145 {
-                crowdMessage = "CROWD GOES WILD!"
-            } else if total >= 135 {
-                crowdMessage = "BOOM!"
-            } else {
-                crowdMessage = "NICE DUNK!"
+    private func releaseDunkSprint() {
+        guard dunkEngine.phase == .approach else { return }
+        dunkTimerTask?.cancel()
+        withAnimation(.spring(response: 0.2)) {
+            dunkEngine.releaseSprint()
+        }
+        dunkTimerTask = Task {
+            while !Task.isCancelled && dunkEngine.phase == .launch {
+                try? await Task.sleep(for: .milliseconds(16))
+                guard !Task.isCancelled else { return }
+                withAnimation(.linear(duration: 0.016)) {
+                    dunkEngine.launchTiming += dunkEngine.launchTimingDirection * dunkEngine.launchTimingSpeed * 0.016
+                    if dunkEngine.launchTiming >= 1.0 { dunkEngine.launchTimingDirection = -1 }
+                    if dunkEngine.launchTiming <= 0.0 { dunkEngine.launchTimingDirection = 1 }
+                    dunkEngine.launchTiming = max(0, min(1, dunkEngine.launchTiming))
+                }
+            }
+        }
+    }
+
+    private func confirmDunkLaunch() {
+        guard dunkEngine.phase == .launch else { return }
+        dunkTimerTask?.cancel()
+        let inGreen = dunkEngine.launchGreenZone.contains(dunkEngine.launchTiming)
+        if inGreen {
+            triggerFlash()
+        }
+        withAnimation(.spring(response: 0.2)) {
+            dunkEngine.confirmLaunch()
+            lastAction = inGreen ? "PERFECT LAUNCH!" : "LAUNCHED"
+        }
+        triggerScreenShake(intensity: inGreen ? 0.4 : 0.2)
+
+        dunkTimerTask = Task {
+            while !Task.isCancelled && (dunkEngine.phase == .airborne || dunkEngine.phase == .landing) {
+                try? await Task.sleep(for: .milliseconds(16))
+                guard !Task.isCancelled else { return }
+                withAnimation(.linear(duration: 0.016)) {
+                    dunkEngine.updateAirborne(delta: 0.016)
+                }
+                if dunkEngine.showApexFreeze && !isSlowMo {
+                    triggerSlowMo(duration: 0.8)
+                }
             }
         }
 
         Task {
-            try? await Task.sleep(for: .seconds(3.5))
+            try? await Task.sleep(for: .seconds(1.0))
+            withAnimation { if lastAction == "PERFECT LAUNCH!" || lastAction == "LAUNCHED" { lastAction = "" } }
+        }
+    }
+
+    private func confirmDunkLanding() {
+        guard dunkEngine.phase == .airborne || dunkEngine.phase == .landing else { return }
+        dunkTimerTask?.cancel()
+        withAnimation(.spring(response: 0.15)) {
+            dunkEngine.confirmLanding()
+        }
+        executeDunkScoring()
+    }
+
+    private func executeDunkScoring() {
+        let result = dunkEngine.calculateDunkScore(
+            prq: playerPRQ,
+            neuralBurst: arcadePhysics.neuralBurstActive
+        )
+
+        withAnimation(.spring(response: 0.3)) {
+            lastJudgeScores = (result.j1, result.j2, result.j3)
+            crowdMessage = result.message
+            score += result.total
+            dunkEngine.roundScores.append((round: dunkEngine.round, score: result.total, message: result.message))
+        }
+
+        let impactLevel = dunkEngine.impactIntensity
+        triggerScreenShake(intensity: 0.5 + impactLevel * 0.5)
+        triggerImpactFlash()
+        if result.total >= 138 {
+            triggerCriticalFlash()
+            triggerSlowMo(duration: 1.5)
+        } else if result.total >= 120 {
+            triggerFlash()
+        }
+
+        if dunkEngine.landingQuality > 0.7 {
+            withAnimation(.spring(response: 0.2)) {
+                lastTrickName = dunkEngine.selectedTrick.rawValue
+                showTrickText = true
+            }
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(4.0))
             withAnimation(.easeOut(duration: 0.3)) {
                 lastJudgeScores = nil
                 crowdMessage = ""
+                showTrickText = false
+                lastTrickName = ""
+                lastAction = ""
             }
-            withAnimation {
-                dunkRound = min(3, dunkRound + 1)
+            withAnimation(.spring(response: 0.3)) {
+                dunkEngine.advanceRound()
+                dunkRound = dunkEngine.round
             }
-            if dunkRound > 3 {
+            if dunkEngine.isComplete {
                 endGame()
             }
         }
+    }
+
+    private func handleDunkJudging() {
+        executeDunkScoring()
     }
 
     private func resetStreakTimer() {

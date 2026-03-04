@@ -7,8 +7,10 @@ struct GameSceneFactory {
 
     static func buildScene(for mode: GameModeId) -> SCNScene {
         switch mode {
-        case .basketballHeadToHead, .basketballDunkContest:
+        case .basketballHeadToHead:
             return buildBasketballScene(mode: mode)
+        case .basketballDunkContest:
+            return buildDunkContestScene()
         case .basketball3v3:
             return build3v3Scene()
         case .karate:
@@ -57,6 +59,116 @@ struct GameSceneFactory {
         addBall(to: scene, at: SCNVector3(-1.5, 1.4, 0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
         addVeniceBeachWalls(to: scene)
         addParticles(to: scene, color: brandCyan.withAlphaComponent(0.2), area: SCNVector3(8, 0.1, 5))
+
+        return scene
+    }
+
+    // MARK: - Dunk Contest (Arena)
+
+    private static func buildDunkContestScene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.01, green: 0.01, blue: 0.03, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(3, 4, 8), lookAt: SCNVector3(0, 2.5, -1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1))
+
+        let spotCenter = SCNNode()
+        spotCenter.light = SCNLight()
+        spotCenter.light?.type = .spot
+        spotCenter.light?.color = UIColor(red: 1.0, green: 0.9, blue: 0.7, alpha: 1)
+        spotCenter.light?.intensity = 1800
+        spotCenter.light?.spotInnerAngle = 15
+        spotCenter.light?.spotOuterAngle = 40
+        spotCenter.light?.castsShadow = true
+        spotCenter.light?.shadowRadius = 6
+        spotCenter.light?.shadowMapSize = CGSize(width: 2048, height: 2048)
+        spotCenter.position = SCNVector3(0, 12, 2)
+        spotCenter.look(at: SCNVector3(0, 0, -1))
+        scene.rootNode.addChildNode(spotCenter)
+
+        let spotRim = SCNNode()
+        spotRim.light = SCNLight()
+        spotRim.light?.type = .spot
+        spotRim.light?.color = UIColor.orange.withAlphaComponent(0.8)
+        spotRim.light?.intensity = 800
+        spotRim.light?.spotInnerAngle = 10
+        spotRim.light?.spotOuterAngle = 30
+        spotRim.position = SCNVector3(-2, 8, -3)
+        spotRim.look(at: SCNVector3(2.5, 3, -1))
+        scene.rootNode.addChildNode(spotRim)
+
+        addFloor(to: scene, color: UIColor(red: 0.05, green: 0.04, blue: 0.02, alpha: 1), reflectivity: 0.25)
+
+        let court = SCNBox(width: 12, height: 0.02, length: 8, chamferRadius: 0)
+        let courtMat = SCNMaterial()
+        courtMat.diffuse.contents = UIColor(red: 0.10, green: 0.06, blue: 0.03, alpha: 1)
+        courtMat.roughness.contents = 0.85
+        court.materials = [courtMat]
+        let courtNode = SCNNode(geometry: court)
+        courtNode.position = SCNVector3(0, 0.01, 0)
+        scene.rootNode.addChildNode(courtNode)
+
+        let runway = SCNBox(width: 1.2, height: 0.005, length: 7, chamferRadius: 0)
+        let runwayMat = SCNMaterial()
+        runwayMat.diffuse.contents = UIColor.orange.withAlphaComponent(0.08)
+        runwayMat.emission.contents = UIColor.orange.withAlphaComponent(0.04)
+        runway.materials = [runwayMat]
+        let runwayNode = SCNNode(geometry: runway)
+        runwayNode.position = SCNVector3(0, 0.02, 1)
+        scene.rootNode.addChildNode(runwayNode)
+
+        for i in 0..<6 {
+            let chevron = SCNBox(width: 0.6, height: 0.003, length: 0.04, chamferRadius: 0)
+            let cMat = SCNMaterial()
+            cMat.diffuse.contents = UIColor.orange.withAlphaComponent(0.2 + Double(i) * 0.05)
+            cMat.emission.contents = UIColor.orange.withAlphaComponent(0.1)
+            chevron.materials = [cMat]
+            let cNode = SCNNode(geometry: chevron)
+            cNode.position = SCNVector3(0, 0.025, Float(i) * 1.0 - 1.0)
+            scene.rootNode.addChildNode(cNode)
+        }
+
+        addCourtLines(to: scene)
+        addHoop(to: scene, x: -4.5, flip: true)
+
+        let dunker = brandBlue
+        addAvatar(to: scene, at: SCNVector3(0, 0, 4), color: dunker, name: "dunker")
+        addBall(to: scene, at: SCNVector3(0, 1.4, 4), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
+
+        let judgeColor = UIColor(white: 0.45, alpha: 1)
+        for (i, x) in ([-2.5, 0.0, 2.5] as [Float]).enumerated() {
+            let table = SCNBox(width: 1.2, height: 0.7, length: 0.4, chamferRadius: 0.02)
+            let tMat = SCNMaterial()
+            tMat.diffuse.contents = UIColor(red: 0.08, green: 0.06, blue: 0.04, alpha: 1)
+            table.materials = [tMat]
+            let tNode = SCNNode(geometry: table)
+            tNode.position = SCNVector3(x, 0.35, -5.5)
+            scene.rootNode.addChildNode(tNode)
+            addAvatar(to: scene, at: SCNVector3(x, 0, -5.0), color: judgeColor, name: "judge\(i)")
+        }
+
+        addStadiumStands(to: scene, depth: 12)
+        addStadiumLights(to: scene, width: 12, depth: 12)
+
+        let crowdEmitter = SCNNode()
+        let crowdParticles = SCNParticleSystem()
+        crowdParticles.birthRate = 3
+        crowdParticles.particleLifeSpan = 5
+        crowdParticles.particleSize = 0.015
+        crowdParticles.particleSizeVariation = 0.01
+        crowdParticles.particleColor = UIColor.orange.withAlphaComponent(0.15)
+        crowdParticles.emitterShape = SCNBox(width: 12, height: 0.1, length: 8, chamferRadius: 0)
+        crowdParticles.spreadingAngle = 15
+        crowdParticles.particleVelocity = 0.2
+        crowdParticles.particleVelocityVariation = 0.08
+        crowdParticles.birthDirection = .constant
+        crowdParticles.emittingDirection = SCNVector3(0, 1, 0)
+        crowdParticles.blendMode = .additive
+        crowdEmitter.addParticleSystem(crowdParticles)
+        crowdEmitter.position = SCNVector3(0, 0.1, 0)
+        scene.rootNode.addChildNode(crowdEmitter)
+
+        addVeniceBeachWalls(to: scene)
 
         return scene
     }
