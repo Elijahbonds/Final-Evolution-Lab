@@ -1,0 +1,993 @@
+import SwiftUI
+
+struct LabView: View {
+    let viewModel: LabViewModel
+
+    @State private var appeared = false
+    @State private var pulsePhase: CGFloat = 0
+    @State private var dunkFlash: Bool = false
+    @State private var showCourtExpanded: Bool = false
+    @State private var showSystemScan: Bool = false
+    @State private var showBiomechanicsDetail: Bool = false
+    @State private var showGlobalMatchmaking: Bool = false
+    @State private var pendingArenaMode: GameMode?
+    @State private var sessionReadiness: Double = 50
+    @State private var navigateToArenaGame: Bool = false
+    @Environment(\.simpleMode) private var simpleMode
+
+    private var effectiveMetrics: PerformanceMetrics {
+        viewModel.effectiveMetrics
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                headerSection
+                tierBanner
+                scanSection
+                biomechanicsSection
+                athleteProfileBanner
+                globalArenaCard
+                courtSection
+                neuralDriveCard
+                hrvReadinessCard
+                metricsGrid
+                CreatorCardBoostView(viewModel: viewModel)
+                parentalOverviewSection
+                quickStartSection
+                recentActivitySection
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 32)
+        }
+        .scrollIndicators(.hidden)
+        .background(Theme.deepBlack)
+        .onAppear {
+            withAnimation(.spring(response: 0.6)) { appeared = true }
+        }
+        .sheet(isPresented: $showSystemScan) {
+            SystemScanView(
+                sport: viewModel.profile.sport,
+                goal: viewModel.profile.goal
+            ) { result in
+                viewModel.applyScanResult(result)
+            }
+        }
+        .sheet(isPresented: $showBiomechanicsDetail) {
+            biomechanicsDetailSheet
+        }
+        .sheet(isPresented: $showGlobalMatchmaking) {
+            if let mode = pendingArenaMode {
+                MatchmakingView(viewModel: viewModel, gameMode: mode) { opponent, readiness in
+                    sessionReadiness = readiness
+                    showGlobalMatchmaking = false
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(300))
+                        navigateToArenaGame = true
+                    }
+                }
+            }
+        }
+        .navigationDestination(isPresented: $navigateToArenaGame) {
+            if let mode = pendingArenaMode {
+                GamePlayView(viewModel: viewModel, gameMode: mode, sessionReadiness: sessionReadiness)
+            }
+        }
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("VENICE BEACH")
+                .font(.system(.caption, design: .monospaced, weight: .bold))
+                .foregroundStyle(Theme.brandBlue)
+                .tracking(4)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 10)
+
+            Text("Lab")
+                .font(.system(size: 52, weight: .black, design: .default))
+                .italic()
+                .foregroundStyle(.white)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 15)
+
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Theme.brandBlue)
+                    .frame(width: 8, height: 8)
+                    .symbolEffect(.pulse)
+
+                Text(SimpleModeLabels.neuralEngine(simpleMode))
+                    .font(.system(.caption2, design: .monospaced, weight: .semibold))
+                    .foregroundStyle(Theme.brandBlue.opacity(0.8))
+
+                Spacer()
+
+                NeuralAuraBadge(auraLevel: viewModel.arcadePhysics.auraLevel)
+            }
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 8)
+    }
+
+    private var tierBanner: some View {
+        HStack(spacing: 12) {
+            PRQTierBadge(tier: viewModel.userPRQTier, prq: effectiveMetrics.prqScore)
+
+            Spacer()
+
+            if viewModel.globalLeaderboard.userGlobalRank > 0 {
+                HStack(spacing: 4) {
+                    Image(systemName: "globe")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.brandBlue)
+                    Text("#\(viewModel.globalLeaderboard.userGlobalRank)")
+                        .font(.system(.caption, design: .monospaced, weight: .black))
+                        .foregroundStyle(.white)
+                    Text("GLOBAL")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .tracking(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.04))
+                .clipShape(.rect(cornerRadius: 8))
+            }
+
+            if viewModel.arcadePhysics.neuralBurstActive {
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.elitePurple)
+                    Text("1.5x")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(Theme.elitePurple)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Theme.elitePurple.opacity(0.1))
+                .clipShape(Capsule())
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var biomechanicsSection: some View {
+        if let audit = viewModel.biomechanicsAudit {
+            Button {
+                showBiomechanicsDetail = true
+            } label: {
+                BiomechanicsDashboardCard(audit: audit)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var biomechanicsDetailSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    if let audit = viewModel.biomechanicsAudit {
+                        BiomechanicsDashboardCard(audit: audit)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("JOINT ANALYSIS")
+                                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                                .foregroundStyle(Theme.brandCyan)
+                                .tracking(2)
+
+                            BiomechanicsOverlayView(audit: audit)
+                                .frame(height: 350)
+                                .clipShape(.rect(cornerRadius: 16))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(Theme.cardBackground)
+                                )
+                        }
+
+                        attributeImpactSection(audit: audit)
+                    }
+                }
+                .padding()
+            }
+            .background(Theme.deepBlack)
+            .navigationTitle("Biomechanics Audit")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { showBiomechanicsDetail = false }
+                        .foregroundStyle(Theme.brandCyan)
+                }
+            }
+            .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Theme.deepBlack)
+    }
+
+    private func attributeImpactSection(audit: BiomechanicsAudit) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("ATTRIBUTE IMPACT")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(Theme.brandBlue)
+                .tracking(2)
+
+            VStack(spacing: 8) {
+                AttributeImpactRow(
+                    attribute: "Explosive First Step",
+                    joint: "Ankle",
+                    status: audit.ankleDorsiflexion.status,
+                    modifier: audit.ankleDorsiflexion.status == .deficit ? "0.7x" : (audit.ankleDorsiflexion.status == .moderate ? "0.85x" : "1.0x")
+                )
+                AttributeImpactRow(
+                    attribute: "Success Chance",
+                    joint: "Knee",
+                    status: audit.kneeTracking.status,
+                    modifier: audit.kneeTracking.status == .deficit ? "0.75x" : (audit.kneeTracking.status == .moderate ? "0.88x" : "1.0x")
+                )
+                AttributeImpactRow(
+                    attribute: "Hang Time",
+                    joint: "Hip",
+                    status: audit.hipExtension.status,
+                    modifier: audit.hipExtension.status == .deficit ? "0.7x" : (audit.hipExtension.status == .moderate ? "0.85x" : "1.0x")
+                )
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Theme.brandBlue.opacity(0.15), lineWidth: 1)
+                )
+        )
+    }
+
+    private var globalArenaCard: some View {
+        Button {
+            pendingArenaMode = GameModeRegistry.all.first
+            showGlobalMatchmaking = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.brandCyan.opacity(0.12))
+                        .frame(width: 48, height: 48)
+
+                    Image(systemName: "globe")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                        .symbolEffect(.pulse)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("GLOBAL ARENA")
+                        .font(.system(.subheadline, weight: .black))
+                        .foregroundStyle(.white)
+
+                    HStack(spacing: 8) {
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(.green)
+                                .frame(width: 5, height: 5)
+                            Text("\(viewModel.globalLeaderboard.onlinePlayerCount) online")
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.green.opacity(0.7))
+                        }
+
+                        Text("PRQ-based matchmaking")
+                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Theme.brandCyan.opacity(0.6))
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.brandCyan)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var courtSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("3D COURT")
+                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    .foregroundStyle(Theme.brandBlue)
+                    .tracking(2)
+
+                Spacer()
+
+                Button {
+                    withAnimation(.spring(response: 0.4)) {
+                        showCourtExpanded.toggle()
+                    }
+                } label: {
+                    Image(systemName: showCourtExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.brandBlue)
+                        .padding(8)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(Circle())
+                }
+            }
+
+            ZStack {
+                CourtSceneView(
+                    neuralDrive: effectiveMetrics.neuralDrive,
+                    verticalPotential: effectiveMetrics.verticalPotential,
+                    auraLevel: viewModel.arcadePhysics.auraLevel,
+                    movementSignature: viewModel.activeMovementSignature,
+                    onDunkTriggered: {
+                        withAnimation(.easeOut(duration: 0.15)) { dunkFlash = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            withAnimation(.easeIn(duration: 0.3)) { dunkFlash = false }
+                        }
+                    }
+                )
+                .frame(height: showCourtExpanded ? 380 : 240)
+                .clipShape(.rect(cornerRadius: 20))
+
+                if dunkFlash {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Theme.brandBlue.opacity(0.15))
+                        .allowsHitTesting(false)
+                }
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "hand.tap.fill")
+                    .font(.system(size: 10))
+                Text("Tap court to trigger dunk")
+                    .font(.system(.caption2, design: .monospaced, weight: .medium))
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 10))
+                Text("Drag to orbit camera")
+                    .font(.system(.caption2, design: .monospaced, weight: .medium))
+            }
+            .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Theme.brandBlue.opacity(0.15), lineWidth: 1)
+                )
+        )
+    }
+
+    @ViewBuilder
+    private var scanSection: some View {
+        if let scan = viewModel.profile.systemScan {
+            scanDataDashboard(scan)
+        } else {
+            scanPromptCard
+        }
+    }
+
+    private var scanPromptCard: some View {
+        Button {
+            showSystemScan = true
+        } label: {
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.brandCyan.opacity(0.08))
+                        .frame(width: 72, height: 72)
+
+                    Image(systemName: "figure.basketball")
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                        .symbolEffect(.pulse)
+                }
+
+                VStack(spacing: 6) {
+                    Text("SYSTEM SCAN")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(3)
+
+                    Text("Upload a jump video to get your PRQ")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: "video.badge.plus")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("START SCAN")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                }
+                .foregroundStyle(.black)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 10)
+                .background(Theme.brandCyan)
+                .clipShape(Capsule())
+            }
+            .frame(maxWidth: .infinity)
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func scanDataDashboard(_ scan: SystemScanResult) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("SCAN DATA")
+                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(2)
+
+                    Text(scan.movementGrade)
+                        .font(.system(.title3, weight: .black))
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                Button {
+                    showSystemScan = true
+                } label: {
+                    Text("RESCAN")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Theme.brandCyan.opacity(0.12))
+                        .foregroundStyle(Theme.brandCyan)
+                        .clipShape(Capsule())
+                }
+            }
+
+            HStack(spacing: 10) {
+                ScanStatPill(label: "PRQ", value: String(format: "%.1f", scan.prqScore), color: Theme.brandBlue)
+                ScanStatPill(label: "VERTICAL", value: String(format: "%.1f\"", scan.verticalEstimateInches), color: Theme.brandCyan)
+                ScanStatPill(label: "FLIGHT", value: String(format: "%.2fs", scan.flightTimeSeconds), color: Theme.elitePurple)
+            }
+
+            if let firstNote = scan.notes.first {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.brandBlue)
+                        .padding(.top, 2)
+
+                    Text(firstNote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "clock.fill")
+                    .font(.system(size: 9))
+                Text(scan.date, style: .relative)
+                    .font(.system(size: 10, design: .monospaced))
+                Text("Recommended: \(scan.recommendedTrack)")
+                    .font(.system(size: 10, design: .monospaced))
+            }
+            .foregroundStyle(.tertiary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Theme.brandCyan.opacity(0.15), lineWidth: 1)
+                )
+        )
+    }
+
+    @ViewBuilder
+    private var athleteProfileBanner: some View {
+        if viewModel.profile.sport != nil {
+            HStack(spacing: 12) {
+                Image(systemName: sportIcon(viewModel.profile.sport ?? ""))
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Theme.brandBlue)
+                    .frame(width: 40, height: 40)
+                    .background(Theme.brandBlue.opacity(0.1))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(viewModel.profile.sport?.uppercased() ?? "")
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .foregroundStyle(.white)
+
+                    HStack(spacing: 8) {
+                        if let age = viewModel.profile.age {
+                            Text("Age \(age)")
+                        }
+                        if let goal = viewModel.profile.goal {
+                            Text(goal)
+                        }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Theme.cardBackground)
+            )
+        }
+    }
+
+    private func sportIcon(_ sport: String) -> String {
+        switch sport {
+        case "Basketball": "basketball.fill"
+        case "Football": "football.fill"
+        case "Soccer": "soccerball"
+        case "Baseball": "baseball.fill"
+        case "Track & Field": "figure.run"
+        case "Volleyball": "volleyball.fill"
+        case "Gymnastics": "figure.gymnastics"
+        case "Combat Sports": "figure.martial.arts"
+        case "Golf": "figure.golf"
+        default: "sportscourt.fill"
+        }
+    }
+
+    private var neuralDriveCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(SimpleModeLabels.neuralDrive(simpleMode))
+                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                        .foregroundStyle(Theme.brandBlue)
+                        .tracking(2)
+
+                    Text("\(Int(effectiveMetrics.neuralDrive))%")
+                        .font(.system(size: 44, weight: .black))
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                NeuralDriveOrb(value: effectiveMetrics.neuralDrive)
+                    .frame(width: 80, height: 80)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.06))
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Theme.brandBlue, Theme.brandCyan],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * min(effectiveMetrics.neuralDrive, 100) / 100)
+                        .shadow(color: Theme.brandBlue.opacity(0.5), radius: 8)
+                }
+            }
+            .frame(height: 6)
+
+            if viewModel.arcadePhysics.neuralBurstActive {
+                HStack(spacing: 6) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.elitePurple)
+                    Text("NEURAL BURST ACTIVE — 1.5x SCORING")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(Theme.elitePurple)
+                        .tracking(1)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Theme.elitePurple.opacity(0.08))
+                .clipShape(Capsule())
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Theme.brandBlue.opacity(0.15), lineWidth: 1)
+                )
+        )
+    }
+
+    private var hrvReadinessCard: some View {
+        VStack(spacing: 14) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("NEURAL READINESS")
+                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(2)
+
+                    Text(viewModel.healthKit.neuralReadinessGrade.rawValue)
+                        .font(.system(.title3, weight: .black))
+                        .foregroundStyle(hrvGradeColor)
+                }
+
+                Spacer()
+
+                if viewModel.healthKit.isAuthorized {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(String(format: "%.0f", viewModel.healthKit.neuralReadinessScore))
+                            .font(.system(size: 28, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                        HStack(spacing: 3) {
+                            Image(systemName: viewModel.healthKit.dailyTrend.icon)
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(trendColor)
+                            Text("NRS")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                                .tracking(2)
+                        }
+                    }
+                }
+            }
+
+            if viewModel.healthKit.isAuthorized {
+                HStack(spacing: 10) {
+                    HRVStatPill(
+                        label: "HRV",
+                        value: viewModel.healthKit.hrvValue > 0 ? String(format: "%.0fms", viewModel.healthKit.hrvValue) : "--",
+                        icon: "waveform.path.ecg",
+                        color: Theme.brandCyan
+                    )
+                    HRVStatPill(
+                        label: "RHR",
+                        value: viewModel.healthKit.restingHeartRate > 0 ? String(format: "%.0f", viewModel.healthKit.restingHeartRate) : "--",
+                        icon: "heart.fill",
+                        color: .red
+                    )
+                    HRVStatPill(
+                        label: "BUFF",
+                        value: viewModel.healthKit.arcadePhysicsBuff.isRecoveryMode ? "REST" : String(format: "%.2fx", viewModel.healthKit.arcadePhysicsBuff.speedMultiplier),
+                        icon: "bolt.fill",
+                        color: viewModel.healthKit.arcadePhysicsBuff.isRecoveryMode ? .orange : Theme.elitePurple
+                    )
+                }
+
+                if viewModel.healthKit.weeklyHRVAverage > 0 {
+                    HStack(spacing: 12) {
+                        HStack(spacing: 4) {
+                            Text("7D AVG")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                            Text(String(format: "%.0fms", viewModel.healthKit.weeklyHRVAverage))
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .foregroundStyle(.white)
+                        }
+
+                        HStack(spacing: 3) {
+                            Image(systemName: viewModel.healthKit.dailyTrend.icon)
+                                .font(.system(size: 9, weight: .bold))
+                            Text(viewModel.healthKit.dailyTrend.rawValue)
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        }
+                        .foregroundStyle(trendColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(trendColor.opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                }
+
+                if viewModel.healthKit.arcadePhysicsBuff.isRecoveryMode {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bed.double.fill")
+                            .font(.system(size: 10))
+                        Text("RECOVERY MODE")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        if viewModel.healthKit.recoveryEstimateHours > 0 {
+                            Text("~\(Int(viewModel.healthKit.recoveryEstimateHours))h")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                        }
+                    }
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.08))
+                    .clipShape(Capsule())
+                }
+
+                HStack(spacing: 8) {
+                    if let syncDate = viewModel.healthKit.lastSyncDate {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 8))
+                            Text(syncDate, style: .relative)
+                                .font(.system(size: 9, design: .monospaced))
+                        }
+                        .foregroundStyle(.tertiary)
+                    }
+
+                    Spacer()
+
+                    if viewModel.healthKit.autoRefreshEnabled {
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(.green)
+                                .frame(width: 4, height: 4)
+                            Text("AUTO")
+                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.green.opacity(0.6))
+                        }
+                    }
+                }
+            } else {
+                Button {
+                    Task { await viewModel.connectHealthKit() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "heart.text.clipboard")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("CONNECT APPLE HEALTH")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Theme.brandCyan)
+                    .clipShape(.rect(cornerRadius: 12))
+                }
+
+                Text("Sync HRV & Heart Rate for automated Neural Drive")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Theme.brandCyan.opacity(0.15), lineWidth: 1)
+                )
+        )
+    }
+
+    private var trendColor: Color {
+        switch viewModel.healthKit.dailyTrend {
+        case .improving: .green
+        case .stable: Theme.brandCyan
+        case .declining: .orange
+        }
+    }
+
+    private var hrvGradeColor: Color {
+        switch viewModel.healthKit.neuralReadinessGrade {
+        case .elite: Theme.elitePurple
+        case .primed: Theme.brandBlue
+        case .ready: Theme.foundationGreen
+        case .recovering: .orange
+        }
+    }
+
+    private var metricsGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            MetricCard(title: SimpleModeLabels.prqScore(simpleMode), value: String(format: "%.1f", effectiveMetrics.prqScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
+            MetricCard(title: SimpleModeLabels.efficiency(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.efficiencyScore), icon: "bolt.fill", color: .orange)
+            MetricCard(title: SimpleModeLabels.readiness(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.readinessScore), icon: "heart.fill", color: .red)
+            MetricCard(title: SimpleModeLabels.evolutionShards(simpleMode), value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)
+        }
+    }
+
+    private var quickStartSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("QUICK START")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            ForEach(viewModel.tracks) { track in
+                TrackQuickStartRow(track: track)
+            }
+        }
+    }
+
+    private var parentalOverviewSection: some View {
+        ParentalOverviewCard(
+            prqScore: viewModel.profile.metrics.prqScore,
+            readinessScore: viewModel.profile.metrics.readinessScore,
+            evolutionShards: viewModel.profile.evolutionShards
+        )
+    }
+
+    private var recentActivitySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("RECENT ACTIVITY")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            if viewModel.sessions.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "figure.run.circle")
+                        .font(.system(size: 36))
+                        .foregroundStyle(Theme.brandBlue.opacity(0.4))
+                    Text("No workouts yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("Start a track to begin your evolution")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+            } else {
+                ForEach(viewModel.sessions.suffix(3).reversed()) { session in
+                    SessionRow(session: session, tracks: viewModel.tracks)
+                }
+            }
+        }
+    }
+}
+
+struct AttributeImpactRow: View {
+    let attribute: String
+    let joint: String
+    let status: JointStatus
+    let modifier: String
+
+    private var statusColor: Color {
+        switch status {
+        case .optimal: Theme.brandCyan
+        case .moderate: .orange
+        case .deficit: .red
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(attribute.uppercased())
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
+                Text("\(joint) → \(status.label)")
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text(modifier)
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundStyle(statusColor)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(statusColor.opacity(0.04))
+        )
+    }
+}
+
+struct TrackQuickStartRow: View {
+    let track: CurriculumTrack
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Theme.difficultyColor(track.difficulty).opacity(0.15))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: trackIcon)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Theme.difficultyColor(track.difficulty))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(track.name.uppercased())
+                    .font(.system(.subheadline, weight: .bold))
+                    .foregroundStyle(.white)
+
+                Text(track.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Theme.cardBorder, lineWidth: 0.5)
+                )
+        )
+    }
+
+    private var trackIcon: String {
+        switch track.difficulty {
+        case .foundation: "1.circle.fill"
+        case .flight: "2.circle.fill"
+        case .elite: "3.circle.fill"
+        }
+    }
+}
+
+struct SessionRow: View {
+    let session: WorkoutSession
+    let tracks: [CurriculumTrack]
+
+    private var trackName: String {
+        tracks.first(where: { $0.id == session.trackId })?.name ?? "Workout"
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(trackName.uppercased())
+                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                    .foregroundStyle(.white)
+
+                Text("\(session.exercisesCompleted)/\(session.totalExercises) exercises")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("+\(session.shardsEarned)")
+                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                    .foregroundStyle(Theme.brandCyan)
+
+                Text(session.date, style: .relative)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+        )
+    }
+}
