@@ -79,6 +79,23 @@ nonisolated enum AuraLevel: String, Sendable {
     }
 }
 
+nonisolated struct DunkPhysicsConfig: Sendable {
+    static let qteWindowSeconds: Double = 0.4
+
+    let launchUpward: Float
+    let launchForward: Float
+    let hangTimeMultiplier: Float
+
+    static func fromPRQ(_ prq: Double, physicsConfig: GamePhysicsConfig) -> DunkPhysicsConfig {
+        let normalized = Float(min(max(prq / 100.0, 0), 1))
+        return DunkPhysicsConfig(
+            launchUpward: 15 + normalized * 5,
+            launchForward: 3.5 + normalized * 1.5,
+            hangTimeMultiplier: 1.0 + normalized * 0.5
+        )
+    }
+}
+
 nonisolated struct GamePhysicsConfig: Sendable {
     let jumpHeight: Float
     let moveSpeed: Float

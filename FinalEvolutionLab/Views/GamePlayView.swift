@@ -1193,13 +1193,21 @@ struct GamePlayView: View {
             }
         }
 
-        let oppDifficulty = 0.45 - (sessionReadiness / 400)
-        let oppChance = Double.random(in: 0...1) > oppDifficulty
-        if oppChance {
+        let ddaChance = DynamicDifficulty.opponentSuccessChance(
+            baseChance: 0.55,
+            playerScore: score,
+            aiScore: opponentScore,
+            sessionReadiness: sessionReadiness
+        )
+        if Double.random(in: 0...1) < ddaChance {
             Task {
                 try? await Task.sleep(for: .milliseconds(500))
                 withAnimation {
-                    opponentScore += Int.random(in: 1...3)
+                    opponentScore += DynamicDifficulty.opponentPoints(
+                        playerScore: score,
+                        aiScore: opponentScore,
+                        maxPoints: 3
+                    )
                 }
             }
         }
@@ -1437,11 +1445,24 @@ struct GamePlayView: View {
             }
         }
 
-        let oppDifficulty = 0.45 - (sessionReadiness / 400)
-        if gameMode.id != .football && Double.random(in: 0...1) > oppDifficulty {
-            Task {
-                try? await Task.sleep(for: .milliseconds(500))
-                withAnimation { opponentScore += Int.random(in: 1...2) }
+        if gameMode.id != .football {
+            let ddaChance = DynamicDifficulty.opponentSuccessChance(
+                baseChance: 0.55,
+                playerScore: score,
+                aiScore: opponentScore,
+                sessionReadiness: sessionReadiness
+            )
+            if Double.random(in: 0...1) < ddaChance {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    withAnimation {
+                        opponentScore += DynamicDifficulty.opponentPoints(
+                            playerScore: score,
+                            aiScore: opponentScore,
+                            maxPoints: 2
+                        )
+                    }
+                }
             }
         }
 

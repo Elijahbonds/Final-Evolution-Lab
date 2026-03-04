@@ -54,6 +54,10 @@ struct CourtSceneView: UIViewRepresentable {
         private var ballNode: SCNNode!
         private var auraNode: SCNNode?
         private var isDunking = false
+        private var avatarStateMachine = AvatarStateMachine()
+        private let movementConfig = PS2MovementConfig.standard
+        private var smoothedCameraPosition = SCNVector3(4, 3.5, 6)
+        private var smoothedCameraTarget = SCNVector3(0, 1.5, 0)
 
         init(neuralDrive: Double, verticalPotential: Double, auraLevel: AuraLevel, movementSignature: MovementSignature, onDunk: @escaping () -> Void) {
             self.neuralDrive = neuralDrive
@@ -81,6 +85,7 @@ struct CourtSceneView: UIViewRepresentable {
             buildVeniceBeachWalls()
             buildParticleAmbience()
             buildAuraEffect()
+            startPS2CameraLoop()
         }
 
         private func buildCamera() {
@@ -494,10 +499,39 @@ struct CourtSceneView: UIViewRepresentable {
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
             guard !isDunking else { return }
             isDunking = true
+            avatarStateMachine = avatarStateMachine.transitioning(to: .gather, at: CACurrentMediaTime())
             Task { @MainActor in
                 onDunk()
             }
             performDunkAnimation()
+        }
+
+        private func startPS2CameraLoop() {
+            let cameraAction = SCNAction.customAction(duration: 1000) { [weak self] _, elapsed in
+                guard let self, let camNode = self.scene.rootNode.childNodes.first(where: { $0.camera != nil }) else { return }
+                let delta: Float = 1.0 / 60.0
+                let cameraLerp = 1.0 - exp(-self.movementConfig.cameraLerpFactor * delta)
+                let targetLerp = 1.0 - exp(-self.movementConfig.cameraTargetLerpFactor * delta)
+
+                let avatarPos = self.avatarRoot?.position ?? SCNVector3(0, 0, 0)
+                let targetCamPos = SCNVector3(avatarPos.x + 4, avatarPos.y + 3.5, avatarPos.z + 6)
+                let targetLookAt = SCNVector3(avatarPos.x, avatarPos.y + 1.5, avatarPos.z)
+
+                self.smoothedCameraPosition = SCNVector3(
+                    self.smoothedCameraPosition.x + (targetCamPos.x - self.smoothedCameraPosition.x) * cameraLerp,
+                    self.smoothedCameraPosition.y + (targetCamPos.y - self.smoothedCameraPosition.y) * cameraLerp,
+                    self.smoothedCameraPosition.z + (targetCamPos.z - self.smoothedCameraPosition.z) * cameraLerp
+                )
+                self.smoothedCameraTarget = SCNVector3(
+                    self.smoothedCameraTarget.x + (targetLookAt.x - self.smoothedCameraTarget.x) * targetLerp,
+                    self.smoothedCameraTarget.y + (targetLookAt.y - self.smoothedCameraTarget.y) * targetLerp,
+                    self.smoothedCameraTarget.z + (targetLookAt.z - self.smoothedCameraTarget.z) * targetLerp
+                )
+
+                camNode.position = self.smoothedCameraPosition
+                camNode.look(at: self.smoothedCameraTarget)
+            }
+            scene.rootNode.runAction(SCNAction.repeatForever(cameraAction), forKey: "ps2Camera")
         }
 
         private func performDunkAnimation() {
@@ -555,8 +589,11 @@ struct CourtSceneView: UIViewRepresentable {
                 SCNAction.wait(duration: 0.3)
             ])
 
+            avatarStateMachine = avatarStateMachine.transitioning(to: .dunk, at: CACurrentMediaTime())
+
             avatarRoot.runAction(sequence) { [weak self] in
                 self?.isDunking = false
+                self?.avatarStateMachine = self?.avatarStateMachine.transitioning(to: .idle, at: CACurrentMediaTime()) ?? AvatarStateMachine()
                 let breathe = SCNAction.sequence([
                     SCNAction.moveBy(x: 0, y: 0.03, z: 0, duration: 1.2),
                     SCNAction.moveBy(x: 0, y: -0.03, z: 0, duration: 1.2)
