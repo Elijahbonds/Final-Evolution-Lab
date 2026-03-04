@@ -112,21 +112,16 @@ struct CourtSceneView: UIViewRepresentable {
             cameraNode.camera = SCNCamera()
             cameraNode.camera?.fieldOfView = 48
             cameraNode.camera?.zNear = 0.1
-            cameraNode.camera?.zFar = 120
+            cameraNode.camera?.zFar = 80
             cameraNode.camera?.wantsHDR = true
-            cameraNode.camera?.bloomIntensity = 0.8
-            cameraNode.camera?.bloomThreshold = 0.6
-            cameraNode.camera?.bloomBlurRadius = 12
-            cameraNode.camera?.wantsDepthOfField = true
-            cameraNode.camera?.focalLength = 28
-            cameraNode.camera?.fStop = 2.8
-            cameraNode.camera?.focusDistance = 6
-            cameraNode.camera?.motionBlurIntensity = 0.15
-            cameraNode.camera?.vignettingIntensity = 0.6
+            cameraNode.camera?.bloomIntensity = 0.5
+            cameraNode.camera?.bloomThreshold = 0.65
+            cameraNode.camera?.bloomBlurRadius = 8
+            cameraNode.camera?.wantsDepthOfField = false
+            cameraNode.camera?.vignettingIntensity = 0.5
             cameraNode.camera?.vignettingPower = 1.2
-            cameraNode.camera?.colorGrading.contents = UIColor(red: 0.02, green: 0.03, blue: 0.06, alpha: 1)
-            cameraNode.camera?.contrast = 1.08
-            cameraNode.camera?.saturation = 1.15
+            cameraNode.camera?.contrast = 1.06
+            cameraNode.camera?.saturation = 1.1
             cameraNode.position = SCNVector3(x: 5, y: 4, z: 8)
             cameraNode.look(at: SCNVector3(x: 0, y: 1.5, z: 0))
             cameraNode.name = "mainCamera"
@@ -137,8 +132,8 @@ struct CourtSceneView: UIViewRepresentable {
             let ambient = SCNNode()
             ambient.light = SCNLight()
             ambient.light?.type = .ambient
-            ambient.light?.color = UIColor(red: 0.03, green: 0.04, blue: 0.08, alpha: 1)
-            ambient.light?.intensity = 200
+            ambient.light?.color = UIColor(red: 0.04, green: 0.05, blue: 0.10, alpha: 1)
+            ambient.light?.intensity = 300
             scene.rootNode.addChildNode(ambient)
 
             let keyLight = SCNNode()
@@ -149,10 +144,9 @@ struct CourtSceneView: UIViewRepresentable {
             keyLight.light?.spotInnerAngle = 25
             keyLight.light?.spotOuterAngle = 55
             keyLight.light?.castsShadow = true
-            keyLight.light?.shadowRadius = 6
-            keyLight.light?.shadowMapSize = CGSize(width: 2048, height: 2048)
-            keyLight.light?.shadowMode = .deferred
-            keyLight.light?.shadowSampleCount = 8
+            keyLight.light?.shadowRadius = 4
+            keyLight.light?.shadowMapSize = CGSize(width: 1024, height: 1024)
+            keyLight.light?.shadowSampleCount = 4
             keyLight.position = SCNVector3(x: 2, y: 10, z: 4)
             keyLight.look(at: SCNVector3(x: 0, y: 0, z: 0))
             scene.rootNode.addChildNode(keyLight)
@@ -169,25 +163,9 @@ struct CourtSceneView: UIViewRepresentable {
             rimLight.light = SCNLight()
             rimLight.light?.type = .omni
             rimLight.light?.color = neonMagenta
-            rimLight.light?.intensity = 350
+            rimLight.light?.intensity = 300
             rimLight.position = SCNVector3(x: 3, y: 5, z: -3)
             scene.rootNode.addChildNode(rimLight)
-
-            let courtUplight = SCNNode()
-            courtUplight.light = SCNLight()
-            courtUplight.light?.type = .omni
-            courtUplight.light?.color = brandCyan.withAlphaComponent(0.4)
-            courtUplight.light?.intensity = 200
-            courtUplight.position = SCNVector3(x: 0, y: 0.3, z: 0)
-            scene.rootNode.addChildNode(courtUplight)
-
-            let sunGlow = SCNNode()
-            sunGlow.light = SCNLight()
-            sunGlow.light?.type = .omni
-            sunGlow.light?.color = goldHighlight
-            sunGlow.light?.intensity = 180
-            sunGlow.position = SCNVector3(x: 6, y: 8, z: -6)
-            scene.rootNode.addChildNode(sunGlow)
         }
 
         private func buildAsphaltCourt() {
@@ -459,14 +437,14 @@ struct CourtSceneView: UIViewRepresentable {
 
             let particles = SCNParticleSystem()
             particles.birthRate = 0
-            particles.particleLifeSpan = 1.8
-            particles.particleSize = 0.025
-            particles.particleSizeVariation = 0.015
+            particles.particleLifeSpan = 1.5
+            particles.particleSize = 0.02
+            particles.particleSizeVariation = 0.01
             particles.particleColor = brandCyan
-            particles.emitterShape = SCNCylinder(radius: 0.45, height: 2.2)
+            particles.emitterShape = SCNCylinder(radius: 0.4, height: 2.0)
             particles.spreadingAngle = 180
-            particles.particleVelocity = 0.6
-            particles.particleVelocityVariation = 0.25
+            particles.particleVelocity = 0.4
+            particles.particleVelocityVariation = 0.2
             particles.birthDirection = .random
             particles.blendMode = .additive
             aura.addParticleSystem(particles)
@@ -480,13 +458,13 @@ struct CourtSceneView: UIViewRepresentable {
             let emitter = SCNNode()
             let trail = SCNParticleSystem()
             trail.birthRate = 0
-            trail.particleLifeSpan = 0.6
-            trail.particleSize = 0.06
-            trail.particleSizeVariation = 0.03
-            trail.particleColor = brandCyan.withAlphaComponent(0.4)
-            trail.emitterShape = SCNSphere(radius: 0.3)
+            trail.particleLifeSpan = 0.5
+            trail.particleSize = 0.04
+            trail.particleSizeVariation = 0.02
+            trail.particleColor = brandCyan.withAlphaComponent(0.3)
+            trail.emitterShape = SCNSphere(radius: 0.25)
             trail.spreadingAngle = 180
-            trail.particleVelocity = 0.1
+            trail.particleVelocity = 0.08
             trail.birthDirection = .random
             trail.blendMode = .additive
             emitter.addParticleSystem(trail)
@@ -501,21 +479,21 @@ struct CourtSceneView: UIViewRepresentable {
 
             switch auraLevel {
             case .maxIntent:
-                particles.birthRate = 50
-                particles.particleColor = UIColor(red: 0.6, green: 0.2, blue: 1.0, alpha: 0.85)
-                particles.particleSize = 0.04
+                particles.birthRate = 25
+                particles.particleColor = UIColor(red: 0.6, green: 0.2, blue: 1.0, alpha: 0.8)
+                particles.particleSize = 0.03
             case .primed:
-                particles.birthRate = 30
-                particles.particleColor = brandCyan.withAlphaComponent(0.65)
-                particles.particleSize = 0.032
-            case .active:
                 particles.birthRate = 15
-                particles.particleColor = brandBlue.withAlphaComponent(0.45)
-                particles.particleSize = 0.028
-            case .baseline:
-                particles.birthRate = 4
-                particles.particleColor = brandBlue.withAlphaComponent(0.15)
+                particles.particleColor = brandCyan.withAlphaComponent(0.6)
+                particles.particleSize = 0.025
+            case .active:
+                particles.birthRate = 8
+                particles.particleColor = brandBlue.withAlphaComponent(0.4)
                 particles.particleSize = 0.02
+            case .baseline:
+                particles.birthRate = 3
+                particles.particleColor = brandBlue.withAlphaComponent(0.15)
+                particles.particleSize = 0.015
             }
         }
 
@@ -529,7 +507,6 @@ struct CourtSceneView: UIViewRepresentable {
             func wallMat(_ color: UIColor) -> SCNMaterial {
                 let m = SCNMaterial()
                 m.diffuse.contents = color
-                m.emission.contents = color.withAlphaComponent(0.03)
                 m.roughness.contents = 0.9
                 m.isDoubleSided = true
                 return m
@@ -544,7 +521,6 @@ struct CourtSceneView: UIViewRepresentable {
             let skyGradient = SCNBox(width: 18, height: wallHeight * 0.5, length: 0.02, chamferRadius: 0)
             let skyMat = SCNMaterial()
             skyMat.diffuse.contents = UIColor(red: 0.08, green: 0.18, blue: 0.40, alpha: 1)
-            skyMat.emission.contents = UIColor(red: 0.04, green: 0.08, blue: 0.18, alpha: 0.3)
             skyGradient.materials = [skyMat]
             let skyNode = SCNNode(geometry: skyGradient)
             skyNode.position = SCNVector3(x: 0, y: Float(wallHeight * 0.85), z: -6.95)
@@ -553,9 +529,7 @@ struct CourtSceneView: UIViewRepresentable {
             let oceanWall = SCNBox(width: 18, height: wallHeight, length: thick, chamferRadius: 0)
             let oceanMat = SCNMaterial()
             oceanMat.diffuse.contents = UIColor(red: 0.06, green: 0.18, blue: 0.35, alpha: 1)
-            oceanMat.emission.contents = UIColor(red: 0.02, green: 0.06, blue: 0.12, alpha: 0.15)
             oceanMat.roughness.contents = 0.4
-            oceanMat.metalness.contents = 0.2
             oceanWall.materials = [oceanMat]
             let frontNode = SCNNode(geometry: oceanWall)
             frontNode.position = SCNVector3(x: 0, y: Float(wallHeight / 2), z: 9)
@@ -573,7 +547,7 @@ struct CourtSceneView: UIViewRepresentable {
             rightNode.position = SCNVector3(x: 9, y: Float(wallHeight / 2), z: 1)
             scene.rootNode.addChildNode(rightNode)
 
-            for x in stride(from: -8.0, through: 8.0, by: 4.0) {
+            for x in stride(from: -6.0, through: 6.0, by: 6.0) {
                 let trunk = SCNCylinder(radius: 0.09, height: 4.0)
                 let tMat = SCNMaterial()
                 tMat.diffuse.contents = UIColor(red: 0.35, green: 0.25, blue: 0.12, alpha: 1)
@@ -585,7 +559,6 @@ struct CourtSceneView: UIViewRepresentable {
                 let crown = SCNSphere(radius: 0.7)
                 let cMat = SCNMaterial()
                 cMat.diffuse.contents = palmGreen
-                cMat.emission.contents = palmGreen.withAlphaComponent(0.06)
                 crown.materials = [cMat]
                 let cNode = SCNNode(geometry: crown)
                 cNode.position = SCNVector3(x: Float(x), y: 4.3, z: -6.5)
@@ -632,37 +605,21 @@ struct CourtSceneView: UIViewRepresentable {
         private func buildVolumetricParticles() {
             let dustEmitter = SCNNode()
             let dust = SCNParticleSystem()
-            dust.birthRate = 25
-            dust.particleLifeSpan = 5
+            dust.birthRate = 10
+            dust.particleLifeSpan = 4
             dust.particleSize = 0.012
-            dust.particleSizeVariation = 0.008
-            dust.particleColor = brandCyan.withAlphaComponent(0.18)
-            dust.emitterShape = SCNBox(width: 12, height: 0.2, length: 8, chamferRadius: 0)
+            dust.particleSizeVariation = 0.006
+            dust.particleColor = brandCyan.withAlphaComponent(0.15)
+            dust.emitterShape = SCNBox(width: 10, height: 0.2, length: 6, chamferRadius: 0)
             dust.spreadingAngle = 15
-            dust.particleVelocity = 0.15
-            dust.particleVelocityVariation = 0.08
+            dust.particleVelocity = 0.12
+            dust.particleVelocityVariation = 0.06
             dust.birthDirection = .constant
             dust.emittingDirection = SCNVector3(0, 1, 0)
             dust.blendMode = .additive
             dustEmitter.addParticleSystem(dust)
             dustEmitter.position = SCNVector3(x: 0, y: 0.1, z: 0)
             scene.rootNode.addChildNode(dustEmitter)
-
-            let sparkEmitter = SCNNode()
-            let sparks = SCNParticleSystem()
-            sparks.birthRate = 6
-            sparks.particleLifeSpan = 2.5
-            sparks.particleSize = 0.02
-            sparks.particleSizeVariation = 0.01
-            sparks.particleColor = goldHighlight.withAlphaComponent(0.25)
-            sparks.emitterShape = SCNBox(width: 10, height: 3, length: 8, chamferRadius: 0)
-            sparks.spreadingAngle = 360
-            sparks.particleVelocity = 0.05
-            sparks.birthDirection = .random
-            sparks.blendMode = .additive
-            sparkEmitter.addParticleSystem(sparks)
-            sparkEmitter.position = SCNVector3(x: 0, y: 2, z: 0)
-            scene.rootNode.addChildNode(sparkEmitter)
         }
 
         private func startNeonPulseLoop() {

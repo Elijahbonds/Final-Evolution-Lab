@@ -81,20 +81,10 @@ struct GameSceneFactory {
             let node = SCNNode(geometry: geo)
             node.position = position
             scene.rootNode.addChildNode(node)
-
-            let glow = SCNNode()
-            glow.light = SCNLight()
-            glow.light?.type = .omni
-            glow.light?.color = color
-            glow.light?.intensity = 40
-            glow.light?.attenuationStartDistance = 0.1
-            glow.light?.attenuationEndDistance = 2.0
-            glow.position = position
-            scene.rootNode.addChildNode(glow)
         }
 
-        neonStrip(length: CGFloat(depth), color: theme.wallAccent.withAlphaComponent(0.6), position: SCNVector3(-halfW, 0.15, 0))
-        neonStrip(length: CGFloat(depth), color: theme.wallAccent.withAlphaComponent(0.4), position: SCNVector3(halfW, 0.15, 0))
+        neonStrip(length: CGFloat(depth), color: theme.wallAccent.withAlphaComponent(0.5), position: SCNVector3(-halfW, 0.15, 0))
+        neonStrip(length: CGFloat(depth), color: theme.wallAccent.withAlphaComponent(0.3), position: SCNVector3(halfW, 0.15, 0))
     }
 
     private static func addArenaWalls(to scene: SCNScene, mode: GameModeId, width: Float = 16, depth: Float = 14, height: Float = 4) {
@@ -704,7 +694,6 @@ struct GameSceneFactory {
         func wallMaterial(_ color: UIColor) -> SCNMaterial {
             let mat = SCNMaterial()
             mat.diffuse.contents = color
-            mat.emission.contents = color.withAlphaComponent(0.05)
             mat.isDoubleSided = true
             return mat
         }
@@ -739,7 +728,7 @@ struct GameSceneFactory {
         rightNode.position = SCNVector3(8, Float(wallHeight / 2), 1)
         scene.rootNode.addChildNode(rightNode)
 
-        for x in stride(from: -7.0, through: 7.0, by: 3.5) {
+        for x in stride(from: -6.0, through: 6.0, by: 6.0) {
             let trunk = SCNCylinder(radius: 0.08, height: 3.5)
             let tMat = SCNMaterial()
             tMat.diffuse.contents = UIColor(red: 0.4, green: 0.3, blue: 0.15, alpha: 1)
@@ -751,7 +740,6 @@ struct GameSceneFactory {
             let crown = SCNSphere(radius: 0.6)
             let cMat = SCNMaterial()
             cMat.diffuse.contents = palmGreen
-            cMat.emission.contents = palmGreen.withAlphaComponent(0.1)
             crown.materials = [cMat]
             let cNode = SCNNode(geometry: crown)
             cNode.position = SCNVector3(Float(x), 3.8, -5.5)
@@ -767,22 +755,6 @@ struct GameSceneFactory {
         let bwNode = SCNNode(geometry: boardwalk)
         bwNode.position = SCNVector3(0, 0.03, -5)
         scene.rootNode.addChildNode(bwNode)
-
-        let sandStrip = SCNBox(width: 16, height: 0.02, length: 3, chamferRadius: 0)
-        let sMat = SCNMaterial()
-        sMat.diffuse.contents = sandColor.withAlphaComponent(0.4)
-        sandStrip.materials = [sMat]
-        let sNode = SCNNode(geometry: sandStrip)
-        sNode.position = SCNVector3(0, 0.005, 7)
-        scene.rootNode.addChildNode(sNode)
-
-        let sunGlow = SCNNode()
-        sunGlow.light = SCNLight()
-        sunGlow.light?.type = .omni
-        sunGlow.light?.color = UIColor(red: 1.0, green: 0.85, blue: 0.5, alpha: 1)
-        sunGlow.light?.intensity = 100
-        sunGlow.position = SCNVector3(5, 6, -5)
-        scene.rootNode.addChildNode(sunGlow)
     }
 
     // MARK: - Shared Builders
@@ -792,21 +764,16 @@ struct GameSceneFactory {
         node.camera = SCNCamera()
         node.camera?.fieldOfView = 48
         node.camera?.zNear = 0.1
-        node.camera?.zFar = 120
+        node.camera?.zFar = 80
         node.camera?.wantsHDR = true
-        node.camera?.bloomIntensity = 0.9
-        node.camera?.bloomThreshold = 0.55
-        node.camera?.bloomBlurRadius = 14
-        node.camera?.wantsDepthOfField = true
-        node.camera?.focalLength = 28
-        node.camera?.fStop = 3.2
-        node.camera?.focusDistance = 6
-        node.camera?.motionBlurIntensity = 0.12
-        node.camera?.vignettingIntensity = 0.65
-        node.camera?.vignettingPower = 1.3
-        node.camera?.contrast = 1.1
-        node.camera?.saturation = 1.15
-        node.camera?.colorGrading.contents = UIColor(red: 0.02, green: 0.03, blue: 0.06, alpha: 1)
+        node.camera?.bloomIntensity = 0.6
+        node.camera?.bloomThreshold = 0.6
+        node.camera?.bloomBlurRadius = 8
+        node.camera?.wantsDepthOfField = false
+        node.camera?.vignettingIntensity = 0.5
+        node.camera?.vignettingPower = 1.2
+        node.camera?.contrast = 1.08
+        node.camera?.saturation = 1.1
         node.position = position
         node.look(at: lookAt)
         node.name = "mainCamera"
@@ -817,8 +784,8 @@ struct GameSceneFactory {
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
-        ambient.light?.color = UIColor(red: 0.03, green: 0.03, blue: 0.06, alpha: 1)
-        ambient.light?.intensity = 180
+        ambient.light?.color = UIColor(red: 0.04, green: 0.04, blue: 0.08, alpha: 1)
+        ambient.light?.intensity = 280
         scene.rootNode.addChildNode(ambient)
 
         let spot = SCNNode()
@@ -829,10 +796,9 @@ struct GameSceneFactory {
         spot.light?.spotInnerAngle = 22
         spot.light?.spotOuterAngle = 50
         spot.light?.castsShadow = true
-        spot.light?.shadowRadius = 8
-        spot.light?.shadowMapSize = CGSize(width: 2048, height: 2048)
-        spot.light?.shadowMode = .deferred
-        spot.light?.shadowSampleCount = 8
+        spot.light?.shadowRadius = 4
+        spot.light?.shadowMapSize = CGSize(width: 1024, height: 1024)
+        spot.light?.shadowSampleCount = 4
         spot.position = SCNVector3(2, 10, 4)
         spot.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(spot)
@@ -841,7 +807,7 @@ struct GameSceneFactory {
         fill.light = SCNLight()
         fill.light?.type = .omni
         fill.light?.color = UIColor(red: 0.06, green: 0.06, blue: 0.18, alpha: 1)
-        fill.light?.intensity = 400
+        fill.light?.intensity = 350
         fill.position = SCNVector3(-4, 3, 5)
         scene.rootNode.addChildNode(fill)
 
@@ -849,33 +815,9 @@ struct GameSceneFactory {
         rim.light = SCNLight()
         rim.light?.type = .omni
         rim.light?.color = brandCyan
-        rim.light?.intensity = 300
+        rim.light?.intensity = 250
         rim.position = SCNVector3(3, 5, -3)
         scene.rootNode.addChildNode(rim)
-
-        let backlight = SCNNode()
-        backlight.light = SCNLight()
-        backlight.light?.type = .omni
-        backlight.light?.color = UIColor(red: 1.0, green: 0.0, blue: 0.6, alpha: 1)
-        backlight.light?.intensity = 150
-        backlight.position = SCNVector3(-2, 4, -4)
-        scene.rootNode.addChildNode(backlight)
-
-        let sunGlow = SCNNode()
-        sunGlow.light = SCNLight()
-        sunGlow.light?.type = .omni
-        sunGlow.light?.color = UIColor(red: 1.0, green: 0.85, blue: 0.3, alpha: 1)
-        sunGlow.light?.intensity = 80
-        sunGlow.position = SCNVector3(6, 8, -6)
-        scene.rootNode.addChildNode(sunGlow)
-
-        let courtUplight = SCNNode()
-        courtUplight.light = SCNLight()
-        courtUplight.light?.type = .omni
-        courtUplight.light?.color = tint.withAlphaComponent(0.3)
-        courtUplight.light?.intensity = 150
-        courtUplight.position = SCNVector3(0, 0.3, 0)
-        scene.rootNode.addChildNode(courtUplight)
     }
 
     private static func addAvatar(to scene: SCNScene, at position: SCNVector3, color: UIColor) {
@@ -1385,37 +1327,21 @@ struct GameSceneFactory {
     private static func addParticles(to scene: SCNScene, color: UIColor, area: SCNVector3) {
         let emitter = SCNNode()
         let particles = SCNParticleSystem()
-        particles.birthRate = 20
-        particles.particleLifeSpan = 5
-        particles.particleSize = 0.014
-        particles.particleSizeVariation = 0.01
+        particles.birthRate = 8
+        particles.particleLifeSpan = 4
+        particles.particleSize = 0.012
+        particles.particleSizeVariation = 0.008
         particles.particleColor = color
         particles.emitterShape = SCNBox(width: CGFloat(area.x), height: CGFloat(area.y), length: CGFloat(area.z), chamferRadius: 0)
         particles.spreadingAngle = 12
-        particles.particleVelocity = 0.18
-        particles.particleVelocityVariation = 0.08
+        particles.particleVelocity = 0.15
+        particles.particleVelocityVariation = 0.06
         particles.birthDirection = .constant
         particles.emittingDirection = SCNVector3(0, 1, 0)
         particles.blendMode = .additive
         emitter.addParticleSystem(particles)
         emitter.position = SCNVector3(0, 0.1, 0)
         scene.rootNode.addChildNode(emitter)
-
-        let sparkEmitter = SCNNode()
-        let sparks = SCNParticleSystem()
-        sparks.birthRate = 5
-        sparks.particleLifeSpan = 3
-        sparks.particleSize = 0.022
-        sparks.particleSizeVariation = 0.012
-        sparks.particleColor = UIColor(red: 1.0, green: 0.85, blue: 0.3, alpha: 0.2)
-        sparks.emitterShape = SCNBox(width: CGFloat(area.x * 1.2), height: 3, length: CGFloat(area.z * 1.2), chamferRadius: 0)
-        sparks.spreadingAngle = 360
-        sparks.particleVelocity = 0.04
-        sparks.birthDirection = .random
-        sparks.blendMode = .additive
-        sparkEmitter.addParticleSystem(sparks)
-        sparkEmitter.position = SCNVector3(0, 2, 0)
-        scene.rootNode.addChildNode(sparkEmitter)
     }
 
     private static func addCourtLines(to scene: SCNScene) {
