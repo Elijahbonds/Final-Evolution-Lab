@@ -2264,7 +2264,13 @@ struct GamePlayView: View {
         defenderSimDistance = 4.0
 
         if isTimerBased {
-            timeRemaining = 60
+            switch gameMode.id {
+            case .karate: timeRemaining = 90
+            case .tennis: timeRemaining = 120
+            case .volleyball: timeRemaining = 90
+            case .basketball3v3: timeRemaining = 120
+            default: timeRemaining = 60
+            }
             startTimer()
         }
     }
@@ -2833,8 +2839,17 @@ struct GamePlayView: View {
                 }
             }
             if !Task.isCancelled {
-                withAnimation { footballPhase = .catch }
+                withAnimation(.spring(response: 0.2)) {
+                    footballPhase = .catch
+                    lastAction = "TACKLED!"
+                    lastActionIsCritical = false
+                    lastActionIsBurst = false
+                }
                 applyOutcomeFromCharge(0)
+                Task {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    withAnimation { lastAction = "" }
+                }
             }
         }
     }

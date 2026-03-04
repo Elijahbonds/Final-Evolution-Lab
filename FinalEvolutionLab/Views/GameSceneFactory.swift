@@ -826,6 +826,41 @@ struct GameSceneFactory {
         gbNode.position = SCNVector3(0, 0.04, 2.8)
         scene.rootNode.addChildNode(gbNode)
 
+        for z in stride(from: -4.0, through: 4.0, by: 2.0) {
+            let tree = SCNCylinder(radius: 0.06, height: 3.0)
+            let treeMat = SCNMaterial()
+            treeMat.diffuse.contents = UIColor(red: 0.35, green: 0.25, blue: 0.12, alpha: 1)
+            tree.materials = [treeMat]
+            let treeNode = SCNNode(geometry: tree)
+            treeNode.position = SCNVector3(-6.5, 1.5, Float(z))
+            scene.rootNode.addChildNode(treeNode)
+
+            let canopy = SCNSphere(radius: 0.8)
+            let canopyMat = SCNMaterial()
+            canopyMat.diffuse.contents = UIColor(red: 0.12, green: 0.35, blue: 0.1, alpha: 1)
+            canopy.materials = [canopyMat]
+            let canopyNode = SCNNode(geometry: canopy)
+            canopyNode.position = SCNVector3(-6.5, 3.2, Float(z))
+            canopyNode.scale = SCNVector3(1.2, 0.7, 1.2)
+            scene.rootNode.addChildNode(canopyNode)
+        }
+
+        let fairway = SCNBox(width: 3, height: 0.005, length: 6, chamferRadius: 0)
+        let fwMat = SCNMaterial()
+        fwMat.diffuse.contents = UIColor(red: 0.05, green: 0.12, blue: 0.04, alpha: 1)
+        fairway.materials = [fwMat]
+        let fwNode = SCNNode(geometry: fairway)
+        fwNode.position = SCNVector3(0, 0.008, 0)
+        scene.rootNode.addChildNode(fwNode)
+
+        let bunker = SCNCylinder(radius: 0.6, height: 0.02)
+        let bunkerMat = SCNMaterial()
+        bunkerMat.diffuse.contents = UIColor(red: 0.85, green: 0.78, blue: 0.55, alpha: 1)
+        bunker.materials = [bunkerMat]
+        let bunkerNode = SCNNode(geometry: bunker)
+        bunkerNode.position = SCNVector3(1.5, 0.015, -1.5)
+        scene.rootNode.addChildNode(bunkerNode)
+
         addArenaWalls(to: scene, wallColor: UIColor(red: 0.1, green: 0.24, blue: 0.1, alpha: 1), width: 16, depth: 14, height: 4)
         addParticles(to: scene, color: UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 0.1), area: SCNVector3(8, 0.1, 8))
 

@@ -52,7 +52,7 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
 
     var faceButtonCategory: ArcadeFaceButton {
         switch self {
-        case .windmill, .freeThrowLine, .doubleClutch: return .square
+        case .windmill, .doubleClutch: return .square
         case .betweenLegs, .threeSixty, .elbowHang: return .triangle
         case .tomahawk, .reverseJam: return .circle
         case .freeThrowLine: return .cross
