@@ -34,6 +34,10 @@ struct GameSceneFactory {
             return ArenaTheme(wallColor: UIColor(red: 0.1, green: 0.28, blue: 0.17, alpha: 1), wallAccent: UIColor(red: 0.13, green: 0.77, blue: 0.37, alpha: 1), floorColor: UIColor(red: 0.05, green: 0.16, blue: 0.09, alpha: 1), ceilingColor: UIColor(red: 0.04, green: 0.12, blue: 0.04, alpha: 1), ambientIntensity: 650, sunColor: UIColor(red: 0.53, green: 0.94, blue: 0.67, alpha: 1))
         case .tennis:
             return ArenaTheme(wallColor: UIColor(red: 0.42, green: 0.33, blue: 0.27, alpha: 1), wallAccent: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), floorColor: UIColor(red: 0.05, green: 0.15, blue: 0.08, alpha: 1), ceilingColor: UIColor(red: 0.17, green: 0.09, blue: 0.06, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 1.0, green: 0.85, blue: 0.5, alpha: 1))
+        case .volleyball:
+            return ArenaTheme(wallColor: UIColor(red: 0.57, green: 0.25, blue: 0.05, alpha: 1), wallAccent: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1), floorColor: UIColor(red: 0.11, green: 0.10, blue: 0.09, alpha: 1), ceilingColor: UIColor(red: 0.16, green: 0.14, blue: 0.13, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 0.99, green: 0.83, blue: 0.30, alpha: 1))
+        case .gymnastics:
+            return ArenaTheme(wallColor: UIColor(red: 0.17, green: 0.16, blue: 0.26, alpha: 1), wallAccent: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1), floorColor: UIColor(red: 0.12, green: 0.11, blue: 0.29, alpha: 1), ceilingColor: UIColor(red: 0.08, green: 0.07, blue: 0.15, alpha: 1), ambientIntensity: 650, sunColor: UIColor(red: 0.65, green: 0.71, blue: 0.99, alpha: 1))
         }
     }
 
@@ -53,6 +57,10 @@ struct GameSceneFactory {
             return buildGolfScene()
         case .tennis:
             return buildTennisScene()
+        case .volleyball:
+            return buildVolleyballScene()
+        case .gymnastics:
+            return buildGymnasticsScene()
         }
     }
 
@@ -501,6 +509,149 @@ struct GameSceneFactory {
 
         addVeniceBeachWalls(to: scene)
         addParticles(to: scene, color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 0.12), area: SCNVector3(8, 0.1, 5))
+
+        return scene
+    }
+
+    // MARK: - Volleyball (Beach Court)
+
+    private static func buildVolleyballScene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.03, green: 0.02, blue: 0.01, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(0, 3.5, 7), lookAt: SCNVector3(0, 1.2, 0))
+        addBasicLighting(to: scene, tint: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1))
+
+        let floor = SCNFloor()
+        floor.reflectivity = 0.05
+        let floorMat = SCNMaterial()
+        floorMat.diffuse.contents = UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1)
+        floorMat.roughness.contents = 0.95
+        floor.materials = [floorMat]
+        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+
+        let sand = SCNBox(width: 9, height: 0.02, length: 5, chamferRadius: 0)
+        let sandMat = SCNMaterial()
+        sandMat.diffuse.contents = UIColor(red: 0.85, green: 0.78, blue: 0.58, alpha: 1)
+        sandMat.roughness.contents = 0.98
+        sand.materials = [sandMat]
+        let sandNode = SCNNode(geometry: sand)
+        sandNode.position = SCNVector3(0, 0.01, 0)
+        scene.rootNode.addChildNode(sandNode)
+
+        let lineColor = UIColor.white.withAlphaComponent(0.5)
+        func addLine(_ w: CGFloat, _ l: CGFloat, _ pos: SCNVector3) {
+            let geo = SCNBox(width: w, height: 0.005, length: l, chamferRadius: 0)
+            let mat = SCNMaterial()
+            mat.diffuse.contents = lineColor
+            mat.emission.contents = lineColor
+            geo.materials = [mat]
+            let n = SCNNode(geometry: geo)
+            n.position = pos
+            scene.rootNode.addChildNode(n)
+        }
+        addLine(9, 0.03, SCNVector3(0, 0.025, -2.5))
+        addLine(9, 0.03, SCNVector3(0, 0.025, 2.5))
+        addLine(0.03, 5, SCNVector3(-4.5, 0.025, 0))
+        addLine(0.03, 5, SCNVector3(4.5, 0.025, 0))
+
+        let netPostColor = UIColor.white.withAlphaComponent(0.7)
+        for x in [-3.0, 3.0] as [Float] {
+            let post = SCNCylinder(radius: 0.04, height: 2.5)
+            let pMat = SCNMaterial()
+            pMat.diffuse.contents = netPostColor
+            post.materials = [pMat]
+            let pNode = SCNNode(geometry: post)
+            pNode.position = SCNVector3(x, 1.25, 0)
+            scene.rootNode.addChildNode(pNode)
+        }
+        let net = SCNBox(width: 6, height: 1.0, length: 0.02, chamferRadius: 0)
+        let netMat = SCNMaterial()
+        netMat.diffuse.contents = UIColor.white.withAlphaComponent(0.2)
+        netMat.isDoubleSided = true
+        net.materials = [netMat]
+        let netNode = SCNNode(geometry: net)
+        netNode.position = SCNVector3(0, 2.0, 0)
+        scene.rootNode.addChildNode(netNode)
+
+        addAvatar(to: scene, at: SCNVector3(-1.5, 0, 2), color: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1))
+        addAvatar(to: scene, at: SCNVector3(1.5, 0, -2), color: brandCyan)
+
+        let vball = SCNSphere(radius: 0.11)
+        let vbMat = SCNMaterial()
+        vbMat.diffuse.contents = UIColor.white
+        vbMat.roughness.contents = 0.5
+        vball.materials = [vbMat]
+        let vbNode = SCNNode(geometry: vball)
+        vbNode.position = SCNVector3(0, 2.5, 1)
+        scene.rootNode.addChildNode(vbNode)
+        let bob = SCNAction.sequence([
+            SCNAction.moveBy(x: 0, y: 0.1, z: 0, duration: 0.6),
+            SCNAction.moveBy(x: 0, y: -0.1, z: 0, duration: 0.6)
+        ])
+        vbNode.runAction(SCNAction.repeatForever(bob))
+
+        addVeniceBeachWalls(to: scene)
+        addParticles(to: scene, color: UIColor(red: 0.96, green: 0.75, blue: 0.14, alpha: 0.12), area: SCNVector3(9, 0.1, 5))
+
+        return scene
+    }
+
+    // MARK: - Gymnastics (Arena)
+
+    private static func buildGymnasticsScene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.04, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(3, 3.5, 6), lookAt: SCNVector3(0, 1, 0))
+        addBasicLighting(to: scene, tint: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1))
+
+        let floor = SCNFloor()
+        floor.reflectivity = 0.15
+        let floorMat = SCNMaterial()
+        floorMat.diffuse.contents = UIColor(red: 0.06, green: 0.05, blue: 0.12, alpha: 1)
+        floor.materials = [floorMat]
+        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+
+        let mat = SCNBox(width: 7, height: 0.05, length: 7, chamferRadius: 0)
+        let matMaterial = SCNMaterial()
+        matMaterial.diffuse.contents = UIColor(red: 0.15, green: 0.12, blue: 0.30, alpha: 1)
+        mat.materials = [matMaterial]
+        let matNode = SCNNode(geometry: mat)
+        matNode.position = SCNVector3(0, 0.025, 0)
+        scene.rootNode.addChildNode(matNode)
+
+        let lineColor = UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 0.3)
+        let border = SCNBox(width: 7, height: 0.005, length: 0.04, chamferRadius: 0)
+        let bMat = SCNMaterial()
+        bMat.diffuse.contents = lineColor
+        bMat.emission.contents = lineColor
+        border.materials = [bMat]
+        for z in [-3.5, 3.5] as [Float] {
+            let n = SCNNode(geometry: border)
+            n.position = SCNVector3(0, 0.055, z)
+            scene.rootNode.addChildNode(n)
+        }
+        let sideBorder = SCNBox(width: 0.04, height: 0.005, length: 7, chamferRadius: 0)
+        sideBorder.materials = [bMat]
+        for x in [-3.5, 3.5] as [Float] {
+            let n = SCNNode(geometry: sideBorder)
+            n.position = SCNVector3(x, 0.055, 0)
+            scene.rootNode.addChildNode(n)
+        }
+
+        let vaultTable = SCNBox(width: 0.6, height: 1.3, length: 1.2, chamferRadius: 0.04)
+        let vtMat = SCNMaterial()
+        vtMat.diffuse.contents = UIColor(red: 0.20, green: 0.18, blue: 0.40, alpha: 1)
+        vtMat.emission.contents = UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 0.08)
+        vaultTable.materials = [vtMat]
+        let vtNode = SCNNode(geometry: vaultTable)
+        vtNode.position = SCNVector3(2.5, 0.65, 0)
+        scene.rootNode.addChildNode(vtNode)
+
+        addAvatar(to: scene, at: SCNVector3(0, 0, 0), color: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1))
+        addArenaWalls(to: scene, mode: .gymnastics, width: 16, depth: 16, height: 5)
+        addParticles(to: scene, color: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 0.12), area: SCNVector3(7, 0.1, 7))
 
         return scene
     }

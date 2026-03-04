@@ -32,12 +32,12 @@ struct SampleData {
     ]
 
     static let leaderboard: [LeaderboardEntry] = [
-        LeaderboardEntry(id: "l1", athleteName: "Coach V", athleteTag: "0xCoachV", prqScore: 97.5, evolutionShards: 12400, rank: 1, avatarSystemName: "crown.fill"),
-        LeaderboardEntry(id: "l2", athleteName: "SkyWalker", athleteTag: "0xSky42", prqScore: 94.2, evolutionShards: 10800, rank: 2, avatarSystemName: "bolt.fill"),
-        LeaderboardEntry(id: "l3", athleteName: "FlightRisk", athleteTag: "0xFlight", prqScore: 91.8, evolutionShards: 9600, rank: 3, avatarSystemName: "flame.fill"),
-        LeaderboardEntry(id: "l4", athleteName: "VertKing", athleteTag: "0xVert", prqScore: 88.3, evolutionShards: 8200, rank: 4, avatarSystemName: "figure.basketball"),
-        LeaderboardEntry(id: "l5", athleteName: "AirMax", athleteTag: "0xAir", prqScore: 85.7, evolutionShards: 7100, rank: 5, avatarSystemName: "wind"),
-        LeaderboardEntry(id: "l6", athleteName: "RocketFuel", athleteTag: "0xRocket", prqScore: 82.1, evolutionShards: 6400, rank: 6, avatarSystemName: "airplane"),
-        LeaderboardEntry(id: "l7", athleteName: "Bounce", athleteTag: "0xBounce", prqScore: 79.4, evolutionShards: 5800, rank: 7, avatarSystemName: "arrow.up.circle.fill"),
+        LeaderboardEntry(id: "l1", athleteName: "Coach V", athleteTag: "0xCoachV", prqScore: 98, evolutionShards: 12400, rank: 1, avatarSystemName: "crown.fill"),
+        LeaderboardEntry(id: "l2", athleteName: "SkyWalker", athleteTag: "0xSky42", prqScore: 85, evolutionShards: 10800, rank: 2, avatarSystemName: "bolt.fill"),
+        LeaderboardEntry(id: "l3", athleteName: "FlightRisk", athleteTag: "0xFlight", prqScore: 79, evolutionShards: 9600, rank: 3, avatarSystemName: "flame.fill"),
+        LeaderboardEntry(id: "l4", athleteName: "VertKing", athleteTag: "0xVert", prqScore: 74, evolutionShards: 8200, rank: 4, avatarSystemName: "figure.basketball"),
+        LeaderboardEntry(id: "l5", athleteName: "AirMax", athleteTag: "0xAir", prqScore: 69, evolutionShards: 7100, rank: 5, avatarSystemName: "wind"),
+        LeaderboardEntry(id: "l6", athleteName: "RocketFuel", athleteTag: "0xRocket", prqScore: 64, evolutionShards: 6400, rank: 6, avatarSystemName: "airplane"),
+        LeaderboardEntry(id: "l7", athleteName: "Bounce", athleteTag: "0xBounce", prqScore: 58, evolutionShards: 5800, rank: 7, avatarSystemName: "arrow.up.circle.fill"),
     ]
 }

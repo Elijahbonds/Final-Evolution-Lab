@@ -10,6 +10,8 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case soccer = "soccer"
     case golf = "golf"
     case tennis = "tennis"
+    case volleyball = "volleyball"
+    case gymnastics = "gymnastics"
 
     var id: String { rawValue }
 }
@@ -129,6 +131,26 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.85, green: 0.75, blue: 0.1),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court"
+        ),
+        GameMode(
+            id: .volleyball,
+            name: "Volleyball",
+            subtitle: "Beach Rally to 25",
+            sport: .field,
+            iconName: "volleyball.fill",
+            accentColor: Color(red: 0.98, green: 0.75, blue: 0.14),
+            multiplayerType: .realtime,
+            environmentName: "Beach Court"
+        ),
+        GameMode(
+            id: .gymnastics,
+            name: "Gymnastics",
+            subtitle: "Olympic Routines & Tumbling",
+            sport: .precision,
+            iconName: "figure.gymnastics",
+            accentColor: Color(red: 0.39, green: 0.4, blue: 0.95),
+            multiplayerType: .turnBased,
+            environmentName: "Arena"
         ),
     ]
 

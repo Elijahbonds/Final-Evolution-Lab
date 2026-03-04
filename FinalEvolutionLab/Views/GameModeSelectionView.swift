@@ -77,7 +77,7 @@ struct GameModeSelectionView: View {
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 15)
 
-            Text("9 game modes • Local & Global multiplayer")
+            Text("10 game modes • Local & Global multiplayer")
                 .font(.system(.caption, design: .monospaced, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(.top, 2)

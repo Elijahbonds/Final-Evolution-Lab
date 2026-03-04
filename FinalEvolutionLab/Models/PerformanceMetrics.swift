@@ -10,7 +10,7 @@ nonisolated struct PerformanceMetrics: Codable, Sendable {
 
     static let empty = PerformanceMetrics(
         efficiencyScore: 0,
-        prqScore: 0,
+        prqScore: PRQ.default,
         readinessScore: 0,
         verticalPotential: 0,
         neuralDrive: 0,

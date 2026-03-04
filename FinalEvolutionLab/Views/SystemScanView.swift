@@ -385,10 +385,12 @@ struct SystemScanView: View {
             notes.append("\(sportName)-specific movement patterns will be prioritized in your program.")
         }
 
+        let clampedPRQ = PRQ.clamp(basePRQ)
+
         return SystemScanResult(
             id: UUID().uuidString,
             date: Date(),
-            prqScore: basePRQ,
+            prqScore: clampedPRQ,
             verticalEstimateInches: baseVertical,
             flightTimeSeconds: baseFlight,
             movementGrade: grade,

@@ -88,7 +88,7 @@ class LabViewModel {
         sessions.append(session)
         profile.totalWorkouts += 1
         profile.evolutionShards += session.shardsEarned
-        profile.metrics.prqScore = min(100, profile.metrics.prqScore + Double(completed) * 0.5)
+        profile.metrics.prqScore = PRQ.clamp(profile.metrics.prqScore + Double(completed) * 0.5)
         profile.metrics.efficiencyScore = min(100, session.completionRate * 100)
         profile.metrics.verticalPotential = min(100, profile.metrics.verticalPotential + Double(completed) * 0.8)
 
@@ -201,7 +201,7 @@ class LabViewModel {
 
     func applyScanResult(_ result: SystemScanResult) {
         profile.systemScan = result
-        profile.metrics.prqScore = result.prqScore
+        profile.metrics.prqScore = PRQ.clamp(result.prqScore)
         profile.metrics.verticalPotential = result.verticalEstimateInches
         profile.metrics.readinessScore = max(70, profile.metrics.readinessScore)
         profile.metrics.efficiencyScore = max(70, profile.metrics.efficiencyScore)

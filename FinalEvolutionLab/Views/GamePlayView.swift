@@ -52,6 +52,8 @@ struct GamePlayView: View {
         case .baseball: 10
         case .football: 8
         case .soccer: 5
+        case .volleyball: 1
+        case .gymnastics: 6
         default: 1
         }
     }
@@ -349,6 +351,8 @@ struct GamePlayView: View {
         case .soccer: ["Left", "Center", "Right"]
         case .golf: ["Chip", "Approach", "Full Swing"]
         case .tennis: ["Serve", "Volley", "Baseline"]
+        case .volleyball: ["Spike", "Set", "Block"]
+        case .gymnastics: ["Tumble", "Vault", "Dismount"]
         }
     }
 
@@ -535,7 +539,7 @@ struct GamePlayView: View {
     }
 
     private var prqReward: Double {
-        let base = score > opponentScore ? 2.0 : (score == opponentScore ? 0.5 : 0.2)
+        let base = PRQ.matchReward(won: score > opponentScore, tied: score == opponentScore)
         return base + (sessionReadiness / 100.0) * 0.5
     }
 
@@ -716,6 +720,10 @@ struct GamePlayView: View {
             return action == "Chip" ? 3 : (action == "Approach" ? 2 : 1)
         case .tennis:
             return action == "Serve" ? 4 : (action == "Volley" ? 3 : 2)
+        case .volleyball:
+            return action == "Spike" ? 3 : (action == "Block" ? 2 : 1)
+        case .gymnastics:
+            return action == "Vault" ? 5 : (action == "Tumble" ? 3 : 4)
         }
     }
 
@@ -741,7 +749,7 @@ struct GamePlayView: View {
 
     private func finalizeResults() {
         viewModel.profile.evolutionShards += shardsReward
-        viewModel.profile.metrics.prqScore = min(100, viewModel.profile.metrics.prqScore + prqReward)
+        viewModel.profile.metrics.prqScore = PRQ.clamp(viewModel.profile.metrics.prqScore + prqReward)
         viewModel.profile.metrics.neuralDrive = min(100, viewModel.profile.metrics.neuralDrive + 3)
 
         let result = GameSessionResult(
