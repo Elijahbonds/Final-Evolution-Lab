@@ -12,10 +12,11 @@ nonisolated struct DynamicDifficulty: Sendable {
         return minAggression + t * (maxAggression - minAggression)
     }
 
-    static func opponentSuccessChance(baseChance: Double, playerScore: Int, aiScore: Int, sessionReadiness: Double) -> Double {
+    static func opponentSuccessChance(baseChance: Double, playerScore: Int, aiScore: Int, sessionReadiness: Double, playerPRQ: Double = PRQ.default) -> Double {
         let dda = aggression(playerScore: playerScore, aiScore: aiScore)
         let readinessModifier = 1.0 - (sessionReadiness / 400.0)
-        return min(0.85, baseChance * dda * readinessModifier)
+        let prqPressure = 1.0 - (min(max(playerPRQ, 0), 100) / 500.0)
+        return min(0.85, baseChance * dda * readinessModifier * prqPressure)
     }
 
     static func opponentPoints(playerScore: Int, aiScore: Int, maxPoints: Int = 3) -> Int {
@@ -60,16 +61,37 @@ nonisolated struct DynamicDifficulty: Sendable {
         aiScore: Int,
         sessionReadiness: Double,
         targetScore: Int,
-        consecutivePlayerWins: Int
+        consecutivePlayerWins: Int,
+        playerPRQ: Double = PRQ.default
     ) -> Double {
         let base = opponentSuccessChance(
             baseChance: baseChance,
             playerScore: playerScore,
             aiScore: aiScore,
-            sessionReadiness: sessionReadiness
+            sessionReadiness: sessionReadiness,
+            playerPRQ: playerPRQ
         )
         let rubber = rubberBandFactor(playerScore: playerScore, aiScore: aiScore, targetScore: targetScore)
         let momentum = momentumBonus(consecutiveWins: consecutivePlayerWins)
         return min(0.9, base * rubber / momentum)
+    }
+
+    static func prqScaledOpponentMaxPoints(playerPRQ: Double, mode: GameModeId, maxPoints: Int = 3) -> Int {
+        let normalized = min(max(playerPRQ / 100.0, 0), 1)
+        let modeScale: Double
+        switch mode {
+        case .basketballHeadToHead, .basketball3v3: modeScale = 1.0
+        case .basketballDunkContest: modeScale = 0.8
+        case .karate: modeScale = 1.2
+        case .baseball: modeScale = 0.7
+        case .football: modeScale = 1.5
+        case .soccer: modeScale = 0.9
+        case .golf: modeScale = 0.6
+        case .tennis: modeScale = 0.9
+        case .volleyball: modeScale = 1.0
+        case .gymnastics: modeScale = 0.8
+        }
+        let scaled = Double(maxPoints) * modeScale * (0.6 + normalized * 0.4)
+        return max(1, Int(scaled.rounded()))
     }
 }

@@ -67,6 +67,12 @@ struct GamePlayView: View {
     private var supportsTricks: Bool { gameMode.id == .basketballDunkContest || gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3 || isKarate }
     private var specialMeterFull: Bool { specialMeter >= 100 }
 
+    private var playerPRQ: Double { viewModel.effectiveMetrics.prqScore }
+
+    private var prqAttributeLabel: String { PRQ.attributeLabel(for: gameMode.id) }
+    private var prqAttributeValue: Double { PRQ.attributeValue(prq: playerPRQ, for: gameMode.id) }
+    private var prqSuccessChance: Double { PRQ.successChanceFromPRQ(playerPRQ, for: gameMode.id) }
+
     private var arcadePhysics: ArcadePhysics {
         ArcadePhysics.fromPRQ(
             viewModel.profile.metrics.prqScore,
@@ -231,6 +237,10 @@ struct GamePlayView: View {
                     p2Score: opponentScore,
                     title: gameMode.name,
                     accentColor: gameMode.accentColor,
+                    prqGain: prqReward,
+                    prqCurrent: playerPRQ,
+                    modeAttributeLabel: prqAttributeLabel,
+                    modeAttributeValue: prqAttributeValue,
                     onReturn: {
                         finalizeResults()
                         dismiss()
@@ -326,6 +336,13 @@ struct GamePlayView: View {
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
                         .shadow(color: gameMode.accentColor.opacity(0.3), radius: 8)
+                    HStack(spacing: 3) {
+                        Image(systemName: "brain.head.profile.fill")
+                            .font(.system(size: 7))
+                        Text("\(prqAttributeLabel) \(Int(prqAttributeValue * 100))")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundStyle(playerPRQ >= PRQ.legendaryThreshold ? .yellow : gameMode.accentColor.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -1262,8 +1279,14 @@ struct GamePlayView: View {
     }
 
     private var prqReward: Double {
-        let base = PRQ.matchReward(won: score > opponentScore, tied: score == opponentScore)
-        return base + (sessionReadiness / 100.0) * 0.5
+        PRQ.modeReward(
+            mode: gameMode.id,
+            won: score > opponentScore,
+            tied: score == opponentScore,
+            combo: maxCombo,
+            criticals: criticalHits,
+            scoreDifferential: score - opponentScore
+        ) + (sessionReadiness / 100.0) * 0.3
     }
 
     // MARK: - Game Logic
@@ -1329,7 +1352,9 @@ struct GamePlayView: View {
         guard isActive else { return }
 
         let physics = leakageAdjustedPhysics
-        let success = Double.random(in: 0...1) < physics.successChanceBase
+        let modeChance = PRQ.successChanceFromPRQ(playerPRQ, for: gameMode.id)
+        let blendedChance = (physics.successChanceBase + modeChance) / 2.0
+        let success = Double.random(in: 0...1) < blendedChance
         let isCritical = success && Double.random(in: 0...1) < physics.criticalHitChance
         let basePoints = pointsForAction(action, success: success)
         let finalPoints = success ? physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical) : 0
@@ -1400,7 +1425,8 @@ struct GamePlayView: View {
             baseChance: 0.55,
             playerScore: score,
             aiScore: opponentScore,
-            sessionReadiness: sessionReadiness
+            sessionReadiness: sessionReadiness,
+            playerPRQ: playerPRQ
         )
         if Double.random(in: 0...1) < ddaChance {
             Task {
@@ -1409,7 +1435,7 @@ struct GamePlayView: View {
                     opponentScore += DynamicDifficulty.opponentPoints(
                         playerScore: score,
                         aiScore: opponentScore,
-                        maxPoints: 3
+                        maxPoints: DynamicDifficulty.prqScaledOpponentMaxPoints(playerPRQ: playerPRQ, mode: gameMode.id)
                     )
                 }
             }
@@ -1463,8 +1489,9 @@ struct GamePlayView: View {
 
     private func handleDunkJudging() {
         let pop = Double(physicsConfig.jumpHeight)
-        let isElite = pop > 3.0
-        let base = isElite ? 46 : 40
+        let prqBonus = Int(playerPRQ / 25.0)
+        let isElite = pop > 3.0 || playerPRQ >= PRQ.legendaryThreshold
+        let base = (isElite ? 46 : 40) + prqBonus
         let spread = isElite ? 5 : 8
         let j1 = min(50, base + Int.random(in: 0..<spread))
         let j2 = min(50, base + Int.random(in: 0..<spread))
@@ -1601,8 +1628,10 @@ struct GamePlayView: View {
 
     private func applyOutcomeFromCharge(_ chargeValue: Double) {
         let physics = leakageAdjustedPhysics
+        let modeChance = PRQ.successChanceFromPRQ(playerPRQ, for: gameMode.id)
+        let blendedBase = (physics.successChanceBase + modeChance) / 2.0
         let inSweetSpot = chargeValue >= 0.35 && chargeValue <= 0.75
-        let baseChance = inSweetSpot ? physics.successChanceBase + 0.15 : physics.successChanceBase * chargeValue
+        let baseChance = inSweetSpot ? blendedBase + 0.15 : blendedBase * chargeValue
         let success = Double.random(in: 0...1) < baseChance
         let action = actionsForMode.first ?? "Action"
 
@@ -1653,7 +1682,8 @@ struct GamePlayView: View {
                 baseChance: 0.55,
                 playerScore: score,
                 aiScore: opponentScore,
-                sessionReadiness: sessionReadiness
+                sessionReadiness: sessionReadiness,
+                playerPRQ: playerPRQ
             )
             if Double.random(in: 0...1) < ddaChance {
                 Task {
@@ -1662,7 +1692,7 @@ struct GamePlayView: View {
                         opponentScore += DynamicDifficulty.opponentPoints(
                             playerScore: score,
                             aiScore: opponentScore,
-                            maxPoints: 2
+                            maxPoints: DynamicDifficulty.prqScaledOpponentMaxPoints(playerPRQ: playerPRQ, mode: gameMode.id, maxPoints: 2)
                         )
                     }
                 }
