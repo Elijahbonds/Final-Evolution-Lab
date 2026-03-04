@@ -211,6 +211,13 @@ struct GameModeCard: View {
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                 }
                 .foregroundStyle(.tertiary)
+
+                if let hint = mode.hint {
+                    Text(hint)
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .foregroundStyle(mode.accentColor.opacity(0.6))
+                        .lineLimit(1)
+                }
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)

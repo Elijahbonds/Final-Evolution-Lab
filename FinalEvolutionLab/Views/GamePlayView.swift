@@ -34,9 +34,23 @@ struct GamePlayView: View {
     @State private var chakraBar: Double = 0
     @State private var karateHitFlash: Bool = false
 
+    @State private var golfCharge: Double = 0
+    @State private var golfPhase: GolfSwingPhase = .idle
+    @State private var aimPosition: CGPoint = CGPoint(x: 0.5, y: 0.5)
+    @State private var footballPhase: FootballPhase = .catch
+    @State private var runMeter: Double = 0
+    @State private var runMeterTimer: Task<Void, Never>?
+    @State private var swipeStart: CGPoint?
+    @State private var swipeStartTime: Date?
+    @State private var golfDragStartY: CGFloat = 0
+
     @Environment(\.dismiss) private var dismiss
 
+    private enum GolfSwingPhase { case idle, backswing }
+    private enum FootballPhase { case `catch`, run }
+
     private var isKarate: Bool { gameMode.id == .karate }
+    private var inputScheme: InputScheme { gameMode.id.inputScheme }
 
     private var arcadePhysics: ArcadePhysics {
         ArcadePhysics.fromPRQ(
@@ -70,8 +84,8 @@ struct GamePlayView: View {
         switch gameMode.id {
         case .golf: 9
         case .tennis: 1
-        case .baseball: 10
-        case .football: 8
+        case .baseball: 5
+        case .football: 1
         case .soccer: 5
         case .volleyball: 1
         case .gymnastics: 6
@@ -353,8 +367,97 @@ struct GamePlayView: View {
             if let judges = lastJudgeScores {
                 dunkJudgeOverlay(j1: judges.0, j2: judges.1, j3: judges.2)
             }
+
+            if inputScheme == .dragTap && isActive {
+                aimCrosshairOverlay
+            }
+
+            if (inputScheme == .swipe || inputScheme == .swipeGolf) && isActive {
+                gestureOverlay
+            }
         }
         .frame(maxHeight: .infinity)
+    }
+
+    // MARK: - Aim Crosshair (Volleyball)
+
+    private var aimCrosshairOverlay: some View {
+        GeometryReader { geo in
+            let x = aimPosition.x * geo.size.width
+            let y = aimPosition.y * geo.size.height
+            Circle()
+                .stroke(gameMode.accentColor, lineWidth: 2)
+                .frame(width: 40, height: 40)
+                .overlay(
+                    Circle()
+                        .fill(gameMode.accentColor.opacity(0.2))
+                        .frame(width: 12, height: 12)
+                )
+                .position(x: x, y: y)
+                .allowsHitTesting(false)
+        }
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    guard isActive else { return }
+                    let geo = value.location
+                    aimPosition = CGPoint(
+                        x: max(0, min(1, geo.x / max(1, UIScreen.main.bounds.width))),
+                        y: max(0, min(1, geo.y / 400))
+                    )
+                }
+        )
+    }
+
+    // MARK: - Swipe Gesture Overlay (Baseball / Soccer / Golf)
+
+    private var gestureOverlay: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 10)
+                    .onChanged { value in
+                        if swipeStart == nil {
+                            swipeStart = value.startLocation
+                            swipeStartTime = Date()
+                            if inputScheme == .swipeGolf {
+                                golfDragStartY = value.startLocation.y
+                                withAnimation(.spring(response: 0.2)) {
+                                    golfPhase = .backswing
+                                }
+                            }
+                        }
+                        if inputScheme == .swipeGolf && golfPhase == .backswing {
+                            let dy = value.location.y - golfDragStartY
+                            if dy > 0 {
+                                withAnimation(.spring(response: 0.15)) {
+                                    golfCharge = min(1, Double(dy) / 200)
+                                }
+                            }
+                        }
+                    }
+                    .onEnded { value in
+                        guard isActive else {
+                            swipeStart = nil
+                            swipeStartTime = nil
+                            return
+                        }
+                        if inputScheme == .swipeGolf {
+                            if golfPhase == .backswing && golfCharge > 0.05 {
+                                handleGolfRelease(golfCharge)
+                            }
+                            withAnimation { golfPhase = .idle; golfCharge = 0 }
+                        } else {
+                            let dx = value.location.x - (swipeStart?.x ?? value.startLocation.x)
+                            let dy = value.location.y - (swipeStart?.y ?? value.startLocation.y)
+                            let dt = max(0.01, Date().timeIntervalSince(swipeStartTime ?? Date()))
+                            let speed = sqrt(dx * dx + dy * dy) / dt
+                            handleSwipeEnd(dx: Double(dx), dy: Double(dy), speed: speed)
+                        }
+                        swipeStart = nil
+                        swipeStartTime = nil
+                    }
+            )
     }
 
     // MARK: - Dunk Judge Overlay
@@ -412,7 +515,18 @@ struct GamePlayView: View {
 
     private var controlPanel: some View {
         VStack(spacing: 12) {
-            ps2ActionButtons
+            switch inputScheme {
+            case .charge:
+                ps2ActionButtons
+            case .swipe:
+                swipeHintView
+            case .swipeGolf:
+                golfControlView
+            case .dragTap:
+                volleyballControlView
+            case .kickReturn:
+                kickReturnControlView
+            }
 
             if !isActive && !showResults {
                 Button {
@@ -456,6 +570,219 @@ struct GamePlayView: View {
         }
         .padding(16)
         .background(Theme.cardBackground.opacity(0.9))
+    }
+
+    // MARK: - Swipe Hint (Baseball / Soccer)
+
+    private var swipeHintView: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "hand.draw.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(gameMode.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(gameMode.id == .baseball ? "SWIPE TO SWING" : "SWIPE TO SHOOT")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text(gameMode.id == .baseball ? "Tap gently to bunt" : "Speed = power")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(gameMode.accentColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+    }
+
+    // MARK: - Golf Control
+
+    private var golfControlView: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.to.line")
+                    .font(.system(size: 20))
+                    .foregroundStyle(gameMode.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(golfPhase == .backswing ? "RELEASE TO HIT" : "PULL BACK TO SWING")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text("Drag down for power, release to hit")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(gameMode.accentColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
+
+            if golfPhase == .backswing {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.black.opacity(0.5))
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.green, golfCharge > 0.7 ? .red : .yellow],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geo.size.width * golfCharge)
+                            .animation(.spring(response: 0.2), value: golfCharge)
+                    }
+                }
+                .frame(height: 10)
+                .clipShape(.rect(cornerRadius: 4))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 0.5)
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+        }
+    }
+
+    // MARK: - Volleyball Control
+
+    private var volleyballControlView: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "target")
+                    .font(.system(size: 20))
+                    .foregroundStyle(gameMode.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("DRAG TO AIM, TAP TO SPIKE")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text("Aim center for best accuracy")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(gameMode.accentColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
+
+            Button {
+                handleVolleyballSpike()
+            } label: {
+                Text("TAP TO SPIKE")
+                    .font(.system(.subheadline, design: .monospaced, weight: .black))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(gameMode.accentColor)
+                    .clipShape(.rect(cornerRadius: 14))
+            }
+            .disabled(!isActive)
+            .opacity(isActive ? 1 : 0.4)
+        }
+    }
+
+    // MARK: - Kick Return Control
+
+    private var kickReturnControlView: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: footballPhase == .catch ? "hand.raised.fill" : "figure.run")
+                    .font(.system(size: 20))
+                    .foregroundStyle(gameMode.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(footballPhase == .catch ? "TAP TO CATCH THE KICK" : "TAP IN THE GREEN ZONE!")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text(footballPhase == .catch ? "First score wins" : "35-70% = breakaway!")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(gameMode.accentColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
+
+            if footballPhase == .run {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.black.opacity(0.5))
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.green.opacity(0.3))
+                            .frame(width: geo.size.width * 0.35)
+                            .offset(x: geo.size.width * 0.35)
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        runMeter >= 35 && runMeter <= 70 ? .green : .red,
+                                        gameMode.accentColor
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geo.size.width * (runMeter / 100))
+                            .animation(.linear(duration: 0.04), value: runMeter)
+                    }
+                }
+                .frame(height: 14)
+                .clipShape(.rect(cornerRadius: 4))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 0.5)
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+
+            Button {
+                if footballPhase == .catch {
+                    handleCatchTap()
+                } else {
+                    handleRunTap()
+                }
+            } label: {
+                Text(footballPhase == .catch ? "CATCH" : "BREAK AWAY!")
+                    .font(.system(.subheadline, design: .monospaced, weight: .black))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(footballPhase == .run && runMeter >= 35 && runMeter <= 70 ? Color.green : gameMode.accentColor)
+                    .clipShape(.rect(cornerRadius: 14))
+            }
+            .disabled(!isActive)
+            .opacity(isActive ? 1 : 0.4)
+        }
     }
 
     // MARK: - PS2-Style Action Buttons
@@ -523,12 +850,12 @@ struct GamePlayView: View {
         case .basketballDunkContest: ["Power Dunk", "360 Dunk", "Windmill"]
         case .basketball3v3: ["Pass", "Shoot", "Drive"]
         case .karate: ["Punch", "Kick", "Block"]
-        case .baseball: ["Swing", "Bunt", "Power Hit"]
-        case .football: ["Short Pass", "Deep Throw", "Scramble"]
-        case .soccer: ["Left", "Center", "Right"]
-        case .golf: ["Chip", "Approach", "Full Swing"]
+        case .baseball: ["Swing", "Bunt"]
+        case .football: ["Catch", "Break Away"]
+        case .soccer: ["Shoot"]
+        case .golf: ["Swing"]
         case .tennis: ["Serve", "Volley", "Baseline"]
-        case .volleyball: ["Spike", "Set", "Block"]
+        case .volleyball: ["Spike"]
         case .gymnastics: ["Tumble", "Vault", "Dismount"]
         }
     }
@@ -737,6 +1064,15 @@ struct GamePlayView: View {
         crowdMessage = ""
         chakraBar = 0
         showResults = false
+        golfCharge = 0
+        golfPhase = .idle
+        footballPhase = .catch
+        runMeter = 0
+        runMeterTimer?.cancel()
+        runMeterTimer = nil
+        swipeStart = nil
+        swipeStartTime = nil
+        aimPosition = CGPoint(x: 0.5, y: 0.5)
 
         if isTimerBased {
             timeRemaining = 60
@@ -984,17 +1320,17 @@ struct GamePlayView: View {
             default: return 0
             }
         case .baseball:
-            return action == "Power Hit" ? 4 : (action == "Swing" ? 2 : 1)
+            return action == "Swing" ? 2 : 1
         case .football:
-            return action == "Deep Throw" ? 7 : (action == "Short Pass" ? 3 : 2)
+            return 6
         case .soccer:
             return 1
         case .golf:
-            return action == "Chip" ? 3 : (action == "Approach" ? 2 : 1)
+            return 1
         case .tennis:
             return action == "Serve" ? 4 : (action == "Volley" ? 3 : 2)
         case .volleyball:
-            return action == "Spike" ? 3 : (action == "Block" ? 2 : 1)
+            return 3
         case .gymnastics:
             return action == "Vault" ? 5 : (action == "Tumble" ? 3 : 4)
         }
@@ -1014,10 +1350,163 @@ struct GamePlayView: View {
     }
 
     private func endGame() {
+        runMeterTimer?.cancel()
+        runMeterTimer = nil
         withAnimation(.spring(response: 0.4)) {
             isActive = false
             showResults = true
         }
+    }
+
+    // MARK: - Wii-Style Input Handlers
+
+    private func applyOutcomeFromCharge(_ chargeValue: Double) {
+        let physics = leakageAdjustedPhysics
+        let inSweetSpot = chargeValue >= 0.35 && chargeValue <= 0.75
+        let baseChance = inSweetSpot ? physics.successChanceBase + 0.15 : physics.successChanceBase * chargeValue
+        let success = Double.random(in: 0...1) < baseChance
+        let action = actionsForMode.first ?? "Action"
+
+        if success {
+            let isCritical = Double.random(in: 0...1) < physics.criticalHitChance
+            let basePoints = pointsForAction(action, success: true)
+            let finalPoints = physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical)
+
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+                score += finalPoints
+                combo += 1
+                maxCombo = max(maxCombo, combo)
+                lastActionIsCritical = isCritical
+                lastActionIsBurst = arcadePhysics.neuralBurstActive
+                lastAction = modeFeedbackSuccess(points: finalPoints, isCritical: isCritical)
+            }
+
+            if isCritical {
+                criticalHits += 1
+                triggerCriticalFlash()
+                triggerScreenShake(intensity: 0.6)
+            } else {
+                triggerFlash()
+                triggerScreenShake(intensity: Double(physicsConfig.floorShakeAmplitude) * 10)
+            }
+            triggerImpactFlash()
+            resetStreakTimer()
+        } else {
+            withAnimation(.spring(response: 0.3)) {
+                combo = 0
+                lastAction = modeFeedbackFail()
+                lastActionIsCritical = false
+                lastActionIsBurst = false
+            }
+
+            if gameMode.id == .football {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    withAnimation { opponentScore += 1 }
+                    endGame()
+                }
+                return
+            }
+        }
+
+        let oppDifficulty = 0.45 - (sessionReadiness / 400)
+        if gameMode.id != .football && Double.random(in: 0...1) > oppDifficulty {
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                withAnimation { opponentScore += Int.random(in: 1...2) }
+            }
+        }
+
+        if multipeerService.isConnected {
+            multipeerService.sendAction(action, score: score)
+        }
+
+        if !isTimerBased {
+            roundNumber += 1
+            if roundNumber > maxRounds { endGame() }
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation { lastAction = "" }
+        }
+    }
+
+    private func handleSwipeEnd(dx: Double, dy: Double, speed: Double) {
+        guard isActive else { return }
+        let charge = min(1, max(0, speed / 600))
+        applyOutcomeFromCharge(charge > 0.15 ? charge : 0.1)
+    }
+
+    private func handleGolfRelease(_ finalCharge: Double) {
+        guard isActive else { return }
+        applyOutcomeFromCharge(finalCharge)
+    }
+
+    private func handleVolleyballSpike() {
+        guard isActive else { return }
+        let centerBias = 1.0 - abs(aimPosition.x - 0.5) * 1.2 - abs(aimPosition.y - 0.5) * 0.8
+        let charge = max(0.2, min(0.9, 0.35 + centerBias * 0.4))
+        applyOutcomeFromCharge(charge)
+    }
+
+    private func handleCatchTap() {
+        guard isActive, footballPhase == .catch else { return }
+        withAnimation(.spring(response: 0.2)) {
+            footballPhase = .run
+            runMeter = 0
+        }
+        runMeterTimer = Task {
+            while !Task.isCancelled && runMeter < 100 {
+                try? await Task.sleep(for: .milliseconds(40))
+                guard !Task.isCancelled else { return }
+                withAnimation(.linear(duration: 0.04)) {
+                    runMeter = min(100, runMeter + 2.4)
+                }
+            }
+            if !Task.isCancelled {
+                withAnimation { footballPhase = .catch }
+                applyOutcomeFromCharge(0)
+            }
+        }
+    }
+
+    private func handleRunTap() {
+        guard isActive, footballPhase == .run else { return }
+        runMeterTimer?.cancel()
+        runMeterTimer = nil
+        withAnimation { footballPhase = .catch }
+        let inZone = runMeter >= 35 && runMeter <= 70
+        applyOutcomeFromCharge(inZone ? 0.65 : 0.15)
+    }
+
+    // MARK: - Mode-Specific Feedback
+
+    private func modeFeedbackSuccess(points: Int, isCritical: Bool) -> String {
+        let strings: [String]
+        switch gameMode.id {
+        case .baseball: strings = ["CRACK!", "HOME RUN!", "GONE!"]
+        case .golf: strings = ["Nice!", "Close!", "Gimme!"]
+        case .football: strings = ["TOUCHDOWN!", "HOUSE!", "GONE!"]
+        case .soccer: strings = ["GOAL!", "TOP CORNER!", "NET!"]
+        case .volleyball: strings = ["Point!", "Spike!", "Ace!", "Block!"]
+        default: return isCritical ? "CRITICAL +\(points)" : "+\(points)"
+        }
+        let base = strings.randomElement() ?? strings[0]
+        return isCritical ? "⚡ \(base) +\(points)" : "\(base) +\(points)"
+    }
+
+    private func modeFeedbackFail() -> String {
+        let strings: [String]
+        switch gameMode.id {
+        case .baseball: strings = ["Swing and miss", "Foul", "Pop-up"]
+        case .golf: strings = ["Short", "Long", "Lip out"]
+        case .football: strings = ["Tackled", "Out of bounds"]
+        case .soccer: strings = ["Saved", "Wide", "Over"]
+        case .volleyball: strings = ["Out", "Net", "Dig"]
+        default: return "MISSED"
+        }
+        return (strings.randomElement() ?? strings[0]).uppercased()
     }
 
     private func finalizeResults() {

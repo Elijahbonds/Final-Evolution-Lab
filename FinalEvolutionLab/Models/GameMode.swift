@@ -16,6 +16,31 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     var id: String { rawValue }
 }
 
+nonisolated enum InputScheme: String, Sendable {
+    case charge
+    case swipe
+    case swipeGolf
+    case dragTap
+    case kickReturn
+}
+
+extension GameModeId {
+    var inputScheme: InputScheme {
+        switch self {
+        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .karate, .gymnastics, .tennis:
+            return .charge
+        case .baseball, .soccer:
+            return .swipe
+        case .golf:
+            return .swipeGolf
+        case .volleyball:
+            return .dragTap
+        case .football:
+            return .kickReturn
+        }
+    }
+}
+
 nonisolated struct GameMode: Sendable, Identifiable {
     let id: GameModeId
     let name: String
@@ -25,6 +50,7 @@ nonisolated struct GameMode: Sendable, Identifiable {
     let accentColor: Color
     let multiplayerType: MultiplayerType
     let environmentName: String
+    let hint: String?
 
     nonisolated enum SportCategory: String, Sendable {
         case basketball = "Basketball"
@@ -50,7 +76,8 @@ struct GameModeRegistry {
             iconName: "figure.basketball",
             accentColor: Color(red: 1.0, green: 0.6, blue: 0.0),
             multiplayerType: .realtime,
-            environmentName: "Venice Beach Court"
+            environmentName: "Venice Beach Court",
+            hint: nil
         ),
         GameMode(
             id: .basketballDunkContest,
@@ -60,7 +87,8 @@ struct GameModeRegistry {
             iconName: "figure.highintensity.intervaltraining",
             accentColor: Theme.brandBlue,
             multiplayerType: .realtime,
-            environmentName: "Venice Beach Court"
+            environmentName: "Venice Beach Court",
+            hint: nil
         ),
         GameMode(
             id: .basketball3v3,
@@ -70,7 +98,8 @@ struct GameModeRegistry {
             iconName: "person.3.fill",
             accentColor: Color(red: 0.2, green: 0.8, blue: 0.4),
             multiplayerType: .realtime,
-            environmentName: "Venice Beach Court"
+            environmentName: "Venice Beach Court",
+            hint: nil
         ),
         GameMode(
             id: .karate,
@@ -80,47 +109,52 @@ struct GameModeRegistry {
             iconName: "figure.martial.arts",
             accentColor: Color(red: 1.0, green: 0.2, blue: 0.2),
             multiplayerType: .realtime,
-            environmentName: "Dojo Arena"
+            environmentName: "Dojo Arena",
+            hint: nil
         ),
         GameMode(
             id: .baseball,
             name: "Home Run Derby",
-            subtitle: "Crush It Out",
+            subtitle: "Wii-Style Swing",
             sport: .field,
             iconName: "figure.baseball",
             accentColor: Color(red: 0.1, green: 0.5, blue: 0.9),
             multiplayerType: .turnBased,
-            environmentName: "Stadium Diamond"
+            environmentName: "Stadium Diamond",
+            hint: "Home Run Derby • Swipe or tap"
         ),
         GameMode(
             id: .football,
-            name: "Target Passing",
-            subtitle: "Thread the Needle",
+            name: "Kick Return",
+            subtitle: "Sudden Death Breakaway",
             sport: .field,
             iconName: "football.fill",
             accentColor: Color(red: 0.5, green: 0.3, blue: 0.1),
             multiplayerType: .turnBased,
-            environmentName: "Stadium Field"
+            environmentName: "Stadium Field",
+            hint: "Kick Return Sudden Death"
         ),
         GameMode(
             id: .soccer,
             name: "Penalty Shootout",
-            subtitle: "Keeper vs Striker",
+            subtitle: "Swipe to Score",
             sport: .field,
             iconName: "soccerball",
             accentColor: Color(red: 0.2, green: 0.7, blue: 0.3),
             multiplayerType: .realtime,
-            environmentName: "Stadium Pitch"
+            environmentName: "Stadium Pitch",
+            hint: "Penalty Shootout • Swipe to shoot"
         ),
         GameMode(
             id: .golf,
             name: "Closest to Pin",
-            subtitle: "Precision Under Pressure",
+            subtitle: "Wii-Style Swing",
             sport: .precision,
             iconName: "figure.golf",
             accentColor: Color(red: 0.3, green: 0.7, blue: 0.4),
             multiplayerType: .turnBased,
-            environmentName: "Golf Green"
+            environmentName: "Golf Green",
+            hint: "Closest to the Pin • Wii-style swipe"
         ),
         GameMode(
             id: .tennis,
@@ -130,17 +164,19 @@ struct GameModeRegistry {
             iconName: "tennis.racket",
             accentColor: Color(red: 0.85, green: 0.75, blue: 0.1),
             multiplayerType: .realtime,
-            environmentName: "Venice Beach Court"
+            environmentName: "Venice Beach Court",
+            hint: nil
         ),
         GameMode(
             id: .volleyball,
-            name: "Volleyball",
-            subtitle: "Beach Rally to 25",
+            name: "Rally Ace",
+            subtitle: "Drag to Aim, Spike to Win",
             sport: .field,
             iconName: "volleyball.fill",
             accentColor: Color(red: 0.98, green: 0.75, blue: 0.14),
             multiplayerType: .realtime,
-            environmentName: "Beach Court"
+            environmentName: "Beach Court",
+            hint: "Rally Ace • Drag to aim"
         ),
         GameMode(
             id: .gymnastics,
@@ -150,7 +186,8 @@ struct GameModeRegistry {
             iconName: "figure.gymnastics",
             accentColor: Color(red: 0.39, green: 0.4, blue: 0.95),
             multiplayerType: .turnBased,
-            environmentName: "Arena"
+            environmentName: "Arena",
+            hint: nil
         ),
     ]
 
