@@ -61,14 +61,21 @@ struct ImpactFlashOverlay: View {
     var body: some View {
         if isActive {
             ZStack {
-                color.opacity(intensity * 0.2)
+                color.opacity(intensity * 0.15)
                     .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [color.opacity(intensity * 0.3), .clear],
+                    colors: [color.opacity(intensity * 0.35), color.opacity(intensity * 0.1), .clear],
                     center: .center,
-                    startRadius: 10,
-                    endRadius: 300
+                    startRadius: 5,
+                    endRadius: 350
+                )
+                .ignoresSafeArea()
+
+                LinearGradient(
+                    colors: [.clear, color.opacity(intensity * 0.15)],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
                 .ignoresSafeArea()
             }
@@ -172,41 +179,62 @@ struct GameActionFeedback: View {
     let isNeuralBurst: Bool
     var isKarate: Bool = false
 
+    private var feedbackColor: Color {
+        if isKarate { return .orange }
+        if isCritical { return Theme.brandCyan }
+        if isNeuralBurst { return Theme.elitePurple }
+        return .white
+    }
+
     var body: some View {
         HStack(spacing: 6) {
             if isCritical && !isKarate {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Theme.brandCyan)
+                    .shadow(color: Theme.brandCyan.opacity(0.5), radius: 6)
             }
 
             if isNeuralBurst && !isKarate {
                 Image(systemName: "brain.head.profile.fill")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Theme.elitePurple)
+                    .shadow(color: Theme.elitePurple.opacity(0.5), radius: 6)
             }
 
             Text(text)
-                .font(.system(size: isKarate ? 22 : 11, weight: .black, design: .monospaced))
-                .foregroundStyle(isKarate ? .orange : .white.opacity(0.9))
-                .shadow(color: isKarate ? .orange.opacity(0.7) : .clear, radius: 12)
+                .font(.system(size: isKarate ? 24 : 13, weight: .black, design: .monospaced))
+                .foregroundStyle(
+                    isKarate
+                        ? AnyShapeStyle(LinearGradient(colors: [.orange, .yellow, .orange], startPoint: .leading, endPoint: .trailing))
+                        : (isCritical
+                            ? AnyShapeStyle(LinearGradient(colors: [Theme.brandCyan, .white, Theme.brandCyan], startPoint: .leading, endPoint: .trailing))
+                            : AnyShapeStyle(.white.opacity(0.95)))
+                )
+                .shadow(color: feedbackColor.opacity(0.6), radius: isKarate ? 16 : 8)
         }
-        .padding(.horizontal, isKarate ? 16 : 12)
-        .padding(.vertical, isKarate ? 10 : 6)
+        .padding(.horizontal, isKarate ? 18 : 14)
+        .padding(.vertical, isKarate ? 12 : 8)
         .background(
             isKarate ? AnyShapeStyle(.orange.opacity(0.12)) :
-            (isCritical ? AnyShapeStyle(Theme.brandCyan.opacity(0.15)) :
-            (isNeuralBurst ? AnyShapeStyle(Theme.elitePurple.opacity(0.15)) : AnyShapeStyle(.ultraThinMaterial)))
+            (isCritical ? AnyShapeStyle(Theme.brandCyan.opacity(0.12)) :
+            (isNeuralBurst ? AnyShapeStyle(Theme.elitePurple.opacity(0.12)) : AnyShapeStyle(.ultraThinMaterial)))
         )
         .clipShape(Capsule())
         .overlay(
             Capsule()
                 .stroke(
-                    isKarate ? Color.orange.opacity(0.4) :
-                    (isCritical ? Theme.brandCyan.opacity(0.3) :
-                    (isNeuralBurst ? Theme.elitePurple.opacity(0.3) : Color.white.opacity(0.1))),
-                    lineWidth: isKarate ? 1.5 : 0.5
+                    LinearGradient(
+                        colors: [
+                            feedbackColor.opacity(isKarate || isCritical ? 0.5 : 0.15),
+                            feedbackColor.opacity(0.1)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: isKarate || isCritical ? 1.5 : 0.5
                 )
         )
+        .shadow(color: feedbackColor.opacity(0.15), radius: 12)
     }
 }

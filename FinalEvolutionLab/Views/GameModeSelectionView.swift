@@ -62,7 +62,7 @@ struct GameModeSelectionView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("SELECT MODE")
                 .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(Theme.brandBlue)
@@ -71,16 +71,42 @@ struct GameModeSelectionView: View {
                 .offset(y: appeared ? 0 : 10)
 
             Text("Arena")
-                .font(.system(size: 52, weight: .black))
+                .font(.system(size: 56, weight: .black))
                 .italic()
-                .foregroundStyle(.white)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.white, .white.opacity(0.7)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 15)
 
-            Text("10 game modes • Local & Global multiplayer")
-                .font(.system(.caption, design: .monospaced, weight: .medium))
-                .foregroundStyle(.secondary)
-                .padding(.top, 2)
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Text("11")
+                        .font(.system(.caption, design: .monospaced, weight: .black))
+                        .foregroundStyle(Theme.brandCyan)
+                    Text("MODES")
+                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Circle()
+                    .fill(.tertiary)
+                    .frame(width: 3, height: 3)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Theme.brandCyan.opacity(0.7))
+                    Text("MULTIPLAYER")
+                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.top, 2)
         }
         .padding(.top, 8)
     }
@@ -172,6 +198,7 @@ struct GameModeCard: View {
     let onTap: () -> Void
 
     @State private var isPressed = false
+    @State private var shimmer = false
 
     var body: some View {
         Button(action: onTap) {
@@ -179,12 +206,20 @@ struct GameModeCard: View {
                 HStack {
                     ZStack {
                         Circle()
-                            .fill(mode.accentColor.opacity(0.15))
-                            .frame(width: 40, height: 40)
+                            .fill(
+                                RadialGradient(
+                                    colors: [mode.accentColor.opacity(0.2), mode.accentColor.opacity(0.05)],
+                                    center: .center,
+                                    startRadius: 2,
+                                    endRadius: 22
+                                )
+                            )
+                            .frame(width: 42, height: 42)
 
                         Image(systemName: mode.iconName)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(mode.accentColor)
+                            .shadow(color: mode.accentColor.opacity(0.4), radius: 6)
                     }
 
                     Spacer()
@@ -192,7 +227,7 @@ struct GameModeCard: View {
                     multiplayerBadge
                 }
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(mode.name.uppercased())
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
@@ -200,7 +235,7 @@ struct GameModeCard: View {
 
                     Text(mode.subtitle)
                         .font(.system(.caption2, design: .monospaced, weight: .medium))
-                        .foregroundStyle(mode.accentColor.opacity(0.7))
+                        .foregroundStyle(mode.accentColor.opacity(0.8))
                         .lineLimit(1)
                 }
 
@@ -222,19 +257,41 @@ struct GameModeCard: View {
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(mode.accentColor.opacity(isPressed ? 0.4 : 0.1), lineWidth: 1)
-                    )
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Theme.cardBackground)
+
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(
+                            LinearGradient(
+                                colors: [mode.accentColor.opacity(0.06), .clear, mode.accentColor.opacity(0.03)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    mode.accentColor.opacity(isPressed ? 0.5 : 0.15),
+                                    mode.accentColor.opacity(0.05),
+                                    mode.accentColor.opacity(isPressed ? 0.3 : 0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
+                .shadow(color: mode.accentColor.opacity(isPressed ? 0.15 : 0.05), radius: isPressed ? 12 : 4)
             )
-            .scaleEffect(isPressed ? 0.97 : 1)
+            .scaleEffect(isPressed ? 0.96 : 1)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .light), trigger: isPressed)
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-            withAnimation(.spring(response: 0.25)) { isPressed = pressing }
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isPressed = pressing }
         }, perform: {})
     }
 

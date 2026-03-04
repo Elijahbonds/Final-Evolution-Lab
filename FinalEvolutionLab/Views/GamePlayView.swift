@@ -313,34 +313,47 @@ struct GamePlayView: View {
         ZStack {
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("YOU")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(gameMode.accentColor)
+                            .frame(width: 5, height: 5)
+                        Text("YOU")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(gameMode.accentColor.opacity(0.8))
+                    }
                     Text("\(score)")
-                        .font(.system(size: 32, weight: .black, design: .monospaced))
+                        .font(.system(size: 36, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
+                        .shadow(color: gameMode.accentColor.opacity(0.3), radius: 8)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                VStack(spacing: 4) {
-                    Image(systemName: gameMode.iconName)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(gameMode.accentColor)
+                VStack(spacing: 5) {
+                    ZStack {
+                        Circle()
+                            .fill(gameMode.accentColor.opacity(0.1))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: gameMode.iconName)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(gameMode.accentColor)
+                    }
 
                     if isDunkContest {
                         Text("Round \(dunkRound)/3")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
                             .foregroundStyle(.orange)
+                            .shadow(color: .orange.opacity(0.3), radius: 6)
                     } else if isBlacktop {
                         Text("First to \(targetScore)")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                             .foregroundStyle(gameMode.accentColor)
                     } else if isTimerBased {
                         Text(timeFormatted)
-                            .font(.system(size: 18, weight: .black, design: .monospaced))
+                            .font(.system(size: 20, weight: .black, design: .monospaced))
                             .foregroundStyle(timeRemaining <= 10 ? .red : gameMode.accentColor)
                             .contentTransition(.numericText())
+                            .shadow(color: (timeRemaining <= 10 ? Color.red : gameMode.accentColor).opacity(0.4), radius: 8)
                     } else {
                         Text("R\(roundNumber)/\(maxRounds)")
                             .font(.system(size: 14, weight: .black, design: .monospaced))
@@ -355,22 +368,28 @@ struct GamePlayView: View {
                                 .font(.system(size: 9, weight: .black, design: .monospaced))
                         }
                         .foregroundStyle(Theme.elitePurple)
+                        .shadow(color: Theme.elitePurple.opacity(0.4), radius: 6)
                     }
                 }
 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("OPP")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Text("OPP")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Circle()
+                            .fill(.secondary.opacity(0.4))
+                            .frame(width: 5, height: 5)
+                    }
                     Text("\(opponentScore)")
-                        .font(.system(size: 32, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .font(.system(size: 36, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5))
                         .contentTransition(.numericText())
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
 
             if isKarate {
                 VStack {
@@ -410,7 +429,27 @@ struct GamePlayView: View {
                 .padding(.bottom, 4)
             }
         }
-        .background(Theme.cardBackground.opacity(0.8))
+        .background(
+            ZStack {
+                Theme.cardBackground.opacity(0.9)
+                LinearGradient(
+                    colors: [gameMode.accentColor.opacity(0.04), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        )
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [gameMode.accentColor.opacity(0.4), gameMode.accentColor.opacity(0.0)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 1)
+        }
     }
 
     private var timeFormatted: String {
@@ -579,35 +618,59 @@ struct GamePlayView: View {
     // MARK: - Dunk Judge Overlay
 
     private func dunkJudgeOverlay(j1: Int, j2: Int, j3: Int) -> some View {
-        VStack(spacing: 8) {
+        let total = j1 + j2 + j3
+        let isElite = total >= 140
+        return VStack(spacing: 8) {
             Spacer()
 
-            VStack(spacing: 10) {
-                HStack(spacing: 20) {
-                    judgeScoreView(label: "Judge 1", score: j1)
-                    judgeScoreView(label: "Judge 2", score: j2)
-                    judgeScoreView(label: "Judge 3", score: j3)
+            VStack(spacing: 12) {
+                HStack(spacing: 16) {
+                    judgeScoreView(label: "Judge 1", score: j1, isElite: isElite)
+                    judgeScoreView(label: "Judge 2", score: j2, isElite: isElite)
+                    judgeScoreView(label: "Judge 3", score: j3, isElite: isElite)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
                 .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(.black.opacity(0.8))
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(.ultraThinMaterial)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(.orange.opacity(0.5), lineWidth: 2)
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [.orange.opacity(0.6), .yellow.opacity(0.3)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 2
+                                )
                         )
+                        .shadow(color: .orange.opacity(0.2), radius: 20)
                 )
 
-                Text("Total: \(j1 + j2 + j3)")
-                    .font(.system(size: 28, weight: .black))
-                    .foregroundStyle(.white)
+                Text("\(total)")
+                    .font(.system(size: 42, weight: .black, design: .monospaced))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: isElite ? [.yellow, .orange, .yellow] : [.white, .white.opacity(0.8)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .shadow(color: isElite ? .orange.opacity(0.5) : .clear, radius: 16)
 
                 if !crowdMessage.isEmpty {
                     Text(crowdMessage)
-                        .font(.system(size: 16, weight: .black, design: .monospaced))
-                        .foregroundStyle(.orange)
-                        .tracking(2)
+                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.orange, .yellow],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .tracking(3)
+                        .shadow(color: .orange.opacity(0.6), radius: 12)
                 }
             }
             .padding(.bottom, 80)
@@ -616,14 +679,22 @@ struct GamePlayView: View {
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
-    private func judgeScoreView(label: String, score: Int) -> some View {
-        VStack(spacing: 4) {
+    private func judgeScoreView(label: String, score: Int, isElite: Bool) -> some View {
+        VStack(spacing: 6) {
             Text(label.uppercased())
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.6))
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.5))
+                .tracking(1)
             Text("\(score)")
-                .font(.system(size: 28, weight: .black, design: .monospaced))
-                .foregroundStyle(.orange)
+                .font(.system(size: 32, weight: .black, design: .monospaced))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: score >= 47 ? [.yellow, .orange] : [.orange, .orange.opacity(0.8)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: score >= 47 ? .yellow.opacity(0.5) : .clear, radius: 8)
         }
     }
 

@@ -12,20 +12,36 @@ struct GetReadyScreen: View {
     @State private var pulse: Bool = false
     @State private var ringScale: CGFloat = 0.5
     @State private var showGo: Bool = false
+    @State private var outerRingRotation: Double = 0
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.75)
+            Color.black.opacity(0.8)
                 .ignoresSafeArea()
-                .background(.ultraThinMaterial.opacity(0.4))
+                .background(.ultraThinMaterial.opacity(0.5))
 
-            VStack(spacing: 20) {
+            RadialGradient(
+                colors: [accentColor.opacity(0.08), .clear],
+                center: .center,
+                startRadius: 20,
+                endRadius: 300
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+
+            VStack(spacing: 24) {
                 Text(title)
-                    .font(.system(size: 28, weight: .black))
+                    .font(.system(size: 32, weight: .black))
                     .italic()
-                    .tracking(3)
-                    .foregroundStyle(.white)
-                    .shadow(color: accentColor.opacity(0.3), radius: 12)
+                    .tracking(4)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.white, .white.opacity(0.7)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .shadow(color: accentColor.opacity(0.4), radius: 16)
 
                 if let subtitle {
                     Text(subtitle)
@@ -36,7 +52,18 @@ struct GetReadyScreen: View {
 
                 ZStack {
                     Circle()
-                        .stroke(accentColor.opacity(0.15), lineWidth: 6)
+                        .stroke(
+                            AngularGradient(
+                                colors: [accentColor.opacity(0.3), accentColor.opacity(0.05), accentColor.opacity(0.3)],
+                                center: .center
+                            ),
+                            lineWidth: 3
+                        )
+                        .frame(width: 120, height: 120)
+                        .rotationEffect(.degrees(outerRingRotation))
+
+                    Circle()
+                        .stroke(accentColor.opacity(0.12), lineWidth: 6)
                         .frame(width: 100, height: 100)
 
                     Circle()
@@ -46,19 +73,27 @@ struct GetReadyScreen: View {
                         .opacity(pulse ? 0.0 : 0.6)
 
                     Circle()
-                        .fill(accentColor.opacity(0.06))
+                        .fill(
+                            RadialGradient(
+                                colors: [accentColor.opacity(0.1), accentColor.opacity(0.02)],
+                                center: .center,
+                                startRadius: 5,
+                                endRadius: 50
+                            )
+                        )
                         .frame(width: 100, height: 100)
 
                     if showGo {
                         Text("GO!")
-                            .font(.system(size: 36, weight: .black, design: .monospaced))
+                            .font(.system(size: 40, weight: .black, design: .monospaced))
                             .foregroundStyle(accentColor)
-                            .shadow(color: accentColor.opacity(0.5), radius: 16)
+                            .shadow(color: accentColor.opacity(0.6), radius: 20)
                             .transition(.scale(scale: 0.3).combined(with: .opacity))
                     } else if count > 0 {
                         Text("\(count)")
-                            .font(.system(size: 48, weight: .black, design: .monospaced))
+                            .font(.system(size: 52, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
+                            .shadow(color: .white.opacity(0.3), radius: 8)
                             .contentTransition(.numericText())
                     }
                 }
@@ -69,9 +104,9 @@ struct GetReadyScreen: View {
                         .font(.system(size: 10))
                     Text("GET READY")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .tracking(4)
+                        .tracking(5)
                 }
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(.white.opacity(0.25))
                 .padding(.top, 8)
             }
         }
@@ -88,6 +123,9 @@ struct GetReadyScreen: View {
     }
 
     private func startCountdown() {
+        withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+            outerRingRotation = 360
+        }
         timer?.cancel()
         timer = Task {
             for i in stride(from: countdown, through: 1, by: -1) {
@@ -98,14 +136,14 @@ struct GetReadyScreen: View {
                 }
                 withAnimation(.easeOut(duration: 0.8)) {
                     pulse = true
-                    ringScale = 1.4
+                    ringScale = 1.5
                 }
                 try? await Task.sleep(for: .milliseconds(200))
                 withAnimation { pulse = false }
                 try? await Task.sleep(for: .milliseconds(800))
             }
             guard !Task.isCancelled else { return }
-            withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
                 count = 0
                 showGo = true
             }
@@ -170,78 +208,124 @@ struct ResultScreen: View {
 
     @State private var appeared = false
     @State private var trophyBounce = false
+    @State private var glowPulse = false
 
     private var isP1Win: Bool { winner == .p1 }
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.85)
+            Color.black.opacity(0.88)
                 .ignoresSafeArea()
                 .background(.ultraThinMaterial.opacity(0.5))
 
             if isP1Win {
-                RadialGradient(
-                    colors: [accentColor.opacity(0.12), .clear],
-                    center: .center,
-                    startRadius: 10,
-                    endRadius: 300
-                )
-                .ignoresSafeArea()
+                ZStack {
+                    RadialGradient(
+                        colors: [accentColor.opacity(glowPulse ? 0.16 : 0.08), .clear],
+                        center: .center,
+                        startRadius: 10,
+                        endRadius: 350
+                    )
+                    .ignoresSafeArea()
+
+                    RadialGradient(
+                        colors: [.yellow.opacity(glowPulse ? 0.06 : 0.02), .clear],
+                        center: .top,
+                        startRadius: 20,
+                        endRadius: 300
+                    )
+                    .ignoresSafeArea()
+                }
                 .allowsHitTesting(false)
             }
 
-            VStack(spacing: 20) {
+            VStack(spacing: 24) {
                 Spacer()
 
                 if let title {
                     Text(title.uppercased())
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.5))
-                        .tracking(3)
+                        .tracking(4)
                         .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 10)
                 }
 
-                Image(systemName: isP1Win ? "trophy.fill" : (winner == .draw ? "equal.circle.fill" : "flag.checkered"))
-                    .font(.system(size: 56))
-                    .foregroundStyle(isP1Win ? .yellow : .secondary)
-                    .shadow(color: isP1Win ? .yellow.opacity(0.4) : .clear, radius: 20)
-                    .scaleEffect(trophyBounce ? 1.15 : 1.0)
-                    .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 20)
+                ZStack {
+                    if isP1Win {
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    colors: [.yellow.opacity(0.15), .clear],
+                                    center: .center,
+                                    startRadius: 10,
+                                    endRadius: 60
+                                )
+                            )
+                            .frame(width: 120, height: 120)
+                            .scaleEffect(glowPulse ? 1.2 : 1.0)
+                    }
+
+                    Image(systemName: isP1Win ? "trophy.fill" : (winner == .draw ? "equal.circle.fill" : "flag.checkered"))
+                        .font(.system(size: 60))
+                        .foregroundStyle(
+                            isP1Win
+                                ? AnyShapeStyle(LinearGradient(colors: [.yellow, .orange, .yellow], startPoint: .top, endPoint: .bottom))
+                                : AnyShapeStyle(.secondary)
+                        )
+                        .shadow(color: isP1Win ? .yellow.opacity(0.5) : .clear, radius: 24)
+                        .scaleEffect(trophyBounce ? 1.15 : 1.0)
+                }
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 20)
 
                 Text(isP1Win ? "VICTORY" : (winner == .draw ? "DRAW" : "DEFEAT"))
-                    .font(.system(size: 36, weight: .black))
+                    .font(.system(size: 40, weight: .black))
                     .italic()
-                    .tracking(2)
-                    .foregroundStyle(isP1Win ? accentColor : .white.opacity(0.9))
-                    .shadow(color: isP1Win ? accentColor.opacity(0.3) : .clear, radius: 16)
+                    .tracking(3)
+                    .foregroundStyle(
+                        isP1Win
+                            ? AnyShapeStyle(LinearGradient(colors: [accentColor, .white, accentColor], startPoint: .leading, endPoint: .trailing))
+                            : AnyShapeStyle(.white.opacity(0.9))
+                    )
+                    .shadow(color: isP1Win ? accentColor.opacity(0.4) : .clear, radius: 20)
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 15)
 
-                HStack(spacing: 16) {
-                    VStack(spacing: 4) {
+                HStack(spacing: 20) {
+                    VStack(spacing: 6) {
                         Text("\(p1Score)")
-                            .font(.system(size: 36, weight: .black, design: .monospaced))
+                            .font(.system(size: 40, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
+                            .shadow(color: accentColor.opacity(0.3), radius: 8)
                         Text("YOU")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(accentColor.opacity(0.7))
                     }
 
                     Text("\u{2014}")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(.tertiary)
 
-                    VStack(spacing: 4) {
+                    VStack(spacing: 6) {
                         Text("\(p2Score)")
-                            .font(.system(size: 36, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.5))
+                            .font(.system(size: 40, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.4))
                         Text("OPP")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
                             .foregroundStyle(.secondary)
                     }
                 }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(.ultraThinMaterial.opacity(0.3))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(accentColor.opacity(0.15), lineWidth: 1)
+                        )
+                )
                 .opacity(appeared ? 1 : 0)
 
                 Button {
@@ -256,8 +340,15 @@ struct ResultScreen: View {
                     .foregroundStyle(.black)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 14)
-                    .background(accentColor)
+                    .background(
+                        LinearGradient(
+                            colors: [accentColor, accentColor.opacity(0.8)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
                     .clipShape(.rect(cornerRadius: 14))
+                    .shadow(color: accentColor.opacity(0.3), radius: 12)
                 }
                 .padding(.top, 8)
                 .opacity(appeared ? 1 : 0)
@@ -277,6 +368,9 @@ struct ResultScreen: View {
                 }
                 withAnimation(.spring(response: 0.3).delay(0.6)) {
                     trophyBounce = false
+                }
+                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true).delay(0.5)) {
+                    glowPulse = true
                 }
             }
         }
