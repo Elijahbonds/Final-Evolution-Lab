@@ -594,6 +594,8 @@ struct GamePlayView: View {
 
     // MARK: - Aim Crosshair (Volleyball)
 
+    @State private var aimAreaSize: CGSize = CGSize(width: 1, height: 1)
+
     private var aimCrosshairOverlay: some View {
         GeometryReader { geo in
             let x = aimPosition.x * geo.size.width
@@ -608,15 +610,17 @@ struct GamePlayView: View {
                 )
                 .position(x: x, y: y)
                 .allowsHitTesting(false)
+                .onAppear { aimAreaSize = geo.size }
+                .onChange(of: geo.size) { _, newSize in aimAreaSize = newSize }
         }
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in
                     guard isActive else { return }
-                    let geo = value.location
+                    let loc = value.location
                     aimPosition = CGPoint(
-                        x: max(0, min(1, geo.x / max(1, UIScreen.main.bounds.width))),
-                        y: max(0, min(1, geo.y / 400))
+                        x: max(0, min(1, loc.x / max(1, aimAreaSize.width))),
+                        y: max(0, min(1, loc.y / max(1, aimAreaSize.height)))
                     )
                 }
         )
@@ -799,29 +803,31 @@ struct GamePlayView: View {
                 }
             }
 
-            HStack(spacing: 16) {
-                Button {
-                    multipeerService.startHosting(gameId: gameMode.id.rawValue)
-                } label: {
-                    Label("HOST", systemImage: "antenna.radiowaves.left.and.right")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Theme.brandCyan.opacity(0.1))
-                        .clipShape(Capsule())
-                }
+            if !isActive && !showResults {
+                HStack(spacing: 16) {
+                    Button {
+                        multipeerService.startHosting(gameId: gameMode.id.rawValue)
+                    } label: {
+                        Label("HOST", systemImage: "antenna.radiowaves.left.and.right")
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(Theme.brandCyan)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Theme.brandCyan.opacity(0.1))
+                            .clipShape(Capsule())
+                    }
 
-                Button {
-                    multipeerService.startBrowsing(gameId: gameMode.id.rawValue)
-                } label: {
-                    Label("JOIN", systemImage: "magnifyingglass")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color.orange.opacity(0.1))
-                        .clipShape(Capsule())
+                    Button {
+                        multipeerService.startBrowsing(gameId: gameMode.id.rawValue)
+                    } label: {
+                        Label("JOIN", systemImage: "magnifyingglass")
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Color.orange.opacity(0.1))
+                            .clipShape(Capsule())
+                    }
                 }
             }
         }
@@ -2049,104 +2055,10 @@ struct GamePlayView: View {
         }
     }
 
-    // MARK: - Results Overlay
+    // MARK: - Rewards Logic
 
-    private var resultsOverlay: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            VStack(spacing: 16) {
-                Image(systemName: score > opponentScore ? "trophy.fill" : "flag.checkered")
-                    .font(.system(size: 48))
-                    .foregroundStyle(score > opponentScore ? .yellow : .secondary)
-
-                Text(score > opponentScore ? "VICTORY" : (score == opponentScore ? "DRAW" : "DEFEAT"))
-                    .font(.system(size: 36, weight: .black))
-                    .italic()
-                    .foregroundStyle(.white)
-
-                HStack(spacing: 32) {
-                    VStack(spacing: 4) {
-                        Text("\(score)")
-                            .font(.system(size: 28, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
-                        Text("YOU")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Text("—")
-                        .font(.title)
-                        .foregroundStyle(.tertiary)
-
-                    VStack(spacing: 4) {
-                        Text("\(opponentScore)")
-                            .font(.system(size: 28, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.6))
-                        Text("OPP")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                HStack(spacing: 12) {
-                    PRQTierBadge(tier: viewModel.userPRQTier, prq: viewModel.effectiveMetrics.prqScore)
-
-                    if arcadePhysics.neuralBurstActive {
-                        HStack(spacing: 4) {
-                            Image(systemName: "bolt.fill")
-                                .font(.system(size: 10))
-                            Text("BURST BONUS")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                        }
-                        .foregroundStyle(Theme.elitePurple)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Theme.elitePurple.opacity(0.1))
-                        .clipShape(Capsule())
-                    }
-                }
-
-                rewardsBreakdown
-                rewardsRow
-
-                Button {
-                    finalizeResults()
-                    dismiss()
-                } label: {
-                    Text("CLAIM REWARDS")
-                        .font(.system(.subheadline, design: .monospaced, weight: .black))
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(gameMode.accentColor)
-                        .clipShape(.rect(cornerRadius: 14))
-                }
-                .padding(.horizontal, 32)
-
-                Button {
-                    resetGame()
-                } label: {
-                    Text("REMATCH")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundStyle(gameMode.accentColor)
-                }
-            }
-            .padding(28)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
-                    )
-            )
-            .padding(.horizontal, 20)
-
-            Spacer()
-        }
-        .background(.black.opacity(0.7))
-        .transition(.opacity)
+    @available(*, unavailable)
+    private var _resultsOverlayRemoved: some View { EmptyView()
     }
 
     private var rewardsBreakdown: some View {
