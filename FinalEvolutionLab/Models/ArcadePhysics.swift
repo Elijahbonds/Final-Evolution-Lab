@@ -11,6 +11,8 @@ nonisolated struct ArcadePhysics: Sendable {
     let neuralBurstMultiplier: Double
     let impactIntensity: Double
     let auraLevel: AuraLevel
+    let perfectGuardWindow: Double
+    let specialMeterGainRate: Double
 
     static func fromPRQ(_ prq: Double, neuralDrive: Double, audit: BiomechanicsAudit? = nil) -> ArcadePhysics {
         let normalized = min(max(prq / 100.0, 0), 1)
@@ -47,7 +49,9 @@ nonisolated struct ArcadePhysics: Sendable {
             neuralBurstActive: isEliteNeural,
             neuralBurstMultiplier: burstMultiplier,
             impactIntensity: 0.5 + normalized * 0.5 + (isEliteNeural ? 0.3 : 0),
-            auraLevel: aura
+            auraLevel: aura,
+            perfectGuardWindow: 0.1 + normalized * 0.05,
+            specialMeterGainRate: 8.0 + normalized * 12.0
         )
     }
 
@@ -60,6 +64,13 @@ nonisolated struct ArcadePhysics: Sendable {
         let critical = isCritical ? multiplied * 1.5 : multiplied
         let burst = neuralBurstActive ? critical * neuralBurstMultiplier : critical
         return Int(burst.rounded())
+    }
+
+    func trickStylePoints(for trick: TrickCombo) -> Int {
+        let base = trick.baseStylePoints
+        let speedBonus = trick.requiresFastInput ? 2 : 0
+        let burst = neuralBurstActive ? Int(Double(base) * 0.5) : 0
+        return base + speedBonus + burst
     }
 }
 
@@ -81,6 +92,7 @@ nonisolated enum AuraLevel: String, Sendable {
 
 nonisolated struct DunkPhysicsConfig: Sendable {
     static let qteWindowSeconds: Double = 0.4
+    static let apexWindowSeconds: Double = 0.35
 
     let launchUpward: Float
     let launchForward: Float
@@ -93,6 +105,53 @@ nonisolated struct DunkPhysicsConfig: Sendable {
             launchForward: 3.5 + normalized * 1.5,
             hangTimeMultiplier: 1.0 + normalized * 0.5
         )
+    }
+}
+
+nonisolated enum TrickDirection: String, Sendable, CaseIterable {
+    case up, down, left, right, neutral
+}
+
+nonisolated struct TrickCombo: Sendable, Identifiable {
+    let id: String
+    let name: String
+    let displayName: String
+    let direction: TrickDirection
+    let requiresFastInput: Bool
+    let baseStylePoints: Int
+    let isSpecial: Bool
+    let riskMultiplier: Double
+
+    static let dunkCombos: [TrickCombo] = [
+        TrickCombo(id: "windmill", name: "Windmill Dunk", displayName: "WINDMILL!", direction: .up, requiresFastInput: false, baseStylePoints: 8, isSpecial: false, riskMultiplier: 1.0),
+        TrickCombo(id: "between_legs", name: "Between the Legs", displayName: "BETWEEN THE LEGS!", direction: .down, requiresFastInput: false, baseStylePoints: 9, isSpecial: false, riskMultiplier: 1.1),
+        TrickCombo(id: "tomahawk", name: "Tomahawk", displayName: "TOMAHAWK!", direction: .left, requiresFastInput: false, baseStylePoints: 7, isSpecial: false, riskMultiplier: 0.9),
+        TrickCombo(id: "360_dunk", name: "360 Dunk", displayName: "360!", direction: .right, requiresFastInput: false, baseStylePoints: 10, isSpecial: false, riskMultiplier: 1.2),
+        TrickCombo(id: "giant_killer", name: "Giant Killer", displayName: "GIANT KILLER!", direction: .neutral, requiresFastInput: true, baseStylePoints: 15, isSpecial: true, riskMultiplier: 1.5),
+    ]
+
+    static let karateCombos: [TrickCombo] = [
+        TrickCombo(id: "rasengan", name: "Rasengan Strike", displayName: "RASENGAN!", direction: .up, requiresFastInput: false, baseStylePoints: 8, isSpecial: false, riskMultiplier: 1.0),
+        TrickCombo(id: "lions_barrage", name: "Lion's Barrage", displayName: "LION'S BARRAGE!", direction: .down, requiresFastInput: true, baseStylePoints: 12, isSpecial: false, riskMultiplier: 1.3),
+        TrickCombo(id: "chidori", name: "Chidori", displayName: "CHIDORI!", direction: .left, requiresFastInput: false, baseStylePoints: 10, isSpecial: false, riskMultiplier: 1.1),
+        TrickCombo(id: "shadow_clone", name: "Shadow Clone Combo", displayName: "SHADOW CLONE!", direction: .right, requiresFastInput: false, baseStylePoints: 9, isSpecial: false, riskMultiplier: 1.0),
+        TrickCombo(id: "gate_of_death", name: "Gate of Death", displayName: "GATE OF DEATH!", direction: .neutral, requiresFastInput: true, baseStylePoints: 20, isSpecial: true, riskMultiplier: 2.0),
+    ]
+
+    static func combos(for mode: GameModeId) -> [TrickCombo] {
+        switch mode {
+        case .basketballDunkContest, .basketballHeadToHead, .basketball3v3:
+            return dunkCombos
+        case .karate:
+            return karateCombos
+        default:
+            return dunkCombos
+        }
+    }
+
+    static func resolve(direction: TrickDirection, mode: GameModeId) -> TrickCombo {
+        let pool = combos(for: mode)
+        return pool.first(where: { $0.direction == direction }) ?? pool[0]
     }
 }
 

@@ -23,4 +23,53 @@ nonisolated struct DynamicDifficulty: Sendable {
         let scaledMax = max(1, Int(Double(maxPoints) * dda))
         return Int.random(in: 1...scaledMax)
     }
+
+    static func damageMultiplier(playerScore: Int, aiScore: Int) -> Double {
+        let dda = aggression(playerScore: playerScore, aiScore: aiScore)
+        return 0.8 + dda * 0.4
+    }
+
+    static func aiResponseDelay(playerScore: Int, aiScore: Int) -> Double {
+        let dda = aggression(playerScore: playerScore, aiScore: aiScore)
+        let baseDelay = 0.8
+        return max(0.2, baseDelay - (dda - 1.0) * 0.5)
+    }
+
+    static func momentumBonus(consecutiveWins: Int) -> Double {
+        let capped = min(consecutiveWins, 5)
+        return 1.0 + Double(capped) * 0.08
+    }
+
+    static func rubberBandFactor(playerScore: Int, aiScore: Int, targetScore: Int) -> Double {
+        guard targetScore > 0 else { return 1.0 }
+        let playerProgress = Double(playerScore) / Double(targetScore)
+        let aiProgress = Double(aiScore) / Double(targetScore)
+        let progressGap = playerProgress - aiProgress
+
+        if progressGap > 0.3 {
+            return 1.3
+        } else if progressGap < -0.3 {
+            return 0.7
+        }
+        return 1.0
+    }
+
+    static func scaledOpponentChance(
+        baseChance: Double,
+        playerScore: Int,
+        aiScore: Int,
+        sessionReadiness: Double,
+        targetScore: Int,
+        consecutivePlayerWins: Int
+    ) -> Double {
+        let base = opponentSuccessChance(
+            baseChance: baseChance,
+            playerScore: playerScore,
+            aiScore: aiScore,
+            sessionReadiness: sessionReadiness
+        )
+        let rubber = rubberBandFactor(playerScore: playerScore, aiScore: aiScore, targetScore: targetScore)
+        let momentum = momentumBonus(consecutiveWins: consecutivePlayerWins)
+        return min(0.9, base * rubber / momentum)
+    }
 }

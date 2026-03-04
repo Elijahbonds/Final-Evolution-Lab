@@ -58,6 +58,8 @@ struct CourtSceneView: UIViewRepresentable {
         private let movementConfig = PS2MovementConfig.standard
         private var smoothedCameraPosition = SCNVector3(4, 3.5, 6)
         private var smoothedCameraTarget = SCNVector3(0, 1.5, 0)
+        private var cameraShakeIntensity: Float = 0
+        private var isImpactZoom: Bool = false
 
         init(neuralDrive: Double, verticalPotential: Double, auraLevel: AuraLevel, movementSignature: MovementSignature, onDunk: @escaping () -> Void) {
             self.neuralDrive = neuralDrive
@@ -507,14 +509,15 @@ struct CourtSceneView: UIViewRepresentable {
         }
 
         private func startPS2CameraLoop() {
-            let cameraAction = SCNAction.customAction(duration: 1000) { [weak self] _, elapsed in
+            let cameraAction = SCNAction.customAction(duration: 1000) { [weak self] _, _ in
                 guard let self, let camNode = self.scene.rootNode.childNodes.first(where: { $0.camera != nil }) else { return }
                 let delta: Float = 1.0 / 60.0
                 let cameraLerp = 1.0 - exp(-self.movementConfig.cameraLerpFactor * delta)
                 let targetLerp = 1.0 - exp(-self.movementConfig.cameraTargetLerpFactor * delta)
 
                 let avatarPos = self.avatarRoot?.position ?? SCNVector3(0, 0, 0)
-                let targetCamPos = SCNVector3(avatarPos.x + 4, avatarPos.y + 3.5, avatarPos.z + 6)
+                let zoomOffset: Float = self.isImpactZoom ? -1.5 : 0
+                let targetCamPos = SCNVector3(avatarPos.x + 4, avatarPos.y + 3.5, avatarPos.z + 6 + zoomOffset)
                 let targetLookAt = SCNVector3(avatarPos.x, avatarPos.y + 1.5, avatarPos.z)
 
                 self.smoothedCameraPosition = SCNVector3(
@@ -528,10 +531,42 @@ struct CourtSceneView: UIViewRepresentable {
                     self.smoothedCameraTarget.z + (targetLookAt.z - self.smoothedCameraTarget.z) * targetLerp
                 )
 
-                camNode.position = self.smoothedCameraPosition
+                let shakeAmt = self.cameraShakeIntensity
+                let shakeX = Float.random(in: -0.08...0.08) * shakeAmt
+                let shakeY = Float.random(in: -0.06...0.06) * shakeAmt
+                let shakeZ = Float.random(in: -0.08...0.08) * shakeAmt
+
+                camNode.position = SCNVector3(
+                    self.smoothedCameraPosition.x + shakeX,
+                    self.smoothedCameraPosition.y + shakeY,
+                    self.smoothedCameraPosition.z + shakeZ
+                )
                 camNode.look(at: self.smoothedCameraTarget)
+
+                self.cameraShakeIntensity = max(0, self.cameraShakeIntensity - delta * 4)
             }
             scene.rootNode.runAction(SCNAction.repeatForever(cameraAction), forKey: "ps2Camera")
+        }
+
+        func triggerCameraShake(intensity: Float) {
+            cameraShakeIntensity = min(1, intensity)
+        }
+
+        func triggerImpactZoom(duration: Double = 0.8) {
+            isImpactZoom = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+                self?.isImpactZoom = false
+            }
+        }
+
+        func triggerSceneHitStop() {
+            guard let avatarRoot else { return }
+            GameSceneFactory.triggerHitStop(on: avatarRoot)
+        }
+
+        func triggerSceneImpactRing() {
+            let pos = avatarRoot?.position ?? SCNVector3(0, 1, 0)
+            GameSceneFactory.triggerImpactRing(in: scene, at: SCNVector3(pos.x, pos.y + 1.5, pos.z), color: brandCyan)
         }
 
         private func performDunkAnimation() {

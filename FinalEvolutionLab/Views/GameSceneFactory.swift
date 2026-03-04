@@ -1019,6 +1019,82 @@ struct GameSceneFactory {
         lLeg.runAction(SCNAction.repeatForever(legCycle), forKey: "legPose")
     }
 
+    // MARK: - Cinematic Impact Effects
+
+    static func triggerHitStop(on node: SCNNode, duration: Double = AvatarStateMachine.hitStopDuration) {
+        node.isPaused = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            node.isPaused = false
+        }
+    }
+
+    static func triggerImpactRing(in scene: SCNScene, at position: SCNVector3, color: UIColor) {
+        let ring = SCNNode()
+        let ringGeo = SCNTorus(ringRadius: 0.01, pipeRadius: 0.005)
+        let ringMat = SCNMaterial()
+        ringMat.diffuse.contents = color
+        ringMat.emission.contents = color
+        ringGeo.materials = [ringMat]
+        ring.geometry = ringGeo
+        ring.position = position
+        scene.rootNode.addChildNode(ring)
+
+        let expand = SCNAction.group([
+            SCNAction.scale(to: 8, duration: 0.5),
+            SCNAction.fadeOut(duration: 0.5)
+        ])
+        ring.runAction(SCNAction.sequence([expand, SCNAction.removeFromParentNode()]))
+    }
+
+    static func triggerWallSplat(on avatarNode: SCNNode, wallDirection: SCNVector3, force: Float) {
+        let knockback = SCNAction.move(by: SCNVector3(
+            wallDirection.x * force,
+            wallDirection.y * force * 0.3,
+            wallDirection.z * force
+        ), duration: 0.15)
+        knockback.timingMode = .easeOut
+
+        let recoil = SCNAction.move(by: SCNVector3(
+            -wallDirection.x * force * 0.3,
+            0,
+            -wallDirection.z * force * 0.3
+        ), duration: 0.25)
+        recoil.timingMode = .easeInEaseOut
+
+        avatarNode.runAction(SCNAction.sequence([knockback, recoil]))
+    }
+
+    static func triggerCinematicSlowMo(in scene: SCNScene, duration: Double = 1.0, timeScale: Double = 0.2) {
+        scene.physicsWorld.speed = CGFloat(timeScale)
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0.3
+            scene.physicsWorld.speed = 1.0
+            SCNTransaction.commit()
+        }
+    }
+
+    static func triggerVanishEffect(in scene: SCNScene, at position: SCNVector3, color: UIColor) {
+        let flash = SCNNode()
+        let flashGeo = SCNSphere(radius: 0.5)
+        let flashMat = SCNMaterial()
+        flashMat.diffuse.contents = color
+        flashMat.emission.contents = color
+        flashMat.transparency = 0.8
+        flashGeo.materials = [flashMat]
+        flash.geometry = flashGeo
+        flash.position = position
+        scene.rootNode.addChildNode(flash)
+
+        let expand = SCNAction.group([
+            SCNAction.scale(to: 3, duration: 0.2),
+            SCNAction.fadeOut(duration: 0.2)
+        ])
+        flash.runAction(SCNAction.sequence([expand, SCNAction.removeFromParentNode()]))
+    }
+
+    // MARK: - Ball Builder
+
     private static func addBall(to scene: SCNScene, at position: SCNVector3, color: UIColor) {
         let geo = SCNSphere(radius: 0.12)
         let mat = SCNMaterial()

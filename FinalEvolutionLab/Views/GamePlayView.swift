@@ -45,6 +45,18 @@ struct GamePlayView: View {
     @State private var swipeStartTime: Date?
     @State private var golfDragStartY: CGFloat = 0
 
+    @State private var specialMeter: Double = 0
+    @State private var isModifierHeld: Bool = false
+    @State private var currentTrickDirection: ComboDirection = .neutral
+    @State private var lastTrickName: String = ""
+    @State private var showTrickText: Bool = false
+    @State private var isSlowMo: Bool = false
+    @State private var slowMoTimer: Task<Void, Never>?
+    @State private var consecutiveWins: Int = 0
+    @State private var showPerfectGuard: Bool = false
+    @State private var showVanishFlash: Bool = false
+    @State private var blockTimestamp: Double = 0
+
     @Environment(\.dismiss) private var dismiss
 
     private enum GolfSwingPhase { case idle, backswing }
@@ -52,6 +64,8 @@ struct GamePlayView: View {
 
     private var isKarate: Bool { gameMode.id == .karate }
     private var inputScheme: InputScheme { gameMode.id.inputScheme }
+    private var supportsTricks: Bool { gameMode.id == .basketballDunkContest || gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3 || isKarate }
+    private var specialMeterFull: Bool { specialMeter >= 100 }
 
     private var arcadePhysics: ArcadePhysics {
         ArcadePhysics.fromPRQ(
@@ -149,6 +163,67 @@ struct GamePlayView: View {
                     .transition(.opacity)
             }
 
+            if isSlowMo {
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                    .overlay(
+                        Text("SLOW MOTION")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .tracking(4)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .padding(.top, 60)
+                            .padding(.leading, 16)
+                            .allowsHitTesting(false)
+                    )
+            }
+
+            if showPerfectGuard {
+                RadialGradient(
+                    colors: [Theme.brandCyan.opacity(0.5), Theme.elitePurple.opacity(0.3), .clear],
+                    center: .center,
+                    startRadius: 10,
+                    endRadius: 300
+                )
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
+
+            if showVanishFlash {
+                Color.white.opacity(0.6)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+
+            if showTrickText && !lastTrickName.isEmpty {
+                VStack {
+                    Spacer()
+                    Text(lastTrickName)
+                        .font(.system(size: 24, weight: .black, design: .monospaced))
+                        .italic()
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [gameMode.accentColor, .white, gameMode.accentColor],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(color: gameMode.accentColor.opacity(0.8), radius: 12)
+                        .shadow(color: .black, radius: 4)
+                        .tracking(3)
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.3).combined(with: .opacity),
+                            removal: .opacity.combined(with: .move(edge: .top))
+                        ))
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+            }
+
             if showResults {
                 ResultScreen(
                     winner: score > opponentScore ? .p1 : (score == opponentScore ? .draw : .p2),
@@ -178,6 +253,14 @@ struct GamePlayView: View {
 
             if isActive && inputScheme == .charge {
                 PS2ControllerShellView()
+            }
+
+            if supportsTricks && isActive {
+                specialMeterOverlay
+            }
+
+            if supportsTricks && isActive {
+                trickModifierOverlay
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -1091,6 +1174,16 @@ struct GamePlayView: View {
         lastJudgeScores = nil
         crowdMessage = ""
         chakraBar = 0
+        specialMeter = 0
+        isModifierHeld = false
+        currentTrickDirection = .neutral
+        lastTrickName = ""
+        showTrickText = false
+        isSlowMo = false
+        slowMoTimer?.cancel()
+        slowMoTimer = nil
+        showPerfectGuard = false
+        showVanishFlash = false
         showResults = false
         golfCharge = 0
         golfPhase = .idle
@@ -1153,6 +1246,10 @@ struct GamePlayView: View {
                 } else {
                     lastAction = "\(action.uppercased()) +\(finalPoints)"
                 }
+            }
+
+            withAnimation(.spring(response: 0.2)) {
+                specialMeter = min(100, specialMeter + arcadePhysics.specialMeterGainRate * (isCritical ? 1.5 : 1.0))
             }
 
             if isKarate {
@@ -1610,7 +1707,357 @@ struct GamePlayView: View {
             neuralBurstActive: arcadePhysics.neuralBurstActive,
             neuralBurstMultiplier: arcadePhysics.neuralBurstMultiplier,
             impactIntensity: arcadePhysics.impactIntensity,
-            auraLevel: arcadePhysics.auraLevel
+            auraLevel: arcadePhysics.auraLevel,
+            perfectGuardWindow: arcadePhysics.perfectGuardWindow,
+            specialMeterGainRate: arcadePhysics.specialMeterGainRate
         )
+    }
+
+    // MARK: - Special Meter Overlay
+
+    private var specialMeterOverlay: some View {
+        VStack {
+            Spacer()
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Image(systemName: specialMeterFull ? "flame.fill" : "bolt.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(specialMeterFull ? .orange : Theme.brandCyan)
+                        Text(specialMeterFull ? "SPECIAL READY" : "SPECIAL")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .foregroundStyle(specialMeterFull ? .orange : Theme.brandCyan.opacity(0.8))
+                            .tracking(1)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.black.opacity(0.6))
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(
+                                    LinearGradient(
+                                        colors: specialMeterFull
+                                            ? [.orange, .yellow, .orange]
+                                            : [Theme.brandCyan.opacity(0.6), Theme.elitePurple.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: geo.size.width * min(1, specialMeter / 100))
+                                .animation(.spring(response: 0.25), value: specialMeter)
+                        }
+                    }
+                    .frame(width: 100, height: 8)
+                    .clipShape(.rect(cornerRadius: 4))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(specialMeterFull ? .orange.opacity(0.6) : Theme.brandCyan.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.black.opacity(0.5))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(specialMeterFull ? .orange.opacity(0.3) : .clear, lineWidth: 1)
+                        )
+                )
+                Spacer()
+            }
+            .padding(.leading, 16)
+            .padding(.bottom, 8)
+        }
+        .allowsHitTesting(false)
+    }
+
+    // MARK: - Trick Modifier Overlay
+
+    private var trickModifierOverlay: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                VStack(spacing: 6) {
+                    if isModifierHeld {
+                        VStack(spacing: 4) {
+                            Text("TRICK MODE")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                                .foregroundStyle(Theme.elitePurple)
+                                .tracking(2)
+                            HStack(spacing: 12) {
+                                trickDirectionButton(.up, label: "\u{25B2}", hint: isKarate ? "Rasengan" : "Windmill")
+                                trickDirectionButton(.down, label: "\u{25BC}", hint: isKarate ? "Barrage" : "Between")
+                                trickDirectionButton(.left, label: "\u{25C0}", hint: isKarate ? "Chidori" : "Tomahawk")
+                                trickDirectionButton(.right, label: "\u{25B6}", hint: isKarate ? "Shadow" : "360")
+                            }
+                            if specialMeterFull {
+                                Button {
+                                    executeSpecialTrick()
+                                } label: {
+                                    Text(isKarate ? "GATE OF DEATH" : "GIANT KILLER")
+                                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                                        .foregroundStyle(.black)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            LinearGradient(
+                                                colors: [.orange, .yellow],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                        .padding(10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.black.opacity(0.7))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Theme.elitePurple.opacity(0.4), lineWidth: 1)
+                                )
+                        )
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    }
+
+                    Button {
+                        withAnimation(.spring(response: 0.2)) {
+                            isModifierHeld.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "l1.button.roundedbottom.horizontal")
+                                .font(.system(size: 12, weight: .bold))
+                            Text("TRICK")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(isModifierHeld ? .black : Theme.elitePurple)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            isModifierHeld
+                                ? AnyShapeStyle(Theme.elitePurple)
+                                : AnyShapeStyle(Theme.elitePurple.opacity(0.15))
+                        )
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(Theme.elitePurple.opacity(0.4), lineWidth: 1)
+                        )
+                    }
+                }
+                .padding(.trailing, 16)
+                .padding(.bottom, 80)
+            }
+        }
+    }
+
+    private func trickDirectionButton(_ direction: ComboDirection, label: String, hint: String) -> some View {
+        Button {
+            executeTrickCombo(direction: direction)
+        } label: {
+            VStack(spacing: 2) {
+                Text(label)
+                    .font(.system(size: 14, weight: .bold))
+                Text(hint)
+                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(.white)
+            .frame(width: 50, height: 44)
+            .background(Theme.elitePurple.opacity(0.2))
+            .clipShape(.rect(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Theme.elitePurple.opacity(0.3), lineWidth: 1)
+            )
+        }
+    }
+
+    // MARK: - Trick Execution
+
+    private func executeTrickCombo(direction: ComboDirection) {
+        guard isActive, isModifierHeld else { return }
+        let trick = TrickCombo.resolve(direction: direction.trickDirection, mode: gameMode.id)
+        executeTrick(trick)
+    }
+
+    private func executeSpecialTrick() {
+        guard isActive, specialMeterFull else { return }
+        let specials = TrickCombo.combos(for: gameMode.id).filter { $0.isSpecial }
+        guard let trick = specials.first else { return }
+        withAnimation(.spring(response: 0.2)) {
+            specialMeter = 0
+        }
+        executeTrick(trick)
+        triggerSlowMo(duration: 1.5)
+    }
+
+    private func executeTrick(_ trick: TrickCombo) {
+        let physics = leakageAdjustedPhysics
+        let riskRoll = Double.random(in: 0...1)
+        let successThreshold = physics.successChanceBase / trick.riskMultiplier
+        let success = riskRoll < successThreshold
+        let isCritical = success && Double.random(in: 0...1) < physics.criticalHitChance
+
+        if success {
+            let stylePoints = physics.trickStylePoints(for: trick)
+            let finalPoints = physics.adjustedPoints(base: stylePoints, combo: combo, isCritical: isCritical)
+
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+                score += finalPoints
+                combo += 1
+                maxCombo = max(maxCombo, combo)
+                lastActionIsCritical = isCritical
+                lastActionIsBurst = arcadePhysics.neuralBurstActive
+                lastAction = "+\(finalPoints)"
+                lastTrickName = trick.displayName
+                showTrickText = true
+                specialMeter = min(100, specialMeter + physics.specialMeterGainRate)
+            }
+
+            if isCritical {
+                criticalHits += 1
+                triggerCriticalFlash()
+                triggerScreenShake(intensity: 0.8)
+            } else {
+                triggerFlash()
+                triggerScreenShake(intensity: 0.5)
+            }
+            triggerImpactFlash()
+            resetStreakTimer()
+
+            if trick.isSpecial {
+                triggerSlowMo(duration: 1.0)
+                triggerScreenShake(intensity: 1.0)
+            }
+
+            Task {
+                try? await Task.sleep(for: .seconds(2.0))
+                withAnimation { showTrickText = false; lastTrickName = "" }
+            }
+        } else {
+            withAnimation(.spring(response: 0.3)) {
+                combo = 0
+                lastAction = "CLANK!"
+                lastActionIsCritical = false
+                lastActionIsBurst = false
+            }
+            triggerScreenShake(intensity: 0.3)
+        }
+
+        withAnimation(.spring(response: 0.2)) {
+            isModifierHeld = false
+        }
+
+        let clearDelay: Double = 2.0
+        Task {
+            try? await Task.sleep(for: .seconds(clearDelay))
+            withAnimation { lastAction = "" }
+        }
+    }
+
+    // MARK: - Slow-Mo Manager
+
+    private func triggerSlowMo(duration: Double) {
+        slowMoTimer?.cancel()
+        withAnimation(.easeOut(duration: 0.15)) {
+            isSlowMo = true
+        }
+        slowMoTimer = Task {
+            try? await Task.sleep(for: .seconds(duration))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeIn(duration: 0.3)) {
+                isSlowMo = false
+            }
+        }
+    }
+
+    // MARK: - Combat (Block / Counter / Vanish)
+
+    private func handleBlock() {
+        guard isActive, isKarate else { return }
+        blockTimestamp = CACurrentMediaTime()
+    }
+
+    private func resolveCombatOnHit() {
+        guard isKarate else { return }
+        let impactTime = CACurrentMediaTime()
+        let outcome = CombatInputResolver.resolveCombatAction(
+            blockPressed: blockTimestamp > 0,
+            blockTimestamp: blockTimestamp,
+            impactTimestamp: impactTime,
+            stickDirection: currentTrickDirection != .neutral ? currentTrickDirection : nil
+        )
+        blockTimestamp = 0
+
+        switch outcome {
+        case .perfectGuard:
+            triggerPerfectGuard()
+        case .vanishCounter:
+            triggerVanishCounter()
+        case .standardBlock:
+            withAnimation(.spring(response: 0.2)) {
+                lastAction = "BLOCKED!"
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(1.0))
+                withAnimation { lastAction = "" }
+            }
+        case .hit:
+            break
+        }
+    }
+
+    private func triggerPerfectGuard() {
+        withAnimation(.easeOut(duration: 0.1)) {
+            showPerfectGuard = true
+            lastAction = "PERFECT GUARD!"
+            specialMeter = min(100, specialMeter + 20)
+        }
+        triggerSlowMo(duration: 1.0)
+        triggerScreenShake(intensity: 0.4)
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            withAnimation(.easeIn(duration: 0.3)) { showPerfectGuard = false }
+            try? await Task.sleep(for: .seconds(1.0))
+            withAnimation { lastAction = "" }
+        }
+    }
+
+    private func triggerVanishCounter() {
+        withAnimation(.easeOut(duration: 0.05)) {
+            showVanishFlash = true
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            withAnimation(.easeIn(duration: 0.15)) { showVanishFlash = false }
+        }
+
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+            lastAction = "VANISH COUNTER!"
+            lastTrickName = "SUBSTITUTION!"
+            showTrickText = true
+            specialMeter = min(100, specialMeter + 30)
+        }
+        triggerSlowMo(duration: 1.5)
+        triggerScreenShake(intensity: 0.7)
+
+        let physics = leakageAdjustedPhysics
+        let counterPoints = physics.adjustedPoints(base: 5, combo: combo, isCritical: true)
+        withAnimation(.spring(response: 0.25)) {
+            score += counterPoints
+            combo += 1
+            maxCombo = max(maxCombo, combo)
+        }
+        triggerCriticalFlash()
+
+        Task {
+            try? await Task.sleep(for: .seconds(2.0))
+            withAnimation { showTrickText = false; lastTrickName = ""; lastAction = "" }
+        }
     }
 }

@@ -21,6 +21,87 @@ nonisolated struct InputManager: Sendable {
     }
 }
 
+nonisolated enum ComboDirection: String, Sendable {
+    case up, down, left, right, neutral
+
+    var trickDirection: TrickDirection {
+        switch self {
+        case .up: return .up
+        case .down: return .down
+        case .left: return .left
+        case .right: return .right
+        case .neutral: return .neutral
+        }
+    }
+}
+
+nonisolated struct ComboInput: Sendable {
+    let direction: ComboDirection
+    let timestamp: Double
+    let isModifierHeld: Bool
+}
+
+nonisolated struct ComboResolver: Sendable {
+    static let comboWindowSeconds: Double = 0.5
+    static let doubleTapWindowSeconds: Double = 0.3
+
+    static func resolve(inputs: [ComboInput], mode: GameModeId) -> TrickCombo? {
+        guard !inputs.isEmpty else { return nil }
+
+        let now = inputs.last?.timestamp ?? 0
+        let recent = inputs.filter { now - $0.timestamp < comboWindowSeconds }
+        guard let latest = recent.last, latest.isModifierHeld else { return nil }
+
+        if recent.count >= 2 {
+            let prev = recent[recent.count - 2]
+            if prev.direction == .down && latest.direction == .down &&
+               (latest.timestamp - prev.timestamp) < doubleTapWindowSeconds {
+                let specials = TrickCombo.combos(for: mode).filter { $0.isSpecial }
+                if let special = specials.first { return special }
+            }
+        }
+
+        return TrickCombo.resolve(direction: latest.direction.trickDirection, mode: mode)
+    }
+
+    static func resolveFromAction(_ action: String, direction: ComboDirection, isModifierHeld: Bool, mode: GameModeId) -> TrickCombo? {
+        guard isModifierHeld else { return nil }
+        return TrickCombo.resolve(direction: direction.trickDirection, mode: mode)
+    }
+}
+
+nonisolated struct CombatInputResolver: Sendable {
+    static let perfectGuardWindowSeconds: Double = 0.1
+    static let vanishWindowSeconds: Double = 0.15
+
+    static func resolveCombatAction(
+        blockPressed: Bool,
+        blockTimestamp: Double,
+        impactTimestamp: Double,
+        stickDirection: ComboDirection?
+    ) -> CombatOutcome {
+        guard blockPressed else { return .hit }
+
+        let reactionTime = abs(impactTimestamp - blockTimestamp)
+
+        if reactionTime <= perfectGuardWindowSeconds {
+            if let dir = stickDirection, dir != .neutral {
+                return .vanishCounter
+            }
+            return .perfectGuard
+        }
+
+        return .standardBlock
+    }
+}
+
+nonisolated enum CombatOutcome: String, Sendable {
+    case hit
+    case standardBlock
+    case perfectGuard
+    case vanishCounter
+}
+
 nonisolated struct PS2MovementConfig: Sendable {
     let topSpeed: Float
     let acceleration: Float
