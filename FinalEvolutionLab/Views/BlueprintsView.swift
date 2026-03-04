@@ -5,24 +5,26 @@ struct BlueprintsView: View {
 
     @State private var selectedTrack: CurriculumTrack?
     @State private var appeared = false
+    @State private var selectedTab: BlueprintTab = .tracks
+
+    private enum BlueprintTab: String, CaseIterable {
+        case tracks = "Tracks"
+        case library = "Library"
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
+                tabPicker
 
-                ForEach(Array(viewModel.tracks.enumerated()), id: \.element.id) { index, track in
-                    Button {
-                        selectedTrack = track
-                    } label: {
-                        TrackCard(track: track)
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 20)
-                            .animation(.spring(response: 0.5).delay(Double(index) * 0.1), value: appeared)
-                    }
+                switch selectedTab {
+                case .tracks:
+                    tracksSection
+                    progressOverview
+                case .library:
+                    blueprintLibrarySection
                 }
-
-                progressOverview
             }
             .padding(.horizontal)
             .padding(.bottom, 32)
@@ -39,17 +41,145 @@ struct BlueprintsView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("TRAINING TRACKS")
+            Text("BONDS BOUNCE")
                 .font(.system(.caption, design: .monospaced, weight: .bold))
-                .foregroundStyle(Theme.brandBlue)
+                .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
                 .tracking(4)
 
             Text("Blueprints")
                 .font(.system(size: 52, weight: .black))
                 .italic()
                 .foregroundStyle(.white)
+
+            Text("Master the vertical jump architecture")
+                .font(.system(.caption, design: .monospaced, weight: .medium))
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
         }
         .padding(.top, 8)
+    }
+
+    private var tabPicker: some View {
+        HStack(spacing: 0) {
+            ForEach(BlueprintTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.3)) { selectedTab = tab }
+                } label: {
+                    Text(tab.rawValue.uppercased())
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .tracking(1)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(selectedTab == tab ? Theme.brandBlue.opacity(0.15) : Color.white.opacity(0.03))
+                        .foregroundStyle(selectedTab == tab ? Theme.brandBlue : .secondary)
+                }
+            }
+        }
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Theme.brandBlue.opacity(0.1), lineWidth: 0.5)
+        )
+    }
+
+    private var tracksSection: some View {
+        VStack(spacing: 16) {
+            ForEach(Array(viewModel.tracks.enumerated()), id: \.element.id) { index, track in
+                Button {
+                    selectedTrack = track
+                } label: {
+                    TrackCard(track: track)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 20)
+                        .animation(.spring(response: 0.5).delay(Double(index) * 0.1), value: appeared)
+                }
+            }
+        }
+    }
+
+    private var blueprintLibrarySection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("BLUEPRINT LIBRARY")
+                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                        .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
+                        .tracking(2)
+
+                    Spacer()
+
+                    Link(destination: URL(string: "https://ai.studio/apps/6c9d99ff-4538-45fc-9c87-72fe74457430")!) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 9, weight: .bold))
+                            Text("FULL LIBRARY")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        }
+                        .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                }
+
+                Text("Video guides with timestamps and coaching cues for every phase of the Bonds Bounce system.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            ForEach(Array(BlueprintLibrary.blueprints.enumerated()), id: \.element.id) { index, bp in
+                Link(destination: bp.url) {
+                    BlueprintCard(blueprint: bp)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 15)
+                        .animation(.spring(response: 0.5).delay(Double(index) * 0.08), value: appeared)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("PHASE PROGRESSION")
+                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .tracking(2)
+
+                ForEach(BlueprintLibrary.phases, id: \.name) { phase in
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(phase.color.opacity(0.12))
+                                .frame(width: 44, height: 44)
+
+                            Text("\(phase.number)")
+                                .font(.system(.headline, design: .monospaced, weight: .black))
+                                .foregroundStyle(phase.color)
+                        }
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(phase.name.uppercased())
+                                .font(.system(.caption, design: .monospaced, weight: .bold))
+                                .foregroundStyle(.white)
+
+                            Text(phase.description)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Theme.cardBackground)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(phase.color.opacity(0.08), lineWidth: 0.5)
+                            )
+                    )
+                }
+            }
+        }
     }
 
     private var progressOverview: some View {
@@ -65,6 +195,80 @@ struct BlueprintsView: View {
                 ProgressStat(label: "WEEKLY", value: "\(viewModel.weeklyShards)", icon: "diamond.fill")
             }
         }
+    }
+}
+
+struct BlueprintCard: View {
+    let blueprint: BlueprintLibrary.Blueprint
+
+    private let accentOrange = Color(red: 0.95, green: 0.49, blue: 0.15)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(accentOrange.opacity(0.1))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: blueprint.icon)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(accentOrange)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(blueprint.title.uppercased())
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    Text(blueprint.subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                VStack(spacing: 4) {
+                    Text(blueprint.category.uppercased())
+                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                        .foregroundStyle(accentOrange.opacity(0.7))
+                        .tracking(1)
+
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(accentOrange.opacity(0.5))
+                }
+            }
+
+            if !blueprint.phases.isEmpty {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 6) {
+                        ForEach(blueprint.phases, id: \.self) { phase in
+                            Text(phase.uppercased())
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.white.opacity(0.04))
+                                .foregroundStyle(.tertiary)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                .contentMargins(.horizontal, 0)
+                .scrollIndicators(.hidden)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(accentOrange.opacity(0.08), lineWidth: 0.5)
+                )
+        )
     }
 }
 

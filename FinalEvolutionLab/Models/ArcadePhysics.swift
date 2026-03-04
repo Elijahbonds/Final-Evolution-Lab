@@ -139,6 +139,14 @@ nonisolated struct GamePhysicsConfig: Sendable {
                 floorShakeAmplitude: 0.005 + normalized * 0.01,
                 particleTrailDensity: 3 + normalized * 10
             )
+        case .tennis:
+            return GamePhysicsConfig(
+                jumpHeight: 0.4 + normalized * 0.6,
+                moveSpeed: 0.7 + (normalized + auditBonus) * 0.8,
+                impactIntensity: 0.5 + normalized * 0.5,
+                floorShakeAmplitude: 0.01 + normalized * 0.02,
+                particleTrailDensity: 10 + normalized * 25
+            )
         }
     }
 }

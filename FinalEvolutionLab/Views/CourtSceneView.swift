@@ -78,6 +78,7 @@ struct CourtSceneView: UIViewRepresentable {
             buildHoop()
             buildBall()
             buildAvatar()
+            buildVeniceBeachWalls()
             buildParticleAmbience()
             buildAuraEffect()
         }
@@ -383,6 +384,91 @@ struct CourtSceneView: UIViewRepresentable {
             case .baseline:
                 particles.birthRate = 0
             }
+        }
+
+        private func buildVeniceBeachWalls() {
+            let sandColor = UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1)
+            let boardwalkColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1)
+            let palmGreen = UIColor(red: 0.15, green: 0.45, blue: 0.15, alpha: 1)
+            let wallHeight: CGFloat = 4
+            let wallThickness: CGFloat = 0.05
+
+            func wallMat(_ color: UIColor) -> SCNMaterial {
+                let m = SCNMaterial()
+                m.diffuse.contents = color
+                m.emission.contents = color.withAlphaComponent(0.05)
+                m.isDoubleSided = true
+                return m
+            }
+
+            let backWall = SCNBox(width: 16, height: wallHeight, length: wallThickness, chamferRadius: 0)
+            backWall.materials = [wallMat(sandColor)]
+            let backNode = SCNNode(geometry: backWall)
+            backNode.position = SCNVector3(x: 0, y: Float(wallHeight / 2), z: -6)
+            scene.rootNode.addChildNode(backNode)
+
+            let frontWall = SCNBox(width: 16, height: wallHeight, length: wallThickness, chamferRadius: 0)
+            frontWall.materials = [wallMat(UIColor(red: 0.12, green: 0.30, blue: 0.55, alpha: 1))]
+            let frontNode = SCNNode(geometry: frontWall)
+            frontNode.position = SCNVector3(x: 0, y: Float(wallHeight / 2), z: 8)
+            scene.rootNode.addChildNode(frontNode)
+
+            let leftWall = SCNBox(width: wallThickness, height: wallHeight, length: 14, chamferRadius: 0)
+            leftWall.materials = [wallMat(boardwalkColor)]
+            let leftNode = SCNNode(geometry: leftWall)
+            leftNode.position = SCNVector3(x: -8, y: Float(wallHeight / 2), z: 1)
+            scene.rootNode.addChildNode(leftNode)
+
+            let rightWall = SCNBox(width: wallThickness, height: wallHeight, length: 14, chamferRadius: 0)
+            rightWall.materials = [wallMat(boardwalkColor)]
+            let rightNode = SCNNode(geometry: rightWall)
+            rightNode.position = SCNVector3(x: 8, y: Float(wallHeight / 2), z: 1)
+            scene.rootNode.addChildNode(rightNode)
+
+            for x in stride(from: -7.0, through: 7.0, by: 3.5) {
+                let trunk = SCNCylinder(radius: 0.08, height: 3.5)
+                let tMat = SCNMaterial()
+                tMat.diffuse.contents = UIColor(red: 0.4, green: 0.3, blue: 0.15, alpha: 1)
+                trunk.materials = [tMat]
+                let tNode = SCNNode(geometry: trunk)
+                tNode.position = SCNVector3(x: Float(x), y: 1.75, z: -5.5)
+                scene.rootNode.addChildNode(tNode)
+
+                let crown = SCNSphere(radius: 0.6)
+                let cMat = SCNMaterial()
+                cMat.diffuse.contents = palmGreen
+                cMat.emission.contents = palmGreen.withAlphaComponent(0.1)
+                crown.materials = [cMat]
+                let cNode = SCNNode(geometry: crown)
+                cNode.position = SCNVector3(x: Float(x), y: 3.8, z: -5.5)
+                cNode.scale = SCNVector3(x: 1, y: 0.6, z: 1)
+                scene.rootNode.addChildNode(cNode)
+            }
+
+            let boardwalk = SCNBox(width: 16, height: 0.06, length: 1.5, chamferRadius: 0)
+            let bwMat = SCNMaterial()
+            bwMat.diffuse.contents = boardwalkColor
+            bwMat.roughness.contents = 0.95
+            boardwalk.materials = [bwMat]
+            let bwNode = SCNNode(geometry: boardwalk)
+            bwNode.position = SCNVector3(x: 0, y: 0.03, z: -5)
+            scene.rootNode.addChildNode(bwNode)
+
+            let sandStrip = SCNBox(width: 16, height: 0.02, length: 3, chamferRadius: 0)
+            let sMat = SCNMaterial()
+            sMat.diffuse.contents = sandColor.withAlphaComponent(0.4)
+            sandStrip.materials = [sMat]
+            let sNode = SCNNode(geometry: sandStrip)
+            sNode.position = SCNVector3(x: 0, y: 0.005, z: 7)
+            scene.rootNode.addChildNode(sNode)
+
+            let sunGlow = SCNNode()
+            sunGlow.light = SCNLight()
+            sunGlow.light?.type = .omni
+            sunGlow.light?.color = UIColor(red: 1.0, green: 0.85, blue: 0.5, alpha: 1)
+            sunGlow.light?.intensity = 100
+            sunGlow.position = SCNVector3(x: 5, y: 6, z: -5)
+            scene.rootNode.addChildNode(sunGlow)
         }
 
         private func buildParticleAmbience() {

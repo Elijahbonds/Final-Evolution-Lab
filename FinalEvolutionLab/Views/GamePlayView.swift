@@ -48,6 +48,7 @@ struct GamePlayView: View {
     private var maxRounds: Int {
         switch gameMode.id {
         case .golf: 9
+        case .tennis: 1
         case .baseball: 10
         case .football: 8
         case .soccer: 5
@@ -347,6 +348,7 @@ struct GamePlayView: View {
         case .football: ["Short Pass", "Deep Throw", "Scramble"]
         case .soccer: ["Left", "Center", "Right"]
         case .golf: ["Chip", "Approach", "Full Swing"]
+        case .tennis: ["Serve", "Volley", "Baseline"]
         }
     }
 
@@ -712,6 +714,8 @@ struct GamePlayView: View {
             return 1
         case .golf:
             return action == "Chip" ? 3 : (action == "Approach" ? 2 : 1)
+        case .tennis:
+            return action == "Serve" ? 4 : (action == "Volley" ? 3 : 2)
         }
     }
 

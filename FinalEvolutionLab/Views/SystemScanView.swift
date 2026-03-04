@@ -8,7 +8,7 @@ struct SystemScanView: View {
     let onComplete: (SystemScanResult) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var phase: ScanPhase = .intro
+    @State private var phase: ScanPhase = .picking
     @State private var selectedItem: PhotosPickerItem?
     @State private var videoURL: URL?
     @State private var analysisProgress: Double = 0
@@ -16,7 +16,6 @@ struct SystemScanView: View {
     @State private var gridPulse: Bool = false
 
     private enum ScanPhase {
-        case intro
         case picking
         case analyzing
         case results
@@ -33,8 +32,6 @@ struct SystemScanView: View {
 
                 VStack(spacing: 0) {
                     switch phase {
-                    case .intro:
-                        introPhase
                     case .picking:
                         pickingPhase
                     case .analyzing:
@@ -85,74 +82,6 @@ struct SystemScanView: View {
         .ignoresSafeArea()
     }
 
-    private var introPhase: some View {
-        VStack(spacing: 32) {
-            Spacer()
-
-            ZStack {
-                ForEach(0..<3, id: \.self) { ring in
-                    Circle()
-                        .stroke(Theme.brandCyan.opacity(0.08 + Double(ring) * 0.04), lineWidth: 1)
-                        .frame(width: CGFloat(100 + ring * 40), height: CGFloat(100 + ring * 40))
-                }
-
-                Circle()
-                    .fill(Theme.brandCyan.opacity(0.06))
-                    .frame(width: 100, height: 100)
-
-                Image(systemName: "figure.basketball")
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
-            }
-
-            VStack(spacing: 12) {
-                Text("SYSTEM SCAN")
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
-                    .tracking(4)
-
-                Text("Upload Your\nJump Video")
-                    .font(.system(size: 34, weight: .black))
-                    .italic()
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-
-                Text("Upload a dunk or vertical jump attempt from your camera roll. Our system will analyze your movement data and generate your PRQ score.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-
-            VStack(spacing: 8) {
-                HStack(spacing: 20) {
-                    ScanFeaturePill(icon: "waveform.path.ecg", label: "FLIGHT TIME")
-                    ScanFeaturePill(icon: "arrow.up.and.down", label: "VERTICAL")
-                    ScanFeaturePill(icon: "brain.head.profile.fill", label: "PRQ SCORE")
-                }
-            }
-
-            Spacer()
-
-            Button {
-                withAnimation(.spring(response: 0.4)) { phase = .picking }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "video.badge.plus")
-                    Text("SELECT VIDEO")
-                }
-                .font(.system(.subheadline, design: .monospaced, weight: .black))
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Theme.brandCyan)
-                .clipShape(.rect(cornerRadius: 14))
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 48)
-        }
-    }
-
     private var pickingPhase: some View {
         VStack(spacing: 32) {
             Spacer()
@@ -168,11 +97,17 @@ struct SystemScanView: View {
                     .foregroundStyle(Theme.brandBlue)
                     .tracking(3)
 
-                Text("Choose a video of your best jump or dunk attempt")
+                Text("Upload a dunk or vertical jump attempt from your camera roll. Our system will analyze your movement data and generate your PRQ score.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+
+                HStack(spacing: 20) {
+                    ScanFeaturePill(icon: "waveform.path.ecg", label: "FLIGHT TIME")
+                    ScanFeaturePill(icon: "arrow.up.and.down", label: "VERTICAL")
+                    ScanFeaturePill(icon: "brain.head.profile.fill", label: "PRQ SCORE")
+                }
             }
 
             PhotosPicker(
