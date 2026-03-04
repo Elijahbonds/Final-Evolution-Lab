@@ -22,21 +22,28 @@ nonisolated enum InputScheme: String, Sendable {
     case swipeGolf
     case dragTap
     case kickReturn
+    case rallyAce
+    case penaltyKick
+    case rhythmTap
 }
 
 extension GameModeId {
     var inputScheme: InputScheme {
         switch self {
-        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .karate, .gymnastics, .tennis:
+        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .karate:
             return .charge
-        case .baseball, .soccer:
+        case .baseball:
             return .swipe
         case .golf:
             return .swipeGolf
-        case .volleyball:
-            return .dragTap
+        case .volleyball, .tennis:
+            return .rallyAce
         case .football:
             return .kickReturn
+        case .soccer:
+            return .penaltyKick
+        case .gymnastics:
+            return .rhythmTap
         }
     }
 }

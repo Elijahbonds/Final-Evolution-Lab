@@ -285,6 +285,10 @@ struct GamePlayView: View {
                 )
             }
 
+            if isActive && inputScheme == .rhythmTap {
+                gymnasticsTimingOverlay
+            }
+
             if supportsTricks && isActive {
                 specialMeterOverlay
             }
@@ -563,7 +567,7 @@ struct GamePlayView: View {
                 dunkJudgeOverlay(j1: judges.0, j2: judges.1, j3: judges.2)
             }
 
-            if inputScheme == .dragTap && isActive {
+            if (inputScheme == .dragTap || inputScheme == .rallyAce || inputScheme == .penaltyKick) && isActive {
                 aimCrosshairOverlay
             }
 
@@ -759,6 +763,12 @@ struct GamePlayView: View {
                 volleyballControlView
             case .kickReturn:
                 kickReturnControlView
+            case .rallyAce:
+                rallyAceControlView
+            case .penaltyKick:
+                penaltyKickControlView
+            case .rhythmTap:
+                gymnasticsControlView
             }
 
             if !isActive && !showResults {
@@ -1042,6 +1052,315 @@ struct GamePlayView: View {
             .disabled(!isActive)
             .opacity(isActive ? 1 : 0.4)
         }
+    }
+
+    // MARK: - Rally Ace Control (Tennis / Volleyball)
+
+    private var rallyAceControlView: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: gameMode.id == .tennis ? "tennis.racket" : "volleyball.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(gameMode.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("DRAG TO AIM, TAP TO HIT")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text(gameMode.id == .tennis ? "Time your returns" : "Spike over the net")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(gameMode.accentColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
+
+            HStack(spacing: 10) {
+                Button {
+                    handleRallyHit(type: gameMode.id == .tennis ? "Forehand" : "Bump")
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: gameMode.id == .tennis ? "arrow.right" : "hand.raised.fill")
+                            .font(.system(size: 16, weight: .bold))
+                        Text(gameMode.id == .tennis ? "FOREHAND" : "BUMP")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor)
+                    .clipShape(.rect(cornerRadius: 14))
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+
+                Button {
+                    handleRallyHit(type: gameMode.id == .tennis ? "Backhand" : "Set")
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: gameMode.id == .tennis ? "arrow.left" : "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                        Text(gameMode.id == .tennis ? "BACKHAND" : "SET")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor.opacity(0.25))
+                    .clipShape(.rect(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 1)
+                    )
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+
+                Button {
+                    handleRallyHit(type: gameMode.id == .tennis ? "Serve" : "Spike")
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: gameMode.id == .tennis ? "arrow.up.right" : "bolt.fill")
+                            .font(.system(size: 16, weight: .bold))
+                        Text(gameMode.id == .tennis ? "SERVE" : "SPIKE")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(gameMode.accentColor)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor.opacity(0.12))
+                    .clipShape(.rect(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+            }
+        }
+    }
+
+    // MARK: - Penalty Kick Control
+
+    private var penaltyKickControlView: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "soccerball")
+                    .font(.system(size: 20))
+                    .foregroundStyle(gameMode.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AIM & SHOOT")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text("Drag to aim, tap to kick")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(gameMode.accentColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
+
+            HStack(spacing: 10) {
+                Button {
+                    handlePenaltyKick(power: .low)
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("LOW")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor.opacity(0.2))
+                    .clipShape(.rect(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+
+                Button {
+                    handlePenaltyKick(power: .mid)
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "minus")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("MID")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor)
+                    .clipShape(.rect(cornerRadius: 14))
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+
+                Button {
+                    handlePenaltyKick(power: .high)
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("HIGH")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor.opacity(0.2))
+                    .clipShape(.rect(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+            }
+        }
+    }
+
+    private enum KickPower { case low, mid, high }
+
+    // MARK: - Gymnastics Control
+
+    private var gymnasticsControlView: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "figure.gymnastics")
+                    .font(.system(size: 20))
+                    .foregroundStyle(gameMode.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("TAP TO PERFORM")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text("Time your moves for bonus points")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(gameMode.accentColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
+
+            HStack(spacing: 10) {
+                Button {
+                    performAction("Tumble")
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 16, weight: .bold))
+                        Text("TUMBLE")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor)
+                    .clipShape(.rect(cornerRadius: 14))
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+
+                Button {
+                    performAction("Vault")
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "figure.gymnastics")
+                            .font(.system(size: 16, weight: .bold))
+                        Text("VAULT")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor.opacity(0.25))
+                    .clipShape(.rect(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 1)
+                    )
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+
+                Button {
+                    performAction("Dismount")
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 16, weight: .bold))
+                        Text("DISMOUNT")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(gameMode.accentColor)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(gameMode.accentColor.opacity(0.12))
+                    .clipShape(.rect(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .disabled(!isActive)
+                .opacity(isActive ? 1 : 0.4)
+            }
+        }
+    }
+
+    private var gymnasticsTimingOverlay: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                VStack(spacing: 4) {
+                    Text("R\(roundNumber)/\(maxRounds)")
+                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                        .foregroundStyle(gameMode.accentColor)
+                    Text("ROUTINE")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.black.opacity(0.5))
+                )
+                .padding(.trailing, 16)
+                .padding(.bottom, 100)
+            }
+        }
+        .allowsHitTesting(false)
     }
 
     // MARK: - Dunk Contest Action Buttons
@@ -1858,6 +2177,44 @@ struct GamePlayView: View {
         withAnimation { footballPhase = .catch }
         let inZone = runMeter >= 35 && runMeter <= 70
         applyOutcomeFromCharge(inZone ? 0.65 : 0.15)
+    }
+
+    // MARK: - Rally Ace Handler
+
+    private func handleRallyHit(type: String) {
+        guard isActive else { return }
+        let centerBias = 1.0 - abs(aimPosition.x - 0.5) * 1.5 - abs(aimPosition.y - 0.5) * 1.0
+        let typeBonus: Double
+        switch type {
+        case "Serve", "Spike": typeBonus = 0.15
+        case "Forehand", "Bump": typeBonus = 0.1
+        default: typeBonus = 0.05
+        }
+        let charge = max(0.2, min(0.9, 0.3 + centerBias * 0.4 + typeBonus))
+        applyOutcomeFromCharge(charge)
+    }
+
+    // MARK: - Penalty Kick Handler
+
+    private func handlePenaltyKick(power: KickPower) {
+        guard isActive else { return }
+        let aimBias = 1.0 - abs(aimPosition.x - 0.5) * 2.0
+        let powerBonus: Double
+        switch power {
+        case .low: powerBonus = 0.12
+        case .mid: powerBonus = 0.08
+        case .high: powerBonus = 0.15
+        }
+        let gkSaveChance: Double
+        switch power {
+        case .low: gkSaveChance = 0.25
+        case .mid: gkSaveChance = 0.35
+        case .high: gkSaveChance = 0.2
+        }
+        let edgePlacement = abs(aimPosition.x - 0.5) > 0.3
+        let finalSaveReduction = edgePlacement ? gkSaveChance * 0.4 : gkSaveChance
+        let charge = max(0.15, min(0.9, 0.35 + aimBias * 0.3 + powerBonus - finalSaveReduction))
+        applyOutcomeFromCharge(charge)
     }
 
     // MARK: - Mode-Specific Feedback

@@ -5,46 +5,12 @@ struct GameSceneFactory {
     private static let brandBlue = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
     private static let brandCyan = UIColor(red: 0, green: 0.95, blue: 0.9, alpha: 1)
 
-    struct ArenaTheme {
-        let wallColor: UIColor
-        let wallAccent: UIColor
-        let floorColor: UIColor
-        let ceilingColor: UIColor
-        let ambientIntensity: CGFloat
-        let sunColor: UIColor
-    }
-
-    private static func arenaTheme(for mode: GameModeId) -> ArenaTheme {
-        switch mode {
-        case .basketballHeadToHead:
-            return ArenaTheme(wallColor: UIColor(red: 0.55, green: 0.41, blue: 0.08, alpha: 1), wallAccent: UIColor(red: 0, green: 0.33, blue: 1.0, alpha: 1), floorColor: UIColor(red: 0, green: 0.33, blue: 1.0, alpha: 1), ceilingColor: UIColor(red: 0.10, green: 0.23, blue: 0.36, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1))
-        case .basketballDunkContest:
-            return ArenaTheme(wallColor: UIColor(red: 0.42, green: 0.33, blue: 0.27, alpha: 1), wallAccent: UIColor(red: 0.83, green: 0.33, blue: 0.0, alpha: 1), floorColor: UIColor(red: 0, green: 0.33, blue: 1.0, alpha: 1), ceilingColor: UIColor(red: 0.17, green: 0.09, blue: 0.06, alpha: 1), ambientIntensity: 750, sunColor: UIColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1))
-        case .basketball3v3:
-            return ArenaTheme(wallColor: UIColor(red: 0.35, green: 0.48, blue: 0.54, alpha: 1), wallAccent: UIColor(red: 0, green: 0.95, blue: 1.0, alpha: 1), floorColor: UIColor(red: 0, green: 0.2, blue: 0.4, alpha: 1), ceilingColor: UIColor(red: 0.1, green: 0.17, blue: 0.21, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 0.67, green: 0.87, blue: 1.0, alpha: 1))
-        case .karate:
-            return ArenaTheme(wallColor: UIColor(red: 0.24, green: 0.16, blue: 0.08, alpha: 1), wallAccent: UIColor(red: 0.55, green: 0.27, blue: 0.07, alpha: 1), floorColor: UIColor(red: 0.17, green: 0.09, blue: 0.06, alpha: 1), ceilingColor: UIColor(red: 0.1, green: 0.06, blue: 0.03, alpha: 1), ambientIntensity: 600, sunColor: UIColor(red: 0.91, green: 0.77, blue: 0.63, alpha: 1))
-        case .baseball:
-            return ArenaTheme(wallColor: UIColor(red: 0.18, green: 0.29, blue: 0.18, alpha: 1), wallAccent: UIColor(red: 0.13, green: 0.55, blue: 0.13, alpha: 1), floorColor: UIColor(red: 0.06, green: 0.17, blue: 0.08, alpha: 1), ceilingColor: UIColor(red: 0.05, green: 0.12, blue: 0.05, alpha: 1), ambientIntensity: 650, sunColor: UIColor(red: 0.56, green: 0.93, blue: 0.56, alpha: 1))
-        case .golf:
-            return ArenaTheme(wallColor: UIColor(red: 0.1, green: 0.24, blue: 0.1, alpha: 1), wallAccent: UIColor(red: 0.18, green: 0.35, blue: 0.18, alpha: 1), floorColor: UIColor(red: 0.05, green: 0.16, blue: 0.09, alpha: 1), ceilingColor: UIColor(red: 0.04, green: 0.12, blue: 0.04, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 0.72, green: 0.9, blue: 0.72, alpha: 1))
-        case .football:
-            return ArenaTheme(wallColor: UIColor(red: 0.12, green: 0.23, blue: 0.37, alpha: 1), wallAccent: UIColor(red: 0.23, green: 0.51, blue: 0.96, alpha: 1), floorColor: UIColor(red: 0.06, green: 0.09, blue: 0.17, alpha: 1), ceilingColor: UIColor(red: 0.05, green: 0.07, blue: 0.13, alpha: 1), ambientIntensity: 600, sunColor: UIColor(red: 0.58, green: 0.77, blue: 0.99, alpha: 1))
-        case .soccer:
-            return ArenaTheme(wallColor: UIColor(red: 0.1, green: 0.28, blue: 0.17, alpha: 1), wallAccent: UIColor(red: 0.13, green: 0.77, blue: 0.37, alpha: 1), floorColor: UIColor(red: 0.05, green: 0.16, blue: 0.09, alpha: 1), ceilingColor: UIColor(red: 0.04, green: 0.12, blue: 0.04, alpha: 1), ambientIntensity: 650, sunColor: UIColor(red: 0.53, green: 0.94, blue: 0.67, alpha: 1))
-        case .tennis:
-            return ArenaTheme(wallColor: UIColor(red: 0.42, green: 0.33, blue: 0.27, alpha: 1), wallAccent: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), floorColor: UIColor(red: 0.05, green: 0.15, blue: 0.08, alpha: 1), ceilingColor: UIColor(red: 0.17, green: 0.09, blue: 0.06, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 1.0, green: 0.85, blue: 0.5, alpha: 1))
-        case .volleyball:
-            return ArenaTheme(wallColor: UIColor(red: 0.57, green: 0.25, blue: 0.05, alpha: 1), wallAccent: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1), floorColor: UIColor(red: 0.11, green: 0.10, blue: 0.09, alpha: 1), ceilingColor: UIColor(red: 0.16, green: 0.14, blue: 0.13, alpha: 1), ambientIntensity: 700, sunColor: UIColor(red: 0.99, green: 0.83, blue: 0.30, alpha: 1))
-        case .gymnastics:
-            return ArenaTheme(wallColor: UIColor(red: 0.17, green: 0.16, blue: 0.26, alpha: 1), wallAccent: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1), floorColor: UIColor(red: 0.12, green: 0.11, blue: 0.29, alpha: 1), ceilingColor: UIColor(red: 0.08, green: 0.07, blue: 0.15, alpha: 1), ambientIntensity: 650, sunColor: UIColor(red: 0.65, green: 0.71, blue: 0.99, alpha: 1))
-        }
-    }
-
     static func buildScene(for mode: GameModeId) -> SCNScene {
         switch mode {
-        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3:
+        case .basketballHeadToHead, .basketballDunkContest:
             return buildBasketballScene(mode: mode)
+        case .basketball3v3:
+            return build3v3Scene()
         case .karate:
             return buildDojoScene()
         case .baseball:
@@ -64,103 +30,16 @@ struct GameSceneFactory {
         }
     }
 
-    // MARK: - Themed Arena Walls
-
-    private static func addNeonAccentStrips(to scene: SCNScene, mode: GameModeId, width: Float, depth: Float) {
-        let theme = arenaTheme(for: mode)
-        let halfW = width / 2
-
-        func neonStrip(length: CGFloat, color: UIColor, position: SCNVector3) {
-            let geo = SCNBox(width: 0.06, height: 0.04, length: length, chamferRadius: 0.01)
-            let mat = SCNMaterial()
-            mat.diffuse.contents = color
-            mat.emission.contents = color
-            mat.roughness.contents = 0.1
-            mat.metalness.contents = 0.8
-            geo.materials = [mat]
-            let node = SCNNode(geometry: geo)
-            node.position = position
-            scene.rootNode.addChildNode(node)
-        }
-
-        neonStrip(length: CGFloat(depth), color: theme.wallAccent.withAlphaComponent(0.5), position: SCNVector3(-halfW, 0.15, 0))
-        neonStrip(length: CGFloat(depth), color: theme.wallAccent.withAlphaComponent(0.3), position: SCNVector3(halfW, 0.15, 0))
-    }
-
-    private static func addArenaWalls(to scene: SCNScene, mode: GameModeId, width: Float = 16, depth: Float = 14, height: Float = 4) {
-        let theme = arenaTheme(for: mode)
-        let halfW = width / 2
-        let halfD = depth / 2
-        let halfH = height / 2
-        let thick: Float = 0.15
-
-        func wallMat(_ color: UIColor) -> SCNMaterial {
-            let m = SCNMaterial()
-            m.diffuse.contents = color
-            m.emission.contents = color.withAlphaComponent(0.05)
-            m.roughness.contents = 0.85
-            m.isDoubleSided = true
-            return m
-        }
-
-        let backWall = SCNBox(width: CGFloat(width + 0.4), height: CGFloat(height), length: CGFloat(thick), chamferRadius: 0)
-        backWall.materials = [wallMat(theme.wallColor)]
-        let backNode = SCNNode(geometry: backWall)
-        backNode.position = SCNVector3(0, halfH, -halfD)
-        scene.rootNode.addChildNode(backNode)
-
-        let frontWall = SCNBox(width: CGFloat(width + 0.4), height: CGFloat(height), length: CGFloat(thick), chamferRadius: 0)
-        frontWall.materials = [wallMat(theme.wallColor)]
-        let frontNode = SCNNode(geometry: frontWall)
-        frontNode.position = SCNVector3(0, halfH, halfD)
-        scene.rootNode.addChildNode(frontNode)
-
-        let leftWall = SCNBox(width: CGFloat(thick), height: CGFloat(height), length: CGFloat(depth + 0.4), chamferRadius: 0)
-        leftWall.materials = [wallMat(theme.wallColor)]
-        let leftNode = SCNNode(geometry: leftWall)
-        leftNode.position = SCNVector3(-halfW, halfH, 0)
-        scene.rootNode.addChildNode(leftNode)
-
-        let rightWall = SCNBox(width: CGFloat(thick), height: CGFloat(height), length: CGFloat(depth + 0.4), chamferRadius: 0)
-        rightWall.materials = [wallMat(theme.wallColor)]
-        let rightNode = SCNNode(geometry: rightWall)
-        rightNode.position = SCNVector3(halfW, halfH, 0)
-        scene.rootNode.addChildNode(rightNode)
-
-        let accentMat = SCNMaterial()
-        accentMat.diffuse.contents = theme.wallAccent
-        accentMat.emission.contents = theme.wallAccent.withAlphaComponent(0.08)
-        accentMat.roughness.contents = 0.7
-
-        let accentH: Float = 0.15
-        for xPos in [-halfW, halfW] {
-            let stripe = SCNBox(width: 0.1, height: CGFloat(accentH), length: CGFloat(depth), chamferRadius: 0)
-            stripe.materials = [accentMat]
-            let sNode = SCNNode(geometry: stripe)
-            sNode.position = SCNVector3(xPos, accentH + 0.1, 0)
-            scene.rootNode.addChildNode(sNode)
-        }
-
-        addNeonAccentStrips(to: scene, mode: mode, width: width, depth: depth)
-    }
-
     // MARK: - Basketball (Venice Beach Court)
 
-    private static func buildBasketballScene(mode: GameModeId = .basketballDunkContest) -> SCNScene {
+    private static func buildBasketballScene(mode: GameModeId) -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.04, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(4, 3.5, 6), lookAt: SCNVector3(0, 1.5, 0))
-        addBasicLighting(to: scene, tint: brandBlue)
+        addLighting(to: scene, tint: brandBlue)
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.15
-        floor.reflectionFalloffEnd = 3
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.08, green: 0.06, blue: 0.04, alpha: 1)
-        floorMat.roughness.contents = 0.9
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.08, green: 0.06, blue: 0.04, alpha: 1), reflectivity: 0.15)
 
         let court = SCNBox(width: 8, height: 0.02, length: 5, chamferRadius: 0)
         let courtMat = SCNMaterial()
@@ -174,12 +53,72 @@ struct GameSceneFactory {
         addCourtLines(to: scene)
         addHoop(to: scene, x: 3.5)
         addHoop(to: scene, x: -3.5, flip: true)
-        addAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue)
+        addAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
         addBall(to: scene, at: SCNVector3(-1.5, 1.4, 0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
         addVeniceBeachWalls(to: scene)
         addParticles(to: scene, color: brandCyan.withAlphaComponent(0.2), area: SCNVector3(8, 0.1, 5))
 
         return scene
+    }
+
+    // MARK: - 3v3 Streetball (6 Players)
+
+    private static func build3v3Scene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.04, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(0, 6, 9), lookAt: SCNVector3(0, 1, 0))
+        addLighting(to: scene, tint: brandCyan)
+
+        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.05, blue: 0.03, alpha: 1), reflectivity: 0.2)
+
+        let court = SCNBox(width: 10, height: 0.02, length: 6, chamferRadius: 0)
+        let courtMat = SCNMaterial()
+        courtMat.diffuse.contents = UIColor(red: 0.0, green: 0.12, blue: 0.35, alpha: 1)
+        courtMat.roughness.contents = 0.85
+        court.materials = [courtMat]
+        let courtNode = SCNNode(geometry: court)
+        courtNode.position = SCNVector3(0, 0.01, 0)
+        scene.rootNode.addChildNode(courtNode)
+
+        addCourtLines(to: scene)
+        addHoop(to: scene, x: 4.5)
+        addHoop(to: scene, x: -4.5, flip: true)
+
+        let teamBlue = brandBlue
+        let teamRed = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
+
+        addAvatar(to: scene, at: SCNVector3(-1.0, 0, -1.0), color: teamBlue, name: "blue1")
+        addAvatar(to: scene, at: SCNVector3(0.5, 0, 1.5), color: teamBlue, name: "blue2")
+        addAvatar(to: scene, at: SCNVector3(-2.5, 0, 0.5), color: teamBlue, name: "blue3")
+
+        addAvatar(to: scene, at: SCNVector3(1.0, 0, -0.5), color: teamRed, name: "red1")
+        addAvatar(to: scene, at: SCNVector3(-0.5, 0, 2.0), color: teamRed, name: "red2")
+        addAvatar(to: scene, at: SCNVector3(2.5, 0, -1.0), color: teamRed, name: "red3")
+
+        addBall(to: scene, at: SCNVector3(-1.0, 1.4, -1.0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
+
+        add3v3Animations(to: scene)
+
+        addVeniceBeachWalls(to: scene)
+        addParticles(to: scene, color: brandCyan.withAlphaComponent(0.15), area: SCNVector3(10, 0.1, 6))
+
+        return scene
+    }
+
+    private static func add3v3Animations(to scene: SCNScene) {
+        let avatarNames = ["blue2", "blue3", "red1", "red2", "red3"]
+        for name in avatarNames {
+            guard let node = scene.rootNode.childNode(withName: name, recursively: true) else { continue }
+            let dx = Float.random(in: -1.0...1.0)
+            let dz = Float.random(in: -0.8...0.8)
+            let duration = Double.random(in: 1.8...3.0)
+            let move1 = SCNAction.moveBy(x: CGFloat(dx), y: 0, z: CGFloat(dz), duration: duration)
+            move1.timingMode = .easeInEaseOut
+            let move2 = SCNAction.moveBy(x: CGFloat(-dx), y: 0, z: CGFloat(-dz), duration: duration)
+            move2.timingMode = .easeInEaseOut
+            node.runAction(SCNAction.repeatForever(SCNAction.sequence([move1, move2])), forKey: "shuffle")
+        }
     }
 
     // MARK: - Dojo (Karate)
@@ -188,15 +127,10 @@ struct GameSceneFactory {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.03, green: 0.01, blue: 0.01, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 3, 6), lookAt: SCNVector3(0, 1, 0))
-        addBasicLighting(to: scene, tint: UIColor(red: 1.0, green: 0.2, blue: 0.1, alpha: 1))
+        addCamera(to: scene, position: SCNVector3(0, 3, 5.5), lookAt: SCNVector3(0, 1.2, 0))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.2, blue: 0.1, alpha: 1))
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.1
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1)
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1), reflectivity: 0.1)
 
         let mat = SCNBox(width: 6, height: 0.05, length: 6, chamferRadius: 0)
         let matMaterial = SCNMaterial()
@@ -205,6 +139,28 @@ struct GameSceneFactory {
         let matNode = SCNNode(geometry: mat)
         matNode.position = SCNVector3(0, 0.025, 0)
         scene.rootNode.addChildNode(matNode)
+
+        let borderColor = UIColor(red: 1.0, green: 0.15, blue: 0.1, alpha: 0.3)
+        for z in [-3.0, 3.0] as [Float] {
+            let border = SCNBox(width: 6, height: 0.01, length: 0.06, chamferRadius: 0)
+            let bMat = SCNMaterial()
+            bMat.diffuse.contents = borderColor
+            bMat.emission.contents = borderColor
+            border.materials = [bMat]
+            let bNode = SCNNode(geometry: border)
+            bNode.position = SCNVector3(0, 0.06, z)
+            scene.rootNode.addChildNode(bNode)
+        }
+        for x in [-3.0, 3.0] as [Float] {
+            let border = SCNBox(width: 0.06, height: 0.01, length: 6, chamferRadius: 0)
+            let bMat = SCNMaterial()
+            bMat.diffuse.contents = borderColor
+            bMat.emission.contents = borderColor
+            border.materials = [bMat]
+            let bNode = SCNNode(geometry: border)
+            bNode.position = SCNVector3(x, 0.06, 0)
+            scene.rootNode.addChildNode(bNode)
+        }
 
         for i in stride(from: -2.5, through: 2.5, by: 5.0) {
             let pillar = SCNCylinder(radius: 0.15, height: 4)
@@ -216,38 +172,112 @@ struct GameSceneFactory {
             scene.rootNode.addChildNode(pNode)
         }
 
+        let torii = SCNBox(width: 4.0, height: 0.15, length: 0.12, chamferRadius: 0.02)
+        let toriiMat = SCNMaterial()
+        toriiMat.diffuse.contents = UIColor(red: 0.7, green: 0.1, blue: 0.05, alpha: 1)
+        toriiMat.emission.contents = UIColor(red: 0.7, green: 0.1, blue: 0.05, alpha: 0.15)
+        torii.materials = [toriiMat]
+        let toriiNode = SCNNode(geometry: torii)
+        toriiNode.position = SCNVector3(0, 3.8, -2.8)
+        scene.rootNode.addChildNode(toriiNode)
+
         let redTint = UIColor(red: 1.0, green: 0.15, blue: 0.1, alpha: 1)
-        addAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint)
-        addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan)
-        addArenaWalls(to: scene, mode: .karate, width: 12, depth: 12, height: 5)
-        addParticles(to: scene, color: UIColor.red.withAlphaComponent(0.15), area: SCNVector3(6, 0.1, 6))
+        addAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
+        addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan, name: "fighter2")
+
+        addKarateAnimations(to: scene)
+
+        addArenaWalls(to: scene, wallColor: UIColor(red: 0.24, green: 0.16, blue: 0.08, alpha: 1), width: 12, depth: 12, height: 5)
+        addParticles(to: scene, color: UIColor.red.withAlphaComponent(0.12), area: SCNVector3(6, 0.1, 6))
 
         return scene
     }
 
-    // MARK: - Baseball (Stadium Diamond)
+    private static func addKarateAnimations(to scene: SCNScene) {
+        guard let fighter1 = scene.rootNode.childNode(withName: "fighter1", recursively: true),
+              let fighter2 = scene.rootNode.childNode(withName: "fighter2", recursively: true) else { return }
+
+        let f1Circle = SCNAction.sequence([
+            SCNAction.moveBy(x: 0.4, y: 0, z: 0.3, duration: 1.2),
+            SCNAction.moveBy(x: -0.3, y: 0, z: -0.5, duration: 1.0),
+            SCNAction.moveBy(x: -0.1, y: 0, z: 0.2, duration: 0.8)
+        ])
+        f1Circle.timingMode = .easeInEaseOut
+        fighter1.runAction(SCNAction.repeatForever(f1Circle), forKey: "circle")
+
+        let f2Circle = SCNAction.sequence([
+            SCNAction.moveBy(x: -0.3, y: 0, z: -0.3, duration: 1.0),
+            SCNAction.moveBy(x: 0.4, y: 0, z: 0.5, duration: 1.2),
+            SCNAction.moveBy(x: -0.1, y: 0, z: -0.2, duration: 0.8)
+        ])
+        f2Circle.timingMode = .easeInEaseOut
+        fighter2.runAction(SCNAction.repeatForever(f2Circle), forKey: "circle")
+
+        if let rArm = fighter1.childNode(withName: "rArm", recursively: false) {
+            let punch = SCNAction.sequence([
+                SCNAction.wait(duration: 2.0),
+                SCNAction.rotateTo(x: -1.8, y: 0, z: -0.4, duration: 0.08),
+                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.2),
+                SCNAction.wait(duration: 1.5),
+                SCNAction.rotateTo(x: -1.5, y: 0.3, z: -0.6, duration: 0.1),
+                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.25)
+            ])
+            rArm.runAction(SCNAction.repeatForever(punch), forKey: "punch")
+        }
+
+        if let lLeg = fighter2.childNode(withName: "lLeg", recursively: false) {
+            let kick = SCNAction.sequence([
+                SCNAction.wait(duration: 3.0),
+                SCNAction.rotateTo(x: 1.2, y: 0, z: 0, duration: 0.1),
+                SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: 0.3),
+                SCNAction.wait(duration: 2.5)
+            ])
+            lLeg.runAction(SCNAction.repeatForever(kick), forKey: "kick")
+        }
+    }
+
+    // MARK: - Baseball (Stadium Diamond with Pitcher/Catcher/Mound)
 
     private static func buildBaseballScene() -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.01, green: 0.02, blue: 0.05, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(-3, 4, 5), lookAt: SCNVector3(0, 1, 0))
-        addBasicLighting(to: scene, tint: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 1))
+        addCamera(to: scene, position: SCNVector3(-2, 4, 6), lookAt: SCNVector3(0, 1, 0))
+        addLighting(to: scene, tint: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 1))
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.05
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.05, green: 0.08, blue: 0.03, alpha: 1)
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.05, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
-        let dirt = SCNCylinder(radius: 4, height: 0.02)
+        let outfield = SCNBox(width: 16, height: 0.01, length: 14, chamferRadius: 0)
+        let ofMat = SCNMaterial()
+        ofMat.diffuse.contents = UIColor(red: 0.04, green: 0.1, blue: 0.03, alpha: 1)
+        outfield.materials = [ofMat]
+        let ofNode = SCNNode(geometry: outfield)
+        ofNode.position = SCNVector3(0, 0.005, -2)
+        scene.rootNode.addChildNode(ofNode)
+
+        let infield = SCNCylinder(radius: 4, height: 0.02)
         let dirtMat = SCNMaterial()
-        dirtMat.diffuse.contents = UIColor(red: 0.12, green: 0.08, blue: 0.04, alpha: 1)
-        dirt.materials = [dirtMat]
-        let dirtNode = SCNNode(geometry: dirt)
-        dirtNode.position = SCNVector3(0, 0.01, 0)
-        scene.rootNode.addChildNode(dirtNode)
+        dirtMat.diffuse.contents = UIColor(red: 0.14, green: 0.09, blue: 0.04, alpha: 1)
+        infield.materials = [dirtMat]
+        let infieldNode = SCNNode(geometry: infield)
+        infieldNode.position = SCNVector3(0, 0.01, 1)
+        scene.rootNode.addChildNode(infieldNode)
+
+        let mound = SCNCylinder(radius: 0.5, height: 0.25)
+        let moundMat = SCNMaterial()
+        moundMat.diffuse.contents = UIColor(red: 0.16, green: 0.1, blue: 0.05, alpha: 1)
+        mound.materials = [moundMat]
+        let moundNode = SCNNode(geometry: mound)
+        moundNode.position = SCNVector3(0, 0.125, -1.0)
+        scene.rootNode.addChildNode(moundNode)
+
+        let rubber = SCNBox(width: 0.3, height: 0.02, length: 0.06, chamferRadius: 0)
+        let rubberMat = SCNMaterial()
+        rubberMat.diffuse.contents = UIColor.white
+        rubber.materials = [rubberMat]
+        let rubberNode = SCNNode(geometry: rubber)
+        rubberNode.position = SCNVector3(0, 0.26, -1.0)
+        scene.rootNode.addChildNode(rubberNode)
 
         let homePlate = SCNBox(width: 0.4, height: 0.01, length: 0.4, chamferRadius: 0)
         let hpMat = SCNMaterial()
@@ -259,54 +289,116 @@ struct GameSceneFactory {
         hpNode.eulerAngles.y = .pi / 4
         scene.rootNode.addChildNode(hpNode)
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 2.5), color: UIColor(red: 0.1, green: 0.5, blue: 0.9, alpha: 1))
+        let bases: [(Float, Float)] = [(-2.8, 0), (0, -2.5), (2.8, 0)]
+        for (bx, bz) in bases {
+            let base = SCNBox(width: 0.35, height: 0.01, length: 0.35, chamferRadius: 0)
+            let baseMat = SCNMaterial()
+            baseMat.diffuse.contents = UIColor.white
+            baseMat.emission.contents = UIColor.white.withAlphaComponent(0.2)
+            base.materials = [baseMat]
+            let baseNode = SCNNode(geometry: base)
+            baseNode.position = SCNVector3(bx, 0.02, bz)
+            baseNode.eulerAngles.y = .pi / 4
+            scene.rootNode.addChildNode(baseNode)
+        }
+
+        let baselineColor = UIColor.white.withAlphaComponent(0.2)
+        func baselineMat() -> SCNMaterial {
+            let m = SCNMaterial()
+            m.diffuse.contents = baselineColor
+            m.emission.contents = baselineColor
+            return m
+        }
+        let line1 = SCNBox(width: 0.03, height: 0.005, length: 8.0, chamferRadius: 0)
+        line1.materials = [baselineMat()]
+        let line1Node = SCNNode(geometry: line1)
+        line1Node.position = SCNVector3(-1.5, 0.025, 1.5)
+        line1Node.eulerAngles.y = -.pi / 6.5
+        scene.rootNode.addChildNode(line1Node)
+
+        let line2 = SCNBox(width: 0.03, height: 0.005, length: 8.0, chamferRadius: 0)
+        line2.materials = [baselineMat()]
+        let line2Node = SCNNode(geometry: line2)
+        line2Node.position = SCNVector3(1.5, 0.025, 1.5)
+        line2Node.eulerAngles.y = .pi / 6.5
+        scene.rootNode.addChildNode(line2Node)
+
+        let batterColor = UIColor(red: 0.1, green: 0.5, blue: 0.9, alpha: 1)
+        addAvatar(to: scene, at: SCNVector3(0.4, 0, 2.8), color: batterColor, name: "batter")
+
+        let pitcherColor = UIColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1)
+        addAvatar(to: scene, at: SCNVector3(0, 0.25, -1.0), color: pitcherColor, name: "pitcher")
+
+        let catcherColor = UIColor(red: 0.4, green: 0.4, blue: 0.5, alpha: 1)
+        addAvatar(to: scene, at: SCNVector3(0, 0, 3.6), color: catcherColor, name: "catcher")
+
+        if let catcher = scene.rootNode.childNode(withName: "catcher", recursively: true) {
+            catcher.scale = SCNVector3(0.9, 0.85, 0.9)
+        }
 
         let ball = SCNSphere(radius: 0.04)
         let ballMat = SCNMaterial()
         ballMat.diffuse.contents = UIColor.white
+        ballMat.roughness.contents = 0.5
         ball.materials = [ballMat]
         let ballNode = SCNNode(geometry: ball)
-        ballNode.position = SCNVector3(0, 1.2, -1)
+        ballNode.position = SCNVector3(0, 1.5, -1.0)
+        ballNode.name = "baseball"
         scene.rootNode.addChildNode(ballNode)
-        let bob = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: 0.05, z: 0, duration: 0.6),
-            SCNAction.moveBy(x: 0, y: -0.05, z: 0, duration: 0.6)
-        ])
-        ballNode.runAction(SCNAction.repeatForever(bob))
 
-        addArenaWalls(to: scene, mode: .baseball, width: 16, depth: 14, height: 5)
-        addParticles(to: scene, color: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.15), area: SCNVector3(8, 0.1, 8))
+        let pitchForward = SCNAction.move(to: SCNVector3(0, 1.2, 2.5), duration: 0.5)
+        pitchForward.timingMode = .easeIn
+        let resetBall = SCNAction.move(to: SCNVector3(0, 1.5, -1.0), duration: 0.01)
+        let pitchCycle = SCNAction.sequence([
+            SCNAction.wait(duration: 2.0),
+            pitchForward,
+            SCNAction.wait(duration: 0.5),
+            resetBall
+        ])
+        ballNode.runAction(SCNAction.repeatForever(pitchCycle), forKey: "pitch")
+
+        if let pitcher = scene.rootNode.childNode(withName: "pitcher", recursively: true),
+           let rArm = pitcher.childNode(withName: "rArm", recursively: false) {
+            let windupAction = SCNAction.sequence([
+                SCNAction.wait(duration: 1.5),
+                SCNAction.rotateTo(x: -2.5, y: 0, z: -0.4, duration: 0.4),
+                SCNAction.rotateTo(x: 0.8, y: 0, z: -0.4, duration: 0.15),
+                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.4),
+                SCNAction.wait(duration: 0.5)
+            ])
+            rArm.runAction(SCNAction.repeatForever(windupAction), forKey: "windup")
+        }
+
+        addStadiumStands(to: scene, depth: 14)
+        addStadiumLights(to: scene, width: 16, depth: 14)
+        addArenaWalls(to: scene, wallColor: UIColor(red: 0.18, green: 0.29, blue: 0.18, alpha: 1), width: 16, depth: 14, height: 5)
+        addParticles(to: scene, color: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.1), area: SCNVector3(8, 0.1, 8))
 
         return scene
     }
 
-    // MARK: - Football (Stadium Field)
+    // MARK: - Football (Kick Return with Defenders)
 
     private static func buildFootballScene() -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 4, 7), lookAt: SCNVector3(0, 1, 0))
-        addBasicLighting(to: scene, tint: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1))
+        addCamera(to: scene, position: SCNVector3(0, 5, 8), lookAt: SCNVector3(0, 0.5, -2))
+        addLighting(to: scene, tint: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1))
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.05
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.04, green: 0.08, blue: 0.03, alpha: 1)
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.04, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
-        let field = SCNBox(width: 10, height: 0.02, length: 6, chamferRadius: 0)
+        let field = SCNBox(width: 12, height: 0.02, length: 20, chamferRadius: 0)
         let fMat = SCNMaterial()
-        fMat.diffuse.contents = UIColor(red: 0.06, green: 0.12, blue: 0.04, alpha: 1)
+        fMat.diffuse.contents = UIColor(red: 0.06, green: 0.14, blue: 0.04, alpha: 1)
         field.materials = [fMat]
         let fieldNode = SCNNode(geometry: field)
-        fieldNode.position = SCNVector3(0, 0.01, 0)
+        fieldNode.position = SCNVector3(0, 0.01, -3)
         scene.rootNode.addChildNode(fieldNode)
 
         let lineColor = UIColor.white.withAlphaComponent(0.2)
-        for z in stride(from: -3.0, through: 3.0, by: 1.0) {
-            let line = SCNBox(width: 10, height: 0.005, length: 0.03, chamferRadius: 0)
+        for z in stride(from: -10.0, through: 7.0, by: 2.0) {
+            let line = SCNBox(width: 12, height: 0.005, length: 0.04, chamferRadius: 0)
             let lMat = SCNMaterial()
             lMat.diffuse.contents = lineColor
             lMat.emission.contents = lineColor
@@ -316,50 +408,124 @@ struct GameSceneFactory {
             scene.rootNode.addChildNode(lNode)
         }
 
-        for side in [-1, 1] as [Float] {
-            let goalPost = SCNCylinder(radius: 0.05, height: 4)
-            let gpMat = SCNMaterial()
-            gpMat.diffuse.contents = UIColor.yellow.withAlphaComponent(0.8)
-            gpMat.emission.contents = UIColor.yellow.withAlphaComponent(0.2)
-            goalPost.materials = [gpMat]
-            let gpNode = SCNNode(geometry: goalPost)
-            gpNode.position = SCNVector3(side * 5, 2, 0)
-            scene.rootNode.addChildNode(gpNode)
+        let hashColor = UIColor.white.withAlphaComponent(0.12)
+        for z in stride(from: -10.0, through: 7.0, by: 2.0) {
+            for x in [-2.0, 2.0] as [Float] {
+                let hash = SCNBox(width: 0.04, height: 0.005, length: 0.3, chamferRadius: 0)
+                let hMat = SCNMaterial()
+                hMat.diffuse.contents = hashColor
+                hash.materials = [hMat]
+                let hNode = SCNNode(geometry: hash)
+                hNode.position = SCNVector3(x, 0.025, Float(z))
+                scene.rootNode.addChildNode(hNode)
+            }
         }
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 2), color: UIColor(red: 0.5, green: 0.3, blue: 0.1, alpha: 1))
+        let endzoneColor = UIColor(red: 0.15, green: 0.05, blue: 0.0, alpha: 0.3)
+        for zPos in [-12.0, 8.0] as [Float] {
+            let ez = SCNBox(width: 12, height: 0.005, length: 4, chamferRadius: 0)
+            let ezMat = SCNMaterial()
+            ezMat.diffuse.contents = endzoneColor
+            ezMat.emission.contents = endzoneColor
+            ez.materials = [ezMat]
+            let ezNode = SCNNode(geometry: ez)
+            ezNode.position = SCNVector3(0, 0.02, zPos)
+            scene.rootNode.addChildNode(ezNode)
+        }
 
-        let football = SCNSphere(radius: 0.08)
+        for side in [-1, 1] as [Float] {
+            let upright = SCNCylinder(radius: 0.04, height: 5)
+            let gpMat = SCNMaterial()
+            gpMat.diffuse.contents = UIColor.yellow.withAlphaComponent(0.8)
+            gpMat.emission.contents = UIColor.yellow.withAlphaComponent(0.15)
+            upright.materials = [gpMat]
+            let gpNode = SCNNode(geometry: upright)
+            gpNode.position = SCNVector3(side * 1.5, 2.5, -13)
+            scene.rootNode.addChildNode(gpNode)
+        }
+        let crossbar = SCNCylinder(radius: 0.04, height: 3.0)
+        let cbMat = SCNMaterial()
+        cbMat.diffuse.contents = UIColor.yellow.withAlphaComponent(0.8)
+        crossbar.materials = [cbMat]
+        let cbNode = SCNNode(geometry: crossbar)
+        cbNode.position = SCNVector3(0, 2.8, -13)
+        cbNode.eulerAngles.z = .pi / 2
+        scene.rootNode.addChildNode(cbNode)
+
+        let returnerColor = UIColor(red: 0.1, green: 0.4, blue: 0.9, alpha: 1)
+        addAvatar(to: scene, at: SCNVector3(0, 0, 5), color: returnerColor, name: "returner")
+
+        let football = SCNSphere(radius: 0.09)
         let fbMat = SCNMaterial()
         fbMat.diffuse.contents = UIColor(red: 0.4, green: 0.25, blue: 0.1, alpha: 1)
         football.materials = [fbMat]
         let fbNode = SCNNode(geometry: football)
-        fbNode.position = SCNVector3(0, 1.3, 2)
+        fbNode.position = SCNVector3(0, 3.5, 5)
+        fbNode.name = "football"
         scene.rootNode.addChildNode(fbNode)
 
-        addArenaWalls(to: scene, mode: .football, width: 18, depth: 14, height: 5)
-        addParticles(to: scene, color: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 0.1), area: SCNVector3(10, 0.1, 6))
+        let kickArc = SCNAction.sequence([
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: 2, z: 0, duration: 1.2),
+                SCNAction.rotateBy(x: 3, y: 0, z: 0, duration: 1.2)
+            ]),
+            SCNAction.group([
+                SCNAction.moveBy(x: 0, y: -4, z: 0, duration: 1.0),
+                SCNAction.rotateBy(x: 2, y: 0, z: 0, duration: 1.0)
+            ]),
+            SCNAction.move(to: SCNVector3(0, 1.3, 5), duration: 0.01),
+            SCNAction.wait(duration: 2.0)
+        ])
+        fbNode.runAction(SCNAction.repeatForever(kickArc), forKey: "kick")
+
+        let defColor = UIColor(red: 0.8, green: 0.2, blue: 0.15, alpha: 1)
+        let defPositions: [SCNVector3] = [
+            SCNVector3(-3, 0, 0), SCNVector3(-1.5, 0, -1), SCNVector3(0, 0, -2),
+            SCNVector3(1.5, 0, -1), SCNVector3(3, 0, 0),
+            SCNVector3(-2, 0, -3), SCNVector3(0, 0, -4),
+            SCNVector3(2, 0, -3), SCNVector3(-1, 0, -5),
+            SCNVector3(1, 0, -5), SCNVector3(0, 0, -7)
+        ]
+        for (i, pos) in defPositions.enumerated() {
+            addAvatar(to: scene, at: pos, color: defColor, name: "def\(i)")
+        }
+
+        for i in 0..<defPositions.count {
+            guard let def = scene.rootNode.childNode(withName: "def\(i)", recursively: true) else { continue }
+            let speed = Double.random(in: 0.03...0.06)
+            let homing = SCNAction.customAction(duration: 1000) { node, elapsed in
+                guard let returner = node.parent?.childNode(withName: "returner", recursively: true) else { return }
+                let dx = returner.position.x - node.position.x
+                let dz = returner.position.z - node.position.z
+                let dist = sqrt(dx * dx + dz * dz)
+                guard dist > 0.5 else { return }
+                let factor = Float(speed)
+                node.position.x += dx / dist * factor
+                node.position.z += dz / dist * factor
+            }
+            def.runAction(SCNAction.repeatForever(homing), forKey: "homing")
+        }
+
+        addStadiumStands(to: scene, depth: 20)
+        addStadiumLights(to: scene, width: 12, depth: 20)
+        addArenaWalls(to: scene, wallColor: UIColor(red: 0.12, green: 0.23, blue: 0.37, alpha: 1), width: 18, depth: 24, height: 5)
+        addParticles(to: scene, color: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 0.08), area: SCNVector3(12, 0.1, 20))
 
         return scene
     }
 
-    // MARK: - Soccer (Stadium Pitch)
+    // MARK: - Soccer (Penalty Shootout)
 
     private static func buildSoccerScene() -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.01, green: 0.03, blue: 0.02, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 3, 7), lookAt: SCNVector3(0, 1.2, 0))
-        addBasicLighting(to: scene, tint: UIColor(red: 0.2, green: 0.9, blue: 0.3, alpha: 1))
+        addCamera(to: scene, position: SCNVector3(0, 3, 7), lookAt: SCNVector3(0, 1.2, -1))
+        addLighting(to: scene, tint: UIColor(red: 0.2, green: 0.9, blue: 0.3, alpha: 1))
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.05
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.04, green: 0.1, blue: 0.03, alpha: 1)
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.04, green: 0.1, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
-        let pitch = SCNBox(width: 8, height: 0.02, length: 5, chamferRadius: 0)
+        let pitch = SCNBox(width: 14, height: 0.02, length: 10, chamferRadius: 0)
         let pMat = SCNMaterial()
         pMat.diffuse.contents = UIColor(red: 0.06, green: 0.14, blue: 0.05, alpha: 1)
         pitch.materials = [pMat]
@@ -367,10 +533,59 @@ struct GameSceneFactory {
         pNode.position = SCNVector3(0, 0.01, 0)
         scene.rootNode.addChildNode(pNode)
 
-        buildGoalNet(in: scene, at: SCNVector3(0, 0, -2.5))
+        let grassStripeLight = UIColor(red: 0.07, green: 0.16, blue: 0.06, alpha: 1)
+        for i in stride(from: -5.0, through: 5.0, by: 2.0) {
+            let stripe = SCNBox(width: 14, height: 0.003, length: 1.0, chamferRadius: 0)
+            let sMat = SCNMaterial()
+            sMat.diffuse.contents = grassStripeLight
+            stripe.materials = [sMat]
+            let sNode = SCNNode(geometry: stripe)
+            sNode.position = SCNVector3(0, 0.015, Float(i))
+            scene.rootNode.addChildNode(sNode)
+        }
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 2), color: UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1))
-        addAvatar(to: scene, at: SCNVector3(0, 0, -2), color: UIColor.yellow)
+        let lineColor = UIColor.white.withAlphaComponent(0.35)
+        func addLine(_ w: CGFloat, _ l: CGFloat, _ pos: SCNVector3) {
+            let geo = SCNBox(width: w, height: 0.005, length: l, chamferRadius: 0)
+            let mat = SCNMaterial()
+            mat.diffuse.contents = lineColor
+            mat.emission.contents = lineColor
+            geo.materials = [mat]
+            let n = SCNNode(geometry: geo)
+            n.position = pos
+            scene.rootNode.addChildNode(n)
+        }
+        addLine(4.5, 0.04, SCNVector3(0, 0.025, -3.5))
+        addLine(4.5, 0.04, SCNVector3(0, 0.025, -1.0))
+        addLine(0.04, 2.5, SCNVector3(-2.25, 0.025, -2.25))
+        addLine(0.04, 2.5, SCNVector3(2.25, 0.025, -2.25))
+
+        let penaltySpot = SCNCylinder(radius: 0.06, height: 0.005)
+        let psMat = SCNMaterial()
+        psMat.diffuse.contents = UIColor.white
+        psMat.emission.contents = UIColor.white.withAlphaComponent(0.4)
+        penaltySpot.materials = [psMat]
+        let psNode = SCNNode(geometry: penaltySpot)
+        psNode.position = SCNVector3(0, 0.025, 2.0)
+        scene.rootNode.addChildNode(psNode)
+
+        buildGoalNet(in: scene, at: SCNVector3(0, 0, -3.5))
+
+        let kickerColor = UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1)
+        addAvatar(to: scene, at: SCNVector3(0, 0, 3.5), color: kickerColor, name: "kicker")
+
+        let gkColor = UIColor(red: 0.9, green: 0.8, blue: 0.1, alpha: 1)
+        addAvatar(to: scene, at: SCNVector3(0, 0, -3.2), color: gkColor, name: "goalkeeper")
+
+        if let gk = scene.rootNode.childNode(withName: "goalkeeper", recursively: true) {
+            let sway = SCNAction.sequence([
+                SCNAction.moveBy(x: 0.6, y: 0, z: 0, duration: 0.8),
+                SCNAction.moveBy(x: -1.2, y: 0, z: 0, duration: 1.6),
+                SCNAction.moveBy(x: 0.6, y: 0, z: 0, duration: 0.8)
+            ])
+            sway.timingMode = .easeInEaseOut
+            gk.runAction(SCNAction.repeatForever(sway), forKey: "sway")
+        }
 
         let soccerBall = SCNSphere(radius: 0.11)
         let sbMat = SCNMaterial()
@@ -378,11 +593,14 @@ struct GameSceneFactory {
         sbMat.roughness.contents = 0.6
         soccerBall.materials = [sbMat]
         let sbNode = SCNNode(geometry: soccerBall)
-        sbNode.position = SCNVector3(0, 0.11, 1.5)
+        sbNode.position = SCNVector3(0, 0.11, 2.0)
+        sbNode.name = "soccerball"
         scene.rootNode.addChildNode(sbNode)
 
-        addArenaWalls(to: scene, mode: .soccer, width: 16, depth: 14, height: 4)
-        addParticles(to: scene, color: UIColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 0.15), area: SCNVector3(8, 0.1, 5))
+        addStadiumStands(to: scene, depth: 10)
+        addStadiumLights(to: scene, width: 14, depth: 10)
+        addArenaWalls(to: scene, wallColor: UIColor(red: 0.1, green: 0.28, blue: 0.17, alpha: 1), width: 16, depth: 14, height: 4)
+        addParticles(to: scene, color: UIColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 0.1), area: SCNVector3(8, 0.1, 5))
 
         return scene
     }
@@ -394,14 +612,9 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.01, green: 0.02, blue: 0.03, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(3, 3, 5), lookAt: SCNVector3(0, 0.5, 0))
-        addBasicLighting(to: scene, tint: UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 1))
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.05
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.03, green: 0.08, blue: 0.03, alpha: 1)
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.03, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
         let green = SCNCylinder(radius: 5, height: 0.02)
         let gMat = SCNMaterial()
@@ -436,7 +649,7 @@ struct GameSceneFactory {
         holeNode.position = SCNVector3(0, 0.025, -2)
         scene.rootNode.addChildNode(holeNode)
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1))
+        addAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
 
         let golfBall = SCNSphere(radius: 0.022)
         let gbMat = SCNMaterial()
@@ -446,37 +659,40 @@ struct GameSceneFactory {
         gbNode.position = SCNVector3(0, 0.04, 2.8)
         scene.rootNode.addChildNode(gbNode)
 
-        addArenaWalls(to: scene, mode: .golf, width: 16, depth: 14, height: 4)
+        addArenaWalls(to: scene, wallColor: UIColor(red: 0.1, green: 0.24, blue: 0.1, alpha: 1), width: 16, depth: 14, height: 4)
         addParticles(to: scene, color: UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 0.1), area: SCNVector3(8, 0.1, 8))
 
         return scene
     }
 
-    // MARK: - Tennis (Venice Beach Court)
+    // MARK: - Tennis (Rally Court)
 
     private static func buildTennisScene() -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.03, blue: 0.06, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 4, 7), lookAt: SCNVector3(0, 1, 0))
-        addBasicLighting(to: scene, tint: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1))
+        addCamera(to: scene, position: SCNVector3(0, 5, 8), lookAt: SCNVector3(0, 0.8, 0))
+        addLighting(to: scene, tint: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1))
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.1
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.04, green: 0.06, blue: 0.03, alpha: 1)
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.04, green: 0.06, blue: 0.03, alpha: 1), reflectivity: 0.1)
 
-        let court = SCNBox(width: 8, height: 0.02, length: 5, chamferRadius: 0)
+        let court = SCNBox(width: 8.2, height: 0.02, length: 11, chamferRadius: 0)
         let courtMat = SCNMaterial()
-        courtMat.diffuse.contents = UIColor(red: 0.05, green: 0.15, blue: 0.08, alpha: 1)
+        courtMat.diffuse.contents = UIColor(red: 0.15, green: 0.08, blue: 0.05, alpha: 1)
         court.materials = [courtMat]
         let courtNode = SCNNode(geometry: court)
         courtNode.position = SCNVector3(0, 0.01, 0)
         scene.rootNode.addChildNode(courtNode)
 
-        let lineColor = UIColor.white.withAlphaComponent(0.4)
+        let innerCourt = SCNBox(width: 6.4, height: 0.003, length: 9.0, chamferRadius: 0)
+        let icMat = SCNMaterial()
+        icMat.diffuse.contents = UIColor(red: 0.12, green: 0.07, blue: 0.04, alpha: 1)
+        innerCourt.materials = [icMat]
+        let icNode = SCNNode(geometry: innerCourt)
+        icNode.position = SCNVector3(0, 0.015, 0)
+        scene.rootNode.addChildNode(icNode)
+
+        let lineColor = UIColor.white.withAlphaComponent(0.5)
         func addLine(_ w: CGFloat, _ l: CGFloat, _ pos: SCNVector3) {
             let geo = SCNBox(width: w, height: 0.005, length: l, chamferRadius: 0)
             let mat = SCNMaterial()
@@ -487,51 +703,84 @@ struct GameSceneFactory {
             n.position = pos
             scene.rootNode.addChildNode(n)
         }
-        addLine(8, 0.03, SCNVector3(0, 0.025, -2.5))
-        addLine(8, 0.03, SCNVector3(0, 0.025, 2.5))
-        addLine(0.03, 5, SCNVector3(-4, 0.025, 0))
-        addLine(0.03, 5, SCNVector3(4, 0.025, 0))
-        addLine(5.4, 0.03, SCNVector3(0, 0.025, -1.5))
-        addLine(5.4, 0.03, SCNVector3(0, 0.025, 1.5))
-        addLine(0.03, 3, SCNVector3(0, 0.025, 0))
+        addLine(8.2, 0.04, SCNVector3(0, 0.025, -5.5))
+        addLine(8.2, 0.04, SCNVector3(0, 0.025, 5.5))
+        addLine(0.04, 11, SCNVector3(-4.1, 0.025, 0))
+        addLine(0.04, 11, SCNVector3(4.1, 0.025, 0))
+        addLine(0.04, 11, SCNVector3(-3.2, 0.025, 0))
+        addLine(0.04, 11, SCNVector3(3.2, 0.025, 0))
+        addLine(6.4, 0.04, SCNVector3(0, 0.025, -2.0))
+        addLine(6.4, 0.04, SCNVector3(0, 0.025, 2.0))
+        addLine(0.04, 4, SCNVector3(0, 0.025, 0))
 
-        let netPostColor = UIColor.white.withAlphaComponent(0.6)
-        for x in [-2.8, 2.8] as [Float] {
-            let post = SCNCylinder(radius: 0.03, height: 1.2)
+        for x in [-3.2, 3.2] as [Float] {
+            let post = SCNCylinder(radius: 0.035, height: 1.3)
             let pMat = SCNMaterial()
-            pMat.diffuse.contents = netPostColor
+            pMat.diffuse.contents = UIColor(white: 0.7, alpha: 1)
             post.materials = [pMat]
             let pNode = SCNNode(geometry: post)
-            pNode.position = SCNVector3(x, 0.6, 0)
+            pNode.position = SCNVector3(x, 0.65, 0)
             scene.rootNode.addChildNode(pNode)
         }
-        let net = SCNBox(width: 5.6, height: 0.8, length: 0.02, chamferRadius: 0)
+        let net = SCNBox(width: 6.4, height: 1.0, length: 0.02, chamferRadius: 0)
         let netMat = SCNMaterial()
-        netMat.diffuse.contents = UIColor.white.withAlphaComponent(0.15)
+        netMat.diffuse.contents = UIColor.white.withAlphaComponent(0.18)
         netMat.isDoubleSided = true
         net.materials = [netMat]
         let netNode = SCNNode(geometry: net)
-        netNode.position = SCNVector3(0, 0.7, 0)
+        netNode.position = SCNVector3(0, 0.8, 0)
         scene.rootNode.addChildNode(netNode)
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1))
-        addAvatar(to: scene, at: SCNVector3(0, 0, -3), color: brandCyan)
+        let netBand = SCNBox(width: 6.4, height: 0.04, length: 0.025, chamferRadius: 0)
+        let nbMat = SCNMaterial()
+        nbMat.diffuse.contents = UIColor.white
+        netBand.materials = [nbMat]
+        let nbNode = SCNNode(geometry: netBand)
+        nbNode.position = SCNVector3(0, 1.3, 0)
+        scene.rootNode.addChildNode(nbNode)
+
+        addAvatar(to: scene, at: SCNVector3(0, 0, 4.5), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), name: "player")
+        addAvatar(to: scene, at: SCNVector3(0, 0, -4.5), color: brandCyan, name: "opponent")
 
         let ball = SCNSphere(radius: 0.035)
         let bMat = SCNMaterial()
         bMat.diffuse.contents = UIColor(red: 0.8, green: 0.9, blue: 0.1, alpha: 1)
+        bMat.emission.contents = UIColor(red: 0.8, green: 0.9, blue: 0.1, alpha: 0.15)
         ball.materials = [bMat]
         let bNode = SCNNode(geometry: ball)
-        bNode.position = SCNVector3(0, 1.0, 2)
+        bNode.position = SCNVector3(0, 1.0, 3.5)
+        bNode.name = "tennisball"
         scene.rootNode.addChildNode(bNode)
-        let bob = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: 0.06, z: 0, duration: 0.7),
-            SCNAction.moveBy(x: 0, y: -0.06, z: 0, duration: 0.7)
-        ])
-        bNode.runAction(SCNAction.repeatForever(bob))
 
+        let rallyForward = SCNAction.group([
+            SCNAction.move(to: SCNVector3(Float.random(in: -1.5...1.5), 1.5, -3.5), duration: 0.6),
+        ])
+        rallyForward.timingMode = .easeInEaseOut
+        let rallyBack = SCNAction.group([
+            SCNAction.move(to: SCNVector3(Float.random(in: -1.5...1.5), 1.2, 3.5), duration: 0.7),
+        ])
+        rallyBack.timingMode = .easeInEaseOut
+        let rally = SCNAction.sequence([
+            rallyForward,
+            SCNAction.wait(duration: 0.4),
+            rallyBack,
+            SCNAction.wait(duration: 0.3)
+        ])
+        bNode.runAction(SCNAction.repeatForever(rally), forKey: "rally")
+
+        if let opponent = scene.rootNode.childNode(withName: "opponent", recursively: true) {
+            let oMove = SCNAction.sequence([
+                SCNAction.moveBy(x: 1.5, y: 0, z: 0, duration: 0.8),
+                SCNAction.moveBy(x: -3.0, y: 0, z: 0, duration: 1.6),
+                SCNAction.moveBy(x: 1.5, y: 0, z: 0, duration: 0.8)
+            ])
+            oMove.timingMode = .easeInEaseOut
+            opponent.runAction(SCNAction.repeatForever(oMove), forKey: "shuffle")
+        }
+
+        addStadiumStands(to: scene, depth: 11)
         addVeniceBeachWalls(to: scene)
-        addParticles(to: scene, color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 0.12), area: SCNVector3(8, 0.1, 5))
+        addParticles(to: scene, color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 0.1), area: SCNVector3(8, 0.1, 11))
 
         return scene
     }
@@ -542,18 +791,12 @@ struct GameSceneFactory {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.03, green: 0.02, blue: 0.01, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 3.5, 7), lookAt: SCNVector3(0, 1.2, 0))
-        addBasicLighting(to: scene, tint: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1))
+        addCamera(to: scene, position: SCNVector3(0, 4, 8), lookAt: SCNVector3(0, 1.5, 0))
+        addLighting(to: scene, tint: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1))
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.05
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1)
-        floorMat.roughness.contents = 0.95
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1), reflectivity: 0.05)
 
-        let sand = SCNBox(width: 9, height: 0.02, length: 5, chamferRadius: 0)
+        let sand = SCNBox(width: 9, height: 0.02, length: 9, chamferRadius: 0)
         let sandMat = SCNMaterial()
         sandMat.diffuse.contents = UIColor(red: 0.85, green: 0.78, blue: 0.58, alpha: 1)
         sandMat.roughness.contents = 0.98
@@ -573,32 +816,56 @@ struct GameSceneFactory {
             n.position = pos
             scene.rootNode.addChildNode(n)
         }
-        addLine(9, 0.03, SCNVector3(0, 0.025, -2.5))
-        addLine(9, 0.03, SCNVector3(0, 0.025, 2.5))
-        addLine(0.03, 5, SCNVector3(-4.5, 0.025, 0))
-        addLine(0.03, 5, SCNVector3(4.5, 0.025, 0))
+        addLine(9, 0.04, SCNVector3(0, 0.025, -4.5))
+        addLine(9, 0.04, SCNVector3(0, 0.025, 4.5))
+        addLine(0.04, 9, SCNVector3(-4.5, 0.025, 0))
+        addLine(0.04, 9, SCNVector3(4.5, 0.025, 0))
 
-        let netPostColor = UIColor.white.withAlphaComponent(0.7)
-        for x in [-3.0, 3.0] as [Float] {
-            let post = SCNCylinder(radius: 0.04, height: 2.5)
+        for x in [-3.5, 3.5] as [Float] {
+            let post = SCNCylinder(radius: 0.04, height: 2.6)
             let pMat = SCNMaterial()
-            pMat.diffuse.contents = netPostColor
+            pMat.diffuse.contents = UIColor(white: 0.8, alpha: 1)
             post.materials = [pMat]
             let pNode = SCNNode(geometry: post)
-            pNode.position = SCNVector3(x, 1.25, 0)
+            pNode.position = SCNVector3(x, 1.3, 0)
             scene.rootNode.addChildNode(pNode)
         }
-        let net = SCNBox(width: 6, height: 1.0, length: 0.02, chamferRadius: 0)
+        let net = SCNBox(width: 7, height: 1.0, length: 0.02, chamferRadius: 0)
         let netMat = SCNMaterial()
         netMat.diffuse.contents = UIColor.white.withAlphaComponent(0.2)
         netMat.isDoubleSided = true
         net.materials = [netMat]
         let netNode = SCNNode(geometry: net)
-        netNode.position = SCNVector3(0, 2.0, 0)
+        netNode.position = SCNVector3(0, 2.1, 0)
         scene.rootNode.addChildNode(netNode)
 
-        addAvatar(to: scene, at: SCNVector3(-1.5, 0, 2), color: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1))
-        addAvatar(to: scene, at: SCNVector3(1.5, 0, -2), color: brandCyan)
+        let netBand = SCNBox(width: 7, height: 0.06, length: 0.025, chamferRadius: 0)
+        let nbMat = SCNMaterial()
+        nbMat.diffuse.contents = UIColor.white
+        netBand.materials = [nbMat]
+        let nbNode = SCNNode(geometry: netBand)
+        nbNode.position = SCNVector3(0, 2.6, 0)
+        scene.rootNode.addChildNode(nbNode)
+
+        let playerColor = UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1)
+        addAvatar(to: scene, at: SCNVector3(-1.0, 0, 2.5), color: playerColor, name: "vPlayer1")
+        addAvatar(to: scene, at: SCNVector3(1.5, 0, 3.5), color: playerColor, name: "vPlayer2")
+
+        let oppColor = brandCyan
+        addAvatar(to: scene, at: SCNVector3(1.0, 0, -2.5), color: oppColor, name: "vOpp1")
+        addAvatar(to: scene, at: SCNVector3(-1.5, 0, -3.5), color: oppColor, name: "vOpp2")
+
+        for name in ["vPlayer2", "vOpp1", "vOpp2"] {
+            guard let node = scene.rootNode.childNode(withName: name, recursively: true) else { continue }
+            let dx = Float.random(in: -1.0...1.0)
+            let dz = Float.random(in: -0.5...0.5)
+            let dur = Double.random(in: 1.5...2.5)
+            let m1 = SCNAction.moveBy(x: CGFloat(dx), y: 0, z: CGFloat(dz), duration: dur)
+            m1.timingMode = .easeInEaseOut
+            let m2 = SCNAction.moveBy(x: CGFloat(-dx), y: 0, z: CGFloat(-dz), duration: dur)
+            m2.timingMode = .easeInEaseOut
+            node.runAction(SCNAction.repeatForever(SCNAction.sequence([m1, m2])), forKey: "shuffle")
+        }
 
         let vball = SCNSphere(radius: 0.11)
         let vbMat = SCNMaterial()
@@ -606,35 +873,35 @@ struct GameSceneFactory {
         vbMat.roughness.contents = 0.5
         vball.materials = [vbMat]
         let vbNode = SCNNode(geometry: vball)
-        vbNode.position = SCNVector3(0, 2.5, 1)
+        vbNode.position = SCNVector3(0, 2.5, 2)
+        vbNode.name = "volleyball"
         scene.rootNode.addChildNode(vbNode)
-        let bob = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: 0.1, z: 0, duration: 0.6),
-            SCNAction.moveBy(x: 0, y: -0.1, z: 0, duration: 0.6)
+
+        let vForward = SCNAction.group([
+            SCNAction.move(to: SCNVector3(Float.random(in: -1...1), 3.0, -2), duration: 0.5),
         ])
-        vbNode.runAction(SCNAction.repeatForever(bob))
+        let vBack = SCNAction.group([
+            SCNAction.move(to: SCNVector3(Float.random(in: -1...1), 2.5, 2), duration: 0.6),
+        ])
+        let vRally = SCNAction.sequence([vForward, SCNAction.wait(duration: 0.3), vBack, SCNAction.wait(duration: 0.3)])
+        vbNode.runAction(SCNAction.repeatForever(vRally), forKey: "rally")
 
         addVeniceBeachWalls(to: scene)
-        addParticles(to: scene, color: UIColor(red: 0.96, green: 0.75, blue: 0.14, alpha: 0.12), area: SCNVector3(9, 0.1, 5))
+        addParticles(to: scene, color: UIColor(red: 0.96, green: 0.75, blue: 0.14, alpha: 0.1), area: SCNVector3(9, 0.1, 9))
 
         return scene
     }
 
-    // MARK: - Gymnastics (Arena)
+    // MARK: - Gymnastics (Arena with Apparatus)
 
     private static func buildGymnasticsScene() -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.04, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(3, 3.5, 6), lookAt: SCNVector3(0, 1, 0))
-        addBasicLighting(to: scene, tint: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1))
 
-        let floor = SCNFloor()
-        floor.reflectivity = 0.15
-        let floorMat = SCNMaterial()
-        floorMat.diffuse.contents = UIColor(red: 0.06, green: 0.05, blue: 0.12, alpha: 1)
-        floor.materials = [floorMat]
-        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.05, blue: 0.12, alpha: 1), reflectivity: 0.15)
 
         let mat = SCNBox(width: 7, height: 0.05, length: 7, chamferRadius: 0)
         let matMaterial = SCNMaterial()
@@ -644,20 +911,24 @@ struct GameSceneFactory {
         matNode.position = SCNVector3(0, 0.025, 0)
         scene.rootNode.addChildNode(matNode)
 
-        let lineColor = UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 0.3)
-        let border = SCNBox(width: 7, height: 0.005, length: 0.04, chamferRadius: 0)
-        let bMat = SCNMaterial()
-        bMat.diffuse.contents = lineColor
-        bMat.emission.contents = lineColor
-        border.materials = [bMat]
+        let gymBlue = UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1)
+        let lineColor = gymBlue.withAlphaComponent(0.3)
         for z in [-3.5, 3.5] as [Float] {
+            let border = SCNBox(width: 7, height: 0.005, length: 0.04, chamferRadius: 0)
+            let bMat = SCNMaterial()
+            bMat.diffuse.contents = lineColor
+            bMat.emission.contents = lineColor
+            border.materials = [bMat]
             let n = SCNNode(geometry: border)
             n.position = SCNVector3(0, 0.055, z)
             scene.rootNode.addChildNode(n)
         }
-        let sideBorder = SCNBox(width: 0.04, height: 0.005, length: 7, chamferRadius: 0)
-        sideBorder.materials = [bMat]
         for x in [-3.5, 3.5] as [Float] {
+            let sideBorder = SCNBox(width: 0.04, height: 0.005, length: 7, chamferRadius: 0)
+            let bMat = SCNMaterial()
+            bMat.diffuse.contents = lineColor
+            bMat.emission.contents = lineColor
+            sideBorder.materials = [bMat]
             let n = SCNNode(geometry: sideBorder)
             n.position = SCNVector3(x, 0.055, 0)
             scene.rootNode.addChildNode(n)
@@ -666,95 +937,106 @@ struct GameSceneFactory {
         let vaultTable = SCNBox(width: 0.6, height: 1.3, length: 1.2, chamferRadius: 0.04)
         let vtMat = SCNMaterial()
         vtMat.diffuse.contents = UIColor(red: 0.20, green: 0.18, blue: 0.40, alpha: 1)
-        vtMat.emission.contents = UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 0.08)
+        vtMat.emission.contents = gymBlue.withAlphaComponent(0.06)
         vaultTable.materials = [vtMat]
         let vtNode = SCNNode(geometry: vaultTable)
-        vtNode.position = SCNVector3(2.5, 0.65, 0)
+        vtNode.position = SCNVector3(3.0, 0.65, 0)
         scene.rootNode.addChildNode(vtNode)
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 0), color: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1))
-        addArenaWalls(to: scene, mode: .gymnastics, width: 16, depth: 16, height: 5)
-        addParticles(to: scene, color: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 0.12), area: SCNVector3(7, 0.1, 7))
+        let springboard = SCNBox(width: 0.6, height: 0.15, length: 0.8, chamferRadius: 0.02)
+        let sbMat = SCNMaterial()
+        sbMat.diffuse.contents = UIColor(red: 0.3, green: 0.28, blue: 0.55, alpha: 1)
+        springboard.materials = [sbMat]
+        let sbNode = SCNNode(geometry: springboard)
+        sbNode.position = SCNVector3(1.5, 0.075, 0)
+        sbNode.eulerAngles.x = -0.1
+        scene.rootNode.addChildNode(sbNode)
+
+        let beamColor = UIColor(red: 0.6, green: 0.55, blue: 0.45, alpha: 1)
+        let beam = SCNBox(width: 0.1, height: 0.08, length: 5, chamferRadius: 0.01)
+        let beamMat = SCNMaterial()
+        beamMat.diffuse.contents = beamColor
+        beam.materials = [beamMat]
+        let beamNode = SCNNode(geometry: beam)
+        beamNode.position = SCNVector3(-2.5, 1.2, 0)
+        scene.rootNode.addChildNode(beamNode)
+
+        for z in [-2.5, 2.5] as [Float] {
+            let leg = SCNCylinder(radius: 0.03, height: 1.2)
+            let lMat = SCNMaterial()
+            lMat.diffuse.contents = UIColor(white: 0.3, alpha: 1)
+            leg.materials = [lMat]
+            let lNode = SCNNode(geometry: leg)
+            lNode.position = SCNVector3(-2.5, 0.6, z)
+            scene.rootNode.addChildNode(lNode)
+        }
+
+        let barColor = UIColor(white: 0.7, alpha: 1)
+        for (h, xOff) in [(2.5, -0.3), (1.7, 0.3)] as [(Float, Float)] {
+            let bar = SCNCylinder(radius: 0.02, height: 2.5)
+            let barMat = SCNMaterial()
+            barMat.diffuse.contents = barColor
+            barMat.metalness.contents = 0.7
+            bar.materials = [barMat]
+            let barNode = SCNNode(geometry: bar)
+            barNode.position = SCNVector3(0 + xOff, Float(h), -3)
+            barNode.eulerAngles.z = .pi / 2
+            scene.rootNode.addChildNode(barNode)
+
+            for x in [-1.25, 1.25] as [Float] {
+                let support = SCNCylinder(radius: 0.025, height: CGFloat(h))
+                let sMat = SCNMaterial()
+                sMat.diffuse.contents = UIColor(white: 0.4, alpha: 1)
+                support.materials = [sMat]
+                let sNode = SCNNode(geometry: support)
+                sNode.position = SCNVector3(x + xOff, Float(h) / 2, -3)
+                scene.rootNode.addChildNode(sNode)
+            }
+        }
+
+        addAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: "gymnast")
+
+        let judges: [(Float, Float)] = [(-3, 4), (0, 4), (3, 4)]
+        for (i, (jx, jz)) in judges.enumerated() {
+            let judgeTable = SCNBox(width: 1.0, height: 0.8, length: 0.5, chamferRadius: 0.02)
+            let jtMat = SCNMaterial()
+            jtMat.diffuse.contents = UIColor(red: 0.12, green: 0.11, blue: 0.2, alpha: 1)
+            judgeTable.materials = [jtMat]
+            let jtNode = SCNNode(geometry: judgeTable)
+            jtNode.position = SCNVector3(jx, 0.4, jz)
+            scene.rootNode.addChildNode(jtNode)
+
+            addAvatar(to: scene, at: SCNVector3(jx, 0, jz + 0.5), color: UIColor(white: 0.5, alpha: 1), name: "judge\(i)")
+        }
+
+        addGymnasticsAnimations(to: scene)
+
+        addArenaWalls(to: scene, wallColor: UIColor(red: 0.17, green: 0.16, blue: 0.26, alpha: 1), width: 16, depth: 16, height: 5)
+        addParticles(to: scene, color: gymBlue.withAlphaComponent(0.1), area: SCNVector3(7, 0.1, 7))
 
         return scene
     }
 
-    // MARK: - Venice Beach Environment Walls
+    private static func addGymnasticsAnimations(to scene: SCNScene) {
+        guard let gymnast = scene.rootNode.childNode(withName: "gymnast", recursively: true) else { return }
 
-    private static func addVeniceBeachWalls(to scene: SCNScene) {
-        let wallHeight: CGFloat = 4
-        let wallThickness: CGFloat = 0.15
-
-        let sandColor = UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1)
-        let skyColor = UIColor(red: 0.15, green: 0.35, blue: 0.65, alpha: 1)
-        let boardwalkColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1)
-        let palmGreen = UIColor(red: 0.15, green: 0.45, blue: 0.15, alpha: 1)
-        let oceanColor = UIColor(red: 0.12, green: 0.30, blue: 0.55, alpha: 1)
-
-        func wallMaterial(_ color: UIColor) -> SCNMaterial {
-            let mat = SCNMaterial()
-            mat.diffuse.contents = color
-            mat.isDoubleSided = true
-            return mat
-        }
-
-        let backWall = SCNBox(width: 16, height: wallHeight, length: wallThickness, chamferRadius: 0)
-        backWall.materials = [wallMaterial(sandColor)]
-        let backNode = SCNNode(geometry: backWall)
-        backNode.position = SCNVector3(0, Float(wallHeight / 2), -6)
-        scene.rootNode.addChildNode(backNode)
-
-        let skyPanel = SCNBox(width: 16, height: wallHeight * 0.4, length: 0.01, chamferRadius: 0)
-        skyPanel.materials = [wallMaterial(skyColor)]
-        let skyNode = SCNNode(geometry: skyPanel)
-        skyNode.position = SCNVector3(0, Float(wallHeight * 0.8), -5.95)
-        scene.rootNode.addChildNode(skyNode)
-
-        let frontWall = SCNBox(width: 16, height: wallHeight, length: wallThickness, chamferRadius: 0)
-        frontWall.materials = [wallMaterial(oceanColor)]
-        let frontNode = SCNNode(geometry: frontWall)
-        frontNode.position = SCNVector3(0, Float(wallHeight / 2), 8)
-        scene.rootNode.addChildNode(frontNode)
-
-        let leftWall = SCNBox(width: wallThickness, height: wallHeight, length: 14, chamferRadius: 0)
-        leftWall.materials = [wallMaterial(boardwalkColor)]
-        let leftNode = SCNNode(geometry: leftWall)
-        leftNode.position = SCNVector3(-8, Float(wallHeight / 2), 1)
-        scene.rootNode.addChildNode(leftNode)
-
-        let rightWall = SCNBox(width: wallThickness, height: wallHeight, length: 14, chamferRadius: 0)
-        rightWall.materials = [wallMaterial(boardwalkColor)]
-        let rightNode = SCNNode(geometry: rightWall)
-        rightNode.position = SCNVector3(8, Float(wallHeight / 2), 1)
-        scene.rootNode.addChildNode(rightNode)
-
-        for x in stride(from: -6.0, through: 6.0, by: 6.0) {
-            let trunk = SCNCylinder(radius: 0.08, height: 3.5)
-            let tMat = SCNMaterial()
-            tMat.diffuse.contents = UIColor(red: 0.4, green: 0.3, blue: 0.15, alpha: 1)
-            trunk.materials = [tMat]
-            let tNode = SCNNode(geometry: trunk)
-            tNode.position = SCNVector3(Float(x), 1.75, -5.5)
-            scene.rootNode.addChildNode(tNode)
-
-            let crown = SCNSphere(radius: 0.6)
-            let cMat = SCNMaterial()
-            cMat.diffuse.contents = palmGreen
-            crown.materials = [cMat]
-            let cNode = SCNNode(geometry: crown)
-            cNode.position = SCNVector3(Float(x), 3.8, -5.5)
-            cNode.scale = SCNVector3(1, 0.6, 1)
-            scene.rootNode.addChildNode(cNode)
-        }
-
-        let boardwalk = SCNBox(width: 16, height: 0.06, length: 1.5, chamferRadius: 0)
-        let bwMat = SCNMaterial()
-        bwMat.diffuse.contents = boardwalkColor
-        bwMat.roughness.contents = 0.95
-        boardwalk.materials = [bwMat]
-        let bwNode = SCNNode(geometry: boardwalk)
-        bwNode.position = SCNVector3(0, 0.03, -5)
-        scene.rootNode.addChildNode(bwNode)
+        let tumble = SCNAction.sequence([
+            SCNAction.wait(duration: 1.5),
+            SCNAction.group([
+                SCNAction.moveBy(x: 1, y: 0.5, z: 0, duration: 0.3),
+                SCNAction.rotateBy(x: .pi * 2, y: 0, z: 0, duration: 0.3)
+            ]),
+            SCNAction.moveBy(x: 0, y: -0.5, z: 0, duration: 0.2),
+            SCNAction.wait(duration: 0.5),
+            SCNAction.group([
+                SCNAction.moveBy(x: 1, y: 0.8, z: 0, duration: 0.35),
+                SCNAction.rotateBy(x: .pi * 2, y: .pi, z: 0, duration: 0.35)
+            ]),
+            SCNAction.moveBy(x: 0, y: -0.8, z: 0, duration: 0.25),
+            SCNAction.wait(duration: 1.0),
+            SCNAction.move(to: SCNVector3(0, 0, 0), duration: 0.5)
+        ])
+        gymnast.runAction(SCNAction.repeatForever(tumble), forKey: "tumble")
     }
 
     // MARK: - Shared Builders
@@ -766,13 +1048,13 @@ struct GameSceneFactory {
         node.camera?.zNear = 0.1
         node.camera?.zFar = 80
         node.camera?.wantsHDR = true
-        node.camera?.bloomIntensity = 0.6
-        node.camera?.bloomThreshold = 0.6
+        node.camera?.bloomIntensity = 0.5
+        node.camera?.bloomThreshold = 0.65
         node.camera?.bloomBlurRadius = 8
         node.camera?.wantsDepthOfField = false
         node.camera?.vignettingIntensity = 0.5
         node.camera?.vignettingPower = 1.2
-        node.camera?.contrast = 1.08
+        node.camera?.contrast = 1.06
         node.camera?.saturation = 1.1
         node.position = position
         node.look(at: lookAt)
@@ -780,12 +1062,12 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(node)
     }
 
-    private static func addBasicLighting(to scene: SCNScene, tint: UIColor) {
+    private static func addLighting(to scene: SCNScene, tint: UIColor) {
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
         ambient.light?.color = UIColor(red: 0.04, green: 0.04, blue: 0.08, alpha: 1)
-        ambient.light?.intensity = 280
+        ambient.light?.intensity = 300
         scene.rootNode.addChildNode(ambient)
 
         let spot = SCNNode()
@@ -820,10 +1102,21 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(rim)
     }
 
-    private static func addAvatar(to scene: SCNScene, at position: SCNVector3, color: UIColor) {
+    private static func addFloor(to scene: SCNScene, color: UIColor, reflectivity: CGFloat) {
+        let floor = SCNFloor()
+        floor.reflectivity = reflectivity
+        floor.reflectionFalloffEnd = 3
+        let floorMat = SCNMaterial()
+        floorMat.diffuse.contents = color
+        floorMat.roughness.contents = 0.9
+        floor.materials = [floorMat]
+        scene.rootNode.addChildNode(SCNNode(geometry: floor))
+    }
+
+    private static func addAvatar(to scene: SCNScene, at position: SCNVector3, color: UIColor, name: String = "avatar") {
         let root = SCNNode()
         root.position = position
-        root.name = "avatar"
+        root.name = name
 
         func limb(radius: CGFloat, height: CGFloat) -> SCNNode {
             let geo = SCNCapsule(capRadius: radius, height: height)
@@ -899,413 +1192,18 @@ struct GameSceneFactory {
         avatarGlow.light = SCNLight()
         avatarGlow.light?.type = .omni
         avatarGlow.light?.color = color.withAlphaComponent(0.6)
-        avatarGlow.light?.intensity = 80
+        avatarGlow.light?.intensity = 60
         avatarGlow.light?.attenuationStartDistance = 0.3
-        avatarGlow.light?.attenuationEndDistance = 2.5
+        avatarGlow.light?.attenuationEndDistance = 2.0
         avatarGlow.position = SCNVector3(0, 1.2, 0)
         root.addChildNode(avatarGlow)
-
-        addAvatarPoseAnimations(root: root, lArm: lArm, rArm: rArm, lLeg: lLeg, rLeg: rLeg, torso: torso)
-    }
-
-    private static func smoothstep(_ t: Float) -> Float {
-        let c = max(0, min(1, t))
-        return c * c * (3 - 2 * c)
-    }
-
-    private static func addAvatarPoseAnimations(root: SCNNode, lArm: SCNNode, rArm: SCNNode, lLeg: SCNNode, rLeg: SCNNode, torso: SCNNode) {
-        let blend = AvatarStateMachine.blendTimeSeconds
 
         let breatheUp = SCNAction.moveBy(x: 0, y: 0.03, z: 0, duration: 1.4)
         breatheUp.timingMode = .easeInEaseOut
         let breatheDown = SCNAction.moveBy(x: 0, y: -0.03, z: 0, duration: 1.4)
         breatheDown.timingMode = .easeInEaseOut
-        let breathe = SCNAction.sequence([breatheUp, breatheDown])
-        root.runAction(SCNAction.repeatForever(breathe), forKey: "breathe")
-
-        let gatherDown = SCNAction.moveBy(x: 0, y: -0.15, z: 0, duration: blend)
-        gatherDown.timingMode = .easeInEaseOut
-        let gatherPose = SCNAction.sequence([
-            SCNAction.group([
-                gatherDown,
-                SCNAction.customAction(duration: blend) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / blend))
-                    node.eulerAngles.x = t * AvatarStateMachine.poseRotationX(for: .gather)
-                    let s = AvatarStateMachine.poseScale(for: .gather)
-                    node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.x - 1.0))
-                }
-            ]),
-            SCNAction.wait(duration: 0.1)
-        ])
-
-        let jumpUp = SCNAction.moveBy(x: 0, y: 0.4, z: 0, duration: 0.3)
-        jumpUp.timingMode = .easeOut
-        let jumpDown = SCNAction.moveBy(x: 0, y: -0.4, z: 0, duration: 0.4)
-        jumpDown.timingMode = .easeIn
-        let jumpPose = SCNAction.sequence([
-            SCNAction.group([
-                jumpUp,
-                SCNAction.customAction(duration: 0.3) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / 0.3))
-                    let s = AvatarStateMachine.poseScale(for: .jump)
-                    node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
-                }
-            ]),
-            SCNAction.group([
-                jumpDown,
-                SCNAction.customAction(duration: 0.4) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / 0.4))
-                    node.scale = SCNVector3(1.0 + t * 0.04, 1.0 - t * 0.06, 1.0 + t * 0.04)
-                }
-            ]),
-            SCNAction.customAction(duration: blend + 0.1) { node, elapsed in
-                let t = smoothstep(Float(elapsed / (blend + 0.1)))
-                node.scale = SCNVector3(1.04 - t * 0.04, 0.94 + t * 0.06, 1.04 - t * 0.04)
-            }
-        ])
-
-        let dunkUp = SCNAction.moveBy(x: 0, y: 0.6, z: 0, duration: 0.45)
-        dunkUp.timingMode = .easeOut
-        let dunkLand = SCNAction.moveBy(x: 0, y: -0.6, z: 0, duration: 0.35)
-        dunkLand.timingMode = .easeIn
-        let dunkPose = SCNAction.sequence([
-            SCNAction.group([
-                dunkUp,
-                SCNAction.customAction(duration: 0.45) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / 0.45))
-                    node.eulerAngles.x = t * AvatarStateMachine.poseRotationX(for: .dunk)
-                    let s = AvatarStateMachine.poseScale(for: .dunk)
-                    node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
-                }
-            ]),
-            SCNAction.wait(duration: 0.35),
-            SCNAction.group([
-                dunkLand,
-                SCNAction.customAction(duration: 0.35) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / 0.35))
-                    node.eulerAngles.x = AvatarStateMachine.poseRotationX(for: .dunk) * (1.0 - t)
-                    node.scale = SCNVector3(1.05 - t * 0.05, 1.05 - t * 0.05, 1.05 - t * 0.05)
-                }
-            ])
-        ])
-
-        let sprintPose = SCNAction.sequence([
-            SCNAction.customAction(duration: blend + 0.05) { node, elapsed in
-                let t = smoothstep(Float(elapsed / (blend + 0.05)))
-                node.eulerAngles.x = t * AvatarStateMachine.poseRotationX(for: .sprint)
-                let s = AvatarStateMachine.poseScale(for: .sprint)
-                node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
-            },
-            SCNAction.wait(duration: 1.0),
-            SCNAction.customAction(duration: blend + 0.1) { node, elapsed in
-                let t = smoothstep(Float(elapsed / (blend + 0.1)))
-                let prevRotX = AvatarStateMachine.poseRotationX(for: .sprint)
-                node.eulerAngles.x = prevRotX * (1.0 - t)
-                let s = AvatarStateMachine.poseScale(for: .sprint)
-                node.scale = SCNVector3(s.x + t * (1.0 - s.x), s.y + t * (1.0 - s.y), s.z + t * (1.0 - s.z))
-            }
-        ])
-
-        let swingPose = SCNAction.sequence([
-            SCNAction.customAction(duration: blend * 0.8) { node, elapsed in
-                let t = smoothstep(Float(elapsed / (blend * 0.8)))
-                node.eulerAngles.x = t * 0.2
-                node.eulerAngles.y = t * -0.4
-            },
-            SCNAction.customAction(duration: 0.15) { node, elapsed in
-                let t = smoothstep(Float(elapsed / 0.15))
-                node.eulerAngles.x = 0.2 + t * 0.1
-                node.eulerAngles.y = -0.4 + t * 1.2
-                let s = AvatarStateMachine.poseScale(for: .swing)
-                node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
-            },
-            SCNAction.wait(duration: 0.3),
-            SCNAction.customAction(duration: blend + 0.05) { node, elapsed in
-                let t = smoothstep(Float(elapsed / (blend + 0.05)))
-                node.eulerAngles.x = 0.3 * (1 - t)
-                node.eulerAngles.y = 0.8 * (1 - t)
-                let s = AvatarStateMachine.poseScale(for: .swing)
-                node.scale = SCNVector3(s.x + t * (1.0 - s.x), s.y + t * (1.0 - s.y), s.z + t * (1.0 - s.z))
-            }
-        ])
-
-        let kickPose = SCNAction.sequence([
-            SCNAction.customAction(duration: blend * 0.6) { node, elapsed in
-                let t = smoothstep(Float(elapsed / (blend * 0.6)))
-                node.eulerAngles.x = t * -0.15
-            },
-            SCNAction.customAction(duration: 0.12) { node, elapsed in
-                let t = smoothstep(Float(elapsed / 0.12))
-                node.eulerAngles.x = -0.15 + t * (-0.1)
-                let s = AvatarStateMachine.poseScale(for: .kick)
-                node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
-            },
-            SCNAction.wait(duration: 0.25),
-            SCNAction.customAction(duration: blend + 0.05) { node, elapsed in
-                let t = smoothstep(Float(elapsed / (blend + 0.05)))
-                node.eulerAngles.x = -0.25 * (1 - t)
-                let s = AvatarStateMachine.poseScale(for: .kick)
-                node.scale = SCNVector3(s.x + t * (1.0 - s.x), s.y + t * (1.0 - s.y), s.z + t * (1.0 - s.z))
-            }
-        ])
-
-        let spikeUp = SCNAction.moveBy(x: 0, y: 0.5, z: 0, duration: 0.32)
-        spikeUp.timingMode = .easeOut
-        let spikeDown = SCNAction.moveBy(x: 0, y: -0.5, z: 0, duration: 0.35)
-        spikeDown.timingMode = .easeIn
-        let spikePose = SCNAction.sequence([
-            SCNAction.group([
-                spikeUp,
-                SCNAction.customAction(duration: 0.32) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / 0.32))
-                    let s = AvatarStateMachine.poseScale(for: .spike)
-                    node.scale = SCNVector3(1.0 + t * (s.x - 1.0), 1.0 + t * (s.y - 1.0), 1.0 + t * (s.z - 1.0))
-                    node.eulerAngles.x = t * AvatarStateMachine.poseRotationX(for: .spike)
-                }
-            ]),
-            SCNAction.wait(duration: 0.15),
-            SCNAction.group([
-                spikeDown,
-                SCNAction.customAction(duration: 0.35) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / 0.35))
-                    node.eulerAngles.x = AvatarStateMachine.poseRotationX(for: .spike) * (1 - t)
-                    let s = AvatarStateMachine.poseScale(for: .spike)
-                    node.scale = SCNVector3(s.x + t * (1.0 - s.x), s.y + t * (1.0 - s.y), s.z + t * (1.0 - s.z))
-                }
-            ])
-        ])
-
-        let celebUp1 = SCNAction.moveBy(x: 0, y: 0.2, z: 0, duration: 0.22)
-        celebUp1.timingMode = .easeOut
-        let celebDown1 = SCNAction.moveBy(x: 0, y: -0.2, z: 0, duration: 0.28)
-        celebDown1.timingMode = .easeIn
-        let celebUp2 = SCNAction.moveBy(x: 0, y: 0.15, z: 0, duration: 0.22)
-        celebUp2.timingMode = .easeOut
-        let celebDown2 = SCNAction.moveBy(x: 0, y: -0.15, z: 0, duration: 0.22)
-        celebDown2.timingMode = .easeIn
-        let celebratePose = SCNAction.sequence([
-            SCNAction.group([
-                celebUp1,
-                SCNAction.customAction(duration: 0.22) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / 0.22))
-                    node.scale = SCNVector3(1.0 + t * 0.08, 1.0 + t * 0.08, 1.0 + t * 0.08)
-                }
-            ]),
-            celebDown1,
-            SCNAction.group([
-                celebUp2,
-                SCNAction.customAction(duration: 0.22) { node, elapsed in
-                    let t = smoothstep(Float(elapsed / 0.22))
-                    node.eulerAngles.x = t * -0.1
-                }
-            ]),
-            celebDown2,
-            SCNAction.customAction(duration: blend + 0.1) { node, elapsed in
-                let t = smoothstep(Float(elapsed / (blend + 0.1)))
-                node.eulerAngles.x = -0.1 * (1 - t)
-                node.scale = SCNVector3(1.08 - t * 0.08, 1.08 - t * 0.08, 1.08 - t * 0.08)
-            }
-        ])
-
-        func smoothRotate(x: CGFloat, y: CGFloat, z: CGFloat, duration: TimeInterval) -> SCNAction {
-            let action = SCNAction.rotateTo(x: x, y: y, z: z, duration: duration)
-            action.timingMode = .easeInEaseOut
-            return action
-        }
-
-        let armSwing = SCNAction.sequence([
-            smoothRotate(x: -0.8, y: 0, z: 0.4, duration: blend + 0.05),
-            SCNAction.wait(duration: 0.5),
-            smoothRotate(x: 0, y: 0, z: 0.4, duration: blend + 0.15)
-        ])
-        let rArmSwing = SCNAction.sequence([
-            smoothRotate(x: -0.8, y: 0, z: -0.4, duration: blend + 0.05),
-            SCNAction.wait(duration: 0.5),
-            smoothRotate(x: 0, y: 0, z: -0.4, duration: blend + 0.15)
-        ])
-
-        let swingArmWindup = smoothRotate(x: -1.2, y: 0, z: -0.6, duration: blend * 0.8)
-        let swingArmStrike = SCNAction.rotateTo(x: 0.5, y: 0, z: 0.3, duration: 0.14)
-        swingArmStrike.timingMode = .easeOut
-        let swingArmAction = SCNAction.sequence([
-            swingArmWindup,
-            swingArmStrike,
-            SCNAction.wait(duration: 0.3),
-            smoothRotate(x: 0, y: 0, z: -0.4, duration: blend + 0.1)
-        ])
-
-        let kickWindup = smoothRotate(x: -0.3, y: 0, z: 0, duration: blend * 0.6)
-        let kickStrike = SCNAction.rotateTo(x: 0.8, y: 0, z: 0, duration: 0.14)
-        kickStrike.timingMode = .easeOut
-        let kickLegAction = SCNAction.sequence([
-            kickWindup,
-            kickStrike,
-            SCNAction.wait(duration: 0.2),
-            smoothRotate(x: 0, y: 0, z: 0, duration: blend + 0.1)
-        ])
-
-        let spikeArmAction = SCNAction.sequence([
-            smoothRotate(x: -2.0, y: 0, z: -0.4, duration: 0.28),
-            SCNAction.rotateTo(x: 0.3, y: 0, z: -0.4, duration: 0.12),
-            SCNAction.wait(duration: 0.15),
-            smoothRotate(x: 0, y: 0, z: -0.4, duration: blend + 0.08)
-        ])
-
-        let celebrateArmsAction = SCNAction.sequence([
-            smoothRotate(x: 0, y: 0, z: -2.5, duration: 0.22),
-            SCNAction.wait(duration: 0.6),
-            smoothRotate(x: 0, y: 0, z: -0.4, duration: 0.35)
-        ])
-        let celebrateLArmsAction = SCNAction.sequence([
-            smoothRotate(x: 0, y: 0, z: 2.5, duration: 0.22),
-            SCNAction.wait(duration: 0.6),
-            smoothRotate(x: 0, y: 0, z: 0.4, duration: 0.35)
-        ])
-
-        let poseSequence = SCNAction.sequence([
-            SCNAction.wait(duration: 2.0),
-            sprintPose,
-            SCNAction.wait(duration: 1.5),
-            gatherPose,
-            jumpPose,
-            SCNAction.wait(duration: 1.5),
-            dunkPose,
-            SCNAction.wait(duration: 1.5),
-            swingPose,
-            SCNAction.wait(duration: 1.5),
-            kickPose,
-            SCNAction.wait(duration: 1.5),
-            spikePose,
-            SCNAction.wait(duration: 1.5),
-            celebratePose,
-            SCNAction.wait(duration: 1.5),
-        ])
-        root.runAction(SCNAction.repeatForever(poseSequence), forKey: "poses")
-
-        let armCycle = SCNAction.sequence([
-            SCNAction.wait(duration: 4.0),
-            armSwing,
-            SCNAction.wait(duration: 3.0),
-            swingArmAction,
-            SCNAction.wait(duration: 3.0),
-            celebrateLArmsAction,
-            SCNAction.wait(duration: 3.0),
-        ])
-        lArm.runAction(SCNAction.repeatForever(armCycle), forKey: "armPose")
-
-        let rArmCycle = SCNAction.sequence([
-            SCNAction.wait(duration: 6.0),
-            rArmSwing,
-            SCNAction.wait(duration: 2.0),
-            spikeArmAction,
-            SCNAction.wait(duration: 3.0),
-            celebrateArmsAction,
-            SCNAction.wait(duration: 2.0),
-        ])
-        rArm.runAction(SCNAction.repeatForever(rArmCycle), forKey: "rArmPose")
-
-        let legShift = SCNAction.sequence([
-            SCNAction.rotateTo(x: 0.15, y: 0, z: 0, duration: blend + 0.6),
-            SCNAction.rotateTo(x: -0.15, y: 0, z: 0, duration: blend + 0.6),
-            SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: blend + 0.4)
-        ])
-        let legCycle = SCNAction.sequence([
-            SCNAction.wait(duration: 2.0),
-            legShift,
-            SCNAction.wait(duration: 1.5),
-            kickLegAction,
-            SCNAction.wait(duration: 2.5)
-        ])
-        lLeg.runAction(SCNAction.repeatForever(legCycle), forKey: "legPose")
-
-        let rLegShift = SCNAction.sequence([
-            SCNAction.rotateTo(x: -0.15, y: 0, z: 0, duration: blend + 0.6),
-            SCNAction.rotateTo(x: 0.15, y: 0, z: 0, duration: blend + 0.6),
-            SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: blend + 0.4)
-        ])
-        let rLegCycle = SCNAction.sequence([
-            SCNAction.wait(duration: 3.0),
-            rLegShift,
-            SCNAction.wait(duration: 3.0)
-        ])
-        rLeg.runAction(SCNAction.repeatForever(rLegCycle), forKey: "rLegPose")
+        root.runAction(SCNAction.repeatForever(SCNAction.sequence([breatheUp, breatheDown])), forKey: "breathe")
     }
-
-    // MARK: - Cinematic Impact Effects
-
-    static func triggerHitStop(on node: SCNNode, duration: Double = AvatarStateMachine.hitStopDuration) {
-        node.isPaused = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            node.isPaused = false
-        }
-    }
-
-    static func triggerImpactRing(in scene: SCNScene, at position: SCNVector3, color: UIColor) {
-        let ring = SCNNode()
-        let ringGeo = SCNTorus(ringRadius: 0.01, pipeRadius: 0.005)
-        let ringMat = SCNMaterial()
-        ringMat.diffuse.contents = color
-        ringMat.emission.contents = color
-        ringGeo.materials = [ringMat]
-        ring.geometry = ringGeo
-        ring.position = position
-        scene.rootNode.addChildNode(ring)
-
-        let expand = SCNAction.group([
-            SCNAction.scale(to: 8, duration: 0.5),
-            SCNAction.fadeOut(duration: 0.5)
-        ])
-        ring.runAction(SCNAction.sequence([expand, SCNAction.removeFromParentNode()]))
-    }
-
-    static func triggerWallSplat(on avatarNode: SCNNode, wallDirection: SCNVector3, force: Float) {
-        let knockback = SCNAction.move(by: SCNVector3(
-            wallDirection.x * force,
-            wallDirection.y * force * 0.3,
-            wallDirection.z * force
-        ), duration: 0.15)
-        knockback.timingMode = .easeOut
-
-        let recoil = SCNAction.move(by: SCNVector3(
-            -wallDirection.x * force * 0.3,
-            0,
-            -wallDirection.z * force * 0.3
-        ), duration: 0.25)
-        recoil.timingMode = .easeInEaseOut
-
-        avatarNode.runAction(SCNAction.sequence([knockback, recoil]))
-    }
-
-    static func triggerCinematicSlowMo(in scene: SCNScene, duration: Double = 1.0, timeScale: Double = 0.2) {
-        scene.physicsWorld.speed = CGFloat(timeScale)
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.3
-            scene.physicsWorld.speed = 1.0
-            SCNTransaction.commit()
-        }
-    }
-
-    static func triggerVanishEffect(in scene: SCNScene, at position: SCNVector3, color: UIColor) {
-        let flash = SCNNode()
-        let flashGeo = SCNSphere(radius: 0.5)
-        let flashMat = SCNMaterial()
-        flashMat.diffuse.contents = color
-        flashMat.emission.contents = color
-        flashMat.transparency = 0.8
-        flashGeo.materials = [flashMat]
-        flash.geometry = flashGeo
-        flash.position = position
-        scene.rootNode.addChildNode(flash)
-
-        let expand = SCNAction.group([
-            SCNAction.scale(to: 3, duration: 0.2),
-            SCNAction.fadeOut(duration: 0.2)
-        ])
-        flash.runAction(SCNAction.sequence([expand, SCNAction.removeFromParentNode()]))
-    }
-
-    // MARK: - Ball Builder
 
     private static func addBall(to scene: SCNScene, at position: SCNVector3, color: UIColor) {
         let geo = SCNSphere(radius: 0.12)
@@ -1415,7 +1313,7 @@ struct GameSceneFactory {
         let postColor = UIColor.white.withAlphaComponent(0.8)
 
         for x in [-1.2, 1.2] as [Float] {
-            let post = SCNCylinder(radius: 0.04, height: 2.4)
+            let post = SCNCylinder(radius: 0.05, height: 2.4)
             let pMat = SCNMaterial()
             pMat.diffuse.contents = postColor
             pMat.emission.contents = UIColor.white.withAlphaComponent(0.1)
@@ -1425,7 +1323,7 @@ struct GameSceneFactory {
             scene.rootNode.addChildNode(pNode)
         }
 
-        let crossbar = SCNCylinder(radius: 0.04, height: 2.4)
+        let crossbar = SCNCylinder(radius: 0.05, height: 2.4)
         let cbMat = SCNMaterial()
         cbMat.diffuse.contents = postColor
         crossbar.materials = [cbMat]
@@ -1434,15 +1332,251 @@ struct GameSceneFactory {
         cbNode.eulerAngles.z = .pi / 2
         scene.rootNode.addChildNode(cbNode)
 
-        for i in 0..<6 {
+        let netGeo = SCNBox(width: 2.4, height: 2.4, length: 0.8, chamferRadius: 0)
+        let netMat = SCNMaterial()
+        netMat.diffuse.contents = UIColor.white.withAlphaComponent(0.08)
+        netMat.isDoubleSided = true
+        netGeo.materials = [netMat]
+        let netNode = SCNNode(geometry: netGeo)
+        netNode.position = SCNVector3(position.x, 1.2, position.z - 0.4)
+        scene.rootNode.addChildNode(netNode)
+
+        for i in 0..<8 {
             let netLine = SCNCylinder(radius: 0.005, height: 2.4)
             let nMat = SCNMaterial()
             nMat.diffuse.contents = UIColor.white.withAlphaComponent(0.15)
             netLine.materials = [nMat]
             let nNode = SCNNode(geometry: netLine)
-            let xOffset = -1.0 + Float(i) * 0.4
+            let xOffset = -1.0 + Float(i) * 0.286
             nNode.position = SCNVector3(xOffset + position.x, 1.2, position.z)
             scene.rootNode.addChildNode(nNode)
         }
+    }
+
+    private static func addArenaWalls(to scene: SCNScene, wallColor: UIColor, width: Float = 16, depth: Float = 14, height: Float = 4) {
+        let halfW = width / 2
+        let halfD = depth / 2
+        let halfH = height / 2
+        let thick: Float = 0.15
+
+        func wallMat(_ color: UIColor) -> SCNMaterial {
+            let m = SCNMaterial()
+            m.diffuse.contents = color
+            m.roughness.contents = 0.85
+            m.isDoubleSided = true
+            return m
+        }
+
+        let backWall = SCNBox(width: CGFloat(width + 0.4), height: CGFloat(height), length: CGFloat(thick), chamferRadius: 0)
+        backWall.materials = [wallMat(wallColor)]
+        let backNode = SCNNode(geometry: backWall)
+        backNode.position = SCNVector3(0, halfH, -halfD)
+        scene.rootNode.addChildNode(backNode)
+
+        let frontWall = SCNBox(width: CGFloat(width + 0.4), height: CGFloat(height), length: CGFloat(thick), chamferRadius: 0)
+        frontWall.materials = [wallMat(wallColor)]
+        let frontNode = SCNNode(geometry: frontWall)
+        frontNode.position = SCNVector3(0, halfH, halfD)
+        scene.rootNode.addChildNode(frontNode)
+
+        let leftWall = SCNBox(width: CGFloat(thick), height: CGFloat(height), length: CGFloat(depth + 0.4), chamferRadius: 0)
+        leftWall.materials = [wallMat(wallColor)]
+        let leftNode = SCNNode(geometry: leftWall)
+        leftNode.position = SCNVector3(-halfW, halfH, 0)
+        scene.rootNode.addChildNode(leftNode)
+
+        let rightWall = SCNBox(width: CGFloat(thick), height: CGFloat(height), length: CGFloat(depth + 0.4), chamferRadius: 0)
+        rightWall.materials = [wallMat(wallColor)]
+        let rightNode = SCNNode(geometry: rightWall)
+        rightNode.position = SCNVector3(halfW, halfH, 0)
+        scene.rootNode.addChildNode(rightNode)
+    }
+
+    private static func addVeniceBeachWalls(to scene: SCNScene) {
+        let wallHeight: CGFloat = 4
+        let wallThickness: CGFloat = 0.15
+        let sandColor = UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1)
+        let boardwalkColor = UIColor(red: 0.35, green: 0.25, blue: 0.15, alpha: 1)
+        let palmGreen = UIColor(red: 0.15, green: 0.45, blue: 0.15, alpha: 1)
+        let oceanColor = UIColor(red: 0.12, green: 0.30, blue: 0.55, alpha: 1)
+
+        func wallMaterial(_ color: UIColor) -> SCNMaterial {
+            let mat = SCNMaterial()
+            mat.diffuse.contents = color
+            mat.isDoubleSided = true
+            return mat
+        }
+
+        let backWall = SCNBox(width: 16, height: wallHeight, length: wallThickness, chamferRadius: 0)
+        backWall.materials = [wallMaterial(sandColor)]
+        let backNode = SCNNode(geometry: backWall)
+        backNode.position = SCNVector3(0, Float(wallHeight / 2), -7)
+        scene.rootNode.addChildNode(backNode)
+
+        let skyPanel = SCNBox(width: 16, height: wallHeight * 0.4, length: 0.01, chamferRadius: 0)
+        let skyMat = SCNMaterial()
+        skyMat.diffuse.contents = UIColor(red: 0.15, green: 0.35, blue: 0.65, alpha: 1)
+        skyPanel.materials = [skyMat]
+        let skyNode = SCNNode(geometry: skyPanel)
+        skyNode.position = SCNVector3(0, Float(wallHeight * 0.8), -6.95)
+        scene.rootNode.addChildNode(skyNode)
+
+        let frontWall = SCNBox(width: 16, height: wallHeight, length: wallThickness, chamferRadius: 0)
+        frontWall.materials = [wallMaterial(oceanColor)]
+        let frontNode = SCNNode(geometry: frontWall)
+        frontNode.position = SCNVector3(0, Float(wallHeight / 2), 10)
+        scene.rootNode.addChildNode(frontNode)
+
+        let leftWall = SCNBox(width: wallThickness, height: wallHeight, length: 17, chamferRadius: 0)
+        leftWall.materials = [wallMaterial(boardwalkColor)]
+        let leftNode = SCNNode(geometry: leftWall)
+        leftNode.position = SCNVector3(-8, Float(wallHeight / 2), 1.5)
+        scene.rootNode.addChildNode(leftNode)
+
+        let rightWall = SCNBox(width: wallThickness, height: wallHeight, length: 17, chamferRadius: 0)
+        rightWall.materials = [wallMaterial(boardwalkColor)]
+        let rightNode = SCNNode(geometry: rightWall)
+        rightNode.position = SCNVector3(8, Float(wallHeight / 2), 1.5)
+        scene.rootNode.addChildNode(rightNode)
+
+        for x in stride(from: -6.0, through: 6.0, by: 6.0) {
+            let trunk = SCNCylinder(radius: 0.08, height: 3.5)
+            let tMat = SCNMaterial()
+            tMat.diffuse.contents = UIColor(red: 0.4, green: 0.3, blue: 0.15, alpha: 1)
+            trunk.materials = [tMat]
+            let tNode = SCNNode(geometry: trunk)
+            tNode.position = SCNVector3(Float(x), 1.75, -6.5)
+            scene.rootNode.addChildNode(tNode)
+
+            let crown = SCNSphere(radius: 0.6)
+            let cMat = SCNMaterial()
+            cMat.diffuse.contents = palmGreen
+            crown.materials = [cMat]
+            let cNode = SCNNode(geometry: crown)
+            cNode.position = SCNVector3(Float(x), 3.8, -6.5)
+            cNode.scale = SCNVector3(1, 0.6, 1)
+            scene.rootNode.addChildNode(cNode)
+        }
+
+        let boardwalk = SCNBox(width: 16, height: 0.06, length: 1.5, chamferRadius: 0)
+        let bwMat = SCNMaterial()
+        bwMat.diffuse.contents = boardwalkColor
+        bwMat.roughness.contents = 0.95
+        boardwalk.materials = [bwMat]
+        let bwNode = SCNNode(geometry: boardwalk)
+        bwNode.position = SCNVector3(0, 0.03, -5.5)
+        scene.rootNode.addChildNode(bwNode)
+    }
+
+    private static func addStadiumStands(to scene: SCNScene, depth: Float) {
+        let standColor = UIColor(red: 0.12, green: 0.1, blue: 0.15, alpha: 1)
+        let crowdColor = UIColor(red: 0.25, green: 0.2, blue: 0.15, alpha: 0.5)
+
+        for side in [-1.0, 1.0] as [Float] {
+            for tier in 0..<3 {
+                let h = Float(tier) * 0.8 + 0.4
+                let x = side * (7.0 + Float(tier) * 0.5)
+                let stand = SCNBox(width: 0.8, height: CGFloat(h), length: CGFloat(depth - 2), chamferRadius: 0)
+                let sMat = SCNMaterial()
+                sMat.diffuse.contents = standColor
+                stand.materials = [sMat]
+                let sNode = SCNNode(geometry: stand)
+                sNode.position = SCNVector3(x, h / 2, 0)
+                scene.rootNode.addChildNode(sNode)
+
+                let crowd = SCNBox(width: 0.6, height: 0.3, length: CGFloat(depth - 3), chamferRadius: 0)
+                let cMat = SCNMaterial()
+                cMat.diffuse.contents = crowdColor
+                cMat.emission.contents = crowdColor.withAlphaComponent(0.03)
+                crowd.materials = [cMat]
+                let cNode = SCNNode(geometry: crowd)
+                cNode.position = SCNVector3(x, h + 0.15, 0)
+                scene.rootNode.addChildNode(cNode)
+            }
+        }
+    }
+
+    private static func addStadiumLights(to scene: SCNScene, width: Float, depth: Float) {
+        let lightPositions: [(Float, Float)] = [
+            (-width / 2 - 1, -depth / 2 + 2),
+            (width / 2 + 1, -depth / 2 + 2),
+            (-width / 2 - 1, depth / 2 - 2),
+            (width / 2 + 1, depth / 2 - 2)
+        ]
+
+        for (lx, lz) in lightPositions {
+            let pole = SCNCylinder(radius: 0.06, height: 6)
+            let pMat = SCNMaterial()
+            pMat.diffuse.contents = UIColor(white: 0.3, alpha: 1)
+            pole.materials = [pMat]
+            let pNode = SCNNode(geometry: pole)
+            pNode.position = SCNVector3(lx, 3, lz)
+            scene.rootNode.addChildNode(pNode)
+
+            let lightHead = SCNBox(width: 0.5, height: 0.15, length: 0.3, chamferRadius: 0.02)
+            let lhMat = SCNMaterial()
+            lhMat.diffuse.contents = UIColor.white.withAlphaComponent(0.5)
+            lhMat.emission.contents = UIColor.white.withAlphaComponent(0.3)
+            lightHead.materials = [lhMat]
+            let lhNode = SCNNode(geometry: lightHead)
+            lhNode.position = SCNVector3(lx, 6.1, lz)
+            scene.rootNode.addChildNode(lhNode)
+        }
+    }
+
+    // MARK: - Cinematic Impact Effects
+
+    static func triggerHitStop(on node: SCNNode, duration: Double = AvatarStateMachine.hitStopDuration) {
+        node.isPaused = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            node.isPaused = false
+        }
+    }
+
+    static func triggerImpactRing(in scene: SCNScene, at position: SCNVector3, color: UIColor) {
+        let ring = SCNNode()
+        let ringGeo = SCNTorus(ringRadius: 0.01, pipeRadius: 0.005)
+        let ringMat = SCNMaterial()
+        ringMat.diffuse.contents = color
+        ringMat.emission.contents = color
+        ringGeo.materials = [ringMat]
+        ring.geometry = ringGeo
+        ring.position = position
+        scene.rootNode.addChildNode(ring)
+
+        let expand = SCNAction.group([
+            SCNAction.scale(to: 8, duration: 0.5),
+            SCNAction.fadeOut(duration: 0.5)
+        ])
+        ring.runAction(SCNAction.sequence([expand, SCNAction.removeFromParentNode()]))
+    }
+
+    static func triggerCinematicSlowMo(in scene: SCNScene, duration: Double = 1.0, timeScale: Double = 0.2) {
+        scene.physicsWorld.speed = CGFloat(timeScale)
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0.3
+            scene.physicsWorld.speed = 1.0
+            SCNTransaction.commit()
+        }
+    }
+
+    static func triggerVanishEffect(in scene: SCNScene, at position: SCNVector3, color: UIColor) {
+        let flash = SCNNode()
+        let flashGeo = SCNSphere(radius: 0.5)
+        let flashMat = SCNMaterial()
+        flashMat.diffuse.contents = color
+        flashMat.emission.contents = color
+        flashMat.transparency = 0.8
+        flashGeo.materials = [flashMat]
+        flash.geometry = flashGeo
+        flash.position = position
+        scene.rootNode.addChildNode(flash)
+
+        let expand = SCNAction.group([
+            SCNAction.scale(to: 3, duration: 0.2),
+            SCNAction.fadeOut(duration: 0.2)
+        ])
+        flash.runAction(SCNAction.sequence([expand, SCNAction.removeFromParentNode()]))
     }
 }
