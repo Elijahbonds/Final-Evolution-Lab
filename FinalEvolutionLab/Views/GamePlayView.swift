@@ -74,6 +74,15 @@ struct GamePlayView: View {
     @State private var showContestPill: Bool = false
     @State private var defenderSimDistance: Double = 4.0
 
+    @State private var goldenComboEngine = GoldenEraComboEngine()
+    @State private var timeScaleManager = TimeScaleManager()
+    @State private var matrixState = MatrixStateMachine()
+    @State private var activeModifierState: ModifierState = .none
+    @State private var lastQTEGrade: QTEGrade? = nil
+    @State private var showQTEGrade: Bool = false
+    @State private var qteGradeText: String = ""
+    @State private var timeScaleUpdateTask: Task<Void, Never>? = nil
+
     @Environment(\.dismiss) private var dismiss
 
     private enum GolfSwingPhase { case idle, backswing }
@@ -2175,6 +2184,16 @@ struct GamePlayView: View {
         showContestPill = false
         defenderSimDistance = 4.0
 
+        goldenComboEngine = GoldenEraComboEngine()
+        timeScaleManager = TimeScaleManager()
+        matrixState = MatrixStateMachine()
+        activeModifierState = .none
+        lastQTEGrade = nil
+        showQTEGrade = false
+        qteGradeText = ""
+        timeScaleUpdateTask?.cancel()
+        timeScaleUpdateTask = nil
+
         if isTimerBased {
             switch gameMode.id {
             case .karate: timeRemaining = 90
@@ -2279,16 +2298,19 @@ struct GamePlayView: View {
             }
         }
 
+        let dda = prqDDA
+        let ddaAggression = dda.scaledAggression(playerScore: score, aiScore: opponentScore)
         let ddaChance = DynamicDifficulty.opponentSuccessChance(
-            baseChance: 0.55,
+            baseChance: 0.55 * ddaAggression,
             playerScore: score,
             aiScore: opponentScore,
             sessionReadiness: sessionReadiness,
             playerPRQ: playerPRQ
         )
         if Double.random(in: 0...1) < ddaChance {
+            let aiDelay = dda.aiReactionSpeed(playerScore: score, aiScore: opponentScore)
             Task {
-                try? await Task.sleep(for: .milliseconds(500))
+                try? await Task.sleep(for: .seconds(aiDelay))
                 withAnimation {
                     opponentScore += DynamicDifficulty.opponentPoints(
                         playerScore: score,
@@ -3016,30 +3038,59 @@ struct GamePlayView: View {
                         .transition(.scale(scale: 0.8).combined(with: .opacity))
                     }
 
-                    Button {
-                        withAnimation(.spring(response: 0.2)) {
-                            isModifierHeld.toggle()
+                    HStack(spacing: 6) {
+                        Button {
+                            withAnimation(.spring(response: 0.2)) {
+                                isModifierHeld.toggle()
+                                activeModifierState = isModifierHeld ? .style : .none
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "l1.button.roundedbottom.horizontal")
+                                    .font(.system(size: 12, weight: .bold))
+                                Text("STYLE")
+                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                            }
+                            .foregroundStyle(activeModifierState == .style ? .black : Theme.elitePurple)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(
+                                activeModifierState == .style
+                                    ? AnyShapeStyle(Theme.elitePurple)
+                                    : AnyShapeStyle(Theme.elitePurple.opacity(0.15))
+                            )
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Theme.elitePurple.opacity(0.4), lineWidth: 1))
                         }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "l1.button.roundedbottom.horizontal")
-                                .font(.system(size: 12, weight: .bold))
-                            Text("TRICK")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
+
+                        Button {
+                            withAnimation(.spring(response: 0.2)) {
+                                if activeModifierState == .power {
+                                    activeModifierState = .none
+                                    isModifierHeld = false
+                                } else {
+                                    activeModifierState = .power
+                                    isModifierHeld = true
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "r1.button.roundedbottom.horizontal")
+                                    .font(.system(size: 12, weight: .bold))
+                                Text("POWER")
+                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                            }
+                            .foregroundStyle(activeModifierState == .power ? .black : .orange)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(
+                                activeModifierState == .power
+                                    ? AnyShapeStyle(Color.orange)
+                                    : AnyShapeStyle(Color.orange.opacity(0.15))
+                            )
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.orange.opacity(0.4), lineWidth: 1))
                         }
-                        .foregroundStyle(isModifierHeld ? .black : Theme.elitePurple)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(
-                            isModifierHeld
-                                ? AnyShapeStyle(Theme.elitePurple)
-                                : AnyShapeStyle(Theme.elitePurple.opacity(0.15))
-                        )
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule()
-                                .stroke(Theme.elitePurple.opacity(0.4), lineWidth: 1)
-                        )
                     }
                 }
                 .padding(.trailing, 16)
@@ -3074,31 +3125,52 @@ struct GamePlayView: View {
 
     private func executeTrickCombo(direction: ComboDirection) {
         guard isActive, isModifierHeld else { return }
-        let trick = TrickCombo.resolve(direction: direction.trickDirection, mode: gameMode.id)
-        executeTrick(trick)
+        let goldenTrick = DirectionalTrick.resolve(direction: direction, modifier: activeModifierState, mode: gameMode.id)
+        executeGoldenTrick(goldenTrick)
     }
 
     private func executeSpecialTrick() {
         guard isActive, specialMeterFull else { return }
-        let specials = TrickCombo.combos(for: gameMode.id).filter { $0.isSpecial }
-        guard let trick = specials.first else { return }
         withAnimation(.spring(response: 0.2)) {
             specialMeter = 0
+            activeModifierState = .special
         }
-        executeTrick(trick)
-        triggerSlowMo(duration: 1.5)
+        let goldenTrick = DirectionalTrick.resolve(direction: currentTrickDirection, modifier: .special, mode: gameMode.id)
+        executeGoldenTrick(goldenTrick)
+        triggerMatrixSlowMo(effect: .finisher)
     }
 
-    private func executeTrick(_ trick: TrickCombo) {
+    private func executeGoldenTrick(_ trick: DirectionalTrick) {
         let physics = leakageAdjustedPhysics
         let riskRoll = Double.random(in: 0...1)
-        let successThreshold = physics.successChanceBase / trick.riskMultiplier
+        let successThreshold = physics.successChanceBase / trick.riskFactor
         let success = riskRoll < successThreshold
         let isCritical = success && Double.random(in: 0...1) < physics.criticalHitChance
 
+        let now = CACurrentMediaTime()
+        matrixState = matrixState.startAction(
+            name: trick.name,
+            intensity: trick.riskFactor,
+            isFinisher: trick.modifier == .special,
+            at: now
+        )
+
         if success {
-            let stylePoints = physics.trickStylePoints(for: trick)
-            let finalPoints = physics.adjustedPoints(base: stylePoints, combo: combo, isCritical: isCritical)
+            goldenComboEngine = goldenComboEngine.addTrick(trick, at: now)
+
+            let apexEngine = goldenComboEngine.startApexQTE(at: now)
+            let resolvedEngine = apexEngine.resolveApexQTE(inputTime: now + Double.random(in: 0.05...0.2))
+            goldenComboEngine = resolvedEngine
+
+            let grade = resolvedEngine.lastQTEGrade ?? .ok
+            lastQTEGrade = grade
+
+            let stylePoints = goldenComboEngine.finalScore(
+                prqNormalized: min(max(playerPRQ / 100.0, 0), 1),
+                neuralBurst: arcadePhysics.neuralBurstActive
+            )
+            let scaledPoints = max(1, stylePoints / max(1, goldenComboEngine.chainLength))
+            let finalPoints = physics.adjustedPoints(base: scaledPoints, combo: combo, isCritical: isCritical)
 
             withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
                 score += finalPoints
@@ -3110,27 +3182,36 @@ struct GamePlayView: View {
                 lastTrickName = trick.displayName
                 showTrickText = true
                 specialMeter = min(100, specialMeter + physics.specialMeterGainRate)
+                qteGradeText = grade.rawValue
+                showQTEGrade = true
             }
+
+            let impact = ImpactFXConfig.forImpact(
+                modifier: trick.modifier == .special ? .special : activeModifierState,
+                qteGrade: grade,
+                jumpHeight: Double(physicsConfig.jumpHeight) / 4.0
+            )
+            triggerScreenShake(intensity: impact.screenShakeIntensity / 14.0)
 
             if isCritical {
                 criticalHits += 1
                 triggerCriticalFlash()
-                triggerScreenShake(intensity: 0.8)
             } else {
                 triggerFlash()
-                triggerScreenShake(intensity: 0.5)
             }
             triggerImpactFlash()
             resetStreakTimer()
 
-            if trick.isSpecial {
-                triggerSlowMo(duration: 1.0)
-                triggerScreenShake(intensity: 1.0)
+            if grade.triggersSlowMo || trick.modifier == .special {
+                triggerMatrixSlowMo(effect: trick.modifier == .special ? .finisher : .slowMo)
             }
+
+            matrixState = matrixState.resolveAction(at: CACurrentMediaTime())
 
             Task {
                 try? await Task.sleep(for: .seconds(2.0))
-                withAnimation { showTrickText = false; lastTrickName = "" }
+                withAnimation { showTrickText = false; lastTrickName = ""; showQTEGrade = false }
+                matrixState = matrixState.toIdle(at: CACurrentMediaTime())
             }
         } else {
             withAnimation(.spring(response: 0.3)) {
@@ -3138,17 +3219,19 @@ struct GamePlayView: View {
                 lastAction = "CLANK!"
                 lastActionIsCritical = false
                 lastActionIsBurst = false
+                goldenComboEngine = goldenComboEngine.reset()
             }
             triggerScreenShake(intensity: 0.3)
+            matrixState = matrixState.toIdle(at: CACurrentMediaTime())
         }
 
         withAnimation(.spring(response: 0.2)) {
             isModifierHeld = false
+            activeModifierState = .none
         }
 
-        let clearDelay: Double = 2.0
         Task {
-            try? await Task.sleep(for: .seconds(clearDelay))
+            try? await Task.sleep(for: .seconds(2.0))
             withAnimation { lastAction = "" }
         }
     }
@@ -3167,6 +3250,38 @@ struct GamePlayView: View {
                 isSlowMo = false
             }
         }
+    }
+
+    private func triggerMatrixSlowMo(effect: TimeScaleManager.TimeEffect) {
+        let now = CACurrentMediaTime()
+        switch effect {
+        case .slowMo:
+            timeScaleManager = timeScaleManager.triggerSlowMo(at: now)
+        case .finisher:
+            timeScaleManager = timeScaleManager.triggerFinisher(at: now)
+        case .perfectGuard:
+            timeScaleManager = timeScaleManager.triggerPerfectGuard(at: now)
+        case .apex:
+            timeScaleManager = timeScaleManager.triggerApex(at: now)
+        case .none:
+            break
+        }
+        triggerSlowMo(duration: timeScaleManager.isActive ? TimeScaleManager.slowMoDuration : 1.0)
+        startTimeScaleUpdates()
+    }
+
+    private func startTimeScaleUpdates() {
+        timeScaleUpdateTask?.cancel()
+        timeScaleUpdateTask = Task {
+            while !Task.isCancelled && timeScaleManager.isActive {
+                try? await Task.sleep(for: .milliseconds(50))
+                timeScaleManager = timeScaleManager.update(at: CACurrentMediaTime())
+            }
+        }
+    }
+
+    private var prqDDA: PRQDrivenDDA {
+        PRQDrivenDDA(playerPRQ: playerPRQ, neuralDrive: sessionReadiness, mode: gameMode.id)
     }
 
     // MARK: - PS2 Controller Handlers
@@ -3258,7 +3373,7 @@ struct GamePlayView: View {
             lastAction = "PERFECT GUARD!"
             specialMeter = min(100, specialMeter + 20)
         }
-        triggerSlowMo(duration: 1.0)
+        triggerMatrixSlowMo(effect: .perfectGuard)
         triggerScreenShake(intensity: 0.4)
         Task {
             try? await Task.sleep(for: .milliseconds(400))
@@ -3283,7 +3398,7 @@ struct GamePlayView: View {
             showTrickText = true
             specialMeter = min(100, specialMeter + 30)
         }
-        triggerSlowMo(duration: 1.5)
+        triggerMatrixSlowMo(effect: .finisher)
         triggerScreenShake(intensity: 0.7)
 
         let physics = leakageAdjustedPhysics

@@ -134,3 +134,104 @@ nonisolated struct DynamicDifficulty: Sendable {
         return max(1, Int(scaled.rounded()))
     }
 }
+
+nonisolated struct PRQDrivenDDA: Sendable {
+    let playerPRQ: Double
+    let neuralDrive: Double
+    let mode: GameModeId
+
+    var prqNormalized: Double { min(max(playerPRQ / 100.0, 0), 1) }
+    var neuralNormalized: Double { min(max(neuralDrive / 100.0, 0), 1) }
+
+    var aiAggressionFloor: Double {
+        0.4 + prqNormalized * 0.3
+    }
+
+    var aiAggressionCeiling: Double {
+        1.0 + prqNormalized * 0.5
+    }
+
+    func scaledAggression(playerScore: Int, aiScore: Int) -> Double {
+        let base = DynamicDifficulty.aggression(playerScore: playerScore, aiScore: aiScore)
+        let prqScale = 0.7 + prqNormalized * 0.6
+        let neuralPressure = neuralNormalized > 0.8 ? 1.15 : 1.0
+        return min(aiAggressionCeiling, max(aiAggressionFloor, base * prqScale * neuralPressure))
+    }
+
+    func aiReactionSpeed(playerScore: Int, aiScore: Int) -> Double {
+        let baseDelay = DynamicDifficulty.aiResponseDelay(playerScore: playerScore, aiScore: aiScore)
+        let prqReduction = prqNormalized * 0.3
+        return max(0.1, baseDelay - prqReduction)
+    }
+
+    func qteWindowScale(playerScore: Int, aiScore: Int, targetScore: Int) -> Double {
+        let base = DynamicDifficulty.getDDAWindowScale(playerScore: playerScore, aiScore: aiScore, targetScore: targetScore)
+        let prqShrink = 1.0 - prqNormalized * 0.15
+        return base * prqShrink
+    }
+
+    func aiComboChance(playerScore: Int, aiScore: Int) -> Double {
+        let aggression = scaledAggression(playerScore: playerScore, aiScore: aiScore)
+        let baseCombo = 0.1 + prqNormalized * 0.25
+        return min(0.6, baseCombo * aggression)
+    }
+
+    func aiSpecialMeterRate(playerScore: Int, aiScore: Int) -> Double {
+        let aggression = scaledAggression(playerScore: playerScore, aiScore: aiScore)
+        return 5.0 + aggression * 8.0 + prqNormalized * 4.0
+    }
+
+    func aiBlockChance(playerScore: Int, aiScore: Int) -> Double {
+        let aggression = scaledAggression(playerScore: playerScore, aiScore: aiScore)
+        let base = 0.15 + prqNormalized * 0.2
+        return min(0.55, base * aggression)
+    }
+
+    var difficultyTier: DifficultyTier {
+        switch prqNormalized {
+        case 0.9...: return .legendary
+        case 0.75..<0.9: return .elite
+        case 0.55..<0.75: return .competitive
+        case 0.35..<0.55: return .developing
+        default: return .rookie
+        }
+    }
+}
+
+nonisolated enum DifficultyTier: String, Sendable {
+    case rookie = "ROOKIE"
+    case developing = "DEVELOPING"
+    case competitive = "COMPETITIVE"
+    case elite = "ELITE"
+    case legendary = "LEGENDARY"
+
+    var aiPatternComplexity: Int {
+        switch self {
+        case .rookie: return 1
+        case .developing: return 2
+        case .competitive: return 3
+        case .elite: return 4
+        case .legendary: return 5
+        }
+    }
+
+    var aiFeintChance: Double {
+        switch self {
+        case .rookie: return 0.0
+        case .developing: return 0.1
+        case .competitive: return 0.2
+        case .elite: return 0.35
+        case .legendary: return 0.5
+        }
+    }
+
+    var counterWindowShrink: Double {
+        switch self {
+        case .rookie: return 1.3
+        case .developing: return 1.15
+        case .competitive: return 1.0
+        case .elite: return 0.85
+        case .legendary: return 0.7
+        }
+    }
+}

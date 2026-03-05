@@ -2,7 +2,10 @@ import SwiftUI
 
 struct SettingsSheet: View {
     @Binding var simpleMode: Bool
+    let viewModel: LabViewModel?
     @Environment(\.dismiss) private var dismiss
+    @State private var showExportAlert: Bool = false
+    @State private var exportJSON: String = ""
 
     var body: some View {
         NavigationStack {
@@ -30,9 +33,39 @@ struct SettingsSheet: View {
                     Text("Display")
                 }
 
+                if let vm = viewModel {
+                    Section {
+                        Button {
+                            let json = UnityExportBuilder.exportJSON(
+                                profile: vm.profile,
+                                metrics: vm.effectiveMetrics,
+                                arcade: vm.arcadePhysics,
+                                audit: vm.biomechanicsAudit
+                            )
+                            exportJSON = json ?? "Export failed"
+                            showExportAlert = true
+                        } label: {
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Export Unity Manifest")
+                                        .font(.body.weight(.semibold))
+                                    Text("JSON export of PRQ, Neural Drive & game data")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } icon: {
+                                Image(systemName: "square.and.arrow.up")
+                                    .foregroundStyle(Theme.brandCyan)
+                            }
+                        }
+                    } header: {
+                        Text("Unity Bridge")
+                    }
+                }
+
                 Section {
                     Label {
-                        Text("Version 1.0")
+                        Text("Version 2.0")
                     } icon: {
                         Image(systemName: "info.circle")
                             .foregroundStyle(.secondary)
@@ -56,5 +89,13 @@ struct SettingsSheet: View {
         }
         .presentationDetents([.medium])
         .presentationBackground(Theme.deepBlack)
+        .alert("Unity Manifest", isPresented: $showExportAlert) {
+            Button("Copy to Clipboard") {
+                UIPasteboard.general.string = exportJSON
+            }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("JSON manifest generated (\(exportJSON.count) chars). Copy to clipboard for Unity import.")
+        }
     }
 }

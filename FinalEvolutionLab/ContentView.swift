@@ -95,7 +95,7 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .environment(\.simpleMode, simpleMode)
         .sheet(isPresented: $showSettings) {
-            SettingsSheet(simpleMode: $simpleMode)
+            SettingsSheet(simpleMode: $simpleMode, viewModel: viewModel)
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView { sport, age, goal in
