@@ -108,6 +108,10 @@ struct ContentView: View {
                 showOnboarding = true
             }
         }
+        .overlay(alignment: .topTrailing) {
+            RorkOverlayView()
+                .padding(.top, 50)
+        }
     }
 
     private var brandHeader: some View {
