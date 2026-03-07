@@ -92,7 +92,7 @@ struct GameModeRegistry {
             subtitle: "Venice Beach Showdown",
             sport: .basketball,
             iconName: "figure.highintensity.intervaltraining",
-            accentColor: Theme.brandBlue,
+            accentColor: Color(red: 0, green: 0.83, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
             hint: nil

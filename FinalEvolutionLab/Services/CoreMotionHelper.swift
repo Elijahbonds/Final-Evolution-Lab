@@ -58,7 +58,8 @@ final class CoreMotionHelper {
             "az": accelerationZ,
             "gx": gyroX,
             "gy": gyroY,
-            "gz": gyroZ
+            "gz": gyroZ,
+            "t": Date().timeIntervalSince1970
         ]
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
