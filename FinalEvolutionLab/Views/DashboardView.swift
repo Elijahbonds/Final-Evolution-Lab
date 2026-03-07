@@ -44,10 +44,23 @@ struct DashboardView: View {
             withAnimation(.easeOut(duration: 1.2).delay(0.3)) {
                 gaugeAnimationProgress = prqNormalized
             }
+            syncAthleteManifestToUnity()
         }
         .onChange(of: prqScore) { _, newValue in
             withAnimation(.spring(duration: 0.6)) {
                 gaugeAnimationProgress = Double(newValue) / 100.0
+            }
+            syncAthleteManifestToUnity()
+        }
+        .onChange(of: viewModel.effectiveMetrics.neuralDrive) { _, _ in
+            syncAthleteManifestToUnity()
+        }
+        .onChange(of: viewModel.effectiveMetrics.verticalPotential) { _, _ in
+            syncAthleteManifestToUnity()
+        }
+        .onChange(of: UnityManager.shared.isUnityLoaded) { _, isLoaded in
+            if isLoaded {
+                syncAthleteManifestToUnity()
             }
         }
     }
@@ -295,6 +308,20 @@ struct DashboardView: View {
                 syncMetric(label: "Readiness", value: String(format: "%.0f", viewModel.effectiveMetrics.readinessScore), icon: "waveform.path.ecg")
                 syncMetric(label: "Efficiency", value: String(format: "%.0f", viewModel.effectiveMetrics.efficiencyScore), icon: "gauge.with.dots.needle.33percent")
             }
+
+            Button {
+                syncAthleteManifestToUnity()
+            } label: {
+                Text("SYNC ATHLETE DATA")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.5)
+                    .foregroundStyle(UnityManager.shared.isUnityLoaded ? .black : .secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(UnityManager.shared.isUnityLoaded ? Theme.brandBlue : Color.white.opacity(0.06))
+                    .clipShape(.rect(cornerRadius: 10))
+            }
+            .disabled(!UnityManager.shared.isUnityLoaded)
         }
         .padding(16)
         .background(
@@ -353,5 +380,9 @@ struct DashboardView: View {
         case .bronze: Theme.neonGreen
         case .unranked: .gray
         }
+    }
+
+    private func syncAthleteManifestToUnity() {
+        UnityManager.shared.syncAthleteData(metrics: viewModel.effectiveMetrics, arcade: viewModel.arcadePhysics)
     }
 }

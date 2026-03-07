@@ -19,6 +19,12 @@ final class UnityManager {
     weak var containerViewForScreenshot: UIView?
 
     private var unityFramework: AnyObject?
+    private enum UnityReceiver {
+        static let motionObject = "MotionReceiver"
+        static let motionMethod = "OnMotionData"
+        static let athleteObject = "RorkBridgeReceiver"
+        static let athleteMethod = "SyncAthleteData"
+    }
 
     private init() {}
 
@@ -80,7 +86,13 @@ final class UnityManager {
     }
 
     func sendDataToUnity(data: String) {
-        sendMessageToGO("MotionReceiver", method: "OnMotionData", message: data)
+        sendMessageToGO(UnityReceiver.motionObject, method: UnityReceiver.motionMethod, message: data)
+    }
+
+    func syncAthleteData(metrics: PerformanceMetrics, arcade: ArcadePhysics) {
+        let manifest = RorkAthleteManifest.from(metrics: metrics, arcade: arcade)
+        guard let jsonPayload = manifest.toJSONString() else { return }
+        sendMessageToGO(UnityReceiver.athleteObject, method: UnityReceiver.athleteMethod, message: jsonPayload)
     }
 
     func takeScreenshot() -> UIImage? {
