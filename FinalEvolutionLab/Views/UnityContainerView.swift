@@ -62,7 +62,7 @@ struct UnityContainerView: View {
 
                 Text("Tap to activate the Unity runtime")
                     .font(.system(.subheadline))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AnyShapeStyle(.secondary))
             }
 
             Button {

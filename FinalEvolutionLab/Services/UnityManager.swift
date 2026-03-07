@@ -22,6 +22,11 @@ final class UnityManager {
 
     private init() {}
 
+    private struct BridgeEnvelope: Codable {
+        let type: String
+        let payload: String
+    }
+
     private func loadUnity() {
         guard !isUnityLoaded else { return }
 
@@ -80,7 +85,22 @@ final class UnityManager {
     }
 
     func sendDataToUnity(data: String) {
-        sendMessageToGO("MotionReceiver", method: "OnMotionData", message: data)
+        sendBridgeMessage(type: "motion", payload: data)
+    }
+
+    func sendManifestToUnity(_ manifestJSON: String) {
+        sendBridgeMessage(type: "manifest", payload: manifestJSON)
+    }
+
+    private func sendBridgeMessage(type: String, payload: String) {
+        let envelope = BridgeEnvelope(type: type, payload: payload)
+        let encoder = JSONEncoder()
+        guard let data = try? encoder.encode(envelope),
+              let message = String(data: data, encoding: .utf8) else {
+            return
+        }
+        // Route all Swift → Unity communication through the dedicated bridge receiver.
+        sendMessageToGO("RorkBridgeReceiver", method: "OnRorkBridgeMessage", message: message)
     }
 
     func takeScreenshot() -> UIImage? {

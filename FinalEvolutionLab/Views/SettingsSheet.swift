@@ -18,7 +18,7 @@ struct SettingsSheet: View {
                                     .font(.body.weight(.semibold))
                                 Text("Family-friendly labels for all metrics")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AnyShapeStyle(.secondary))
                             }
                         } icon: {
                             Image(systemName: "figure.and.child.holdinghands")
@@ -42,7 +42,12 @@ struct SettingsSheet: View {
                                 arcade: vm.arcadePhysics,
                                 audit: vm.biomechanicsAudit
                             )
-                            exportJSON = json ?? "Export failed"
+                            if let json {
+                                exportJSON = json
+                                UnityManager.shared.sendManifestToUnity(json)
+                            } else {
+                                exportJSON = "Export failed"
+                            }
                             showExportAlert = true
                         } label: {
                             Label {
@@ -51,7 +56,7 @@ struct SettingsSheet: View {
                                         .font(.body.weight(.semibold))
                                     Text("JSON export of PRQ, Neural Drive & game data")
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(AnyShapeStyle(.secondary))
                                 }
                             } icon: {
                                 Image(systemName: "square.and.arrow.up")
@@ -68,9 +73,9 @@ struct SettingsSheet: View {
                         Text("Version 2.0")
                     } icon: {
                         Image(systemName: "info.circle")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AnyShapeStyle(.secondary))
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AnyShapeStyle(.secondary))
                 } header: {
                     Text("About")
                 }
