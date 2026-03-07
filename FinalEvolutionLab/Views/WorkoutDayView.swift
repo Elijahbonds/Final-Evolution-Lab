@@ -273,7 +273,7 @@ private struct TrainingExerciseRow: View {
                 HStack(spacing: 6) {
                     Text(exercise.name)
                         .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(isCompleted ? .secondary : .white)
+                        .foregroundStyle(isCompleted ? Color.secondary : Color.white)
                         .lineLimit(1)
 
                     if exercise.hasLevels {

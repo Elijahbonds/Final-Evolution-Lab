@@ -127,12 +127,12 @@ struct TrainingExerciseDetailView: View {
 
                                 Text("\(lvl)")
                                     .font(.system(.headline, design: .monospaced, weight: .black))
-                                    .foregroundStyle(lvl <= level ? accentColor : .tertiary)
+                                    .foregroundStyle(lvl <= level ? AnyShapeStyle(accentColor) : AnyShapeStyle(.tertiary))
                             }
 
                             Text("Level \(lvl)")
                                 .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(lvl == level ? accentColor : .tertiary)
+                                .foregroundStyle(lvl == level ? AnyShapeStyle(accentColor) : AnyShapeStyle(.tertiary))
                         }
                         .frame(maxWidth: .infinity)
                     }

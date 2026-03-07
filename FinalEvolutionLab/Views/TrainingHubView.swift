@@ -401,7 +401,7 @@ private struct TrainingDayRow: View {
 
                 Text(day.title)
                     .font(.system(.subheadline, weight: .bold))
-                    .foregroundStyle(isLocked ? .secondary : .white)
+                    .foregroundStyle(isLocked ? Color.secondary : Color.white)
             }
 
             Spacer()
