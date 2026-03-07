@@ -135,9 +135,15 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            #if targetEnvironment(simulator)
+            if !viewModel.profile.hasCompletedOnboarding {
+                viewModel.completeOnboarding(sport: "Basketball", age: 18, goal: "Jump Higher")
+            }
+            #else
             if !viewModel.profile.hasCompletedOnboarding {
                 showOnboarding = true
             }
+            #endif
         }
         .overlay(alignment: .topTrailing) {
             RorkOverlayView()
