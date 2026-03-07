@@ -12,6 +12,11 @@ struct Theme {
     static let flightBlue = Color(red: 0.2, green: 0.5, blue: 1.0)
     static let elitePurple = Color(red: 0.6, green: 0.2, blue: 1.0)
 
+    static let neonGreen = Color(red: 0.2, green: 1.0, blue: 0.4)
+    static let slateBackground = Color(red: 0.06, green: 0.07, blue: 0.08)
+    static let slateCard = Color(red: 0.09, green: 0.1, blue: 0.11)
+    static let slateMuted = Color(red: 0.14, green: 0.15, blue: 0.16)
+
     static func difficultyColor(_ difficulty: Exercise.Difficulty) -> Color {
         switch difficulty {
         case .foundation: foundationGreen

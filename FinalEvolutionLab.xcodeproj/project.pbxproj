@@ -404,6 +404,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read your health data to calculate readiness and efficiency scores";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Save workout data to Apple Health";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Stream accelerometer and gyroscope data to power the training engine";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Upload jump and dunk videos for movement analysis and PRQ scoring";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -441,6 +442,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read your health data to calculate readiness and efficiency scores";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Save workout data to Apple Health";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Stream accelerometer and gyroscope data to power the training engine";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Upload jump and dunk videos for movement analysis and PRQ scoring";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

@@ -74,6 +74,20 @@ struct ContentView: View {
                 }
             }
 
+            Tab("Dashboard", systemImage: "gauge.with.dots.needle.67percent", value: .dashboard) {
+                NavigationStack {
+                    DashboardView(viewModel: viewModel)
+                        .navigationTitle("")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                brandHeader
+                            }
+                        }
+                        .toolbarColorScheme(.dark, for: .navigationBar)
+                }
+            }
+
             Tab("Vault", systemImage: "person.crop.circle.fill", value: .vault) {
                 NavigationStack {
                     VaultView(viewModel: viewModel)
@@ -159,6 +173,7 @@ struct ContentView: View {
 
 nonisolated enum AppTab: String, Sendable {
     case lab
+    case dashboard
     case coach
     case blueprints
     case social
