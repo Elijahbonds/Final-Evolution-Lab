@@ -249,6 +249,8 @@ struct SystemScanView: View {
                 }
                 .padding(.horizontal)
 
+                avatarPreviewSection(result.avatarConfig)
+
                 if !result.notes.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("MOVEMENT NOTES")
@@ -299,6 +301,74 @@ struct SystemScanView: View {
             .padding(.top, 16)
         }
         .scrollIndicators(.hidden)
+    }
+
+    private func avatarPreviewSection(_ config: AvatarSkinConfig) -> some View {
+        VStack(spacing: 10) {
+            Text("AVATAR MODEL")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            HStack(spacing: 16) {
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                Color(red: config.auraColorR, green: config.auraColorG, blue: config.auraColorB)
+                                    .opacity(0.15)
+                            )
+                            .frame(width: 80, height: 80)
+
+                        Image(systemName: "figure.stand")
+                            .font(.system(size: 36, weight: .medium))
+                            .foregroundStyle(
+                                Color(red: config.auraColorR, green: config.auraColorG, blue: config.auraColorB)
+                            )
+                            .scaleEffect(x: config.weightScale, y: config.heightScale)
+                    }
+
+                    Text(config.outfitStyle.rawValue.uppercased())
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(
+                            Color(red: config.auraColorR, green: config.auraColorG, blue: config.auraColorB)
+                        )
+                        .tracking(1)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    avatarStatRow(label: "HEIGHT", value: String(format: "%.0f%%", config.heightScale * 100))
+                    avatarStatRow(label: "BUILD", value: String(format: "%.0f%%", config.weightScale * 100))
+                    avatarStatRow(label: "REACH", value: String(format: "%.0f%%", config.limbLength * 100))
+                    avatarStatRow(label: "AURA", value: String(format: "%.0f%%", config.trailIntensity * 100))
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(
+                            Color(red: config.auraColorR, green: config.auraColorG, blue: config.auraColorB).opacity(0.15),
+                            lineWidth: 0.5
+                        )
+                )
+        )
+        .padding(.horizontal)
+    }
+
+    private func avatarStatRow(label: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .frame(width: 48, alignment: .leading)
+            Text(value)
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundStyle(.white)
+        }
     }
 
     private func gradeColor(_ score: Double) -> Color {
@@ -387,6 +457,13 @@ struct SystemScanView: View {
 
         let clampedPRQ = PRQ.clamp(basePRQ)
 
+        let avatarConfig = AvatarSkinConfig.fromScan(
+            prq: clampedPRQ,
+            vertical: baseVertical,
+            flight: baseFlight,
+            sport: sport
+        )
+
         return SystemScanResult(
             id: UUID().uuidString,
             date: Date(),
@@ -395,7 +472,8 @@ struct SystemScanView: View {
             flightTimeSeconds: baseFlight,
             movementGrade: grade,
             notes: notes,
-            recommendedTrack: recommendedTrack
+            recommendedTrack: recommendedTrack,
+            avatarConfig: avatarConfig
         )
     }
 }

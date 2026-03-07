@@ -1353,16 +1353,17 @@ struct GameSceneFactory {
         node.camera = SCNCamera()
         node.camera?.fieldOfView = 48
         node.camera?.zNear = 0.1
-        node.camera?.zFar = 80
+        node.camera?.zFar = 100
         node.camera?.wantsHDR = true
-        node.camera?.bloomIntensity = 0.5
-        node.camera?.bloomThreshold = 0.65
-        node.camera?.bloomBlurRadius = 8
+        node.camera?.bloomIntensity = 0.6
+        node.camera?.bloomThreshold = 0.6
+        node.camera?.bloomBlurRadius = 10
         node.camera?.wantsDepthOfField = false
-        node.camera?.vignettingIntensity = 0.5
-        node.camera?.vignettingPower = 1.2
-        node.camera?.contrast = 1.06
-        node.camera?.saturation = 1.1
+        node.camera?.vignettingIntensity = 0.6
+        node.camera?.vignettingPower = 1.3
+        node.camera?.contrast = 1.08
+        node.camera?.saturation = 1.12
+        node.camera?.colorGrading.contents = UIColor(red: 0.98, green: 0.96, blue: 1.0, alpha: 1)
         node.position = position
         node.look(at: lookAt)
         node.name = "mainCamera"
@@ -1373,21 +1374,22 @@ struct GameSceneFactory {
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
-        ambient.light?.color = UIColor(red: 0.04, green: 0.04, blue: 0.08, alpha: 1)
-        ambient.light?.intensity = 300
+        ambient.light?.color = UIColor(red: 0.05, green: 0.05, blue: 0.10, alpha: 1)
+        ambient.light?.intensity = 400
         scene.rootNode.addChildNode(ambient)
 
         let spot = SCNNode()
         spot.light = SCNLight()
         spot.light?.type = .spot
-        spot.light?.color = tint.withAlphaComponent(0.7)
-        spot.light?.intensity = 1200
-        spot.light?.spotInnerAngle = 22
-        spot.light?.spotOuterAngle = 50
+        spot.light?.color = tint.withAlphaComponent(0.8)
+        spot.light?.intensity = 1400
+        spot.light?.spotInnerAngle = 25
+        spot.light?.spotOuterAngle = 55
         spot.light?.castsShadow = true
-        spot.light?.shadowRadius = 4
-        spot.light?.shadowMapSize = CGSize(width: 1024, height: 1024)
-        spot.light?.shadowSampleCount = 4
+        spot.light?.shadowRadius = 5
+        spot.light?.shadowMapSize = CGSize(width: 2048, height: 2048)
+        spot.light?.shadowSampleCount = 8
+        spot.light?.shadowColor = UIColor.black.withAlphaComponent(0.6)
         spot.position = SCNVector3(2, 10, 4)
         spot.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(spot)
@@ -1395,8 +1397,8 @@ struct GameSceneFactory {
         let fill = SCNNode()
         fill.light = SCNLight()
         fill.light?.type = .omni
-        fill.light?.color = UIColor(red: 0.06, green: 0.06, blue: 0.18, alpha: 1)
-        fill.light?.intensity = 350
+        fill.light?.color = UIColor(red: 0.08, green: 0.08, blue: 0.20, alpha: 1)
+        fill.light?.intensity = 400
         fill.position = SCNVector3(-4, 3, 5)
         scene.rootNode.addChildNode(fill)
 
@@ -1404,9 +1406,17 @@ struct GameSceneFactory {
         rim.light = SCNLight()
         rim.light?.type = .omni
         rim.light?.color = brandCyan
-        rim.light?.intensity = 250
+        rim.light?.intensity = 300
         rim.position = SCNVector3(3, 5, -3)
         scene.rootNode.addChildNode(rim)
+
+        let keyLight = SCNNode()
+        keyLight.light = SCNLight()
+        keyLight.light?.type = .directional
+        keyLight.light?.color = UIColor.white.withAlphaComponent(0.15)
+        keyLight.light?.intensity = 200
+        keyLight.eulerAngles = SCNVector3(-0.5, 0.3, 0)
+        scene.rootNode.addChildNode(keyLight)
     }
 
     private static func addFloor(to scene: SCNScene, color: UIColor, reflectivity: CGFloat) {
@@ -1425,14 +1435,16 @@ struct GameSceneFactory {
         root.position = position
         root.name = name
 
-        func limb(radius: CGFloat, height: CGFloat) -> SCNNode {
+        let jointColor = brandCyan
+
+        func limb(radius: CGFloat, height: CGFloat, isPrimary: Bool = true) -> SCNNode {
             let geo = SCNCapsule(capRadius: radius, height: height)
             let mat = SCNMaterial()
-            mat.diffuse.contents = color
-            mat.emission.contents = color.withAlphaComponent(0.25)
-            mat.metalness.contents = 0.65
-            mat.roughness.contents = 0.25
-            mat.fresnelExponent = 2.5
+            mat.diffuse.contents = isPrimary ? color : color.withAlphaComponent(0.85)
+            mat.emission.contents = color.withAlphaComponent(0.2)
+            mat.metalness.contents = 0.55
+            mat.roughness.contents = 0.3
+            mat.fresnelExponent = 2.0
             geo.materials = [mat]
             let node = SCNNode(geometry: geo)
             node.castsShadow = true
@@ -1442,54 +1454,117 @@ struct GameSceneFactory {
         func joint(radius: CGFloat) -> SCNNode {
             let geo = SCNSphere(radius: radius)
             let mat = SCNMaterial()
-            mat.diffuse.contents = brandCyan
-            mat.emission.contents = brandCyan.withAlphaComponent(0.5)
-            mat.metalness.contents = 0.7
-            mat.roughness.contents = 0.15
-            mat.fresnelExponent = 3.0
+            mat.diffuse.contents = jointColor
+            mat.emission.contents = jointColor.withAlphaComponent(0.4)
+            mat.metalness.contents = 0.6
+            mat.roughness.contents = 0.2
+            mat.fresnelExponent = 2.5
             geo.materials = [mat]
             return SCNNode(geometry: geo)
         }
 
-        let head = joint(radius: 0.12)
-        head.position = SCNVector3(0, 1.85, 0)
+        let head = SCNNode()
+        head.position = SCNVector3(0, 1.88, 0)
         head.name = "head"
+        let headSphere = SCNSphere(radius: 0.11)
+        let headMat = SCNMaterial()
+        headMat.diffuse.contents = color
+        headMat.emission.contents = color.withAlphaComponent(0.15)
+        headMat.metalness.contents = 0.5
+        headMat.roughness.contents = 0.35
+        headMat.fresnelExponent = 2.0
+        headSphere.materials = [headMat]
+        head.geometry = headSphere
 
-        let torso = limb(radius: 0.05, height: 0.6)
-        torso.position = SCNVector3(0, 1.4, 0)
-        torso.name = "torso"
+        let visor = SCNBox(width: 0.16, height: 0.04, length: 0.02, chamferRadius: 0.01)
+        let visorMat = SCNMaterial()
+        visorMat.diffuse.contents = jointColor
+        visorMat.emission.contents = jointColor.withAlphaComponent(0.6)
+        visorMat.metalness.contents = 0.8
+        visorMat.roughness.contents = 0.1
+        visor.materials = [visorMat]
+        let visorNode = SCNNode(geometry: visor)
+        visorNode.position = SCNVector3(0, 0, 0.1)
+        head.addChildNode(visorNode)
 
-        let lArm = limb(radius: 0.03, height: 0.35)
-        lArm.position = SCNVector3(-0.2, 1.55, 0)
-        lArm.eulerAngles.z = 0.4
+        let neck = joint(radius: 0.035)
+        neck.position = SCNVector3(0, 1.74, 0)
+        neck.name = "neck"
+
+        let upperTorso = limb(radius: 0.07, height: 0.35)
+        upperTorso.position = SCNVector3(0, 1.52, 0)
+        upperTorso.name = "torso"
+
+        let lowerTorso = limb(radius: 0.06, height: 0.25, isPrimary: false)
+        lowerTorso.position = SCNVector3(0, 1.25, 0)
+        lowerTorso.name = "lowerTorso"
+
+        let shoulderL = joint(radius: 0.04)
+        shoulderL.position = SCNVector3(-0.22, 1.62, 0)
+        let shoulderR = joint(radius: 0.04)
+        shoulderR.position = SCNVector3(0.22, 1.62, 0)
+
+        let lArm = limb(radius: 0.03, height: 0.32)
+        lArm.position = SCNVector3(-0.22, 1.45, 0)
+        lArm.eulerAngles.z = 0.35
         lArm.name = "lArm"
 
-        let rArm = limb(radius: 0.03, height: 0.35)
-        rArm.position = SCNVector3(0.2, 1.55, 0)
-        rArm.eulerAngles.z = -0.4
+        let rArm = limb(radius: 0.03, height: 0.32)
+        rArm.position = SCNVector3(0.22, 1.45, 0)
+        rArm.eulerAngles.z = -0.35
         rArm.name = "rArm"
 
-        let lLeg = limb(radius: 0.04, height: 0.5)
-        lLeg.position = SCNVector3(-0.1, 0.75, 0)
-        lLeg.name = "lLeg"
+        let lForearm = limb(radius: 0.025, height: 0.28, isPrimary: false)
+        lForearm.position = SCNVector3(-0.24, 1.18, 0.02)
+        lForearm.eulerAngles.z = 0.25
+        lForearm.name = "lForearm"
 
-        let rLeg = limb(radius: 0.04, height: 0.5)
-        rLeg.position = SCNVector3(0.1, 0.75, 0)
-        rLeg.name = "rLeg"
+        let rForearm = limb(radius: 0.025, height: 0.28, isPrimary: false)
+        rForearm.position = SCNVector3(0.24, 1.18, 0.02)
+        rForearm.eulerAngles.z = -0.25
+        rForearm.name = "rForearm"
 
-        let lShin = limb(radius: 0.035, height: 0.45)
-        lShin.position = SCNVector3(-0.1, 0.3, 0)
-        lShin.name = "lShin"
-
-        let rShin = limb(radius: 0.035, height: 0.45)
-        rShin.position = SCNVector3(0.1, 0.3, 0)
-        rShin.name = "rShin"
-
-        let hip = joint(radius: 0.06)
-        hip.position = SCNVector3(0, 1.05, 0)
+        let hip = joint(radius: 0.055)
+        hip.position = SCNVector3(0, 1.08, 0)
         hip.name = "hip"
 
-        for node in [head, torso, lArm, rArm, lLeg, rLeg, lShin, rShin, hip] {
+        let lLeg = limb(radius: 0.04, height: 0.42)
+        lLeg.position = SCNVector3(-0.09, 0.82, 0)
+        lLeg.name = "lLeg"
+
+        let rLeg = limb(radius: 0.04, height: 0.42)
+        rLeg.position = SCNVector3(0.09, 0.82, 0)
+        rLeg.name = "rLeg"
+
+        let kneeL = joint(radius: 0.03)
+        kneeL.position = SCNVector3(-0.09, 0.58, 0)
+        let kneeR = joint(radius: 0.03)
+        kneeR.position = SCNVector3(0.09, 0.58, 0)
+
+        let lShin = limb(radius: 0.035, height: 0.38, isPrimary: false)
+        lShin.position = SCNVector3(-0.09, 0.36, 0)
+        lShin.name = "lShin"
+
+        let rShin = limb(radius: 0.035, height: 0.38, isPrimary: false)
+        rShin.position = SCNVector3(0.09, 0.36, 0)
+        rShin.name = "rShin"
+
+        let lFoot = SCNBox(width: 0.06, height: 0.03, length: 0.1, chamferRadius: 0.01)
+        let footMat = SCNMaterial()
+        footMat.diffuse.contents = color.withAlphaComponent(0.9)
+        footMat.roughness.contents = 0.5
+        lFoot.materials = [footMat]
+        let lFootNode = SCNNode(geometry: lFoot)
+        lFootNode.position = SCNVector3(-0.09, 0.15, 0.02)
+        lFootNode.name = "lFoot"
+
+        let rFoot = SCNBox(width: 0.06, height: 0.03, length: 0.1, chamferRadius: 0.01)
+        rFoot.materials = [footMat]
+        let rFootNode = SCNNode(geometry: rFoot)
+        rFootNode.position = SCNVector3(0.09, 0.15, 0.02)
+        rFootNode.name = "rFoot"
+
+        for node in [head, neck, upperTorso, lowerTorso, shoulderL, shoulderR, lArm, rArm, lForearm, rForearm, hip, lLeg, rLeg, kneeL, kneeR, lShin, rShin, lFootNode, rFootNode] {
             root.addChildNode(node)
         }
 
@@ -1498,18 +1573,25 @@ struct GameSceneFactory {
         let avatarGlow = SCNNode()
         avatarGlow.light = SCNLight()
         avatarGlow.light?.type = .omni
-        avatarGlow.light?.color = color.withAlphaComponent(0.6)
-        avatarGlow.light?.intensity = 60
+        avatarGlow.light?.color = color.withAlphaComponent(0.5)
+        avatarGlow.light?.intensity = 50
         avatarGlow.light?.attenuationStartDistance = 0.3
-        avatarGlow.light?.attenuationEndDistance = 2.0
-        avatarGlow.position = SCNVector3(0, 1.2, 0)
+        avatarGlow.light?.attenuationEndDistance = 1.8
+        avatarGlow.position = SCNVector3(0, 1.3, 0)
         root.addChildNode(avatarGlow)
 
-        let breatheUp = SCNAction.moveBy(x: 0, y: 0.03, z: 0, duration: 1.4)
+        let breatheUp = SCNAction.moveBy(x: 0, y: 0.02, z: 0, duration: 1.6)
         breatheUp.timingMode = .easeInEaseOut
-        let breatheDown = SCNAction.moveBy(x: 0, y: -0.03, z: 0, duration: 1.4)
+        let breatheDown = SCNAction.moveBy(x: 0, y: -0.02, z: 0, duration: 1.6)
         breatheDown.timingMode = .easeInEaseOut
         root.runAction(SCNAction.repeatForever(SCNAction.sequence([breatheUp, breatheDown])), forKey: "breathe")
+
+        let weightShift = SCNAction.sequence([
+            SCNAction.rotateTo(x: 0, y: 0, z: 0.015, duration: 2.0),
+            SCNAction.rotateTo(x: 0, y: 0, z: -0.015, duration: 2.0)
+        ])
+        weightShift.timingMode = .easeInEaseOut
+        root.runAction(SCNAction.repeatForever(weightShift), forKey: "weightShift")
     }
 
     private static func addBall(to scene: SCNScene, at position: SCNVector3, color: UIColor) {

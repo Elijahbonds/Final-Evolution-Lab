@@ -81,7 +81,7 @@ struct DunkContestState {
     var isRotating: Bool = false
     var rotationTarget: Double = 1.0
     var airTime: Double = 0
-    var maxAirTime: Double = 2.5
+    var maxAirTime: Double = 2.8
     var airPhaseStart: Double = 0
 
     var landingTiming: Double = 0
@@ -270,7 +270,7 @@ struct DunkContestState {
         guard phase == .launch else { return }
         phase = .airborne
         airPhaseStart = CACurrentMediaTime()
-        maxAirTime = 2.2 + jumpHeight * 0.8
+        maxAirTime = 2.4 + jumpHeight * 1.0
         rotationTarget = 0.5 + selectedTrick.complexity * 0.5
 
         let difficulty = selectedTrick.complexity

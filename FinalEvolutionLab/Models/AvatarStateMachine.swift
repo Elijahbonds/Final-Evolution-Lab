@@ -117,43 +117,45 @@ nonisolated struct AvatarStateMachine: Sendable {
     }
 
     static func poseScale(for state: AvatarPoseState, heightScale: Float = 1.0, weightScale: Float = 1.0) -> (x: Float, y: Float, z: Float) {
+        let h = heightScale
+        let w = weightScale
         switch state {
         case .idle:
-            return (weightScale, heightScale, weightScale)
+            return (w, h, w)
         case .sprint:
-            return (weightScale * 0.98, heightScale * 1.02, weightScale * 0.98)
+            return (w * 0.97, h * 1.03, w * 0.97)
         case .gather:
-            return (weightScale * 1.03, heightScale * 0.95, weightScale * 1.03)
+            return (w * 1.04, h * 0.94, w * 1.04)
         case .dunk:
-            return (1.05, 1.05, 1.05)
+            return (w * 1.06, h * 1.06, w * 1.06)
         case .shoot:
-            return (weightScale, heightScale, weightScale)
+            return (w * 0.98, h * 1.02, w * 0.98)
         case .jump:
-            return (weightScale * 0.96, heightScale * 1.08, weightScale * 0.96)
+            return (w * 0.95, h * 1.10, w * 0.95)
         case .land:
-            return (weightScale * 1.04, heightScale * 0.93, weightScale * 1.04)
+            return (w * 1.06, h * 0.92, w * 1.06)
         case .block:
-            return (weightScale * 1.06, heightScale * 0.92, weightScale * 1.06)
+            return (w * 1.05, h * 0.93, w * 1.05)
         case .counter:
-            return (weightScale * 0.95, heightScale * 1.04, weightScale * 0.95)
+            return (w * 0.94, h * 1.05, w * 0.94)
         case .vanish:
-            return (weightScale * 0.8, heightScale * 0.8, weightScale * 0.8)
+            return (w * 0.75, h * 0.75, w * 0.75)
         case .hitStun:
-            return (weightScale * 1.1, heightScale * 0.88, weightScale * 1.1)
+            return (w * 1.08, h * 0.90, w * 1.08)
         case .special:
-            return (1.12, 1.12, 1.12)
+            return (w * 1.14, h * 1.14, w * 1.14)
         case .swing:
-            return (weightScale * 1.06, heightScale * 0.97, weightScale * 0.94)
+            return (w * 1.05, h * 0.98, w * 0.95)
         case .kick:
-            return (weightScale * 0.95, heightScale * 1.06, weightScale * 0.95)
+            return (w * 0.94, h * 1.07, w * 0.94)
         case .spike:
-            return (weightScale * 0.94, heightScale * 1.10, weightScale * 0.94)
+            return (w * 0.93, h * 1.12, w * 0.93)
         case .serve:
-            return (weightScale * 0.98, heightScale * 1.04, weightScale * 0.98)
+            return (w * 0.97, h * 1.05, w * 0.97)
         case .catch_ball:
-            return (weightScale * 1.04, heightScale * 0.96, weightScale * 1.04)
+            return (w * 1.03, h * 0.97, w * 1.03)
         case .celebrate:
-            return (1.08, 1.08, 1.08)
+            return (w * 1.10, h * 1.10, w * 1.10)
         }
     }
 }

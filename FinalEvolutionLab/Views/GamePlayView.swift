@@ -2424,6 +2424,7 @@ struct GamePlayView: View {
         guard isActive, dunkEngine.phase == .idle else { return }
         withAnimation(.spring(response: 0.2)) {
             dunkEngine.startApproach()
+            lastAction = "HOLD TO SPRINT!"
         }
         dunkTimerTask?.cancel()
         dunkTimerTask = Task {
@@ -2483,6 +2484,16 @@ struct GamePlayView: View {
                 }
                 if dunkEngine.showApexFreeze && !isSlowMo {
                     triggerSlowMo(duration: 0.8)
+                }
+                if dunkEngine.phase == .landing && !dunkEngine.styleLandingWindow {
+                    break
+                }
+            }
+            if !Task.isCancelled && dunkEngine.phase == .landing {
+                try? await Task.sleep(for: .seconds(1.5))
+                guard !Task.isCancelled else { return }
+                if dunkEngine.phase == .landing {
+                    confirmDunkLanding()
                 }
             }
         }
@@ -2712,9 +2723,17 @@ struct GamePlayView: View {
         showPerfectGuard = false
         showVanishFlash = false
         showQTEGrade = false
+        lastAction = ""
+        lastJudgeScores = nil
+        crowdMessage = ""
         withAnimation(.spring(response: 0.4)) {
             isActive = false
-            showResults = true
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            withAnimation(.spring(response: 0.4)) {
+                showResults = true
+            }
         }
     }
 
