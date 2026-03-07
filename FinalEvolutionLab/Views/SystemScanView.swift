@@ -281,6 +281,7 @@ struct SystemScanView: View {
                 }
 
                 Button {
+                    syncResultToUnity(result)
                     onComplete(result)
                     dismiss()
                 } label: {
@@ -475,6 +476,26 @@ struct SystemScanView: View {
             recommendedTrack: recommendedTrack,
             avatarConfig: avatarConfig
         )
+    }
+
+    private func syncResultToUnity(_ result: SystemScanResult) {
+        let encoder = JSONEncoder()
+        guard let data = try? encoder.encode(result),
+              let payload = String(data: data, encoding: .utf8) else { return }
+
+        UnityManager.shared.sendMessageToGO(
+            "MotionReceiver",
+            method: "OnSystemScanResult",
+            message: payload
+        )
+
+        if result.prqScore >= 95 {
+            UnityManager.shared.sendMessageToGO(
+                "MotionReceiver",
+                method: "TriggerGamebreakerVFX",
+                message: "scan_complete"
+            )
+        }
     }
 }
 
