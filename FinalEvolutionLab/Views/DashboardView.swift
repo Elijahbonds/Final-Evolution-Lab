@@ -2,14 +2,13 @@ import SwiftUI
 
 struct DashboardView: View {
     let viewModel: LabViewModel
-    @State private var bridgeManager = NativeBridgeManager.shared
     @State private var motionHelper = CoreMotionHelper.shared
     @State private var appeared: Bool = false
     @State private var gaugeAnimationProgress: Double = 0
     @State private var showShareToFeed: Bool = false
 
-    private var prqScore: Int { bridgeManager.prqScore }
-    private var prqNormalized: Double { Double(prqScore) / 100.0 }
+    private var prqScore: Int { Int(viewModel.effectiveMetrics.prqScore) }
+    private var prqNormalized: Double { viewModel.effectiveMetrics.prqScore / 100.0 }
 
     var body: some View {
         ScrollView {
@@ -107,7 +106,7 @@ struct DashboardView: View {
             }
 
             HStack(spacing: 12) {
-                Text(bridgeManager.prqTier)
+                Text(viewModel.userPRQTier.rawValue)
                     .font(.system(size: 11, weight: .black, design: .monospaced))
                     .foregroundStyle(tierColor)
                     .padding(.horizontal, 12)
@@ -115,11 +114,9 @@ struct DashboardView: View {
                     .background(tierColor.opacity(0.12))
                     .clipShape(Capsule())
 
-                if let date = bridgeManager.lastUpdateDate {
-                    Text("Updated \(date.formatted(.relative(presentation: .named)))")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.tertiary)
-                }
+                Text("\(viewModel.profile.totalWorkouts) sessions")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(24)
@@ -348,12 +345,13 @@ struct DashboardView: View {
     }
 
     private var tierColor: Color {
-        switch bridgeManager.tierColor {
-        case "gold": .yellow
-        case "purple": Theme.elitePurple
-        case "blue": Theme.brandBlue
-        case "green": Theme.neonGreen
-        default: .gray
+        switch viewModel.userPRQTier {
+        case .diamond: .yellow
+        case .platinum: Theme.elitePurple
+        case .gold: .orange
+        case .silver: Theme.brandBlue
+        case .bronze: Theme.neonGreen
+        case .unranked: .gray
         }
     }
 }

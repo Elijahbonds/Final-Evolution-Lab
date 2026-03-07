@@ -11,6 +11,8 @@ struct LabView: View {
     @State private var showSystemScan: Bool = false
     @State private var showBiomechanicsDetail: Bool = false
     @State private var showGlobalMatchmaking: Bool = false
+    @State private var showCoach: Bool = false
+    @State private var showBlueprints: Bool = false
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
@@ -40,6 +42,7 @@ struct LabView: View {
                 hrvReadinessCard
                 metricsGrid
                 CreatorCardBoostView(viewModel: viewModel)
+                coachAndBlueprintsRow
                 parentalOverviewSection
                 quickStartSection
                 recentActivitySection
@@ -83,6 +86,12 @@ struct LabView: View {
             if let mode = pendingArenaMode {
                 GamePlayView(viewModel: viewModel, gameMode: mode, sessionReadiness: sessionReadiness)
             }
+        }
+        .navigationDestination(isPresented: $showCoach) {
+            CoachView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showBlueprints) {
+            BlueprintsView(viewModel: viewModel)
         }
     }
 
@@ -357,7 +366,8 @@ struct LabView: View {
                         movementSignature: viewModel.activeMovementSignature,
                         onDunkTriggered: {
                             withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) { dunkFlash = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(250))
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { dunkFlash = false }
                             }
                         },
@@ -933,7 +943,8 @@ struct LabView: View {
 
         if result.total >= 138 {
             withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) { dunkFlash = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            Task {
+                try? await Task.sleep(for: .milliseconds(300))
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { dunkFlash = false }
             }
         }
@@ -1392,6 +1403,84 @@ struct LabView: View {
         }
     }
 
+    private var coachAndBlueprintsRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                showCoach = true
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Theme.brandBlue.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Theme.brandBlue)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("COACH")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                        Text("Exercises & Critiques")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Theme.brandBlue.opacity(0.12), lineWidth: 0.5)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showBlueprints = true
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Theme.elitePurple.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Theme.elitePurple)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("BLUEPRINTS")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                        Text("Plans & Guides")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Theme.elitePurple.opacity(0.12), lineWidth: 0.5)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
             MetricCard(title: SimpleModeLabels.prqScore(simpleMode), value: String(format: "%.1f", effectiveMetrics.prqScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
@@ -1409,7 +1498,12 @@ struct LabView: View {
                 .tracking(2)
 
             ForEach(viewModel.tracks) { track in
-                TrackQuickStartRow(track: track)
+                Button {
+                    viewModel.selectedTrack = track
+                } label: {
+                    TrackQuickStartRow(track: track)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

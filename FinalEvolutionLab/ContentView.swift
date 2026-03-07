@@ -46,34 +46,6 @@ struct ContentView: View {
                 }
             }
 
-            Tab("Coach", systemImage: "figure.strengthtraining.traditional", value: .coach) {
-                NavigationStack {
-                    CoachView(viewModel: viewModel)
-                        .navigationTitle("")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarLeading) {
-                                brandHeader
-                            }
-                        }
-                        .toolbarColorScheme(.dark, for: .navigationBar)
-                }
-            }
-
-            Tab("Blueprints", systemImage: "map.fill", value: .blueprints) {
-                NavigationStack {
-                    BlueprintsView(viewModel: viewModel)
-                        .navigationTitle("")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarLeading) {
-                                brandHeader
-                            }
-                        }
-                        .toolbarColorScheme(.dark, for: .navigationBar)
-                }
-            }
-
             Tab("Arena", systemImage: "trophy.fill", value: .social) {
                 NavigationStack {
                     GameModeSelectionView(viewModel: viewModel)
@@ -91,7 +63,7 @@ struct ContentView: View {
                 }
             }
 
-            Tab("Dashboard", systemImage: "gauge.with.dots.needle.67percent", value: .dashboard) {
+            Tab("Status", systemImage: "gauge.with.dots.needle.67percent", value: .dashboard) {
                 NavigationStack {
                     DashboardView(viewModel: viewModel)
                         .navigationTitle("")
@@ -105,7 +77,7 @@ struct ContentView: View {
                 }
             }
 
-            Tab("Vault", systemImage: "person.crop.circle.fill", value: .vault) {
+            Tab("Profile", systemImage: "person.crop.circle.fill", value: .vault) {
                 NavigationStack {
                     VaultView(viewModel: viewModel)
                         .navigationTitle("")
@@ -198,8 +170,6 @@ nonisolated enum AppTab: String, Sendable {
     case lab
     case training
     case dashboard
-    case coach
-    case blueprints
     case social
     case vault
 }

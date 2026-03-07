@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ShareToFeedView: View {
     let viewModel: LabViewModel
-    @State private var bridgeManager = NativeBridgeManager.shared
     @State private var screenshot: UIImage?
     @State private var isCapturing: Bool = false
     @State private var showShareSheet: Bool = false
@@ -91,7 +90,7 @@ struct ShareToFeedView: View {
 
             HStack(spacing: 20) {
                 VStack(spacing: 4) {
-                    Text("\(bridgeManager.prqScore)")
+                    Text("\(Int(viewModel.effectiveMetrics.prqScore))")
                         .font(.system(size: 40, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
                     Text("PRQ SCORE")
@@ -105,7 +104,7 @@ struct ShareToFeedView: View {
                     .frame(width: 1, height: 50)
 
                 VStack(spacing: 4) {
-                    Text(bridgeManager.prqTier)
+                    Text(viewModel.userPRQTier.rawValue)
                         .font(.system(size: 16, weight: .black, design: .monospaced))
                         .foregroundStyle(tierColor)
                     Text("TIER")
@@ -229,8 +228,8 @@ struct ShareToFeedView: View {
     private var shareItems: [Any]? {
         var items: [Any] = []
         let text = captionText.isEmpty
-            ? "PRQ: \(bridgeManager.prqScore) | \(bridgeManager.prqTier) | Final Evolution Lab"
-            : "\(captionText)\n\nPRQ: \(bridgeManager.prqScore) | \(bridgeManager.prqTier)"
+            ? "PRQ: \(Int(viewModel.effectiveMetrics.prqScore)) | \(viewModel.userPRQTier.rawValue) | Final Evolution Lab"
+            : "\(captionText)\n\nPRQ: \(Int(viewModel.effectiveMetrics.prqScore)) | \(viewModel.userPRQTier.rawValue)"
         items.append(text)
         if let screenshot {
             items.append(screenshot)
@@ -239,12 +238,13 @@ struct ShareToFeedView: View {
     }
 
     private var tierColor: Color {
-        switch bridgeManager.tierColor {
-        case "gold": .yellow
-        case "purple": Theme.elitePurple
-        case "blue": Theme.brandBlue
-        case "green": Theme.neonGreen
-        default: .gray
+        switch viewModel.userPRQTier {
+        case .diamond: .yellow
+        case .platinum: Theme.elitePurple
+        case .gold: .orange
+        case .silver: Theme.brandBlue
+        case .bronze: Theme.neonGreen
+        case .unranked: .gray
         }
     }
 }

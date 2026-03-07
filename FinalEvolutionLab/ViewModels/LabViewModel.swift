@@ -59,9 +59,6 @@ class LabViewModel {
     func completeExercise(_ exercise: Exercise) {
         completedExerciseIds.insert(exercise.id)
         profile.metrics.neuralDrive = min(100, profile.metrics.neuralDrive + 2.5)
-        let rewards = ShardReward.forWorkout(exercisesCompleted: 1, trackDifficulty: exercise.difficulty)
-        let earned = rewards.reduce(0) { $0 + $1.amount }
-        profile.evolutionShards += earned
         profile.metrics.verticalPotential = min(100, profile.metrics.verticalPotential + 1.5)
         SaveSystem.saveProfile(profile)
     }
@@ -86,6 +83,7 @@ class LabViewModel {
         profile.metrics.efficiencyScore = min(100, session.completionRate * 100)
         profile.metrics.verticalPotential = min(100, profile.metrics.verticalPotential + Double(completed) * 0.8)
 
+        updateStreak()
         if profile.streakDays > 0 && profile.streakDays % 7 == 0 {
             profile.evolutionShards += 50
         }
@@ -183,6 +181,23 @@ class LabViewModel {
 
     var healthKitBuff: ArcadePhysicsBuff {
         healthKit.arcadePhysicsBuff
+    }
+
+    private func updateStreak() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let lastSession = sessions.dropLast().last
+        if let lastDate = lastSession?.date {
+            let lastDay = calendar.startOfDay(for: lastDate)
+            let daysBetween = calendar.dateComponents([.day], from: lastDay, to: today).day ?? 0
+            if daysBetween <= 1 {
+                profile.streakDays += 1
+            } else {
+                profile.streakDays = 1
+            }
+        } else {
+            profile.streakDays = 1
+        }
     }
 
     func completeOnboarding(sport: String, age: Int, goal: String) {

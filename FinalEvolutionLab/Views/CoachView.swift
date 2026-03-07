@@ -211,7 +211,7 @@ struct CoachView: View {
                 .clipShape(.rect(cornerRadius: 10))
             }
 
-            if viewModel.coachEconomy.pendingEarnings > 0 {
+            if viewModel.coachEconomy.clearedEarnings > 0 {
                 Button {
                     let claimed = viewModel.coachEconomy.claimEarnings()
                     viewModel.profile.evolutionShards += claimed
@@ -221,7 +221,7 @@ struct CoachView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.down.circle.fill")
                             .font(.system(size: 12))
-                        Text("CLAIM \(viewModel.coachEconomy.pendingEarnings) SHARDS")
+                        Text("CLAIM \(viewModel.coachEconomy.clearedEarnings) SHARDS")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                     }
                     .foregroundStyle(.black)
