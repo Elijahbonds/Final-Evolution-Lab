@@ -29,6 +29,23 @@ struct ContentView: View {
                 }
             }
 
+            Tab("Train", systemImage: "figure.highintensity.intervaltraining", value: .training) {
+                NavigationStack {
+                    TrainingHubView(labViewModel: viewModel)
+                        .navigationTitle("")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                brandHeader
+                            }
+                            ToolbarItem(placement: .topBarTrailing) {
+                                shardsBadge
+                            }
+                        }
+                        .toolbarColorScheme(.dark, for: .navigationBar)
+                }
+            }
+
             Tab("Coach", systemImage: "figure.strengthtraining.traditional", value: .coach) {
                 NavigationStack {
                     CoachView(viewModel: viewModel)
@@ -173,6 +190,7 @@ struct ContentView: View {
 
 nonisolated enum AppTab: String, Sendable {
     case lab
+    case training
     case dashboard
     case coach
     case blueprints

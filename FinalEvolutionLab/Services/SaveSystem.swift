@@ -81,4 +81,20 @@ struct SaveSystem {
         }
         return requests
     }
+
+    private static let trainingProgressKey = "finalEvolution_trainingProgress"
+
+    static func saveTrainingProgress(_ progress: TrainingProgress) {
+        if let data = try? JSONEncoder().encode(progress) {
+            UserDefaults.standard.set(data, forKey: trainingProgressKey)
+        }
+    }
+
+    static func loadTrainingProgress() -> TrainingProgress {
+        guard let data = UserDefaults.standard.data(forKey: trainingProgressKey),
+              let progress = try? JSONDecoder().decode(TrainingProgress.self, from: data) else {
+            return .initial
+        }
+        return progress
+    }
 }
