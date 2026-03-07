@@ -2,6 +2,7 @@ import Foundation
 
 nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identifiable {
     case bodyweight = "Bodyweight"
+    case movementEducation = "Movement Education"
     case pjfBand = "PJF Band"
     case totalBodyBoard = "Total Body Board"
 
@@ -12,6 +13,7 @@ nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identif
     var icon: String {
         switch self {
         case .bodyweight: "figure.strengthtraining.traditional"
+        case .movementEducation: "figure.walk"
         case .pjfBand: "circle.circle"
         case .totalBodyBoard: "rectangle.split.2x2"
         }
@@ -20,6 +22,7 @@ nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identif
     var subtitle: String {
         switch self {
         case .bodyweight: "Full program with gym equipment"
+        case .movementEducation: "Sensory education, pressure & rotation"
         case .pjfBand: "Band-focused mobility, power & agility"
         case .totalBodyBoard: "Board-based stability & strength"
         }
@@ -98,6 +101,8 @@ nonisolated enum TrainingDayCategory: String, Codable, Sendable {
     case recoveryPilates = "Recovery + Pilates"
     case jumpVariations = "Jump Variations"
     case recovery = "Recovery"
+    case movementEducation = "Movement Education"
+    case plyometrics = "Plyometrics"
 
     var icon: String {
         switch self {
@@ -107,6 +112,8 @@ nonisolated enum TrainingDayCategory: String, Codable, Sendable {
         case .recoveryPilates: "figure.yoga"
         case .jumpVariations: "figure.jumprope"
         case .recovery: "leaf.fill"
+        case .movementEducation: "figure.walk"
+        case .plyometrics: "figure.jumprope"
         }
     }
 
@@ -115,6 +122,10 @@ nonisolated enum TrainingDayCategory: String, Codable, Sendable {
         case .recoveryIso, .recoveryPilates, .recovery: true
         default: false
         }
+    }
+
+    var isMovementEducation: Bool {
+        self == .movementEducation
     }
 }
 

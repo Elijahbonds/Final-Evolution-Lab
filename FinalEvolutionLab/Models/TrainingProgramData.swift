@@ -9,6 +9,12 @@ struct TrainingProgramData {
             case .flight: flightProgram
             case .elite: eliteProgram
             }
+        case .movementEducation:
+            switch track {
+            case .foundations: meFoundationsProgram
+            case .flight: meFlightProgram
+            case .elite: meEliteProgram
+            }
         case .pjfBand:
             switch track {
             case .foundations: pjfBandFoundationsProgram

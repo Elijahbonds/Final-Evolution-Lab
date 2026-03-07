@@ -221,6 +221,8 @@ struct WorkoutDayView: View {
         case .recoveryIso, .recoveryPilates, .recovery: .cyan
         case .maxIntent: .orange
         case .jumpVariations: Theme.brandBlue
+        case .movementEducation: Theme.neonGreen
+        case .plyometrics: .orange
         }
     }
 
