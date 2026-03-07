@@ -1,8 +1,35 @@
 import Foundation
 
+nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identifiable {
+    case bodyweight = "Bodyweight"
+    case pjfBand = "PJF Band"
+    case totalBodyBoard = "Total Body Board"
+
+    var id: String { rawValue }
+
+    var displayName: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .bodyweight: "figure.strengthtraining.traditional"
+        case .pjfBand: "circle.circle"
+        case .totalBodyBoard: "rectangle.split.2x2"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .bodyweight: "Full program with gym equipment"
+        case .pjfBand: "Band-focused mobility, power & agility"
+        case .totalBodyBoard: "Board-based stability & strength"
+        }
+    }
+}
+
 nonisolated struct TrainingProgram: Codable, Sendable, Identifiable {
     let id: String
     let track: TrainingTrack
+    let equipment: EquipmentType
     let weeks: Int
     let days: [TrainingDay]
 
@@ -116,6 +143,7 @@ nonisolated struct TrainingExercise: Codable, Sendable, Identifiable, Hashable {
 
 nonisolated struct TrainingProgress: Codable, Sendable {
     var activeTrack: TrainingTrack
+    var activeEquipment: EquipmentType
     var completedDayIds: Set<String>
     var currentWeek: Int
     var exerciseLevels: [String: Int]
@@ -125,6 +153,7 @@ nonisolated struct TrainingProgress: Codable, Sendable {
 
     static let initial = TrainingProgress(
         activeTrack: .foundations,
+        activeEquipment: .bodyweight,
         completedDayIds: [],
         currentWeek: 1,
         exerciseLevels: [:],

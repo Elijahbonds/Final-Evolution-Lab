@@ -34,6 +34,7 @@ private struct TrainingHubContent: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
+                equipmentSelector
                 trackSelector
                 progressCard
                 recoveryGateCard
@@ -68,6 +69,54 @@ private struct TrainingHubContent: View {
                 .padding(.top, 2)
         }
         .padding(.top, 8)
+    }
+
+    private var equipmentSelector: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("EQUIPMENT")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            ScrollView(.horizontal) {
+                HStack(spacing: 10) {
+                    ForEach(EquipmentType.allCases) { equipment in
+                        Button {
+                            withAnimation(.spring(response: 0.3)) {
+                                vm.switchEquipment(to: equipment)
+                            }
+                        } label: {
+                            let isSelected = vm.currentEquipment == equipment
+                            HStack(spacing: 8) {
+                                Image(systemName: equipment.icon)
+                                    .font(.system(size: 14, weight: .bold))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(equipment.displayName)
+                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                    Text(equipment.subtitle)
+                                        .font(.system(size: 8, weight: .medium))
+                                        .lineLimit(1)
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(isSelected ? Theme.brandCyan.opacity(0.12) : Color.white.opacity(0.03))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(isSelected ? Theme.brandCyan.opacity(0.3) : Theme.cardBorder, lineWidth: isSelected ? 1.5 : 0.5)
+                                    )
+                            )
+                            .foregroundStyle(isSelected ? Theme.brandCyan : .secondary)
+                        }
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+            .contentMargins(.horizontal, 0)
+        }
     }
 
     private var trackSelector: some View {

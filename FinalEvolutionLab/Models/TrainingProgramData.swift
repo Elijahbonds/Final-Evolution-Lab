@@ -1,17 +1,35 @@
 import Foundation
 
 struct TrainingProgramData {
-    static func program(for track: TrainingTrack) -> TrainingProgram {
-        switch track {
-        case .foundations: foundationsProgram
-        case .flight: flightProgram
-        case .elite: eliteProgram
+    static func program(for track: TrainingTrack, equipment: EquipmentType = .bodyweight) -> TrainingProgram {
+        switch equipment {
+        case .bodyweight:
+            switch track {
+            case .foundations: foundationsProgram
+            case .flight: flightProgram
+            case .elite: eliteProgram
+            }
+        case .pjfBand:
+            switch track {
+            case .foundations: pjfBandFoundationsProgram
+            case .flight: pjfBandFlightProgram
+            case .elite: pjfBandEliteProgram
+            }
+        case .totalBodyBoard:
+            switch track {
+            case .foundations: tbbFoundationsProgram
+            case .flight: tbbFlightProgram
+            case .elite: tbbEliteProgram
+            }
         }
     }
+
+    // MARK: - Bodyweight Programs
 
     static let foundationsProgram = TrainingProgram(
         id: "foundations_program",
         track: .foundations,
+        equipment: .bodyweight,
         weeks: 6,
         days: foundationsDays
     )
@@ -19,6 +37,7 @@ struct TrainingProgramData {
     static let flightProgram = TrainingProgram(
         id: "flight_program",
         track: .flight,
+        equipment: .bodyweight,
         weeks: 8,
         days: flightDays
     )
@@ -26,6 +45,7 @@ struct TrainingProgramData {
     static let eliteProgram = TrainingProgram(
         id: "elite_program",
         track: .elite,
+        equipment: .bodyweight,
         weeks: 12,
         days: eliteDays
     )
@@ -437,4 +457,436 @@ struct TrainingProgramData {
     private static func texLeveled(_ id: String, _ name: String, _ sets: Int, _ reps: String, _ rest: Int, _ cat: Exercise.ExerciseCategory, _ muscles: [String], _ cues: String) -> TrainingExercise {
         TrainingExercise(id: id, name: name, sets: sets, reps: reps, restSeconds: rest, category: cat, muscleGroups: muscles, cues: cues, progressionLevel: 1, hasLevels: true)
     }
+
+    // MARK: - PJF Band Programs
+
+    static let pjfBandFoundationsProgram = TrainingProgram(
+        id: "pjf_foundations", track: .foundations, equipment: .pjfBand, weeks: 6, days: pjfBandFoundationsDays
+    )
+    static let pjfBandFlightProgram = TrainingProgram(
+        id: "pjf_flight", track: .flight, equipment: .pjfBand, weeks: 8, days: pjfBandFlightDays
+    )
+    static let pjfBandEliteProgram = TrainingProgram(
+        id: "pjf_elite", track: .elite, equipment: .pjfBand, weeks: 12, days: pjfBandEliteDays
+    )
+
+    static let pjfBandFoundationsDays: [TrainingDay] = [
+        TrainingDay(
+            id: "pjf_f_d1", dayNumber: 1, variant: "A", title: "Mobility & Patterning",
+            category: .recovery,
+            warmUp: [
+                tex("pjf_f_w1", "3-Way Hip Hinge with Band Distraction", 2, "5 each way", 30, .mobility, ["Hips", "Hamstrings"], "Hinge forward/lateral/rotational with band pulling hip back"),
+                tex("pjf_f_w2", "Split Stance Hip Flexor 2-Way Reach with Band", 2, "5 each way", 30, .mobility, ["Hip Flexors", "Thoracic Spine"], "Reach overhead then lateral while band distracts hip"),
+                tex("pjf_f_w3", "Lateral Lunge Adductor Stretch", 2, "8", 30, .mobility, ["Adductors", "Groin"], "Shift deep into lateral lunge, feel inner thigh stretch"),
+            ],
+            mainWork: [
+                tex("pjf_f_d1_1", "Curtsy Hinge to Step Through", 2, "10", 45, .mobility, ["Hips", "Glutes", "Core"], "Cross behind into curtsy hinge, step through to single leg"),
+                tex("pjf_f_d1_2", "Back Line / Front Line Stretch", 2, "12", 30, .mobility, ["Posterior Chain", "Anterior Chain"], "Alternate between full posterior and anterior chain stretches"),
+                tex("pjf_f_d1_3", "Supine Long Length Hamstring Raise", 2, "15", 30, .mobility, ["Hamstrings"], "Lie supine, raise straight leg maintaining band tension"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_f_d2", dayNumber: 2, variant: "A", title: "Strength & Agility",
+            category: .strength,
+            warmUp: [
+                tex("pjf_f_w4", "Band Resisted Skips", 4, "50 ft", 30, .plyometric, ["Full Body"], "Drive knee up against band resistance, max height"),
+                tex("pjf_f_w5", "Lateral Bounds with Band", 3, "6 each", 30, .plyometric, ["Hip Abductors", "Quads"], "Lateral bound against band, stick landing"),
+            ],
+            mainWork: [
+                texLeveled("pjf_f_d2_1", "Maximal Overcoming Hamstring Isometric", 3, "5-8s", 60, .strength, ["Hamstrings"], "Press into immovable resistance at max effort"),
+                tex("pjf_f_d2_2", "1-Leg RDL with Hand Support", 3, "8-10 each", 60, .strength, ["Hamstrings", "Glutes"], "Hinge on one leg, light hand touch for balance"),
+                tex("pjf_f_d2_3", "Forward Lunge Isometric", 3, "45s", 60, .strength, ["Quads", "Hip Flexors"], "Hold deep lunge position, brace core"),
+                tex("pjf_f_d2_4", "Lunge Rapid Switches", 2, "10", 45, .agility, ["Quads", "Glutes"], "Explosive alternating lunge jumps"),
+                tex("pjf_f_d2_5", "Diagonal Split Lateral Jumps", 3, "8", 45, .plyometric, ["Hip Abductors", "Quads"], "Jump diagonally into split stance, alternate sides"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_f_d3", dayNumber: 3, variant: "A", title: "Speed & Power",
+            category: .strength,
+            warmUp: [
+                tex("pjf_f_w6", "Hand Assisted Marching", 2, "10", 20, .mobility, ["Hip Flexors", "Core"], "Light hand support, drive knees high with control"),
+                tex("pjf_f_w7", "Stationary Sprinting", 2, "20s", 30, .agility, ["Full Body"], "Max effort sprint in place against band resistance"),
+            ],
+            mainWork: [
+                tex("pjf_f_d3_1", "Resisted Broad Jumps", 3, "6", 75, .plyometric, ["Full Body"], "Explode forward against band, max distance"),
+                tex("pjf_f_d3_2", "Resisted Pogos", 3, "15", 45, .plyometric, ["Calves", "Ankles"], "Quick hops against band, minimal ground contact"),
+                tex("pjf_f_d3_3", "Resisted 1-Leg Cycle Overs", 3, "10 each", 45, .agility, ["Hip Flexors", "Quads"], "Drive knee up and over against band resistance"),
+                tex("pjf_f_d3_4", "Diagonal Split Rotational Reach to Crash Through", 2, "8", 60, .plyometric, ["Core", "Hips"], "Rotate and reach then explosively drive through"),
+                tex("pjf_f_d3_5", "Hip Flexor + Rotational Shoulder Press", 3, "12", 45, .strength, ["Shoulders", "Hip Flexors", "Core"], "Drive knee up while pressing band overhead with rotation"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_f_d4", dayNumber: 4, variant: "A", title: "Recovery & Isometrics",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("pjf_f_d4_1", "Floating Toes Dorsiflexion with Band Distraction", 2, "15", 30, .mobility, ["Ankles", "Calves"], "Lift toes while band pulls ankle into dorsiflexion"),
+                tex("pjf_f_d4_2", "Half Kneel Underhand Press with Band Distraction", 2, "8", 45, .strength, ["Shoulders", "Core"], "Press from half-kneel, band distracts hip for stretch"),
+                texLeveled("pjf_f_d4_3", "Maximal Yielding Hamstring Iso", 3, "15-30s", 45, .strength, ["Hamstrings"], "Hold at longest tolerable length — progress through levels"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_f_d5", dayNumber: 5, variant: "A", title: "Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("pjf_f_d5_1", "Banded Ankle CARs", 2, "10 each", 20, .mobility, ["Ankles"], "Full circles against band resistance"),
+                tex("pjf_f_d5_2", "Supine Banded Leg Raises", 3, "10 each", 30, .mobility, ["Hip Flexors", "Core"], "Control both lift and lower against band"),
+                tex("pjf_f_d5_3", "Banded Toe CARs", 2, "10 each", 20, .mobility, ["Toes", "Feet"], "Isolate each toe through range with light band"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    static let pjfBandFlightDays: [TrainingDay] = [
+        TrainingDay(
+            id: "pjf_fl_d1", dayNumber: 1, variant: "A", title: "Explosive Band Strength",
+            category: .strength,
+            warmUp: [
+                tex("pjf_fl_w1", "Band Resisted Skips (Progressive)", 4, "50 ft", 30, .plyometric, ["Full Body"], "Increase intensity each set"),
+                tex("pjf_fl_w2", "Lateral Bounds with Band (Max)", 3, "8 each", 30, .plyometric, ["Hip Abductors"], "Max distance, stick each landing 2s"),
+            ],
+            mainWork: [
+                tex("pjf_fl_d1_1", "Resisted RFESS Jumps", 3, "12", 75, .plyometric, ["Quads", "Glutes"], "Rear foot elevated, explode up against band"),
+                tex("pjf_fl_d1_2", "Resisted Repeat Jumps", 3, "8", 75, .plyometric, ["Full Body"], "Consecutive max jumps against band resistance"),
+                tex("pjf_fl_d1_3", "Resisted Split Stance Rapid Switches", 3, "6 each", 60, .agility, ["Quads", "Glutes"], "Explosive alternating lunges against band"),
+                tex("pjf_fl_d1_4", "Hip Flexor + Rotational Press (Heavy Band)", 3, "10 each", 60, .strength, ["Shoulders", "Hip Flexors"], "Heavier band, drive knee + press with rotation"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_fl_d2", dayNumber: 2, variant: "A", title: "Speed & Power",
+            category: .strength,
+            warmUp: [
+                tex("pjf_fl_w3", "Stationary Sprinting (Resisted)", 3, "20s", 30, .agility, ["Full Body"], "Max effort sprint in place, heavy band"),
+                tex("pjf_fl_w4", "Hand Assisted High Knees", 2, "15 each", 20, .agility, ["Hip Flexors"], "Drive knees max height against band"),
+            ],
+            mainWork: [
+                tex("pjf_fl_d2_1", "Resisted Broad Jumps (Max)", 4, "6", 90, .plyometric, ["Full Body"], "Max distance broad jumps against heavy band"),
+                tex("pjf_fl_d2_2", "Resisted Pogos (Rapid)", 3, "20", 45, .plyometric, ["Calves", "Ankles"], "Fastest possible ground contact, band loaded"),
+                tex("pjf_fl_d2_3", "Resisted 1-Leg Cycle Overs (Speed)", 3, "12 each", 45, .agility, ["Hip Flexors"], "Fast cycle overs, maintain form under load"),
+                tex("pjf_fl_d2_4", "Diagonal Split Rotational Crash Through", 3, "8", 60, .plyometric, ["Core", "Hips", "Full Body"], "Explosive rotational drive through with band"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_fl_d3", dayNumber: 3, variant: "A", title: "Recovery + Isos",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("pjf_fl_d3_1", "3-Way Hip Hinge with Band (Deep)", 2, "8 each way", 30, .mobility, ["Hips", "Hamstrings"], "Deeper range, maintain band tension throughout"),
+                texLeveled("pjf_fl_d3_2", "Maximal Yielding Hamstring Iso", 3, "30s each", 45, .strength, ["Hamstrings"], "Extended hold at end range"),
+                tex("pjf_fl_d3_3", "Floating Toes Dorsiflexion (Progressive)", 3, "15", 30, .mobility, ["Ankles"], "Increase band tension each set"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_fl_d4", dayNumber: 4, variant: "A", title: "Agility & Deceleration",
+            category: .strength,
+            warmUp: [
+                tex("pjf_fl_w5", "Band Resisted Lateral Walks", 3, "15 each", 20, .agility, ["Hip Abductors", "Glutes"], "Stay low, resist band pulling knees in"),
+            ],
+            mainWork: [
+                tex("pjf_fl_d4_1", "Lateral Split Stance Decels", 3, "10", 60, .agility, ["Quads", "Core"], "Lateral bound then decelerate in 2 steps"),
+                tex("pjf_fl_d4_2", "Cross Step Change of Direction", 3, "8", 60, .agility, ["Hips", "Quads"], "Cross step then explode in new direction"),
+                tex("pjf_fl_d4_3", "Resisted Sprints (Band)", 4, "20m", 90, .agility, ["Full Body"], "Max effort sprint through band resistance"),
+                tex("pjf_fl_d4_4", "Lunge Rapid Switches (Loaded)", 3, "12", 45, .plyometric, ["Quads", "Glutes"], "Heavier band, maintain explosion"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_fl_d5", dayNumber: 5, variant: "A", title: "Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("pjf_fl_d5_1", "Split Stance Hip Flexor Reach with Band", 2, "8 each", 30, .mobility, ["Hip Flexors"], "Deeper stretch with band distraction"),
+                tex("pjf_fl_d5_2", "Banded Ankle CARs", 3, "10 each", 20, .mobility, ["Ankles"], "Full circles against resistance"),
+                tex("pjf_fl_d5_3", "Supine Banded Leg Raises", 3, "12 each", 30, .mobility, ["Hip Flexors"], "Both directions, slow and controlled"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    static let pjfBandEliteDays: [TrainingDay] = [
+        TrainingDay(
+            id: "pjf_e_d1", dayNumber: 1, variant: "A", title: "Max Power (Band)",
+            category: .strength,
+            warmUp: [
+                tex("pjf_e_w1", "Band Resisted Skips (Max Intent)", 4, "50 ft", 45, .plyometric, ["Full Body"], "Maximum height and drive each rep"),
+                tex("pjf_e_w2", "Lateral Bounds with Band (Reactive)", 3, "8 each", 30, .plyometric, ["Full Body"], "Bound and immediately rebound"),
+            ],
+            mainWork: [
+                tex("pjf_e_d1_1", "Resisted RFESS Jumps (Heavy)", 4, "8 each", 90, .plyometric, ["Quads", "Glutes"], "Heavy band, max height each rep"),
+                tex("pjf_e_d1_2", "Resisted Repeat Jumps (Continuous)", 4, "10", 90, .plyometric, ["Full Body"], "No pause between jumps, band loaded"),
+                tex("pjf_e_d1_3", "Resisted Broad Jump to Vertical", 4, "6", 120, .plyometric, ["Full Body"], "Chain horizontal to vertical against band"),
+                tex("pjf_e_d1_4", "Neural Drive Sprints (Band)", 5, "20m", 120, .agility, ["Full Body"], "Maximum recruitment, heavy band resistance"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_e_d2", dayNumber: 2, variant: "A", title: "Recovery + Isos",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                texLeveled("pjf_e_d2_1", "Maximal Yielding Hamstring Iso", 3, "45s each", 60, .strength, ["Hamstrings"], "Extended hold at end range, max effort"),
+                tex("pjf_e_d2_2", "Half Kneel Underhand Press (Heavy Band)", 3, "10 each", 45, .strength, ["Shoulders", "Core"], "Heavy band, maintain hip distraction"),
+                tex("pjf_e_d2_3", "3-Way Hip Hinge Deep Holds", 3, "20s each way", 30, .mobility, ["Hips", "Hamstrings"], "Hold end range each direction"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_e_d3", dayNumber: 3, variant: "A", title: "Max Intent Jumping (Band)",
+            category: .maxIntent,
+            warmUp: [
+                tex("pjf_e_w3", "CNS Primers (Resisted)", 2, "5 min", 60, .plyometric, ["Full Body"], "Resisted tuck jumps, A-skips, sprint build-ups"),
+            ],
+            mainWork: [
+                tex("pjf_e_d3_1", "Resisted Approach Jumps", 5, "5", 120, .plyometric, ["Full Body"], "Full approach with band, focus on penultimate step"),
+                tex("pjf_e_d3_2", "Resisted Split Stance Rapid Switches (Max)", 4, "8 each", 75, .agility, ["Quads", "Glutes"], "Maximum speed alternating lunges"),
+                tex("pjf_e_d3_3", "Resisted Pogos to Free Pogos", 3, "10+10", 60, .plyometric, ["Calves", "Ankles"], "10 banded then immediately 10 free for potentiation"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_e_d4", dayNumber: 4, variant: "A", title: "Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("pjf_e_d4_1", "Lateral Lunge Adductor Stretch (Deep)", 3, "10 each", 30, .mobility, ["Adductors"], "Max depth, breathe into stretch"),
+                tex("pjf_e_d4_2", "Floating Toes Dorsiflexion (Heavy)", 3, "15", 30, .mobility, ["Ankles"], "Heavy band, maximize dorsiflexion"),
+                tex("pjf_e_d4_3", "Supine Long Length Hamstring Raise (Banded)", 3, "12 each", 30, .mobility, ["Hamstrings"], "Full range with band assistance"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pjf_e_d5", dayNumber: 5, variant: "A", title: "Elite Agility (Band)",
+            category: .strength,
+            warmUp: [
+                tex("pjf_e_w4", "Band Resisted Lateral Walks (Heavy)", 3, "15 each", 20, .agility, ["Hip Abductors"], "Heavy band, stay low and controlled"),
+            ],
+            mainWork: [
+                tex("pjf_e_d5_1", "Lateral Split Stance Decels (Loaded)", 4, "10", 75, .agility, ["Quads", "Core"], "Band-loaded deceleration drills"),
+                tex("pjf_e_d5_2", "Cross Step Change of Direction (Max)", 4, "8", 75, .agility, ["Hips", "Quads"], "Max speed direction changes"),
+                tex("pjf_e_d5_3", "Diagonal Split Lateral Jumps (Reactive)", 3, "10", 60, .plyometric, ["Full Body"], "Immediate rebound on each landing"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    // MARK: - Total Body Board Programs
+
+    static let tbbFoundationsProgram = TrainingProgram(
+        id: "tbb_foundations", track: .foundations, equipment: .totalBodyBoard, weeks: 6, days: tbbFoundationsDays
+    )
+    static let tbbFlightProgram = TrainingProgram(
+        id: "tbb_flight", track: .flight, equipment: .totalBodyBoard, weeks: 8, days: tbbFlightDays
+    )
+    static let tbbEliteProgram = TrainingProgram(
+        id: "tbb_elite", track: .elite, equipment: .totalBodyBoard, weeks: 12, days: tbbEliteDays
+    )
+
+    static let tbbFoundationsDays: [TrainingDay] = [
+        TrainingDay(
+            id: "tbb_f_d1", dayNumber: 1, variant: "A", title: "Mobility & Patterning",
+            category: .recovery,
+            warmUp: [
+                tex("tbb_f_w1", "Dynamic Stretching", 1, "5-10 min", 0, .mobility, ["Full Body"], "Hip openers, arm circles, thoracic rotations"),
+                tex("tbb_f_w2", "Bodyweight Squats", 2, "10-15", 30, .strength, ["Quads", "Glutes"], "Full depth, control tempo"),
+            ],
+            mainWork: [
+                tex("tbb_f_d1_1", "Lateral Step-Ups on Board", 3, "10 each", 45, .strength, ["Quads", "Glutes", "Hip Abductors"], "Step up laterally onto board, control descent"),
+                tex("tbb_f_d1_2", "Single-Leg Balance with Reach on Board", 3, "8 each", 45, .mobility, ["Ankles", "Core", "Hips"], "Stand on board, reach in multiple directions"),
+                tex("tbb_f_d1_3", "Hip Hinge with Board Resistance", 3, "10", 45, .strength, ["Hamstrings", "Glutes"], "Hinge while maintaining board stability"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_f_d2", dayNumber: 2, variant: "A", title: "Strength & Agility",
+            category: .strength,
+            warmUp: [
+                tex("tbb_f_w3", "Band Resisted Lateral Walks", 3, "10 each", 20, .agility, ["Hip Abductors", "Glutes"], "Stay low, resist band"),
+                tex("tbb_f_w4", "High Knees", 2, "30s", 20, .agility, ["Hip Flexors", "Calves"], "Drive knees high, quick tempo"),
+            ],
+            mainWork: [
+                tex("tbb_f_d2_1", "Push-Ups on Total Body Board", 3, "8-12", 60, .strength, ["Chest", "Triceps", "Core"], "Hands on board edges, full range, engage stabilizers"),
+                tex("tbb_f_d2_2", "Squats with Board Resistance", 3, "10-15", 60, .strength, ["Quads", "Glutes", "Core"], "Stand on board, maintain balance through full squat"),
+                tex("tbb_f_d2_3", "Plank to Shoulder Tap on Board", 3, "10 each", 45, .strength, ["Core", "Shoulders"], "Plank on board, tap opposite shoulder without rotating"),
+                tex("tbb_f_d2_4", "Lateral Bounds on Board", 3, "6 each", 60, .plyometric, ["Hip Abductors", "Quads"], "Bound laterally onto and off board"),
+                tex("tbb_f_d2_5", "Forward-Backward Board Hops", 3, "8", 45, .plyometric, ["Calves", "Quads"], "Quick hops over board, minimize ground contact"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_f_d3", dayNumber: 3, variant: "A", title: "Speed & Power",
+            category: .strength,
+            warmUp: [
+                tex("tbb_f_w5", "Skipping", 2, "30 ft", 20, .agility, ["Full Body"], "Light, rhythmic skipping to warm up"),
+                tex("tbb_f_w6", "Butt Kicks", 2, "30s", 20, .agility, ["Hamstrings", "Quads"], "Quick heel-to-glute tempo"),
+            ],
+            mainWork: [
+                tex("tbb_f_d3_1", "Board Jumps (Broad/Vertical)", 3, "6", 75, .plyometric, ["Full Body"], "Jump onto board, step off, or jump over for height"),
+                tex("tbb_f_d3_2", "Medicine Ball Slams on Board", 3, "8", 60, .plyometric, ["Core", "Shoulders", "Full Body"], "Slam from board stance, maintain balance"),
+                tex("tbb_f_d3_3", "Resisted Sprints from Board Start", 3, "20 yds", 90, .agility, ["Full Body"], "Start on board, explode into sprint"),
+                tex("tbb_f_d3_4", "Rotational Lunges on Board", 3, "10 each", 60, .strength, ["Quads", "Core", "Hips"], "Lunge onto board with torso rotation"),
+                tex("tbb_f_d3_5", "Single-Leg Deadlift on Board", 3, "8 each", 60, .strength, ["Hamstrings", "Glutes", "Core"], "Stand on board, hinge on one leg"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_f_d4", dayNumber: 4, variant: "A", title: "Recovery & Isometrics",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("tbb_f_d4_1", "Standing Calf Raises on Board", 3, "15", 30, .strength, ["Calves"], "Full range on board edge, 2s pause at top"),
+                tex("tbb_f_d4_2", "Side-Lying Leg Lifts on Board", 3, "12 each", 30, .strength, ["Hip Abductors", "Glutes"], "Lie with hip on board, controlled lifts"),
+                tex("tbb_f_d4_3", "Isometric Squat Hold on Board", 3, "30-45s", 45, .strength, ["Quads", "Core"], "Hold deep squat on board, maintain stability"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_f_d5", dayNumber: 5, variant: "A", title: "Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("tbb_f_d5_1", "Board Balance Holds", 3, "30s each", 20, .mobility, ["Ankles", "Core"], "Stand on board, eyes open then closed"),
+                tex("tbb_f_d5_2", "Toe CARs on Board", 2, "10 each", 20, .mobility, ["Toes", "Feet"], "Full range toe circles while balancing"),
+                tex("tbb_f_d5_3", "Hip Opener Stretch on Board", 2, "30s each", 30, .mobility, ["Hips", "Groin"], "Use board for elevated hip stretch"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    static let tbbFlightDays: [TrainingDay] = [
+        TrainingDay(
+            id: "tbb_fl_d1", dayNumber: 1, variant: "A", title: "Explosive Board Strength",
+            category: .strength,
+            warmUp: [
+                tex("tbb_fl_w1", "Mini Band Warm Up on Board", 2, "10 each", 20, .mobility, ["Glutes", "Hips"], "Lateral walks on board, clamshells"),
+            ],
+            mainWork: [
+                tex("tbb_fl_d1_1", "Deadlifts on Total Body Board", 3, "8-10", 90, .strength, ["Posterior Chain", "Core"], "Stand on board, maintain flat back through deadlift"),
+                tex("tbb_fl_d1_2", "Overhead Press on Board", 3, "8-10", 75, .strength, ["Shoulders", "Core"], "Press overhead while balancing on board"),
+                tex("tbb_fl_d1_3", "Renegade Rows on Board", 3, "8 each", 75, .strength, ["Back", "Core", "Biceps"], "Plank on board, row dumbbell to hip"),
+                tex("tbb_fl_d1_4", "Board Jump Squats", 3, "10", 60, .plyometric, ["Quads", "Glutes"], "Squat on board then explode upward"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_fl_d2", dayNumber: 2, variant: "A", title: "Agility & Power",
+            category: .strength,
+            warmUp: [
+                tex("tbb_fl_w2", "Board Balance Drill", 2, "30s each", 20, .mobility, ["Ankles", "Core"], "Single-leg balance challenges on board"),
+            ],
+            mainWork: [
+                tex("tbb_fl_d2_1", "Agility Ladder Drills on Board", 3, "30s", 45, .agility, ["Full Body"], "Quick feet patterns stepping on/off board"),
+                tex("tbb_fl_d2_2", "Lateral Step Down on Board", 3, "6 each", 75, .strength, ["Quads", "Glutes"], "Controlled lateral step down from board"),
+                tex("tbb_fl_d2_3", "Board Depth Drops", 3, "6", 90, .plyometric, ["Quads", "Calves"], "Step off board, absorb and freeze landing"),
+                tex("tbb_fl_d2_4", "Rotational Hops Over Board", 3, "8", 60, .plyometric, ["Core", "Quads"], "90° rotation hop over the board"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_fl_d3", dayNumber: 3, variant: "A", title: "Recovery + Isos",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("tbb_fl_d3_1", "Single-Leg Balance on Board (Eyes Closed)", 3, "30s each", 30, .mobility, ["Ankles", "Core"], "Progress to eyes closed for proprioception"),
+                tex("tbb_fl_d3_2", "Isometric Lunge Hold on Board", 3, "30s each", 45, .strength, ["Quads", "Hip Flexors"], "Front foot on board, hold deep lunge"),
+                tex("tbb_fl_d3_3", "Board Calf Raise Iso Holds", 3, "20s", 30, .strength, ["Calves"], "Hold at peak contraction on board edge"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_fl_d4", dayNumber: 4, variant: "A", title: "Max Intent Board Work",
+            category: .maxIntent,
+            warmUp: [
+                tex("tbb_fl_w3", "Dynamic Warm Up on Board", 2, "5 min", 60, .mobility, ["Full Body"], "Board balance, light hops, ankle circles"),
+            ],
+            mainWork: [
+                tex("tbb_fl_d4_1", "Board to Max Vertical Jump", 4, "5", 120, .plyometric, ["Full Body"], "Stand on board, step off, explode to max height"),
+                tex("tbb_fl_d4_2", "Single-Leg Board Hops to Stick", 3, "6 each", 90, .plyometric, ["Calves", "Quads"], "Hop off board onto one leg, stick 2s"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_fl_d5", dayNumber: 5, variant: "A", title: "Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("tbb_fl_d5_1", "Board Ankle CARs", 3, "10 each", 20, .mobility, ["Ankles"], "Full ankle circles while balancing on board"),
+                tex("tbb_fl_d5_2", "Hip Opener on Board", 3, "30s each", 30, .mobility, ["Hips"], "Elevated hip stretches using board"),
+                tex("tbb_fl_d5_3", "Prone Board Back Extension", 2, "12", 30, .recovery, ["Lower Back", "Glutes"], "Lie prone on board, controlled extensions"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    static let tbbEliteDays: [TrainingDay] = [
+        TrainingDay(
+            id: "tbb_e_d1", dayNumber: 1, variant: "A", title: "Max Strength (Board)",
+            category: .strength,
+            warmUp: [
+                tex("tbb_e_w1", "CNS Activation on Board", 2, "3 min", 60, .plyometric, ["Full Body"], "Board hops, tuck jumps from board, clap push-ups on board"),
+            ],
+            mainWork: [
+                tex("tbb_e_d1_1", "Deadlifts on Board (Heavy)", 4, "5", 120, .strength, ["Posterior Chain", "Core"], "Heavy load, maintain board stability"),
+                tex("tbb_e_d1_2", "Overhead Press on Board (Heavy)", 4, "6", 90, .strength, ["Shoulders", "Core"], "Heavier load, strict press from board"),
+                tex("tbb_e_d1_3", "Renegade Rows on Board (Heavy)", 4, "8 each", 90, .strength, ["Back", "Core"], "Heavier dumbbells, maintain plank on board"),
+                tex("tbb_e_d1_4", "Explosive Board Squat to Jump", 4, "6", 90, .plyometric, ["Quads", "Glutes"], "Deep board squat, explode to max height"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_e_d2", dayNumber: 2, variant: "A", title: "Recovery + Isos",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("tbb_e_d2_1", "Single-Leg Board Balance (Reactive)", 3, "30s each", 30, .mobility, ["Ankles", "Core"], "Eyes closed, partner perturbations"),
+                tex("tbb_e_d2_2", "Isometric Squat Hold on Board (Deep)", 3, "45s", 60, .strength, ["Quads", "Core"], "Max depth hold with stability challenge"),
+                tex("tbb_e_d2_3", "Board Calf Raise Eccentrics", 3, "10 each", 45, .strength, ["Calves"], "Slow 5s eccentric on board edge"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_e_d3", dayNumber: 3, variant: "A", title: "Max Intent Board Session",
+            category: .maxIntent,
+            warmUp: [
+                tex("tbb_e_w2", "Full CNS Warm Up (Board)", 2, "8 min", 60, .mobility, ["Full Body"], "Board hops, sprint build-ups, approach rehearsals"),
+            ],
+            mainWork: [
+                tex("tbb_e_d3_1", "Board Drop to Max Vertical", 5, "5", 120, .plyometric, ["Full Body"], "Step off board into max vertical, track height"),
+                tex("tbb_e_d3_2", "Board Reactive Series", 4, "6", 90, .plyometric, ["Full Body"], "Board hop → stick → explode, continuous chain"),
+                tex("tbb_e_d3_3", "Single-Leg Board to Bound", 3, "5 each", 120, .plyometric, ["Full Body"], "Single leg on board, step off, max distance bound"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_e_d4", dayNumber: 4, variant: "A", title: "Recovery + Pilates",
+            category: .recoveryPilates,
+            warmUp: [],
+            mainWork: [
+                tex("tbb_e_d4_1", "Hand Walk Out on Board", 3, "8", 30, .mobility, ["Hamstrings", "Shoulders"], "Hands on board, walk out to plank"),
+                tex("tbb_e_d4_2", "Board Swimming", 3, "30s", 30, .recovery, ["Back", "Glutes"], "Prone on board, alternating limb lifts"),
+                tex("tbb_e_d4_3", "Thread the Needle on Board", 3, "8 each", 30, .mobility, ["Thoracic Spine"], "Kneel on board for added instability"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "tbb_e_d5", dayNumber: 5, variant: "A", title: "Elite Agility (Board)",
+            category: .strength,
+            warmUp: [
+                tex("tbb_e_w3", "Board Agility Circuit", 2, "3 min", 30, .agility, ["Full Body"], "Multi-directional hops on/off board"),
+            ],
+            mainWork: [
+                tex("tbb_e_d5_1", "Lateral Board Hops (Reactive)", 4, "10", 60, .plyometric, ["Hip Abductors", "Quads"], "Rapid lateral hops over board"),
+                tex("tbb_e_d5_2", "Board Depth Jump to Broad", 4, "5", 120, .plyometric, ["Full Body"], "Step off board, absorb, redirect horizontal"),
+                tex("tbb_e_d5_3", "Single-Leg Board Step Down (Weighted)", 3, "8 each", 75, .strength, ["Quads", "Glutes"], "Weighted step down from board"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
 }

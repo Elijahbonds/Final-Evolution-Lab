@@ -15,7 +15,7 @@ class TrainingViewModel {
     init(labViewModel: LabViewModel) {
         self.labViewModel = labViewModel
         self.progress = SaveSystem.loadTrainingProgress()
-        self.activeProgram = TrainingProgramData.program(for: progress.activeTrack)
+        self.activeProgram = TrainingProgramData.program(for: progress.activeTrack, equipment: progress.activeEquipment)
     }
 
     var currentTrack: TrainingTrack {
@@ -62,9 +62,19 @@ class TrainingViewModel {
         return progress.recoveryGateCleared
     }
 
+    var currentEquipment: EquipmentType {
+        progress.activeEquipment
+    }
+
     func switchTrack(to track: TrainingTrack) {
         progress.activeTrack = track
-        activeProgram = TrainingProgramData.program(for: track)
+        activeProgram = TrainingProgramData.program(for: track, equipment: progress.activeEquipment)
+        SaveSystem.saveTrainingProgress(progress)
+    }
+
+    func switchEquipment(to equipment: EquipmentType) {
+        progress.activeEquipment = equipment
+        activeProgram = TrainingProgramData.program(for: progress.activeTrack, equipment: equipment)
         SaveSystem.saveTrainingProgress(progress)
     }
 
