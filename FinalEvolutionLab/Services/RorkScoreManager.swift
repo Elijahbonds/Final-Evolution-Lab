@@ -1,11 +1,13 @@
 import Foundation
 
+nonisolated let rorkScoreUpdatedNotification = NSNotification.Name("RorkScoreUpdated")
+nonisolated let rorkScoreDidUpdateNotification = NSNotification.Name("rorkScoreDidUpdate")
+
 @Observable
-final class RorkScoreManager: @unchecked Sendable {
+@MainActor
+final class RorkScoreManager {
     static let shared = RorkScoreManager()
 
-    static let scoreUpdatedNotification = NSNotification.Name("RorkScoreUpdated")
-    static let scoreDidUpdateNotification = NSNotification.Name("rorkScoreDidUpdate")
     static let userDefaultsKey = "rork_prq_score"
 
     private(set) var currentPrqScore: Int
@@ -17,15 +19,17 @@ final class RorkScoreManager: @unchecked Sendable {
         }
 
         NotificationCenter.default.addObserver(
-            forName: Self.scoreUpdatedNotification,
+            forName: rorkScoreUpdatedNotification,
             object: nil,
             queue: .main
         ) { [weak self] notification in
             guard let self,
                   let score = notification.userInfo?["score"] as? Int else { return }
-            self.currentPrqScore = score
-            UserDefaults.standard.set(score, forKey: Self.userDefaultsKey)
-            NotificationCenter.default.post(name: Self.scoreDidUpdateNotification, object: nil, userInfo: ["score": score])
+            MainActor.assumeIsolated {
+                self.currentPrqScore = score
+                UserDefaults.standard.set(score, forKey: RorkScoreManager.userDefaultsKey)
+                NotificationCenter.default.post(name: rorkScoreDidUpdateNotification, object: nil, userInfo: ["score": score])
+            }
         }
     }
 
@@ -47,7 +51,7 @@ final class RorkScoreManager: @unchecked Sendable {
 
     func simulateUnityScore(_ score: Int) {
         NotificationCenter.default.post(
-            name: Self.scoreUpdatedNotification,
+            name: rorkScoreUpdatedNotification,
             object: nil,
             userInfo: ["score": score]
         )

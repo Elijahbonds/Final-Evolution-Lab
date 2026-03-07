@@ -12,25 +12,29 @@ final class NativeBridgeManager {
         prqScore = RorkScoreManager.shared.currentPrqScore
 
         NotificationCenter.default.addObserver(
-            forName: RorkScoreManager.scoreUpdatedNotification,
+            forName: rorkScoreUpdatedNotification,
             object: nil,
             queue: .main
         ) { [weak self] notification in
             guard let self,
                   let score = notification.userInfo?["score"] as? Int else { return }
-            self.prqScore = score
-            self.lastUpdateDate = Date()
+            MainActor.assumeIsolated {
+                self.prqScore = score
+                self.lastUpdateDate = Date()
+            }
         }
 
         NotificationCenter.default.addObserver(
-            forName: RorkScoreManager.scoreDidUpdateNotification,
+            forName: rorkScoreDidUpdateNotification,
             object: nil,
             queue: .main
         ) { [weak self] notification in
             guard let self,
                   let score = notification.userInfo?["score"] as? Int else { return }
-            self.prqScore = score
-            self.lastUpdateDate = Date()
+            MainActor.assumeIsolated {
+                self.prqScore = score
+                self.lastUpdateDate = Date()
+            }
         }
     }
 

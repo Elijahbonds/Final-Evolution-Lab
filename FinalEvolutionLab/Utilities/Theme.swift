@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct Theme {
+nonisolated struct Theme: Sendable {
     static let brandBlue = Color(red: 0, green: 0.83, blue: 1.0)
     static let brandCyan = Color(red: 0, green: 0.95, blue: 0.9)
     static let deepBlack = Color(red: 0.02, green: 0.02, blue: 0.02)
