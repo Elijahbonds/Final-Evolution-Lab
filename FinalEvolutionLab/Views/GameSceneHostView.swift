@@ -3,6 +3,7 @@ import SceneKit
 
 struct GameSceneHostView: UIViewRepresentable {
     let gameMode: GameModeId
+    var neuralDrive: Double = 50
     let onAction: () -> Void
 
     func makeUIView(context: Context) -> SCNView {
@@ -23,24 +24,30 @@ struct GameSceneHostView: UIViewRepresentable {
         scnView.addGestureRecognizer(tap)
 
         context.coordinator.scnView = scnView
+        context.coordinator.applyNeuralDriveTuning(in: scnView.scene)
 
         return scnView
     }
 
-    func updateUIView(_ uiView: SCNView, context: Context) {}
+    func updateUIView(_ uiView: SCNView, context: Context) {
+        context.coordinator.neuralDrive = neuralDrive
+        context.coordinator.applyNeuralDriveTuning(in: uiView.scene)
+    }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onAction: onAction, gameMode: gameMode)
+        Coordinator(onAction: onAction, gameMode: gameMode, neuralDrive: neuralDrive)
     }
 
     class Coordinator: NSObject {
         let onAction: () -> Void
         let gameMode: GameModeId
+        var neuralDrive: Double
         weak var scnView: SCNView?
 
-        init(onAction: @escaping () -> Void, gameMode: GameModeId) {
+        init(onAction: @escaping () -> Void, gameMode: GameModeId, neuralDrive: Double) {
             self.onAction = onAction
             self.gameMode = gameMode
+            self.neuralDrive = neuralDrive
         }
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
@@ -87,24 +94,46 @@ struct GameSceneHostView: UIViewRepresentable {
 
             for name in playerNames {
                 guard let node = scene.rootNode.childNode(withName: name, recursively: true) else { continue }
+                let speedMultiplier = actionSpeedMultiplier()
                 let actionPulse = SCNAction.sequence([
-                    SCNAction.scale(to: 1.12, duration: 0.06),
-                    SCNAction.scale(to: 0.96, duration: 0.05),
-                    SCNAction.scale(to: 1.0, duration: 0.1)
+                    SCNAction.scale(to: 1.12, duration: 0.06 / speedMultiplier),
+                    SCNAction.scale(to: 0.96, duration: 0.05 / speedMultiplier),
+                    SCNAction.scale(to: 1.0, duration: 0.1 / speedMultiplier)
                 ])
                 actionPulse.timingMode = .easeOut
                 node.runAction(actionPulse, forKey: "actionPulse")
 
                 if let rArm = node.childNode(withName: "rArm", recursively: false) {
                     let armSwing = SCNAction.sequence([
-                        SCNAction.rotateTo(x: -1.8, y: 0, z: -0.4, duration: 0.08),
-                        SCNAction.rotateTo(x: 0.5, y: 0, z: -0.4, duration: 0.06),
-                        SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.15)
+                        SCNAction.rotateTo(x: -1.8, y: 0, z: -0.4, duration: 0.08 / speedMultiplier),
+                        SCNAction.rotateTo(x: 0.5, y: 0, z: -0.4, duration: 0.06 / speedMultiplier),
+                        SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.15 / speedMultiplier)
                     ])
                     rArm.runAction(armSwing, forKey: "actionArm")
                 }
 
                 break
+            }
+        }
+
+        private func actionSpeedMultiplier() -> Double {
+            if gameMode == .karate {
+                return 1.0 + (max(0, min(neuralDrive, 100)) / 100.0) * 0.55
+            }
+            return 1.0
+        }
+
+        func applyNeuralDriveTuning(in scene: SCNScene?) {
+            guard gameMode == .karate, let scene else { return }
+            let boost = max(0, min(neuralDrive, 100)) / 100.0
+            let emissionStrength = 0.2 + boost * 0.5
+            for nodeName in ["fighter1", "fighter2"] {
+                guard let fighter = scene.rootNode.childNode(withName: nodeName, recursively: true) else { continue }
+                fighter.enumerateChildNodes { child, _ in
+                    if let material = child.geometry?.firstMaterial {
+                        material.emission.contents = UIColor(red: 1.0, green: 0.2, blue: 0.1, alpha: emissionStrength)
+                    }
+                }
             }
         }
 

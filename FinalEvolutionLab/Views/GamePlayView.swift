@@ -55,6 +55,9 @@ struct GamePlayView: View {
     @State private var swipeStart: CGPoint?
     @State private var swipeStartTime: Date?
     @State private var golfDragStartY: CGFloat = 0
+    @State private var leftStickVector: CGPoint = .zero
+    @State private var rightStickVector: CGPoint = .zero
+    @State private var lastStickComboFireAt: Double = 0
 
     @State private var specialMeter: Double = 0
     @State private var isModifierHeld: Bool = false
@@ -525,7 +528,11 @@ struct GamePlayView: View {
 
     private var sceneArea: some View {
         ZStack {
-            GameSceneHostView(gameMode: gameMode.id, onAction: handleSceneAction)
+            GameSceneHostView(
+                gameMode: gameMode.id,
+                neuralDrive: viewModel.effectiveMetrics.neuralDrive,
+                onAction: handleSceneAction
+            )
                 .clipShape(.rect(cornerRadius: 0))
 
             if combo > 1 {
@@ -596,6 +603,25 @@ struct GamePlayView: View {
 
             if (inputScheme == .swipe || inputScheme == .swipeGolf) && isActive {
                 gestureOverlay
+            }
+
+            if inputScheme == .charge {
+                VStack {
+                    Spacer()
+                    PS2GamepadOverlay(
+                        onFaceButton: handlePS2FaceButton,
+                        onDPad: handlePS2DPad,
+                        onLeftStick: handlePS2LeftStick,
+                        onRightStick: handlePS2RightStick,
+                        onLeftShoulder: handlePS2LeftShoulder,
+                        onRightShoulder: handlePS2RightShoulder,
+                        accentColor: gameMode.accentColor,
+                        isActive: isActive
+                    )
+                    .frame(height: 240)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 6)
+                }
             }
         }
         .frame(maxHeight: .infinity)
@@ -3380,6 +3406,34 @@ struct GamePlayView: View {
 
     private func handlePS2FaceButton(_ button: PS2FaceButton) {
         guard isActive else { return }
+        if isDunkContest {
+            switch dunkEngine.phase {
+            case .idle:
+                startDunkApproach()
+            case .approach:
+                releaseDunkSprint()
+            case .launch:
+                confirmDunkLaunch()
+            case .airborne:
+                switch button {
+                case .triangle: handleArcadeDunkButton(.triangle)
+                case .square: handleArcadeDunkButton(.square)
+                case .circle: handleArcadeDunkButton(.circle)
+                case .cross:
+                    if dunkEngine.styleLandingWindow {
+                        handleStyleLanding()
+                    } else {
+                        handleArcadeDunkButton(.cross)
+                    }
+                }
+            case .landing:
+                confirmDunkLanding()
+            case .scored:
+                break
+            }
+            return
+        }
+
         switch button {
         case .triangle:
             performAction(actionsForMode.first ?? "Shoot")
@@ -3420,9 +3474,111 @@ struct GamePlayView: View {
         case .right: comboDir = .right
         }
         currentTrickDirection = comboDir
+        if inputScheme == .rallyAce || inputScheme == .dragTap || inputScheme == .penaltyKick {
+            nudgeAimWithDirection(comboDir)
+        }
         if isModifierHeld {
             executeTrickCombo(direction: comboDir)
         }
+    }
+
+    private func handlePS2LeftStick(_ vector: CGPoint) {
+        guard isActive else { return }
+        leftStickVector = vector
+        updateDirectionFromStick(vector)
+
+        if inputScheme == .rallyAce || inputScheme == .dragTap || inputScheme == .penaltyKick {
+            let sensitivity: CGFloat = 0.025
+            let newX = max(0, min(1, aimPosition.x + vector.x * sensitivity))
+            let newY = max(0, min(1, aimPosition.y - vector.y * sensitivity))
+            aimPosition = CGPoint(x: newX, y: newY)
+        }
+    }
+
+    private func handlePS2RightStick(_ vector: CGPoint) {
+        guard isActive else { return }
+        rightStickVector = vector
+        updateDirectionFromStick(vector)
+
+        let magnitude = hypot(vector.x, vector.y)
+        guard magnitude > 0.88 else { return }
+        let now = CACurrentMediaTime()
+        guard now - lastStickComboFireAt > 0.18 else { return }
+        lastStickComboFireAt = now
+
+        if isModifierHeld {
+            executeTrickCombo(direction: currentTrickDirection)
+        } else if isDunkContest && dunkEngine.phase == .airborne {
+            let mapped = arcadeButton(for: vector)
+            handleArcadeDunkButton(mapped)
+        }
+    }
+
+    private func handlePS2LeftShoulder() {
+        guard isActive else { return }
+        if isDunkContest {
+            styleTriggerHeld.toggle()
+            dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
+            return
+        }
+        withAnimation(.spring(response: 0.2)) {
+            isModifierHeld.toggle()
+            activeModifierState = isModifierHeld ? .style : .none
+        }
+    }
+
+    private func handlePS2RightShoulder() {
+        guard isActive else { return }
+        if isDunkContest {
+            powerTriggerHeld.toggle()
+            dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
+            return
+        }
+        withAnimation(.spring(response: 0.2)) {
+            if activeModifierState == .power {
+                activeModifierState = .none
+                isModifierHeld = false
+            } else {
+                activeModifierState = .power
+                isModifierHeld = true
+            }
+        }
+    }
+
+    private func updateDirectionFromStick(_ vector: CGPoint) {
+        let threshold: CGFloat = 0.28
+        guard abs(vector.x) > threshold || abs(vector.y) > threshold else {
+            currentTrickDirection = .neutral
+            return
+        }
+        if abs(vector.x) > abs(vector.y) {
+            currentTrickDirection = vector.x >= 0 ? .right : .left
+        } else {
+            currentTrickDirection = vector.y >= 0 ? .up : .down
+        }
+    }
+
+    private func nudgeAimWithDirection(_ direction: ComboDirection) {
+        let delta: CGFloat = 0.05
+        switch direction {
+        case .up:
+            aimPosition.y = max(0, aimPosition.y - delta)
+        case .down:
+            aimPosition.y = min(1, aimPosition.y + delta)
+        case .left:
+            aimPosition.x = max(0, aimPosition.x - delta)
+        case .right:
+            aimPosition.x = min(1, aimPosition.x + delta)
+        case .neutral:
+            break
+        }
+    }
+
+    private func arcadeButton(for vector: CGPoint) -> ArcadeFaceButton {
+        if abs(vector.x) > abs(vector.y) {
+            return vector.x >= 0 ? .circle : .square
+        }
+        return vector.y >= 0 ? .triangle : .cross
     }
 
     // MARK: - Combat (Block / Counter / Vanish)

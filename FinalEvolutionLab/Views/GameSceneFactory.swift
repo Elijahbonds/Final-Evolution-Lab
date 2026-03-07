@@ -4,6 +4,8 @@ import UIKit
 struct GameSceneFactory {
     private static let brandBlue = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
     private static let brandCyan = UIColor(red: 0, green: 0.95, blue: 0.9, alpha: 1)
+    private static let threeVThreeTeamSize = 3
+    private static let rallySnapSmoothingWindow: Double = 0.2
 
     static func buildScene(for mode: GameModeId) -> SCNScene {
         switch mode {
@@ -199,18 +201,26 @@ struct GameSceneFactory {
 
         let teamBlue = brandBlue
         let teamRed = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
+        let teamAStart: [SCNVector3] = [
+            SCNVector3(-1.0, 0, -1.0),
+            SCNVector3(0.5, 0, 1.5),
+            SCNVector3(-2.5, 0, 0.5)
+        ]
+        let teamBStart: [SCNVector3] = [
+            SCNVector3(1.0, 0, -0.5),
+            SCNVector3(-0.5, 0, 2.0),
+            SCNVector3(2.5, 0, -1.0)
+        ]
 
-        addAvatar(to: scene, at: SCNVector3(-1.0, 0, -1.0), color: teamBlue, name: "blue1")
-        addAvatar(to: scene, at: SCNVector3(0.5, 0, 1.5), color: teamBlue, name: "blue2")
-        addAvatar(to: scene, at: SCNVector3(-2.5, 0, 0.5), color: teamBlue, name: "blue3")
+        for index in 0..<threeVThreeTeamSize {
+            addAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue\(index + 1)")
+            addAvatar(to: scene, at: teamBStart[index], color: teamRed, name: "red\(index + 1)")
+        }
 
-        addAvatar(to: scene, at: SCNVector3(1.0, 0, -0.5), color: teamRed, name: "red1")
-        addAvatar(to: scene, at: SCNVector3(-0.5, 0, 2.0), color: teamRed, name: "red2")
-        addAvatar(to: scene, at: SCNVector3(2.5, 0, -1.0), color: teamRed, name: "red3")
+        addBall(to: scene, at: SCNVector3(teamAStart[0].x, 1.4, teamAStart[0].z), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
 
-        addBall(to: scene, at: SCNVector3(-1.0, 1.4, -1.0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
-
-        add3v3Animations(to: scene)
+        add3v3Animations(to: scene, teamSize: threeVThreeTeamSize)
+        addHomingDefense(to: scene, defenderNames: (1...threeVThreeTeamSize).map { "red\($0)" }, targetName: "blue1")
 
         addVeniceBeachWalls(to: scene)
         addParticles(to: scene, color: brandCyan.withAlphaComponent(0.15), area: SCNVector3(10, 0.1, 6))
@@ -218,8 +228,12 @@ struct GameSceneFactory {
         return scene
     }
 
-    private static func add3v3Animations(to scene: SCNScene) {
-        let avatarNames = ["blue2", "blue3", "red1", "red2", "red3"]
+    private static func add3v3Animations(to scene: SCNScene, teamSize: Int) {
+        var avatarNames: [String] = []
+        if teamSize >= 2 {
+            avatarNames.append(contentsOf: (2...teamSize).map { "blue\($0)" })
+        }
+        avatarNames.append(contentsOf: (1...teamSize).map { "red\($0)" })
         for name in avatarNames {
             guard let node = scene.rootNode.childNode(withName: name, recursively: true) else { continue }
             let dx = Float.random(in: -1.0...1.0)
@@ -230,6 +244,31 @@ struct GameSceneFactory {
             let move2 = SCNAction.moveBy(x: CGFloat(-dx), y: 0, z: CGFloat(-dz), duration: duration)
             move2.timingMode = .easeInEaseOut
             node.runAction(SCNAction.repeatForever(SCNAction.sequence([move1, move2])), forKey: "shuffle")
+        }
+    }
+
+    private static func addHomingDefense(to scene: SCNScene, defenderNames: [String], targetName: String) {
+        for (index, defenderName) in defenderNames.enumerated() {
+            guard let defender = scene.rootNode.childNode(withName: defenderName, recursively: true) else { continue }
+            let baseOffset = SCNVector3(Float.random(in: -0.35...0.35), 0, Float.random(in: -0.25...0.25))
+            let chaseSpeed = Float.random(in: 0.03...0.055)
+            let homingAction = SCNAction.customAction(duration: 1000) { node, elapsed in
+                guard let target = scene.rootNode.childNode(withName: targetName, recursively: true) else { return }
+                let offsetPulse = sin(Float(elapsed) * 3.2 + Float(index)) * 0.18
+                var desired = target.presentation.position
+                desired.x += baseOffset.x + offsetPulse
+                desired.z += baseOffset.z - offsetPulse * 0.7
+                desired.x = min(4.6, max(-4.6, desired.x))
+                desired.z = min(2.7, max(-2.7, desired.z))
+                let next = moveTowards(current: node.presentation.position, target: desired, maxDistanceDelta: chaseSpeed)
+                node.position = SCNVector3(next.x, node.position.y, next.z)
+                let dx = desired.x - node.position.x
+                let dz = desired.z - node.position.z
+                if abs(dx) > 0.01 || abs(dz) > 0.01 {
+                    node.eulerAngles.y = atan2(dx, dz)
+                }
+            }
+            defender.runAction(SCNAction.repeatForever(homingAction), forKey: "homingDefense")
         }
     }
 
@@ -448,26 +487,23 @@ struct GameSceneFactory {
             catcher.scale = SCNVector3(0.9, 0.85, 0.9)
         }
 
-        let ball = SCNSphere(radius: 0.04)
-        let ballMat = SCNMaterial()
-        ballMat.diffuse.contents = UIColor.white
-        ballMat.roughness.contents = 0.5
-        ball.materials = [ballMat]
-        let ballNode = SCNNode(geometry: ball)
-        ballNode.position = SCNVector3(0, 1.5, -1.0)
-        ballNode.name = "baseball"
-        scene.rootNode.addChildNode(ballNode)
+        let pitcherHand = SCNNode()
+        pitcherHand.name = "pitcherHand"
+        pitcherHand.position = SCNVector3(0.18, 1.55, -0.78)
+        scene.rootNode.addChildNode(pitcherHand)
 
-        let pitchForward = SCNAction.move(to: SCNVector3(0, 1.2, 2.5), duration: 0.5)
-        pitchForward.timingMode = .easeIn
-        let resetBall = SCNAction.move(to: SCNVector3(0, 1.5, -1.0), duration: 0.01)
-        let pitchCycle = SCNAction.sequence([
-            SCNAction.wait(duration: 2.0),
-            pitchForward,
-            SCNAction.wait(duration: 0.5),
-            resetBall
-        ])
-        ballNode.runAction(SCNAction.repeatForever(pitchCycle), forKey: "pitch")
+        let batGeo = SCNBox(width: 0.06, height: 0.85, length: 0.04, chamferRadius: 0.01)
+        let batMat = SCNMaterial()
+        batMat.diffuse.contents = UIColor(red: 0.47, green: 0.32, blue: 0.16, alpha: 1)
+        batMat.roughness.contents = 0.75
+        batGeo.materials = [batMat]
+        let batNode = SCNNode(geometry: batGeo)
+        batNode.name = "bat"
+        batNode.position = SCNVector3(0.63, 1.05, 2.85)
+        batNode.eulerAngles = SCNVector3(0.2, 0.2, 0.45)
+        scene.rootNode.addChildNode(batNode)
+
+        HomeRunDerbyManager.installIfNeeded(in: scene, pitcherHandNodeName: "pitcherHand", batNodeName: "bat")
 
         if let pitcher = scene.rootNode.childNode(withName: "pitcher", recursively: true),
            let rArm = pitcher.childNode(withName: "rArm", recursively: false) {
@@ -983,26 +1019,19 @@ struct GameSceneFactory {
             )
         }
         bNode.runAction(SCNAction.repeatForever(rallyAction), forKey: "rally")
+        addRallySnapToBall(in: scene, playerName: "opponent", ballName: "tennisball", laneZ: -4.5, xLimit: -2.8...2.8)
+        addRallySnapToBall(in: scene, playerName: "player", ballName: "tennisball", laneZ: 4.5, xLimit: -2.8...2.8)
 
-        if let opponent = scene.rootNode.childNode(withName: "opponent", recursively: true) {
-            let oMove = SCNAction.sequence([
-                SCNAction.moveBy(x: 1.5, y: 0, z: 0, duration: 0.8),
-                SCNAction.moveBy(x: -3.0, y: 0, z: 0, duration: 1.6),
-                SCNAction.moveBy(x: 1.5, y: 0, z: 0, duration: 0.8)
+        if let opponent = scene.rootNode.childNode(withName: "opponent", recursively: true),
+           let rArm = opponent.childNode(withName: "rArm", recursively: false) {
+            let swing = SCNAction.sequence([
+                SCNAction.wait(duration: 1.8),
+                SCNAction.rotateTo(x: -1.8, y: 0, z: -0.4, duration: 0.1),
+                SCNAction.rotateTo(x: 0.5, y: 0, z: -0.4, duration: 0.08),
+                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.25),
+                SCNAction.wait(duration: 1.5)
             ])
-            oMove.timingMode = .easeInEaseOut
-            opponent.runAction(SCNAction.repeatForever(oMove), forKey: "shuffle")
-
-            if let rArm = opponent.childNode(withName: "rArm", recursively: false) {
-                let swing = SCNAction.sequence([
-                    SCNAction.wait(duration: 1.8),
-                    SCNAction.rotateTo(x: -1.8, y: 0, z: -0.4, duration: 0.1),
-                    SCNAction.rotateTo(x: 0.5, y: 0, z: -0.4, duration: 0.08),
-                    SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.25),
-                    SCNAction.wait(duration: 1.5)
-                ])
-                rArm.runAction(SCNAction.repeatForever(swing), forKey: "swing")
-            }
+            rArm.runAction(SCNAction.repeatForever(swing), forKey: "swing")
         }
 
         if let player = scene.rootNode.childNode(withName: "player", recursively: true) {
@@ -1135,6 +1164,8 @@ struct GameSceneFactory {
             node.eulerAngles = SCNVector3(spin, spin * 0.5, 0)
         }
         vbNode.runAction(SCNAction.repeatForever(vRallyAction), forKey: "rally")
+        addRallySnapToBall(in: scene, playerName: "vPlayer1", ballName: "volleyball", laneZ: 2.5, xLimit: -3.0...3.0)
+        addRallySnapToBall(in: scene, playerName: "vOpp1", ballName: "volleyball", laneZ: -2.5, xLimit: -3.0...3.0)
 
         if let vp1 = scene.rootNode.childNode(withName: "vPlayer1", recursively: true),
            let rArm = vp1.childNode(withName: "rArm", recursively: false) {
@@ -1913,6 +1944,48 @@ struct GameSceneFactory {
         }
     }
 
+    private static func addRallySnapToBall(
+        in scene: SCNScene,
+        playerName: String,
+        ballName: String,
+        laneZ: Float,
+        xLimit: ClosedRange<Float>
+    ) {
+        guard let player = scene.rootNode.childNode(withName: playerName, recursively: true),
+              let ball = scene.rootNode.childNode(withName: ballName, recursively: true) else { return }
+        let smoothingAlpha = Float(min(1.0, (1.0 / 60.0) / max(0.05, rallySnapSmoothingWindow)))
+        let snap = SCNAction.customAction(duration: 1000) { node, _ in
+            let presentedBall = ball.presentation.position
+            let clampedBallX = min(xLimit.upperBound, max(xLimit.lowerBound, presentedBall.x))
+            let current = node.presentation.position
+            let nextX = current.x + (clampedBallX - current.x) * smoothingAlpha
+            let nextZ = current.z + (laneZ - current.z) * smoothingAlpha
+            node.position = SCNVector3(nextX, node.position.y, nextZ)
+
+            let dx = presentedBall.x - nextX
+            let dz = presentedBall.z - nextZ
+            if abs(dx) > 0.01 || abs(dz) > 0.01 {
+                node.eulerAngles.y = atan2(dx, dz)
+            }
+        }
+        player.runAction(SCNAction.repeatForever(snap), forKey: "snapToBall")
+    }
+
+    private static func moveTowards(current: SCNVector3, target: SCNVector3, maxDistanceDelta: Float) -> SCNVector3 {
+        let dx = target.x - current.x
+        let dy = target.y - current.y
+        let dz = target.z - current.z
+        let distance = sqrt(dx * dx + dy * dy + dz * dz)
+        guard distance > 0.0001 else { return target }
+        if distance <= maxDistanceDelta { return target }
+        let scale = maxDistanceDelta / distance
+        return SCNVector3(
+            current.x + dx * scale,
+            current.y + dy * scale,
+            current.z + dz * scale
+        )
+    }
+
     // MARK: - Cinematic Impact Effects
 
     static func triggerHitStop(on node: SCNNode, duration: Double = AvatarStateMachine.hitStopDuration) {
@@ -2165,5 +2238,233 @@ struct GameSceneFactory {
         }
         actions.append(SCNAction.move(to: originalPos, duration: 0.08))
         camera.runAction(SCNAction.sequence(actions), forKey: "cameraShake")
+    }
+}
+
+final class HomeRunDerbyManager: NSObject, SCNPhysicsContactDelegate {
+    struct HitResult {
+        let estimatedDistanceFeet: Int
+        let timingErrorSeconds: Double
+        let grade: TimingGrade
+    }
+
+    enum TimingGrade: String {
+        case perfect
+        case great
+        case early
+        case late
+        case missed
+    }
+
+    private enum PhysicsMask {
+        static let baseball = 1 << 8
+        static let bat = 1 << 9
+    }
+
+    private static let managerStorageKey = "homeRunDerbyManager"
+
+    private weak var scene: SCNScene?
+    private let pitcherHandNodeName: String
+    private let batNodeName: String
+
+    private var pitchReleaseTimes: [String: CFTimeInterval] = [:]
+    private let pitchLoopKey = "homeRunDerbyPitchLoop"
+    private let batSwingKey = "homeRunDerbyBatSwing"
+
+    private let pitchVelocity = SCNVector3(0.0, -0.05, 15.5)
+    private let pitchInterval: TimeInterval = 2.0
+    private let nominalContactTime: TimeInterval = 0.24
+
+    var onHitResult: ((HitResult) -> Void)?
+
+    private init(scene: SCNScene, pitcherHandNodeName: String, batNodeName: String) {
+        self.scene = scene
+        self.pitcherHandNodeName = pitcherHandNodeName
+        self.batNodeName = batNodeName
+        super.init()
+        scene.physicsWorld.contactDelegate = self
+    }
+
+    static func installIfNeeded(
+        in scene: SCNScene,
+        pitcherHandNodeName: String = "pitcherHand",
+        batNodeName: String = "bat"
+    ) {
+        if let existing = scene.rootNode.userData?[managerStorageKey] as? HomeRunDerbyManager {
+            existing.startPitchLoop()
+            return
+        }
+
+        let manager = HomeRunDerbyManager(
+            scene: scene,
+            pitcherHandNodeName: pitcherHandNodeName,
+            batNodeName: batNodeName
+        )
+        if scene.rootNode.userData == nil {
+            scene.rootNode.userData = NSMutableDictionary()
+        }
+        scene.rootNode.userData?[managerStorageKey] = manager
+        manager.configureBatCollider()
+        manager.startPitchLoop()
+    }
+
+    func startPitchLoop() {
+        guard let scene else { return }
+        guard scene.rootNode.action(forKey: pitchLoopKey) == nil else { return }
+
+        let pitch = SCNAction.run { [weak self] _ in
+            self?.spawnAndThrowPitch()
+        }
+        let loop = SCNAction.repeatForever(
+            SCNAction.sequence([
+                SCNAction.wait(duration: 0.4),
+                pitch,
+                SCNAction.wait(duration: pitchInterval)
+            ])
+        )
+        scene.rootNode.runAction(loop, forKey: pitchLoopKey)
+        startBatSwingLoopIfNeeded()
+    }
+
+    private func configureBatCollider() {
+        guard let scene,
+              let bat = scene.rootNode.childNode(withName: batNodeName, recursively: true) else { return }
+        let body = SCNPhysicsBody(type: .kinematic, shape: SCNPhysicsShape(node: bat))
+        body.categoryBitMask = PhysicsMask.bat
+        body.contactTestBitMask = PhysicsMask.baseball
+        body.collisionBitMask = PhysicsMask.baseball
+        body.isAffectedByGravity = false
+        bat.physicsBody = body
+    }
+
+    private func startBatSwingLoopIfNeeded() {
+        guard let scene,
+              let bat = scene.rootNode.childNode(withName: batNodeName, recursively: true) else { return }
+        guard bat.action(forKey: batSwingKey) == nil else { return }
+
+        let load = SCNAction.rotateTo(x: 0.18, y: 0.26, z: 0.75, duration: 0.08)
+        let swing = SCNAction.rotateTo(x: 0.03, y: -0.2, z: -0.65, duration: 0.08)
+        let recover = SCNAction.rotateTo(x: 0.2, y: 0.2, z: 0.45, duration: 0.12)
+        let batLoop = SCNAction.repeatForever(
+            SCNAction.sequence([
+                SCNAction.wait(duration: 0.58),
+                load,
+                swing,
+                recover,
+                SCNAction.wait(duration: pitchInterval - 0.25)
+            ])
+        )
+        bat.runAction(batLoop, forKey: batSwingKey)
+    }
+
+    private func spawnAndThrowPitch() {
+        guard let scene else { return }
+
+        let spawnNode = scene.rootNode.childNode(withName: pitcherHandNodeName, recursively: true)
+        let spawnPosition = spawnNode?.presentation.position ?? SCNVector3(0, 1.55, -0.78)
+        let baseball = makeBaseballNode()
+        baseball.position = spawnPosition
+        baseball.name = "derbyBall-\(UUID().uuidString)"
+        pitchReleaseTimes[baseball.name ?? ""] = CACurrentMediaTime()
+        scene.rootNode.addChildNode(baseball)
+
+        baseball.physicsBody?.velocity = pitchVelocity
+        baseball.physicsBody?.angularVelocity = SCNVector4(0, 1, 0.1, 22)
+        let timeout = SCNAction.sequence([
+            SCNAction.wait(duration: 3.0),
+            SCNAction.removeFromParentNode()
+        ])
+        baseball.runAction(timeout, forKey: "timeout")
+    }
+
+    private func makeBaseballNode() -> SCNNode {
+        let ball = SCNSphere(radius: 0.04)
+        let mat = SCNMaterial()
+        mat.diffuse.contents = UIColor.white
+        mat.roughness.contents = 0.55
+        ball.materials = [mat]
+        let node = SCNNode(geometry: ball)
+        let body = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(geometry: ball, options: nil))
+        body.mass = 0.145
+        body.isAffectedByGravity = false
+        body.damping = 0
+        body.angularDamping = 0.05
+        body.categoryBitMask = PhysicsMask.baseball
+        body.contactTestBitMask = PhysicsMask.bat
+        body.collisionBitMask = PhysicsMask.bat
+        node.physicsBody = body
+        return node
+    }
+
+    func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
+        guard let ballNode = baseballNode(from: contact) else { return }
+        handleBatCollision(for: ballNode)
+    }
+
+    private func baseballNode(from contact: SCNPhysicsContact) -> SCNNode? {
+        if contact.nodeA.physicsBody?.categoryBitMask == PhysicsMask.baseball {
+            return contact.nodeA
+        }
+        if contact.nodeB.physicsBody?.categoryBitMask == PhysicsMask.baseball {
+            return contact.nodeB
+        }
+        return nil
+    }
+
+    private func handleBatCollision(for baseball: SCNNode) {
+        guard let id = baseball.name else { return }
+        let releasedAt = pitchReleaseTimes[id] ?? CACurrentMediaTime()
+        let elapsed = CACurrentMediaTime() - releasedAt
+        let timingError = elapsed - nominalContactTime
+        let result = estimateResult(fromTimingError: timingError)
+        onHitResult?(result)
+
+        let launchSpeed = max(16.0, 22.0 + Double(result.estimatedDistanceFeet) * 0.12)
+        let launchAngleY = Float.random(in: -0.22...0.22)
+        let launchVector = SCNVector3(
+            sin(launchAngleY) * Float(launchSpeed * 0.15),
+            Float(6.5 + Double(result.estimatedDistanceFeet) * 0.03),
+            Float(launchSpeed)
+        )
+        baseball.removeAction(forKey: "timeout")
+        baseball.physicsBody?.isAffectedByGravity = true
+        baseball.physicsBody?.velocity = launchVector
+        baseball.physicsBody?.angularVelocity = SCNVector4(0.6, 1, 0.2, 35)
+        baseball.runAction(
+            SCNAction.sequence([
+                SCNAction.wait(duration: 3.5),
+                SCNAction.removeFromParentNode()
+            ]),
+            forKey: "homeRunCleanup"
+        )
+        pitchReleaseTimes.removeValue(forKey: id)
+    }
+
+    private func estimateResult(fromTimingError timingError: Double) -> HitResult {
+        let absError = abs(timingError)
+        let perfectWindow = 0.03
+        let greatWindow = 0.07
+        let playableWindow = 0.12
+
+        let grade: TimingGrade
+        if absError <= perfectWindow {
+            grade = .perfect
+        } else if absError <= greatWindow {
+            grade = .great
+        } else if absError <= playableWindow {
+            grade = timingError < 0 ? .early : .late
+        } else {
+            grade = .missed
+        }
+
+        let contactQuality = max(0, 1.0 - (absError / 0.22))
+        let baseDistance = 250.0 + contactQuality * 210.0
+        let directionalPenalty = timingError < -0.08 || timingError > 0.1 ? 35.0 : 0.0
+        let distance = max(120, Int(baseDistance - directionalPenalty))
+        return HitResult(
+            estimatedDistanceFeet: distance,
+            timingErrorSeconds: timingError,
+            grade: grade
+        )
     }
 }
