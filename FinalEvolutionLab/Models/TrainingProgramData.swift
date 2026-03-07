@@ -462,11 +462,11 @@ struct TrainingProgramData {
 
     // MARK: - Helpers
 
-    private static func tex(_ id: String, _ name: String, _ sets: Int, _ reps: String, _ rest: Int, _ cat: Exercise.ExerciseCategory, _ muscles: [String], _ cues: String) -> TrainingExercise {
+    static func tex(_ id: String, _ name: String, _ sets: Int, _ reps: String, _ rest: Int, _ cat: Exercise.ExerciseCategory, _ muscles: [String], _ cues: String) -> TrainingExercise {
         TrainingExercise(id: id, name: name, sets: sets, reps: reps, restSeconds: rest, category: cat, muscleGroups: muscles, cues: cues, progressionLevel: 1, hasLevels: false)
     }
 
-    private static func texLeveled(_ id: String, _ name: String, _ sets: Int, _ reps: String, _ rest: Int, _ cat: Exercise.ExerciseCategory, _ muscles: [String], _ cues: String) -> TrainingExercise {
+    static func texLeveled(_ id: String, _ name: String, _ sets: Int, _ reps: String, _ rest: Int, _ cat: Exercise.ExerciseCategory, _ muscles: [String], _ cues: String) -> TrainingExercise {
         TrainingExercise(id: id, name: name, sets: sets, reps: reps, restSeconds: rest, category: cat, muscleGroups: muscles, cues: cues, progressionLevel: 1, hasLevels: true)
     }
 
