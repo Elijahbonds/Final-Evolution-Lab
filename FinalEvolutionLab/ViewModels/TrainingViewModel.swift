@@ -14,8 +14,9 @@ class TrainingViewModel {
 
     init(labViewModel: LabViewModel) {
         self.labViewModel = labViewModel
-        self.progress = SaveSystem.loadTrainingProgress()
-        self.activeProgram = TrainingProgramData.program(for: progress.activeTrack, equipment: progress.activeEquipment)
+        let loadedProgress = SaveSystem.loadTrainingProgress()
+        self.progress = loadedProgress
+        self.activeProgram = TrainingProgramData.program(for: loadedProgress.activeTrack, equipment: loadedProgress.activeEquipment)
     }
 
     var currentTrack: TrainingTrack {
