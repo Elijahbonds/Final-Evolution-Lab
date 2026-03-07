@@ -27,6 +27,12 @@ struct TrainingProgramData {
             case .flight: tbbFlightProgram
             case .elite: tbbEliteProgram
             }
+        case .pushPullHinge:
+            switch track {
+            case .foundations: pphFoundationsProgram
+            case .flight: pphFlightProgram
+            case .elite: pphEliteProgram
+            }
         }
     }
 
@@ -893,6 +899,279 @@ struct TrainingProgramData {
                 tex("tbb_e_d5_3", "Single-Leg Board Step Down (Weighted)", 3, "8 each", 75, .strength, ["Quads", "Glutes"], "Weighted step down from board"),
             ],
             isGated: false, isCompleted: false
+        ),
+    ]
+
+    // MARK: - Push-Pull-Hinge Programs
+
+    static let pphFoundationsProgram = TrainingProgram(
+        id: "pph_foundations", track: .foundations, equipment: .pushPullHinge, weeks: 6, days: pphFoundationsDays
+    )
+    static let pphFlightProgram = TrainingProgram(
+        id: "pph_flight", track: .flight, equipment: .pushPullHinge, weeks: 8, days: pphFlightDays
+    )
+    static let pphEliteProgram = TrainingProgram(
+        id: "pph_elite", track: .elite, equipment: .pushPullHinge, weeks: 12, days: pphEliteDays
+    )
+
+    // MARK: - PPH Foundations Days
+
+    static let pphFoundationsDays: [TrainingDay] = [
+        TrainingDay(
+            id: "pph_f_d1", dayNumber: 1, variant: "A", title: "Push Day",
+            category: .strength,
+            warmUp: [
+                tex("pph_f_w1", "Arm Circles", 2, "30s", 0, .mobility, ["Shoulders"], "Forward and backward, increasing range"),
+                tex("pph_f_w2", "Shoulder Dislocations (Band/Stick)", 2, "10", 20, .mobility, ["Shoulders", "Chest"], "Slow, controlled full arc"),
+                tex("pph_f_w3", "Push-Up Progression", 2, "8-10", 30, .strength, ["Chest", "Triceps", "Shoulders"], "Scale to ability — incline, standard, or deficit"),
+            ],
+            mainWork: [
+                tex("pph_f_d1_1", "Barbell Bench Press", 4, "6-8", 90, .strength, ["Chest", "Triceps", "Shoulders"], "Control eccentric, drive through chest"),
+                tex("pph_f_d1_2", "Dynamic Shoulder Press (Split Stance to Stand)", 3, "8-10", 75, .strength, ["Shoulders", "Core", "Legs"], "Press as you drive up from split stance to standing"),
+                tex("pph_f_d1_3", "Incline Push-Ups", 3, "10-12", 60, .strength, ["Upper Chest", "Triceps"], "Hands elevated, full range of motion"),
+                tex("pph_f_d1_4", "Dips (Bench or Parallel Bars)", 3, "6-8", 75, .strength, ["Triceps", "Chest", "Shoulders"], "Lean slightly forward for chest emphasis"),
+                tex("pph_f_d1_5", "Lateral Raises", 3, "10-12", 45, .strength, ["Lateral Deltoids"], "Slight bend in elbows, control the negative"),
+                tex("pph_f_d1_6", "Split Stance Rotational Fly", 3, "8-10 each", 60, .strength, ["Chest", "Core", "Shoulders"], "Rotate through thoracic as you fly, maintain split stance"),
+                tex("pph_f_d1_7", "Reverse Fly", 3, "10-12", 45, .strength, ["Rear Deltoids", "Rhomboids"], "Squeeze scapulae together at peak contraction"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_f_d2", dayNumber: 2, variant: "A", title: "Pull Day",
+            category: .strength,
+            warmUp: [
+                tex("pph_f_w4", "Arm Swings", 2, "30s", 0, .mobility, ["Shoulders", "Back"], "Cross-body swings, gradually increase range"),
+                tex("pph_f_w5", "Torso Twists", 2, "10 each", 20, .mobility, ["Thoracic Spine", "Core"], "Rotate through mid-back, hips stable"),
+                tex("pph_f_w6", "Band Pull-Aparts", 2, "10-15", 20, .strength, ["Rear Deltoids", "Rhomboids"], "Pull band to chest height, squeeze back"),
+            ],
+            mainWork: [
+                tex("pph_f_d2_1", "Pull-Ups / Assisted Pull-Ups", 4, "5-8", 90, .strength, ["Lats", "Biceps", "Core"], "Full hang to chin over bar, control descent"),
+                tex("pph_f_d2_2", "Barbell Bent Over Row", 4, "6-8", 90, .strength, ["Back", "Biceps", "Core"], "Hinge at hips 45°, pull to lower chest"),
+                tex("pph_f_d2_3", "One-Arm Dumbbell Row", 3, "8-10 each", 60, .strength, ["Lats", "Biceps", "Core"], "Pull to hip, 1s squeeze at top"),
+                tex("pph_f_d2_4", "Face Pulls", 3, "10-12", 45, .strength, ["Rear Deltoids", "Rotator Cuff"], "Pull to forehead level, externally rotate at peak"),
+                tex("pph_f_d2_5", "Bicep Curls", 3, "10-12", 45, .strength, ["Biceps"], "Full range, no swinging"),
+                tex("pph_f_d2_6", "Rear Delt Flys", 3, "10-12", 45, .strength, ["Rear Deltoids", "Upper Back"], "Bent over, squeeze scapulae at top"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_f_d3", dayNumber: 3, variant: "A", title: "Hinge Day",
+            category: .strength,
+            warmUp: [
+                tex("pph_f_w7", "Leg Swings (Front/Back + Lateral)", 2, "10 each", 0, .mobility, ["Hips", "Hamstrings"], "Control at end range, increase amplitude"),
+                tex("pph_f_w8", "Hip Circles", 2, "10 each", 20, .mobility, ["Hips"], "Full range circles both directions"),
+                tex("pph_f_w9", "Bodyweight Good Mornings", 2, "10-15", 20, .mobility, ["Hamstrings", "Lower Back"], "Hands behind head, hinge at hips"),
+            ],
+            mainWork: [
+                tex("pph_f_d3_1", "Deadlifts (Conventional or Romanian)", 4, "6-8", 120, .strength, ["Hamstrings", "Glutes", "Back"], "Brace core, hinge at hips, neutral spine throughout"),
+                tex("pph_f_d3_2", "Kettlebell Swings", 3, "10-15", 60, .strength, ["Glutes", "Hamstrings", "Core"], "Snap hips, squeeze glutes at top"),
+                tex("pph_f_d3_3", "Single-Leg Deadlift", 3, "8-10 each", 60, .strength, ["Hamstrings", "Glutes", "Core"], "Reach long, maintain flat back"),
+                tex("pph_f_d3_4", "Hip Thrusts", 3, "8-10", 75, .strength, ["Glutes", "Hamstrings"], "Drive through heels, 2s squeeze at top"),
+                tex("pph_f_d3_5", "Hamstring Curls (Machine or Ball)", 3, "10-12", 60, .strength, ["Hamstrings"], "Control eccentric, squeeze at peak"),
+                tex("pph_f_d3_6", "Plank Variations", 3, "30-45s", 45, .strength, ["Core"], "Front, side, or weighted — maintain neutral spine"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_f_d4", dayNumber: 4, variant: "A", title: "Active Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("pph_f_d4_1", "Light Cardio (Jog/Cycle/Swim)", 1, "20-30 min", 0, .recovery, ["Full Body"], "Conversational pace, keep heart rate moderate"),
+                tex("pph_f_d4_2", "Foam Rolling — Quads & Hamstrings", 2, "60s each", 20, .recovery, ["Quads", "Hamstrings"], "Slow rolls, pause on tender spots"),
+                tex("pph_f_d4_3", "Foam Rolling — Thoracic & Calves", 2, "60s each", 20, .recovery, ["Thoracic Spine", "Calves"], "Extend over roller for thoracic mobility"),
+                tex("pph_f_d4_4", "Dynamic Stretches — Full Body", 2, "5 min", 0, .mobility, ["Full Body"], "Leg swings, arm circles, hip openers, world's greatest stretch"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_f_d5", dayNumber: 5, variant: "A", title: "Performance Combo",
+            category: .strength,
+            warmUp: [
+                tex("pph_f_w10", "Full Body Dynamic Warm-Up", 2, "5 min", 30, .mobility, ["Full Body"], "Multi-planar movements, build to moderate intensity"),
+                tex("pph_f_w11", "Agility Drills", 2, "30s", 30, .agility, ["Full Body"], "Ladder, cone cuts, or lateral shuffles"),
+            ],
+            mainWork: [
+                tex("pph_f_d5_1", "Push Press", 4, "6-8", 90, .strength, ["Shoulders", "Triceps", "Legs"], "Dip and drive, use leg power to initiate press"),
+                tex("pph_f_d5_2", "Power Clean", 4, "3-5", 120, .strength, ["Full Body"], "Triple extension, catch in front rack"),
+                tex("pph_f_d5_3", "Medicine Ball Slams", 3, "8-10", 60, .plyometric, ["Core", "Lats", "Shoulders"], "Full overhead, slam with max intent"),
+                tex("pph_f_d5_4", "Box Jumps", 3, "6", 90, .plyometric, ["Quads", "Glutes", "Calves"], "Soft landing, step down, reset each rep"),
+                tex("pph_f_d5_5", "Farmers Walk", 3, "30-60s", 60, .strength, ["Grip", "Core", "Traps"], "Tall posture, heavy load, controlled steps"),
+                tex("pph_f_d5_6", "Core Circuit (Russian Twists + Bicycle Crunches + Plank)", 3, "1 round", 60, .strength, ["Core", "Obliques"], "15 twists, 15 bicycles, 30s plank per round"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    // MARK: - PPH Flight Days
+
+    static let pphFlightDays: [TrainingDay] = [
+        TrainingDay(
+            id: "pph_fl_d1", dayNumber: 1, variant: "A", title: "Explosive Push",
+            category: .strength,
+            warmUp: [
+                tex("pph_fl_w1", "Shoulder Dislocations", 2, "10", 20, .mobility, ["Shoulders"], "Controlled arc, gradually narrow grip"),
+                tex("pph_fl_w2", "Plyo Push-Ups", 2, "6", 30, .plyometric, ["Chest", "Triceps"], "Explosive push, hands leave ground"),
+            ],
+            mainWork: [
+                tex("pph_fl_d1_1", "Barbell Bench Press (Heavy)", 4, "5-6", 120, .strength, ["Chest", "Triceps", "Shoulders"], "Control descent, explosive drive off chest"),
+                tex("pph_fl_d1_2", "Dynamic Shoulder Press (Split Stance to Stand)", 4, "8 each", 75, .strength, ["Shoulders", "Core", "Legs"], "Explode from split stance to standing press"),
+                tex("pph_fl_d1_3", "Weighted Dips", 4, "6-8", 90, .strength, ["Triceps", "Chest", "Shoulders"], "Add load via belt or dumbbell between feet"),
+                tex("pph_fl_d1_4", "Incline Dumbbell Press", 3, "8-10", 75, .strength, ["Upper Chest", "Shoulders"], "30° incline, full range of motion"),
+                tex("pph_fl_d1_5", "Split Stance Rotational Fly", 3, "10 each", 60, .strength, ["Chest", "Core", "Shoulders"], "Rotate through thoracic, feel stretch at bottom"),
+                tex("pph_fl_d1_6", "Reverse Fly (Incline Bench)", 3, "10-12", 45, .strength, ["Rear Deltoids", "Rhomboids"], "Prone on incline bench, squeeze back at top"),
+                tex("pph_fl_d1_7", "Lateral Raises (Controlled Tempo)", 3, "12", 45, .strength, ["Lateral Deltoids"], "3s up, 3s down, constant tension"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_fl_d2", dayNumber: 2, variant: "A", title: "Power Pull",
+            category: .strength,
+            warmUp: [
+                tex("pph_fl_w3", "Band Pull-Aparts", 2, "15", 20, .strength, ["Rear Deltoids"], "Chest height, squeeze back"),
+                tex("pph_fl_w4", "Scapular Pull-Ups", 2, "8", 30, .strength, ["Lats", "Scapulae"], "Dead hang, retract scapulae only"),
+            ],
+            mainWork: [
+                tex("pph_fl_d2_1", "Weighted Pull-Ups", 4, "5-8", 120, .strength, ["Lats", "Biceps", "Core"], "Add load, full range, controlled negative"),
+                tex("pph_fl_d2_2", "Pendlay Row", 4, "6-8", 90, .strength, ["Back", "Biceps"], "Explosive pull from dead stop, back to floor each rep"),
+                tex("pph_fl_d2_3", "Chest-Supported Row", 3, "10", 60, .strength, ["Back", "Rear Deltoids"], "Incline bench, pull to sternum"),
+                tex("pph_fl_d2_4", "Face Pulls (Rope)", 3, "12-15", 45, .strength, ["Rear Deltoids", "Rotator Cuff"], "High pull, external rotation at end"),
+                tex("pph_fl_d2_5", "Hammer Curls", 3, "10-12", 45, .strength, ["Biceps", "Brachialis"], "Neutral grip, no swinging"),
+                tex("pph_fl_d2_6", "Rear Delt Cable Fly", 3, "12", 45, .strength, ["Rear Deltoids", "Upper Back"], "Cables at face height, reverse fly pattern"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_fl_d3", dayNumber: 3, variant: "A", title: "Explosive Hinge",
+            category: .strength,
+            warmUp: [
+                tex("pph_fl_w5", "Hip Circles + Leg Swings", 2, "10 each", 0, .mobility, ["Hips", "Hamstrings"], "Multi-directional, build range"),
+                tex("pph_fl_w6", "Broad Jump (Max Intent)", 3, "5", 45, .plyometric, ["Full Body"], "Max distance, full arm swing"),
+            ],
+            mainWork: [
+                tex("pph_fl_d3_1", "Trap Bar Deadlift (Heavy)", 4, "5-6", 120, .strength, ["Quads", "Glutes", "Hamstrings", "Back"], "Drive through floor, lock out hips"),
+                tex("pph_fl_d3_2", "Kettlebell Swings (Heavy)", 4, "12", 75, .strength, ["Glutes", "Hamstrings", "Core"], "Aggressive hip snap, bell to chest height"),
+                tex("pph_fl_d3_3", "Single-Leg RDL (Loaded)", 3, "8 each", 75, .strength, ["Hamstrings", "Glutes", "Core"], "Dumbbell opposite hand, reach for control"),
+                tex("pph_fl_d3_4", "Hip Thrust (Heavy)", 4, "8", 90, .strength, ["Glutes", "Hamstrings"], "Barbell loaded, 2s pause at top"),
+                tex("pph_fl_d3_5", "Nordic Hamstring Curl", 3, "5-8", 90, .strength, ["Hamstrings"], "Control eccentric as long as possible"),
+                tex("pph_fl_d3_6", "Hanging Leg Raises", 3, "10-12", 60, .strength, ["Core", "Hip Flexors"], "Slow and controlled, no swinging"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_fl_d4", dayNumber: 4, variant: "A", title: "Active Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("pph_fl_d4_1", "Light Cardio (Jog/Cycle/Swim)", 1, "25-30 min", 0, .recovery, ["Full Body"], "Zone 2, conversational pace"),
+                tex("pph_fl_d4_2", "Foam Rolling — Full Body", 2, "8 min", 0, .recovery, ["Full Body"], "Quads, hamstrings, thoracic, lats, calves"),
+                tex("pph_fl_d4_3", "Dynamic Mobility Flow", 2, "5 min", 0, .mobility, ["Full Body"], "World's greatest stretch, hip openers, thoracic rotations"),
+                tex("pph_fl_d4_4", "Diaphragmatic Breathing", 2, "3 min", 0, .recovery, ["Core", "Diaphragm"], "4s inhale, 6s exhale, feel ribs expand laterally"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_fl_d5", dayNumber: 5, variant: "A", title: "Power Performance",
+            category: .strength,
+            warmUp: [
+                tex("pph_fl_w7", "Dynamic Warm-Up Circuit", 2, "5 min", 30, .mobility, ["Full Body"], "A-skips, high knees, lateral shuffles"),
+                tex("pph_fl_w8", "Depth Drop to Stick", 3, "5", 45, .plyometric, ["Quads", "Calves"], "Step off box, absorb and freeze"),
+            ],
+            mainWork: [
+                tex("pph_fl_d5_1", "Push Press (Heavy)", 4, "5-6", 120, .strength, ["Shoulders", "Triceps", "Legs"], "Aggressive dip-drive, lock out overhead"),
+                tex("pph_fl_d5_2", "Power Clean", 4, "3-5", 120, .strength, ["Full Body"], "Triple extension, fast elbows under bar"),
+                tex("pph_fl_d5_3", "Rotational Medicine Ball Throw", 3, "8 each", 60, .plyometric, ["Core", "Obliques", "Hips"], "Max rotation, release at wall"),
+                tex("pph_fl_d5_4", "Depth Jump to Max Vertical", 4, "5", 120, .plyometric, ["Quads", "Calves", "Glutes"], "Step off box, minimize ground contact, max height"),
+                tex("pph_fl_d5_5", "Farmers Walk (Heavy)", 3, "45-60s", 90, .strength, ["Grip", "Core", "Traps"], "Heavy load, brisk pace, tall posture"),
+                tex("pph_fl_d5_6", "Anti-Rotation Core Circuit", 3, "1 round", 60, .strength, ["Core", "Obliques"], "Pallof press 10 each + plank shoulder taps 10 each + dead bug 10"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    // MARK: - PPH Elite Days
+
+    static let pphEliteDays: [TrainingDay] = [
+        TrainingDay(
+            id: "pph_e_d1", dayNumber: 1, variant: "A", title: "Max Push",
+            category: .strength,
+            warmUp: [
+                tex("pph_e_w1", "Shoulder CARs", 2, "8 each", 20, .mobility, ["Shoulders"], "Full range controlled articular rotations"),
+                tex("pph_e_w2", "Plyo Push-Ups", 3, "5", 30, .plyometric, ["Chest", "Triceps"], "Clap or hands off ground each rep"),
+            ],
+            mainWork: [
+                tex("pph_e_d1_1", "Barbell Bench Press (Max Effort)", 5, "3-5", 150, .strength, ["Chest", "Triceps", "Shoulders"], "Work to heavy 3-5 RM, spotter recommended"),
+                tex("pph_e_d1_2", "Dynamic Shoulder Press (Split to Stand, Loaded)", 4, "6 each", 90, .strength, ["Shoulders", "Core", "Legs"], "Heavier load, explosive transition to standing"),
+                tex("pph_e_d1_3", "Weighted Dips (Heavy)", 4, "5-6", 120, .strength, ["Triceps", "Chest", "Shoulders"], "Max load you can control for full range"),
+                tex("pph_e_d1_4", "Landmine Press", 3, "8 each", 75, .strength, ["Shoulders", "Core"], "Single arm, press at 45° angle"),
+                tex("pph_e_d1_5", "Split Stance Rotational Fly (Loaded)", 3, "8 each", 60, .strength, ["Chest", "Core", "Shoulders"], "Cable or heavy dumbbell, rotational emphasis"),
+                tex("pph_e_d1_6", "Reverse Fly (Band or Cable)", 3, "12", 45, .strength, ["Rear Deltoids", "Rhomboids"], "Constant tension, full squeeze"),
+                tex("pph_e_d1_7", "Lateral Raise 21s", 3, "21", 60, .strength, ["Lateral Deltoids"], "7 bottom half, 7 top half, 7 full range"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_e_d2", dayNumber: 2, variant: "A", title: "Max Pull",
+            category: .strength,
+            warmUp: [
+                tex("pph_e_w3", "Scapular Pull-Ups", 2, "10", 20, .strength, ["Scapulae", "Lats"], "Retract and depress scapulae from dead hang"),
+                tex("pph_e_w4", "Band Pull-Aparts (Various Angles)", 2, "15", 20, .strength, ["Rear Deltoids", "Rotator Cuff"], "Overhead, chest, and waist angles"),
+            ],
+            mainWork: [
+                tex("pph_e_d2_1", "Weighted Pull-Ups (Max Effort)", 5, "3-5", 150, .strength, ["Lats", "Biceps", "Core"], "Heavy load, full range, controlled 3s negative"),
+                tex("pph_e_d2_2", "Barbell Row (Heavy)", 4, "5-6", 120, .strength, ["Back", "Biceps", "Core"], "Strict form, pull to lower sternum"),
+                tex("pph_e_d2_3", "Meadows Row", 3, "8 each", 75, .strength, ["Lats", "Rear Deltoids"], "Landmine row, pull to hip, stretch at bottom"),
+                tex("pph_e_d2_4", "Face Pulls + External Rotation", 3, "15", 45, .strength, ["Rear Deltoids", "Rotator Cuff"], "High pull, hold external rotation 2s"),
+                tex("pph_e_d2_5", "Barbell Curl", 3, "8-10", 60, .strength, ["Biceps"], "Strict form, squeeze at top"),
+                tex("pph_e_d2_6", "Rear Delt Fly (Heavy)", 3, "10", 45, .strength, ["Rear Deltoids", "Upper Back"], "Max load with control"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_e_d3", dayNumber: 3, variant: "A", title: "Max Hinge",
+            category: .strength,
+            warmUp: [
+                tex("pph_e_w5", "Hip CARs", 2, "8 each", 20, .mobility, ["Hips"], "Full range controlled articular rotations"),
+                tex("pph_e_w6", "Broad Jump (Max Distance)", 3, "3", 60, .plyometric, ["Full Body"], "Full arm swing, max intent each rep"),
+            ],
+            mainWork: [
+                tex("pph_e_d3_1", "Deadlift (Max Effort)", 5, "3-5", 180, .strength, ["Hamstrings", "Glutes", "Back"], "Work to heavy 3-5 RM, perfect form non-negotiable"),
+                tex("pph_e_d3_2", "Kettlebell Swing (Heavy, Overspeed)", 4, "10", 90, .strength, ["Glutes", "Hamstrings", "Core"], "Banded or heavy KB, maximum hip snap"),
+                tex("pph_e_d3_3", "Single-Leg RDL (Heavy)", 4, "6 each", 90, .strength, ["Hamstrings", "Glutes", "Core"], "Loaded with DB or KB, max range"),
+                tex("pph_e_d3_4", "Barbell Hip Thrust (Heavy)", 4, "6-8", 90, .strength, ["Glutes", "Hamstrings"], "Heavy barbell, 3s hold at top"),
+                tex("pph_e_d3_5", "Nordic Hamstring Curl", 4, "5-8", 90, .strength, ["Hamstrings"], "Full eccentric control, push back to reset"),
+                tex("pph_e_d3_6", "Ab Wheel Rollout", 3, "8-10", 60, .strength, ["Core"], "Full extension, brace hard, slow return"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_e_d4", dayNumber: 4, variant: "A", title: "Neural Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("pph_e_d4_1", "Zone 2 Cardio", 1, "25-30 min", 0, .recovery, ["Full Body"], "Light jog, cycle, or swim — stay conversational"),
+                tex("pph_e_d4_2", "Contrast Shower Protocol", 1, "10 min", 0, .recovery, ["Full Body"], "2 min hot / 30s cold × 3-4 rounds"),
+                tex("pph_e_d4_3", "Foam Rolling + Lacrosse Ball", 2, "10 min", 0, .recovery, ["Full Body"], "Deep tissue focus on quads, glutes, lats, thoracic"),
+                tex("pph_e_d4_4", "Diaphragmatic Breathing + Visualization", 2, "5 min", 0, .recovery, ["Core", "Diaphragm"], "Box breathing 4-4-4-4, visualize next session"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "pph_e_d5", dayNumber: 5, variant: "A", title: "Elite Performance",
+            category: .maxIntent,
+            warmUp: [
+                tex("pph_e_w7", "Full CNS Warm-Up", 2, "8 min", 60, .mobility, ["Full Body"], "A-skips, sprints, jumps — build to max intent"),
+                tex("pph_e_w8", "Depth Drop to Max Vertical", 3, "3", 60, .plyometric, ["Full Body"], "Step off box, minimize ground contact, explode up"),
+            ],
+            mainWork: [
+                tex("pph_e_d5_1", "Push Press (Max Effort)", 5, "3-5", 150, .strength, ["Shoulders", "Triceps", "Legs"], "Work to heavy 3-5 RM, aggressive leg drive"),
+                tex("pph_e_d5_2", "Power Clean (Max Effort)", 5, "2-3", 150, .strength, ["Full Body"], "Max load with clean technique"),
+                tex("pph_e_d5_3", "Rotational Med Ball Slam (Max Intent)", 4, "6 each", 90, .plyometric, ["Core", "Obliques", "Hips"], "Maximum rotational velocity"),
+                tex("pph_e_d5_4", "Depth Jump to Max Vertical", 4, "5", 120, .plyometric, ["Full Body"], "Higher box, max reactive output"),
+                tex("pph_e_d5_5", "Heavy Farmers Walk", 3, "60s", 90, .strength, ["Grip", "Core", "Traps"], "Max load you can maintain posture with"),
+                tex("pph_e_d5_6", "Advanced Core Circuit", 3, "1 round", 90, .strength, ["Core", "Obliques"], "Dragon flags 5 + L-sit 15s + pallof press 10 each"),
+            ],
+            isGated: true, isCompleted: false
         ),
     ]
 }

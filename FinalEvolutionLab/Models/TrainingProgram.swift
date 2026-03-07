@@ -5,6 +5,7 @@ nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identif
     case movementEducation = "Movement Education"
     case pjfBand = "PJF Band"
     case totalBodyBoard = "Total Body Board"
+    case pushPullHinge = "Push-Pull-Hinge"
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identif
         case .movementEducation: "figure.walk"
         case .pjfBand: "circle.circle"
         case .totalBodyBoard: "rectangle.split.2x2"
+        case .pushPullHinge: "arrow.up.arrow.down.circle"
         }
     }
 
@@ -25,6 +27,7 @@ nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identif
         case .movementEducation: "Sensory education, pressure & rotation"
         case .pjfBand: "Band-focused mobility, power & agility"
         case .totalBodyBoard: "Board-based stability & strength"
+        case .pushPullHinge: "Push, pull & hinge performance training"
         }
     }
 }
