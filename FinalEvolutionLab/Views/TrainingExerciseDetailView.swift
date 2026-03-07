@@ -302,7 +302,7 @@ struct TrainingExerciseDetailView: View {
                 .foregroundStyle(.white)
             Text(label)
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(AnyShapeStyle(.tertiary))
                 .tracking(1)
         }
         .frame(maxWidth: .infinity)
