@@ -49,15 +49,15 @@ final class UnityManager {
         let instance = principalClass.perform(NSSelectorFromString("getInstance"))?.takeUnretainedValue() as? NSObject
         unityFramework = instance
 
-        instance?.perform(NSSelectorFromString("setDataBundleId:"), with: "com.unity3d.framework")
-        instance?.perform(NSSelectorFromString("runEmbeddedWithArgc:argv:appLaunchOpts:"), with: nil, with: nil, with: nil)
+        _ = instance?.perform(NSSelectorFromString("setDataBundleId:"), with: "com.unity3d.framework")
+        _ = instance?.perform(NSSelectorFromString("runEmbedded"))
 
         isUnityLoaded = true
     }
 
     private func unloadUnity() {
         guard isUnityLoaded else { return }
-        unityFramework?.perform(NSSelectorFromString("unloadApplication"))
+        _ = unityFramework?.perform(NSSelectorFromString("unloadApplication"))
         unityFramework = nil
         isUnityLoaded = false
     }
@@ -71,12 +71,12 @@ final class UnityManager {
 
     func sendMessageToGO(_ gameObject: String, method: String, message: String) {
         guard isUnityLoaded, let fw = unityFramework as? NSObject else { return }
-        fw.perform(
-            NSSelectorFromString("sendMessageToGOWithName:functionName:message:"),
-            with: gameObject,
-            with: method,
-            with: message
-        )
+        let selector = NSSelectorFromString("sendMessageToGOWithName:functionName:message:")
+        guard fw.responds(to: selector) else { return }
+        let imp = fw.method(for: selector)
+        typealias SendFunc = @convention(c) (AnyObject, Selector, String, String, String) -> Void
+        let function = unsafeBitCast(imp, to: SendFunc.self)
+        function(fw, selector, gameObject, method, message)
     }
 
     func sendDataToUnity(data: String) {

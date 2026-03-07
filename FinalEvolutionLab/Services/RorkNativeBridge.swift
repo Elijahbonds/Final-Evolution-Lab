@@ -15,7 +15,7 @@ import Foundation
 nonisolated enum RorkNativeBridge: Sendable {
     static func postScore(_ score: Int) {
         NotificationCenter.default.post(
-            name: RorkScoreManager.scoreUpdatedNotification,
+            name: NSNotification.Name("RorkScoreUpdated"),
             object: nil,
             userInfo: ["score": score]
         )

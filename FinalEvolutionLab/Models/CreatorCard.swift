@@ -70,7 +70,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
             description: "Advanced flight mechanics data. +10 PRQ, +18 Vertical, +15 Neural Drive.",
             costShards: 600,
             iconName: "airplane.departure",
-            accentColor: Theme.brandCyan,
+            accentColor: Color(red: 0, green: 0.95, blue: 0.9),
             metricsBoost: PerformanceMetrics(
                 efficiencyScore: 5,
                 prqScore: 10,
@@ -85,7 +85,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 hangTimeFactor: 1.8,
                 firstStepBurst: 1.1,
                 limbEmission: 0.7,
-                trailColor: Theme.brandCyan
+                trailColor: Color(red: 0, green: 0.95, blue: 0.9)
             )
         ),
         CreatorCard(
@@ -95,7 +95,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
             description: "Peak CNS recruitment protocols. +8 PRQ, +12 Vertical, +25 Neural Drive.",
             costShards: 400,
             iconName: "brain.head.profile.fill",
-            accentColor: Theme.elitePurple,
+            accentColor: Color(red: 0.6, green: 0.2, blue: 1.0),
             metricsBoost: PerformanceMetrics(
                 efficiencyScore: 5,
                 prqScore: 8,
@@ -110,7 +110,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 hangTimeFactor: 1.2,
                 firstStepBurst: 1.5,
                 limbEmission: 0.9,
-                trailColor: Theme.elitePurple
+                trailColor: Color(red: 0.6, green: 0.2, blue: 1.0)
             )
         ),
     ]
