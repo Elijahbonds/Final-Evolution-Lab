@@ -51,12 +51,18 @@ struct CreatorCardBoostView: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 12) {
                     ForEach(CreatorCard.catalog) { card in
+                        let isOwned = viewModel.profile.ownsCard(card.id)
                         CreatorCardCell(
                             card: card,
                             isActive: activeCard?.cardId == card.id,
-                            canAfford: viewModel.profile.evolutionShards >= card.costShards
+                            isOwned: isOwned,
+                            canAfford: isOwned || viewModel.profile.evolutionShards >= card.costShards
                         ) {
                             if activeCard?.cardId == card.id { return }
+                            if isOwned {
+                                viewModel.applyCreatorCard(card)
+                                return
+                            }
                             if viewModel.profile.evolutionShards < card.costShards {
                                 showInsufficientShards = true
                                 return
@@ -161,6 +167,7 @@ struct ActiveCardBanner: View {
 struct CreatorCardCell: View {
     let card: CreatorCard
     let isActive: Bool
+    var isOwned: Bool = false
     let canAfford: Bool
     let onTap: () -> Void
 
@@ -211,13 +218,13 @@ struct CreatorCardCell: View {
                 Spacer(minLength: 0)
 
                 HStack(spacing: 4) {
-                    Image(systemName: "diamond.fill")
+                    Image(systemName: isOwned ? "checkmark.seal.fill" : "diamond.fill")
                         .font(.system(size: 9))
-                        .foregroundStyle(Theme.brandCyan)
+                        .foregroundStyle(isOwned ? .green : Theme.brandCyan)
 
-                    Text(isActive ? "OWNED" : "\(card.costShards)")
+                    Text(isActive ? "EQUIPPED" : (isOwned ? "OWNED" : "\(card.costShards)"))
                         .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(isActive ? .green : (canAfford ? .white : .red))
+                        .foregroundStyle(isActive ? .green : (isOwned ? .green.opacity(0.8) : (canAfford ? .white : .red)))
                 }
             }
             .padding(14)
@@ -233,5 +240,6 @@ struct CreatorCardCell: View {
         }
         .buttonStyle(.plain)
         .disabled(isActive)
+        .opacity(isActive ? 0.85 : 1.0)
     }
 }

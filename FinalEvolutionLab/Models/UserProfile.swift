@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct UserProfile: Codable, Sendable, Identifiable {
+nonisolated struct UserProfile: Sendable, Identifiable {
     var id: String
     var displayName: String
     var athleteTag: String
@@ -18,6 +18,34 @@ nonisolated struct UserProfile: Codable, Sendable, Identifiable {
     var hasCompletedOnboarding: Bool
     var systemScan: SystemScanResult?
     var activeCreatorCard: CreatorCardState?
+    var ownedCardIds: [String]
+
+    func ownsCard(_ cardId: String) -> Bool {
+        ownedCardIds.contains(cardId)
+    }
+}
+
+extension UserProfile: Codable {
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        athleteTag = try container.decode(String.self, forKey: .athleteTag)
+        metrics = try container.decode(PerformanceMetrics.self, forKey: .metrics)
+        evolutionShards = try container.decode(Int.self, forKey: .evolutionShards)
+        totalWorkouts = try container.decode(Int.self, forKey: .totalWorkouts)
+        streakDays = try container.decode(Int.self, forKey: .streakDays)
+        joinDate = try container.decode(Date.self, forKey: .joinDate)
+        avatarSystemName = try container.decode(String.self, forKey: .avatarSystemName)
+        blueprintCredits = try container.decode(Int.self, forKey: .blueprintCredits)
+        sport = try container.decodeIfPresent(String.self, forKey: .sport)
+        age = try container.decodeIfPresent(Int.self, forKey: .age)
+        goal = try container.decodeIfPresent(String.self, forKey: .goal)
+        hasCompletedOnboarding = (try? container.decode(Bool.self, forKey: .hasCompletedOnboarding)) ?? false
+        systemScan = try container.decodeIfPresent(SystemScanResult.self, forKey: .systemScan)
+        activeCreatorCard = try container.decodeIfPresent(CreatorCardState.self, forKey: .activeCreatorCard)
+        ownedCardIds = (try? container.decode([String].self, forKey: .ownedCardIds)) ?? []
+    }
 
     static let guest = UserProfile(
         id: "guest_\(Int.random(in: 1000...9999))",
@@ -35,7 +63,8 @@ nonisolated struct UserProfile: Codable, Sendable, Identifiable {
         goal: nil,
         hasCompletedOnboarding: false,
         systemScan: nil,
-        activeCreatorCard: nil
+        activeCreatorCard: nil,
+        ownedCardIds: []
     )
 }
 

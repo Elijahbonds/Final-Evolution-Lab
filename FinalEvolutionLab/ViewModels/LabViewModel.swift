@@ -213,8 +213,12 @@ class LabViewModel {
     }
 
     func applyCreatorCard(_ card: CreatorCard) {
-        guard profile.evolutionShards >= card.costShards else { return }
-        profile.evolutionShards -= card.costShards
+        let alreadyOwned = profile.ownsCard(card.id)
+        if !alreadyOwned {
+            guard profile.evolutionShards >= card.costShards else { return }
+            profile.evolutionShards -= card.costShards
+            profile.ownedCardIds.append(card.id)
+        }
         profile.activeCreatorCard = CreatorCardState(
             cardId: card.id,
             creatorName: card.creatorName,

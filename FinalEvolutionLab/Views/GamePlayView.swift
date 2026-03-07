@@ -1,5 +1,6 @@
 import SwiftUI
 import SceneKit
+import UIKit
 
 struct GamePlayView: View {
     let viewModel: LabViewModel
@@ -101,14 +102,14 @@ struct GamePlayView: View {
 
     private var arcadePhysics: ArcadePhysics {
         ArcadePhysics.fromPRQ(
-            viewModel.profile.metrics.prqScore,
-            neuralDrive: sessionReadiness,
+            viewModel.effectiveMetrics.prqScore,
+            neuralDrive: viewModel.effectiveMetrics.neuralDrive,
             audit: viewModel.biomechanicsAudit
         )
     }
 
     private var physicsConfig: GamePhysicsConfig {
-        GamePhysicsConfig.forMode(gameMode.id, prq: viewModel.profile.metrics.prqScore, audit: viewModel.biomechanicsAudit)
+        GamePhysicsConfig.forMode(gameMode.id, prq: viewModel.effectiveMetrics.prqScore, audit: viewModel.biomechanicsAudit)
     }
 
     private var isTimerBased: Bool {
@@ -292,15 +293,6 @@ struct GamePlayView: View {
                         gameReady = true
                         startGame()
                     }
-                )
-            }
-
-            if isActive && inputScheme == .charge && !isDunkContest {
-                PS2GamepadOverlay(
-                    onFaceButton: { button in handlePS2FaceButton(button) },
-                    onDPad: { direction in handlePS2DPad(direction) },
-                    accentColor: gameMode.accentColor,
-                    isActive: isActive
                 )
             }
 
@@ -785,10 +777,8 @@ struct GamePlayView: View {
             case .charge:
                 if isDunkContest {
                     dunkContestActionButtons
-                } else if !isActive {
-                    ps2ActionButtons
                 } else {
-                    chargeModeLiveHint
+                    ps2ActionButtons
                 }
             case .swipe:
                 swipeHintView
@@ -806,7 +796,7 @@ struct GamePlayView: View {
                 gymnasticsControlView
             }
 
-            if !isActive && !showResults {
+            if !isActive && !showResults && gameReady {
                 Button {
                     startGame()
                 } label: {
@@ -820,7 +810,7 @@ struct GamePlayView: View {
                 }
             }
 
-            if !isActive && !showResults {
+            if !isActive && !showResults && gameReady {
                 HStack(spacing: 16) {
                     Button {
                         multipeerService.startHosting(gameId: gameMode.id.rawValue)
@@ -852,31 +842,7 @@ struct GamePlayView: View {
         .background(Theme.cardBackground.opacity(0.9))
     }
 
-    private var chargeModeLiveHint: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "gamecontroller.fill")
-                .font(.system(size: 18))
-                .foregroundStyle(gameMode.accentColor)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("USE CONTROLLER")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                Text("\u{25B3} Shoot \u{25A1} Drive \u{25CB} Style \u{2715} Jump")
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(gameMode.accentColor.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(gameMode.accentColor.opacity(0.15), lineWidth: 1)
-                )
-        )
-    }
+
 
     // MARK: - Swipe Hint (Baseball / Soccer)
 
@@ -2296,7 +2262,7 @@ struct GamePlayView: View {
 
             triggerImpactFlash()
             resetStreakTimer()
-
+            hapticSuccess(isCritical: isCritical)
 
         } else {
             withAnimation(.spring(response: 0.3)) {
@@ -2310,6 +2276,7 @@ struct GamePlayView: View {
                 lastActionIsCritical = false
                 lastActionIsBurst = false
             }
+            hapticFail()
         }
 
         let dda = prqDDA
@@ -2878,7 +2845,7 @@ struct GamePlayView: View {
                 try? await Task.sleep(for: .milliseconds(40))
                 guard !Task.isCancelled, isActive else { return }
                 withAnimation(.linear(duration: 0.04)) {
-                    runMeter = min(100, runMeter + 2.0)
+                    runMeter = min(100, runMeter + 1.0)
                 }
             }
             guard !Task.isCancelled, isActive else { return }
@@ -3396,7 +3363,17 @@ struct GamePlayView: View {
     }
 
     private var prqDDA: PRQDrivenDDA {
-        PRQDrivenDDA(playerPRQ: playerPRQ, neuralDrive: sessionReadiness, mode: gameMode.id)
+        PRQDrivenDDA(playerPRQ: playerPRQ, neuralDrive: viewModel.effectiveMetrics.neuralDrive, mode: gameMode.id)
+    }
+
+    private func hapticSuccess(isCritical: Bool) {
+        let generator = UIImpactFeedbackGenerator(style: isCritical ? .heavy : .medium)
+        generator.impactOccurred()
+    }
+
+    private func hapticFail() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.error)
     }
 
     // MARK: - PS2 Controller Handlers
@@ -3425,8 +3402,10 @@ struct GamePlayView: View {
         case .cross:
             if isKarate {
                 handleBlock()
+            } else if actionsForMode.count > 2 {
+                performAction(actionsForMode[2])
             } else {
-                performAction(actionsForMode.first ?? "Jump")
+                performAction(actionsForMode.last ?? "Action")
             }
         }
     }
