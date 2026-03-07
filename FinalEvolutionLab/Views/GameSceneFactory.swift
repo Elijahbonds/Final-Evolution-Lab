@@ -1969,4 +1969,119 @@ struct GameSceneFactory {
         ])
         flash.runAction(SCNAction.sequence([expand, SCNAction.removeFromParentNode()]))
     }
+
+    static func triggerScoreEffect(in scene: SCNScene, at position: SCNVector3, color: UIColor, isCritical: Bool) {
+        let burstCount: CGFloat = isCritical ? 50 : 20
+        let emitter = SCNNode()
+        let particles = SCNParticleSystem()
+        particles.birthRate = burstCount
+        particles.particleLifeSpan = isCritical ? 1.0 : 0.6
+        particles.particleSize = isCritical ? 0.025 : 0.015
+        particles.particleSizeVariation = 0.01
+        particles.particleColor = color
+        particles.emitterShape = SCNSphere(radius: 0.15)
+        particles.spreadingAngle = 180
+        particles.particleVelocity = isCritical ? 3.0 : 1.5
+        particles.particleVelocityVariation = 0.5
+        particles.blendMode = .additive
+        particles.loops = false
+        particles.emissionDuration = 0.1
+        emitter.addParticleSystem(particles)
+        emitter.position = position
+        scene.rootNode.addChildNode(emitter)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            emitter.removeFromParentNode()
+        }
+
+        if isCritical {
+            triggerImpactRing(in: scene, at: position, color: color)
+        }
+    }
+
+    static func triggerAvatarJump(in scene: SCNScene, avatarName: String, height: Float, duration: Double) {
+        guard let avatar = scene.rootNode.childNode(withName: avatarName, recursively: true) else { return }
+        let originalY = avatar.position.y
+
+        let jumpUp = SCNAction.moveBy(x: 0, y: CGFloat(height), z: 0, duration: duration * 0.4)
+        jumpUp.timingMode = .easeOut
+        let hangTime = SCNAction.wait(duration: duration * 0.2)
+        let fallDown = SCNAction.move(to: SCNVector3(avatar.position.x, originalY, avatar.position.z), duration: duration * 0.3)
+        fallDown.timingMode = .easeIn
+        let land = SCNAction.sequence([
+            SCNAction.customAction(duration: 0.06) { node, _ in
+                node.scale = SCNVector3(1.08, 0.92, 1.08)
+            },
+            SCNAction.customAction(duration: 0.1) { node, elapsed in
+                let t = Float(elapsed / 0.1)
+                node.scale = SCNVector3(1.08 - t * 0.08, 0.92 + t * 0.08, 1.08 - t * 0.08)
+            }
+        ])
+
+        avatar.runAction(SCNAction.sequence([jumpUp, hangTime, fallDown, land]), forKey: "jump")
+    }
+
+    static func triggerAvatarAttack(in scene: SCNScene, avatarName: String, direction: SCNVector3, intensity: Float) {
+        guard let avatar = scene.rootNode.childNode(withName: avatarName, recursively: true) else { return }
+
+        let lunge = SCNAction.moveBy(
+            x: CGFloat(direction.x * intensity * 0.3),
+            y: 0,
+            z: CGFloat(direction.z * intensity * 0.3),
+            duration: 0.08
+        )
+        lunge.timingMode = .easeOut
+        let recover = SCNAction.moveBy(
+            x: CGFloat(-direction.x * intensity * 0.3),
+            y: 0,
+            z: CGFloat(-direction.z * intensity * 0.3),
+            duration: 0.15
+        )
+        recover.timingMode = .easeInEaseOut
+
+        avatar.runAction(SCNAction.sequence([lunge, recover]), forKey: "attack")
+
+        if let rArm = avatar.childNode(withName: "rArm", recursively: false) {
+            let strike = SCNAction.sequence([
+                SCNAction.rotateTo(x: CGFloat(-2.0 * Double(intensity)), y: 0, z: -0.4, duration: 0.06),
+                SCNAction.rotateTo(x: CGFloat(0.8 * Double(intensity)), y: 0, z: -0.4, duration: 0.05),
+                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.12)
+            ])
+            rArm.runAction(strike, forKey: "strikeArm")
+        }
+    }
+
+    static func triggerFloorImpact(in scene: SCNScene, at position: SCNVector3, intensity: Float) {
+        let shockwave = SCNNode()
+        let ring = SCNCylinder(radius: 0.01, height: 0.005)
+        let mat = SCNMaterial()
+        mat.diffuse.contents = UIColor.white.withAlphaComponent(0.3)
+        mat.emission.contents = UIColor.white.withAlphaComponent(0.2)
+        ring.materials = [mat]
+        shockwave.geometry = ring
+        shockwave.position = SCNVector3(position.x, 0.03, position.z)
+        scene.rootNode.addChildNode(shockwave)
+
+        let expand = SCNAction.group([
+            SCNAction.scale(to: CGFloat(80 * intensity), duration: 0.4),
+            SCNAction.fadeOut(duration: 0.4)
+        ])
+        shockwave.runAction(SCNAction.sequence([expand, SCNAction.removeFromParentNode()]))
+    }
+
+    static func triggerCameraShake(in scene: SCNScene, intensity: Float, duration: Double) {
+        guard let camera = scene.rootNode.childNode(withName: "mainCamera", recursively: true) else { return }
+        let originalPos = camera.position
+
+        let shakeCount = Int(duration / 0.04)
+        var actions: [SCNAction] = []
+        for i in 0..<shakeCount {
+            let decay = Float(1.0 - Double(i) / Double(shakeCount))
+            let dx = Float.random(in: -intensity...intensity) * decay
+            let dy = Float.random(in: -intensity * 0.5...intensity * 0.5) * decay
+            actions.append(SCNAction.moveBy(x: CGFloat(dx), y: CGFloat(dy), z: 0, duration: 0.04))
+        }
+        actions.append(SCNAction.move(to: originalPos, duration: 0.08))
+        camera.runAction(SCNAction.sequence(actions), forKey: "cameraShake")
+    }
 }

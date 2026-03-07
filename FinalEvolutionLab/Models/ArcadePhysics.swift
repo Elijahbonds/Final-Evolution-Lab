@@ -213,24 +213,24 @@ nonisolated struct GamePhysicsConfig: Sendable {
 
     static func forMode(_ mode: GameModeId, prq: Double, audit: BiomechanicsAudit? = nil) -> GamePhysicsConfig {
         let normalized = Float(min(max(prq / 100.0, 0), 1))
-        let auditBonus: Float = audit?.isPrimed == true ? 0.15 : 0
+        let auditBonus: Float = audit?.isPrimed == true ? 0.12 : 0
 
         switch mode {
         case .basketballHeadToHead, .basketballDunkContest, .basketball3v3:
             return GamePhysicsConfig(
-                jumpHeight: 1.5 + (normalized + auditBonus) * 2.5,
-                moveSpeed: 0.6 + (normalized + auditBonus) * 0.8,
+                jumpHeight: 1.8 + (normalized + auditBonus) * 2.2,
+                moveSpeed: 0.65 + (normalized + auditBonus) * 0.75,
                 impactIntensity: 0.5 + normalized * 0.5,
                 floorShakeAmplitude: 0.02 + normalized * 0.04,
-                particleTrailDensity: 10 + normalized * 30
+                particleTrailDensity: 12 + normalized * 28
             )
         case .karate:
             return GamePhysicsConfig(
-                jumpHeight: 0.8 + normalized * 1.2,
-                moveSpeed: 0.7 + (normalized + auditBonus) * 0.9,
-                impactIntensity: 0.6 + normalized * 0.6,
-                floorShakeAmplitude: 0.01 + normalized * 0.02,
-                particleTrailDensity: 8 + normalized * 20
+                jumpHeight: 0.9 + normalized * 1.1,
+                moveSpeed: 0.75 + (normalized + auditBonus) * 0.85,
+                impactIntensity: 0.65 + normalized * 0.55,
+                floorShakeAmplitude: 0.015 + normalized * 0.025,
+                particleTrailDensity: 10 + normalized * 22
             )
         case .baseball:
             return GamePhysicsConfig(

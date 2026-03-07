@@ -14,9 +14,9 @@ nonisolated struct DynamicDifficulty: Sendable {
 
     static func opponentSuccessChance(baseChance: Double, playerScore: Int, aiScore: Int, sessionReadiness: Double, playerPRQ: Double = PRQ.default) -> Double {
         let dda = aggression(playerScore: playerScore, aiScore: aiScore)
-        let readinessModifier = 1.0 - (sessionReadiness / 400.0)
-        let prqPressure = 1.0 - (min(max(playerPRQ, 0), 100) / 500.0)
-        return min(0.85, baseChance * dda * readinessModifier * prqPressure)
+        let readinessModifier = 1.0 - (sessionReadiness / 350.0)
+        let prqPressure = 1.0 - (min(max(playerPRQ, 0), 100) / 400.0)
+        return min(0.80, baseChance * dda * readinessModifier * prqPressure)
     }
 
     static func opponentPoints(playerScore: Int, aiScore: Int, maxPoints: Int = 3) -> Int {

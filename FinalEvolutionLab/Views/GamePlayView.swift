@@ -360,7 +360,15 @@ struct GamePlayView: View {
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear { }
-        .onDisappear { multipeerService.stop() }
+        .onDisappear {
+            multipeerService.stop()
+            gameTimerTask?.cancel()
+            streakTimer?.cancel()
+            dunkTimerTask?.cancel()
+            slowMoTimer?.cancel()
+            timeScaleUpdateTask?.cancel()
+            runMeterTimer?.cancel()
+        }
     }
 
     // MARK: - HUD Bar
@@ -2211,12 +2219,18 @@ struct GamePlayView: View {
         startGame()
     }
 
+    @State private var gameTimerTask: Task<Void, Never>?
+
     private func startTimer() {
-        Task {
-            while isActive && timeRemaining > 0 {
+        gameTimerTask?.cancel()
+        gameTimerTask = Task {
+            while !Task.isCancelled && isActive && timeRemaining > 0 {
                 try? await Task.sleep(for: .seconds(1))
-                guard isActive else { return }
-                withAnimation { timeRemaining -= 1 }
+                guard !Task.isCancelled, isActive else { return }
+                withAnimation(.spring(response: 0.2)) { timeRemaining -= 1 }
+                if timeRemaining <= 10 && timeRemaining > 0 {
+                    triggerScreenShake(intensity: 0.1)
+                }
                 if timeRemaining <= 0 {
                     endGame()
                 }
@@ -2311,7 +2325,8 @@ struct GamePlayView: View {
             let aiDelay = dda.aiReactionSpeed(playerScore: score, aiScore: opponentScore)
             Task {
                 try? await Task.sleep(for: .seconds(aiDelay))
-                withAnimation {
+                guard isActive else { return }
+                withAnimation(.spring(response: 0.25)) {
                     opponentScore += DynamicDifficulty.opponentPoints(
                         playerScore: score,
                         aiScore: opponentScore,
@@ -2337,6 +2352,7 @@ struct GamePlayView: View {
         let clearDelay: Double = isKarate ? 1.5 : 2.0
         Task {
             try? await Task.sleep(for: .seconds(clearDelay))
+            guard isActive else { return }
             withAnimation { lastAction = "" }
         }
     }
@@ -2518,6 +2534,7 @@ struct GamePlayView: View {
 
         Task {
             try? await Task.sleep(for: .seconds(4.0))
+            guard isActive else { return }
             withAnimation(.easeOut(duration: 0.3)) {
                 lastJudgeScores = nil
                 crowdMessage = ""
@@ -2525,6 +2542,19 @@ struct GamePlayView: View {
                 lastTrickName = ""
                 lastAction = ""
             }
+
+            try? await Task.sleep(for: .seconds(0.5))
+            guard isActive else { return }
+            simulateAIDunk()
+
+            try? await Task.sleep(for: .seconds(3.5))
+            guard isActive else { return }
+            withAnimation(.easeOut(duration: 0.3)) {
+                lastJudgeScores = nil
+                crowdMessage = ""
+                lastAction = ""
+            }
+
             withAnimation(.spring(response: 0.3)) {
                 dunkEngine.advanceRound()
                 dunkRound = dunkEngine.round
@@ -2533,6 +2563,40 @@ struct GamePlayView: View {
                 endGame()
             }
         }
+    }
+
+    private func simulateAIDunk() {
+        let aiPRQ = 50.0 + Double.random(in: 0...30)
+        let aiNormalized = aiPRQ / 100.0
+        let dda = prqDDA
+        let aggression = dda.scaledAggression(playerScore: score, aiScore: opponentScore)
+
+        let aiHeight = Double.random(in: 0.4...0.85) * aggression
+        let aiExecution = Double.random(in: 0.5...0.9) * aggression
+        let aiTrick = Double.random(in: 0.5...0.8)
+
+        let rawScore = (aiHeight * 20 + aiTrick * 25 + aiExecution * 20 + 15) * (0.85 + aiNormalized * 0.15)
+        let base = min(50, Int(rawScore / 3.0) + 28)
+        let spread = max(1, 4)
+        let j1 = min(50, base + Int.random(in: 0..<spread))
+        let j2 = min(50, base + Int.random(in: 0..<spread))
+        let j3 = min(50, base + Int.random(in: 0..<spread))
+        let total = j1 + j2 + j3
+
+        let message: String
+        if total >= 140 { message = "AI: LEGENDARY!" }
+        else if total >= 130 { message = "AI: ELECTRIFYING!" }
+        else if total >= 120 { message = "AI: POWERFUL!" }
+        else if total >= 110 { message = "AI: SOLID DUNK" }
+        else { message = "AI: NEEDS WORK" }
+
+        withAnimation(.spring(response: 0.3)) {
+            opponentScore += total
+            lastJudgeScores = (j1, j2, j3)
+            crowdMessage = message
+            lastAction = "OPPONENT: +\(total)"
+        }
+        triggerScreenShake(intensity: 0.3)
     }
 
 
@@ -2628,8 +2692,26 @@ struct GamePlayView: View {
     }
 
     private func endGame() {
+        guard isActive else { return }
         runMeterTimer?.cancel()
         runMeterTimer = nil
+        streakTimer?.cancel()
+        streakTimer = nil
+        dunkTimerTask?.cancel()
+        dunkTimerTask = nil
+        slowMoTimer?.cancel()
+        slowMoTimer = nil
+        timeScaleUpdateTask?.cancel()
+        timeScaleUpdateTask = nil
+        gameTimerTask?.cancel()
+        gameTimerTask = nil
+        isSlowMo = false
+        showTrickText = false
+        showComboChain = false
+        showContestPill = false
+        showPerfectGuard = false
+        showVanishFlash = false
+        showQTEGrade = false
         withAnimation(.spring(response: 0.4)) {
             isActive = false
             showResults = true
@@ -2691,7 +2773,8 @@ struct GamePlayView: View {
             if gameMode.id == .football {
                 Task {
                     try? await Task.sleep(for: .milliseconds(500))
-                    withAnimation { opponentScore += 1 }
+                    guard isActive else { return }
+                    withAnimation(.spring(response: 0.25)) { opponentScore += 1 }
                     endGame()
                 }
                 return
@@ -2707,14 +2790,17 @@ struct GamePlayView: View {
                 playerPRQ: playerPRQ
             )
             if Double.random(in: 0...1) < ddaChance {
+                let aiDelay = Double.random(in: 0.4...0.8)
                 Task {
-                    try? await Task.sleep(for: .milliseconds(500))
-                    withAnimation {
-                        opponentScore += DynamicDifficulty.opponentPoints(
-                            playerScore: score,
-                            aiScore: opponentScore,
-                            maxPoints: DynamicDifficulty.prqScaledOpponentMaxPoints(playerPRQ: playerPRQ, mode: gameMode.id, maxPoints: 2)
-                        )
+                    try? await Task.sleep(for: .seconds(aiDelay))
+                    guard isActive else { return }
+                    let aiPoints = DynamicDifficulty.opponentPoints(
+                        playerScore: score,
+                        aiScore: opponentScore,
+                        maxPoints: DynamicDifficulty.prqScaledOpponentMaxPoints(playerPRQ: playerPRQ, mode: gameMode.id, maxPoints: 2)
+                    )
+                    withAnimation(.spring(response: 0.25)) {
+                        opponentScore += aiPoints
                     }
                 }
             }
@@ -2731,6 +2817,7 @@ struct GamePlayView: View {
 
         Task {
             try? await Task.sleep(for: .seconds(1.5))
+            guard isActive else { return }
             withAnimation { lastAction = "" }
         }
     }
@@ -2743,14 +2830,20 @@ struct GamePlayView: View {
 
     private func handleGolfRelease(_ finalCharge: Double) {
         guard isActive else { return }
-        applyOutcomeFromCharge(finalCharge)
+        let sweetSpot = abs(finalCharge - 0.65)
+        let qualityBonus = sweetSpot < 0.1 ? 0.15 : 0
+        applyOutcomeFromCharge(min(0.95, finalCharge + qualityBonus))
     }
 
     private func handleVolleyballSpike() {
         guard isActive else { return }
         let centerBias = 1.0 - abs(aimPosition.x - 0.5) * 1.2 - abs(aimPosition.y - 0.5) * 0.8
-        let charge = max(0.2, min(0.9, 0.35 + centerBias * 0.4))
+        let timingBonus = Double.random(in: 0...0.1)
+        let charge = max(0.2, min(0.9, 0.35 + centerBias * 0.4 + timingBonus))
         applyOutcomeFromCharge(charge)
+        withAnimation(.spring(response: 0.15)) {
+            aimPosition = CGPoint(x: 0.5, y: 0.5)
+        }
     }
 
     private func handleCatchTap() {
@@ -2758,36 +2851,35 @@ struct GamePlayView: View {
         withAnimation(.spring(response: 0.2)) {
             footballPhase = .run
             runMeter = 0
+            lastAction = "CAUGHT! TAP IN THE GREEN ZONE!"
         }
         runMeterTimer = Task {
             while !Task.isCancelled && runMeter < 100 {
                 try? await Task.sleep(for: .milliseconds(40))
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, isActive else { return }
                 withAnimation(.linear(duration: 0.04)) {
                     runMeter = min(100, runMeter + 2.4)
                 }
             }
-            if !Task.isCancelled {
-                withAnimation(.spring(response: 0.2)) {
-                    footballPhase = .catch
-                    lastAction = "TACKLED!"
-                    lastActionIsCritical = false
-                    lastActionIsBurst = false
-                    combo = 0
-                    runMeter = 0
-                }
-                triggerScreenShake(intensity: 0.4)
-                Task {
-                    try? await Task.sleep(for: .milliseconds(500))
-                    withAnimation { opponentScore += 1 }
-                    try? await Task.sleep(for: .seconds(1.0))
-                    withAnimation { lastAction = "" }
-                    if roundNumber >= maxRounds {
-                        endGame()
-                    } else {
-                        withAnimation { roundNumber += 1 }
-                    }
-                }
+            guard !Task.isCancelled, isActive else { return }
+            withAnimation(.spring(response: 0.2)) {
+                footballPhase = .catch
+                lastAction = "TACKLED!"
+                lastActionIsCritical = false
+                lastActionIsBurst = false
+                combo = 0
+                runMeter = 0
+            }
+            triggerScreenShake(intensity: 0.6)
+            triggerImpactFlash()
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard isActive else { return }
+                withAnimation(.spring(response: 0.25)) { opponentScore += 1 }
+                try? await Task.sleep(for: .seconds(1.0))
+                guard isActive else { return }
+                withAnimation { lastAction = "" }
+                endGame()
             }
         }
     }

@@ -260,25 +260,25 @@ struct DunkContestState {
         launchTimingDirection = 1
 
         let difficulty = selectedTrick.complexity
-        let greenWidth = max(0.15, 0.35 - difficulty * 0.12)
-        let center = 0.5 + Double.random(in: -0.08...0.08)
-        launchGreenZone = (center - greenWidth / 2)...(center + greenWidth / 2)
-        launchTimingSpeed = 2.2 + difficulty * 0.8
+        let greenWidth = max(0.18, 0.38 - difficulty * 0.12)
+        let center = 0.5 + Double.random(in: -0.06...0.06)
+        launchGreenZone = max(0, center - greenWidth / 2)...min(1, center + greenWidth / 2)
+        launchTimingSpeed = 2.0 + difficulty * 0.7
     }
 
     mutating func confirmLaunch() {
         guard phase == .launch else { return }
         phase = .airborne
         airPhaseStart = CACurrentMediaTime()
-        maxAirTime = 2.0 + jumpHeight * 0.8
+        maxAirTime = 2.2 + jumpHeight * 0.8
         rotationTarget = 0.5 + selectedTrick.complexity * 0.5
 
         let difficulty = selectedTrick.complexity
         let dd = dunkDifficulty
-        let landGreenWidth = max(0.10, 0.30 - dd * 0.08)
-        let landCenter = 0.5 + Double.random(in: -0.06...0.06)
-        landingGreenZone = (landCenter - landGreenWidth / 2)...(landCenter + landGreenWidth / 2)
-        landingTimingSpeed = 2.6 + difficulty * 0.6
+        let landGreenWidth = max(0.14, 0.32 - dd * 0.07)
+        let landCenter = 0.5 + Double.random(in: -0.05...0.05)
+        landingGreenZone = max(0, landCenter - landGreenWidth / 2)...min(1, landCenter + landGreenWidth / 2)
+        landingTimingSpeed = 2.4 + difficulty * 0.5
     }
 
     mutating func updateAirborne(delta: Double) {
