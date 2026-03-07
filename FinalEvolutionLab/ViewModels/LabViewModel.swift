@@ -33,17 +33,11 @@ class LabViewModel {
 
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
 
-        Task {
-            await autoSyncHealthKit()
-        }
-    }
-
-    private func autoSyncHealthKit() async {
-        guard healthKit.isAvailable else { return }
-        await healthKit.requestAuthorization()
         if healthKit.isAuthorized {
-            await healthKit.fetchLatestData()
-            applyHealthKitData()
+            Task {
+                await healthKit.fetchLatestData()
+                applyHealthKitData()
+            }
         }
     }
 
