@@ -6,6 +6,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
     let athlete: AthleteData
     let performanceMetrics: MetricsData
     let arcadePhysics: ArcadePhysicsData
+    let avatarSkinConfig: AvatarSkinConfigData
     let gameModes: [GameModeExport]
     let comboSystem: ComboSystemExport
     let timeScaleConfig: TimeScaleExport
@@ -25,6 +26,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
     nonisolated struct MetricsData: Codable, Sendable {
         let prqScore: Double
         let neuralDrive: Double
+        let neuralDriveMultiplier: Double
         let efficiencyScore: Double
         let readinessScore: Double
         let verticalPotential: Double
@@ -46,6 +48,18 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let specialMeterGainRate: Double
         let perimeterDefense: Double
         let contestBonus: Double
+    }
+
+    nonisolated struct AvatarSkinConfigData: Codable, Sendable {
+        let heightScale: Double
+        let weightScale: Double
+        let limbLength: Double
+        let skinTone: String
+        let outfitStyle: String
+        let auraColorR: Double
+        let auraColorG: Double
+        let auraColorB: Double
+        let trailIntensity: Double
     }
 
     nonisolated struct GameModeExport: Codable, Sendable {
@@ -137,24 +151,39 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
     }
 }
 
+nonisolated struct UnityTrackSyncPayload: Codable, Sendable {
+    let selectedTrack: String
+    let neuralDriveMultiplier: Double
+    let performanceMetrics: UnityExportManifest.MetricsData
+    let arcadePhysics: UnityExportManifest.ArcadePhysicsData
+    let avatarSkinConfig: UnityExportManifest.AvatarSkinConfigData
+}
+
 struct UnityExportBuilder {
-    static func build(profile: UserProfile, metrics: PerformanceMetrics, arcade: ArcadePhysics, audit: BiomechanicsAudit?) -> UnityExportManifest {
-        let formatter = ISO8601DateFormatter()
+    private static func neuralDriveMultiplier(for neuralDrive: Double) -> Double {
+        1.0 + max(0, neuralDrive) / 100.0
+    }
 
-        let athlete = UnityExportManifest.AthleteData(
-            id: profile.id,
-            displayName: profile.displayName,
-            athleteTag: profile.athleteTag,
-            sport: profile.sport ?? "Unknown",
-            totalWorkouts: profile.totalWorkouts,
-            streakDays: profile.streakDays,
-            evolutionShards: profile.evolutionShards
+    private static func avatarData(from avatar: AvatarSkinConfig) -> UnityExportManifest.AvatarSkinConfigData {
+        UnityExportManifest.AvatarSkinConfigData(
+            heightScale: avatar.heightScale,
+            weightScale: avatar.weightScale,
+            limbLength: avatar.limbLength,
+            skinTone: avatar.skinTone.rawValue,
+            outfitStyle: avatar.outfitStyle.rawValue,
+            auraColorR: avatar.auraColorR,
+            auraColorG: avatar.auraColorG,
+            auraColorB: avatar.auraColorB,
+            trailIntensity: avatar.trailIntensity
         )
+    }
 
+    private static func metricsData(metrics: PerformanceMetrics, arcade: ArcadePhysics) -> UnityExportManifest.MetricsData {
         let prqTier = PRQTier.fromPRQ(metrics.prqScore)
-        let metricsData = UnityExportManifest.MetricsData(
+        return UnityExportManifest.MetricsData(
             prqScore: metrics.prqScore,
             neuralDrive: metrics.neuralDrive,
+            neuralDriveMultiplier: neuralDriveMultiplier(for: metrics.neuralDrive),
             efficiencyScore: metrics.efficiencyScore,
             readinessScore: metrics.readinessScore,
             verticalPotential: metrics.verticalPotential,
@@ -162,8 +191,10 @@ struct UnityExportBuilder {
             neuralBurstActive: arcade.neuralBurstActive,
             auraLevel: arcade.auraLevel.rawValue
         )
+    }
 
-        let arcadeData = UnityExportManifest.ArcadePhysicsData(
+    private static func arcadeData(from arcade: ArcadePhysics) -> UnityExportManifest.ArcadePhysicsData {
+        UnityExportManifest.ArcadePhysicsData(
             hangTimeMultiplier: arcade.hangTimeMultiplier,
             explosiveFirstStep: arcade.explosiveFirstStep,
             comboDecayRate: arcade.comboDecayRate,
@@ -177,6 +208,24 @@ struct UnityExportBuilder {
             perimeterDefense: arcade.perimeterDefense,
             contestBonus: arcade.contestBonus
         )
+    }
+
+    static func build(profile: UserProfile, metrics: PerformanceMetrics, arcade: ArcadePhysics, audit: BiomechanicsAudit?) -> UnityExportManifest {
+        let formatter = ISO8601DateFormatter()
+
+        let athlete = UnityExportManifest.AthleteData(
+            id: profile.id,
+            displayName: profile.displayName,
+            athleteTag: profile.athleteTag,
+            sport: profile.sport ?? "Unknown",
+            totalWorkouts: profile.totalWorkouts,
+            streakDays: profile.streakDays,
+            evolutionShards: profile.evolutionShards
+        )
+
+        let avatar = avatarData(from: profile.systemScan?.avatarConfig ?? .default)
+        let metricsExport = metricsData(metrics: metrics, arcade: arcade)
+        let arcadeExport = arcadeData(from: arcade)
 
         let gameModes = GameModeId.allCases.map { modeId -> UnityExportManifest.GameModeExport in
             let mode = GameModeRegistry.mode(for: modeId)
@@ -276,8 +325,9 @@ struct UnityExportBuilder {
             version: "2.0.0",
             exportDate: formatter.string(from: Date()),
             athlete: athlete,
-            performanceMetrics: metricsData,
-            arcadePhysics: arcadeData,
+            performanceMetrics: metricsExport,
+            arcadePhysics: arcadeExport,
+            avatarSkinConfig: avatar,
             gameModes: gameModes,
             comboSystem: comboSystem,
             timeScaleConfig: timeScale,
@@ -295,6 +345,21 @@ struct UnityExportBuilder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(manifest) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func exportTrackSyncJSON(track: TrainingTrack, profile: UserProfile, metrics: PerformanceMetrics, arcade: ArcadePhysics) -> String? {
+        let payload = UnityTrackSyncPayload(
+            selectedTrack: track.rawValue,
+            neuralDriveMultiplier: neuralDriveMultiplier(for: metrics.neuralDrive),
+            performanceMetrics: metricsData(metrics: metrics, arcade: arcade),
+            arcadePhysics: arcadeData(from: arcade),
+            avatarSkinConfig: avatarData(from: profile.systemScan?.avatarConfig ?? .default)
+        )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(payload) else { return nil }
         return String(data: data, encoding: .utf8)
     }
 }

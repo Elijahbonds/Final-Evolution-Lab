@@ -22,12 +22,28 @@ final class UnityManager {
 
     private init() {}
 
+    private func resolveUnityFrameworkBundle() -> Bundle? {
+        let candidatePaths: [String] = [
+            Bundle.main.privateFrameworksPath,
+            Bundle.main.bundlePath + "/Frameworks",
+            (Bundle.main.resourcePath ?? "") + "/Frameworks",
+            Bundle.main.bundlePath
+        ]
+
+        for basePath in candidatePaths where !basePath.isEmpty {
+            let frameworkPath = basePath + "/UnityFramework.framework"
+            if let bundle = Bundle(path: frameworkPath) {
+                return bundle
+            }
+        }
+
+        return nil
+    }
+
     private func loadUnity() {
         guard !isUnityLoaded else { return }
 
-        let bundlePath = Bundle.main.privateFrameworksPath ?? ""
-        let frameworkPath = bundlePath + "/UnityFramework.framework"
-        guard let bundle = Bundle(path: frameworkPath) else {
+        guard let bundle = resolveUnityFrameworkBundle() else {
             isUnityLoaded = false
             return
         }
@@ -81,6 +97,16 @@ final class UnityManager {
 
     func sendDataToUnity(data: String) {
         sendMessageToGO("MotionReceiver", method: "OnMotionData", message: data)
+    }
+
+    func sendTrackSyncToUnity(track: TrainingTrack, profile: UserProfile, metrics: PerformanceMetrics, arcade: ArcadePhysics) {
+        guard let payload = UnityExportBuilder.exportTrackSyncJSON(
+            track: track,
+            profile: profile,
+            metrics: metrics,
+            arcade: arcade
+        ) else { return }
+        sendMessageToGO("MotionReceiver", method: "OnRorkConfig", message: payload)
     }
 
     func takeScreenshot() -> UIImage? {

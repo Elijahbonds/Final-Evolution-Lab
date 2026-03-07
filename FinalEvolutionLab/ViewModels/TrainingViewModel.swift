@@ -71,6 +71,12 @@ class TrainingViewModel {
         progress.activeTrack = track
         activeProgram = TrainingProgramData.program(for: track, equipment: progress.activeEquipment)
         SaveSystem.saveTrainingProgress(progress)
+        UnityManager.shared.sendTrackSyncToUnity(
+            track: track,
+            profile: labViewModel.profile,
+            metrics: labViewModel.effectiveMetrics,
+            arcade: labViewModel.arcadePhysics
+        )
     }
 
     func switchEquipment(to equipment: EquipmentType) {
