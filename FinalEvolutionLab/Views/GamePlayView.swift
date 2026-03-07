@@ -2853,12 +2853,13 @@ struct GamePlayView: View {
             runMeter = 0
             lastAction = "CAUGHT! TAP IN THE GREEN ZONE!"
         }
+        runMeterTimer?.cancel()
         runMeterTimer = Task {
             while !Task.isCancelled && runMeter < 100 {
                 try? await Task.sleep(for: .milliseconds(40))
                 guard !Task.isCancelled, isActive else { return }
                 withAnimation(.linear(duration: 0.04)) {
-                    runMeter = min(100, runMeter + 2.4)
+                    runMeter = min(100, runMeter + 2.0)
                 }
             }
             guard !Task.isCancelled, isActive else { return }
@@ -2888,8 +2889,11 @@ struct GamePlayView: View {
         guard isActive, footballPhase == .run else { return }
         runMeterTimer?.cancel()
         runMeterTimer = nil
-        withAnimation { footballPhase = .catch }
         let inZone = runMeter >= 35 && runMeter <= 70
+        withAnimation(.spring(response: 0.2)) {
+            footballPhase = .catch
+            runMeter = 0
+        }
         applyOutcomeFromCharge(inZone ? 0.65 : 0.15)
     }
 
