@@ -5,6 +5,8 @@ import ObjectiveC
 struct GameSceneFactory {
     private static let brandBlue = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
     private static let brandCyan = UIColor(red: 0, green: 0.95, blue: 0.9, alpha: 1)
+    private static let neonGreen = UIColor(red: 0.2, green: 1.0, blue: 0.4, alpha: 1)
+    private static let slateGray = UIColor(red: 0.09, green: 0.1, blue: 0.11, alpha: 1)
     private static let threeVThreeTeamSize = 3
     private static let rallySnapSmoothingWindow: Double = 0.2
 
@@ -251,20 +253,53 @@ struct GameSceneFactory {
     private static func addHomingDefense(to scene: SCNScene, defenderNames: [String], targetName: String) {
         for (index, defenderName) in defenderNames.enumerated() {
             guard let defender = scene.rootNode.childNode(withName: defenderName, recursively: true) else { continue }
-            let baseOffset = SCNVector3(Float.random(in: -0.35...0.35), 0, Float.random(in: -0.25...0.25))
-            let chaseSpeed = Float.random(in: 0.03...0.055)
+            let baseOffset = SCNVector3(Float.random(in: -0.3...0.3), 0, Float.random(in: -0.2...0.2))
+            let baseChaseSpeed = Float.random(in: 0.028...0.05)
+            var lastTargetPos = SCNVector3Zero
+            var hasSampledTarget = false
+            var smoothedDesired = defender.presentation.position
+            let roleSign: Float = index == 0 ? 0 : (index % 2 == 0 ? -1 : 1)
             let homingAction = SCNAction.customAction(duration: 1000) { node, elapsed in
                 guard let target = scene.rootNode.childNode(withName: targetName, recursively: true) else { return }
-                let offsetPulse = sin(Float(elapsed) * 3.2 + Float(index)) * 0.18
-                var desired = target.presentation.position
-                desired.x += baseOffset.x + offsetPulse
-                desired.z += baseOffset.z - offsetPulse * 0.7
+                let presentedTarget = target.presentation.position
+                if !hasSampledTarget {
+                    lastTargetPos = presentedTarget
+                    hasSampledTarget = true
+                }
+
+                let dt: Float = 1.0 / 60.0
+                let velX = (presentedTarget.x - lastTargetPos.x) / dt
+                let velZ = (presentedTarget.z - lastTargetPos.z) / dt
+                lastTargetPos = presentedTarget
+
+                let containRadius: Float = 0.55
+                let laneContainX = roleSign * containRadius
+                let drift = sin(Float(elapsed) * 2.1 + Float(index) * 0.8) * 0.14
+
+                var desired = presentedTarget
+                desired.x += baseOffset.x + laneContainX + drift
+                desired.z += baseOffset.z + (index == 0 ? -0.08 : -0.28)
+                desired.x += velX * 0.06
+                desired.z += velZ * 0.04
                 desired.x = min(4.6, max(-4.6, desired.x))
                 desired.z = min(2.7, max(-2.7, desired.z))
-                let next = moveTowards(current: node.presentation.position, target: desired, maxDistanceDelta: chaseSpeed)
+
+                smoothedDesired = SCNVector3(
+                    lerp(smoothedDesired.x, desired.x, t: 0.22),
+                    smoothedDesired.y,
+                    lerp(smoothedDesired.z, desired.z, t: 0.22)
+                )
+
+                let current = node.presentation.position
+                let chaseDx = smoothedDesired.x - current.x
+                let chaseDz = smoothedDesired.z - current.z
+                let distance = sqrt(chaseDx * chaseDx + chaseDz * chaseDz)
+                let dynamicBoost = min(0.03, distance * 0.02)
+                let next = moveTowards(current: current, target: smoothedDesired, maxDistanceDelta: baseChaseSpeed + dynamicBoost)
                 node.position = SCNVector3(next.x, node.position.y, next.z)
-                let dx = desired.x - node.position.x
-                let dz = desired.z - node.position.z
+
+                let dx = smoothedDesired.x - node.position.x
+                let dz = smoothedDesired.z - node.position.z
                 if abs(dx) > 0.01 || abs(dz) > 0.01 {
                     node.eulerAngles.y = atan2(dx, dz)
                 }
@@ -1387,15 +1422,21 @@ struct GameSceneFactory {
         node.camera?.zNear = 0.1
         node.camera?.zFar = 100
         node.camera?.wantsHDR = true
-        node.camera?.bloomIntensity = 0.6
-        node.camera?.bloomThreshold = 0.6
-        node.camera?.bloomBlurRadius = 10
+        node.camera?.bloomIntensity = 0.75
+        node.camera?.bloomThreshold = 0.58
+        node.camera?.bloomBlurRadius = 12
+        node.camera?.motionBlurIntensity = 0.42
         node.camera?.wantsDepthOfField = false
         node.camera?.vignettingIntensity = 0.6
         node.camera?.vignettingPower = 1.3
         node.camera?.contrast = 1.08
         node.camera?.saturation = 1.12
-        node.camera?.colorGrading.contents = UIColor(red: 0.98, green: 0.96, blue: 1.0, alpha: 1)
+        node.camera?.colorGrading.contents = UIColor(
+            red: (slateGray.cgColor.components?[0] ?? 0.1) * 0.9 + (neonGreen.cgColor.components?[0] ?? 0.2) * 0.1,
+            green: (slateGray.cgColor.components?[1] ?? 0.1) * 0.85 + (neonGreen.cgColor.components?[1] ?? 1.0) * 0.15,
+            blue: (slateGray.cgColor.components?[2] ?? 0.11) * 0.92 + (neonGreen.cgColor.components?[2] ?? 0.4) * 0.08,
+            alpha: 1
+        )
         node.position = position
         node.look(at: lookAt)
         node.name = "mainCamera"
@@ -1970,6 +2011,10 @@ struct GameSceneFactory {
             }
         }
         player.runAction(SCNAction.repeatForever(snap), forKey: "snapToBall")
+    }
+
+    private static func lerp(_ a: Float, _ b: Float, t: Float) -> Float {
+        a + (b - a) * max(0, min(1, t))
     }
 
     private static func moveTowards(current: SCNVector3, target: SCNVector3, maxDistanceDelta: Float) -> SCNVector3 {

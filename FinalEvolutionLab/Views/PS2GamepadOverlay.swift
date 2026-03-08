@@ -45,8 +45,9 @@ struct PS2GamepadOverlay: View {
 
                     Spacer()
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: 8) {
                         faceButtonCluster
+                        faceButtonLegend
                         analogStick(
                             title: "R",
                             offset: $rightStickOffset,
@@ -124,6 +125,25 @@ struct PS2GamepadOverlay: View {
 
             ps2FaceButton(.cross, symbol: "✕", color: Color(red: 0.38, green: 0.65, blue: 0.98), size: btnSize)
         }
+    }
+
+    private var faceButtonLegend: some View {
+        VStack(spacing: 2) {
+            Text("✕ GATHER / DUNK")
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .foregroundStyle(Color(red: 0.38, green: 0.65, blue: 0.98).opacity(0.9))
+            Text("□ STYLE MODIFIER")
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .foregroundStyle(Color(red: 0.96, green: 0.44, blue: 0.71).opacity(0.9))
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Color.black.opacity(0.35))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
     }
 
     private func ps2FaceButton(_ button: PS2FaceButton, symbol: String, color: Color, size: CGFloat) -> some View {

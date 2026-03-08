@@ -127,12 +127,12 @@ struct TrainingExerciseDetailView: View {
 
                                 Text("\(lvl)")
                                     .font(.system(.headline, design: .monospaced, weight: .black))
-                                    .foregroundStyle(lvl <= level ? AnyShapeStyle(accentColor) : AnyShapeStyle(.tertiary))
+                                    .foregroundStyle(lvl <= level ? accentColor : Color.secondary.opacity(0.7))
                             }
 
                             Text("Level \(lvl)")
                                 .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(lvl == level ? AnyShapeStyle(accentColor) : AnyShapeStyle(.tertiary))
+                                .foregroundStyle(lvl == level ? accentColor : Color.secondary.opacity(0.7))
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -302,7 +302,7 @@ struct TrainingExerciseDetailView: View {
                 .foregroundStyle(.white)
             Text(label)
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(AnyShapeStyle(.tertiary))
+                .foregroundStyle(Color.secondary.opacity(0.7))
                 .tracking(1)
         }
         .frame(maxWidth: .infinity)

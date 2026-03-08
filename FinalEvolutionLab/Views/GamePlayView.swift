@@ -58,6 +58,10 @@ struct GamePlayView: View {
     @State private var leftStickVector: CGPoint = .zero
     @State private var rightStickVector: CGPoint = .zero
     @State private var lastStickComboFireAt: Double = 0
+    @State private var rallyTargetPosition: CGPoint = CGPoint(x: 0.5, y: 0.5)
+    @State private var rallyTargetWindow: CGFloat = 0.18
+    @State private var rallyPulse: Bool = false
+    @State private var rallyTargetTask: Task<Void, Never>?
 
     @State private var specialMeter: Double = 0
     @State private var isModifierHeld: Bool = false
@@ -363,6 +367,7 @@ struct GamePlayView: View {
             slowMoTimer?.cancel()
             timeScaleUpdateTask?.cancel()
             runMeterTimer?.cancel()
+            rallyTargetTask?.cancel()
         }
     }
 
@@ -528,7 +533,7 @@ struct GamePlayView: View {
 
     private var sceneArea: some View {
         ZStack {
-            GameSceneHostView(neuralDrive: viewModel.profile.metrics.neuralDrive)
+            GameSceneHostView(gameMode: gameMode.id, neuralDrive: viewModel.profile.metrics.neuralDrive)
                 .clipShape(.rect(cornerRadius: 0))
 
             if combo > 1 {
@@ -597,6 +602,10 @@ struct GamePlayView: View {
                 aimCrosshairOverlay
             }
 
+            if inputScheme == .rallyAce && isActive {
+                rallyTargetOverlay
+            }
+
             if (inputScheme == .swipe || inputScheme == .swipeGolf) && isActive {
                 gestureOverlay
             }
@@ -655,6 +664,25 @@ struct GamePlayView: View {
                     )
                 }
         )
+    }
+
+    private var rallyTargetOverlay: some View {
+        GeometryReader { geo in
+            let x = rallyTargetPosition.x * geo.size.width
+            let y = rallyTargetPosition.y * geo.size.height
+            let baseSize = max(44, min(120, geo.size.width * rallyTargetWindow * 0.35))
+            ZStack {
+                Circle()
+                    .stroke(Theme.neonGreen.opacity(rallyPulse ? 0.85 : 0.5), lineWidth: 2)
+                    .frame(width: baseSize, height: baseSize)
+                    .shadow(color: Theme.neonGreen.opacity(0.4), radius: rallyPulse ? 14 : 6)
+                Circle()
+                    .stroke(Theme.slateMuted.opacity(0.8), lineWidth: 1)
+                    .frame(width: baseSize * 0.5, height: baseSize * 0.5)
+            }
+            .position(x: x, y: y)
+            .allowsHitTesting(false)
+        }
     }
 
     // MARK: - Swipe Gesture Overlay (Baseball / Soccer / Golf)
@@ -2173,6 +2201,11 @@ struct GamePlayView: View {
         swipeStart = nil
         swipeStartTime = nil
         aimPosition = CGPoint(x: 0.5, y: 0.5)
+        rallyTargetPosition = CGPoint(x: 0.5, y: 0.5)
+        rallyTargetWindow = 0.18
+        rallyPulse = false
+        rallyTargetTask?.cancel()
+        rallyTargetTask = nil
         defensiveState = DefensiveInputState()
         lastContestPercent = nil
         lastContestLabel = nil
@@ -2199,6 +2232,10 @@ struct GamePlayView: View {
             default: timeRemaining = 60
             }
             startTimer()
+        }
+
+        if inputScheme == .rallyAce {
+            startRallyTargetLoop()
         }
     }
 
@@ -2705,6 +2742,8 @@ struct GamePlayView: View {
         timeScaleUpdateTask = nil
         gameTimerTask?.cancel()
         gameTimerTask = nil
+        rallyTargetTask?.cancel()
+        rallyTargetTask = nil
         isSlowMo = false
         showTrickText = false
         showComboChain = false
@@ -2909,15 +2948,43 @@ struct GamePlayView: View {
 
     private func handleRallyHit(type: String) {
         guard isActive else { return }
-        let centerBias = 1.0 - abs(aimPosition.x - 0.5) * 1.5 - abs(aimPosition.y - 0.5) * 1.0
+        let dx = aimPosition.x - rallyTargetPosition.x
+        let dy = aimPosition.y - rallyTargetPosition.y
+        let distance = sqrt(dx * dx + dy * dy)
+        let contactWindow = max(0.08, Double(rallyTargetWindow))
+        let timingQuality = max(0.0, 1.0 - (distance / contactWindow))
+        let centerBias = 1.0 - abs(aimPosition.x - 0.5) * 1.4 - abs(aimPosition.y - 0.5) * 0.9
         let typeBonus: Double
         switch type {
         case "Serve", "Spike": typeBonus = 0.15
         case "Forehand", "Bump": typeBonus = 0.1
         default: typeBonus = 0.05
         }
-        let charge = max(0.2, min(0.9, 0.3 + centerBias * 0.4 + typeBonus))
+        let contactBonus = timingQuality * 0.55
+        let charge = max(0.15, min(0.95, 0.2 + centerBias * 0.25 + contactBonus + typeBonus))
+        if timingQuality > 0.85 {
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                lastAction = "PERFECT CONTACT!"
+            }
+        }
         applyOutcomeFromCharge(charge)
+    }
+
+    private func startRallyTargetLoop() {
+        rallyTargetTask?.cancel()
+        rallyTargetTask = Task {
+            while !Task.isCancelled && isActive && inputScheme == .rallyAce {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    rallyTargetPosition = CGPoint(
+                        x: Double.random(in: 0.2...0.8),
+                        y: Double.random(in: 0.2...0.72)
+                    )
+                    rallyTargetWindow = CGFloat.random(in: 0.14...0.22)
+                    rallyPulse.toggle()
+                }
+                try? await Task.sleep(for: .milliseconds(Int.random(in: 650...950)))
+            }
+        }
     }
 
     // MARK: - Penalty Kick Handler
@@ -3403,29 +3470,36 @@ struct GamePlayView: View {
     private func handlePS2FaceButton(_ button: PS2FaceButton) {
         guard isActive else { return }
         if isDunkContest {
-            switch dunkEngine.phase {
-            case .idle:
-                startDunkApproach()
-            case .approach:
-                releaseDunkSprint()
-            case .launch:
-                confirmDunkLaunch()
-            case .airborne:
-                switch button {
-                case .triangle: handleArcadeDunkButton(.triangle)
-                case .square: handleArcadeDunkButton(.square)
-                case .circle: handleArcadeDunkButton(.circle)
-                case .cross:
+            switch button {
+            case .square:
+                toggleStyleModifierFromFaceButton()
+            case .cross:
+                switch dunkEngine.phase {
+                case .idle:
+                    startDunkApproach()
+                case .approach:
+                    releaseDunkSprint()
+                case .launch:
+                    confirmDunkLaunch()
+                case .airborne:
                     if dunkEngine.styleLandingWindow {
                         handleStyleLanding()
                     } else {
                         handleArcadeDunkButton(.cross)
                     }
+                case .landing:
+                    confirmDunkLanding()
+                case .scored:
+                    break
                 }
-            case .landing:
-                confirmDunkLanding()
-            case .scored:
-                break
+            case .triangle:
+                if dunkEngine.phase == .airborne {
+                    handleArcadeDunkButton(.triangle)
+                }
+            case .circle:
+                if dunkEngine.phase == .airborne {
+                    handleArcadeDunkButton(.circle)
+                }
             }
             return
         }
@@ -3434,11 +3508,42 @@ struct GamePlayView: View {
         case .triangle:
             performAction("Shoot")
         case .square:
-            performAction("Dunk")
+            toggleStyleModifierFromFaceButton()
         case .circle:
             performAction("Sprint")
         case .cross:
-            performAction("Style")
+            performGatherOrDunk()
+        }
+    }
+
+    private func toggleStyleModifierFromFaceButton() {
+        if isDunkContest {
+            withAnimation(.spring(response: 0.15)) {
+                styleTriggerHeld.toggle()
+                dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
+                lastAction = styleTriggerHeld ? "STYLE MODIFIER ON" : "STYLE MODIFIER OFF"
+            }
+            return
+        }
+        withAnimation(.spring(response: 0.2)) {
+            if activeModifierState == .style {
+                activeModifierState = .none
+                isModifierHeld = false
+            } else {
+                activeModifierState = .style
+                isModifierHeld = true
+            }
+            lastAction = activeModifierState == .style ? "STYLE MODIFIER ON" : "STYLE MODIFIER OFF"
+        }
+    }
+
+    private func performGatherOrDunk() {
+        if isBasketball {
+            performAction("Dunk")
+        } else if isKarate {
+            performAction("Punch")
+        } else {
+            performAction(actionsForMode.first ?? "Action")
         }
     }
 

@@ -10,6 +10,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
     let comboSystem: ComboSystemExport
     let timeScaleConfig: TimeScaleExport
     let ddaConfig: DDAExport
+    let postProcessing: PostProcessingExport
     let animationManifest: AnimationManifest
 
     nonisolated struct AthleteData: Codable, Sendable {
@@ -114,6 +115,16 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let stateMachineBlendDuration: Double
     }
 
+    nonisolated struct PostProcessingExport: Codable, Sendable {
+        let bloomIntensity: Double
+        let bloomThreshold: Double
+        let bloomBlurRadius: Double
+        let motionBlurIntensity: Double
+        let colorGrade: String
+        let auraPrimaryHex: String
+        let auraSecondaryHex: String
+    }
+
     nonisolated struct DDAExport: Codable, Sendable {
         let difficultyTier: String
         let aiAggressionFloor: Double
@@ -134,6 +145,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let name: String
         let category: String
         let blendDuration: Double
+        let usesRootMotion: Bool
     }
 }
 
@@ -256,21 +268,43 @@ struct UnityExportBuilder {
         )
 
         let dunkAnims = DirectionalTrick.dunkTricks.map {
-            UnityExportManifest.AnimationEntry(key: $0.animationKey, name: $0.name, category: "dunk", blendDuration: MatrixStateMachine.blendDuration)
+            UnityExportManifest.AnimationEntry(
+                key: $0.animationKey,
+                name: $0.name,
+                category: "dunk",
+                blendDuration: MatrixStateMachine.blendDuration,
+                usesRootMotion: true
+            )
         }
         let combatAnims = DirectionalTrick.combatTricks.map {
-            UnityExportManifest.AnimationEntry(key: $0.animationKey, name: $0.name, category: "combat", blendDuration: MatrixStateMachine.blendDuration)
+            UnityExportManifest.AnimationEntry(
+                key: $0.animationKey,
+                name: $0.name,
+                category: "combat",
+                blendDuration: MatrixStateMachine.blendDuration,
+                usesRootMotion: true
+            )
         }
         let generalAnims: [UnityExportManifest.AnimationEntry] = [
-            .init(key: "idle_breathe", name: "Breathing Idle", category: "general", blendDuration: 0.2),
-            .init(key: "sprint", name: "Sprint", category: "general", blendDuration: 0.15),
-            .init(key: "gather", name: "Gather", category: "general", blendDuration: 0.2),
-            .init(key: "land", name: "Landing", category: "general", blendDuration: 0.2),
-            .init(key: "celebrate", name: "Victory Celebration", category: "general", blendDuration: 0.25),
-            .init(key: "block", name: "Block Stance", category: "general", blendDuration: 0.15),
-            .init(key: "perfect_guard", name: "Perfect Guard", category: "general", blendDuration: 0.1),
-            .init(key: "vanish", name: "Vanish Counter", category: "general", blendDuration: 0.1),
+            .init(key: "idle_breathe", name: "Breathing Idle", category: "general", blendDuration: 0.2, usesRootMotion: true),
+            .init(key: "sprint", name: "Sprint", category: "general", blendDuration: 0.15, usesRootMotion: true),
+            .init(key: "gather", name: "Gather", category: "general", blendDuration: 0.2, usesRootMotion: true),
+            .init(key: "land", name: "Landing", category: "general", blendDuration: 0.2, usesRootMotion: true),
+            .init(key: "celebrate", name: "Victory Celebration", category: "general", blendDuration: 0.25, usesRootMotion: true),
+            .init(key: "block", name: "Block Stance", category: "general", blendDuration: 0.15, usesRootMotion: true),
+            .init(key: "perfect_guard", name: "Perfect Guard", category: "general", blendDuration: 0.1, usesRootMotion: true),
+            .init(key: "vanish", name: "Vanish Counter", category: "general", blendDuration: 0.1, usesRootMotion: true),
         ]
+
+        let postProcessing = UnityExportManifest.PostProcessingExport(
+            bloomIntensity: 0.75,
+            bloomThreshold: 0.58,
+            bloomBlurRadius: 12.0,
+            motionBlurIntensity: 0.42,
+            colorGrade: "SlateGray+NeonGreen",
+            auraPrimaryHex: "#18FF66",
+            auraSecondaryHex: "#2A3138"
+        )
 
         return UnityExportManifest(
             version: "2.0.0",
@@ -282,6 +316,7 @@ struct UnityExportBuilder {
             comboSystem: comboSystem,
             timeScaleConfig: timeScale,
             ddaConfig: ddaExport,
+            postProcessing: postProcessing,
             animationManifest: UnityExportManifest.AnimationManifest(
                 dunkAnimations: dunkAnims,
                 combatAnimations: combatAnims,
