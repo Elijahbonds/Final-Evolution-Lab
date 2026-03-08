@@ -528,11 +528,7 @@ struct GamePlayView: View {
 
     private var sceneArea: some View {
         ZStack {
-            GameSceneHostView(
-                gameMode: gameMode.id,
-                neuralDrive: viewModel.effectiveMetrics.neuralDrive,
-                onAction: handleSceneAction
-            )
+            GameSceneHostView(neuralDrive: viewModel.profile.metrics.neuralDrive)
                 .clipShape(.rect(cornerRadius: 0))
 
             if combo > 1 {

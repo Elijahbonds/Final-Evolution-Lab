@@ -2,9 +2,9 @@ import SwiftUI
 import SceneKit
 
 struct GameSceneHostView: UIViewRepresentable {
-    let gameMode: GameModeId
+    var gameMode: GameModeId = .basketballHeadToHead
     var neuralDrive: Double = 50
-    let onAction: () -> Void
+    var onAction: () -> Void = {}
 
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
