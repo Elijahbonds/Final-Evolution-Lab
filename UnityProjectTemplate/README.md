@@ -62,6 +62,34 @@ Create a scene with:
 - Ensure your native app exports `_PostRorkScore` (Swift `@_cdecl("_PostRorkScore")`) or an equivalent native bridge.
 - Install/enable Unity Input System package and set Active Input Handling to include Input System.
 
+## Bridge repair checklist (manual setup)
+
+Use this checklist if you hit `InvalidOperationException` due to active Input System + legacy input calls.
+
+1. Create `PlayerControls.inputactions`:
+   - Action Map: `Gameplay`
+   - Action: `Move` (`Value`, `Vector2`)
+     - Bindings: `Left Stick [Gamepad]`, `WASD [Keyboard]`, optional `Arrow Keys [Keyboard]`
+   - Action: `Dunk` (`Button`)
+     - Binding: `Space [Keyboard]` and/or `Button South [Gamepad]`
+2. In the `.inputactions` inspector:
+   - Enable `Generate C# Class`
+   - Click `Apply`
+3. On the Player GameObject:
+   - Add `PlayerInput`
+   - Set `Actions` = `PlayerControls`
+   - Set `Behavior` = `Invoke Unity Events`
+4. Wire PlayerInput events:
+   - `Gameplay/Move` -> `PlayerMovement.OnMove(CallbackContext)`
+   - `Gameplay/Dunk` -> `PlayerMovement.OnDunk(CallbackContext)`
+5. Ensure dunk score flow order in `PlayerMovement`:
+   - Local score update first:
+     - `GetPlayerScore()`
+     - `newScore = currentScore + 10`
+     - `UpdatePlayerScore(newScore)`
+   - Then post to native:
+     - `rorkBridge.PostRorkScoreToNative(newScore)`
+
 ## Native expectations in this repository
 
 The iOS app currently sends motion updates to Unity using:
