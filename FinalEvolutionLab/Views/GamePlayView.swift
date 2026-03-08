@@ -3432,31 +3432,13 @@ struct GamePlayView: View {
 
         switch button {
         case .triangle:
-            performAction(actionsForMode.first ?? "Shoot")
+            viewModel.arcade.Shoot()
         case .square:
-            if actionsForMode.count > 1 {
-                performAction(actionsForMode[1])
-            } else {
-                performAction(actionsForMode.first ?? "Drive")
-            }
+            viewModel.arcade.Dunk()
         case .circle:
-            if actionsForMode.count > 2 {
-                performAction(actionsForMode[2])
-            } else {
-                if isModifierHeld {
-                    executeTrickCombo(direction: currentTrickDirection)
-                } else {
-                    performAction(actionsForMode.last ?? "Style")
-                }
-            }
+            viewModel.arcade.Sprint()
         case .cross:
-            if isKarate {
-                handleBlock()
-            } else if actionsForMode.count > 2 {
-                performAction(actionsForMode[2])
-            } else {
-                performAction(actionsForMode.last ?? "Action")
-            }
+            viewModel.arcade.Style()
         }
     }
 
