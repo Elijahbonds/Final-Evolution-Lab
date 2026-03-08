@@ -53,6 +53,17 @@ public class RorkNativeBridge : MonoBehaviour
         }
     }
 
+    // Public helper used by external scripts (e.g. PlayerScoreManager).
+    public void UpdateUnityPRQDisplayPublic()
+    {
+        if (PlayerScoreManager.Instance != null)
+        {
+            currentUnityPrq = PlayerScoreManager.Instance.GetPlayerScore();
+        }
+
+        UpdateUnityPrqDisplay();
+    }
+
     private void UpdateUnityPrqDisplay()
     {
         if (unityPrqInternalDisplay != null)
