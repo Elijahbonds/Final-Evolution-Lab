@@ -4,39 +4,45 @@ using UnityEngine;
 
 public class RorkNativeBridge : MonoBehaviour
 {
-#if UNITY_IOS && !UNITY_EDITOR
+    // Connects to native iOS symbol exported via Swift @_cdecl("_PostRorkScore").
     [DllImport("__Internal")]
     private static extern void _PostRorkScore(int score);
-#endif
 
     [Header("UI References")]
     public TextMeshProUGUI prqScoreDisplay;
-    public TextMeshProUGUI unityPrqInternalDisplay;
+    public TextMeshProUGUI unityPRQInternalDisplay;
+    public TextMeshProUGUI motionDataDisplay;
 
-    [SerializeField]
-    private int currentUnityPrq;
+    private int _currentUnityPRQ;
+    public int CurrentUnityPRQ => _currentUnityPRQ;
 
     private void Start()
     {
-        UpdateUnityPrqDisplay();
-        Debug.Log("[RorkNativeBridge] Ready.");
+        UpdateUnityPRQDisplay();
+        Debug.Log("[RorkNativeBridge] Initialized.");
     }
 
     public void PostRorkScoreToNative(int score)
     {
-        currentUnityPrq = score;
-        UpdateUnityPrqDisplay();
+        Debug.Log($"[RorkNativeBridge] Sending PRQ score {score} to native iOS.");
 
 #if UNITY_IOS && !UNITY_EDITOR
-        Debug.Log($"[RorkNativeBridge] Sending PRQ {score} to native.");
         _PostRorkScore(score);
 #else
-        Debug.LogWarning("[RorkNativeBridge] Simulating iOS callback in editor/non-iOS build.");
-        OnRorkScoreUpdated(score.ToString());
+        Debug.LogWarning("[RorkNativeBridge] _PostRorkScore called outside iOS build. Simulating native update.");
+        OnRorkScoreUpdated(score);
 #endif
+
+        _currentUnityPRQ = score;
+        UpdateUnityPRQDisplay();
     }
 
-    // Must accept string when called via UnitySendMessage.
+    public void UpdateUnityPRQDisplayPublic()
+    {
+        UpdateUnityPRQDisplay();
+    }
+
+    // Called by native through UnitySendMessage, so this string overload is required.
     public void OnRorkScoreUpdated(string scoreString)
     {
         if (!int.TryParse(scoreString, out int score))
@@ -45,30 +51,32 @@ public class RorkNativeBridge : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[RorkNativeBridge] Native PRQ update received: {score}");
+        OnRorkScoreUpdated(score);
+    }
 
+    // Optional direct int entry point for editor/internal calls.
+    public void OnRorkScoreUpdated(int score)
+    {
+        Debug.Log($"[RorkNativeBridge] Received PRQ score from Native: {score}");
         if (prqScoreDisplay != null)
         {
-            prqScoreDisplay.text = $"PRQ: {score}";
+            prqScoreDisplay.text = $"Native PRQ: {score}";
         }
     }
 
-    // Public helper used by external scripts (e.g. PlayerScoreManager).
-    public void UpdateUnityPRQDisplayPublic()
+    private void UpdateUnityPRQDisplay()
     {
+        if (unityPRQInternalDisplay == null)
+        {
+            return;
+        }
+
+        int scoreToDisplay = _currentUnityPRQ;
         if (PlayerScoreManager.Instance != null)
         {
-            currentUnityPrq = PlayerScoreManager.Instance.GetPlayerScore();
+            scoreToDisplay = PlayerScoreManager.Instance.GetPlayerScore();
         }
 
-        UpdateUnityPrqDisplay();
-    }
-
-    private void UpdateUnityPrqDisplay()
-    {
-        if (unityPrqInternalDisplay != null)
-        {
-            unityPrqInternalDisplay.text = $"Unity Internal PRQ: {currentUnityPrq}";
-        }
+        unityPRQInternalDisplay.text = $"Unity Internal PRQ: {scoreToDisplay}";
     }
 }
