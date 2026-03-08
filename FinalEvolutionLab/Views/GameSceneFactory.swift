@@ -59,8 +59,10 @@ struct GameSceneFactory {
         addHoop(to: scene, x: 3.5)
         addHoop(to: scene, x: -3.5, flip: true)
         addAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
+        addAvatar(to: scene, at: SCNVector3(1.5, 0, 0), color: UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1), name: "opponent")
         addBall(to: scene, at: SCNVector3(-1.5, 1.4, 0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
         addVeniceBeachWalls(to: scene)
+        addVeniceBeachCrowd(to: scene, depth: 5)
         addParticles(to: scene, color: brandCyan.withAlphaComponent(0.2), area: SCNVector3(8, 0.1, 5))
 
         return scene
@@ -224,6 +226,7 @@ struct GameSceneFactory {
         addHomingDefense(to: scene, defenderNames: (1...threeVThreeTeamSize).map { "red\($0)" }, targetName: "blue1")
 
         addVeniceBeachWalls(to: scene)
+        addVeniceBeachCrowd(to: scene, depth: 6)
         addParticles(to: scene, color: brandCyan.withAlphaComponent(0.15), area: SCNVector3(10, 0.1, 6))
 
         return scene
@@ -340,6 +343,7 @@ struct GameSceneFactory {
         addKarateAnimations(to: scene)
 
         addArenaWalls(to: scene, wallColor: UIColor(red: 0.24, green: 0.16, blue: 0.08, alpha: 1), width: 12, depth: 12, height: 5)
+        addDojoSpectators(to: scene)
         addParticles(to: scene, color: UIColor.red.withAlphaComponent(0.12), area: SCNVector3(6, 0.1, 6))
 
         return scene
@@ -520,6 +524,7 @@ struct GameSceneFactory {
 
         addStadiumStands(to: scene, depth: 14)
         addStadiumLights(to: scene, width: 16, depth: 14)
+        addStadiumCrowd(to: scene, width: 16, depth: 14, color: UIColor(red: 0.3, green: 0.5, blue: 0.9, alpha: 1))
         addArenaWalls(to: scene, wallColor: UIColor(red: 0.18, green: 0.29, blue: 0.18, alpha: 1), width: 16, depth: 14, height: 5)
         addParticles(to: scene, color: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 0.1), area: SCNVector3(8, 0.1, 8))
 
@@ -661,6 +666,8 @@ struct GameSceneFactory {
 
         addStadiumStands(to: scene, depth: 20)
         addStadiumLights(to: scene, width: 12, depth: 20)
+        addStadiumCrowd(to: scene, width: 12, depth: 20, color: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1))
+        addFootballEndzonePaint(to: scene)
         addArenaWalls(to: scene, wallColor: UIColor(red: 0.12, green: 0.23, blue: 0.37, alpha: 1), width: 18, depth: 24, height: 5)
         addParticles(to: scene, color: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 0.08), area: SCNVector3(12, 0.1, 20))
 
@@ -785,6 +792,7 @@ struct GameSceneFactory {
 
         addStadiumStands(to: scene, depth: 10)
         addStadiumLights(to: scene, width: 14, depth: 10)
+        addStadiumCrowd(to: scene, width: 14, depth: 10, color: UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1))
         addArenaWalls(to: scene, wallColor: UIColor(red: 0.1, green: 0.28, blue: 0.17, alpha: 1), width: 16, depth: 14, height: 4)
         addParticles(to: scene, color: UIColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 0.1), area: SCNVector3(8, 0.1, 5))
 
@@ -911,6 +919,7 @@ struct GameSceneFactory {
         bunkerNode.position = SCNVector3(1.5, 0.015, -1.5)
         scene.rootNode.addChildNode(bunkerNode)
 
+        addGolfGallery(to: scene)
         addArenaWalls(to: scene, wallColor: UIColor(red: 0.1, green: 0.24, blue: 0.1, alpha: 1), width: 16, depth: 14, height: 4)
         addParticles(to: scene, color: UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 0.1), area: SCNVector3(8, 0.1, 8))
 
@@ -1049,6 +1058,7 @@ struct GameSceneFactory {
         }
 
         addStadiumStands(to: scene, depth: 11)
+        addStadiumCrowd(to: scene, width: 8, depth: 11, color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1))
         addVeniceBeachWalls(to: scene)
         addParticles(to: scene, color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 0.1), area: SCNVector3(8, 0.1, 11))
 
@@ -1181,6 +1191,7 @@ struct GameSceneFactory {
         }
 
         addVeniceBeachWalls(to: scene)
+        addVeniceBeachCrowd(to: scene, depth: 9)
         addParticles(to: scene, color: UIColor(red: 0.96, green: 0.75, blue: 0.14, alpha: 0.1), area: SCNVector3(9, 0.1, 9))
 
         return scene
@@ -1305,6 +1316,8 @@ struct GameSceneFactory {
 
         addGymnasticsAnimations(to: scene)
 
+        addStadiumStands(to: scene, depth: 16)
+        addStadiumCrowd(to: scene, width: 14, depth: 16, color: UIColor(red: 0.39, green: 0.40, blue: 0.95, alpha: 1))
         addArenaWalls(to: scene, wallColor: UIColor(red: 0.17, green: 0.16, blue: 0.26, alpha: 1), width: 16, depth: 16, height: 5)
         addParticles(to: scene, color: gymBlue.withAlphaComponent(0.1), area: SCNVector3(7, 0.1, 7))
 
@@ -1991,6 +2004,236 @@ struct GameSceneFactory {
             let lhNode = SCNNode(geometry: lightHead)
             lhNode.position = SCNVector3(lx, 6.1, lz)
             scene.rootNode.addChildNode(lhNode)
+        }
+    }
+
+    // MARK: - Crowd & Spectator Systems
+
+    private static func addStadiumCrowd(to scene: SCNScene, width: Float, depth: Float, color: UIColor) {
+        let crowdColors: [UIColor] = [
+            color.withAlphaComponent(0.6),
+            UIColor(red: 0.9, green: 0.85, blue: 0.75, alpha: 0.5),
+            UIColor(red: 0.3, green: 0.3, blue: 0.35, alpha: 0.5),
+            color.withAlphaComponent(0.4)
+        ]
+
+        for side in [-1.0, 1.0] as [Float] {
+            for tier in 0..<3 {
+                let h = Float(tier) * 0.8 + 0.4
+                let x = side * (7.0 + Float(tier) * 0.5)
+                let rowLength = depth - 3
+                let personCount = Int(rowLength / 0.4)
+                for p in 0..<personCount {
+                    let pz = -rowLength / 2 + Float(p) * (rowLength / Float(personCount))
+                    let pColor = crowdColors[p % crowdColors.count]
+                    let person = SCNCapsule(capRadius: 0.08, height: 0.35)
+                    let pMat = SCNMaterial()
+                    pMat.diffuse.contents = pColor
+                    pMat.emission.contents = pColor.withAlphaComponent(0.05)
+                    person.materials = [pMat]
+                    let pNode = SCNNode(geometry: person)
+                    let xJitter = Float.random(in: -0.1...0.1)
+                    pNode.position = SCNVector3(x + xJitter, h + 0.35, pz)
+                    scene.rootNode.addChildNode(pNode)
+
+                    let sway = SCNAction.sequence([
+                        SCNAction.moveBy(x: CGFloat(Float.random(in: -0.03...0.03)), y: CGFloat(Float.random(in: 0...0.04)), z: 0, duration: Double.random(in: 1.5...2.5)),
+                        SCNAction.moveBy(x: CGFloat(Float.random(in: -0.03...0.03)), y: CGFloat(Float.random(in: -0.04...0)), z: 0, duration: Double.random(in: 1.5...2.5))
+                    ])
+                    pNode.runAction(SCNAction.repeatForever(sway), forKey: "crowdSway")
+                }
+            }
+        }
+
+        let crowdNoise = SCNNode()
+        let noiseParticles = SCNParticleSystem()
+        noiseParticles.birthRate = 5
+        noiseParticles.particleLifeSpan = 3
+        noiseParticles.particleSize = 0.01
+        noiseParticles.particleSizeVariation = 0.005
+        noiseParticles.particleColor = color.withAlphaComponent(0.1)
+        noiseParticles.emitterShape = SCNBox(width: CGFloat(width), height: 0.5, length: CGFloat(depth), chamferRadius: 0)
+        noiseParticles.spreadingAngle = 20
+        noiseParticles.particleVelocity = 0.1
+        noiseParticles.birthDirection = .constant
+        noiseParticles.emittingDirection = SCNVector3(0, 1, 0)
+        noiseParticles.blendMode = .additive
+        crowdNoise.addParticleSystem(noiseParticles)
+        crowdNoise.position = SCNVector3(0, 2, 0)
+        scene.rootNode.addChildNode(crowdNoise)
+    }
+
+    private static func addVeniceBeachCrowd(to scene: SCNScene, depth: Float) {
+        let spectatorColors: [UIColor] = [
+            UIColor(red: 0.85, green: 0.72, blue: 0.55, alpha: 1),
+            UIColor(red: 0.3, green: 0.6, blue: 0.8, alpha: 1),
+            UIColor(red: 0.9, green: 0.4, blue: 0.3, alpha: 1),
+            UIColor(red: 0.2, green: 0.7, blue: 0.5, alpha: 1),
+            UIColor(red: 0.95, green: 0.85, blue: 0.4, alpha: 1),
+            UIColor(white: 0.5, alpha: 1)
+        ]
+
+        for side in [-1, 1] as [Int] {
+            let xBase: Float = Float(side) * 5.5
+            let count = Int(depth / 0.6)
+            for i in 0..<count {
+                let z = -depth / 2 + Float(i) * (depth / Float(count))
+                let sColor = spectatorColors[i % spectatorColors.count]
+
+                let person = SCNCapsule(capRadius: 0.07, height: 0.3)
+                let pMat = SCNMaterial()
+                pMat.diffuse.contents = sColor
+                pMat.emission.contents = sColor.withAlphaComponent(0.08)
+                person.materials = [pMat]
+                let pNode = SCNNode(geometry: person)
+                let xOff = Float.random(in: -0.3...0.3)
+                pNode.position = SCNVector3(xBase + xOff, 0.18, z)
+                scene.rootNode.addChildNode(pNode)
+
+                let sway = SCNAction.sequence([
+                    SCNAction.moveBy(x: CGFloat(Float.random(in: -0.02...0.02)), y: CGFloat(Float.random(in: 0...0.03)), z: 0, duration: Double.random(in: 1.8...3.0)),
+                    SCNAction.moveBy(x: CGFloat(Float.random(in: -0.02...0.02)), y: CGFloat(Float.random(in: -0.03...0)), z: 0, duration: Double.random(in: 1.8...3.0))
+                ])
+                pNode.runAction(SCNAction.repeatForever(sway), forKey: "crowdSway")
+            }
+        }
+
+        let backRowZ: Float = -depth / 2 - 1.5
+        for i in 0..<8 {
+            let x = -4.0 + Float(i) * 1.1
+            let sColor = spectatorColors[i % spectatorColors.count]
+            let person = SCNCapsule(capRadius: 0.07, height: 0.3)
+            let pMat = SCNMaterial()
+            pMat.diffuse.contents = sColor
+            person.materials = [pMat]
+            let pNode = SCNNode(geometry: person)
+            pNode.position = SCNVector3(x, 0.18, backRowZ)
+            scene.rootNode.addChildNode(pNode)
+        }
+    }
+
+    private static func addDojoSpectators(to scene: SCNScene) {
+        let spectatorColor = UIColor(red: 0.3, green: 0.2, blue: 0.15, alpha: 0.8)
+        let robeColors: [UIColor] = [
+            UIColor(red: 0.15, green: 0.1, blue: 0.08, alpha: 1),
+            UIColor(red: 0.9, green: 0.85, blue: 0.78, alpha: 1),
+            UIColor(red: 0.5, green: 0.1, blue: 0.05, alpha: 1)
+        ]
+
+        let positions: [(Float, Float)] = [
+            (-4.5, -2), (-4.5, -1), (-4.5, 0), (-4.5, 1), (-4.5, 2),
+            (4.5, -2), (4.5, -1), (4.5, 0), (4.5, 1), (4.5, 2),
+            (-3, -4.5), (-1.5, -4.5), (0, -4.5), (1.5, -4.5), (3, -4.5)
+        ]
+
+        for (i, (sx, sz)) in positions.enumerated() {
+            let robe = robeColors[i % robeColors.count]
+            let body = SCNCapsule(capRadius: 0.08, height: 0.35)
+            let bMat = SCNMaterial()
+            bMat.diffuse.contents = robe
+            body.materials = [bMat]
+            let bNode = SCNNode(geometry: body)
+            bNode.position = SCNVector3(sx, 0.2, sz)
+            scene.rootNode.addChildNode(bNode)
+
+            let head = SCNSphere(radius: 0.06)
+            let hMat = SCNMaterial()
+            hMat.diffuse.contents = spectatorColor
+            head.materials = [hMat]
+            let hNode = SCNNode(geometry: head)
+            hNode.position = SCNVector3(sx, 0.48, sz)
+            scene.rootNode.addChildNode(hNode)
+        }
+
+        for side in [-1, 1] as [Float] {
+            let banner = SCNBox(width: 0.05, height: 1.5, length: 0.6, chamferRadius: 0)
+            let bannerMat = SCNMaterial()
+            bannerMat.diffuse.contents = UIColor(red: 0.7, green: 0.1, blue: 0.05, alpha: 0.8)
+            bannerMat.emission.contents = UIColor(red: 0.7, green: 0.1, blue: 0.05, alpha: 0.1)
+            banner.materials = [bannerMat]
+            let bannerNode = SCNNode(geometry: banner)
+            bannerNode.position = SCNVector3(side * 5.5, 2.5, 0)
+            scene.rootNode.addChildNode(bannerNode)
+        }
+    }
+
+    private static func addGolfGallery(to scene: SCNScene) {
+        let galleryColors: [UIColor] = [
+            UIColor(red: 0.3, green: 0.5, blue: 0.7, alpha: 1),
+            UIColor(red: 0.9, green: 0.85, blue: 0.75, alpha: 1),
+            UIColor(red: 0.7, green: 0.4, blue: 0.3, alpha: 1),
+            UIColor(red: 0.4, green: 0.6, blue: 0.4, alpha: 1),
+            UIColor(white: 0.6, alpha: 1)
+        ]
+
+        let ropePositions: [(Float, Float, Float, Float)] = [
+            (-4.0, 0.4, 4.0, 0.4),
+            (-4.0, -3.5, 4.0, -3.5)
+        ]
+        for (x1, z1, x2, z2) in ropePositions {
+            let ropeLen = sqrt((x2 - x1) * (x2 - x1) + (z2 - z1) * (z2 - z1))
+            let rope = SCNCylinder(radius: 0.008, height: CGFloat(ropeLen))
+            let rMat = SCNMaterial()
+            rMat.diffuse.contents = UIColor(red: 0.8, green: 0.75, blue: 0.6, alpha: 0.6)
+            rope.materials = [rMat]
+            let rNode = SCNNode(geometry: rope)
+            rNode.position = SCNVector3((x1 + x2) / 2, 0.5, (z1 + z2) / 2)
+            rNode.eulerAngles.z = .pi / 2
+            scene.rootNode.addChildNode(rNode)
+
+            for i in 0..<6 {
+                let t = Float(i) / 5.0
+                let px = x1 + (x2 - x1) * t + Float.random(in: -0.2...0.2)
+                let pz = (z1 + z2) / 2 + Float(z1 < 0 ? -1 : 1) * Float.random(in: 0.5...1.2)
+                let gColor = galleryColors[i % galleryColors.count]
+                let person = SCNCapsule(capRadius: 0.07, height: 0.3)
+                let pMat = SCNMaterial()
+                pMat.diffuse.contents = gColor
+                person.materials = [pMat]
+                let pNode = SCNNode(geometry: person)
+                pNode.position = SCNVector3(px, 0.18, pz)
+                scene.rootNode.addChildNode(pNode)
+            }
+        }
+
+        for i in 0..<4 {
+            let x = Float.random(in: 4.0...5.5)
+            let z = Float.random(in: -2.0...2.0)
+            let gColor = galleryColors[i % galleryColors.count]
+            let person = SCNCapsule(capRadius: 0.07, height: 0.3)
+            let pMat = SCNMaterial()
+            pMat.diffuse.contents = gColor
+            person.materials = [pMat]
+            let pNode = SCNNode(geometry: person)
+            pNode.position = SCNVector3(x, 0.18, z)
+            scene.rootNode.addChildNode(pNode)
+        }
+    }
+
+    private static func addFootballEndzonePaint(to scene: SCNScene) {
+        let letterColor = UIColor.white.withAlphaComponent(0.15)
+        for (text, zPos) in [("HOME", Float(-12.0)), ("AWAY", Float(8.0))] as [(String, Float)] {
+            let _ = text
+            let paint = SCNBox(width: 4, height: 0.003, length: 1.5, chamferRadius: 0)
+            let pMat = SCNMaterial()
+            pMat.diffuse.contents = letterColor
+            pMat.emission.contents = letterColor
+            paint.materials = [pMat]
+            let pNode = SCNNode(geometry: paint)
+            pNode.position = SCNVector3(0, 0.025, zPos)
+            scene.rootNode.addChildNode(pNode)
+        }
+
+        let sidelineColor = UIColor.white.withAlphaComponent(0.25)
+        for x in [-6.0, 6.0] as [Float] {
+            let sideline = SCNBox(width: 0.04, height: 0.005, length: 20, chamferRadius: 0)
+            let slMat = SCNMaterial()
+            slMat.diffuse.contents = sidelineColor
+            slMat.emission.contents = sidelineColor
+            sideline.materials = [slMat]
+            let slNode = SCNNode(geometry: sideline)
+            slNode.position = SCNVector3(x, 0.025, -3)
+            scene.rootNode.addChildNode(slNode)
         }
     }
 
