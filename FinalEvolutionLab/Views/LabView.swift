@@ -359,39 +359,39 @@ struct LabView: View {
 
             ZStack {
                 if courtLoaded {
-                    UnityContainerView(mode: .freestyleDunk)
-                    .frame(height: showCourtExpanded ? 420 : 280)
-                    .clipShape(.rect(cornerRadius: 20))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Theme.brandBlue.opacity(0.3), Theme.brandCyan.opacity(0.15), .clear],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-                    .overlay(alignment: .topTrailing) {
-                        freestyleDunkPhaseIndicator
-                    }
-                    .overlay(alignment: .bottom) {
-                        freestyleScoringOverlay
-                    }
-                    .overlay(alignment: .topLeading) {
-                        Text("NEURAL DRIVE \(Int(viewModel.profile.metrics.neuralDrive))%")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan)
-                            .padding(8)
-                    }
-                    .overlay(alignment: .bottom) {
-                        Text("HOLD X TO GATHER")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.7))
-                            .padding(.bottom, 40)
-                    }
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    GameSceneHostView(gameMode: .basketballDunkContest, neuralDrive: viewModel.profile.metrics.neuralDrive)
+                        .frame(height: showCourtExpanded ? 420 : 280)
+                        .clipShape(.rect(cornerRadius: 20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Theme.brandBlue.opacity(0.3), Theme.brandCyan.opacity(0.15), .clear],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                        .overlay(alignment: .topTrailing) {
+                            freestyleDunkPhaseIndicator
+                        }
+                        .overlay(alignment: .bottom) {
+                            freestyleScoringOverlay
+                        }
+                        .overlay(alignment: .topLeading) {
+                            Text("NEURAL DRIVE \(Int(viewModel.profile.metrics.neuralDrive))%")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(Theme.brandCyan)
+                                .padding(8)
+                        }
+                        .overlay(alignment: .bottom) {
+                            Text("HOLD X TO GATHER")
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .padding(.bottom, 40)
+                        }
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
                     RoundedRectangle(cornerRadius: 20)
                         .fill(Theme.cardBackground)

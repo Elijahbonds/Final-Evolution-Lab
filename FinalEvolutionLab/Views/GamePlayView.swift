@@ -156,9 +156,13 @@ struct GamePlayView: View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
 
+            sceneArea
+                .ignoresSafeArea(edges: .bottom)
+                .offset(x: screenShake)
+
             VStack(spacing: 0) {
                 hudBar
-                sceneArea
+                Spacer()
                 controlPanel
             }
             .offset(x: screenShake)
@@ -528,7 +532,7 @@ struct GamePlayView: View {
 
     private var sceneArea: some View {
         ZStack {
-            GameSceneHostView(neuralDrive: viewModel.profile.metrics.neuralDrive)
+            GameSceneHostView(gameMode: gameMode.id, neuralDrive: viewModel.profile.metrics.neuralDrive)
                 .clipShape(.rect(cornerRadius: 0))
 
             if combo > 1 {
@@ -601,26 +605,8 @@ struct GamePlayView: View {
                 gestureOverlay
             }
 
-            if inputScheme == .charge {
-                VStack {
-                    Spacer()
-                    PS2GamepadOverlay(
-                        onFaceButton: handlePS2FaceButton,
-                        onDPad: handlePS2DPad,
-                        onLeftStick: handlePS2LeftStick,
-                        onRightStick: handlePS2RightStick,
-                        onLeftShoulder: handlePS2LeftShoulder,
-                        onRightShoulder: handlePS2RightShoulder,
-                        accentColor: gameMode.accentColor,
-                        isActive: isActive
-                    )
-                    .frame(height: 240)
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 6)
-                }
-            }
         }
-        .frame(maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Aim Crosshair (Volleyball)
@@ -794,28 +780,44 @@ struct GamePlayView: View {
     // MARK: - Control Panel
 
     private var controlPanel: some View {
-        VStack(spacing: 12) {
-            switch inputScheme {
-            case .charge:
+        VStack(spacing: 8) {
+            if inputScheme == .charge {
+                PS2GamepadOverlay(
+                    onFaceButton: handlePS2FaceButton,
+                    onDPad: handlePS2DPad,
+                    onLeftStick: handlePS2LeftStick,
+                    onRightStick: handlePS2RightStick,
+                    onLeftShoulder: handlePS2LeftShoulder,
+                    onRightShoulder: handlePS2RightShoulder,
+                    accentColor: gameMode.accentColor,
+                    isActive: isActive
+                )
+                .frame(height: 190)
+                .padding(.horizontal, 4)
+
                 if isDunkContest {
                     dunkContestActionButtons
-                } else {
-                    ps2ActionButtons
+                        .padding(.horizontal, 12)
                 }
-            case .swipe:
-                swipeHintView
-            case .swipeGolf:
-                golfControlView
-            case .dragTap:
-                volleyballControlView
-            case .kickReturn:
-                kickReturnControlView
-            case .rallyAce:
-                rallyAceControlView
-            case .penaltyKick:
-                penaltyKickControlView
-            case .rhythmTap:
-                gymnasticsControlView
+            } else {
+                switch inputScheme {
+                case .swipe:
+                    swipeHintView
+                case .swipeGolf:
+                    golfControlView
+                case .dragTap:
+                    volleyballControlView
+                case .kickReturn:
+                    kickReturnControlView
+                case .rallyAce:
+                    rallyAceControlView
+                case .penaltyKick:
+                    penaltyKickControlView
+                case .rhythmTap:
+                    gymnasticsControlView
+                default:
+                    EmptyView()
+                }
             }
 
             if !isActive && !showResults && gameReady {
@@ -830,6 +832,7 @@ struct GamePlayView: View {
                         .background(gameMode.accentColor)
                         .clipShape(.rect(cornerRadius: 14))
                 }
+                .padding(.horizontal, 12)
             }
 
             if !isActive && !showResults && gameReady {
@@ -860,8 +863,16 @@ struct GamePlayView: View {
                 }
             }
         }
-        .padding(16)
-        .background(Theme.cardBackground.opacity(0.9))
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
+        .background(
+            LinearGradient(
+                colors: [Color.black.opacity(0.85), Color.black.opacity(0.95)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .bottom)
+        )
     }
 
 
@@ -3198,7 +3209,7 @@ struct GamePlayView: View {
                     }
                 }
                 .padding(.trailing, 16)
-                .padding(.bottom, inputScheme == .charge ? 180 : 80)
+                .padding(.bottom, inputScheme == .charge ? 220 : 80)
             }
         }
     }
