@@ -6,7 +6,6 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed = 5f;
     public float rotationSpeed = 100f;
     public float dunkPower = 10f;
-    public int dunkScoreDelta = 10;
 
     private Vector2 moveInput;
     private Rigidbody rb;
@@ -51,8 +50,8 @@ public class PlayerMovement : MonoBehaviour
         }
 
         int currentScore = PlayerScoreManager.Instance.GetPlayerScore();
-        int newScore = currentScore + dunkScoreDelta;
-        PlayerScoreManager.Instance.UpdatePlayerScore(newScore);
+        int newScore = currentScore + 10; // Example increment
+        PlayerScoreManager.Instance.UpdatePlayerScore(newScore); // Updates the local score
 
         if (rorkBridge == null)
         {
