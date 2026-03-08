@@ -1,5 +1,6 @@
 import SceneKit
 import UIKit
+import ObjectiveC
 
 struct GameSceneFactory {
     private static let brandBlue = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
@@ -2285,12 +2286,14 @@ final class HomeRunDerbyManager: NSObject, SCNPhysicsContactDelegate {
         scene.physicsWorld.contactDelegate = self
     }
 
+    private static let associatedKey = UnsafeRawPointer(bitPattern: "HomeRunDerbyManager".hashValue)!
+
     static func installIfNeeded(
         in scene: SCNScene,
         pitcherHandNodeName: String = "pitcherHand",
         batNodeName: String = "bat"
     ) {
-        if let existing = scene.rootNode.userData?[managerStorageKey] as? HomeRunDerbyManager {
+        if let existing = objc_getAssociatedObject(scene, associatedKey) as? HomeRunDerbyManager {
             existing.startPitchLoop()
             return
         }
@@ -2300,10 +2303,7 @@ final class HomeRunDerbyManager: NSObject, SCNPhysicsContactDelegate {
             pitcherHandNodeName: pitcherHandNodeName,
             batNodeName: batNodeName
         )
-        if scene.rootNode.userData == nil {
-            scene.rootNode.userData = NSMutableDictionary()
-        }
-        scene.rootNode.userData?[managerStorageKey] = manager
+        objc_setAssociatedObject(scene, associatedKey, manager, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         manager.configureBatCollider()
         manager.startPitchLoop()
     }
