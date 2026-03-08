@@ -359,24 +359,7 @@ struct LabView: View {
 
             ZStack {
                 if courtLoaded {
-                    CourtSceneView(
-                        neuralDrive: effectiveMetrics.neuralDrive,
-                        verticalPotential: effectiveMetrics.verticalPotential,
-                        auraLevel: viewModel.arcadePhysics.auraLevel,
-                        movementSignature: viewModel.activeMovementSignature,
-                        onDunkTriggered: {
-                            withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) { dunkFlash = true }
-                            Task {
-                                try? await Task.sleep(for: .milliseconds(250))
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { dunkFlash = false }
-                            }
-                        },
-                        dunkPhase: freestyleDunk.phase,
-                        selectedTrick: freestyleDunk.selectedTrick,
-                        sprintCharge: freestyleDunk.sprintCharge,
-                        jumpHeight: freestyleDunk.jumpHeight,
-                        rotationProgress: freestyleDunk.completedRotation
-                    )
+                    UnityContainerView(mode: .freestyleDunk)
                     .frame(height: showCourtExpanded ? 420 : 280)
                     .clipShape(.rect(cornerRadius: 20))
                     .overlay(

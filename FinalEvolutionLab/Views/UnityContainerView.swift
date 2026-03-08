@@ -1,7 +1,14 @@
 import SwiftUI
 import UIKit
 
+nonisolated enum UnityMode: String, Sendable {
+    case freestyleDunk
+    case training
+    case arcade
+}
+
 struct UnityContainerView: View {
+    var mode: UnityMode = .training
     @State private var unityManager = UnityManager.shared
 
     var body: some View {
