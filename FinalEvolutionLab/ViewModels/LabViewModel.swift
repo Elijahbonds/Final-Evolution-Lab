@@ -33,12 +33,34 @@ class LabViewModel {
 
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
 
+        Task {
+            await hydrateFromCloudSnapshotIfAvailable()
+        }
+
         if healthKit.isAuthorized {
             Task {
                 await healthKit.fetchLatestData()
                 applyHealthKitData()
             }
         }
+    }
+
+    private func hydrateFromCloudSnapshotIfAvailable() async {
+        await SaveSystem.refreshFromCloudIfAvailable()
+
+        profile = SaveSystem.loadProfile()
+        sessions = SaveSystem.loadSessions()
+        coachEconomy = SaveSystem.loadCoachEconomy()
+        gameResults = SaveSystem.loadGameResults()
+        critiqueRequests = SaveSystem.loadCritiqueRequests()
+
+        if let scan = profile.systemScan {
+            biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
+        } else {
+            biomechanicsAudit = nil
+        }
+
+        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
     }
 
     var allExercises: [Exercise] {
