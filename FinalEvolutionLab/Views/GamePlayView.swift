@@ -532,8 +532,16 @@ struct GamePlayView: View {
 
     private var sceneArea: some View {
         ZStack {
-            GameSceneHostView(gameMode: gameMode.id, neuralDrive: viewModel.profile.metrics.neuralDrive)
-                .clipShape(.rect(cornerRadius: 0))
+            GameSceneHostView(
+                gameMode: gameMode.id,
+                neuralDrive: viewModel.profile.metrics.neuralDrive,
+                leftStickInput: leftStickVector,
+                rightStickInput: rightStickVector,
+                isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
+                isSpecialMove: isSlowMo || showVanishFlash || showPerfectGuard,
+                isSlowMotion: isSlowMo
+            )
+            .clipShape(.rect(cornerRadius: 0))
 
             if combo > 1 {
                 VStack {
