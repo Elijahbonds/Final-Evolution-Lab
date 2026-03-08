@@ -3432,13 +3432,13 @@ struct GamePlayView: View {
 
         switch button {
         case .triangle:
-            viewModel.arcade.Shoot()
+            performAction("Shoot")
         case .square:
-            viewModel.arcade.Dunk()
+            performAction("Dunk")
         case .circle:
-            viewModel.arcade.Sprint()
+            performAction("Sprint")
         case .cross:
-            viewModel.arcade.Style()
+            performAction("Style")
         }
     }
 

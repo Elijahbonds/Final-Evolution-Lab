@@ -1,10 +1,14 @@
-# Simplify Scene Area in GamePlayView
+# Fix build error: Replace missing arcade calls with existing performAction
 
-Replace the current `GameSceneHostView` call inside the scene area with the simplified version using only `neuralDrive` from the view model's profile metrics.
+**Problem**
+The general-mode PS2 button handler (lines 3433–3442) calls `viewModel.arcade.Shoot()`, `.Dunk()`, `.Sprint()`, `.Style()` — but these don't exist. `LabViewModel` has no `arcade` property with those methods.
 
-**What changes:**
-- The 3D scene view will be initialized with just the neural drive value instead of passing game mode and action handler
-- All overlay elements (combo counter, neural burst indicator, action feedback, dunk overlays, aim crosshair, gesture overlay, and PS2 gamepad) remain unchanged
-- The scene host view's clip shape and layout stay the same
+**Fix**
+Replace those four calls with the existing `performAction(_:)` method that already handles shooting, scoring, combos, critical hits, and feedback for all game modes:
 
-**Note:** This requires updating `GameSceneHostView` to work without `gameMode` and `onAction` parameters, or adding an initializer that accepts only `neuralDrive`. I'll adjust the host view accordingly so the build succeeds.
+- **Triangle** → `performAction("Shoot")`
+- **Square** → `performAction("Dunk")`
+- **Circle** → `performAction("Sprint")`
+- **Cross** → `performAction("Style")`
+
+This is a single 4-line change in `GamePlayView.swift`. No new files or models needed.
