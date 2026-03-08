@@ -1,14 +1,10 @@
-# Fix build error: Replace missing arcade calls with existing performAction
+# Add Neural Drive and "Hold X" overlays to court ZStack
 
-**Problem**
-The general-mode PS2 button handler (lines 3433–3442) calls `viewModel.arcade.Shoot()`, `.Dunk()`, `.Sprint()`, `.Style()` — but these don't exist. `LabViewModel` has no `arcade` property with those methods.
+**Changes**
 
-**Fix**
-Replace those four calls with the existing `performAction(_:)` method that already handles shooting, scoring, combos, critical hits, and feedback for all game modes:
+Inside the `ZStack` in `courtSection` (around line 360–412 of LabView.swift), add two new overlay elements on the `UnityContainerView` block:
 
-- **Triangle** → `performAction("Shoot")`
-- **Square** → `performAction("Dunk")`
-- **Circle** → `performAction("Sprint")`
-- **Cross** → `performAction("Style")`
+1. **Top-left overlay** — "NEURAL DRIVE" label with the current percentage from `viewModel.profile.metrics.neuralDrive`, styled in a small monospaced font matching the existing UI theme.
+2. **Bottom-center overlay** — "HOLD X TO GATHER" prompt text, styled similarly, displayed below the existing scoring overlay area.
 
-This is a single 4-line change in `GamePlayView.swift`. No new files or models needed.
+Both will use the app's existing `Theme` colors and monospaced styling to stay visually consistent.

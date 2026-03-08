@@ -379,6 +379,18 @@ struct LabView: View {
                     .overlay(alignment: .bottom) {
                         freestyleScoringOverlay
                     }
+                    .overlay(alignment: .topLeading) {
+                        Text("NEURAL DRIVE \(Int(viewModel.profile.metrics.neuralDrive))%")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Theme.brandCyan)
+                            .padding(8)
+                    }
+                    .overlay(alignment: .bottom) {
+                        Text("HOLD X TO GATHER")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .padding(.bottom, 40)
+                    }
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
                     RoundedRectangle(cornerRadius: 20)
