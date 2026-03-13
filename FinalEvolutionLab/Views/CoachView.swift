@@ -46,7 +46,7 @@ struct CoachView: View {
                         .foregroundStyle(Theme.brandBlue)
                         .tracking(2)
 
-                    Text("Spend shards for expert movement analysis")
+                    Text("Spend credits for expert movement analysis")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -57,9 +57,9 @@ struct CoachView: View {
                     showCritiqueRequest = true
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 10))
-                        Text("\(LabViewModel.critiqueCostShards)")
+                        Text("\(LabViewModel.critiqueCostCredits)")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
                     }
                     .foregroundStyle(.black)
@@ -133,7 +133,7 @@ struct CoachView: View {
                         .foregroundStyle(Theme.brandCyan)
                         .tracking(2)
 
-                    Text("Earn shards by reviewing athlete scans")
+                    Text("Earn credits by reviewing athlete scans")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -174,10 +174,10 @@ struct CoachView: View {
 
                 VStack(spacing: 2) {
                     HStack(spacing: 2) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(Theme.brandCyan)
-                        Text("\(viewModel.coachEconomy.pendingEarnings)")
+                        Text("\(viewModel.coachEconomy.pendingCredits)")
                             .font(.system(.headline, design: .monospaced, weight: .black))
                             .foregroundStyle(.white)
                     }
@@ -193,10 +193,10 @@ struct CoachView: View {
 
                 VStack(spacing: 2) {
                     HStack(spacing: 2) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(Theme.foundationGreen)
-                        Text("\(viewModel.coachEconomy.totalEarned)")
+                        Text("\(viewModel.coachEconomy.totalCreditsEarned)")
                             .font(.system(.headline, design: .monospaced, weight: .black))
                             .foregroundStyle(.white)
                     }
@@ -211,17 +211,14 @@ struct CoachView: View {
                 .clipShape(.rect(cornerRadius: 10))
             }
 
-            if viewModel.coachEconomy.clearedEarnings > 0 {
+            if viewModel.coachEconomy.clearedCredits > 0 {
                 Button {
-                    let claimed = viewModel.coachEconomy.claimEarnings()
-                    viewModel.profile.evolutionShards += claimed
-                    SaveSystem.saveCoachEconomy(viewModel.coachEconomy)
-                    SaveSystem.saveProfile(viewModel.profile)
+                    _ = viewModel.withdrawCreatorCredits()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.down.circle.fill")
                             .font(.system(size: 12))
-                        Text("CLAIM \(viewModel.coachEconomy.clearedEarnings) SHARDS")
+                        Text("CLAIM \(viewModel.coachEconomy.clearedCredits) CREDITS")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                     }
                     .foregroundStyle(.black)

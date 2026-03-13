@@ -20,6 +20,8 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let totalWorkouts: Int
         let streakDays: Int
         let evolutionShards: Int
+        let premiumCredits: Int
+        let creatorCredits: Int
     }
 
     nonisolated struct MetricsData: Codable, Sendable {
@@ -148,7 +150,9 @@ struct UnityExportBuilder {
             sport: profile.sport ?? "Unknown",
             totalWorkouts: profile.totalWorkouts,
             streakDays: profile.streakDays,
-            evolutionShards: profile.evolutionShards
+            evolutionShards: profile.evolutionShards,
+            premiumCredits: profile.premiumCredits,
+            creatorCredits: profile.creatorCredits
         )
 
         let prqTier = PRQTier.fromPRQ(metrics.prqScore)

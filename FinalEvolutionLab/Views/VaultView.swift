@@ -187,6 +187,8 @@ struct VaultView: View {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                 StatCell(label: "TOTAL WORKOUTS", value: "\(viewModel.profile.totalWorkouts)", icon: "figure.run")
                 StatCell(label: "EVOLUTION SHARDS", value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill")
+                StatCell(label: "PREMIUM CREDITS", value: "\(viewModel.profile.premiumCredits)", icon: "creditcard.fill")
+                StatCell(label: "CREATOR CREDITS", value: "\(viewModel.profile.creatorCredits)", icon: "banknote.fill")
                 StatCell(label: "DAY STREAK", value: "\(viewModel.profile.streakDays)", icon: "flame.fill")
                 StatCell(label: "SESSIONS TODAY", value: "\(viewModel.todaysSessions.count)", icon: "clock.fill")
             }

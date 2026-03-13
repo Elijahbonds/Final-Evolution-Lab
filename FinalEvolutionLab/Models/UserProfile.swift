@@ -6,6 +6,8 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var athleteTag: String
     var metrics: PerformanceMetrics
     var evolutionShards: Int
+    var premiumCredits: Int
+    var creatorCredits: Int
     var totalWorkouts: Int
     var streakDays: Int
     var joinDate: Date
@@ -33,6 +35,8 @@ extension UserProfile: Codable {
         athleteTag = try container.decode(String.self, forKey: .athleteTag)
         metrics = try container.decode(PerformanceMetrics.self, forKey: .metrics)
         evolutionShards = try container.decode(Int.self, forKey: .evolutionShards)
+        premiumCredits = (try? container.decode(Int.self, forKey: .premiumCredits)) ?? 0
+        creatorCredits = (try? container.decode(Int.self, forKey: .creatorCredits)) ?? 0
         totalWorkouts = try container.decode(Int.self, forKey: .totalWorkouts)
         streakDays = try container.decode(Int.self, forKey: .streakDays)
         joinDate = try container.decode(Date.self, forKey: .joinDate)
@@ -53,6 +57,8 @@ extension UserProfile: Codable {
         athleteTag: "0xGuest",
         metrics: .empty,
         evolutionShards: 0,
+        premiumCredits: 0,
+        creatorCredits: 0,
         totalWorkouts: 0,
         streakDays: 0,
         joinDate: Date(),
@@ -241,4 +247,6 @@ nonisolated struct CreatorCardState: Codable, Sendable {
     let appliedAt: Date
     let costShards: Int
     let metricsBoost: PerformanceMetrics
+
+    var costCredits: Int { costShards } // Legacy key alias.
 }

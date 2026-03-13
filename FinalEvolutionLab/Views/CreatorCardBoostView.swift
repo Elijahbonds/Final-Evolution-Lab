@@ -4,7 +4,7 @@ struct CreatorCardBoostView: View {
     let viewModel: LabViewModel
     @State private var selectedCard: CreatorCard?
     @State private var showConfirm = false
-    @State private var showInsufficientShards = false
+    @State private var showInsufficientCredits = false
     @State private var appeared = false
 
     private var activeCard: CreatorCardState? {
@@ -56,15 +56,15 @@ struct CreatorCardBoostView: View {
                             card: card,
                             isActive: activeCard?.cardId == card.id,
                             isOwned: isOwned,
-                            canAfford: isOwned || viewModel.profile.evolutionShards >= card.costShards
+                            canAfford: isOwned || viewModel.profile.premiumCredits >= card.costCredits
                         ) {
                             if activeCard?.cardId == card.id { return }
                             if isOwned {
                                 viewModel.applyCreatorCard(card)
                                 return
                             }
-                            if viewModel.profile.evolutionShards < card.costShards {
-                                showInsufficientShards = true
+                            if viewModel.profile.premiumCredits < card.costCredits {
+                                showInsufficientCredits = true
                                 return
                             }
                             selectedCard = card
@@ -95,13 +95,13 @@ struct CreatorCardBoostView: View {
             }
         } message: {
             if let card = selectedCard {
-                Text("Spend \(card.costShards) shards to activate \(card.title)? This will boost your avatar's abilities with \(card.creatorName)'s data.")
+                Text("Spend \(card.costCredits) credits to activate \(card.title)? This will boost your avatar's abilities with \(card.creatorName)'s data.")
             }
         }
-        .alert("Insufficient Shards", isPresented: $showInsufficientShards) {
+        .alert("Insufficient Credits", isPresented: $showInsufficientCredits) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Earn more shards through workouts and arena matches to unlock creator cards.")
+            Text("Purchase more credits to unlock creator cards.")
         }
     }
 }
@@ -218,11 +218,11 @@ struct CreatorCardCell: View {
                 Spacer(minLength: 0)
 
                 HStack(spacing: 4) {
-                    Image(systemName: isOwned ? "checkmark.seal.fill" : "diamond.fill")
+                    Image(systemName: isOwned ? "checkmark.seal.fill" : "creditcard.fill")
                         .font(.system(size: 9))
                         .foregroundStyle(isOwned ? .green : Theme.brandCyan)
 
-                    Text(isActive ? "EQUIPPED" : (isOwned ? "OWNED" : "\(card.costShards)"))
+                    Text(isActive ? "EQUIPPED" : (isOwned ? "OWNED" : "\(card.costCredits)"))
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(isActive ? .green : (isOwned ? .green.opacity(0.8) : (canAfford ? .white : .red)))
                 }

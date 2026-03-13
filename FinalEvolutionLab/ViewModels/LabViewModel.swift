@@ -246,15 +246,15 @@ class LabViewModel {
     func applyCreatorCard(_ card: CreatorCard) {
         let alreadyOwned = profile.ownsCard(card.id)
         if !alreadyOwned {
-            guard profile.evolutionShards >= card.costShards else { return }
-            profile.evolutionShards -= card.costShards
+            guard profile.premiumCredits >= card.costCredits else { return }
+            profile.premiumCredits -= card.costCredits
             profile.ownedCardIds.append(card.id)
         }
         profile.activeCreatorCard = CreatorCardState(
             cardId: card.id,
             creatorName: card.creatorName,
             appliedAt: Date(),
-            costShards: card.costShards,
+            costShards: card.costCredits, // legacy persisted key
             metricsBoost: card.metricsBoost
         )
         SaveSystem.saveProfile(profile)
@@ -265,12 +265,15 @@ class LabViewModel {
         SaveSystem.saveProfile(profile)
     }
 
-    static let critiqueCostShards = 500
+    static let critiqueCostCredits = 500
+    static let critiqueEngagementShardBonus = 50
+    static let critiqueCostShards = critiqueCostCredits // legacy alias
 
     func requestCritique(exerciseName: String, notes: String) -> Bool {
-        let cost = Self.critiqueCostShards
-        guard profile.evolutionShards >= cost else { return false }
-        profile.evolutionShards -= cost
+        let cost = Self.critiqueCostCredits
+        guard profile.premiumCredits >= cost else { return false }
+        profile.premiumCredits -= cost
+        profile.evolutionShards += Self.critiqueEngagementShardBonus
 
         let request = CritiqueRequest(
             id: UUID().uuidString,
@@ -278,13 +281,13 @@ class LabViewModel {
             exerciseName: exerciseName,
             notes: notes,
             requestDate: Date(),
-            shardsCost: cost,
+            shardsCost: cost, // legacy field; interpreted as credits
             status: .pending,
             coachResponse: nil
         )
         critiqueRequests.append(request)
 
-        coachEconomy.completeCritique(shards: cost, critiqueId: request.id)
+        coachEconomy.completeCritique(credits: cost, critiqueId: request.id)
 
         SaveSystem.saveProfile(profile)
         SaveSystem.saveCritiqueRequests(critiqueRequests)
@@ -313,5 +316,28 @@ class LabViewModel {
             focusAreas: ["Ankle Stiffness", "Hip Extension", "Ground Contact"]
         )
         SaveSystem.saveCritiqueRequests(critiqueRequests)
+    }
+
+    @discardableResult
+    func withdrawCreatorCredits() -> Int {
+        let claimed = coachEconomy.claimEarnings()
+        profile.creatorCredits += claimed
+        SaveSystem.saveCoachEconomy(coachEconomy)
+        SaveSystem.saveProfile(profile)
+        return claimed
+    }
+
+    func purchaseCredits(_ credits: Int) {
+        guard credits > 0 else { return }
+        profile.premiumCredits += credits
+        SaveSystem.saveProfile(profile)
+    }
+
+    func buyShardsUsingCredits(creditsToSpend: Int) -> Bool {
+        guard creditsToSpend > 0, profile.premiumCredits >= creditsToSpend else { return false }
+        profile.premiumCredits -= creditsToSpend
+        profile.evolutionShards += DualCurrencyReservoir.shardsFromCredits(creditsToSpend)
+        SaveSystem.saveProfile(profile)
+        return true
     }
 }

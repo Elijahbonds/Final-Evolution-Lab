@@ -53,6 +53,9 @@ nonisolated struct CritiqueRequest: Codable, Sendable, Identifiable {
     var isReviewable: Bool {
         status == .completed && coachResponse != nil
     }
+
+    // Legacy key name retained for backward compatibility with persisted data.
+    var creditsCost: Int { shardsCost }
 }
 
 nonisolated enum CritiqueStatus: String, Codable, Sendable {

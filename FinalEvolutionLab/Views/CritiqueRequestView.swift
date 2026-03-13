@@ -7,7 +7,7 @@ struct CritiqueRequestView: View {
     @State private var selectedExercise: String = ""
     @State private var notesText: String = ""
     @State private var showConfirmation: Bool = false
-    @State private var showInsufficientShards: Bool = false
+    @State private var showInsufficientCredits: Bool = false
     @State private var showReviewSheet: CritiqueRequest?
     @State private var reviewRating: Double = 4.0
 
@@ -66,10 +66,10 @@ struct CritiqueRequestView: View {
                     confirmationOverlay
                 }
             }
-            .alert("Insufficient Shards", isPresented: $showInsufficientShards) {
+            .alert("Insufficient Credits", isPresented: $showInsufficientCredits) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("You need \(LabViewModel.critiqueCostShards) shards. Earn more through workouts and arena matches.")
+                Text("You need \(LabViewModel.critiqueCostCredits) credits. Purchase more credits to request IRL critiques.")
             }
             .sheet(item: $showReviewSheet) { request in
                 CritiqueReviewSheet(
@@ -103,10 +103,10 @@ struct CritiqueRequestView: View {
 
                 VStack(alignment: .trailing, spacing: 2) {
                     HStack(spacing: 4) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 12))
                             .foregroundStyle(Theme.brandCyan)
-                        Text("\(LabViewModel.critiqueCostShards)")
+                        Text("\(LabViewModel.critiqueCostCredits)")
                             .font(.system(.title3, design: .monospaced, weight: .black))
                             .foregroundStyle(.white)
                     }
@@ -124,10 +124,10 @@ struct CritiqueRequestView: View {
                         .foregroundStyle(.tertiary)
                         .tracking(1)
                     HStack(spacing: 4) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(Theme.brandCyan)
-                        Text("\(viewModel.profile.evolutionShards)")
+                        Text("\(viewModel.profile.premiumCredits)")
                             .font(.system(.headline, design: .monospaced, weight: .black))
                             .foregroundStyle(.white)
                     }
@@ -146,7 +146,7 @@ struct CritiqueRequestView: View {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(.orange)
-                        Text("\(viewModel.coachEconomy.pendingEarnings)")
+                        Text("\(viewModel.coachEconomy.pendingCredits)")
                             .font(.system(.headline, design: .monospaced, weight: .black))
                             .foregroundStyle(.white)
                     }
@@ -239,8 +239,8 @@ struct CritiqueRequestView: View {
     private var submitButton: some View {
         Button {
             guard !selectedExercise.isEmpty else { return }
-            if viewModel.profile.evolutionShards < LabViewModel.critiqueCostShards {
-                showInsufficientShards = true
+            if viewModel.profile.premiumCredits < LabViewModel.critiqueCostCredits {
+                showInsufficientCredits = true
                 return
             }
             let success = viewModel.requestCritique(exerciseName: selectedExercise, notes: notesText)
@@ -255,13 +255,13 @@ struct CritiqueRequestView: View {
                     showConfirmation = true
                 }
             } else {
-                showInsufficientShards = true
+                showInsufficientCredits = true
             }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "diamond.fill")
+                Image(systemName: "creditcard.fill")
                     .font(.system(size: 12))
-                Text("REQUEST CRITIQUE \u{2014} \(LabViewModel.critiqueCostShards) SHARDS")
+                Text("REQUEST CRITIQUE \u{2014} \(LabViewModel.critiqueCostCredits) CREDITS")
             }
             .font(.system(.subheadline, design: .monospaced, weight: .black))
             .foregroundStyle(canSubmit ? .black : .secondary)
@@ -354,10 +354,10 @@ struct CritiqueRequestView: View {
 
                 VStack(spacing: 6) {
                     HStack(spacing: 6) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 12))
                             .foregroundStyle(Theme.brandCyan)
-                        Text("\(LabViewModel.critiqueCostShards) shards deducted")
+                        Text("\(LabViewModel.critiqueCostCredits) credits deducted")
                             .font(.system(.caption, design: .monospaced, weight: .bold))
                             .foregroundStyle(.white)
                     }
@@ -369,6 +369,15 @@ struct CritiqueRequestView: View {
                         Text("Held in escrow until you review")
                             .font(.system(.caption, design: .monospaced, weight: .bold))
                             .foregroundStyle(.orange)
+                    }
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "diamond.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.brandBlue)
+                        Text("+\(LabViewModel.critiqueEngagementShardBonus) shard engagement bonus")
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(Theme.brandBlue)
                     }
                 }
 
@@ -504,7 +513,7 @@ struct CritiqueRequestRow: View {
                 Image(systemName: "diamond.fill")
                     .font(.system(size: 8))
                     .foregroundStyle(Theme.brandCyan)
-                Text("\(request.shardsCost) shards")
+                Text("\(request.creditsCost) credits")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(.tertiary)
             }
@@ -670,7 +679,7 @@ struct CritiqueReviewSheet: View {
                 HStack(spacing: 8) {
                     Image(systemName: "lock.open.fill")
                         .font(.system(size: 12))
-                    Text("RELEASE \(request.shardsCost) SHARDS TO COACH")
+                    Text("RELEASE \(request.creditsCost) CREDITS TO COACH")
                 }
                 .font(.system(.subheadline, design: .monospaced, weight: .black))
                 .foregroundStyle(.black)
@@ -680,7 +689,7 @@ struct CritiqueReviewSheet: View {
                 .clipShape(.rect(cornerRadius: 14))
             }
 
-            Text("Shards will be released from escrow to the coach")
+            Text("Credits will be released from escrow to the coach")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }

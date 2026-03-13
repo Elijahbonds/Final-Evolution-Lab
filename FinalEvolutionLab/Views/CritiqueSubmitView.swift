@@ -395,7 +395,7 @@ struct CritiqueSubmitView: View {
                     .font(.system(size: 20, weight: .black, design: .monospaced))
                     .foregroundStyle(.white)
 
-                Text("150 Shards held in escrow — released when the athlete reviews your feedback")
+                Text("150 Credits held in escrow — released when the athlete reviews your feedback")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -419,7 +419,7 @@ struct CritiqueSubmitView: View {
 
     private func submitCritique() {
         let critiqueId = UUID().uuidString
-        viewModel.coachEconomy.completeCritique(shards: 150, critiqueId: critiqueId)
+        viewModel.coachEconomy.completeCritique(credits: 150, critiqueId: critiqueId)
         SaveSystem.saveCoachEconomy(viewModel.coachEconomy)
 
         withAnimation(.spring(response: 0.4)) {
