@@ -19,6 +19,7 @@ class LabViewModel {
     var gameResults: [GameSessionResult] = SaveSystem.loadGameResults()
     var creatorMarketplace: CreatorCardMarketplaceState = SaveSystem.loadCreatorMarketplace()
     var eventHub: EventHubState = SaveSystem.loadEventHub()
+    var academyProgress: AcademyProgressState = SaveSystem.loadAcademyProgress()
     var lastSessionReadiness: Double = 50
 
     var biomechanicsAudit: BiomechanicsAudit?
@@ -59,6 +60,7 @@ class LabViewModel {
         critiqueRequests = SaveSystem.loadCritiqueRequests()
         creatorMarketplace = SaveSystem.loadCreatorMarketplace()
         eventHub = SaveSystem.loadEventHub()
+        academyProgress = SaveSystem.loadAcademyProgress()
 
         if let scan = profile.systemScan {
             biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
@@ -115,6 +117,59 @@ class LabViewModel {
             .sorted(by: { $0.1 > $1.1 })
             .prefix(max(1, limit))
             .map { (userId: $0.0, credits: $0.1) }
+    }
+
+    var academyMasteryAverage: Double {
+        let values = AcademyTrack.allCases.map { academyProgress.masteryByTrack[$0] ?? 0 }
+        guard !values.isEmpty else { return 0 }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    var unlockedPrestigeCount: Int {
+        academyProgress.prestigeUnlockedIds.count
+    }
+
+    func selectMentor(_ mentor: MentorId) {
+        academyProgress.selectedMentor = mentor
+        SaveSystem.saveAcademyProgress(academyProgress)
+    }
+
+    @discardableResult
+    func unlockAcademyKnowledgeNode(nodeId: String) -> Bool {
+        guard let node = AcademyKnowledgeCatalog.starterNodes.first(where: { $0.id == nodeId }) else { return false }
+        guard !academyProgress.unlockedKnowledgeNodeIds.contains(node.id) else { return false }
+        guard node.prerequisiteNodeIds.allSatisfy({ academyProgress.unlockedKnowledgeNodeIds.contains($0) }) else { return false }
+        guard profile.evolutionShards >= node.shardUnlockCost else { return false }
+
+        profile.evolutionShards -= node.shardUnlockCost
+        academyProgress.unlockNode(node)
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveAcademyProgress(academyProgress)
+        return true
+    }
+
+    @discardableResult
+    func resolveBrainBrawlMatch(track: AcademyTrack, wager: Int, didWin: Bool, sabotage: MentalDebuffType? = nil) -> Bool {
+        let rules = BrainBrawlRulebook.default
+        guard wager >= rules.minimumWager, wager <= rules.maximumWager else { return false }
+        let sabotageCost = rules.debuffs.first(where: { $0.type == sabotage })?.shardCost ?? 0
+        let totalCost = wager + sabotageCost
+        guard profile.evolutionShards >= totalCost else { return false }
+
+        profile.evolutionShards -= totalCost
+        if didWin {
+            // Winner receives their stake plus mirrored opponent stake.
+            var payout = wager * 2
+            if academyProgress.selectedMentor == .jax {
+                payout += max(1, wager / 10)
+            }
+            profile.evolutionShards += payout
+        }
+
+        academyProgress.applyBrainBrawlResult(track: track, wager: wager, didWin: didWin, sabotageCost: sabotageCost)
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveAcademyProgress(academyProgress)
+        return true
     }
 
     var todaysSessions: [WorkoutSession] {
@@ -383,6 +438,36 @@ class LabViewModel {
         profile.premiumCredits -= creditsAmount
         applyFundraisingContribution(teamId: goal.teamId, creditsAmount: creditsAmount, source: .directDonation)
         SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        SaveSystem.saveEventHub(eventHub)
+        return true
+    }
+
+    @discardableResult
+    func claimReferralShardRewards() -> Int {
+        let claimable = eventHub.referralShardRewardsByUser[profile.id] ?? 0
+        guard claimable > 0 else { return 0 }
+        profile.evolutionShards += claimable
+        eventHub.referralShardRewardsByUser[profile.id] = 0
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveEventHub(eventHub)
+        return claimable
+    }
+
+    @discardableResult
+    func checkInTicket(ticketId: String) -> Bool {
+        guard let ticketIndex = eventHub.tickets.firstIndex(where: {
+            $0.id == ticketId && $0.ownerUserId == profile.id
+        }) else { return false }
+        guard eventHub.tickets[ticketIndex].checkedInAt == nil else { return false }
+        guard let event = eventHub.events.first(where: { $0.id == eventHub.tickets[ticketIndex].eventId }) else { return false }
+        let now = Date()
+        guard event.startsAt <= now, event.endsAt >= now else { return false }
+
+        eventHub.tickets[ticketIndex].checkedInAt = Date()
+        profile.evolutionShards += 75
+        eventHub.participationShardRewardsByUser[profile.id, default: 0] += 75
+        SaveSystem.saveProfile(profile)
         SaveSystem.saveEventHub(eventHub)
         return true
     }
@@ -400,11 +485,15 @@ class LabViewModel {
         SaveSystem.saveEventHub(eventHub)
     }
 
-    func closeLiveVoting(eventId: String) {
-        guard let index = eventHub.votingSessions.firstIndex(where: { $0.eventId == eventId }) else { return }
+    @discardableResult
+    func closeLiveVoting(eventId: String) -> String? {
+        guard let index = eventHub.votingSessions.firstIndex(where: { $0.eventId == eventId }) else { return nil }
         eventHub.votingSessions[index].isOpen = false
+        let summary = resolveLiveVotingOutcome(eventId: eventId)
         SaveSystem.saveEventHub(eventHub)
+        SaveSystem.saveProfile(profile)
         liveVotingSocket.close(eventId: eventId)
+        return summary
     }
 
     func connectLiveVotingSocket(eventId: String) -> AsyncStream<LiveVote> {
@@ -445,6 +534,44 @@ class LabViewModel {
         return true
     }
 
+    private func resolveLiveVotingOutcome(eventId: String) -> String? {
+        if let existing = eventHub.voteOutcomeByEvent?[eventId] {
+            return existing.summary
+        }
+        guard let sessionIndex = eventHub.votingSessions.firstIndex(where: { $0.eventId == eventId }) else { return nil }
+        let votes = eventHub.votingSessions[sessionIndex].votes
+
+        let votesCount = votes.count
+        let average = votesCount == 0 ? 0 : (Double(votes.reduce(0, { $0 + $1.score })) / Double(votesCount))
+        let uniqueVoters = Set(votes.map(\.voterUserId))
+        let pot = votesCount == 0 ? 0 : max(250, votesCount * 50)
+        let perVoterReward = uniqueVoters.isEmpty ? 0 : (pot / uniqueVoters.count)
+
+        if perVoterReward > 0, uniqueVoters.contains(profile.id) {
+            profile.evolutionShards += perVoterReward
+            eventHub.participationShardRewardsByUser[profile.id, default: 0] += perVoterReward
+        }
+
+        let summary: String
+        if votesCount == 0 {
+            summary = "Voting closed: no votes recorded"
+        } else {
+            summary = "Voting closed: avg \(String(format: "%.1f", average)), pot \(pot) shards"
+        }
+
+        eventHub.recordVotingOutcome(
+            LiveVotingOutcome(
+                eventId: eventId,
+                closedAt: Date(),
+                votesCount: votesCount,
+                averageScore: average,
+                shardPotDistributed: pot,
+                summary: summary
+            )
+        )
+        return summary
+    }
+
     private func hasCreatorCardTicketDiscount(for event: LiveEvent) -> Bool {
         guard let headlinerId = event.headlinerCreatorId ?? event.headlinerCreatorName?.lowercased(),
               !headlinerId.isEmpty else { return false }
@@ -474,6 +601,7 @@ class LabViewModel {
 
     private func unlockFundraisingRewardsIfNeeded(goalIndex: Int) {
         let percent = eventHub.fundraisingGoals[goalIndex].percentComplete
+        let goal = eventHub.fundraisingGoals[goalIndex]
         for reward in eventHub.fundraisingGoals[goalIndex].milestoneRewards where
             reward.thresholdPercent <= percent &&
             !eventHub.fundraisingGoals[goalIndex].unlockedRewardIds.contains(reward.rewardId) {
@@ -482,14 +610,97 @@ class LabViewModel {
             switch reward.rewardType {
             case .practiceJerseySkin:
                 profile.blueprintCredits += 25
+                profile.unlockedCosmeticRewardIds.append(reward.rewardId)
+                if let teamIndex = eventHub.teams.firstIndex(where: { $0.id == goal.teamId }) {
+                    if !eventHub.teams[teamIndex].unlockedCosmeticRewardIds.contains(reward.rewardId) {
+                        eventHub.teams[teamIndex].unlockedCosmeticRewardIds.append(reward.rewardId)
+                    }
+                }
             case .dunkShowUnlock:
-                break
+                if let teamIndex = eventHub.teams.firstIndex(where: { $0.id == goal.teamId }) {
+                    if !eventHub.teams[teamIndex].unlockedEventRewardIds.contains(reward.rewardId) {
+                        eventHub.teams[teamIndex].unlockedEventRewardIds.append(reward.rewardId)
+                    }
+                }
+                createUnlockedDunkEventIfNeeded(goal: goal, rewardId: reward.rewardId)
             case .patronCreatorCard:
                 if let topDonor = eventHub.topContributorUserId(for: eventHub.fundraisingGoals[goalIndex].id) {
                     eventHub.donorShardMultiplierBpsByUser[topDonor] =
                         max(eventHub.donorShardMultiplierBpsByUser[topDonor] ?? 0, 500)
+                    if eventHub.patronCardOwnerByGoalId == nil {
+                        eventHub.patronCardOwnerByGoalId = [:]
+                    }
+                    if eventHub.patronCardOwnerByGoalId?[goal.id] == nil {
+                        eventHub.patronCardOwnerByGoalId?[goal.id] = topDonor
+                        if topDonor == profile.id {
+                            mintPatronRewardCard(goalId: goal.id)
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    private func createUnlockedDunkEventIfNeeded(goal: FundraisingGoal, rewardId: String) {
+        let unlockedEventId = "event_unlock_\(goal.teamId)_\(rewardId)"
+        guard !eventHub.events.contains(where: { $0.id == unlockedEventId }) else { return }
+
+        let start = Calendar.current.date(byAdding: .day, value: 5, to: Date()) ?? Date()
+        let end = Calendar.current.date(byAdding: .hour, value: 3, to: start) ?? start.addingTimeInterval(10_800)
+        let event = LiveEvent(
+            id: unlockedEventId,
+            kind: .dunkShow,
+            title: "Unlocked Team Dunk Show",
+            description: "Community-funded showcase unlocked by team milestone completion.",
+            startsAt: start,
+            endsAt: end,
+            venueName: "Unlocked Local Court",
+            teamId: goal.teamId,
+            headlinerCreatorId: "coach_v",
+            headlinerCreatorName: "Coach V",
+            isStreamEnabled: true,
+            ticketInventoryCap: 750
+        )
+        eventHub.events.append(event)
+        eventHub.ticketPricing.append(
+            contentsOf: [
+                EventTicketPricing(eventId: event.id, tier: .generalAdmission, priceInCredits: 1000, priceInShards: 0, shardBonusValue: 300),
+                EventTicketPricing(eventId: event.id, tier: .vipFrontRow, priceInCredits: 1800, priceInShards: 150, shardBonusValue: 650),
+                EventTicketPricing(eventId: event.id, tier: .virtual, priceInCredits: 0, priceInShards: 350, shardBonusValue: 200),
+            ]
+        )
+        eventHub.votingSessions.append(
+            LiveVotingSession(eventId: event.id, isOpen: false, votes: [], participantRewardedUserIds: [])
+        )
+    }
+
+    private func mintPatronRewardCard(goalId: String) {
+        guard let template = CreatorCard.catalog.first else { return }
+        let alreadyMinted = creatorMarketplace.inventory.contains(where: {
+            $0.ownerId == profile.id &&
+            $0.source == .reward &&
+            $0.signatureYear == Calendar.current.component(.year, from: Date()) &&
+            $0.signedByCreatorId == "patron_\(goalId)"
+        })
+        guard !alreadyMinted else { return }
+
+        let asset = CreatorCardAsset(
+            id: UUID().uuidString,
+            templateCardId: template.id,
+            ownerId: profile.id,
+            rarity: .signature,
+            acquiredAt: Date(),
+            source: .reward,
+            maintenanceExpiresAt: Date().addingTimeInterval(Double(14 * 24 * 3600)),
+            totalMaintenanceShardsPaid: 0,
+            isLockedInAuction: false,
+            signedByCreatorId: "patron_\(goalId)",
+            signatureYear: Calendar.current.component(.year, from: Date()),
+            signatureSerial: 1
+        )
+        creatorMarketplace.inventory.append(asset)
+        if !profile.ownsCard(template.id) {
+            profile.ownedCardIds.append(template.id)
         }
     }
 
@@ -665,11 +876,8 @@ class LabViewModel {
         )
         critiqueRequests.append(request)
 
-        coachEconomy.completeCritique(credits: cost, critiqueId: request.id)
-
         SaveSystem.saveProfile(profile)
         SaveSystem.saveCritiqueRequests(critiqueRequests)
-        SaveSystem.saveCoachEconomy(coachEconomy)
         return true
     }
 
@@ -692,16 +900,14 @@ class LabViewModel {
             exerciseName: exerciseName,
             notes: notes,
             requestDate: Date(),
-            shardsCost: payoutCredits,
+            shardsCost: shardCost,
             status: .pending,
             coachResponse: nil
         )
         critiqueRequests.append(request)
-        coachEconomy.completeCritique(credits: payoutCredits, critiqueId: request.id)
 
         SaveSystem.saveProfile(profile)
         SaveSystem.saveCritiqueRequests(critiqueRequests)
-        SaveSystem.saveCoachEconomy(coachEconomy)
         SaveSystem.saveCreatorMarketplace(creatorMarketplace)
         return true
     }
@@ -728,7 +934,36 @@ class LabViewModel {
             overallGrade: "DEVELOPING",
             focusAreas: ["Ankle Stiffness", "Hip Extension", "Ground Contact"]
         )
+        let heldCredits = creatorMarketplace.serviceFundingReservations[requestId] ?? critiqueRequests[index].creditsCost
+        coachEconomy.completeCritique(credits: heldCredits, critiqueId: requestId)
         SaveSystem.saveCritiqueRequests(critiqueRequests)
+        SaveSystem.saveCoachEconomy(coachEconomy)
+    }
+
+    @discardableResult
+    func cancelPendingCritique(requestId: String) -> Bool {
+        guard let index = critiqueRequests.firstIndex(where: {
+            $0.id == requestId && ($0.status == .pending || $0.status == .inProgress)
+        }) else { return false }
+        critiqueRequests[index].status = .cancelled
+        _ = creatorMarketplace.releaseReservedServiceCredits(requestId: requestId)
+        SaveSystem.saveCritiqueRequests(critiqueRequests)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return true
+    }
+
+    @discardableResult
+    func disputeCompletedCritique(requestId: String) -> Bool {
+        guard let index = critiqueRequests.firstIndex(where: {
+            $0.id == requestId && ($0.status == .completed || $0.status == .rated)
+        }) else { return false }
+        critiqueRequests[index].status = .disputed
+        coachEconomy.markCritiqueDisputed(critiqueId: requestId)
+        _ = creatorMarketplace.releaseReservedServiceCredits(requestId: requestId)
+        SaveSystem.saveCritiqueRequests(critiqueRequests)
+        SaveSystem.saveCoachEconomy(coachEconomy)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return true
     }
 
     func openCreatorPacks(count: Int = 1, odds: CreatorPackOdds = .myTeamStyle) -> [CreatorCardAsset] {
@@ -850,14 +1085,24 @@ class LabViewModel {
         guard creatorMarketplace.activeListings[index].sellerId != profile.id else { return false }
 
         let currentBid = creatorMarketplace.activeListings[index].currentBidShards
-        guard profile.evolutionShards > currentBid else { return false } // Prompt's bid constraint.
-        guard bidAmountShards > currentBid, profile.evolutionShards >= bidAmountShards else { return false }
+        guard bidAmountShards > currentBid else { return false }
+
+        let reserved = creatorMarketplace.bidEscrowAmount(listingId: listingId, bidderId: profile.id)
+        let additionalToReserve = max(0, bidAmountShards - reserved)
+        guard profile.evolutionShards >= additionalToReserve else { return false }
+
+        // Prompt's bid constraint interpreted as available + reserved must exceed current high bid.
+        guard (profile.evolutionShards + reserved) > currentBid else { return false }
+
+        profile.evolutionShards -= additionalToReserve
+        creatorMarketplace.setBidEscrowAmount(listingId: listingId, bidderId: profile.id, amount: bidAmountShards)
 
         creatorMarketplace.activeListings[index].highestBid = CreatorCardBid(
             bidderId: profile.id,
             amountShards: bidAmountShards,
             placedAt: Date()
         )
+        SaveSystem.saveProfile(profile)
         SaveSystem.saveCreatorMarketplace(creatorMarketplace)
         return true
     }
@@ -867,10 +1112,12 @@ class LabViewModel {
         let listing = creatorMarketplace.activeListings[index]
         guard listing.isActive(now: Date()),
               listing.sellerId != profile.id,
-              let buyNow = listing.buyNowShards,
-              profile.evolutionShards >= buyNow else { return false }
+              let buyNow = listing.buyNowShards else { return false }
 
-        profile.evolutionShards -= buyNow
+        let reserved = creatorMarketplace.bidEscrowAmount(listingId: listing.id, bidderId: profile.id)
+        let additionalRequired = max(0, buyNow - reserved)
+        guard profile.evolutionShards >= additionalRequired else { return false }
+
         let success = finalizeAuctionSale(listingIndex: index, buyerId: profile.id, salePriceShards: buyNow)
         if success {
             SaveSystem.saveProfile(profile)
@@ -888,18 +1135,16 @@ class LabViewModel {
             let listing = creatorMarketplace.activeListings[index]
 
             if let winningBid = listing.highestBid {
-                if winningBid.bidderId == profile.id {
-                    guard profile.evolutionShards >= winningBid.amountShards else {
-                        creatorMarketplace.activeListings[index].status = .expired
-                        unlockAssetForListing(at: index)
-                        creatorMarketplace.activeListings.remove(at: index)
-                        continue
-                    }
-                    profile.evolutionShards -= winningBid.amountShards
+                let sold = finalizeAuctionSale(listingIndex: index, buyerId: winningBid.bidderId, salePriceShards: winningBid.amountShards)
+                if !sold, let failedIndex = creatorMarketplace.activeListings.firstIndex(where: { $0.id == listingId }) {
+                    creatorMarketplace.activeListings[failedIndex].status = .expired
+                    refundLocalEscrow(forListingId: listingId)
+                    unlockAssetForListing(at: failedIndex)
+                    creatorMarketplace.activeListings.remove(at: failedIndex)
                 }
-                _ = finalizeAuctionSale(listingIndex: index, buyerId: winningBid.bidderId, salePriceShards: winningBid.amountShards)
             } else {
                 creatorMarketplace.activeListings[index].status = .cancelled
+                refundLocalEscrow(forListingId: listingId)
                 unlockAssetForListing(at: index)
                 creatorMarketplace.activeListings.remove(at: index)
             }
@@ -967,10 +1212,31 @@ class LabViewModel {
         }
     }
 
+    private func refundLocalEscrow(forListingId listingId: String) {
+        let released = creatorMarketplace.clearBidEscrows(for: listingId)
+        if let localRefund = released[profile.id], localRefund > 0 {
+            profile.evolutionShards += localRefund
+        }
+    }
+
     private func finalizeAuctionSale(listingIndex: Int, buyerId: String, salePriceShards: Int) -> Bool {
         guard listingIndex >= 0, listingIndex < creatorMarketplace.activeListings.count, salePriceShards > 0 else { return false }
         let listing = creatorMarketplace.activeListings[listingIndex]
         guard let assetIndex = creatorMarketplace.inventory.firstIndex(where: { $0.id == listing.assetId }) else { return false }
+
+        let escrows = creatorMarketplace.bidEscrows(for: listing.id)
+        let localEscrow = escrows[profile.id] ?? 0
+        if buyerId == profile.id {
+            let additionalNeeded = max(0, salePriceShards - localEscrow)
+            guard profile.evolutionShards >= additionalNeeded else { return false }
+            profile.evolutionShards -= additionalNeeded
+            if localEscrow > salePriceShards {
+                profile.evolutionShards += (localEscrow - salePriceShards)
+            }
+        } else if localEscrow > 0 {
+            profile.evolutionShards += localEscrow
+        }
+        _ = creatorMarketplace.clearBidEscrows(for: listing.id)
 
         let taxShards = DualCurrencyReservoir.auctionTaxShards(for: salePriceShards)
         let sellerNetShards = max(0, salePriceShards - taxShards)
@@ -1026,6 +1292,35 @@ class LabViewModel {
         return claimed
     }
 
+    @discardableResult
+    func claimSignatureRoyaltyCredits(creatorId: String) -> Int {
+        let claimed = creatorMarketplace.claimRoyaltyCredits(creatorId: creatorId)
+        guard claimed > 0 else { return 0 }
+        profile.creatorCredits += claimed
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return claimed
+    }
+
+    var myClaimableRoyaltyCredits: Int {
+        creatorAliasesForCurrentUser()
+            .reduce(0) { $0 + (creatorMarketplace.royaltyCreditsByCreatorId[$1] ?? 0) }
+    }
+
+    @discardableResult
+    func claimMySignatureRoyaltyCredits() -> Int {
+        let aliases = creatorAliasesForCurrentUser()
+        var totalClaimed = 0
+        for alias in aliases {
+            totalClaimed += creatorMarketplace.claimRoyaltyCredits(creatorId: alias)
+        }
+        guard totalClaimed > 0 else { return 0 }
+        profile.creatorCredits += totalClaimed
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return totalClaimed
+    }
+
     func purchaseCredits(_ credits: Int) {
         guard credits > 0 else { return }
         profile.premiumCredits += credits
@@ -1043,5 +1338,17 @@ class LabViewModel {
         SaveSystem.saveProfile(profile)
         SaveSystem.saveCreatorMarketplace(creatorMarketplace)
         return true
+    }
+
+    private func creatorAliasesForCurrentUser() -> [String] {
+        let normalizedDisplayName = profile.displayName
+            .lowercased()
+            .map { $0.isLetter || $0.isNumber ? $0 : "_" }
+            .reduce(into: "") { partial, char in
+                if char == "_" && partial.last == "_" { return }
+                partial.append(char)
+            }
+            .trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+        return Array(Set([profile.id, normalizedDisplayName]))
     }
 }

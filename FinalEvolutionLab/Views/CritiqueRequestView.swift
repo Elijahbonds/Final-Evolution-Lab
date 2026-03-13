@@ -418,6 +418,8 @@ struct CritiqueRequestRow: View {
         case .inProgress: Theme.brandBlue
         case .completed: .green
         case .rated: .secondary
+        case .cancelled: .gray
+        case .disputed: .red
         }
     }
 

@@ -145,6 +145,20 @@ nonisolated struct CoachEconomy: Codable, Sendable {
         rating = (totalWeight + athleteRating) / Double(totalRatings)
     }
 
+    mutating func markCritiqueDisputed(critiqueId: String) {
+        guard let index = escrowEntries.firstIndex(where: { $0.id == critiqueId }) else { return }
+        let credits = escrowEntries[index].shards
+        switch escrowEntries[index].status {
+        case .held:
+            pendingEarnings = max(0, pendingEarnings - credits)
+        case .released:
+            clearedEarnings = max(0, clearedEarnings - credits)
+        case .disputed:
+            return
+        }
+        escrowEntries[index].status = .disputed
+    }
+
     mutating func claimEarnings() -> Int {
         let claimed = clearedEarnings
         totalEarned += claimed

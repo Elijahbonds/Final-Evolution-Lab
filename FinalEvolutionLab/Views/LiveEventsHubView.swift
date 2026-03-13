@@ -218,6 +218,24 @@ struct LiveEventsHubView: View {
                                 .lineLimit(1)
                         }
                         Spacer()
+                        if ticket.checkedInAt == nil {
+                            Button {
+                                let ok = viewModel.checkInTicket(ticketId: ticket.id)
+                                showToast(ok ? "Ticket checked in (+75 shards)" : "Check-in failed")
+                            } label: {
+                                Text("CHECK IN")
+                                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                                    .foregroundStyle(.black)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 5)
+                                    .background(Theme.foundationGreen)
+                                    .clipShape(Capsule())
+                            }
+                        } else {
+                            Text("CHECKED")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                                .foregroundStyle(Theme.foundationGreen)
+                        }
                     }
                     .padding(10)
                     .background(
@@ -334,8 +352,8 @@ struct LiveEventsHubView: View {
                             votingActionLabel("OPEN", color: .green)
                         }
                         Button {
-                            viewModel.closeLiveVoting(eventId: event.id)
-                            showToast("Voting closed")
+                            let summary = viewModel.closeLiveVoting(eventId: event.id)
+                            showToast(summary ?? "Voting closed")
                         } label: {
                             votingActionLabel("CLOSE", color: .orange)
                         }
@@ -370,6 +388,12 @@ struct LiveEventsHubView: View {
                     }
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(.secondary)
+
+                    if let outcome = viewModel.eventHub.voteOutcomeByEvent?[event.id] {
+                        Text(outcome.summary)
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Theme.brandCyan)
+                    }
                 }
                 .padding(12)
                 .background(
@@ -397,6 +421,21 @@ struct LiveEventsHubView: View {
             HStack {
                 ledgerCell("Golden Tickets", value: "\(viewModel.eventHub.goldenTicketWinners.count)")
                 ledgerCell("Patron Mult.", value: "\(viewModel.eventHub.donorShardMultiplierBpsByUser[viewModel.profile.id] ?? 0) bps")
+            }
+            HStack {
+                ledgerCell("Checked-In", value: "\(checkedInCount)")
+                Button {
+                    let claimed = viewModel.claimReferralShardRewards()
+                    showToast(claimed > 0 ? "Claimed \(claimed) shards" : "No referral rewards")
+                } label: {
+                    Text("CLAIM REFERRAL")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Theme.brandBlue)
+                        .clipShape(.rect(cornerRadius: 10))
+                }
             }
         }
         .padding(14)
@@ -498,6 +537,10 @@ struct LiveEventsHubView: View {
 
     private func eventTitle(for eventId: String) -> String {
         viewModel.eventHub.events.first(where: { $0.id == eventId })?.title ?? eventId
+    }
+
+    private var checkedInCount: Int {
+        viewModel.armoryTickets.filter { $0.checkedInAt != nil }.count
     }
 
     private func priceLabel(pricing: EventTicketPricing) -> String {

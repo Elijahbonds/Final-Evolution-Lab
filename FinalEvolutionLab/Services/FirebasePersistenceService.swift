@@ -15,7 +15,9 @@ struct CloudAppSnapshot: Codable {
     let coachEconomy: CoachEconomy
     let critiqueRequests: [CritiqueRequest]
     let trainingProgress: TrainingProgress
+    let creatorMarketplace: CreatorCardMarketplaceState
     let eventHub: EventHubState
+    let academyProgress: AcademyProgressState
     let updatedAt: Date
 
     init(
@@ -25,7 +27,9 @@ struct CloudAppSnapshot: Codable {
         coachEconomy: CoachEconomy,
         critiqueRequests: [CritiqueRequest],
         trainingProgress: TrainingProgress,
+        creatorMarketplace: CreatorCardMarketplaceState,
         eventHub: EventHubState,
+        academyProgress: AcademyProgressState,
         updatedAt: Date
     ) {
         self.profile = profile
@@ -34,7 +38,9 @@ struct CloudAppSnapshot: Codable {
         self.coachEconomy = coachEconomy
         self.critiqueRequests = critiqueRequests
         self.trainingProgress = trainingProgress
+        self.creatorMarketplace = creatorMarketplace
         self.eventHub = eventHub
+        self.academyProgress = academyProgress
         self.updatedAt = updatedAt
     }
 
@@ -46,7 +52,9 @@ struct CloudAppSnapshot: Codable {
         coachEconomy = try container.decode(CoachEconomy.self, forKey: .coachEconomy)
         critiqueRequests = try container.decode([CritiqueRequest].self, forKey: .critiqueRequests)
         trainingProgress = try container.decode(TrainingProgress.self, forKey: .trainingProgress)
+        creatorMarketplace = (try? container.decode(CreatorCardMarketplaceState.self, forKey: .creatorMarketplace)) ?? CreatorCardMarketplaceState()
         eventHub = (try? container.decode(EventHubState.self, forKey: .eventHub)) ?? EventHubState()
+        academyProgress = (try? container.decode(AcademyProgressState.self, forKey: .academyProgress)) ?? .initial
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 }

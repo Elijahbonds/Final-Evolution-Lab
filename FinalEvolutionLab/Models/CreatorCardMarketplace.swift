@@ -140,6 +140,7 @@ nonisolated struct CreatorCardMarketplaceState: Codable, Sendable {
 
     var royaltyCreditsByCreatorId: [String: Int] = [:]
     var signatureMintCountByCreatorYear: [String: Int] = [:] // creatorId:year -> count
+    var bidEscrowShardsByListingBidderKey: [String: Int]? = nil // listingId|bidderId -> shards reserved
 
     mutating func fundServicePool(credits: Int) {
         guard credits > 0 else { return }
@@ -174,6 +175,51 @@ nonisolated struct CreatorCardMarketplaceState: Codable, Sendable {
         max(0, servicePoolAvailableCredits)
     }
 
+    func bidEscrowAmount(listingId: String, bidderId: String) -> Int {
+        bidEscrowShardsByListingBidderKey?[bidEscrowKey(listingId: listingId, bidderId: bidderId)] ?? 0
+    }
+
+    mutating func setBidEscrowAmount(listingId: String, bidderId: String, amount: Int) {
+        if bidEscrowShardsByListingBidderKey == nil {
+            bidEscrowShardsByListingBidderKey = [:]
+        }
+        let key = bidEscrowKey(listingId: listingId, bidderId: bidderId)
+        if amount <= 0 {
+            bidEscrowShardsByListingBidderKey?[key] = nil
+        } else {
+            bidEscrowShardsByListingBidderKey?[key] = amount
+        }
+        if bidEscrowShardsByListingBidderKey?.isEmpty == true {
+            bidEscrowShardsByListingBidderKey = nil
+        }
+    }
+
+    func bidEscrows(for listingId: String) -> [String: Int] {
+        guard let map = bidEscrowShardsByListingBidderKey else { return [:] }
+        let prefix = "\(listingId)|"
+        var result: [String: Int] = [:]
+        for (key, amount) in map where key.hasPrefix(prefix) {
+            let bidderId = String(key.dropFirst(prefix.count))
+            if !bidderId.isEmpty {
+                result[bidderId] = amount
+            }
+        }
+        return result
+    }
+
+    mutating func clearBidEscrows(for listingId: String) -> [String: Int] {
+        let released = bidEscrows(for: listingId)
+        guard !released.isEmpty else { return [:] }
+        for bidderId in released.keys {
+            let key = bidEscrowKey(listingId: listingId, bidderId: bidderId)
+            bidEscrowShardsByListingBidderKey?[key] = nil
+        }
+        if bidEscrowShardsByListingBidderKey?.isEmpty == true {
+            bidEscrowShardsByListingBidderKey = nil
+        }
+        return released
+    }
+
     func signatureMintCount(creatorId: String, year: Int) -> Int {
         signatureMintCountByCreatorYear["\(creatorId):\(year)"] ?? 0
     }
@@ -188,6 +234,18 @@ nonisolated struct CreatorCardMarketplaceState: Codable, Sendable {
     mutating func addRoyaltyCredits(creatorId: String, credits: Int) {
         guard credits > 0 else { return }
         royaltyCreditsByCreatorId[creatorId, default: 0] += credits
+    }
+
+    @discardableResult
+    mutating func claimRoyaltyCredits(creatorId: String) -> Int {
+        let claimable = royaltyCreditsByCreatorId[creatorId] ?? 0
+        guard claimable > 0 else { return 0 }
+        royaltyCreditsByCreatorId[creatorId] = nil
+        return claimable
+    }
+
+    private func bidEscrowKey(listingId: String, bidderId: String) -> String {
+        "\(listingId)|\(bidderId)"
     }
 }
 

@@ -63,6 +63,8 @@ nonisolated enum CritiqueStatus: String, Codable, Sendable {
     case inProgress
     case completed
     case rated
+    case cancelled
+    case disputed
 }
 
 nonisolated struct CritiqueResponse: Codable, Sendable {

@@ -9,6 +9,7 @@ struct SaveSystem {
     private static let trainingProgressKey = "finalEvolution_trainingProgress"
     private static let creatorMarketplaceKey = "finalEvolution_creatorMarketplace"
     private static let eventHubKey = "finalEvolution_eventHub"
+    private static let academyProgressKey = "finalEvolution_academyProgress"
     private static let lastMutationTimestampKey = "finalEvolution_lastMutationTimestamp"
 
     static func saveProfile(_ profile: UserProfile) {
@@ -77,6 +78,14 @@ struct SaveSystem {
         readValue(EventHubState.self, key: eventHubKey, defaultValue: EventHubState())
     }
 
+    static func saveAcademyProgress(_ progress: AcademyProgressState) {
+        writeValue(progress, key: academyProgressKey)
+    }
+
+    static func loadAcademyProgress() -> AcademyProgressState {
+        readValue(AcademyProgressState.self, key: academyProgressKey, defaultValue: .initial)
+    }
+
     static func refreshFromCloudIfAvailable() async {
         guard let snapshot = await FirebasePersistenceService.pullSnapshot() else {
             return
@@ -92,7 +101,9 @@ struct SaveSystem {
         writeValue(snapshot.coachEconomy, key: coachEconomyKey, triggerCloudSync: false)
         writeValue(snapshot.critiqueRequests, key: critiqueRequestsKey, triggerCloudSync: false)
         writeValue(snapshot.trainingProgress, key: trainingProgressKey, triggerCloudSync: false)
+        writeValue(snapshot.creatorMarketplace, key: creatorMarketplaceKey, triggerCloudSync: false)
         writeValue(snapshot.eventHub, key: eventHubKey, triggerCloudSync: false)
+        writeValue(snapshot.academyProgress, key: academyProgressKey, triggerCloudSync: false)
         UserDefaults.standard.set(snapshot.updatedAt.timeIntervalSince1970, forKey: lastMutationTimestampKey)
     }
 
@@ -123,7 +134,9 @@ struct SaveSystem {
                 coachEconomy: loadCoachEconomy(),
                 critiqueRequests: loadCritiqueRequests(),
                 trainingProgress: loadTrainingProgress(),
+                creatorMarketplace: loadCreatorMarketplace(),
                 eventHub: loadEventHub(),
+                academyProgress: loadAcademyProgress(),
                 updatedAt: Date()
             )
             await FirebasePersistenceService.pushSnapshot(snapshot)

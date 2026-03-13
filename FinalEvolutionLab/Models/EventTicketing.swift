@@ -63,6 +63,34 @@ nonisolated struct TeamProfile: Identifiable, Codable, Sendable {
     var teamName: String
     var city: String
     var memberNames: [String]
+    var unlockedCosmeticRewardIds: [String]
+    var unlockedEventRewardIds: [String]
+
+    init(
+        id: String,
+        teamName: String,
+        city: String,
+        memberNames: [String],
+        unlockedCosmeticRewardIds: [String] = [],
+        unlockedEventRewardIds: [String] = []
+    ) {
+        self.id = id
+        self.teamName = teamName
+        self.city = city
+        self.memberNames = memberNames
+        self.unlockedCosmeticRewardIds = unlockedCosmeticRewardIds
+        self.unlockedEventRewardIds = unlockedEventRewardIds
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        teamName = try container.decode(String.self, forKey: .teamName)
+        city = try container.decode(String.self, forKey: .city)
+        memberNames = try container.decode([String].self, forKey: .memberNames)
+        unlockedCosmeticRewardIds = (try? container.decode([String].self, forKey: .unlockedCosmeticRewardIds)) ?? []
+        unlockedEventRewardIds = (try? container.decode([String].self, forKey: .unlockedEventRewardIds)) ?? []
+    }
 }
 
 nonisolated enum FundraisingMilestoneRewardType: String, Codable, Sendable {
@@ -126,6 +154,15 @@ nonisolated struct LiveVotingSession: Codable, Sendable {
     var participantRewardedUserIds: [String]
 }
 
+nonisolated struct LiveVotingOutcome: Codable, Sendable {
+    let eventId: String
+    let closedAt: Date
+    let votesCount: Int
+    let averageScore: Double
+    let shardPotDistributed: Int
+    let summary: String
+}
+
 nonisolated struct EventHubState: Codable, Sendable {
     var events: [LiveEvent] = []
     var ticketPricing: [EventTicketPricing] = []
@@ -141,6 +178,8 @@ nonisolated struct EventHubState: Codable, Sendable {
     var goldenTicketWinners: [String: String] = [:] // ticketId -> reward summary
 
     var voteSocketChannelByEvent: [String: String] = [:] // eventId -> simulated websocket room id
+    var voteOutcomeByEvent: [String: LiveVotingOutcome]? = nil
+    var patronCardOwnerByGoalId: [String: String]? = nil
 
     mutating func ensureVotingSocket(for eventId: String) -> String {
         if let existing = voteSocketChannelByEvent[eventId] { return existing }
@@ -161,11 +200,22 @@ nonisolated struct EventHubState: Codable, Sendable {
         tickets.filter { $0.eventId == eventId }.count
     }
 
+    func checkedInTicketCount(for eventId: String) -> Int {
+        tickets.filter { $0.eventId == eventId && $0.checkedInAt != nil }.count
+    }
+
     func topContributorUserId(for goalId: String) -> String? {
         let grouped = Dictionary(grouping: contributions.filter { $0.goalId == goalId }, by: \.contributorUserId)
         return grouped.max(by: { lhs, rhs in
             lhs.value.reduce(0, { $0 + $1.creditsAmount }) < rhs.value.reduce(0, { $0 + $1.creditsAmount })
         })?.key
+    }
+
+    mutating func recordVotingOutcome(_ outcome: LiveVotingOutcome) {
+        if voteOutcomeByEvent == nil {
+            voteOutcomeByEvent = [:]
+        }
+        voteOutcomeByEvent?[outcome.eventId] = outcome
     }
 }
 

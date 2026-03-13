@@ -21,6 +21,7 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var systemScan: SystemScanResult?
     var activeCreatorCard: CreatorCardState?
     var ownedCardIds: [String]
+    var unlockedCosmeticRewardIds: [String]
 
     func ownsCard(_ cardId: String) -> Bool {
         ownedCardIds.contains(cardId)
@@ -49,6 +50,7 @@ extension UserProfile: Codable {
         systemScan = try container.decodeIfPresent(SystemScanResult.self, forKey: .systemScan)
         activeCreatorCard = try container.decodeIfPresent(CreatorCardState.self, forKey: .activeCreatorCard)
         ownedCardIds = (try? container.decode([String].self, forKey: .ownedCardIds)) ?? []
+        unlockedCosmeticRewardIds = (try? container.decode([String].self, forKey: .unlockedCosmeticRewardIds)) ?? []
     }
 
     static let guest = UserProfile(
@@ -70,7 +72,8 @@ extension UserProfile: Codable {
         hasCompletedOnboarding: false,
         systemScan: nil,
         activeCreatorCard: nil,
-        ownedCardIds: []
+        ownedCardIds: [],
+        unlockedCosmeticRewardIds: []
     )
 }
 

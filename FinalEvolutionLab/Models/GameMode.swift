@@ -41,8 +41,10 @@ extension GameModeId {
             return .swipe
         case .golf:
             return .swipeGolf
-        case .volleyball, .tennis:
+        case .tennis:
             return .rallyAce
+        case .volleyball:
+            return .dragTap
         case .football:
             return .kickReturn
         case .soccer:

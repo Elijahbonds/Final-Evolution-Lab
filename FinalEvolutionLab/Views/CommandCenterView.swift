@@ -8,8 +8,11 @@ struct CommandCenterView: View {
     @State private var showLiveEvents = false
     @State private var showMarketplace = false
     @State private var showCoach = false
+    @State private var showVault = false
     @State private var pendingQuickPlayMode: GameMode?
     @State private var navigateToQuickPlay = false
+    @State private var academyWager: Int = BrainBrawlRulebook.default.minimumWager
+    @State private var academyTrack: AcademyTrack = .stemLogic
 
     var body: some View {
         ScrollView {
@@ -17,6 +20,7 @@ struct CommandCenterView: View {
                 headerSection
                 commandGrid
                 quickPlaySection
+                academyControlsSection
                 gameplaySystemsSection
             }
             .padding(.horizontal)
@@ -38,6 +42,9 @@ struct CommandCenterView: View {
         }
         .navigationDestination(isPresented: $showCoach) {
             CoachView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showVault) {
+            VaultView(viewModel: viewModel)
         }
         .navigationDestination(isPresented: $navigateToQuickPlay) {
             if let mode = pendingQuickPlayMode {
@@ -111,7 +118,7 @@ struct CommandCenterView: View {
                 subtitle: "Wallets, armory, stats",
                 icon: "person.crop.circle.fill",
                 color: Theme.elitePurple
-            ) { showDashboard = true }
+            ) { showVault = true }
         }
     }
 
@@ -120,7 +127,7 @@ struct CommandCenterView: View {
             sectionLabel("QUICK PLAY")
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(GameModeRegistry.all.prefix(10), id: \.id) { mode in
+                    ForEach(GameModeRegistry.all, id: \.id) { mode in
                         Button {
                             pendingQuickPlayMode = mode
                             navigateToQuickPlay = true
@@ -176,6 +183,113 @@ struct CommandCenterView: View {
                 snapshotPill(label: "TICKETS", value: "\(viewModel.armoryTickets.count)", icon: "qrcode", color: .green)
                 snapshotPill(label: "SHARDS", value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)
                 snapshotPill(label: "CREDITS", value: "\(viewModel.profile.premiumCredits)", icon: "creditcard.fill", color: Theme.brandBlue)
+            }
+            HStack(spacing: 10) {
+                snapshotPill(
+                    label: "ACADEMY",
+                    value: "\(Int(viewModel.academyMasteryAverage * 100))%",
+                    icon: "brain.head.profile",
+                    color: Theme.elitePurple
+                )
+                snapshotPill(
+                    label: "PRESTIGE",
+                    value: "\(viewModel.unlockedPrestigeCount)",
+                    icon: "sparkles",
+                    color: .yellow
+                )
+                snapshotPill(
+                    label: "OMNI",
+                    value: viewModel.academyProgress.omniEvolutionState.isUnlocked ? "UNLOCKED" : "LOCKED",
+                    icon: "infinity.circle.fill",
+                    color: Theme.foundationGreen
+                )
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.cardBackground)
+        )
+    }
+
+    private var academyControlsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("ACADEMY / BRAIN BRAWL")
+
+            HStack(spacing: 8) {
+                ForEach(MentorId.allCases, id: \.self) { mentor in
+                    Button {
+                        viewModel.selectMentor(mentor)
+                    } label: {
+                        Text(mentor.rawValue.uppercased())
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .foregroundStyle(viewModel.academyProgress.selectedMentor == mentor ? .black : .white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(viewModel.academyProgress.selectedMentor == mentor ? Theme.brandBlue : Color.white.opacity(0.06))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(AcademyKnowledgeCatalog.starterNodes, id: \.id) { node in
+                        let unlocked = viewModel.academyProgress.unlockedKnowledgeNodeIds.contains(node.id)
+                        Button {
+                            _ = viewModel.unlockAcademyKnowledgeNode(nodeId: node.id)
+                        } label: {
+                            Text(unlocked ? "UNLOCKED: \(node.title.uppercased())" : "UNLOCK \(node.title.uppercased()) • \(node.shardUnlockCost)")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(unlocked ? .black : .white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(unlocked ? Theme.foundationGreen : Color.white.opacity(0.06))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            HStack {
+                Picker("", selection: $academyTrack) {
+                    ForEach(AcademyTrack.allCases, id: \.self) { track in
+                        Text(track.rawValue).tag(track)
+                    }
+                }
+                .pickerStyle(.menu)
+                .font(.system(size: 9, design: .monospaced))
+
+                Spacer()
+
+                Stepper("Wager \(academyWager)", value: $academyWager, in: BrainBrawlRulebook.default.minimumWager...BrainBrawlRulebook.default.maximumWager, step: 25)
+                    .labelsHidden()
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    _ = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: true, sabotage: .timeWarp)
+                } label: {
+                    Text("BRAWL WIN")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(Theme.foundationGreen)
+                        .clipShape(.rect(cornerRadius: 10))
+                }
+
+                Button {
+                    _ = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: false, sabotage: nil)
+                } label: {
+                    Text("BRAWL LOSS")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(.orange)
+                        .clipShape(.rect(cornerRadius: 10))
+                }
             }
         }
         .padding(14)

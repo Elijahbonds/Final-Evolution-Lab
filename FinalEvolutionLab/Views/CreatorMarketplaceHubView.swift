@@ -327,7 +327,22 @@ struct CreatorMarketplaceHubView: View {
 
     private var salesHistorySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("RECENT SALES")
+            HStack {
+                sectionLabel("RECENT SALES")
+                Spacer()
+                Button {
+                    let claimed = viewModel.claimMySignatureRoyaltyCredits()
+                    showToast(claimed > 0 ? "Claimed \(claimed) royalty credits" : "No royalty credits")
+                } label: {
+                    Text("CLAIM ROYALTY \(viewModel.myClaimableRoyaltyCredits)")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Theme.brandBlue)
+                        .clipShape(Capsule())
+                }
+            }
             let recent = viewModel.creatorMarketplace.salesHistory.suffix(5).reversed()
             if recent.isEmpty {
                 emptyCard("No sales history")
