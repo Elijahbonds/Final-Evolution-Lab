@@ -12,6 +12,7 @@ struct ExerciseDemoView: View {
     @State private var isResting = false
     @State private var timerTask: Task<Void, Never>?
     @State private var demoEngine = DemoEngine()
+    @State private var requestedRealClip = false
 
     var body: some View {
         NavigationStack {
@@ -41,7 +42,8 @@ struct ExerciseDemoView: View {
         .presentationDetents([.large])
         .presentationBackground(Theme.deepBlack)
         .onAppear {
-            demoEngine.loadVideo(for: exercise.id)
+            demoEngine.loadDemo(for: exercise.id, movementDatabase: viewModel.movementDatabase)
+            requestedRealClip = viewModel.movementDatabase.requestedRealClipExerciseIds.contains(exercise.id)
         }
     }
 
@@ -65,27 +67,66 @@ struct ExerciseDemoView: View {
                 )
 
             Group {
-                if demoEngine.currentMode == .coach && demoEngine.isVideoAvailable {
-                    if case .ready(let url) = demoEngine.videoLoadState {
-                        VideoPlayerView(url: url)
+                if demoEngine.currentMode == .coach {
+                    if case .ready(let payload) = demoEngine.loadState {
+                        switch payload {
+                        case .generatedAnimation:
+                            AvatarDemoView(
+                                exercise: exercise,
+                                cloneProfile: viewModel.cloneProfile,
+                                badgeText: "DIGITAL CLONE • \(viewModel.cloneProfile.displayName.uppercased())"
+                            )
                             .transition(.opacity)
+                        case .localClip(_, let url):
+                            VideoPlayerView(url: url)
+                                .transition(.opacity)
+                        case .referenceOnly:
+                            AvatarDemoView(
+                                exercise: exercise,
+                                cloneProfile: viewModel.cloneProfile,
+                                badgeText: "REFERENCE MODE • CLONE PREVIEW"
+                            )
+                            .transition(.opacity)
+                        }
+                    } else {
+                        AvatarDemoView(
+                            exercise: exercise,
+                            cloneProfile: viewModel.cloneProfile,
+                            badgeText: "CLONE PREVIEW"
+                        )
+                        .transition(.opacity)
                     }
                 } else {
-                    AvatarDemoView(exercise: exercise)
-                        .transition(.opacity)
+                    AvatarDemoView(
+                        exercise: exercise,
+                        cloneProfile: viewModel.cloneProfile,
+                        badgeText: "AI AVATAR MODE"
+                    )
+                    .transition(.opacity)
                 }
             }
             .clipShape(.rect(cornerRadius: 24))
 
-            if !demoEngine.isVideoAvailable && demoEngine.currentMode == .coach {
-                if case .loading = demoEngine.videoLoadState {
+            if demoEngine.currentMode == .coach {
+                if case .loading = demoEngine.loadState {
                     VStack(spacing: 12) {
                         ProgressView()
                             .tint(Theme.brandBlue)
-                        Text("LOADING COACH VIDEO...")
+                        Text("PREPARING DIGITAL CLONE DEMO...")
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .foregroundStyle(Theme.brandBlue.opacity(0.6))
                             .tracking(2)
+                    }
+                } else if demoEngine.isReferenceOnly || demoEngine.shouldShowRequestRealClip {
+                    VStack(spacing: 10) {
+                        Text(demoEngine.sourceBadgeText)
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(Theme.brandBlue)
+                        Text("Reference assets are internal only. No external links are opened in-app.")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
                     }
                 }
             }
@@ -101,7 +142,7 @@ struct ExerciseDemoView: View {
             ForEach(DemoMode.allCases, id: \.self) { mode in
                 Button {
                     guard demoEngine.currentMode != mode else { return }
-                    if mode == .coach && !demoEngine.isVideoAvailable {
+                    if mode == .coach && !demoEngine.isCoachDemoAvailable && !demoEngine.isReferenceOnly {
                         return
                     }
                     demoEngine.toggleMode()
@@ -123,10 +164,10 @@ struct ExerciseDemoView: View {
                     .foregroundStyle(
                         demoEngine.currentMode == mode
                             ? Theme.brandBlue
-                            : (mode == .coach && !demoEngine.isVideoAvailable ? Color.white.opacity(0.15) : Color.white.opacity(0.4))
+                            : (mode == .coach && !demoEngine.isCoachDemoAvailable && !demoEngine.isReferenceOnly ? Color.white.opacity(0.15) : Color.white.opacity(0.4))
                     )
                 }
-                .disabled(mode == .coach && !demoEngine.isVideoAvailable)
+                .disabled(mode == .coach && !demoEngine.isCoachDemoAvailable && !demoEngine.isReferenceOnly)
             }
         }
         .clipShape(.rect(cornerRadius: 12))
@@ -152,6 +193,11 @@ struct ExerciseDemoView: View {
                 InfoPill(label: "SETS", value: "\(exercise.sets)")
                 InfoPill(label: "REPS", value: exercise.reps)
                 InfoPill(label: "REST", value: "\(exercise.restSeconds)s")
+            }
+
+            HStack(spacing: 10) {
+                InfoPill(label: "DEMO", value: demoEngine.sourceBadgeText)
+                InfoPill(label: "QUALITY", value: demoEngine.qualityPercentText)
             }
 
             if !exercise.muscleGroups.isEmpty {
@@ -213,6 +259,20 @@ struct ExerciseDemoView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
+            if demoEngine.shouldShowRequestRealClip {
+                Button {
+                    requestedRealClip = viewModel.requestRealExerciseClip(exerciseId: exercise.id)
+                } label: {
+                    Text(requestedRealClip ? "REAL CLIP REQUESTED" : "REQUEST REAL CLIP")
+                        .font(.system(.subheadline, design: .monospaced, weight: .black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(requestedRealClip ? Theme.foundationGreen : Color.white.opacity(0.08))
+                        .foregroundStyle(requestedRealClip ? .black : .white)
+                        .clipShape(.rect(cornerRadius: 14))
+                }
+            }
+
             if isComplete {
                 Button {
                     viewModel.completeExercise(exercise)

@@ -18,6 +18,8 @@ struct CloudAppSnapshot: Codable {
     let creatorMarketplace: CreatorCardMarketplaceState
     let eventHub: EventHubState
     let academyProgress: AcademyProgressState
+    let cloneProfile: CloneProfile?
+    let movementDatabase: MovementDatabase
     let updatedAt: Date
 
     init(
@@ -30,6 +32,8 @@ struct CloudAppSnapshot: Codable {
         creatorMarketplace: CreatorCardMarketplaceState,
         eventHub: EventHubState,
         academyProgress: AcademyProgressState,
+        cloneProfile: CloneProfile?,
+        movementDatabase: MovementDatabase,
         updatedAt: Date
     ) {
         self.profile = profile
@@ -41,6 +45,8 @@ struct CloudAppSnapshot: Codable {
         self.creatorMarketplace = creatorMarketplace
         self.eventHub = eventHub
         self.academyProgress = academyProgress
+        self.cloneProfile = cloneProfile
+        self.movementDatabase = movementDatabase
         self.updatedAt = updatedAt
     }
 
@@ -55,6 +61,8 @@ struct CloudAppSnapshot: Codable {
         creatorMarketplace = (try? container.decode(CreatorCardMarketplaceState.self, forKey: .creatorMarketplace)) ?? CreatorCardMarketplaceState()
         eventHub = (try? container.decode(EventHubState.self, forKey: .eventHub)) ?? EventHubState()
         academyProgress = (try? container.decode(AcademyProgressState.self, forKey: .academyProgress)) ?? .initial
+        cloneProfile = try container.decodeIfPresent(CloneProfile.self, forKey: .cloneProfile)
+        movementDatabase = (try? container.decode(MovementDatabase.self, forKey: .movementDatabase)) ?? MovementDatabase()
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 }

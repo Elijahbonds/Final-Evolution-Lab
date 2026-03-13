@@ -7,8 +7,9 @@ struct BlueprintLibrary {
         let subtitle: String
         let icon: String
         let category: String
-        let url: URL
+        let referenceURL: String
         let phases: [String]
+        let allowsExternalOpen: Bool
     }
 
     struct Phase {
@@ -25,8 +26,9 @@ struct BlueprintLibrary {
             subtitle: "The master overview of the vertical jump architecture.",
             icon: "play.rectangle.fill",
             category: "Master",
-            url: URL(string: "https://youtu.be/hrlGbS0r-hM")!,
-            phases: ["Overview", "Architecture", "Progression"]
+            referenceURL: "https://youtu.be/hrlGbS0r-hM",
+            phases: ["Overview", "Architecture", "Progression"],
+            allowsExternalOpen: false
         ),
         Blueprint(
             id: "bb_overview",
@@ -34,8 +36,9 @@ struct BlueprintLibrary {
             subtitle: "The original vertical jump architecture breakdown.",
             icon: "play.circle.fill",
             category: "Overview",
-            url: URL(string: "https://youtu.be/dAoLYThf1bc")!,
-            phases: ["Foundations", "Mechanics", "Application"]
+            referenceURL: "https://youtu.be/dAoLYThf1bc",
+            phases: ["Foundations", "Mechanics", "Application"],
+            allowsExternalOpen: false
         ),
         Blueprint(
             id: "bb_bodyweight",
@@ -43,8 +46,9 @@ struct BlueprintLibrary {
             subtitle: "Full exercise list with timestamps for structural integrity.",
             icon: "figure.flexibility",
             category: "Mobility",
-            url: URL(string: "https://youtu.be/q1HLjLbhS2s")!,
-            phases: ["Ankle Mobility", "Hip Extension", "Structural Balance"]
+            referenceURL: "https://youtu.be/q1HLjLbhS2s",
+            phases: ["Ankle Mobility", "Hip Extension", "Structural Balance"],
+            allowsExternalOpen: false
         ),
         Blueprint(
             id: "bb_plyo",
@@ -52,8 +56,9 @@ struct BlueprintLibrary {
             subtitle: "Comprehensive reactive power drills with timestamps.",
             icon: "figure.jumprope",
             category: "Power",
-            url: URL(string: "https://youtu.be/pqyxTY85x4U")!,
-            phases: ["Reactive Strength", "Depth Jumps", "Bounding"]
+            referenceURL: "https://youtu.be/pqyxTY85x4U",
+            phases: ["Reactive Strength", "Depth Jumps", "Bounding"],
+            allowsExternalOpen: false
         ),
         Blueprint(
             id: "bb_fitness",
@@ -61,8 +66,9 @@ struct BlueprintLibrary {
             subtitle: "Master exercise list for the complete training system.",
             icon: "flame.fill",
             category: "Complete",
-            url: URL(string: "https://youtu.be/J037GG99GT0")!,
-            phases: ["Strength", "Power", "Speed", "Recovery"]
+            referenceURL: "https://youtu.be/J037GG99GT0",
+            phases: ["Strength", "Power", "Speed", "Recovery"],
+            allowsExternalOpen: false
         ),
     ]
 

@@ -20,17 +20,23 @@ class LabViewModel {
     var creatorMarketplace: CreatorCardMarketplaceState = SaveSystem.loadCreatorMarketplace()
     var eventHub: EventHubState = SaveSystem.loadEventHub()
     var academyProgress: AcademyProgressState = SaveSystem.loadAcademyProgress()
+    var cloneProfile: CloneProfile = .generic
+    var movementDatabase: MovementDatabase = SaveSystem.loadMovementDatabase()
     var lastSessionReadiness: Double = 50
 
     var biomechanicsAudit: BiomechanicsAudit?
     var globalLeaderboard = GlobalLeaderboardService()
     var critiqueRequests: [CritiqueRequest] = SaveSystem.loadCritiqueRequests()
     private let liveVotingSocket = LiveVotingSocketService()
+    private let movementIngestionService = MovementIngestionService()
 
     init() {
         self.profile = SaveSystem.loadProfile()
         self.sessions = SaveSystem.loadSessions()
+        self.cloneProfile = SaveSystem.loadCloneProfile() ?? CloneProfile.makeDefault(from: profile)
+        self.movementDatabase = SaveSystem.loadMovementDatabase()
         seedEventHubIfNeeded()
+        seedDigitalClonePipelineIfNeeded()
 
         if let scan = profile.systemScan {
             self.biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
@@ -61,6 +67,8 @@ class LabViewModel {
         creatorMarketplace = SaveSystem.loadCreatorMarketplace()
         eventHub = SaveSystem.loadEventHub()
         academyProgress = SaveSystem.loadAcademyProgress()
+        cloneProfile = SaveSystem.loadCloneProfile() ?? CloneProfile.makeDefault(from: profile)
+        movementDatabase = SaveSystem.loadMovementDatabase()
 
         if let scan = profile.systemScan {
             biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
@@ -69,6 +77,7 @@ class LabViewModel {
         }
 
         seedEventHubIfNeeded()
+        seedDigitalClonePipelineIfNeeded()
 
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
     }
@@ -77,6 +86,31 @@ class LabViewModel {
         if eventHub.events.isEmpty {
             eventHub = EventTicketingSeedData.makeInitialState()
             SaveSystem.saveEventHub(eventHub)
+        }
+    }
+
+    private func seedDigitalClonePipelineIfNeeded() {
+        var didMutate = false
+
+        if cloneProfile.cloneId == CloneProfile.generic.cloneId && !profile.id.hasPrefix("guest_") {
+            cloneProfile = CloneProfile.makeDefault(from: profile)
+            didMutate = true
+        }
+
+        let migrated = movementIngestionService.migrateLegacyReferencesIfNeeded(
+            database: movementDatabase,
+            cloneProfile: cloneProfile
+        )
+        if migrated.migrationVersion != movementDatabase.migrationVersion ||
+            migrated.assets.count != movementDatabase.assets.count ||
+            migrated.lastIngestedAt != movementDatabase.lastIngestedAt {
+            movementDatabase = migrated
+            didMutate = true
+        }
+
+        if didMutate {
+            SaveSystem.saveCloneProfile(cloneProfile)
+            SaveSystem.saveMovementDatabase(movementDatabase)
         }
     }
 
@@ -117,6 +151,35 @@ class LabViewModel {
             .sorted(by: { $0.1 > $1.1 })
             .prefix(max(1, limit))
             .map { (userId: $0.0, credits: $0.1) }
+    }
+
+    @discardableResult
+    func requestRealExerciseClip(exerciseId: String) -> Bool {
+        guard allExercises.contains(where: { $0.id == exerciseId }) else { return false }
+        movementDatabase.requestRealClip(for: exerciseId)
+        SaveSystem.saveMovementDatabase(movementDatabase)
+        return true
+    }
+
+    @discardableResult
+    func attachLocalRealExerciseClip(exerciseId: String, localFilename: String, qualityScore: Double = 0.92) -> Bool {
+        guard allExercises.contains(where: { $0.id == exerciseId }), !localFilename.isEmpty else { return false }
+        let localAsset = ExerciseDemoAsset(
+            id: ExerciseDemoAsset.makeId(exerciseId: exerciseId, sourceType: .localClip),
+            exerciseId: exerciseId,
+            motionAssetId: "local_clip_\(exerciseId)",
+            sourceType: .localClip,
+            referenceURL: LegacyExerciseReferenceCatalog.referenceURLs[exerciseId],
+            localClipFilename: localFilename,
+            keyPoseTimestamps: [],
+            qualityScore: min(1.0, max(0.0, qualityScore)),
+            retargetVersion: cloneProfile.retargetVersion,
+            updatedAt: Date()
+        )
+        movementDatabase.upsert(localAsset)
+        movementDatabase.clearRealClipRequest(for: exerciseId)
+        SaveSystem.saveMovementDatabase(movementDatabase)
+        return true
     }
 
     var academyMasteryAverage: Double {
@@ -343,10 +406,12 @@ class LabViewModel {
         profile.metrics.verticalPotential = result.verticalEstimateInches
         profile.metrics.readinessScore = max(70, profile.metrics.readinessScore)
         profile.metrics.efficiencyScore = max(70, profile.metrics.efficiencyScore)
+        cloneProfile.avatarConfig = result.avatarConfig
 
         biomechanicsAudit = BiomechanicsAudit.fromScanResult(result)
 
         SaveSystem.saveProfile(profile)
+        SaveSystem.saveCloneProfile(cloneProfile)
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
     }
 

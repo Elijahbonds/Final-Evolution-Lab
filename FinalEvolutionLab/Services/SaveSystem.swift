@@ -10,6 +10,8 @@ struct SaveSystem {
     private static let creatorMarketplaceKey = "finalEvolution_creatorMarketplace"
     private static let eventHubKey = "finalEvolution_eventHub"
     private static let academyProgressKey = "finalEvolution_academyProgress"
+    private static let cloneProfileKey = "finalEvolution_cloneProfile"
+    private static let movementDatabaseKey = "finalEvolution_movementDatabase"
     private static let lastMutationTimestampKey = "finalEvolution_lastMutationTimestamp"
 
     static func saveProfile(_ profile: UserProfile) {
@@ -86,6 +88,23 @@ struct SaveSystem {
         readValue(AcademyProgressState.self, key: academyProgressKey, defaultValue: .initial)
     }
 
+    static func saveCloneProfile(_ cloneProfile: CloneProfile) {
+        writeValue(cloneProfile, key: cloneProfileKey)
+    }
+
+    static func loadCloneProfile() -> CloneProfile? {
+        guard let data = UserDefaults.standard.data(forKey: cloneProfileKey) else { return nil }
+        return try? JSONDecoder().decode(CloneProfile.self, from: data)
+    }
+
+    static func saveMovementDatabase(_ movementDatabase: MovementDatabase) {
+        writeValue(movementDatabase, key: movementDatabaseKey)
+    }
+
+    static func loadMovementDatabase() -> MovementDatabase {
+        readValue(MovementDatabase.self, key: movementDatabaseKey, defaultValue: MovementDatabase())
+    }
+
     static func refreshFromCloudIfAvailable() async {
         guard let snapshot = await FirebasePersistenceService.pullSnapshot() else {
             return
@@ -104,6 +123,10 @@ struct SaveSystem {
         writeValue(snapshot.creatorMarketplace, key: creatorMarketplaceKey, triggerCloudSync: false)
         writeValue(snapshot.eventHub, key: eventHubKey, triggerCloudSync: false)
         writeValue(snapshot.academyProgress, key: academyProgressKey, triggerCloudSync: false)
+        if let cloneProfile = snapshot.cloneProfile {
+            writeValue(cloneProfile, key: cloneProfileKey, triggerCloudSync: false)
+        }
+        writeValue(snapshot.movementDatabase, key: movementDatabaseKey, triggerCloudSync: false)
         UserDefaults.standard.set(snapshot.updatedAt.timeIntervalSince1970, forKey: lastMutationTimestampKey)
     }
 
@@ -137,6 +160,8 @@ struct SaveSystem {
                 creatorMarketplace: loadCreatorMarketplace(),
                 eventHub: loadEventHub(),
                 academyProgress: loadAcademyProgress(),
+                cloneProfile: loadCloneProfile(),
+                movementDatabase: loadMovementDatabase(),
                 updatedAt: Date()
             )
             await FirebasePersistenceService.pushSnapshot(snapshot)

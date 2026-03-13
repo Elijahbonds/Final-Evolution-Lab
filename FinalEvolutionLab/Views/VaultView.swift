@@ -254,46 +254,48 @@ struct VaultView: View {
             }
 
             ForEach(VaultResources.videos, id: \.title) { resource in
-                Link(destination: resource.url) {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.1))
-                                .frame(width: 44, height: 44)
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.1))
+                            .frame(width: 44, height: 44)
 
-                            Image(systemName: resource.icon)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(resource.title.uppercased())
-                                .font(.system(.caption, design: .monospaced, weight: .bold))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-
-                            Text(resource.description)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.6))
+                        Image(systemName: resource.icon)
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
                     }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Theme.cardBackground)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.08), lineWidth: 0.5)
-                            )
-                    )
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(resource.title.uppercased())
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+
+                        Text(resource.description)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    Text("REFERENCE")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color(red: 0.95, green: 0.49, blue: 0.15))
+                        .clipShape(Capsule())
                 }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.08), lineWidth: 0.5)
+                        )
+                )
             }
         }
     }

@@ -58,4 +58,77 @@ struct FinalEvolutionLabTests {
         #expect(hub.voteOutcomeByEvent?["event_1"]?.shardPotDistributed == 500)
     }
 
+    @Test func cloneProfileFallsBackToDefaultAvatarWhenNoScan() async throws {
+        let clone = CloneProfile.makeDefault(from: .guest)
+        #expect(clone.avatarConfig.heightScale == AvatarSkinConfig.default.heightScale)
+        #expect(clone.avatarConfig.outfitStyle.rawValue == AvatarSkinConfig.default.outfitStyle.rawValue)
+        #expect(clone.displayName.contains("Clone"))
+    }
+
+    @Test func movementDatabaseResolutionPrefersGeneratedThenLocalThenReference() async throws {
+        var db = MovementDatabase()
+        let reference = ExerciseDemoAsset(
+            id: ExerciseDemoAsset.makeId(exerciseId: "f1", sourceType: .referenceOnly),
+            exerciseId: "f1",
+            motionAssetId: "ref_f1",
+            sourceType: .referenceOnly,
+            referenceURL: "https://example.com/ref",
+            localClipFilename: nil,
+            keyPoseTimestamps: [],
+            qualityScore: 0.3,
+            retargetVersion: "v1",
+            updatedAt: Date()
+        )
+        let local = ExerciseDemoAsset(
+            id: ExerciseDemoAsset.makeId(exerciseId: "f1", sourceType: .localClip),
+            exerciseId: "f1",
+            motionAssetId: "local_f1",
+            sourceType: .localClip,
+            referenceURL: nil,
+            localClipFilename: "f1.mov",
+            keyPoseTimestamps: [],
+            qualityScore: 0.8,
+            retargetVersion: "v1",
+            updatedAt: Date()
+        )
+        let generated = ExerciseDemoAsset(
+            id: ExerciseDemoAsset.makeId(exerciseId: "f1", sourceType: .generatedAnimation),
+            exerciseId: "f1",
+            motionAssetId: "generated_f1",
+            sourceType: .generatedAnimation,
+            referenceURL: nil,
+            localClipFilename: nil,
+            keyPoseTimestamps: [0, 0.5, 1.0],
+            qualityScore: 0.9,
+            retargetVersion: "v1",
+            updatedAt: Date()
+        )
+
+        db.upsert(reference)
+        db.upsert(local)
+        db.upsert(generated)
+        #expect(db.bestAsset(for: "f1")?.sourceType == .generatedAnimation)
+
+        db.assets.removeAll(where: { $0.sourceType == .generatedAnimation })
+        #expect(db.bestAsset(for: "f1")?.sourceType == .localClip)
+
+        db.assets.removeAll(where: { $0.sourceType == .localClip })
+        #expect(db.bestAsset(for: "f1")?.sourceType == .referenceOnly)
+    }
+
+    @Test func legacyDemoMigrationBuildsReferenceAndGeneratedAssets() async throws {
+        let service = MovementIngestionService()
+        let migrated = service.migrateLegacyReferencesIfNeeded(database: MovementDatabase(), cloneProfile: .generic)
+
+        #expect(migrated.migrationVersion == DigitalCloneDefaults.targetMigrationVersion)
+        #expect(migrated.asset(for: "f1", sourceType: .referenceOnly) != nil)
+        #expect(migrated.asset(for: "f1", sourceType: .generatedAnimation) != nil)
+    }
+
+    @Test func vaultVideoResourcesAreNonClickableReferences() async throws {
+        #expect(!VaultResources.videos.isEmpty)
+        #expect(VaultResources.videos.allSatisfy { !$0.allowsExternalOpen })
+        #expect(BlueprintLibrary.blueprints.allSatisfy { !$0.allowsExternalOpen })
+    }
+
 }
