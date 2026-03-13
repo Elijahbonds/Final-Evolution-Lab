@@ -30,6 +30,9 @@ This is a real Unreal project scaffold you can open in Unreal Editor after gener
   - Parses incoming motion JSON (`ax, ay, az, gx, gy, gz, t`).
 - `URorkBridgeRoutingLibrary`
   - Utility route functions for native/plugin bridge calls into scene components.
+- `AArenaActor`
+  - Applies `FArenaTheme` by `EGameModeId`.
+  - Pushes wall/floor colors into dynamic material parameters (`BaseColor`, `AccentColor`).
 
 ## Unreal setup steps
 
