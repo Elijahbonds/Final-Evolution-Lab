@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-nonisolated enum UnityMode: String, Sendable {
+enum UnityMode: String, Sendable {
     case freestyleDunk
     case training
     case arcade

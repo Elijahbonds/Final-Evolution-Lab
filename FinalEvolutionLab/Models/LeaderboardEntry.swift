@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct LeaderboardEntry: Codable, Sendable, Identifiable {
+struct LeaderboardEntry: Codable, Sendable, Identifiable {
     let id: String
     let athleteName: String
     let athleteTag: String

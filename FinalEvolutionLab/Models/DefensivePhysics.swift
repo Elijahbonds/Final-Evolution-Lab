@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct DefensivePhysics: Sendable {
+struct DefensivePhysics: Sendable {
     static let bodyUpRadius: Double = 1.4
     static let bodyUpDecelerateFactor: Double = 0.35
     static let bodyUpMoveThresholdSq: Double = 0.25
@@ -96,7 +96,7 @@ nonisolated struct DefensivePhysics: Sendable {
     }
 }
 
-nonisolated enum ContestTier: String, Sendable {
+enum ContestTier: String, Sendable {
     case smothered = "SMOTHERED"
     case heavy = "HEAVY CONTEST"
     case contested = "CONTESTED"

@@ -2,19 +2,19 @@ import Foundation
 
 // MARK: - Academy / Education Core
 
-nonisolated enum AcademyTrack: String, Codable, Sendable, CaseIterable {
+enum AcademyTrack: String, Codable, Sendable, CaseIterable {
     case stemLogic = "STEM / Logic"
     case humanitiesArts = "Humanities / Arts"
     case strategyLeadership = "Strategy / Leadership"
 }
 
-nonisolated enum MentorId: String, Codable, Sendable, CaseIterable {
+enum MentorId: String, Codable, Sendable, CaseIterable {
     case magnus
     case elara
     case jax
 }
 
-nonisolated struct MentorPersona: Codable, Sendable {
+struct MentorPersona: Codable, Sendable {
     let id: MentorId
     let displayName: String
     let title: String
@@ -52,7 +52,7 @@ nonisolated struct MentorPersona: Codable, Sendable {
     static let all: [MentorPersona] = [.magnus, .elara, .jax]
 }
 
-nonisolated struct KnowledgeNode: Codable, Sendable, Identifiable {
+struct KnowledgeNode: Codable, Sendable, Identifiable {
     let id: String
     let title: String
     let track: AcademyTrack
@@ -61,7 +61,7 @@ nonisolated struct KnowledgeNode: Codable, Sendable, Identifiable {
     let grantsBuffKey: String?
 }
 
-nonisolated struct MentalCombineResult: Codable, Sendable {
+struct MentalCombineResult: Codable, Sendable {
     let baselineDifficulty: Int
     let reactionBandMs: ClosedRange<Int>
     let recommendedTrack: AcademyTrack
@@ -70,24 +70,24 @@ nonisolated struct MentalCombineResult: Codable, Sendable {
 
 // MARK: - Brain Brawl Ruleset
 
-nonisolated enum MentalDebuffType: String, Codable, Sendable, CaseIterable {
+enum MentalDebuffType: String, Codable, Sendable, CaseIterable {
     case staticFog = "Static Fog"
     case timeWarp = "Time Warp"
     case inputScramble = "Input Scramble"
 }
 
-nonisolated struct MentalDebuffRule: Codable, Sendable {
+struct MentalDebuffRule: Codable, Sendable {
     let type: MentalDebuffType
     let shardCost: Int
     let maxDurationQuestions: Int
 }
 
-nonisolated struct TutorSponsorshipRule: Codable, Sendable {
+struct TutorSponsorshipRule: Codable, Sendable {
     let mentorId: MentorId
     let perkDescription: String
 }
 
-nonisolated struct BrainBrawlRulebook: Codable, Sendable {
+struct BrainBrawlRulebook: Codable, Sendable {
     let minimumWager: Int
     let maximumWager: Int
     let debuffs: [MentalDebuffRule]
@@ -111,13 +111,13 @@ nonisolated struct BrainBrawlRulebook: Codable, Sendable {
 
 // MARK: - Prestige / Endgame
 
-nonisolated enum PrestigeEvolutionId: String, Codable, Sendable, CaseIterable {
+enum PrestigeEvolutionId: String, Codable, Sendable, CaseIterable {
     case technomancer
     case loreWalker
     case grandStrategist
 }
 
-nonisolated struct PrestigeEvolution: Codable, Sendable {
+struct PrestigeEvolution: Codable, Sendable {
     let id: PrestigeEvolutionId
     let mentor: MentorId
     let masteryRequirementPercent: Double
@@ -145,7 +145,7 @@ nonisolated struct PrestigeEvolution: Codable, Sendable {
     ]
 }
 
-nonisolated struct OmniEvolutionState: Codable, Sendable {
+struct OmniEvolutionState: Codable, Sendable {
     var stemMastery: Double
     var humanitiesMastery: Double
     var strategyMastery: Double

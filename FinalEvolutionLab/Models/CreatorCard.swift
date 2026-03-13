@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-nonisolated struct CreatorCard: Identifiable, Sendable {
+struct CreatorCard: Identifiable, Sendable {
     let id: String
     let creatorName: String
     let title: String
@@ -117,7 +117,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
     ]
 }
 
-nonisolated struct MovementSignature: Sendable {
+struct MovementSignature: Sendable {
     let style: MovementStyle
     let jumpApex: Double
     let hangTimeFactor: Double
@@ -126,7 +126,7 @@ nonisolated struct MovementSignature: Sendable {
     let trailColor: Color
 }
 
-nonisolated enum MovementStyle: String, Sendable {
+enum MovementStyle: String, Sendable {
     case explosive
     case vertical
     case fluid

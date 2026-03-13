@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct AcademyProgressState: Codable, Sendable {
+struct AcademyProgressState: Codable, Sendable {
     var selectedMentor: MentorId? = nil
     var unlockedKnowledgeNodeIds: Set<String> = []
     var masteryByTrack: [AcademyTrack: Double] = [

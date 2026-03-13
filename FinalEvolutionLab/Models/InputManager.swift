@@ -1,7 +1,7 @@
 import Foundation
 import QuartzCore
 
-nonisolated struct InputManager: Sendable {
+struct InputManager: Sendable {
     static let ps2PollIntervalMs: Double = 17
     static let inputLatencyMs: Double = 28
     static let deadzoneRadius: Double = 0.08
@@ -22,7 +22,7 @@ nonisolated struct InputManager: Sendable {
     }
 }
 
-nonisolated enum ArcadeFaceButton: String, Sendable, CaseIterable {
+enum ArcadeFaceButton: String, Sendable, CaseIterable {
     case square
     case triangle
     case circle
@@ -56,7 +56,7 @@ nonisolated enum ArcadeFaceButton: String, Sendable, CaseIterable {
     }
 }
 
-nonisolated enum DunkModifier: String, Sendable {
+enum DunkModifier: String, Sendable {
     case standard
     case flashy
     case power
@@ -81,13 +81,13 @@ nonisolated enum DunkModifier: String, Sendable {
     }
 }
 
-nonisolated struct InputBufferEntry: Sendable {
+struct InputBufferEntry: Sendable {
     let button: ArcadeFaceButton
     let timestamp: Double
     let modifier: DunkModifier
 }
 
-nonisolated struct ArcadeInputBuffer: Sendable {
+struct ArcadeInputBuffer: Sendable {
     static let bufferWindowFrames: Int = 4
     static let bufferWindowSeconds: Double = Double(bufferWindowFrames) / 60.0
     static let doubleTapWindow: Double = 0.25
@@ -132,7 +132,7 @@ nonisolated struct ArcadeInputBuffer: Sendable {
     }
 }
 
-nonisolated struct MidAirTrickState: Sendable {
+struct MidAirTrickState: Sendable {
     var activeTricks: [ArcadeFaceButton] = []
     var branchCount: Int = 0
     var comboMultiplier: Double = 1.0
@@ -176,7 +176,7 @@ nonisolated struct MidAirTrickState: Sendable {
     }
 }
 
-nonisolated struct DunkTrickResolver: Sendable {
+struct DunkTrickResolver: Sendable {
     static func resolve(button: ArcadeFaceButton, modifier: DunkModifier, isDoubleTap: Bool) -> DunkTrickSlot {
         switch button {
         case .square:
@@ -204,7 +204,7 @@ nonisolated struct DunkTrickResolver: Sendable {
     }
 }
 
-nonisolated enum ComboDirection: String, Sendable {
+enum ComboDirection: String, Sendable {
     case up, down, left, right, neutral
 
     var trickDirection: TrickDirection {
@@ -218,13 +218,13 @@ nonisolated enum ComboDirection: String, Sendable {
     }
 }
 
-nonisolated struct ComboInput: Sendable {
+struct ComboInput: Sendable {
     let direction: ComboDirection
     let timestamp: Double
     let isModifierHeld: Bool
 }
 
-nonisolated struct ComboResolver: Sendable {
+struct ComboResolver: Sendable {
     static let comboWindowSeconds: Double = 0.5
     static let doubleTapWindowSeconds: Double = 0.3
 
@@ -275,7 +275,7 @@ nonisolated struct ComboResolver: Sendable {
     }
 }
 
-nonisolated struct CombatInputResolver: Sendable {
+struct CombatInputResolver: Sendable {
     static let perfectGuardWindowSeconds: Double = 0.1
     static let vanishWindowSeconds: Double = 0.15
 
@@ -302,14 +302,14 @@ nonisolated struct CombatInputResolver: Sendable {
     }
 }
 
-nonisolated enum CombatOutcome: String, Sendable {
+enum CombatOutcome: String, Sendable {
     case hit
     case standardBlock
     case perfectGuard
     case vanishCounter
 }
 
-nonisolated struct DefensiveInputState: Sendable {
+struct DefensiveInputState: Sendable {
     var handsUp: Bool = false
     var quickProtectEndTime: Double = 0
     var defenderDistance: Double = 4.0
@@ -350,7 +350,7 @@ nonisolated struct DefensiveInputState: Sendable {
     }
 }
 
-nonisolated struct PS2MovementConfig: Sendable {
+struct PS2MovementConfig: Sendable {
     let topSpeed: Float
     let acceleration: Float
     let deceleration: Float

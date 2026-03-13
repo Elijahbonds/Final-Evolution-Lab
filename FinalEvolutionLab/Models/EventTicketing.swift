@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum EventTicketTier: String, Codable, Sendable, CaseIterable {
+enum EventTicketTier: String, Codable, Sendable, CaseIterable {
     case generalAdmission
     case vipFrontRow
     case virtual
@@ -14,13 +14,13 @@ nonisolated enum EventTicketTier: String, Codable, Sendable, CaseIterable {
     }
 }
 
-nonisolated enum LiveEventKind: String, Codable, Sendable {
+enum LiveEventKind: String, Codable, Sendable {
     case dunkShow
     case teamClinic
     case fundraiser
 }
 
-nonisolated struct EventTicket: Identifiable, Codable, Sendable {
+struct EventTicket: Identifiable, Codable, Sendable {
     let id: String
     let eventId: String
     let ownerUserId: String
@@ -35,7 +35,7 @@ nonisolated struct EventTicket: Identifiable, Codable, Sendable {
     var containsGoldenTicket: Bool
 }
 
-nonisolated struct LiveEvent: Identifiable, Codable, Sendable {
+struct LiveEvent: Identifiable, Codable, Sendable {
     let id: String
     let kind: LiveEventKind
     let title: String
@@ -50,7 +50,7 @@ nonisolated struct LiveEvent: Identifiable, Codable, Sendable {
     let ticketInventoryCap: Int?
 }
 
-nonisolated struct EventTicketPricing: Codable, Sendable {
+struct EventTicketPricing: Codable, Sendable {
     let eventId: String
     let tier: EventTicketTier
     let priceInCredits: Int
@@ -58,7 +58,7 @@ nonisolated struct EventTicketPricing: Codable, Sendable {
     let shardBonusValue: Int
 }
 
-nonisolated struct TeamProfile: Identifiable, Codable, Sendable {
+struct TeamProfile: Identifiable, Codable, Sendable {
     let id: String
     var teamName: String
     var city: String
@@ -82,7 +82,7 @@ nonisolated struct TeamProfile: Identifiable, Codable, Sendable {
         self.unlockedEventRewardIds = unlockedEventRewardIds
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         teamName = try container.decode(String.self, forKey: .teamName)
@@ -93,20 +93,20 @@ nonisolated struct TeamProfile: Identifiable, Codable, Sendable {
     }
 }
 
-nonisolated enum FundraisingMilestoneRewardType: String, Codable, Sendable {
+enum FundraisingMilestoneRewardType: String, Codable, Sendable {
     case practiceJerseySkin
     case dunkShowUnlock
     case patronCreatorCard
 }
 
-nonisolated struct FundraisingMilestoneReward: Codable, Sendable {
+struct FundraisingMilestoneReward: Codable, Sendable {
     let thresholdPercent: Int
     let rewardType: FundraisingMilestoneRewardType
     let rewardId: String
     let description: String
 }
 
-nonisolated struct FundraisingGoal: Identifiable, Codable, Sendable {
+struct FundraisingGoal: Identifiable, Codable, Sendable {
     let id: String
     let teamId: String
     let title: String
@@ -124,7 +124,7 @@ nonisolated struct FundraisingGoal: Identifiable, Codable, Sendable {
     }
 }
 
-nonisolated struct FundraisingContribution: Identifiable, Codable, Sendable {
+struct FundraisingContribution: Identifiable, Codable, Sendable {
     let id: String
     let goalId: String
     let teamId: String
@@ -133,13 +133,13 @@ nonisolated struct FundraisingContribution: Identifiable, Codable, Sendable {
     let source: ContributionSource
     let createdAt: Date
 
-    nonisolated enum ContributionSource: String, Codable, Sendable {
+    enum ContributionSource: String, Codable, Sendable {
         case ticketPurchase
         case directDonation
     }
 }
 
-nonisolated struct LiveVote: Identifiable, Codable, Sendable {
+struct LiveVote: Identifiable, Codable, Sendable {
     let id: String
     let eventId: String
     let voterUserId: String
@@ -147,14 +147,14 @@ nonisolated struct LiveVote: Identifiable, Codable, Sendable {
     let submittedAt: Date
 }
 
-nonisolated struct LiveVotingSession: Codable, Sendable {
+struct LiveVotingSession: Codable, Sendable {
     let eventId: String
     var isOpen: Bool
     var votes: [LiveVote]
     var participantRewardedUserIds: [String]
 }
 
-nonisolated struct LiveVotingOutcome: Codable, Sendable {
+struct LiveVotingOutcome: Codable, Sendable {
     let eventId: String
     let closedAt: Date
     let votesCount: Int
@@ -163,7 +163,7 @@ nonisolated struct LiveVotingOutcome: Codable, Sendable {
     let summary: String
 }
 
-nonisolated struct EventHubState: Codable, Sendable {
+struct EventHubState: Codable, Sendable {
     var events: [LiveEvent] = []
     var ticketPricing: [EventTicketPricing] = []
     var tickets: [EventTicket] = []

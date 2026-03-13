@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum CreatorCardRarity: String, Codable, Sendable, CaseIterable {
+enum CreatorCardRarity: String, Codable, Sendable, CaseIterable {
     case common
     case uncommon
     case rare
@@ -20,14 +20,14 @@ nonisolated enum CreatorCardRarity: String, Codable, Sendable, CaseIterable {
     }
 }
 
-nonisolated enum CreatorCardAssetSource: String, Codable, Sendable {
+enum CreatorCardAssetSource: String, Codable, Sendable {
     case directPurchase
     case creatorPack
     case auctionHouse
     case reward
 }
 
-nonisolated struct CreatorCardAsset: Identifiable, Codable, Sendable {
+struct CreatorCardAsset: Identifiable, Codable, Sendable {
     let id: String
     let templateCardId: String
     var ownerId: String
@@ -48,7 +48,7 @@ nonisolated struct CreatorCardAsset: Identifiable, Codable, Sendable {
     }
 }
 
-nonisolated struct CreatorPackOdds: Codable, Sendable {
+struct CreatorPackOdds: Codable, Sendable {
     let commonWeight: Int
     let rareWeight: Int
     let epicWeight: Int
@@ -75,20 +75,20 @@ nonisolated struct CreatorPackOdds: Codable, Sendable {
     }
 }
 
-nonisolated enum AuctionListingStatus: String, Codable, Sendable {
+enum AuctionListingStatus: String, Codable, Sendable {
     case active
     case sold
     case cancelled
     case expired
 }
 
-nonisolated struct CreatorCardBid: Codable, Sendable {
+struct CreatorCardBid: Codable, Sendable {
     let bidderId: String
     let amountShards: Int
     let placedAt: Date
 }
 
-nonisolated struct CreatorCardAuctionListing: Identifiable, Codable, Sendable {
+struct CreatorCardAuctionListing: Identifiable, Codable, Sendable {
     let id: String
     let assetId: String
     let templateCardId: String
@@ -109,7 +109,7 @@ nonisolated struct CreatorCardAuctionListing: Identifiable, Codable, Sendable {
     }
 }
 
-nonisolated struct CreatorCardAuctionSale: Identifiable, Codable, Sendable {
+struct CreatorCardAuctionSale: Identifiable, Codable, Sendable {
     let id: String
     let listingId: String
     let assetId: String
@@ -123,7 +123,7 @@ nonisolated struct CreatorCardAuctionSale: Identifiable, Codable, Sendable {
     let soldAt: Date
 }
 
-nonisolated struct CreatorCardMarketplaceState: Codable, Sendable {
+struct CreatorCardMarketplaceState: Codable, Sendable {
     var inventory: [CreatorCardAsset] = []
     var activeListings: [CreatorCardAuctionListing] = []
     var salesHistory: [CreatorCardAuctionSale] = []

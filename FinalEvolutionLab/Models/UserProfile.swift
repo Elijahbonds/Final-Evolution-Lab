@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct UserProfile: Sendable, Identifiable {
+struct UserProfile: Sendable, Identifiable {
     var id: String
     var displayName: String
     var athleteTag: String
@@ -29,7 +29,7 @@ nonisolated struct UserProfile: Sendable, Identifiable {
 }
 
 extension UserProfile: Codable {
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         displayName = try container.decode(String.self, forKey: .displayName)
@@ -77,7 +77,7 @@ extension UserProfile: Codable {
     )
 }
 
-nonisolated struct SystemScanResult: Codable, Sendable {
+struct SystemScanResult: Codable, Sendable {
     let id: String
     let date: Date
     let prqScore: Double
@@ -113,7 +113,7 @@ nonisolated struct SystemScanResult: Codable, Sendable {
         self.movementScreening = movementScreening
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         date = try container.decode(Date.self, forKey: .date)
@@ -128,7 +128,7 @@ nonisolated struct SystemScanResult: Codable, Sendable {
     }
 }
 
-nonisolated struct AvatarSkinConfig: Codable, Sendable {
+struct AvatarSkinConfig: Codable, Sendable {
     var heightScale: Double
     var weightScale: Double
     var limbLength: Double
@@ -221,7 +221,7 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
     }
 }
 
-nonisolated enum AvatarArchetype: String, Codable, Sendable {
+enum AvatarArchetype: String, Codable, Sendable {
     case highFlyer = "High Flyer"
     case powerDriver = "Power Driver"
     case agileCreator = "Agile Creator"
@@ -243,7 +243,7 @@ extension SystemScanResult {
     }
 }
 
-nonisolated enum AvatarSkinTone: String, Codable, Sendable {
+enum AvatarSkinTone: String, Codable, Sendable {
     case cyan
     case blue
     case green
@@ -251,14 +251,14 @@ nonisolated enum AvatarSkinTone: String, Codable, Sendable {
     case orange
 }
 
-nonisolated enum AvatarOutfitStyle: String, Codable, Sendable {
+enum AvatarOutfitStyle: String, Codable, Sendable {
     case standard
     case developing
     case flight
     case elite
 }
 
-nonisolated struct CreatorCardState: Codable, Sendable {
+struct CreatorCardState: Codable, Sendable {
     let cardId: String
     let creatorName: String
     let appliedAt: Date

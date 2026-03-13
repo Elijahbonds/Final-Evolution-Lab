@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum CreditTransaction: String, Codable, Sendable {
+enum CreditTransaction: String, Codable, Sendable {
     case fiatPurchase
     case critiqueEscrowHold
     case critiqueEscrowRelease
@@ -9,14 +9,14 @@ nonisolated enum CreditTransaction: String, Codable, Sendable {
     case shardConversion
 }
 
-nonisolated struct CreditPack: Codable, Sendable, Identifiable {
+struct CreditPack: Codable, Sendable, Identifiable {
     let id: String
     let displayName: String
     let creditAmount: Int
     let usdCentsPrice: Int
 }
 
-nonisolated enum DualCurrencyReservoir {
+enum DualCurrencyReservoir {
     // Hard currency peg: 100 credits == $1.00
     static let creditsPerDollar: Int = 100
     static let shardPerCreditRate: Int = 10

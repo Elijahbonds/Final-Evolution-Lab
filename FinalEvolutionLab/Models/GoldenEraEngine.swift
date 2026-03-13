@@ -1,7 +1,7 @@
 import Foundation
 import QuartzCore
 
-nonisolated enum ModifierState: String, Sendable {
+enum ModifierState: String, Sendable {
     case none
     case style
     case power
@@ -26,7 +26,7 @@ nonisolated enum ModifierState: String, Sendable {
     }
 }
 
-nonisolated struct DirectionalTrick: Sendable, Identifiable {
+struct DirectionalTrick: Sendable, Identifiable {
     let id: String
     let name: String
     let displayName: String
@@ -86,7 +86,7 @@ nonisolated struct DirectionalTrick: Sendable, Identifiable {
     }
 }
 
-nonisolated struct QTEApexWindow: Sendable {
+struct QTEApexWindow: Sendable {
     static let windowDuration: Double = 0.4
     static let perfectThreshold: Double = 0.08
     static let greatThreshold: Double = 0.15
@@ -112,7 +112,7 @@ nonisolated struct QTEApexWindow: Sendable {
     }
 }
 
-nonisolated enum QTEGrade: String, Sendable {
+enum QTEGrade: String, Sendable {
     case perfect = "PERFECT"
     case great = "GREAT"
     case good = "GOOD"
@@ -134,7 +134,7 @@ nonisolated enum QTEGrade: String, Sendable {
     }
 }
 
-nonisolated struct GoldenEraComboEngine: Sendable {
+struct GoldenEraComboEngine: Sendable {
     static let maxChainLength: Int = 6
     static let chainWindowSeconds: Double = 0.5
     static let styleLandingWindowSeconds: Double = 0.35

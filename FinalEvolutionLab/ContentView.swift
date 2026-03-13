@@ -179,7 +179,7 @@ struct ContentView: View {
     }
 }
 
-nonisolated enum AppTab: String, Sendable {
+enum AppTab: String, Sendable {
     case lab
     case training
     case dashboard

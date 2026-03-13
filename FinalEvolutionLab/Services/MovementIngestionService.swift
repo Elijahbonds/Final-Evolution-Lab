@@ -1,29 +1,29 @@
 import Foundation
 
-nonisolated struct MovementReferenceManifestEntry: Sendable {
+struct MovementReferenceManifestEntry: Sendable {
     let exerciseId: String
     let referenceURL: String
 }
 
-nonisolated struct PoseExtractionResult: Sendable {
+struct PoseExtractionResult: Sendable {
     let keyPoseTimestamps: [Double]
     let confidence: Double
 }
 
-nonisolated protocol PoseExtractionPipeline: Sendable {
+protocol PoseExtractionPipeline: Sendable {
     func extract(referenceURL: String, exerciseId: String) -> PoseExtractionResult?
 }
 
-nonisolated struct MotionRetargetResult: Sendable {
+struct MotionRetargetResult: Sendable {
     let motionAssetId: String
     let qualityScore: Double
 }
 
-nonisolated protocol MotionRetargetingPipeline: Sendable {
+protocol MotionRetargetingPipeline: Sendable {
     func retarget(poses: PoseExtractionResult, cloneProfile: CloneProfile, exerciseId: String) -> MotionRetargetResult?
 }
 
-nonisolated struct StubPoseExtractor: PoseExtractionPipeline {
+struct StubPoseExtractor: PoseExtractionPipeline {
     func extract(referenceURL: String, exerciseId: String) -> PoseExtractionResult? {
         guard !referenceURL.isEmpty else { return nil }
         // Stubbed extraction for app-runtime safety. Replace with a real pipeline later.
@@ -47,7 +47,7 @@ nonisolated struct StubPoseExtractor: PoseExtractionPipeline {
     }
 }
 
-nonisolated struct StubMotionRetargeter: MotionRetargetingPipeline {
+struct StubMotionRetargeter: MotionRetargetingPipeline {
     func retarget(poses: PoseExtractionResult, cloneProfile: CloneProfile, exerciseId: String) -> MotionRetargetResult? {
         guard !poses.keyPoseTimestamps.isEmpty else { return nil }
         let quality = min(0.97, max(0.60, poses.confidence + 0.05))
@@ -58,7 +58,7 @@ nonisolated struct StubMotionRetargeter: MotionRetargetingPipeline {
     }
 }
 
-nonisolated struct MovementIngestionService: Sendable {
+struct MovementIngestionService: Sendable {
     var poseExtractor: any PoseExtractionPipeline
     var motionRetargeter: any MotionRetargetingPipeline
 

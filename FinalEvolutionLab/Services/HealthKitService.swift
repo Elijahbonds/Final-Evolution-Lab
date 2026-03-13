@@ -225,21 +225,21 @@ class HealthKitService {
     }
 }
 
-nonisolated enum NeuralReadinessGrade: String, Sendable {
+enum NeuralReadinessGrade: String, Sendable {
     case elite = "ELITE"
     case primed = "PRIMED"
     case ready = "READY"
     case recovering = "RECOVERING"
 }
 
-nonisolated struct ArcadePhysicsBuff: Sendable {
+struct ArcadePhysicsBuff: Sendable {
     let neuralDriveOverride: Double
     let speedMultiplier: Double
     let hangTimeBonus: Double
     let isRecoveryMode: Bool
 }
 
-nonisolated enum HRVTrend: String, Sendable {
+enum HRVTrend: String, Sendable {
     case improving = "IMPROVING"
     case stable = "STABLE"
     case declining = "DECLINING"

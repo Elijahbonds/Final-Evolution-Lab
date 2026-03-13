@@ -1,18 +1,18 @@
 import Foundation
 
-nonisolated struct Player3v3Position: Sendable {
+struct Player3v3Position: Sendable {
     let id: String
     let position: SIMD3<Double>
     let isOffense: Bool
     let assignedDefenderId: String?
 }
 
-nonisolated enum ShadingDirection: String, Sendable {
+enum ShadingDirection: String, Sendable {
     case baseline
     case middle
 }
 
-nonisolated struct HelpDefense3v3: Sendable {
+struct HelpDefense3v3: Sendable {
 
     struct CloseoutResult: Sendable {
         let helperId: String

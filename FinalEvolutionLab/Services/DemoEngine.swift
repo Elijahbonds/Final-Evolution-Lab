@@ -1,19 +1,19 @@
 import SwiftUI
 import Foundation
 
-nonisolated enum DemoMode: String, Sendable, CaseIterable {
+enum DemoMode: String, Sendable, CaseIterable {
     case coach = "Coach"
     case avatar = "Avatar"
 }
 
-nonisolated enum DemoLoadState: Sendable {
+enum DemoLoadState: Sendable {
     case idle
     case loading
     case ready(DemoContentPayload)
     case needsRealClip
 }
 
-nonisolated enum DemoContentPayload: Sendable {
+enum DemoContentPayload: Sendable {
     case generatedAnimation(ExerciseDemoAsset)
     case localClip(ExerciseDemoAsset, URL)
     case referenceOnly(ExerciseDemoAsset)

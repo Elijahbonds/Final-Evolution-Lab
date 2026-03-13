@@ -1,12 +1,12 @@
 import Foundation
 
-nonisolated enum ExerciseDemoAssetSourceType: String, Codable, Sendable, CaseIterable {
+enum ExerciseDemoAssetSourceType: String, Codable, Sendable, CaseIterable {
     case referenceOnly
     case localClip
     case generatedAnimation
 }
 
-nonisolated struct ExerciseDemoAsset: Codable, Sendable, Identifiable {
+struct ExerciseDemoAsset: Codable, Sendable, Identifiable {
     let id: String
     let exerciseId: String
     var motionAssetId: String
@@ -23,7 +23,7 @@ nonisolated struct ExerciseDemoAsset: Codable, Sendable, Identifiable {
     }
 }
 
-nonisolated struct CloneProfile: Codable, Sendable, Identifiable {
+struct CloneProfile: Codable, Sendable, Identifiable {
     let cloneId: String
     var displayName: String
     var avatarConfig: AvatarSkinConfig
@@ -57,7 +57,7 @@ nonisolated struct CloneProfile: Codable, Sendable, Identifiable {
     }
 }
 
-nonisolated struct MovementDatabase: Codable, Sendable {
+struct MovementDatabase: Codable, Sendable {
     var assets: [ExerciseDemoAsset] = []
     var requestedRealClipExerciseIds: Set<String> = []
     var migrationVersion: Int = 0

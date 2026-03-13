@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum ShardTransaction: String, Codable, Sendable {
+enum ShardTransaction: String, Codable, Sendable {
     case workoutComplete
     case gameWin
     case gameDraw
@@ -16,7 +16,7 @@ nonisolated enum ShardTransaction: String, Codable, Sendable {
     case achievementUnlock
 }
 
-nonisolated struct ShardReward: Sendable {
+struct ShardReward: Sendable {
     let amount: Int
     let transaction: ShardTransaction
 
@@ -53,7 +53,7 @@ nonisolated struct ShardReward: Sendable {
     }
 }
 
-nonisolated struct ShopItem: Identifiable, Sendable {
+struct ShopItem: Identifiable, Sendable {
     let id: String
     let name: String
     let description: String
@@ -72,14 +72,14 @@ nonisolated struct ShopItem: Identifiable, Sendable {
         self.iconName = iconName
     }
 
-    nonisolated enum ShopCategory: String, Sendable, CaseIterable {
+    enum ShopCategory: String, Sendable, CaseIterable {
         case outfit = "Outfits"
         case blueprint = "Blueprints"
         case critique = "Coaching"
     }
 }
 
-nonisolated enum EconomyCurrency: String, Codable, Sendable {
+enum EconomyCurrency: String, Codable, Sendable {
     case shards
     case credits
 }
@@ -104,7 +104,7 @@ struct ShopCatalog {
     }
 }
 
-nonisolated struct CoachEconomy: Codable, Sendable {
+struct CoachEconomy: Codable, Sendable {
     // Values are denominated in hard-currency credits.
     // Property names remain for backward compatibility with persisted saves.
     var totalEarned: Int = 0
@@ -171,7 +171,7 @@ nonisolated struct CoachEconomy: Codable, Sendable {
     var clearedCredits: Int { clearedEarnings }
 }
 
-nonisolated struct EscrowEntry: Codable, Sendable, Identifiable {
+struct EscrowEntry: Codable, Sendable, Identifiable {
     let id: String
     let shards: Int
     let createdAt: Date
@@ -181,7 +181,7 @@ nonisolated struct EscrowEntry: Codable, Sendable, Identifiable {
     var credits: Int { shards } // Legacy alias.
 }
 
-nonisolated enum EscrowStatus: String, Codable, Sendable {
+enum EscrowStatus: String, Codable, Sendable {
     case held
     case released
     case disputed

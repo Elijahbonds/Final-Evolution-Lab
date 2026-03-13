@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum PRQTier: String, Codable, Sendable, CaseIterable {
+enum PRQTier: String, Codable, Sendable, CaseIterable {
     case diamond = "DIAMOND"
     case platinum = "PLATINUM"
     case gold = "GOLD"

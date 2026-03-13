@@ -345,11 +345,11 @@ struct GameModeCard: View {
 }
 
 extension GameMode: Hashable {
-    nonisolated static func == (lhs: GameMode, rhs: GameMode) -> Bool {
+    static func == (lhs: GameMode, rhs: GameMode) -> Bool {
         lhs.id == rhs.id
     }
 
-    nonisolated func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
 }

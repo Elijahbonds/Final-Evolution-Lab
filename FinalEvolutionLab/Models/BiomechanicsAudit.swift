@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct BiomechanicsAudit: Codable, Sendable {
+struct BiomechanicsAudit: Codable, Sendable {
     var ankleDorsiflexion: JointScore
     var kneeTracking: JointScore
     var hipExtension: JointScore
@@ -82,12 +82,12 @@ nonisolated struct BiomechanicsAudit: Codable, Sendable {
     )
 }
 
-nonisolated struct JointScore: Codable, Sendable {
+struct JointScore: Codable, Sendable {
     let value: Double
     let status: JointStatus
 }
 
-nonisolated enum JointStatus: String, Codable, Sendable {
+enum JointStatus: String, Codable, Sendable {
     case optimal
     case moderate
     case deficit
@@ -101,7 +101,7 @@ nonisolated enum JointStatus: String, Codable, Sendable {
     }
 }
 
-nonisolated enum JointType: String, Codable, Sendable, CaseIterable {
+enum JointType: String, Codable, Sendable, CaseIterable {
     case ankle
     case knee
     case hip
@@ -123,14 +123,14 @@ nonisolated enum JointType: String, Codable, Sendable, CaseIterable {
     }
 }
 
-nonisolated struct LeakageZone: Codable, Sendable, Identifiable {
+struct LeakageZone: Codable, Sendable, Identifiable {
     var id: String { "\(joint.rawValue)_\(severity)" }
     let joint: JointType
     let severity: Double
     let description: String
 }
 
-nonisolated enum BiomechanicsGrade: String, Codable, Sendable {
+enum BiomechanicsGrade: String, Codable, Sendable {
     case elite = "ELITE"
     case primed = "PRIMED"
     case developing = "DEVELOPING"

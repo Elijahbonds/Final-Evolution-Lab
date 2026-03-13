@@ -1,6 +1,6 @@
 import SwiftUI
 
-nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiable {
+enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiable {
     case basketballHeadToHead = "basketball_h2h"
     case basketballDunkContest = "basketball_dunk"
     case basketball3v3 = "basketball_3v3"
@@ -16,7 +16,7 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     var id: String { rawValue }
 }
 
-nonisolated enum InputScheme: String, Sendable {
+enum InputScheme: String, Sendable {
     case charge
     case swipe
     case swipeGolf
@@ -27,7 +27,7 @@ nonisolated enum InputScheme: String, Sendable {
     case rhythmTap
 }
 
-nonisolated enum ControlInputMode: String, Sendable, CaseIterable {
+enum ControlInputMode: String, Sendable, CaseIterable {
     case controller
     case swipe
 }
@@ -87,7 +87,7 @@ extension GameModeId {
     }
 }
 
-nonisolated struct GameMode: Sendable, Identifiable {
+struct GameMode: Sendable, Identifiable {
     let id: GameModeId
     let name: String
     let subtitle: String
@@ -98,14 +98,14 @@ nonisolated struct GameMode: Sendable, Identifiable {
     let environmentName: String
     let hint: String?
 
-    nonisolated enum SportCategory: String, Sendable {
+    enum SportCategory: String, Sendable {
         case basketball = "Basketball"
         case combat = "Combat Sports"
         case field = "Field Sports"
         case precision = "Precision"
     }
 
-    nonisolated enum MultiplayerType: String, Sendable {
+    enum MultiplayerType: String, Sendable {
         case realtime
         case turnBased
         case solo

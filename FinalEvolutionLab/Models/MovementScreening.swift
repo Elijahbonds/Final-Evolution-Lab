@@ -1,19 +1,19 @@
 import Foundation
 
-nonisolated enum MovementScreenKind: String, Codable, Sendable, CaseIterable {
+enum MovementScreenKind: String, Codable, Sendable, CaseIterable {
     case fms = "FMS"
     case sfma = "SFMA"
     case fcs = "FCS"
     case frc = "FRC"
 }
 
-nonisolated enum MovementRiskBand: String, Codable, Sendable {
+enum MovementRiskBand: String, Codable, Sendable {
     case low
     case moderate
     case high
 }
 
-nonisolated struct MovementScreenItem: Codable, Sendable, Identifiable {
+struct MovementScreenItem: Codable, Sendable, Identifiable {
     let id: String
     let title: String
     let score: Double
@@ -21,7 +21,7 @@ nonisolated struct MovementScreenItem: Codable, Sendable, Identifiable {
     let notes: String
 }
 
-nonisolated struct MovementScreenResult: Codable, Sendable, Identifiable {
+struct MovementScreenResult: Codable, Sendable, Identifiable {
     let id: String
     let kind: MovementScreenKind
     let totalScore: Double
@@ -35,13 +35,13 @@ nonisolated struct MovementScreenResult: Codable, Sendable, Identifiable {
     }
 }
 
-nonisolated enum MovementDysfunctionSeverity: String, Codable, Sendable {
+enum MovementDysfunctionSeverity: String, Codable, Sendable {
     case mild
     case moderate
     case severe
 }
 
-nonisolated struct MovementDysfunction: Codable, Sendable, Identifiable {
+struct MovementDysfunction: Codable, Sendable, Identifiable {
     let id: String
     let title: String
     let severity: MovementDysfunctionSeverity
@@ -51,7 +51,7 @@ nonisolated struct MovementDysfunction: Codable, Sendable, Identifiable {
     let correctiveFocus: [String]
 }
 
-nonisolated struct StressTestCapture: Codable, Sendable {
+struct StressTestCapture: Codable, Sendable {
     let clipDurationSeconds: Double
     let frameRate: Double
     let estimatedRepCount: Int
@@ -62,7 +62,7 @@ nonisolated struct StressTestCapture: Codable, Sendable {
     let effortIndex: Double
 }
 
-nonisolated struct MovementCaptureSample: Codable, Sendable {
+struct MovementCaptureSample: Codable, Sendable {
     let ankleControl: Double
     let kneeControl: Double
     let hipControl: Double
@@ -71,14 +71,14 @@ nonisolated struct MovementCaptureSample: Codable, Sendable {
     let mobilityBandwidth: Double
 }
 
-nonisolated struct WorkoutPrescription: Codable, Sendable {
+struct WorkoutPrescription: Codable, Sendable {
     let trainingTrack: TrainingTrack
     let equipmentFocus: EquipmentType
     let rationale: String
     let priorityBlocks: [String]
 }
 
-nonisolated struct MovementScreeningReport: Codable, Sendable {
+struct MovementScreeningReport: Codable, Sendable {
     let stressTest: StressTestCapture
     let movementCapture: MovementCaptureSample
     let screenResults: [MovementScreenResult]

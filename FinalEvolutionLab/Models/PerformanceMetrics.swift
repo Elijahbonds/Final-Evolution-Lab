@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct PerformanceMetrics: Codable, Sendable {
+struct PerformanceMetrics: Codable, Sendable {
     var efficiencyScore: Double
     var prqScore: Double
     var readinessScore: Double

@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct DynamicDifficulty: Sendable {
+struct DynamicDifficulty: Sendable {
     static let maxAggression: Double = 1.4
     static let minAggression: Double = 0.6
 
@@ -135,7 +135,7 @@ nonisolated struct DynamicDifficulty: Sendable {
     }
 }
 
-nonisolated struct PRQDrivenDDA: Sendable {
+struct PRQDrivenDDA: Sendable {
     let playerPRQ: Double
     let neuralDrive: Double
     let mode: GameModeId
@@ -198,7 +198,7 @@ nonisolated struct PRQDrivenDDA: Sendable {
     }
 }
 
-nonisolated enum DifficultyTier: String, Sendable {
+enum DifficultyTier: String, Sendable {
     case rookie = "ROOKIE"
     case developing = "DEVELOPING"
     case competitive = "COMPETITIVE"

@@ -50,7 +50,7 @@ struct CloudAppSnapshot: Codable {
         self.updatedAt = updatedAt
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         profile = try container.decode(UserProfile.self, forKey: .profile)
         sessions = try container.decode([WorkoutSession].self, forKey: .sessions)

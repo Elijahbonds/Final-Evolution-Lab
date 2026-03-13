@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identifiable {
+enum EquipmentType: String, Codable, Sendable, CaseIterable, Identifiable {
     case bodyweight = "Bodyweight"
     case movementEducation = "Movement Education"
     case pjfBand = "PJF Band"
@@ -32,7 +32,7 @@ nonisolated enum EquipmentType: String, Codable, Sendable, CaseIterable, Identif
     }
 }
 
-nonisolated struct TrainingProgram: Codable, Sendable, Identifiable {
+struct TrainingProgram: Codable, Sendable, Identifiable {
     let id: String
     let track: TrainingTrack
     let equipment: EquipmentType
@@ -44,7 +44,7 @@ nonisolated struct TrainingProgram: Codable, Sendable, Identifiable {
     }
 }
 
-nonisolated enum TrainingTrack: String, Codable, Sendable, CaseIterable, Identifiable {
+enum TrainingTrack: String, Codable, Sendable, CaseIterable, Identifiable {
     case foundations = "Foundations"
     case flight = "Flight"
     case elite = "Elite"
@@ -76,7 +76,7 @@ nonisolated enum TrainingTrack: String, Codable, Sendable, CaseIterable, Identif
     }
 }
 
-nonisolated struct TrainingDay: Codable, Sendable, Identifiable {
+struct TrainingDay: Codable, Sendable, Identifiable {
     let id: String
     let dayNumber: Int
     let variant: String
@@ -97,7 +97,7 @@ nonisolated struct TrainingDay: Codable, Sendable, Identifiable {
     }
 }
 
-nonisolated enum TrainingDayCategory: String, Codable, Sendable {
+enum TrainingDayCategory: String, Codable, Sendable {
     case strength = "Strength"
     case recoveryIso = "Recovery + Isos"
     case maxIntent = "Max Intent"
@@ -132,7 +132,7 @@ nonisolated enum TrainingDayCategory: String, Codable, Sendable {
     }
 }
 
-nonisolated struct TrainingExercise: Codable, Sendable, Identifiable, Hashable {
+struct TrainingExercise: Codable, Sendable, Identifiable, Hashable {
     let id: String
     let name: String
     let sets: Int
@@ -155,7 +155,7 @@ nonisolated struct TrainingExercise: Codable, Sendable, Identifiable, Hashable {
     }
 }
 
-nonisolated struct TrainingProgress: Codable, Sendable {
+struct TrainingProgress: Codable, Sendable {
     var activeTrack: TrainingTrack
     var activeEquipment: EquipmentType
     var completedDayIds: Set<String>
