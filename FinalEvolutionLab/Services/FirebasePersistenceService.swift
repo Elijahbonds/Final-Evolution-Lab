@@ -15,7 +15,40 @@ struct CloudAppSnapshot: Codable {
     let coachEconomy: CoachEconomy
     let critiqueRequests: [CritiqueRequest]
     let trainingProgress: TrainingProgress
+    let eventHub: EventHubState
     let updatedAt: Date
+
+    init(
+        profile: UserProfile,
+        sessions: [WorkoutSession],
+        gameResults: [GameSessionResult],
+        coachEconomy: CoachEconomy,
+        critiqueRequests: [CritiqueRequest],
+        trainingProgress: TrainingProgress,
+        eventHub: EventHubState,
+        updatedAt: Date
+    ) {
+        self.profile = profile
+        self.sessions = sessions
+        self.gameResults = gameResults
+        self.coachEconomy = coachEconomy
+        self.critiqueRequests = critiqueRequests
+        self.trainingProgress = trainingProgress
+        self.eventHub = eventHub
+        self.updatedAt = updatedAt
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        profile = try container.decode(UserProfile.self, forKey: .profile)
+        sessions = try container.decode([WorkoutSession].self, forKey: .sessions)
+        gameResults = try container.decode([GameSessionResult].self, forKey: .gameResults)
+        coachEconomy = try container.decode(CoachEconomy.self, forKey: .coachEconomy)
+        critiqueRequests = try container.decode([CritiqueRequest].self, forKey: .critiqueRequests)
+        trainingProgress = try container.decode(TrainingProgress.self, forKey: .trainingProgress)
+        eventHub = (try? container.decode(EventHubState.self, forKey: .eventHub)) ?? EventHubState()
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
 }
 
 enum FirebasePersistenceService {

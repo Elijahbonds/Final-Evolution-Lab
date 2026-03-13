@@ -191,6 +191,8 @@ struct VaultView: View {
                 StatCell(label: "CREATOR CREDITS", value: "\(viewModel.profile.creatorCredits)", icon: "banknote.fill")
                 StatCell(label: "DAY STREAK", value: "\(viewModel.profile.streakDays)", icon: "flame.fill")
                 StatCell(label: "SESSIONS TODAY", value: "\(viewModel.todaysSessions.count)", icon: "clock.fill")
+                StatCell(label: "ARMORY TICKETS", value: "\(viewModel.armoryTickets.count)", icon: "qrcode")
+                StatCell(label: "FUNDRAISE %", value: "\(viewModel.activeFundraisingGoals.first?.percentComplete ?? 0)%", icon: "chart.bar.fill")
                 StatCell(label: "AUCTION LISTINGS", value: "\(viewModel.creatorMarketplace.activeListings.count)", icon: "hammer.fill")
                 StatCell(label: "SHARDS BURNED", value: "\(viewModel.creatorMarketplace.shardBurnedByAuctionTax + viewModel.creatorMarketplace.shardBurnedByMaintenance + viewModel.creatorMarketplace.shardBurnedByPackPulls + viewModel.creatorMarketplace.shardBurnedByServiceBridge)", icon: "flame")
             }

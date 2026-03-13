@@ -25,6 +25,9 @@ nonisolated enum DualCurrencyReservoir {
     static let signatureRoyaltyBps: Int = 500 // 5%
     static let signatureAnnualCap: Int = 10
     static let servicePoolFundingFromShardConversionBps: Int = 10_000 // 100%
+    static let ticketReferralShardBonusBps: Int = 500 // 5%
+    static let ticketShardRebateBps: Int = 2500 // 25% of credits value -> shards at conversion rate
+    static let ticketDiscountPerCreatorCardBps: Int = 1000 // 10%
 
     static var defaultPacks: [CreditPack] {
         [
@@ -66,5 +69,22 @@ nonisolated enum DualCurrencyReservoir {
         let notionalCredits = estimatedCreditsFromShards(saleShards)
         guard notionalCredits > 0 else { return 0 }
         return max(1, notionalCredits * signatureRoyaltyBps / 10_000)
+    }
+
+    static func ticketShardRebate(creditsSpent: Int) -> Int {
+        guard creditsSpent > 0 else { return 0 }
+        let effectiveCredits = creditsSpent * ticketShardRebateBps / 10_000
+        return shardsFromCredits(max(0, effectiveCredits))
+    }
+
+    static func referralShardBonus(baseShardBonus: Int) -> Int {
+        guard baseShardBonus > 0 else { return 0 }
+        return max(1, baseShardBonus * ticketReferralShardBonusBps / 10_000)
+    }
+
+    static func applyTicketDiscount(credits: Int, hasCreatorCardDiscount: Bool) -> Int {
+        guard credits > 0 else { return 0 }
+        guard hasCreatorCardDiscount else { return credits }
+        return max(1, credits - (credits * ticketDiscountPerCreatorCardBps / 10_000))
     }
 }

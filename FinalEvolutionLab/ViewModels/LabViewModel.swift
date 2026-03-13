@@ -18,15 +18,18 @@ class LabViewModel {
     var coachEconomy: CoachEconomy = SaveSystem.loadCoachEconomy()
     var gameResults: [GameSessionResult] = SaveSystem.loadGameResults()
     var creatorMarketplace: CreatorCardMarketplaceState = SaveSystem.loadCreatorMarketplace()
+    var eventHub: EventHubState = SaveSystem.loadEventHub()
     var lastSessionReadiness: Double = 50
 
     var biomechanicsAudit: BiomechanicsAudit?
     var globalLeaderboard = GlobalLeaderboardService()
     var critiqueRequests: [CritiqueRequest] = SaveSystem.loadCritiqueRequests()
+    private let liveVotingSocket = LiveVotingSocketService()
 
     init() {
         self.profile = SaveSystem.loadProfile()
         self.sessions = SaveSystem.loadSessions()
+        seedEventHubIfNeeded()
 
         if let scan = profile.systemScan {
             self.biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
@@ -55,6 +58,7 @@ class LabViewModel {
         gameResults = SaveSystem.loadGameResults()
         critiqueRequests = SaveSystem.loadCritiqueRequests()
         creatorMarketplace = SaveSystem.loadCreatorMarketplace()
+        eventHub = SaveSystem.loadEventHub()
 
         if let scan = profile.systemScan {
             biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
@@ -62,7 +66,16 @@ class LabViewModel {
             biomechanicsAudit = nil
         }
 
+        seedEventHubIfNeeded()
+
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
+    }
+
+    private func seedEventHubIfNeeded() {
+        if eventHub.events.isEmpty {
+            eventHub = EventTicketingSeedData.makeInitialState()
+            SaveSystem.saveEventHub(eventHub)
+        }
     }
 
     var allExercises: [Exercise] {
@@ -75,6 +88,33 @@ class LabViewModel {
 
     var activeAuctionListings: [CreatorCardAuctionListing] {
         creatorMarketplace.activeListings.filter { $0.status == .active }
+    }
+
+    var upcomingLiveEvents: [LiveEvent] {
+        eventHub.events
+            .filter { $0.endsAt > Date() }
+            .sorted(by: { $0.startsAt < $1.startsAt })
+    }
+
+    var armoryTickets: [EventTicket] {
+        eventHub.tickets
+            .filter { $0.ownerUserId == profile.id }
+            .sorted(by: { $0.purchasedAt > $1.purchasedAt })
+    }
+
+    var activeFundraisingGoals: [FundraisingGoal] {
+        eventHub.fundraisingGoals
+            .filter { $0.endDate > Date() }
+            .sorted(by: { $0.endDate < $1.endDate })
+    }
+
+    func topDonors(for goalId: String, limit: Int = 10) -> [(userId: String, credits: Int)] {
+        let grouped = Dictionary(grouping: eventHub.contributions.filter { $0.goalId == goalId }, by: \.contributorUserId)
+        return grouped
+            .map { ($0.key, $0.value.reduce(0, { $0 + $1.creditsAmount })) }
+            .sorted(by: { $0.1 > $1.1 })
+            .prefix(max(1, limit))
+            .map { (userId: $0.0, credits: $0.1) }
     }
 
     var todaysSessions: [WorkoutSession] {
@@ -253,6 +293,272 @@ class LabViewModel {
 
         SaveSystem.saveProfile(profile)
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
+    }
+
+    func ticketPricing(for eventId: String, tier: EventTicketTier) -> EventTicketPricing? {
+        eventHub.ticketPricing.first(where: { $0.eventId == eventId && $0.tier == tier })
+    }
+
+    func referralLink(for eventId: String) -> String {
+        "fel://events/\(eventId)?ref=\(profile.id)"
+    }
+
+    @discardableResult
+    func purchaseEventTicket(eventId: String, tier: EventTicketTier, referralSourceUserId: String? = nil) -> EventTicket? {
+        guard let event = eventHub.events.first(where: { $0.id == eventId }),
+              let pricing = ticketPricing(for: eventId, tier: tier) else { return nil }
+
+        if let cap = event.ticketInventoryCap, eventHub.currentTicketSalesCount(for: eventId) >= cap {
+            return nil
+        }
+
+        let hasDiscountPerk = hasCreatorCardTicketDiscount(for: event)
+        let creditsToCharge = DualCurrencyReservoir.applyTicketDiscount(credits: pricing.priceInCredits, hasCreatorCardDiscount: hasDiscountPerk)
+        let shardsToCharge = pricing.priceInShards
+        guard profile.premiumCredits >= creditsToCharge, profile.evolutionShards >= shardsToCharge else { return nil }
+
+        profile.premiumCredits -= creditsToCharge
+        profile.evolutionShards -= shardsToCharge
+
+        var shardBonus = pricing.shardBonusValue + DualCurrencyReservoir.ticketShardRebate(creditsSpent: creditsToCharge)
+        let donorMultiplierBps = eventHub.donorShardMultiplierBpsByUser[profile.id] ?? 0
+        if donorMultiplierBps > 0 {
+            shardBonus += shardBonus * donorMultiplierBps / 10_000
+        }
+        profile.evolutionShards += shardBonus
+
+        let nextTicketNumber = eventHub.currentTicketSalesCount(for: eventId) + 1
+        let isGoldenTicket = nextTicketNumber % 100 == 0
+
+        let ticketId = UUID().uuidString
+        let ticket = EventTicket(
+            id: ticketId,
+            eventId: eventId,
+            ownerUserId: profile.id,
+            tier: tier,
+            priceInCredits: creditsToCharge,
+            priceInShards: shardsToCharge,
+            shardBonusValue: shardBonus,
+            qrPayload: EventTicketingDefaults.qrPayload(eventId: eventId, ticketId: ticketId, ownerUserId: profile.id),
+            purchasedAt: Date(),
+            checkedInAt: nil,
+            referralSourceUserId: referralSourceUserId,
+            containsGoldenTicket: isGoldenTicket
+        )
+        eventHub.tickets.append(ticket)
+        if tier == .vipFrontRow {
+            grantVipPerks(for: event)
+        }
+
+        if let referralSourceUserId, !referralSourceUserId.isEmpty, referralSourceUserId != profile.id {
+            let referralBonus = DualCurrencyReservoir.referralShardBonus(baseShardBonus: shardBonus)
+            eventHub.referralShardRewardsByUser[referralSourceUserId, default: 0] += referralBonus
+        }
+
+        if let teamId = event.teamId, creditsToCharge > 0 {
+            applyFundraisingContribution(
+                teamId: teamId,
+                creditsAmount: creditsToCharge,
+                source: .ticketPurchase
+            )
+        }
+
+        applyHypeTrainIfNeeded(eventId: eventId)
+
+        if isGoldenTicket {
+            awardGoldenTicketReward(for: ticket)
+        }
+
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        SaveSystem.saveEventHub(eventHub)
+        return ticket
+    }
+
+    func donateToFundraisingGoal(goalId: String, creditsAmount: Int) -> Bool {
+        guard creditsAmount > 0,
+              profile.premiumCredits >= creditsAmount,
+              let goal = eventHub.fundraisingGoals.first(where: { $0.id == goalId }) else { return false }
+
+        profile.premiumCredits -= creditsAmount
+        applyFundraisingContribution(teamId: goal.teamId, creditsAmount: creditsAmount, source: .directDonation)
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveEventHub(eventHub)
+        return true
+    }
+
+    func openLiveVoting(eventId: String) {
+        let index: Int
+        if let existing = eventHub.votingSessions.firstIndex(where: { $0.eventId == eventId }) {
+            index = existing
+        } else {
+            eventHub.votingSessions.append(LiveVotingSession(eventId: eventId, isOpen: false, votes: [], participantRewardedUserIds: []))
+            index = eventHub.votingSessions.count - 1
+        }
+        eventHub.votingSessions[index].isOpen = true
+        _ = eventHub.ensureVotingSocket(for: eventId)
+        SaveSystem.saveEventHub(eventHub)
+    }
+
+    func closeLiveVoting(eventId: String) {
+        guard let index = eventHub.votingSessions.firstIndex(where: { $0.eventId == eventId }) else { return }
+        eventHub.votingSessions[index].isOpen = false
+        SaveSystem.saveEventHub(eventHub)
+        liveVotingSocket.close(eventId: eventId)
+    }
+
+    func connectLiveVotingSocket(eventId: String) -> AsyncStream<LiveVote> {
+        _ = eventHub.ensureVotingSocket(for: eventId)
+        SaveSystem.saveEventHub(eventHub)
+        return liveVotingSocket.connect(eventId: eventId)
+    }
+
+    @discardableResult
+    func submitLiveVote(eventId: String, score: Int) -> Bool {
+        guard (1...10).contains(score),
+              eventHub.userHasTicket(userId: profile.id, eventId: eventId),
+              let sessionIndex = eventHub.votingSessions.firstIndex(where: { $0.eventId == eventId }),
+              eventHub.votingSessions[sessionIndex].isOpen else { return false }
+
+        if eventHub.votingSessions[sessionIndex].votes.contains(where: { $0.voterUserId == profile.id }) {
+            return false
+        }
+
+        let vote = LiveVote(
+            id: UUID().uuidString,
+            eventId: eventId,
+            voterUserId: profile.id,
+            score: score,
+            submittedAt: Date()
+        )
+        eventHub.votingSessions[sessionIndex].votes.append(vote)
+
+        if !eventHub.votingSessions[sessionIndex].participantRewardedUserIds.contains(profile.id) {
+            profile.evolutionShards += 35
+            eventHub.votingSessions[sessionIndex].participantRewardedUserIds.append(profile.id)
+            eventHub.participationShardRewardsByUser[profile.id, default: 0] += 35
+        }
+
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveEventHub(eventHub)
+        liveVotingSocket.publish(vote: vote)
+        return true
+    }
+
+    private func hasCreatorCardTicketDiscount(for event: LiveEvent) -> Bool {
+        guard let headlinerId = event.headlinerCreatorId ?? event.headlinerCreatorName?.lowercased(),
+              !headlinerId.isEmpty else { return false }
+        return CreatorCard.catalog.contains { card in
+            profile.ownsCard(card.id) &&
+                (card.creatorId == headlinerId ||
+                 card.creatorName.lowercased() == headlinerId.lowercased())
+        }
+    }
+
+    private func applyFundraisingContribution(teamId: String, creditsAmount: Int, source: FundraisingContribution.ContributionSource) {
+        guard let goalIndex = eventHub.fundraisingGoals.firstIndex(where: { $0.teamId == teamId && $0.endDate > Date() }) else { return }
+        eventHub.fundraisingGoals[goalIndex].currentCredits += creditsAmount
+        eventHub.contributions.append(
+            FundraisingContribution(
+                id: UUID().uuidString,
+                goalId: eventHub.fundraisingGoals[goalIndex].id,
+                teamId: teamId,
+                contributorUserId: profile.id,
+                creditsAmount: creditsAmount,
+                source: source,
+                createdAt: Date()
+            )
+        )
+        unlockFundraisingRewardsIfNeeded(goalIndex: goalIndex)
+    }
+
+    private func unlockFundraisingRewardsIfNeeded(goalIndex: Int) {
+        let percent = eventHub.fundraisingGoals[goalIndex].percentComplete
+        for reward in eventHub.fundraisingGoals[goalIndex].milestoneRewards where
+            reward.thresholdPercent <= percent &&
+            !eventHub.fundraisingGoals[goalIndex].unlockedRewardIds.contains(reward.rewardId) {
+            eventHub.fundraisingGoals[goalIndex].unlockedRewardIds.append(reward.rewardId)
+
+            switch reward.rewardType {
+            case .practiceJerseySkin:
+                profile.blueprintCredits += 25
+            case .dunkShowUnlock:
+                break
+            case .patronCreatorCard:
+                if let topDonor = eventHub.topContributorUserId(for: eventHub.fundraisingGoals[goalIndex].id) {
+                    eventHub.donorShardMultiplierBpsByUser[topDonor] =
+                        max(eventHub.donorShardMultiplierBpsByUser[topDonor] ?? 0, 500)
+                }
+            }
+        }
+    }
+
+    private func applyHypeTrainIfNeeded(eventId: String) {
+        let soldCount = eventHub.currentTicketSalesCount(for: eventId)
+        let latestCheckpoint = soldCount / 10
+        let previousCheckpoint = eventHub.hypeTrainCheckpointByEvent[eventId] ?? 0
+        guard latestCheckpoint > previousCheckpoint else { return }
+
+        eventHub.hypeTrainCheckpointByEvent[eventId] = latestCheckpoint
+
+        // In single-user local mode, apply to the active user if they hold a ticket.
+        if eventHub.userHasTicket(userId: profile.id, eventId: eventId) {
+            let checkpointGain = latestCheckpoint - previousCheckpoint
+            let shardReward = checkpointGain * 75
+            profile.evolutionShards += shardReward
+            eventHub.participationShardRewardsByUser[profile.id, default: 0] += shardReward
+        }
+    }
+
+    private func awardGoldenTicketReward(for ticket: EventTicket) {
+        profile.evolutionShards += 2_500
+        eventHub.goldenTicketWinners[ticket.id] = "Legendary Shard Pack (+2500)"
+
+        guard let template = CreatorCard.catalog.randomElement() else { return }
+        let bonusAsset = CreatorCardAsset(
+            id: UUID().uuidString,
+            templateCardId: template.id,
+            ownerId: profile.id,
+            rarity: .legendary,
+            acquiredAt: Date(),
+            source: .reward,
+            maintenanceExpiresAt: Date().addingTimeInterval(Double(72 * 3600)),
+            totalMaintenanceShardsPaid: 0,
+            isLockedInAuction: false,
+            signedByCreatorId: nil,
+            signatureYear: nil,
+            signatureSerial: nil
+        )
+        creatorMarketplace.inventory.append(bonusAsset)
+        if !profile.ownsCard(template.id) {
+            profile.ownedCardIds.append(template.id)
+        }
+    }
+
+    private func grantVipPerks(for event: LiveEvent) {
+        guard let headlinerId = event.headlinerCreatorId ?? event.headlinerCreatorName?.lowercased(),
+              let template = CreatorCard.catalog.first(where: {
+                  $0.creatorId == headlinerId || $0.creatorName.lowercased() == headlinerId.lowercased()
+              }) else { return }
+
+        let vipAsset = CreatorCardAsset(
+            id: UUID().uuidString,
+            templateCardId: template.id,
+            ownerId: profile.id,
+            rarity: .epic,
+            acquiredAt: Date(),
+            source: .reward,
+            maintenanceExpiresAt: Date().addingTimeInterval(Double(7 * 24 * 3600)),
+            totalMaintenanceShardsPaid: 0,
+            isLockedInAuction: false,
+            signedByCreatorId: nil,
+            signatureYear: nil,
+            signatureSerial: nil
+        )
+        creatorMarketplace.inventory.append(vipAsset)
+        if !profile.ownsCard(template.id) {
+            profile.ownedCardIds.append(template.id)
+        }
     }
 
     static let creatorPackCostShards = 300
