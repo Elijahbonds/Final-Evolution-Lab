@@ -27,4 +27,17 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Economy")
     bool SpendShards(int32 Amount);
+
+    UFUNCTION(BlueprintCallable, Category = "Save")
+    bool SavePlayerState();
+
+    UFUNCTION(BlueprintCallable, Category = "Save")
+    bool LoadPlayerState();
+
+private:
+    UPROPERTY(EditDefaultsOnly, Category = "Save")
+    FString SaveSlotName = TEXT("FinalEvolution_PlayerState");
+
+    UPROPERTY(EditDefaultsOnly, Category = "Save")
+    int32 SaveUserIndex = 0;
 };

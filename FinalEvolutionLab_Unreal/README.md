@@ -33,6 +33,12 @@ This is a real Unreal project scaffold you can open in Unreal Editor after gener
 - `AArenaActor`
   - Applies `FArenaTheme` by `EGameModeId`.
   - Pushes wall/floor colors into dynamic material parameters (`BaseColor`, `AccentColor`).
+- `UFE_GameInstance` + `UFE_SaveGame`
+  - Global player state (`Shards`, `PRQ`, `Attributes`) with save/load.
+- `AFE_LabManager`
+  - Session coordinator equivalent to lab-screen controller logic.
+- `UFE_CoachingPortalWidget`
+  - UMG portal widget base for progression/economy actions.
 
 ## Unreal setup steps
 
@@ -48,6 +54,7 @@ This is a real Unreal project scaffold you can open in Unreal Editor after gener
    - `IA_Move` (Axis2D) bound to WASD/left stick.
    - `IA_Dunk` (Boolean) bound to Space / gamepad south button.
 6. Assign those input assets on `ARorkPlayerCharacter` properties.
+7. Review `REACT_TO_UNREAL_MAPPING.md` for component-level migration guidance.
 
 ## iOS native symbol compatibility
 

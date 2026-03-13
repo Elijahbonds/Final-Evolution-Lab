@@ -14,6 +14,7 @@ public class FinalEvolutionLab : ModuleRules
                 "Engine",
                 "InputCore",
                 "EnhancedInput",
+                "CommonUI",
                 "UMG",
                 "Json",
                 "JsonUtilities"
