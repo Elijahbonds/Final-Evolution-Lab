@@ -247,6 +247,21 @@ struct GameModeCard: View {
                 }
                 .foregroundStyle(.tertiary)
 
+                HStack(spacing: 5) {
+                    Image(systemName: "gamecontroller.fill")
+                        .font(.system(size: 8))
+                    Image(systemName: "hand.draw.fill")
+                        .font(.system(size: 8))
+                    Text("Controller / Swipe")
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                }
+                .foregroundStyle(.secondary)
+
+                Text(mode.id.gameplayDNA)
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundStyle(mode.accentColor.opacity(0.55))
+                    .lineLimit(2)
+
                 if let hint = mode.hint {
                     Text(hint)
                         .font(.system(size: 8, weight: .medium, design: .monospaced))

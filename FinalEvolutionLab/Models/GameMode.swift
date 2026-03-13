@@ -27,6 +27,11 @@ nonisolated enum InputScheme: String, Sendable {
     case rhythmTap
 }
 
+nonisolated enum ControlInputMode: String, Sendable, CaseIterable {
+    case controller
+    case swipe
+}
+
 extension GameModeId {
     var inputScheme: InputScheme {
         switch self {
@@ -44,6 +49,38 @@ extension GameModeId {
             return .penaltyKick
         case .gymnastics:
             return .rhythmTap
+        }
+    }
+
+    // Every mode is designed for either controller or swipe.
+    var supportedInputs: Set<ControlInputMode> {
+        [.controller, .swipe]
+    }
+
+    var gameplayDNA: String {
+        switch self {
+        case .basketballHeadToHead:
+            return "NBA 2K 1v1 pace + NBA Live 06 responsiveness"
+        case .basketballDunkContest:
+            return "NBA Live 06 x NBA Street trick physics and specials"
+        case .basketball3v3:
+            return "NBA Street 3v3 flow with team combo physics"
+        case .karate:
+            return "Matrix Revolutions cinematic combat x Naruto Storm chaining"
+        case .baseball:
+            return "Wii Sports Home Run Derby readability and timing"
+        case .football:
+            return "NFL Street style kick return chaos in 3v3 lanes"
+        case .soccer:
+            return "FIFA Street 2 flair with Switch Resort accessibility"
+        case .golf:
+            return "Wii Sports golf swing cadence and precision"
+        case .tennis:
+            return "Wii/Switch Resort timing-based rally loops"
+        case .volleyball:
+            return "Wii/Switch Resort rally and spike rhythm"
+        case .gymnastics:
+            return "Mario & Sonic rhythm taps with score windows"
         }
     }
 }

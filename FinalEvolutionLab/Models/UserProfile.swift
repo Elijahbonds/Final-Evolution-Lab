@@ -130,8 +130,11 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
 
     static func fromScan(prq: Double, vertical: Double, flight: Double, sport: String?) -> AvatarSkinConfig {
         let normalizedPRQ = min(max(prq / 100.0, 0), 1)
-        let heightBonus = min(0.15, vertical / 200.0)
-        let flightBonus = min(0.1, flight * 0.15)
+        let normalizedVertical = min(max(vertical / 45.0, 0), 1)
+        let normalizedFlight = min(max(flight / 1.2, 0), 1)
+
+        let heightBonus = min(0.18, normalizedVertical * 0.18)
+        let flightBonus = min(0.14, normalizedFlight * 0.14)
 
         let tone: AvatarSkinTone
         let outfit: AvatarOutfitStyle
@@ -159,17 +162,32 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
         }
 
         let sportWeightBias: Double
+        let limbBonus: Double
         switch sport ?? "" {
-        case "Basketball", "Volleyball": sportWeightBias = 0.95
-        case "Football": sportWeightBias = 1.1
-        case "Gymnastics": sportWeightBias = 0.88
-        default: sportWeightBias = 1.0
+        case "Basketball", "Volleyball":
+            sportWeightBias = 0.95
+            limbBonus = 0.04
+        case "Football":
+            sportWeightBias = 1.1
+            limbBonus = 0
+        case "Gymnastics":
+            sportWeightBias = 0.88
+            limbBonus = -0.03
+        case "Soccer", "Tennis":
+            sportWeightBias = 0.98
+            limbBonus = 0.02
+        case "Baseball", "Golf":
+            sportWeightBias = 1.02
+            limbBonus = 0.01
+        default:
+            sportWeightBias = 1.0
+            limbBonus = 0
         }
 
         return AvatarSkinConfig(
             heightScale: 1.0 + heightBonus,
             weightScale: sportWeightBias,
-            limbLength: 1.0 + flightBonus,
+            limbLength: 1.0 + flightBonus + limbBonus,
             skinTone: tone,
             outfitStyle: outfit,
             auraColorR: auraR,
@@ -177,6 +195,28 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
             auraColorB: auraB,
             trailIntensity: 0.2 + normalizedPRQ * 0.6
         )
+    }
+}
+
+nonisolated enum AvatarArchetype: String, Codable, Sendable {
+    case highFlyer = "High Flyer"
+    case powerDriver = "Power Driver"
+    case agileCreator = "Agile Creator"
+    case balancedAthlete = "Balanced Athlete"
+}
+
+extension SystemScanResult {
+    var irlAvatarArchetype: AvatarArchetype {
+        if verticalEstimateInches >= 34 && flightTimeSeconds >= 0.75 {
+            return .highFlyer
+        }
+        if prqScore >= 72 && movementGrade.uppercased().contains("A") {
+            return .agileCreator
+        }
+        if notes.joined(separator: " ").localizedCaseInsensitiveContains("power") {
+            return .powerDriver
+        }
+        return .balancedAthlete
     }
 }
 
