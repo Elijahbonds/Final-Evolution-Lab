@@ -1,11 +1,12 @@
 import Foundation
 
-// MARK: - Unity → Native Bridge (Pure Swift)
-// This file is the native-side API for Unity bridge calls.
+// MARK: - Game Engine → Native Bridge (Pure Swift)
+// This file is the native-side API for embedded engine bridge calls
+// (Unity and Unreal).
 // It posts NSNotification "RorkScoreUpdated" with userInfo["score"] = Int.
 //
-// Unity data flow:
-//   Unity C# → RorkBridge.SendScoreToNative(prqScore)
+// Example data flow:
+//   Game runtime -> _PostRorkScore(score)
 //   → _PostRorkScore(score) exported from Swift via @_cdecl
 //   → NSNotification "RorkScoreUpdated"
 //   → RorkScoreManager.shared observes and updates UI
@@ -28,8 +29,8 @@ nonisolated enum RorkNativeBridge: Sendable {
     }
 }
 
-// C-export expected by Unity C# DllImport("__Internal").
-// Unity iOS can call this directly without requiring Objective-C bridge code.
+// C-export consumed by game runtimes on iOS.
+// This can be called from Unity (DllImport) or Unreal (extern symbol).
 @_cdecl("_PostRorkScore")
 func _PostRorkScore(_ score: Int32) {
     RorkNativeBridge.postScore(Int(score))
