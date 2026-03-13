@@ -17,6 +17,7 @@ class LabViewModel {
     var healthKit = HealthKitService()
     var coachEconomy: CoachEconomy = SaveSystem.loadCoachEconomy()
     var gameResults: [GameSessionResult] = SaveSystem.loadGameResults()
+    var creatorMarketplace: CreatorCardMarketplaceState = SaveSystem.loadCreatorMarketplace()
     var lastSessionReadiness: Double = 50
 
     var biomechanicsAudit: BiomechanicsAudit?
@@ -53,6 +54,7 @@ class LabViewModel {
         coachEconomy = SaveSystem.loadCoachEconomy()
         gameResults = SaveSystem.loadGameResults()
         critiqueRequests = SaveSystem.loadCritiqueRequests()
+        creatorMarketplace = SaveSystem.loadCreatorMarketplace()
 
         if let scan = profile.systemScan {
             biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
@@ -65,6 +67,14 @@ class LabViewModel {
 
     var allExercises: [Exercise] {
         tracks.flatMap(\.exercises)
+    }
+
+    var ownedCreatorAssets: [CreatorCardAsset] {
+        creatorMarketplace.inventory.filter { $0.ownerId == profile.id }
+    }
+
+    var activeAuctionListings: [CreatorCardAuctionListing] {
+        creatorMarketplace.activeListings.filter { $0.status == .active }
     }
 
     var todaysSessions: [WorkoutSession] {
@@ -122,7 +132,8 @@ class LabViewModel {
 
     var effectiveMetrics: PerformanceMetrics {
         guard let card = profile.activeCreatorCard,
-              let catalogCard = CreatorCard.catalog.first(where: { $0.id == card.cardId }) else {
+              let catalogCard = CreatorCard.catalog.first(where: { $0.id == card.cardId }),
+              activeCreatorCardUtilityEnabled else {
             return profile.metrics
         }
         let boost = catalogCard.metricsBoost
@@ -142,7 +153,8 @@ class LabViewModel {
 
     var activeMovementSignature: MovementSignature {
         guard let card = profile.activeCreatorCard,
-              let catalogCard = CreatorCard.catalog.first(where: { $0.id == card.cardId }) else {
+              let catalogCard = CreatorCard.catalog.first(where: { $0.id == card.cardId }),
+              activeCreatorCardUtilityEnabled else {
             return MovementSignature(
                 style: .standard,
                 jumpApex: 1.0,
@@ -243,21 +255,44 @@ class LabViewModel {
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
     }
 
+    static let creatorPackCostShards = 300
+    static let defaultAuctionDurationHours = 24
+    static let defaultCardMaintenanceHours = 24 * 7
+    static let critiqueCostCredits = 500
+    static let critiqueEngagementShardBonus = 50
+    static let critiqueCostShards = critiqueCostCredits // legacy alias
+
     func applyCreatorCard(_ card: CreatorCard) {
         let alreadyOwned = profile.ownsCard(card.id)
-        if !alreadyOwned {
-            guard profile.premiumCredits >= card.costCredits else { return }
-            profile.premiumCredits -= card.costCredits
-            profile.ownedCardIds.append(card.id)
-        }
+        let ownedAssetId = ensureOwnedAsset(for: card, alreadyOwned: alreadyOwned)
+        guard let ownedAssetId else { return }
+
         profile.activeCreatorCard = CreatorCardState(
             cardId: card.id,
             creatorName: card.creatorName,
             appliedAt: Date(),
+            assetInstanceId: ownedAssetId,
             costShards: card.costCredits, // legacy persisted key
             metricsBoost: card.metricsBoost
         )
         SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+    }
+
+    func equipOwnedCreatorCardAsset(assetId: String) -> Bool {
+        guard let asset = creatorMarketplace.inventory.first(where: { $0.id == assetId && $0.ownerId == profile.id }),
+              let card = CreatorCard.catalog.first(where: { $0.id == asset.templateCardId }) else { return false }
+
+        profile.activeCreatorCard = CreatorCardState(
+            cardId: card.id,
+            creatorName: card.creatorName,
+            appliedAt: Date(),
+            assetInstanceId: asset.id,
+            costShards: card.costCredits,
+            metricsBoost: card.metricsBoost
+        )
+        SaveSystem.saveProfile(profile)
+        return true
     }
 
     func clearCreatorCard() {
@@ -265,9 +300,46 @@ class LabViewModel {
         SaveSystem.saveProfile(profile)
     }
 
-    static let critiqueCostCredits = 500
-    static let critiqueEngagementShardBonus = 50
-    static let critiqueCostShards = critiqueCostCredits // legacy alias
+    private var activeCreatorCardUtilityEnabled: Bool {
+        guard let active = profile.activeCreatorCard else { return false }
+        guard profile.evolutionShards > 0 else { return false }
+        guard let assetId = active.assetInstanceId,
+              let asset = creatorMarketplace.inventory.first(where: { $0.id == assetId && $0.ownerId == profile.id }) else {
+            return true // Legacy cards without inventory instances remain usable while shards > 0.
+        }
+        return asset.utilityActive(now: Date(), currentShardBalance: profile.evolutionShards)
+    }
+
+    private func ensureOwnedAsset(for card: CreatorCard, alreadyOwned: Bool) -> String? {
+        if !alreadyOwned {
+            guard profile.premiumCredits >= card.costCredits else { return nil }
+            profile.premiumCredits -= card.costCredits
+            profile.ownedCardIds.append(card.id)
+        }
+
+        if let existing = creatorMarketplace.inventory.first(where: {
+            $0.ownerId == profile.id && $0.templateCardId == card.id && !$0.isLockedInAuction
+        }) {
+            return existing.id
+        }
+
+        let asset = CreatorCardAsset(
+            id: UUID().uuidString,
+            templateCardId: card.id,
+            ownerId: profile.id,
+            rarity: .uncommon,
+            acquiredAt: Date(),
+            source: .directPurchase,
+            maintenanceExpiresAt: Date().addingTimeInterval(Double(24 * 3600)),
+            totalMaintenanceShardsPaid: 0,
+            isLockedInAuction: false,
+            signedByCreatorId: nil,
+            signatureYear: nil,
+            signatureSerial: nil
+        )
+        creatorMarketplace.inventory.append(asset)
+        return asset.id
+    }
 
     func requestCritique(exerciseName: String, notes: String) -> Bool {
         let cost = Self.critiqueCostCredits
@@ -295,14 +367,49 @@ class LabViewModel {
         return true
     }
 
+    func requestCritiqueUsingShardBridge(exerciseName: String, notes: String, shardCost: Int = 500) -> Bool {
+        let payoutCredits = Self.critiqueCostCredits
+        guard shardCost > 0,
+              profile.evolutionShards >= shardCost else { return false }
+
+        let requestId = UUID().uuidString
+        guard creatorMarketplace.reserveServicePoolCredits(requestId: requestId, credits: payoutCredits) else {
+            return false
+        }
+
+        profile.evolutionShards -= shardCost
+        creatorMarketplace.shardBurnedByServiceBridge += shardCost
+
+        let request = CritiqueRequest(
+            id: requestId,
+            athleteId: profile.id,
+            exerciseName: exerciseName,
+            notes: notes,
+            requestDate: Date(),
+            shardsCost: payoutCredits,
+            status: .pending,
+            coachResponse: nil
+        )
+        critiqueRequests.append(request)
+        coachEconomy.completeCritique(credits: payoutCredits, critiqueId: request.id)
+
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveCritiqueRequests(critiqueRequests)
+        SaveSystem.saveCoachEconomy(coachEconomy)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return true
+    }
+
     func reviewCritique(requestId: String, rating: Double) {
         guard let index = critiqueRequests.firstIndex(where: { $0.id == requestId && $0.status == .completed }) else { return }
         critiqueRequests[index].status = .rated
 
         coachEconomy.releaseCritique(critiqueId: requestId, athleteRating: rating)
+        _ = creatorMarketplace.settleReservedServiceCredits(requestId: requestId)
 
         SaveSystem.saveCritiqueRequests(critiqueRequests)
         SaveSystem.saveCoachEconomy(coachEconomy)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
     }
 
     func simulateCoachResponse(requestId: String) {
@@ -316,6 +423,241 @@ class LabViewModel {
             focusAreas: ["Ankle Stiffness", "Hip Extension", "Ground Contact"]
         )
         SaveSystem.saveCritiqueRequests(critiqueRequests)
+    }
+
+    func openCreatorPacks(count: Int = 1, odds: CreatorPackOdds = .myTeamStyle) -> [CreatorCardAsset] {
+        let pulls = max(1, count)
+        let totalCost = pulls * Self.creatorPackCostShards
+        guard profile.evolutionShards >= totalCost, !CreatorCard.catalog.isEmpty else { return [] }
+
+        profile.evolutionShards -= totalCost
+        creatorMarketplace.shardBurnedByPackPulls += totalCost
+
+        var pulledAssets: [CreatorCardAsset] = []
+        for _ in 0..<pulls {
+            guard let template = CreatorCard.catalog.randomElement() else { continue }
+            let rarity = odds.rollRarity()
+            let asset = CreatorCardAsset(
+                id: UUID().uuidString,
+                templateCardId: template.id,
+                ownerId: profile.id,
+                rarity: rarity,
+                acquiredAt: Date(),
+                source: .creatorPack,
+                maintenanceExpiresAt: Date().addingTimeInterval(Double(24 * 3600)),
+                totalMaintenanceShardsPaid: 0,
+                isLockedInAuction: false,
+                signedByCreatorId: nil,
+                signatureYear: nil,
+                signatureSerial: nil
+            )
+            creatorMarketplace.inventory.append(asset)
+            if !profile.ownsCard(template.id) {
+                profile.ownedCardIds.append(template.id)
+            }
+            pulledAssets.append(asset)
+        }
+
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return pulledAssets
+    }
+
+    func signCardAsSignature(assetId: String, creatorId: String, year: Int = Calendar.current.component(.year, from: Date())) -> Bool {
+        guard let index = creatorMarketplace.inventory.firstIndex(where: {
+            $0.id == assetId && $0.ownerId == profile.id && !$0.isLockedInAuction
+        }) else { return false }
+
+        let mintedCount = creatorMarketplace.signatureMintCount(creatorId: creatorId, year: year)
+        guard mintedCount < DualCurrencyReservoir.signatureAnnualCap else { return false }
+
+        let serial = creatorMarketplace.recordSignatureMint(creatorId: creatorId, year: year)
+        creatorMarketplace.inventory[index].rarity = .signature
+        creatorMarketplace.inventory[index].signedByCreatorId = creatorId
+        creatorMarketplace.inventory[index].signatureYear = year
+        creatorMarketplace.inventory[index].signatureSerial = serial
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return true
+    }
+
+    func signCardAsSignature(assetId: String, year: Int = Calendar.current.component(.year, from: Date())) -> Bool {
+        guard let asset = creatorMarketplace.inventory.first(where: { $0.id == assetId && $0.ownerId == profile.id }),
+              let template = CreatorCard.catalog.first(where: { $0.id == asset.templateCardId }) else { return false }
+        return signCardAsSignature(assetId: assetId, creatorId: template.creatorId, year: year)
+    }
+
+    func activateCardMaintenance(assetId: String, hours: Int = Self.defaultCardMaintenanceHours) -> Bool {
+        guard let index = creatorMarketplace.inventory.firstIndex(where: {
+            $0.id == assetId && $0.ownerId == profile.id
+        }) else { return false }
+
+        let durationHours = max(1, hours)
+        let cost = max(1, creatorMarketplace.inventory[index].rarity.maintenanceShardFeePerHour * durationHours)
+        guard profile.evolutionShards >= cost else { return false }
+
+        profile.evolutionShards -= cost
+        creatorMarketplace.shardBurnedByMaintenance += cost
+        creatorMarketplace.inventory[index].totalMaintenanceShardsPaid += cost
+
+        let now = Date()
+        let base = max(now, creatorMarketplace.inventory[index].maintenanceExpiresAt ?? now)
+        creatorMarketplace.inventory[index].maintenanceExpiresAt =
+            Calendar.current.date(byAdding: .hour, value: durationHours, to: base) ??
+            base.addingTimeInterval(Double(durationHours) * 3600)
+
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return true
+    }
+
+    func listOwnedCardForAuction(assetId: String, startingBidShards: Int, buyNowShards: Int?, durationHours: Int = Self.defaultAuctionDurationHours) -> Bool {
+        guard startingBidShards > 0 else { return false }
+        if let buyNowShards, buyNowShards <= startingBidShards { return false }
+        guard let assetIndex = creatorMarketplace.inventory.firstIndex(where: {
+            $0.id == assetId && $0.ownerId == profile.id && !$0.isLockedInAuction
+        }) else { return false }
+        guard !creatorMarketplace.activeListings.contains(where: { $0.assetId == assetId && $0.status == .active }) else { return false }
+
+        let duration = max(1, durationHours)
+        let listing = CreatorCardAuctionListing(
+            id: UUID().uuidString,
+            assetId: assetId,
+            templateCardId: creatorMarketplace.inventory[assetIndex].templateCardId,
+            sellerId: profile.id,
+            listedAt: Date(),
+            endsAt: Calendar.current.date(byAdding: .hour, value: duration, to: Date()) ?? Date().addingTimeInterval(Double(duration) * 3600),
+            startingBidShards: startingBidShards,
+            buyNowShards: buyNowShards,
+            highestBid: nil,
+            status: .active
+        )
+
+        creatorMarketplace.inventory[assetIndex].isLockedInAuction = true
+        creatorMarketplace.activeListings.append(listing)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return true
+    }
+
+    func placeBidOnListing(listingId: String, bidAmountShards: Int) -> Bool {
+        guard let index = creatorMarketplace.activeListings.firstIndex(where: { $0.id == listingId }) else { return false }
+        guard creatorMarketplace.activeListings[index].isActive(now: Date()) else { return false }
+        guard creatorMarketplace.activeListings[index].sellerId != profile.id else { return false }
+
+        let currentBid = creatorMarketplace.activeListings[index].currentBidShards
+        guard profile.evolutionShards > currentBid else { return false } // Prompt's bid constraint.
+        guard bidAmountShards > currentBid, profile.evolutionShards >= bidAmountShards else { return false }
+
+        creatorMarketplace.activeListings[index].highestBid = CreatorCardBid(
+            bidderId: profile.id,
+            amountShards: bidAmountShards,
+            placedAt: Date()
+        )
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        return true
+    }
+
+    func buyNowListing(listingId: String) -> Bool {
+        guard let index = creatorMarketplace.activeListings.firstIndex(where: { $0.id == listingId }) else { return false }
+        let listing = creatorMarketplace.activeListings[index]
+        guard listing.isActive(now: Date()),
+              listing.sellerId != profile.id,
+              let buyNow = listing.buyNowShards,
+              profile.evolutionShards >= buyNow else { return false }
+
+        profile.evolutionShards -= buyNow
+        let success = finalizeAuctionSale(listingIndex: index, buyerId: profile.id, salePriceShards: buyNow)
+        if success {
+            SaveSystem.saveProfile(profile)
+            SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+        }
+        return success
+    }
+
+    func settleExpiredAuctionListings() {
+        let now = Date()
+        let listingIds = creatorMarketplace.activeListings.filter { $0.status == .active && $0.endsAt <= now }.map(\.id)
+
+        for listingId in listingIds {
+            guard let index = creatorMarketplace.activeListings.firstIndex(where: { $0.id == listingId }) else { continue }
+            let listing = creatorMarketplace.activeListings[index]
+
+            if let winningBid = listing.highestBid {
+                if winningBid.bidderId == profile.id {
+                    guard profile.evolutionShards >= winningBid.amountShards else {
+                        creatorMarketplace.activeListings[index].status = .expired
+                        unlockAssetForListing(at: index)
+                        creatorMarketplace.activeListings.remove(at: index)
+                        continue
+                    }
+                    profile.evolutionShards -= winningBid.amountShards
+                }
+                _ = finalizeAuctionSale(listingIndex: index, buyerId: winningBid.bidderId, salePriceShards: winningBid.amountShards)
+            } else {
+                creatorMarketplace.activeListings[index].status = .cancelled
+                unlockAssetForListing(at: index)
+                creatorMarketplace.activeListings.remove(at: index)
+            }
+        }
+
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+    }
+
+    private func unlockAssetForListing(at listingIndex: Int) {
+        let assetId = creatorMarketplace.activeListings[listingIndex].assetId
+        if let assetIndex = creatorMarketplace.inventory.firstIndex(where: { $0.id == assetId }) {
+            creatorMarketplace.inventory[assetIndex].isLockedInAuction = false
+        }
+    }
+
+    private func finalizeAuctionSale(listingIndex: Int, buyerId: String, salePriceShards: Int) -> Bool {
+        guard listingIndex >= 0, listingIndex < creatorMarketplace.activeListings.count, salePriceShards > 0 else { return false }
+        let listing = creatorMarketplace.activeListings[listingIndex]
+        guard let assetIndex = creatorMarketplace.inventory.firstIndex(where: { $0.id == listing.assetId }) else { return false }
+
+        let taxShards = DualCurrencyReservoir.auctionTaxShards(for: salePriceShards)
+        let sellerNetShards = max(0, salePriceShards - taxShards)
+
+        creatorMarketplace.inventory[assetIndex].ownerId = buyerId
+        creatorMarketplace.inventory[assetIndex].isLockedInAuction = false
+        if listing.sellerId == profile.id {
+            profile.evolutionShards += sellerNetShards
+            if profile.activeCreatorCard?.assetInstanceId == listing.assetId && buyerId != profile.id {
+                profile.activeCreatorCard = nil
+            }
+        }
+
+        var royaltyCreditsPaid = 0
+        if let signedCreatorId = creatorMarketplace.inventory[assetIndex].signedByCreatorId {
+            let royaltyCredits = DualCurrencyReservoir.signatureRoyaltyCredits(fromSaleShards: salePriceShards)
+            if royaltyCredits > 0 && creatorMarketplace.servicePoolAvailableCredits >= royaltyCredits {
+                creatorMarketplace.servicePoolAvailableCredits -= royaltyCredits
+                creatorMarketplace.addRoyaltyCredits(creatorId: signedCreatorId, credits: royaltyCredits)
+                if signedCreatorId == profile.id {
+                    profile.creatorCredits += royaltyCredits
+                }
+                royaltyCreditsPaid = royaltyCredits
+            }
+        }
+
+        creatorMarketplace.shardBurnedByAuctionTax += taxShards
+        creatorMarketplace.activeListings.remove(at: listingIndex)
+        creatorMarketplace.salesHistory.append(
+            CreatorCardAuctionSale(
+                id: UUID().uuidString,
+                listingId: listing.id,
+                assetId: listing.assetId,
+                templateCardId: listing.templateCardId,
+                sellerId: listing.sellerId,
+                buyerId: buyerId,
+                salePriceShards: salePriceShards,
+                burnedTaxShards: taxShards,
+                sellerNetShards: sellerNetShards,
+                royaltyCreditsPaid: royaltyCreditsPaid,
+                soldAt: Date()
+            )
+        )
+        return true
     }
 
     @discardableResult
@@ -337,7 +679,12 @@ class LabViewModel {
         guard creditsToSpend > 0, profile.premiumCredits >= creditsToSpend else { return false }
         profile.premiumCredits -= creditsToSpend
         profile.evolutionShards += DualCurrencyReservoir.shardsFromCredits(creditsToSpend)
+
+        let funded = DualCurrencyReservoir.servicePoolFundingCredits(fromShardConversionCredits: creditsToSpend)
+        creatorMarketplace.fundServicePool(credits: funded)
+
         SaveSystem.saveProfile(profile)
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
         return true
     }
 }

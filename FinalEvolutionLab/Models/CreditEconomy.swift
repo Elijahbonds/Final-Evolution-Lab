@@ -21,6 +21,10 @@ nonisolated enum DualCurrencyReservoir {
     static let creditsPerDollar: Int = 100
     static let shardPerCreditRate: Int = 10
     static let creatorPayoutFeeBps: Int = 1500 // 15%
+    static let auctionTaxBps: Int = 1000 // 10%
+    static let signatureRoyaltyBps: Int = 500 // 5%
+    static let signatureAnnualCap: Int = 10
+    static let servicePoolFundingFromShardConversionBps: Int = 10_000 // 100%
 
     static var defaultPacks: [CreditPack] {
         [
@@ -41,5 +45,26 @@ nonisolated enum DualCurrencyReservoir {
     static func creatorNetCredits(afterFeeOn grossCredits: Int) -> Int {
         let fee = grossCredits * creatorPayoutFeeBps / 10_000
         return max(0, grossCredits - fee)
+    }
+
+    static func auctionTaxShards(for salePriceShards: Int) -> Int {
+        guard salePriceShards > 0 else { return 0 }
+        return max(1, salePriceShards * auctionTaxBps / 10_000)
+    }
+
+    static func servicePoolFundingCredits(fromShardConversionCredits creditsSpent: Int) -> Int {
+        guard creditsSpent > 0 else { return 0 }
+        return max(0, creditsSpent * servicePoolFundingFromShardConversionBps / 10_000)
+    }
+
+    static func estimatedCreditsFromShards(_ shards: Int) -> Int {
+        guard shards > 0 else { return 0 }
+        return shards / max(1, shardPerCreditRate)
+    }
+
+    static func signatureRoyaltyCredits(fromSaleShards saleShards: Int) -> Int {
+        let notionalCredits = estimatedCreditsFromShards(saleShards)
+        guard notionalCredits > 0 else { return 0 }
+        return max(1, notionalCredits * signatureRoyaltyBps / 10_000)
     }
 }

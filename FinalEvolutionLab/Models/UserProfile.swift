@@ -245,6 +245,7 @@ nonisolated struct CreatorCardState: Codable, Sendable {
     let cardId: String
     let creatorName: String
     let appliedAt: Date
+    let assetInstanceId: String?
     let costShards: Int
     let metricsBoost: PerformanceMetrics
 

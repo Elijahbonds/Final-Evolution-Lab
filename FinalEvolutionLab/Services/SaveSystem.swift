@@ -7,6 +7,7 @@ struct SaveSystem {
     private static let coachEconomyKey = "finalEvolution_coachEconomy"
     private static let critiqueRequestsKey = "finalEvolution_critiqueRequests"
     private static let trainingProgressKey = "finalEvolution_trainingProgress"
+    private static let creatorMarketplaceKey = "finalEvolution_creatorMarketplace"
     private static let lastMutationTimestampKey = "finalEvolution_lastMutationTimestamp"
 
     static func saveProfile(_ profile: UserProfile) {
@@ -57,6 +58,14 @@ struct SaveSystem {
 
     static func loadTrainingProgress() -> TrainingProgress {
         readValue(TrainingProgress.self, key: trainingProgressKey, defaultValue: .initial)
+    }
+
+    static func saveCreatorMarketplace(_ marketplace: CreatorCardMarketplaceState) {
+        writeValue(marketplace, key: creatorMarketplaceKey)
+    }
+
+    static func loadCreatorMarketplace() -> CreatorCardMarketplaceState {
+        readValue(CreatorCardMarketplaceState.self, key: creatorMarketplaceKey, defaultValue: CreatorCardMarketplaceState())
     }
 
     static func refreshFromCloudIfAvailable() async {
