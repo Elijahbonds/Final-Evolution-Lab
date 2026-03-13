@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import PhotosUI
 
 struct ExerciseDemoView: View {
     let exercise: Exercise
@@ -13,6 +14,8 @@ struct ExerciseDemoView: View {
     @State private var timerTask: Task<Void, Never>?
     @State private var demoEngine = DemoEngine()
     @State private var requestedRealClip = false
+    @State private var selectedRealClip: PhotosPickerItem?
+    @State private var clipAttachStatus: String?
 
     var body: some View {
         NavigationStack {
@@ -44,6 +47,10 @@ struct ExerciseDemoView: View {
         .onAppear {
             demoEngine.loadDemo(for: exercise.id, movementDatabase: viewModel.movementDatabase)
             requestedRealClip = viewModel.movementDatabase.requestedRealClipExerciseIds.contains(exercise.id)
+        }
+        .onChange(of: selectedRealClip) { _, newValue in
+            guard let newValue else { return }
+            attachSelectedRealClip(newValue)
         }
     }
 
@@ -271,6 +278,27 @@ struct ExerciseDemoView: View {
                         .foregroundStyle(requestedRealClip ? .black : .white)
                         .clipShape(.rect(cornerRadius: 14))
                 }
+
+                if requestedRealClip {
+                    PhotosPicker(
+                        selection: $selectedRealClip,
+                        matching: .videos,
+                        photoLibrary: .shared()
+                    ) {
+                        Text("ATTACH REAL CLIP")
+                            .font(.system(.subheadline, design: .monospaced, weight: .bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.white.opacity(0.06))
+                            .foregroundStyle(.white)
+                            .clipShape(.rect(cornerRadius: 14))
+                    }
+                    if let clipAttachStatus {
+                        Text(clipAttachStatus)
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             if isComplete {
@@ -343,6 +371,42 @@ struct ExerciseDemoView: View {
     private func skipRest() {
         timerTask?.cancel()
         withAnimation(.spring) { isResting = false }
+    }
+
+    private func attachSelectedRealClip(_ item: PhotosPickerItem) {
+        Task {
+            guard let data = try? await item.loadTransferable(type: Data.self) else {
+                await MainActor.run {
+                    clipAttachStatus = "CLIP ATTACH FAILED"
+                }
+                return
+            }
+
+            let filename = "real_clip_\(exercise.id)_\(UUID().uuidString).mov"
+            guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                await MainActor.run {
+                    clipAttachStatus = "CLIP STORAGE UNAVAILABLE"
+                }
+                return
+            }
+
+            let targetURL = documents.appendingPathComponent(filename)
+            do {
+                try data.write(to: targetURL, options: .atomic)
+                let attached = viewModel.attachLocalRealExerciseClip(
+                    exerciseId: exercise.id,
+                    localFilename: filename
+                )
+                demoEngine.loadDemo(for: exercise.id, movementDatabase: viewModel.movementDatabase)
+                await MainActor.run {
+                    clipAttachStatus = attached ? "REAL CLIP ATTACHED" : "CLIP ATTACH REJECTED"
+                }
+            } catch {
+                await MainActor.run {
+                    clipAttachStatus = "CLIP ATTACH FAILED"
+                }
+            }
+        }
     }
 }
 
