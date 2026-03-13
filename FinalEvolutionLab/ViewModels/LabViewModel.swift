@@ -909,6 +909,57 @@ class LabViewModel {
         SaveSystem.saveCreatorMarketplace(creatorMarketplace)
     }
 
+    func seedMarketplaceDemoLiquidityIfNeeded() {
+        let hasExternalListings = creatorMarketplace.activeListings.contains(where: { $0.sellerId != profile.id && $0.status == .active })
+        guard !hasExternalListings else { return }
+        guard !CreatorCard.catalog.isEmpty else { return }
+
+        let templates = Array(CreatorCard.catalog.prefix(3))
+        for (idx, template) in templates.enumerated() {
+            let npcOwnerId = "npc_trader_\(idx + 1)"
+            let rarity: CreatorCardRarity = idx == 0 ? .rare : (idx == 1 ? .epic : .legendary)
+            let asset = CreatorCardAsset(
+                id: UUID().uuidString,
+                templateCardId: template.id,
+                ownerId: npcOwnerId,
+                rarity: rarity,
+                acquiredAt: Date(),
+                source: .reward,
+                maintenanceExpiresAt: Date().addingTimeInterval(Double(48 * 3600)),
+                totalMaintenanceShardsPaid: 0,
+                isLockedInAuction: true,
+                signedByCreatorId: nil,
+                signatureYear: nil,
+                signatureSerial: nil
+            )
+            creatorMarketplace.inventory.append(asset)
+
+            let baseBid: Int
+            switch rarity {
+            case .rare: baseBid = 2000
+            case .epic: baseBid = 3600
+            case .legendary: baseBid = 6200
+            default: baseBid = 1500
+            }
+
+            let listing = CreatorCardAuctionListing(
+                id: UUID().uuidString,
+                assetId: asset.id,
+                templateCardId: template.id,
+                sellerId: npcOwnerId,
+                listedAt: Date(),
+                endsAt: Calendar.current.date(byAdding: .hour, value: 24, to: Date()) ?? Date().addingTimeInterval(Double(24 * 3600)),
+                startingBidShards: baseBid,
+                buyNowShards: baseBid * 2,
+                highestBid: nil,
+                status: .active
+            )
+            creatorMarketplace.activeListings.append(listing)
+        }
+
+        SaveSystem.saveCreatorMarketplace(creatorMarketplace)
+    }
+
     private func unlockAssetForListing(at listingIndex: Int) {
         let assetId = creatorMarketplace.activeListings[listingIndex].assetId
         if let assetIndex = creatorMarketplace.inventory.firstIndex(where: { $0.id == assetId }) {

@@ -5,12 +5,15 @@ struct VaultView: View {
 
     @State private var showEditProfile = false
     @State private var showShardShop = false
+    @State private var showLiveEvents = false
+    @State private var showMarketplace = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 headerSection
                 profileCard
+                economyNavigationRow
                 healthKitSection
                 masterVaultSection
                 equipmentSection
@@ -27,6 +30,12 @@ struct VaultView: View {
         }
         .sheet(isPresented: $showShardShop) {
             ShardShopView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showLiveEvents) {
+            LiveEventsHubView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showMarketplace) {
+            CreatorMarketplaceHubView(viewModel: viewModel)
         }
     }
 
@@ -119,6 +128,40 @@ struct VaultView: View {
                         .stroke(Theme.brandBlue.opacity(0.1), lineWidth: 1)
                 )
         )
+    }
+
+    private var economyNavigationRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                showLiveEvents = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "ticket.fill")
+                    Text("LIVE EVENTS")
+                }
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Theme.brandCyan)
+                .clipShape(.rect(cornerRadius: 10))
+            }
+
+            Button {
+                showMarketplace = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "hammer.fill")
+                    Text("MARKETPLACE")
+                }
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.orange)
+                .clipShape(.rect(cornerRadius: 10))
+            }
+        }
     }
 
     private var healthKitSection: some View {

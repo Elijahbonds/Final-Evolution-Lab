@@ -13,6 +13,8 @@ struct LabView: View {
     @State private var showGlobalMatchmaking: Bool = false
     @State private var showCoach: Bool = false
     @State private var showBlueprints: Bool = false
+    @State private var showLiveEvents: Bool = false
+    @State private var showMarketplace: Bool = false
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
@@ -43,6 +45,7 @@ struct LabView: View {
                 metricsGrid
                 CreatorCardBoostView(viewModel: viewModel)
                 coachAndBlueprintsRow
+                liveAndMarketRow
                 parentalOverviewSection
                 quickStartSection
                 recentActivitySection
@@ -92,6 +95,12 @@ struct LabView: View {
         }
         .navigationDestination(isPresented: $showBlueprints) {
             BlueprintsView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showLiveEvents) {
+            LiveEventsHubView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showMarketplace) {
+            CreatorMarketplaceHubView(viewModel: viewModel)
         }
     }
 
@@ -1469,6 +1478,84 @@ struct LabView: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
                                 .stroke(Theme.elitePurple.opacity(0.12), lineWidth: 0.5)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var liveAndMarketRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                showLiveEvents = true
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Theme.brandCyan.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "ticket.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Theme.brandCyan)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("LIVE EVENTS")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                        Text("Tickets & Fundraising")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Theme.brandCyan.opacity(0.12), lineWidth: 0.5)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showMarketplace = true
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "hammer.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.orange)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("MARKET")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                        Text("Packs, Auctions, Bids")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.orange.opacity(0.12), lineWidth: 0.5)
                         )
                 )
             }
