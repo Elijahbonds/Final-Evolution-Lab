@@ -131,4 +131,27 @@ struct FinalEvolutionLabTests {
         #expect(BlueprintLibrary.blueprints.allSatisfy { !$0.allowsExternalOpen })
     }
 
+    @Test func systemScanBuildsMovementScreeningAndPrescription() async throws {
+        let result = await SystemScanAnalysisEngine.analyze(videoURL: nil, sport: "Basketball", goal: "Jump Higher")
+        #expect(result.movementScreening != nil)
+        guard let screening = result.movementScreening else { return }
+
+        #expect(screening.screenResults.count == MovementScreenKind.allCases.count)
+        #expect(screening.screenResults.contains(where: { $0.kind == .fms }))
+        #expect(screening.screenResults.contains(where: { $0.kind == .sfma }))
+        #expect(screening.screenResults.contains(where: { $0.kind == .fcs }))
+        #expect(screening.screenResults.contains(where: { $0.kind == .frc }))
+        #expect(result.recommendedTrack == screening.prescription.trainingTrack.rawValue)
+    }
+
+    @Test func biomechanicsAuditUsesScreeningSignal() async throws {
+        let result = await SystemScanAnalysisEngine.analyze(videoURL: nil, sport: "Soccer", goal: "Get Faster")
+        let audit = BiomechanicsAudit.fromScanResult(result)
+
+        #expect(audit.ankleDorsiflexion.value > 0)
+        #expect(audit.kneeTracking.value > 0)
+        #expect(audit.hipExtension.value > 0)
+        #expect(audit.overallGrade == .elite || audit.overallGrade == .primed || audit.overallGrade == .developing || audit.overallGrade == .foundation)
+    }
+
 }

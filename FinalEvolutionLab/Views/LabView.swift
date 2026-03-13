@@ -1080,6 +1080,30 @@ struct LabView: View {
                 ScanStatPill(label: "FLIGHT", value: String(format: "%.2fs", scan.flightTimeSeconds), color: Theme.elitePurple)
             }
 
+            if let screening = scan.movementScreening {
+                HStack(spacing: 8) {
+                    ScanStatPill(
+                        label: "FMS",
+                        value: "\(Int(screening.screenResults.first(where: { $0.kind == .fms })?.totalScore ?? 0))/21",
+                        color: Theme.foundationGreen
+                    )
+                    ScanStatPill(
+                        label: "SFMA",
+                        value: "\(Int(screening.screenResults.first(where: { $0.kind == .sfma })?.totalScore ?? 0))/15",
+                        color: Theme.brandBlue
+                    )
+                    ScanStatPill(
+                        label: "FRC",
+                        value: "\(Int(screening.screenResults.first(where: { $0.kind == .frc })?.totalScore ?? 0))/12",
+                        color: .orange
+                    )
+                }
+
+                Text("Path: \(screening.prescription.trainingTrack.rawValue) • \(screening.prescription.equipmentFocus.rawValue)")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Theme.brandCyan)
+            }
+
             if let firstNote = scan.notes.first {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "arrow.right.circle.fill")

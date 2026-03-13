@@ -87,8 +87,20 @@ nonisolated struct SystemScanResult: Codable, Sendable {
     let notes: [String]
     let recommendedTrack: String
     var avatarConfig: AvatarSkinConfig
+    var movementScreening: MovementScreeningReport?
 
-    init(id: String, date: Date, prqScore: Double, verticalEstimateInches: Double, flightTimeSeconds: Double, movementGrade: String, notes: [String], recommendedTrack: String, avatarConfig: AvatarSkinConfig = .default) {
+    init(
+        id: String,
+        date: Date,
+        prqScore: Double,
+        verticalEstimateInches: Double,
+        flightTimeSeconds: Double,
+        movementGrade: String,
+        notes: [String],
+        recommendedTrack: String,
+        avatarConfig: AvatarSkinConfig = .default,
+        movementScreening: MovementScreeningReport? = nil
+    ) {
         self.id = id
         self.date = date
         self.prqScore = prqScore
@@ -98,6 +110,7 @@ nonisolated struct SystemScanResult: Codable, Sendable {
         self.notes = notes
         self.recommendedTrack = recommendedTrack
         self.avatarConfig = avatarConfig
+        self.movementScreening = movementScreening
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -111,6 +124,7 @@ nonisolated struct SystemScanResult: Codable, Sendable {
         notes = try container.decode([String].self, forKey: .notes)
         recommendedTrack = try container.decode(String.self, forKey: .recommendedTrack)
         avatarConfig = (try? container.decode(AvatarSkinConfig.self, forKey: .avatarConfig)) ?? .default
+        movementScreening = try container.decodeIfPresent(MovementScreeningReport.self, forKey: .movementScreening)
     }
 }
 

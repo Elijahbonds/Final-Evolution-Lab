@@ -410,6 +410,23 @@ class LabViewModel {
 
         biomechanicsAudit = BiomechanicsAudit.fromScanResult(result)
 
+        if let prescription = result.movementScreening?.prescription {
+            var trainingProgress = SaveSystem.loadTrainingProgress()
+            trainingProgress.activeTrack = prescription.trainingTrack
+            trainingProgress.activeEquipment = prescription.equipmentFocus
+            SaveSystem.saveTrainingProgress(trainingProgress)
+
+            if let mappedTrack = tracks.first(where: { track in
+                switch prescription.trainingTrack {
+                case .foundations: return track.difficulty == .foundation
+                case .flight: return track.difficulty == .flight
+                case .elite: return track.difficulty == .elite
+                }
+            }) {
+                selectedTrack = mappedTrack
+            }
+        }
+
         SaveSystem.saveProfile(profile)
         SaveSystem.saveCloneProfile(cloneProfile)
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)

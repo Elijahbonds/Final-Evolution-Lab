@@ -22,10 +22,22 @@ nonisolated struct BiomechanicsAudit: Codable, Sendable {
         let prq = scan.prqScore
         let vertical = scan.verticalEstimateInches
         let flight = scan.flightTimeSeconds
+        let screenComposite = scan.movementScreening?
+            .screenResults
+            .map(\.percent)
+            .reduce(0.0, +) ?? 0
+        let screenCount = scan.movementScreening?.screenResults.count ?? 0
+        let avgScreenPercent = screenCount > 0 ? (screenComposite / Double(screenCount)) : min(1.0, prq / 100.0)
+        let dysfunctionPenalty = (scan.movementScreening?.dysfunctions.count ?? 0) > 0
+            ? min(0.25, Double(scan.movementScreening?.dysfunctions.count ?? 0) * 0.06)
+            : 0
 
-        let ankleScore: Double = min(100, prq * 0.8 + flight * 40)
-        let kneeScore: Double = min(100, prq * 0.9 + vertical * 0.5)
-        let hipScore: Double = min(100, prq * 0.7 + vertical * 0.8)
+        let ankleBase = (prq * 0.55 + flight * 30 + avgScreenPercent * 30) * (1.0 - dysfunctionPenalty)
+        let kneeBase = (prq * 0.6 + vertical * 0.35 + avgScreenPercent * 28) * (1.0 - dysfunctionPenalty * 0.9)
+        let hipBase = (prq * 0.5 + vertical * 0.55 + avgScreenPercent * 25) * (1.0 - dysfunctionPenalty * 0.85)
+        let ankleScore: Double = min(100, ankleBase)
+        let kneeScore: Double = min(100, kneeBase)
+        let hipScore: Double = min(100, hipBase)
 
         var leakageZones: [LeakageZone] = []
         if ankleScore < 60 {
@@ -41,8 +53,9 @@ nonisolated struct BiomechanicsAudit: Codable, Sendable {
             leakageZones.append(LeakageZone(joint: .ankle, severity: 0.4, description: "Short flight time — reactive strength needs development"))
         }
 
+        let gradeInput = (prq * 0.7) + (avgScreenPercent * 100 * 0.3) - dysfunctionPenalty * 25
         let grade: BiomechanicsGrade
-        switch prq {
+        switch gradeInput {
         case 80...: grade = .elite
         case 65..<80: grade = .primed
         case 50..<65: grade = .developing
