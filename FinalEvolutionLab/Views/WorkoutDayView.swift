@@ -21,9 +21,9 @@ struct WorkoutDayView: View {
                     dayHeader
                     timerCard
                     if !day.warmUp.isEmpty {
-                        exerciseSection(title: "WARM UP", exercises: day.warmUp, accentColor: .orange)
+                        exerciseSection(title: "Warm up", exercises: day.warmUp, accentColor: .orange)
                     }
-                    exerciseSection(title: "MAIN WORK", exercises: day.mainWork, accentColor: Theme.difficultyColor(vm.currentTrack.difficulty))
+                    exerciseSection(title: "Main work", exercises: day.mainWork, accentColor: Theme.difficultyColor(vm.currentTrack.difficulty))
                     progressBar
                     finishButton
                 }
@@ -75,8 +75,8 @@ struct WorkoutDayView: View {
     private var dayHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(day.category.rawValue.uppercased())
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                Text(day.category.rawValue)
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(categoryColor)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
@@ -87,8 +87,8 @@ struct WorkoutDayView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "shield.fill")
                             .font(.system(size: 9))
-                        Text("GATED")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                        Text("Gated")
+                            .font(.system(size: 9, weight: .bold))
                     }
                     .foregroundStyle(.orange)
                     .padding(.horizontal, 8)
@@ -125,10 +125,10 @@ struct WorkoutDayView: View {
                 Text("\(vm.completedExerciseIds.count)/\(day.totalExerciseCount)")
                     .font(.system(.headline, design: .monospaced, weight: .black))
                     .foregroundStyle(.white)
-                Text("COMPLETED")
-                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                Text("Completed")
+                    .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(.tertiary)
-                    .tracking(1)
+                    .tracking(0.3)
             }
         }
         .padding(16)
@@ -145,9 +145,9 @@ struct WorkoutDayView: View {
     private func exerciseSection(title: String, exercises: [TrainingExercise], accentColor: Color) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(accentColor)
-                .tracking(2)
+                .tracking(0.5)
 
             ForEach(exercises) { exercise in
                 Button {
@@ -201,12 +201,12 @@ struct WorkoutDayView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "flag.checkered")
                         .font(.system(size: 14, weight: .bold))
-                    Text("FINISH WORKOUT")
-                        .font(.system(.subheadline, design: .monospaced, weight: .black))
-                        .tracking(1)
+                    Text("Finish workout")
+                        .font(.system(.subheadline, weight: .bold))
                 }
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
+                .frame(minHeight: 44)
                 .padding(.vertical, 16)
                 .background(categoryColor)
                 .clipShape(.rect(cornerRadius: 14))
