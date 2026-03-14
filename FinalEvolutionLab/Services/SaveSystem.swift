@@ -12,6 +12,7 @@ struct SaveSystem {
     private static let academyProgressKey = "finalEvolution_academyProgress"
     private static let cloneProfileKey = "finalEvolution_cloneProfile"
     private static let movementDatabaseKey = "finalEvolution_movementDatabase"
+    private static let bondsAIStudioKey = "finalEvolution_bondsAIStudio"
     private static let lastMutationTimestampKey = "finalEvolution_lastMutationTimestamp"
 
     static func saveProfile(_ profile: UserProfile) {
@@ -105,6 +106,14 @@ struct SaveSystem {
         readValue(MovementDatabase.self, key: movementDatabaseKey, defaultValue: MovementDatabase())
     }
 
+    static func saveBondsAIStudio(_ studio: BondsAIStudioState) {
+        writeValue(studio, key: bondsAIStudioKey)
+    }
+
+    static func loadBondsAIStudio() -> BondsAIStudioState {
+        readValue(BondsAIStudioState.self, key: bondsAIStudioKey, defaultValue: BondsAIStudioState())
+    }
+
     static func refreshFromCloudIfAvailable() async {
         guard let snapshot = await FirebasePersistenceService.pullSnapshot() else {
             return
@@ -127,6 +136,7 @@ struct SaveSystem {
             writeValue(cloneProfile, key: cloneProfileKey, triggerCloudSync: false)
         }
         writeValue(snapshot.movementDatabase, key: movementDatabaseKey, triggerCloudSync: false)
+        writeValue(snapshot.bondsAIStudio, key: bondsAIStudioKey, triggerCloudSync: false)
         UserDefaults.standard.set(snapshot.updatedAt.timeIntervalSince1970, forKey: lastMutationTimestampKey)
     }
 
@@ -162,6 +172,7 @@ struct SaveSystem {
                 academyProgress: loadAcademyProgress(),
                 cloneProfile: loadCloneProfile(),
                 movementDatabase: loadMovementDatabase(),
+                bondsAIStudio: loadBondsAIStudio(),
                 updatedAt: Date()
             )
             await FirebasePersistenceService.pushSnapshot(snapshot)

@@ -13,6 +13,9 @@ struct CommandCenterView: View {
     @State private var navigateToQuickPlay = false
     @State private var academyWager: Int = BrainBrawlRulebook.default.minimumWager
     @State private var academyTrack: AcademyTrack = .stemLogic
+    @State private var bondsSourceInput: String = ""
+    @State private var bondsRevisionFocus: String = "improved sequencing, cue clarity, and safer landing mechanics"
+    @State private var bondsStatusMessage: String?
 
     var body: some View {
         ScrollView {
@@ -21,6 +24,7 @@ struct CommandCenterView: View {
                 commandGrid
                 quickPlaySection
                 academyControlsSection
+                bondsAIStudioSection
                 gameplaySystemsSection
             }
             .padding(.horizontal)
@@ -211,6 +215,120 @@ struct CommandCenterView: View {
         )
     }
 
+    private var bondsAIStudioSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("Bonds AI studio")
+
+            let activeProject = viewModel.activeBondsBlueprintProject
+            let modelName = viewModel.bondsAIStudio.modelProfile?.modelDisplayName ?? "Bonds AI Coach"
+            VStack(alignment: .leading, spacing: 4) {
+                Text(modelName)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+                Text("Sources: \(viewModel.bondsAIStudio.sourceAssets.count) • Projects: \(viewModel.bondsAIStudio.projects.count)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                if let activeProject {
+                    Text("Active project: \(activeProject.title)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+            }
+
+            HStack(spacing: 8) {
+                TextField("Paste YouTube source URL", text: $bondsSourceInput)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(size: 12))
+                    .padding(.horizontal, 10)
+                    .frame(minHeight: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.white.opacity(0.05))
+                    )
+
+                Button {
+                    let inserted = viewModel.ingestYouTubeBlueprintSources([bondsSourceInput])
+                    if inserted > 0 {
+                        bondsStatusMessage = "Added YouTube source."
+                        bondsSourceInput = ""
+                    } else {
+                        bondsStatusMessage = "No valid YouTube URL detected."
+                    }
+                } label: {
+                    Text("Add")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 44)
+                        .background(Theme.brandBlue)
+                        .clipShape(.rect(cornerRadius: 10))
+                }
+            }
+
+            TextField("Revision focus", text: $bondsRevisionFocus)
+                .font(.system(size: 12))
+                .padding(.horizontal, 10)
+                .frame(minHeight: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.white.opacity(0.05))
+                )
+
+            HStack(spacing: 8) {
+                bondsTrackButton("Foundations", track: .foundations)
+                bondsTrackButton("Flight", track: .flight)
+                bondsTrackButton("Elite", track: .elite)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    viewModel.speakActiveBondsNarration()
+                    bondsStatusMessage = "Narration playback started."
+                } label: {
+                    Text("Play narration")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 44)
+                        .background(Theme.foundationGreen)
+                        .clipShape(.rect(cornerRadius: 10))
+                }
+
+                Button {
+                    viewModel.stopActiveBondsNarration()
+                    bondsStatusMessage = "Narration playback stopped."
+                } label: {
+                    Text("Stop")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 44)
+                        .background(.orange)
+                        .clipShape(.rect(cornerRadius: 10))
+                }
+            }
+
+            if let bondsStatusMessage {
+                Text(bondsStatusMessage)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.brandCyan)
+            }
+
+            if let preview = activeProject?.beats.first?.narrationText {
+                Text(preview)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(4)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.cardBackground)
+        )
+    }
+
     private var academyControlsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionLabel("Academy / Brain Brawl")
@@ -364,5 +482,24 @@ struct CommandCenterView: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.white.opacity(0.03))
         )
+    }
+
+    private func bondsTrackButton(_ title: String, track: TrainingTrack) -> some View {
+        Button {
+            let project = viewModel.generateBondsBlueprintProject(
+                track: track,
+                equipment: .movementEducation,
+                revisionFocus: bondsRevisionFocus
+            )
+            bondsStatusMessage = project == nil ? "Unable to generate project." : "Generated \(title) project."
+        } label: {
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 44)
+                .background(Theme.brandBlue)
+                .clipShape(.rect(cornerRadius: 10))
+        }
     }
 }

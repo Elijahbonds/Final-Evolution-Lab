@@ -22,6 +22,7 @@ class LabViewModel {
     var academyProgress: AcademyProgressState = SaveSystem.loadAcademyProgress()
     var cloneProfile: CloneProfile = .generic
     var movementDatabase: MovementDatabase = SaveSystem.loadMovementDatabase()
+    var bondsAIStudio: BondsAIStudioState = SaveSystem.loadBondsAIStudio()
     var lastSessionReadiness: Double = 50
 
     var biomechanicsAudit: BiomechanicsAudit?
@@ -29,14 +30,18 @@ class LabViewModel {
     var critiqueRequests: [CritiqueRequest] = SaveSystem.loadCritiqueRequests()
     private let liveVotingSocket = LiveVotingSocketService()
     private let movementIngestionService = MovementIngestionService()
+    private let bondsBlueprintGenerator = BondsBlueprintGenerationService()
+    private let narrationSpeechService = NarrationSpeechService()
 
     init() {
         self.profile = SaveSystem.loadProfile()
         self.sessions = SaveSystem.loadSessions()
         self.cloneProfile = SaveSystem.loadCloneProfile() ?? CloneProfile.makeDefault(from: profile)
         self.movementDatabase = SaveSystem.loadMovementDatabase()
+        self.bondsAIStudio = SaveSystem.loadBondsAIStudio()
         seedEventHubIfNeeded()
         seedDigitalClonePipelineIfNeeded()
+        seedBondsAIStudioIfNeeded()
 
         if let scan = profile.systemScan {
             self.biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
@@ -69,6 +74,7 @@ class LabViewModel {
         academyProgress = SaveSystem.loadAcademyProgress()
         cloneProfile = SaveSystem.loadCloneProfile() ?? CloneProfile.makeDefault(from: profile)
         movementDatabase = SaveSystem.loadMovementDatabase()
+        bondsAIStudio = SaveSystem.loadBondsAIStudio()
 
         if let scan = profile.systemScan {
             biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
@@ -78,6 +84,7 @@ class LabViewModel {
 
         seedEventHubIfNeeded()
         seedDigitalClonePipelineIfNeeded()
+        seedBondsAIStudioIfNeeded()
 
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
     }
@@ -111,6 +118,43 @@ class LabViewModel {
         if didMutate {
             SaveSystem.saveCloneProfile(cloneProfile)
             SaveSystem.saveMovementDatabase(movementDatabase)
+        }
+    }
+
+    private func seedBondsAIStudioIfNeeded() {
+        var didMutate = false
+        if bondsAIStudio.modelProfile == nil {
+            bondsAIStudio.modelProfile = bondsBlueprintGenerator.defaultModelProfile(from: profile, cloneProfile: cloneProfile)
+            didMutate = true
+        }
+
+        if bondsAIStudio.projects.isEmpty,
+           let model = bondsAIStudio.modelProfile {
+            let sourceAssets = LegacyExerciseReferenceCatalog.referenceURLs.map { key, value in
+                BlueprintSourceAsset(
+                    id: BlueprintSourceAsset.makeId(url: value),
+                    sourceType: .legacyReference,
+                    sourceURL: value,
+                    title: "Legacy Source \(key)",
+                    notes: "Migrated source for blueprint recreation",
+                    importedAt: Date()
+                )
+            }
+            bondsAIStudio.sourceAssets = sourceAssets
+            let project = bondsBlueprintGenerator.createProject(
+                track: .foundations,
+                equipment: .movementEducation,
+                model: model,
+                sourceAssets: sourceAssets,
+                revisionFocus: "better sequencing, cue clarity, and safe landing mechanics"
+            )
+            bondsAIStudio.projects = [project]
+            bondsAIStudio.activeProjectId = project.id
+            didMutate = true
+        }
+
+        if didMutate {
+            SaveSystem.saveBondsAIStudio(bondsAIStudio)
         }
     }
 
@@ -180,6 +224,110 @@ class LabViewModel {
         movementDatabase.clearRealClipRequest(for: exerciseId)
         SaveSystem.saveMovementDatabase(movementDatabase)
         return true
+    }
+
+    @discardableResult
+    func ingestYouTubeBlueprintSources(_ urls: [String]) -> Int {
+        let incoming = bondsBlueprintGenerator.sanitizeYouTubeSources(urls)
+        guard !incoming.isEmpty else { return 0 }
+
+        var insertedCount = 0
+        for source in incoming {
+            if !bondsAIStudio.sourceAssets.contains(where: { $0.id == source.id }) {
+                bondsAIStudio.sourceAssets.append(source)
+                insertedCount += 1
+            }
+        }
+        if insertedCount > 0 {
+            SaveSystem.saveBondsAIStudio(bondsAIStudio)
+        }
+        return insertedCount
+    }
+
+    func configureBondsAIModel(
+        modelDisplayName: String? = nil,
+        voiceDisplayName: String? = nil,
+        localeIdentifier: String? = nil,
+        toneStyle: String? = nil,
+        speakingRate: Double? = nil,
+        pitchMultiplier: Double? = nil,
+        useForFitnessEducationTracks: Bool = true
+    ) {
+        var model = bondsAIStudio.modelProfile ?? bondsBlueprintGenerator.defaultModelProfile(from: profile, cloneProfile: cloneProfile)
+        if let modelDisplayName, !modelDisplayName.isEmpty {
+            model.modelDisplayName = modelDisplayName
+        }
+        if let voiceDisplayName, !voiceDisplayName.isEmpty {
+            model.voiceProfile.displayName = voiceDisplayName
+        }
+        if let localeIdentifier, !localeIdentifier.isEmpty {
+            model.voiceProfile.localeIdentifier = localeIdentifier
+        }
+        if let toneStyle, !toneStyle.isEmpty {
+            model.voiceProfile.toneStyle = toneStyle
+        }
+        if let speakingRate {
+            model.voiceProfile.speakingRate = min(0.65, max(0.35, speakingRate))
+        }
+        if let pitchMultiplier {
+            model.voiceProfile.pitchMultiplier = min(1.35, max(0.75, pitchMultiplier))
+        }
+        model.useForFitnessEducationTracks = useForFitnessEducationTracks
+        model.updatedAt = Date()
+
+        bondsAIStudio.modelProfile = model
+        SaveSystem.saveBondsAIStudio(bondsAIStudio)
+    }
+
+    @discardableResult
+    func generateBondsBlueprintProject(
+        track: TrainingTrack,
+        equipment: EquipmentType = .movementEducation,
+        revisionFocus: String = "improved mechanics, clearer cues, and smoother pacing"
+    ) -> BondsBlueprintProject? {
+        guard let model = bondsAIStudio.modelProfile else { return nil }
+        let project = bondsBlueprintGenerator.createProject(
+            track: track,
+            equipment: equipment,
+            model: model,
+            sourceAssets: bondsAIStudio.sourceAssets,
+            revisionFocus: revisionFocus
+        )
+
+        if let existingIndex = bondsAIStudio.projects.firstIndex(where: { $0.id == project.id }) {
+            bondsAIStudio.projects[existingIndex] = project
+        } else {
+            bondsAIStudio.projects.append(project)
+        }
+        bondsAIStudio.activeProjectId = project.id
+        SaveSystem.saveBondsAIStudio(bondsAIStudio)
+        return project
+    }
+
+    func activateBondsProject(projectId: String) {
+        guard bondsAIStudio.projects.contains(where: { $0.id == projectId }) else { return }
+        bondsAIStudio.activeProjectId = projectId
+        SaveSystem.saveBondsAIStudio(bondsAIStudio)
+    }
+
+    var activeBondsBlueprintProject: BondsBlueprintProject? {
+        bondsAIStudio.activeProject
+    }
+
+    var activeBondsNarrationScript: String {
+        activeBondsBlueprintProject?.fullNarrationScript ?? ""
+    }
+
+    func speakActiveBondsNarration() {
+        guard let model = bondsAIStudio.modelProfile else { return }
+        narrationSpeechService.speak(
+            script: activeBondsNarrationScript,
+            voiceProfile: model.voiceProfile
+        )
+    }
+
+    func stopActiveBondsNarration() {
+        narrationSpeechService.stopSpeaking()
     }
 
     var academyMasteryAverage: Double {

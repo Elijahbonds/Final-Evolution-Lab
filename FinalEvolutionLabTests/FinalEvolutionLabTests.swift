@@ -154,4 +154,33 @@ struct FinalEvolutionLabTests {
         #expect(audit.overallGrade == .elite || audit.overallGrade == .primed || audit.overallGrade == .developing || audit.overallGrade == .foundation)
     }
 
+    @Test func bondsBlueprintGeneratorAcceptsYouTubeSources() async throws {
+        let generator = BondsBlueprintGenerationService()
+        let sources = generator.sanitizeYouTubeSources([
+            "https://www.youtube.com/watch?v=abc123xyz",
+            "https://youtu.be/qwe987",
+            "https://example.com/not-supported"
+        ])
+
+        #expect(sources.count == 2)
+        #expect(sources.allSatisfy { $0.sourceType == .youtube })
+    }
+
+    @Test func bondsBlueprintProjectBuildsMidShotNarrativeBeats() async throws {
+        let generator = BondsBlueprintGenerationService()
+        let model = generator.defaultModelProfile(from: .guest, cloneProfile: .generic)
+        let project = generator.createProject(
+            track: .foundations,
+            equipment: .movementEducation,
+            model: model,
+            sourceAssets: [],
+            revisionFocus: "landing mechanics and pacing"
+        )
+
+        #expect(project.track == .foundations)
+        #expect(!project.beats.isEmpty)
+        #expect(project.beats.first?.cameraShot == .midShotTalkingHead)
+        #expect(project.fullNarrationScript.contains("landing mechanics and pacing"))
+    }
+
 }
