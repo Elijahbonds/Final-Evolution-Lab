@@ -13,6 +13,9 @@ struct LiveBiomechanicsOverlay: View {
     @State private var jointFlashHip: Bool = false
     @State private var liveLeakageIntensity: Double = 0
     @State private var formQualityLabel: String = "ANALYZING"
+    @State private var ankleFlashTask: Task<Void, Never>?
+    @State private var kneeFlashTask: Task<Void, Never>?
+    @State private var hipFlashTask: Task<Void, Never>?
 
     private var ankleColor: Color {
         audit.ankleDorsiflexion.status == .optimal ? Theme.brandCyan :
@@ -62,6 +65,14 @@ struct LiveBiomechanicsOverlay: View {
                 triggerJointFlashes()
                 evaluateLiveForm()
             }
+        }
+        .onDisappear {
+            ankleFlashTask?.cancel()
+            kneeFlashTask?.cancel()
+            hipFlashTask?.cancel()
+            ankleFlashTask = nil
+            kneeFlashTask = nil
+            hipFlashTask = nil
         }
     }
 
@@ -294,22 +305,28 @@ struct LiveBiomechanicsOverlay: View {
     private func triggerJointFlashes() {
         if audit.ankleDorsiflexion.status == .deficit {
             withAnimation(.easeOut(duration: 0.15)) { jointFlashAnkle = true }
-            Task {
+            ankleFlashTask?.cancel()
+            ankleFlashTask = Task {
                 try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
                 withAnimation(.easeIn(duration: 0.3)) { jointFlashAnkle = false }
             }
         }
         if audit.kneeTracking.status == .deficit {
             withAnimation(.easeOut(duration: 0.15)) { jointFlashKnee = true }
-            Task {
+            kneeFlashTask?.cancel()
+            kneeFlashTask = Task {
                 try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
                 withAnimation(.easeIn(duration: 0.3)) { jointFlashKnee = false }
             }
         }
         if audit.hipExtension.status == .deficit {
             withAnimation(.easeOut(duration: 0.15)) { jointFlashHip = true }
-            Task {
+            hipFlashTask?.cancel()
+            hipFlashTask = Task {
                 try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
                 withAnimation(.easeIn(duration: 0.3)) { jointFlashHip = false }
             }
         }

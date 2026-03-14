@@ -19,8 +19,13 @@ struct LabView: View {
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
     @State private var pendingArenaNavigationTask: Task<Void, Never>?
+    @State private var courtLoadTask: Task<Void, Never>?
     @State private var freestyleDunk = DunkContestState()
     @State private var freestyleDunkTimer: Task<Void, Never>?
+    @State private var freestyleActionMessageTask: Task<Void, Never>?
+    @State private var freestyleFlashResetTask: Task<Void, Never>?
+    @State private var freestyleRoundResetTask: Task<Void, Never>?
+    @State private var freestyleShakeTask: Task<Void, Never>?
     @State private var freestyleLastAction: String = ""
     @State private var freestyleJudgeScores: (Int, Int, Int)?
     @State private var freestyleCrowdMessage: String = ""
@@ -58,8 +63,10 @@ struct LabView: View {
         .background(Theme.deepBlack)
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
-            Task {
+            courtLoadTask?.cancel()
+            courtLoadTask = Task {
                 try? await Task.sleep(for: .milliseconds(600))
+                guard !Task.isCancelled else { return }
                 withAnimation(.spring(response: 0.4)) { courtLoaded = true }
             }
         }
@@ -103,6 +110,9 @@ struct LabView: View {
         .onDisappear {
             pendingArenaNavigationTask?.cancel()
             pendingArenaNavigationTask = nil
+            courtLoadTask?.cancel()
+            courtLoadTask = nil
+            cancelFreestyleTasks()
         }
     }
 
@@ -912,8 +922,10 @@ struct LabView: View {
             }
         }
 
-        Task {
+        freestyleActionMessageTask?.cancel()
+        freestyleActionMessageTask = Task {
             try? await Task.sleep(for: .seconds(1.0))
+            guard !Task.isCancelled else { return }
             withAnimation {
                 if freestyleLastAction == "Perfect launch!" || freestyleLastAction == "Launched" {
                     freestyleLastAction = ""
@@ -946,14 +958,18 @@ struct LabView: View {
 
         if result.total >= 138 {
             withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) { dunkFlash = true }
-            Task {
+            freestyleFlashResetTask?.cancel()
+            freestyleFlashResetTask = Task {
                 try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { dunkFlash = false }
             }
         }
 
-        Task {
+        freestyleRoundResetTask?.cancel()
+        freestyleRoundResetTask = Task {
             try? await Task.sleep(for: .seconds(3.5))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.3)) {
                 freestyleJudgeScores = nil
                 freestyleCrowdMessage = ""
@@ -969,17 +985,33 @@ struct LabView: View {
 
     private func triggerFreestyleShake(intensity: Double) {
         let amplitude = intensity * 3
-        Task {
+        freestyleShakeTask?.cancel()
+        freestyleShakeTask = Task {
             for _ in 0..<4 {
+                guard !Task.isCancelled else { return }
                 withAnimation(.linear(duration: 0.03)) {
                     freestyleScreenShake = CGFloat.random(in: -amplitude...amplitude)
                 }
                 try? await Task.sleep(for: .milliseconds(30))
             }
+            guard !Task.isCancelled else { return }
             withAnimation(.spring(response: 0.1)) {
                 freestyleScreenShake = 0
             }
         }
+    }
+
+    private func cancelFreestyleTasks() {
+        freestyleDunkTimer?.cancel()
+        freestyleDunkTimer = nil
+        freestyleActionMessageTask?.cancel()
+        freestyleActionMessageTask = nil
+        freestyleFlashResetTask?.cancel()
+        freestyleFlashResetTask = nil
+        freestyleRoundResetTask?.cancel()
+        freestyleRoundResetTask = nil
+        freestyleShakeTask?.cancel()
+        freestyleShakeTask = nil
     }
 
     private func scheduleArenaNavigation() {

@@ -16,6 +16,8 @@ struct ExerciseDemoView: View {
     @State private var requestedRealClip = false
     @State private var selectedRealClip: PhotosPickerItem?
     @State private var clipAttachStatus: String?
+    @State private var clipAttachTask: Task<Void, Never>?
+    @State private var isAttachingClip = false
 
     var body: some View {
         NavigationStack {
@@ -55,6 +57,8 @@ struct ExerciseDemoView: View {
         .onDisappear {
             timerTask?.cancel()
             timerTask = nil
+            clipAttachTask?.cancel()
+            clipAttachTask = nil
         }
     }
 
@@ -293,10 +297,11 @@ struct ExerciseDemoView: View {
                             .font(.system(.subheadline, design: .monospaced, weight: .bold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color.white.opacity(0.06))
+                            .background(isAttachingClip ? Color.white.opacity(0.03) : Color.white.opacity(0.06))
                             .foregroundStyle(.white)
                             .clipShape(.rect(cornerRadius: 14))
                     }
+                    .disabled(isAttachingClip)
                     if let clipAttachStatus {
                         Text(clipAttachStatus)
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
@@ -380,17 +385,30 @@ struct ExerciseDemoView: View {
     private func closeDemo() {
         timerTask?.cancel()
         timerTask = nil
+        clipAttachTask?.cancel()
+        clipAttachTask = nil
         dismiss()
     }
 
     private func attachSelectedRealClip(_ item: PhotosPickerItem) {
-        Task {
+        clipAttachTask?.cancel()
+        clipAttachTask = Task {
+            await MainActor.run {
+                isAttachingClip = true
+                clipAttachStatus = "ATTACHING CLIP..."
+            }
+            defer {
+                Task { @MainActor in
+                    isAttachingClip = false
+                }
+            }
             guard let data = try? await item.loadTransferable(type: Data.self) else {
                 await MainActor.run {
                     clipAttachStatus = "CLIP ATTACH FAILED"
                 }
                 return
             }
+            guard !Task.isCancelled else { return }
 
             let filename = "real_clip_\(exercise.id)_\(UUID().uuidString).mov"
             guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
@@ -399,10 +417,12 @@ struct ExerciseDemoView: View {
                 }
                 return
             }
+            guard !Task.isCancelled else { return }
 
             let targetURL = documents.appendingPathComponent(filename)
             do {
                 try data.write(to: targetURL, options: .atomic)
+                guard !Task.isCancelled else { return }
                 let attached = viewModel.attachLocalRealExerciseClip(
                     exerciseId: exercise.id,
                     localFilename: filename
