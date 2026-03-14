@@ -11,6 +11,10 @@ struct NeuralReadinessScanView: View {
     @State private var pulseScale: CGFloat = 1.0
     @State private var ripples: [RippleEffect] = []
     @State private var gridPulse: Bool = false
+    @State private var scanCountdownTask: Task<Void, Never>?
+    @State private var pulseResetTask: Task<Void, Never>?
+    @State private var finishScanTask: Task<Void, Never>?
+    @State private var rippleCleanupTasks: [UUID: Task<Void, Never>] = [:]
 
     private enum ScanPhase {
         case ready
@@ -56,6 +60,9 @@ struct NeuralReadinessScanView: View {
                 bottomInfo
             }
             .padding()
+        }
+        .onDisappear {
+            cancelAllTasks()
         }
     }
 
@@ -335,6 +342,7 @@ struct NeuralReadinessScanView: View {
     }
 
     private func startScan() {
+        cancelAllTasks()
         withAnimation(.spring(response: 0.4)) {
             phase = .scanning
         }
@@ -345,9 +353,10 @@ struct NeuralReadinessScanView: View {
             gridPulse = true
         }
 
-        Task {
+        scanCountdownTask = Task {
             for _ in 0..<100 {
                 try? await Task.sleep(for: .milliseconds(100))
+                guard !Task.isCancelled else { return }
                 guard phase == .scanning else { return }
                 withAnimation { timeRemaining = max(0, timeRemaining - 0.1) }
                 if timeRemaining <= 0 {
@@ -374,16 +383,23 @@ struct NeuralReadinessScanView: View {
             }
         }
 
-        Task {
+        pulseResetTask?.cancel()
+        pulseResetTask = Task {
             try? await Task.sleep(for: .milliseconds(100))
+            guard !Task.isCancelled else { return }
             withAnimation(.spring(response: 0.15)) {
                 pulseScale = 1.0
             }
         }
 
-        Task {
+        rippleCleanupTasks[ripple.id]?.cancel()
+        rippleCleanupTasks[ripple.id] = Task {
             try? await Task.sleep(for: .milliseconds(700))
-            ripples.removeAll { $0.id == ripple.id }
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                ripples.removeAll { $0.id == ripple.id }
+                rippleCleanupTasks[ripple.id] = nil
+            }
         }
     }
 
@@ -393,12 +409,27 @@ struct NeuralReadinessScanView: View {
             gridPulse = false
         }
 
-        Task {
+        finishScanTask?.cancel()
+        finishScanTask = Task {
             try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
             withAnimation(.spring(response: 0.5)) {
                 phase = .complete
             }
         }
+    }
+
+    private func cancelAllTasks() {
+        scanCountdownTask?.cancel()
+        scanCountdownTask = nil
+        pulseResetTask?.cancel()
+        pulseResetTask = nil
+        finishScanTask?.cancel()
+        finishScanTask = nil
+        for task in rippleCleanupTasks.values {
+            task.cancel()
+        }
+        rippleCleanupTasks.removeAll()
     }
 }
 

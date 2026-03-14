@@ -18,6 +18,7 @@ struct LabView: View {
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
+    @State private var pendingArenaNavigationTask: Task<Void, Never>?
     @State private var freestyleDunk = DunkContestState()
     @State private var freestyleDunkTimer: Task<Void, Never>?
     @State private var freestyleLastAction: String = ""
@@ -78,10 +79,7 @@ struct LabView: View {
                 MatchmakingView(viewModel: viewModel, gameMode: mode) { opponent, readiness in
                     sessionReadiness = readiness
                     showGlobalMatchmaking = false
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(300))
-                        navigateToArenaGame = true
-                    }
+                    scheduleArenaNavigation()
                 }
             }
         }
@@ -101,6 +99,10 @@ struct LabView: View {
         }
         .navigationDestination(isPresented: $showMarketplace) {
             CreatorMarketplaceHubView(viewModel: viewModel)
+        }
+        .onDisappear {
+            pendingArenaNavigationTask?.cancel()
+            pendingArenaNavigationTask = nil
         }
     }
 
@@ -359,6 +361,7 @@ struct LabView: View {
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(Theme.brandBlue)
                             .padding(8)
+                            .frame(minWidth: 44, minHeight: 44)
                             .background(Color.white.opacity(0.06))
                             .clipShape(Circle())
                     }
@@ -975,6 +978,17 @@ struct LabView: View {
             }
             withAnimation(.spring(response: 0.1)) {
                 freestyleScreenShake = 0
+            }
+        }
+    }
+
+    private func scheduleArenaNavigation() {
+        pendingArenaNavigationTask?.cancel()
+        pendingArenaNavigationTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                navigateToArenaGame = true
             }
         }
     }

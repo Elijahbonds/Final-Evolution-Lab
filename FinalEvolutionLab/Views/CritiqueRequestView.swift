@@ -289,6 +289,7 @@ struct CritiqueRequestView: View {
 
             ForEach(completedRequests) { request in
                 Button {
+                    reviewRating = 4.0
                     showReviewSheet = request
                 } label: {
                     CritiqueRequestRow(request: request, showReviewBadge: true)
@@ -543,6 +544,7 @@ struct CritiqueReviewSheet: View {
     @Binding var rating: Double
     let onConfirm: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var showReleaseConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -570,6 +572,14 @@ struct CritiqueReviewSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationBackground(Theme.deepBlack)
+        .alert("Release credits to coach?", isPresented: $showReleaseConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Release", role: .destructive) {
+                onConfirm()
+            }
+        } message: {
+            Text("This releases \(request.creditsCost) credits from escrow and cannot be undone.")
+        }
     }
 
     private func feedbackDetail(_ response: CritiqueResponse) -> some View {
@@ -673,7 +683,7 @@ struct CritiqueReviewSheet: View {
     private var releaseButton: some View {
         VStack(spacing: 8) {
             Button {
-                onConfirm()
+                showReleaseConfirm = true
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "lock.open.fill")

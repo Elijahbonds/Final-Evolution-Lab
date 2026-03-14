@@ -101,6 +101,8 @@ struct MatchmakingView: View {
                                 .font(.system(size: 10, weight: .semibold))
                         }
                         .foregroundStyle(.secondary)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                     }
                 }
             }
@@ -240,6 +242,9 @@ struct MatchmakingView: View {
         }
         .onAppear {
             withAnimation { searchingPhase = true }
+        }
+        .onDisappear {
+            searchingPhase = false
         }
     }
 

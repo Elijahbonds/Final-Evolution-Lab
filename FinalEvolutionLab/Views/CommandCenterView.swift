@@ -13,11 +13,13 @@ struct CommandCenterView: View {
     @State private var navigateToQuickPlay = false
     @State private var showQuickStartOptions = false
     @State private var showNeuralScan = false
+    @State private var quickPlayNavigationTask: Task<Void, Never>?
     @State private var quickPlayReadiness: Double = 50
     @State private var academyWager: Int = BrainBrawlRulebook.default.minimumWager
     @State private var academyTrack: AcademyTrack = .stemLogic
     @State private var academyStatusMessage: String?
     @State private var academyStatusIsError: Bool = false
+    @State private var pendingAcademyConfirmation: AcademyActionConfirmation?
     @State private var bondsSourceInput: String = ""
     @State private var bondsRevisionFocus: String = "improved sequencing, cue clarity, and safer landing mechanics"
     @State private var bondsStatusMessage: String?
@@ -71,10 +73,7 @@ struct CommandCenterView: View {
                 viewModel.profile.metrics.readinessScore = readiness
                 SaveSystem.saveProfile(viewModel.profile)
                 showNeuralScan = false
-                Task {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    navigateToQuickPlay = true
-                }
+                scheduleQuickPlayNavigation()
             }
         }
         .confirmationDialog("Start \(pendingQuickPlayMode?.name ?? "Mode")", isPresented: $showQuickStartOptions, titleVisibility: .visible) {
@@ -88,6 +87,20 @@ struct CommandCenterView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Quick Start uses your latest readiness profile. Scan & Calibrate runs a fresh readiness scan.")
+        }
+        .alert(item: $pendingAcademyConfirmation) { action in
+            Alert(
+                title: Text(action.title),
+                message: Text(action.message),
+                primaryButton: .default(Text(action.confirmButton)) {
+                    performAcademyAction(action)
+                },
+                secondaryButton: .cancel()
+            )
+        }
+        .onDisappear {
+            quickPlayNavigationTask?.cancel()
+            quickPlayNavigationTask = nil
         }
     }
 
@@ -390,11 +403,16 @@ struct CommandCenterView: View {
                                 academyStatusMessage = "\(node.title) is already unlocked."
                                 return
                             }
-                            let ok = viewModel.unlockAcademyKnowledgeNode(nodeId: node.id)
-                            academyStatusIsError = !ok
-                            academyStatusMessage = ok
-                                ? "Unlocked \(node.title)."
-                                : academyUnlockFailureMessage(for: node)
+                            guard canUnlock else {
+                                academyStatusIsError = true
+                                academyStatusMessage = academyUnlockFailureMessage(for: node)
+                                return
+                            }
+                            pendingAcademyConfirmation = .unlock(
+                                nodeId: node.id,
+                                nodeTitle: node.title,
+                                shardCost: node.shardUnlockCost
+                            )
                         } label: {
                             Text(unlocked ? "Unlocked: \(node.title)" : "Unlock \(node.title) • \(node.shardUnlockCost)")
                                 .font(.system(size: 10, weight: .semibold))
@@ -433,11 +451,13 @@ struct CommandCenterView: View {
 
             HStack(spacing: 8) {
                 Button {
-                    let ok = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: true, sabotage: .timeWarp)
-                    academyStatusIsError = !ok
-                    academyStatusMessage = ok
-                        ? "Simulated win completed."
-                        : "Not enough shards for this wager + sabotage."
+                    guard canRunBrainBrawlWin else {
+                        academyStatusIsError = true
+                        academyStatusMessage = "Not enough shards for this wager + sabotage."
+                        return
+                    }
+                    let sabotageCost = BrainBrawlRulebook.default.debuffs.first(where: { $0.type == .timeWarp })?.shardCost ?? 0
+                    pendingAcademyConfirmation = .brainBrawlWin(track: academyTrack, wager: academyWager, sabotageCost: sabotageCost)
                 } label: {
                     Text("Simulate win")
                         .font(.system(size: 11, weight: .bold))
@@ -450,11 +470,12 @@ struct CommandCenterView: View {
                 .disabled(!canRunBrainBrawlWin)
 
                 Button {
-                    let ok = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: false, sabotage: nil)
-                    academyStatusIsError = !ok
-                    academyStatusMessage = ok
-                        ? "Simulated loss completed."
-                        : "Not enough shards for this wager."
+                    guard canRunBrainBrawlLoss else {
+                        academyStatusIsError = true
+                        academyStatusMessage = "Not enough shards for this wager."
+                        return
+                    }
+                    pendingAcademyConfirmation = .brainBrawlLoss(track: academyTrack, wager: academyWager)
                 } label: {
                     Text("Simulate loss")
                         .font(.system(size: 11, weight: .bold))
@@ -589,5 +610,83 @@ struct CommandCenterView: View {
             return "Not enough shards to unlock \(node.title)."
         }
         return "Unable to unlock \(node.title)."
+    }
+
+    private func scheduleQuickPlayNavigation() {
+        quickPlayNavigationTask?.cancel()
+        quickPlayNavigationTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                navigateToQuickPlay = true
+            }
+        }
+    }
+
+    private func performAcademyAction(_ action: AcademyActionConfirmation) {
+        switch action {
+        case let .unlock(nodeId, nodeTitle, _):
+            let ok = viewModel.unlockAcademyKnowledgeNode(nodeId: nodeId)
+            academyStatusIsError = !ok
+            academyStatusMessage = ok ? "Unlocked \(nodeTitle)." : "Unable to unlock \(nodeTitle)."
+        case let .brainBrawlWin(track, wager, _):
+            let ok = viewModel.resolveBrainBrawlMatch(track: track, wager: wager, didWin: true, sabotage: .timeWarp)
+            academyStatusIsError = !ok
+            academyStatusMessage = ok ? "Simulated win completed." : "Not enough shards for this wager + sabotage."
+        case let .brainBrawlLoss(track, wager):
+            let ok = viewModel.resolveBrainBrawlMatch(track: track, wager: wager, didWin: false, sabotage: nil)
+            academyStatusIsError = !ok
+            academyStatusMessage = ok ? "Simulated loss completed." : "Not enough shards for this wager."
+        }
+    }
+}
+
+private enum AcademyActionConfirmation: Identifiable {
+    case unlock(nodeId: String, nodeTitle: String, shardCost: Int)
+    case brainBrawlWin(track: AcademyTrack, wager: Int, sabotageCost: Int)
+    case brainBrawlLoss(track: AcademyTrack, wager: Int)
+
+    var id: String {
+        switch self {
+        case let .unlock(nodeId, _, shardCost):
+            return "unlock-\(nodeId)-\(shardCost)"
+        case let .brainBrawlWin(track, wager, sabotageCost):
+            return "bb-win-\(track.rawValue)-\(wager)-\(sabotageCost)"
+        case let .brainBrawlLoss(track, wager):
+            return "bb-loss-\(track.rawValue)-\(wager)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case let .unlock(_, nodeTitle, _):
+            return "Unlock \(nodeTitle)?"
+        case .brainBrawlWin:
+            return "Simulate Brain Brawl win?"
+        case .brainBrawlLoss:
+            return "Simulate Brain Brawl loss?"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case let .unlock(_, _, shardCost):
+            return "This spends \(shardCost) shards."
+        case let .brainBrawlWin(_, wager, sabotageCost):
+            return "This spends \(wager + sabotageCost) shards (\(wager) wager + \(sabotageCost) sabotage)."
+        case let .brainBrawlLoss(_, wager):
+            return "This spends \(wager) shards."
+        }
+    }
+
+    var confirmButton: String {
+        switch self {
+        case .unlock:
+            return "Unlock"
+        case .brainBrawlWin:
+            return "Simulate Win"
+        case .brainBrawlLoss:
+            return "Simulate Loss"
+        }
     }
 }

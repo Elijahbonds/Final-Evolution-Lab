@@ -9,6 +9,7 @@ struct GameModeSelectionView: View {
     @State private var navigateToGame = false
     @State private var showMatchmaking = false
     @State private var showStartOptions = false
+    @State private var delayedNavigateTask: Task<Void, Never>?
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -39,10 +40,7 @@ struct GameModeSelectionView: View {
                 viewModel.profile.metrics.readinessScore = readiness
                 SaveSystem.saveProfile(viewModel.profile)
                 showNeuralScan = false
-                Task {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    navigateToGame = true
-                }
+                scheduleNavigateToGame()
             }
         }
         .sheet(isPresented: $showMatchmaking) {
@@ -52,10 +50,7 @@ struct GameModeSelectionView: View {
                     viewModel.profile.metrics.readinessScore = readiness
                     SaveSystem.saveProfile(viewModel.profile)
                     showMatchmaking = false
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(300))
-                        navigateToGame = true
-                    }
+                    scheduleNavigateToGame()
                 }
             }
         }
@@ -73,6 +68,10 @@ struct GameModeSelectionView: View {
         }
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
+        }
+        .onDisappear {
+            delayedNavigateTask?.cancel()
+            delayedNavigateTask = nil
         }
     }
 
@@ -123,6 +122,17 @@ struct GameModeSelectionView: View {
             .padding(.top, 2)
         }
         .padding(.top, 8)
+    }
+
+    private func scheduleNavigateToGame() {
+        delayedNavigateTask?.cancel()
+        delayedNavigateTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                navigateToGame = true
+            }
+        }
     }
 
     private var globalMatchmakingBanner: some View {

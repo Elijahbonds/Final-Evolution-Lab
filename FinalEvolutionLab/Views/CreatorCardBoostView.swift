@@ -4,6 +4,7 @@ struct CreatorCardBoostView: View {
     let viewModel: LabViewModel
     @State private var selectedCard: CreatorCard?
     @State private var showConfirm = false
+    @State private var showRemoveConfirm = false
     @State private var showInsufficientCredits = false
     @State private var appeared = false
 
@@ -30,7 +31,7 @@ struct CreatorCardBoostView: View {
 
                 if activeCard != nil {
                     Button {
-                        viewModel.clearCreatorCard()
+                        showRemoveConfirm = true
                     } label: {
                         Text("REMOVE")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
@@ -102,6 +103,14 @@ struct CreatorCardBoostView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Purchase more credits to unlock creator cards.")
+        }
+        .alert("Remove active card?", isPresented: $showRemoveConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) {
+                viewModel.clearCreatorCard()
+            }
+        } message: {
+            Text("Removing your active Creator Card disables its current performance boost.")
         }
     }
 }
