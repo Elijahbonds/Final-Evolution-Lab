@@ -1,6 +1,14 @@
 import Foundation
 
 struct BondsBlueprintGenerationService: Sendable {
+    private let curatedBondsBounceYouTubeURLs: [String] = [
+        "https://youtu.be/hrlGbS0r-hM?si=01FQQ8_l0NX9RLh_",
+        "https://youtu.be/dAoLYThf1bc?si=2M61Z9g7rTRKXmb5",
+        "https://youtu.be/q1HLjLbhS2s?si=abxLi2CgxMgmUH_U",
+        "https://youtu.be/pqyxTY85x4U?si=vi02sr7W835uROpO",
+        "https://youtu.be/J037GG99GT0?si=3ZkOauSg8WzWMVu0",
+    ]
+
     func defaultModelProfile(from profile: UserProfile, cloneProfile: CloneProfile) -> BondsAIModelProfile {
         let display = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let owner = display.isEmpty ? "Bonds Athlete" : display
@@ -34,6 +42,10 @@ struct BondsBlueprintGenerationService: Sendable {
                     importedAt: Date()
                 )
             }
+    }
+
+    func curatedBondsBounceSourceAssets() -> [BlueprintSourceAsset] {
+        sanitizeYouTubeSources(curatedBondsBounceYouTubeURLs)
     }
 
     func createProject(

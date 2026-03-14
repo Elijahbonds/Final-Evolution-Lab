@@ -183,4 +183,12 @@ struct FinalEvolutionLabTests {
         #expect(project.fullNarrationScript.contains("landing mechanics and pacing"))
     }
 
+    @Test func bondsBlueprintIncludesCuratedBondsBounceSources() async throws {
+        let generator = BondsBlueprintGenerationService()
+        let curated = generator.curatedBondsBounceSourceAssets()
+
+        #expect(curated.count == 5)
+        #expect(curated.allSatisfy { $0.sourceType == .youtube })
+    }
+
 }

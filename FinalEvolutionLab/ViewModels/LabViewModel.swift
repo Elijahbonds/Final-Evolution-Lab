@@ -128,9 +128,15 @@ class LabViewModel {
             didMutate = true
         }
 
+        let curatedYouTubeSources = bondsBlueprintGenerator.curatedBondsBounceSourceAssets()
+        for source in curatedYouTubeSources where !bondsAIStudio.sourceAssets.contains(where: { $0.id == source.id }) {
+            bondsAIStudio.sourceAssets.append(source)
+            didMutate = true
+        }
+
         if bondsAIStudio.projects.isEmpty,
            let model = bondsAIStudio.modelProfile {
-            let sourceAssets = LegacyExerciseReferenceCatalog.referenceURLs.map { key, value in
+            let legacySourceAssets = LegacyExerciseReferenceCatalog.referenceURLs.map { key, value in
                 BlueprintSourceAsset(
                     id: BlueprintSourceAsset.makeId(url: value),
                     sourceType: .legacyReference,
@@ -140,7 +146,10 @@ class LabViewModel {
                     importedAt: Date()
                 )
             }
-            bondsAIStudio.sourceAssets = sourceAssets
+            for source in legacySourceAssets where !bondsAIStudio.sourceAssets.contains(where: { $0.id == source.id }) {
+                bondsAIStudio.sourceAssets.append(source)
+            }
+            let sourceAssets = bondsAIStudio.sourceAssets
             let project = bondsBlueprintGenerator.createProject(
                 track: .foundations,
                 equipment: .movementEducation,
