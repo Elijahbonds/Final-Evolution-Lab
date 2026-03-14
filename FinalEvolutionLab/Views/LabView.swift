@@ -26,6 +26,8 @@ struct LabView: View {
     @State private var freestyleFlashResetTask: Task<Void, Never>?
     @State private var freestyleRoundResetTask: Task<Void, Never>?
     @State private var freestyleShakeTask: Task<Void, Never>?
+    @State private var healthKitConnectTask: Task<Void, Never>?
+    @State private var isConnectingHealthKit = false
     @State private var freestyleLastAction: String = ""
     @State private var freestyleJudgeScores: (Int, Int, Int)?
     @State private var freestyleCrowdMessage: String = ""
@@ -113,6 +115,9 @@ struct LabView: View {
             courtLoadTask?.cancel()
             courtLoadTask = nil
             cancelFreestyleTasks()
+            healthKitConnectTask?.cancel()
+            healthKitConnectTask = nil
+            isConnectingHealthKit = false
         }
     }
 
@@ -1427,12 +1432,26 @@ struct LabView: View {
                 }
             } else {
                 Button {
-                    Task { await viewModel.connectHealthKit() }
+                    guard healthKitConnectTask == nil else { return }
+                    isConnectingHealthKit = true
+                    healthKitConnectTask = Task {
+                        await viewModel.connectHealthKit()
+                        guard !Task.isCancelled else { return }
+                        await MainActor.run {
+                            isConnectingHealthKit = false
+                            healthKitConnectTask = nil
+                        }
+                    }
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "heart.text.clipboard")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("Connect Apple Health")
+                        if isConnectingHealthKit {
+                            ProgressView()
+                                .tint(.black)
+                        } else {
+                            Image(systemName: "heart.text.clipboard")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        Text(isConnectingHealthKit ? "Connecting..." : "Connect Apple Health")
                             .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundStyle(.black)
@@ -1442,6 +1461,7 @@ struct LabView: View {
                     .background(Theme.brandCyan)
                     .clipShape(.rect(cornerRadius: 12))
                 }
+                .disabled(isConnectingHealthKit)
 
                 Text("Sync HRV & Heart Rate for automated Neural Drive")
                     .font(.caption2)

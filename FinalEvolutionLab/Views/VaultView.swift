@@ -7,6 +7,8 @@ struct VaultView: View {
     @State private var showShardShop = false
     @State private var showLiveEvents = false
     @State private var showMarketplace = false
+    @State private var healthKitConnectTask: Task<Void, Never>?
+    @State private var isConnectingHealthKit = false
 
     var body: some View {
         ScrollView {
@@ -36,6 +38,11 @@ struct VaultView: View {
         }
         .navigationDestination(isPresented: $showMarketplace) {
             CreatorMarketplaceHubView(viewModel: viewModel)
+        }
+        .onDisappear {
+            healthKitConnectTask?.cancel()
+            healthKitConnectTask = nil
+            isConnectingHealthKit = false
         }
     }
 
@@ -176,9 +183,24 @@ struct VaultView: View {
 
                 if !viewModel.healthKit.isAuthorized {
                     Button {
-                        Task { await viewModel.connectHealthKit() }
+                        guard healthKitConnectTask == nil else { return }
+                        isConnectingHealthKit = true
+                        healthKitConnectTask = Task {
+                            await viewModel.connectHealthKit()
+                            guard !Task.isCancelled else { return }
+                            await MainActor.run {
+                                isConnectingHealthKit = false
+                                healthKitConnectTask = nil
+                            }
+                        }
                     } label: {
-                        Text("CONNECT")
+                        HStack(spacing: 6) {
+                            if isConnectingHealthKit {
+                                ProgressView()
+                                    .tint(Theme.brandBlue)
+                            }
+                            Text(isConnectingHealthKit ? "CONNECTING..." : "CONNECT")
+                        }
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -186,6 +208,7 @@ struct VaultView: View {
                             .foregroundStyle(Theme.brandBlue)
                             .clipShape(Capsule())
                     }
+                    .disabled(isConnectingHealthKit)
                 }
             }
 

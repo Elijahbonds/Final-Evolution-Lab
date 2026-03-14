@@ -83,6 +83,7 @@ struct CourtSceneView: UIViewRepresentable {
         private var trailEmitter: SCNNode?
         private var currentDunkPhase: DunkPhase = .idle
         private var engineDrivenDunk = false
+        private var pendingCallbacks: [String: DispatchWorkItem] = [:]
 
         private let brandBlue = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
         private let brandCyan = UIColor(red: 0, green: 0.95, blue: 0.9, alpha: 1)
@@ -99,6 +100,10 @@ struct CourtSceneView: UIViewRepresentable {
             self.scene = SCNScene()
             super.init()
             buildScene()
+        }
+
+        deinit {
+            cancelPendingCallbacks()
         }
 
         private func buildScene() {
@@ -663,6 +668,9 @@ struct CourtSceneView: UIViewRepresentable {
                 return
             }
             currentDunkPhase = phase
+            if phase != .scored {
+                cancelPendingCallback(for: "dunk-reset")
+            }
 
             switch phase {
             case .idle:
@@ -702,7 +710,7 @@ struct CourtSceneView: UIViewRepresentable {
                 Task { @MainActor in
                     onDunk()
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                scheduleMainAfter(key: "dunk-reset", delay: 1.5) { [weak self] in
                     self?.currentDunkPhase = .idle
                     self?.engineDrivenDunk = false
                     self?.completeDunk()
@@ -1070,7 +1078,7 @@ struct CourtSceneView: UIViewRepresentable {
             isImpactZoom = true
             SCNTransaction.commit()
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            scheduleMainAfter(key: "impact-zoom-reset", delay: 0.6) { [weak self] in
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 0.3
                 self?.isImpactZoom = false
@@ -1174,12 +1182,39 @@ struct CourtSceneView: UIViewRepresentable {
             rimNode.geometry?.firstMaterial?.emission.contents = UIColor.white
             SCNTransaction.commit()
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            scheduleMainAfter(key: "rim-flash-reset", delay: 0.15) { [weak self] in
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 0.35
                 rimNode.geometry?.firstMaterial?.emission.contents = self?.neonOrange.withAlphaComponent(0.5)
                 SCNTransaction.commit()
             }
+        }
+
+        private func scheduleMainAfter(key: String, delay: TimeInterval, block: @escaping () -> Void) {
+            cancelPendingCallback(for: key)
+            var workItem: DispatchWorkItem?
+            workItem = DispatchWorkItem { [weak self] in
+                block()
+                guard let self, let workItem else { return }
+                if self.pendingCallbacks[key] === workItem {
+                    self.pendingCallbacks[key] = nil
+                }
+            }
+            guard let workItem else { return }
+            pendingCallbacks[key] = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        }
+
+        private func cancelPendingCallback(for key: String) {
+            pendingCallbacks[key]?.cancel()
+            pendingCallbacks[key] = nil
+        }
+
+        private func cancelPendingCallbacks() {
+            for item in pendingCallbacks.values {
+                item.cancel()
+            }
+            pendingCallbacks.removeAll()
         }
     }
 }
