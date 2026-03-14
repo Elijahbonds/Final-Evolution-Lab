@@ -14,6 +14,8 @@ struct CritiqueSubmitView: View {
     @State private var lineWidth: CGFloat = 3
     @State private var isDrawing: Bool = false
     @State private var showConfirmation: Bool = false
+    @State private var showDiscardConfirm: Bool = false
+    @State private var showClearDrawingsConfirm: Bool = false
 
     private let exerciseOptions = [
         "Scaled Pogos", "Lateral Leaps", "Box Jumps",
@@ -28,6 +30,15 @@ struct CritiqueSubmitView: View {
         "Ground Contact", "Flight Time", "Load Phase",
         "Arm Swing", "Core Stability", "Landing Mechanics"
     ]
+
+    private var hasUnsavedChanges: Bool {
+        !selectedExercise.isEmpty ||
+            !feedbackText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            overallGrade != "DEVELOPING" ||
+            !focusAreas.isEmpty ||
+            !drawingPaths.isEmpty ||
+            !currentPath.isEmpty
+    }
 
     var body: some View {
         NavigationStack {
@@ -49,7 +60,7 @@ struct CritiqueSubmitView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") { attemptCancel() }
                         .foregroundStyle(Theme.brandCyan)
                 }
             }
@@ -61,6 +72,18 @@ struct CritiqueSubmitView: View {
             if showConfirmation {
                 confirmationOverlay
             }
+        }
+        .alert("Discard critique draft?", isPresented: $showDiscardConfirm) {
+            Button("Keep editing", role: .cancel) {}
+            Button("Discard", role: .destructive) { dismiss() }
+        } message: {
+            Text("Your notes and telestration changes will be lost.")
+        }
+        .alert("Clear drawings?", isPresented: $showClearDrawingsConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear", role: .destructive) { drawingPaths.removeAll() }
+        } message: {
+            Text("This removes all telestration marks from the frame.")
         }
     }
 
@@ -137,7 +160,9 @@ struct CritiqueSubmitView: View {
                 }
 
                 Button {
-                    drawingPaths.removeAll()
+                    if !drawingPaths.isEmpty {
+                        showClearDrawingsConfirm = true
+                    }
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 12, weight: .bold))
@@ -424,6 +449,14 @@ struct CritiqueSubmitView: View {
 
         withAnimation(.spring(response: 0.4)) {
             showConfirmation = true
+        }
+    }
+
+    private func attemptCancel() {
+        if hasUnsavedChanges {
+            showDiscardConfirm = true
+        } else {
+            dismiss()
         }
     }
 

@@ -7,6 +7,7 @@ struct CreatorMarketplaceHubView: View {
     @State private var lastPackPulls: [CreatorCardAsset] = []
     @State private var bidValues: [String: Int] = [:]
     @State private var feedbackBanner: MarketplaceFeedbackBanner?
+    @State private var feedbackDismissTask: Task<Void, Never>?
     @State private var pendingConfirmation: MarketplaceConfirmation?
 
     var body: some View {
@@ -26,6 +27,10 @@ struct CreatorMarketplaceHubView: View {
         .background(Theme.deepBlack)
         .onAppear {
             viewModel.seedMarketplaceDemoLiquidityIfNeeded()
+        }
+        .onDisappear {
+            feedbackDismissTask?.cancel()
+            feedbackDismissTask = nil
         }
         .overlay(alignment: .bottom) {
             if let feedbackBanner {
@@ -495,15 +500,18 @@ struct CreatorMarketplaceHubView: View {
     }
 
     private func showFeedback(_ message: String, detail: String? = nil, isError: Bool = false) {
+        feedbackDismissTask?.cancel()
         withAnimation(.spring(response: 0.25)) {
             feedbackBanner = MarketplaceFeedbackBanner(message: message, detail: detail, isError: isError)
         }
-        Task {
+        feedbackDismissTask = Task {
             try? await Task.sleep(for: .seconds(2.25))
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 withAnimation(.easeOut(duration: 0.2)) {
                     feedbackBanner = nil
                 }
+                feedbackDismissTask = nil
             }
         }
     }

@@ -34,7 +34,7 @@ struct ExerciseDemoView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button("Close") { closeDemo() }
                         .foregroundStyle(Theme.brandBlue)
                 }
             }
@@ -51,6 +51,10 @@ struct ExerciseDemoView: View {
         .onChange(of: selectedRealClip) { _, newValue in
             guard let newValue else { return }
             attachSelectedRealClip(newValue)
+        }
+        .onDisappear {
+            timerTask?.cancel()
+            timerTask = nil
         }
     }
 
@@ -371,6 +375,12 @@ struct ExerciseDemoView: View {
     private func skipRest() {
         timerTask?.cancel()
         withAnimation(.spring) { isResting = false }
+    }
+
+    private func closeDemo() {
+        timerTask?.cancel()
+        timerTask = nil
+        dismiss()
     }
 
     private func attachSelectedRealClip(_ item: PhotosPickerItem) {

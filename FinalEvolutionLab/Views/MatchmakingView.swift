@@ -50,6 +50,7 @@ struct MatchmakingView: View {
         }
         .onDisappear {
             viewModel.globalLeaderboard.cancelMatchmaking()
+            viewModel.globalLeaderboard.stopOnlinePresence()
         }
     }
 

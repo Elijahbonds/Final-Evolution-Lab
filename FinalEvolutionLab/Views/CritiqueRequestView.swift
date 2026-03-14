@@ -243,13 +243,10 @@ struct CritiqueRequestView: View {
                 showInsufficientCredits = true
                 return
             }
-            let success = viewModel.requestCritique(exerciseName: selectedExercise, notes: notesText)
-            if success {
+            if let requestId = viewModel.requestCritiqueWithRequestId(exerciseName: selectedExercise, notes: notesText) {
                 Task {
                     try? await Task.sleep(for: .seconds(3))
-                    if let last = viewModel.critiqueRequests.last {
-                        viewModel.simulateCoachResponse(requestId: last.id)
-                    }
+                    viewModel.simulateCoachResponse(requestId: requestId)
                 }
                 withAnimation(.spring(response: 0.4)) {
                     showConfirmation = true

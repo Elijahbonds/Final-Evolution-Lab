@@ -50,6 +50,11 @@ struct DashboardView: View {
                 gaugeAnimationProgress = Double(newValue) / 100.0
             }
         }
+        .onDisappear {
+            if motionHelper.isStreaming {
+                motionHelper.stopStreaming()
+            }
+        }
     }
 
     private var headerSection: some View {

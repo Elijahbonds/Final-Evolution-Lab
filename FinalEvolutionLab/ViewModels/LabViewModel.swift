@@ -53,8 +53,9 @@ class LabViewModel {
             await hydrateFromCloudSnapshotIfAvailable()
         }
 
-        if healthKit.isAuthorized {
-            Task {
+        Task {
+            await healthKit.refreshAuthorizationState()
+            if healthKit.isAuthorized {
                 await healthKit.fetchLatestData()
                 applyHealthKitData()
             }
@@ -1141,14 +1142,20 @@ class LabViewModel {
         return asset.id
     }
 
+    @discardableResult
     func requestCritique(exerciseName: String, notes: String) -> Bool {
+        requestCritiqueWithRequestId(exerciseName: exerciseName, notes: notes) != nil
+    }
+
+    func requestCritiqueWithRequestId(exerciseName: String, notes: String) -> String? {
         let cost = Self.critiqueCostCredits
-        guard profile.premiumCredits >= cost else { return false }
+        guard profile.premiumCredits >= cost else { return nil }
         profile.premiumCredits -= cost
         profile.evolutionShards += Self.critiqueEngagementShardBonus
 
+        let requestId = UUID().uuidString
         let request = CritiqueRequest(
-            id: UUID().uuidString,
+            id: requestId,
             athleteId: profile.id,
             exerciseName: exerciseName,
             notes: notes,
@@ -1161,7 +1168,7 @@ class LabViewModel {
 
         SaveSystem.saveProfile(profile)
         SaveSystem.saveCritiqueRequests(critiqueRequests)
-        return true
+        return requestId
     }
 
     func requestCritiqueUsingShardBridge(exerciseName: String, notes: String, shardCost: Int = 500) -> Bool {

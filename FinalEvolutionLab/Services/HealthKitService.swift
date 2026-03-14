@@ -21,29 +21,53 @@ class HealthKitService {
 
     private let store = HKHealthStore()
     private var refreshTask: Task<Void, Never>?
-
-    func requestAuthorization() async {
-        guard isAvailable else { return }
-
-        let readTypes: Set<HKObjectType> = [
+    private var requiredReadTypes: Set<HKObjectType> {
+        [
             HKQuantityType(.heartRate),
             HKQuantityType(.activeEnergyBurned),
             HKQuantityType(.restingHeartRate),
             HKQuantityType(.stepCount),
-            HKQuantityType(.heartRateVariabilitySDNN)
+            HKQuantityType(.heartRateVariabilitySDNN),
         ]
+    }
 
-        let shareTypes: Set<HKSampleType> = [
-            HKQuantityType(.activeEnergyBurned)
-        ]
+    private var requiredShareTypes: Set<HKSampleType> {
+        [HKQuantityType(.activeEnergyBurned)]
+    }
+
+    func requestAuthorization() async {
+        guard isAvailable else { return }
 
         do {
-            try await store.requestAuthorization(toShare: shareTypes, read: readTypes)
+            try await store.requestAuthorization(toShare: requiredShareTypes, read: requiredReadTypes)
             isAuthorized = true
             await fetchLatestData()
             startAutoRefresh()
         } catch {
             isAuthorized = false
+        }
+    }
+
+    func refreshAuthorizationState() async {
+        guard isAvailable else {
+            isAuthorized = false
+            return
+        }
+        do {
+            let status = try await authorizationRequestStatus()
+            switch status {
+            case .unnecessary:
+                isAuthorized = true
+            case .shouldRequest, .unknown:
+                isAuthorized = false
+                stopAutoRefresh()
+            @unknown default:
+                isAuthorized = false
+                stopAutoRefresh()
+            }
+        } catch {
+            isAuthorized = false
+            stopAutoRefresh()
         }
     }
 
@@ -224,6 +248,18 @@ class HealthKitService {
             return total / Double(results.count)
         } catch {
             return 0
+        }
+    }
+
+    private func authorizationRequestStatus() async throws -> HKAuthorizationRequestStatus {
+        try await withCheckedThrowingContinuation { continuation in
+            store.getRequestStatusForAuthorization(toShare: requiredShareTypes, read: requiredReadTypes) { status, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: status)
+                }
+            }
         }
     }
 }

@@ -66,6 +66,7 @@ class GlobalLeaderboardService {
     var recentMatches: [RecentMatchRecord] = []
     var connectionQuality: ConnectionQuality = .good
     private var matchmakingTask: Task<Void, Never>?
+    private var onlinePresenceTask: Task<Void, Never>?
 
     func refreshRankings(userProfile: UserProfile, sampleData: [LeaderboardEntry]) {
         isLoading = true
@@ -172,7 +173,8 @@ class GlobalLeaderboardService {
     }
 
     func simulateOnlinePresence() {
-        Task {
+        onlinePresenceTask?.cancel()
+        onlinePresenceTask = Task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(Double.random(in: 8...15)))
                 let delta = Int.random(in: -5...8)
@@ -180,6 +182,11 @@ class GlobalLeaderboardService {
                 connectionQuality = Double.random(in: 0...1) > 0.15 ? .good : .moderate
             }
         }
+    }
+
+    func stopOnlinePresence() {
+        onlinePresenceTask?.cancel()
+        onlinePresenceTask = nil
     }
 
     func recordMatch(opponent: MatchmakingOpponent, userScore: Int, opponentScore: Int, gameMode: String) {

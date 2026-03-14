@@ -11,6 +11,9 @@ struct CommandCenterView: View {
     @State private var showVault = false
     @State private var pendingQuickPlayMode: GameMode?
     @State private var navigateToQuickPlay = false
+    @State private var showQuickStartOptions = false
+    @State private var showNeuralScan = false
+    @State private var quickPlayReadiness: Double = 50
     @State private var academyWager: Int = BrainBrawlRulebook.default.minimumWager
     @State private var academyTrack: AcademyTrack = .stemLogic
     @State private var academyStatusMessage: String?
@@ -57,9 +60,34 @@ struct CommandCenterView: View {
                 GamePlayView(
                     viewModel: viewModel,
                     gameMode: mode,
-                    sessionReadiness: max(50, viewModel.profile.metrics.readinessScore)
+                    sessionReadiness: quickPlayReadiness
                 )
             }
+        }
+        .fullScreenCover(isPresented: $showNeuralScan) {
+            NeuralReadinessScanView { readiness in
+                quickPlayReadiness = readiness
+                viewModel.profile.metrics.neuralDrive = min(100, readiness)
+                viewModel.profile.metrics.readinessScore = readiness
+                SaveSystem.saveProfile(viewModel.profile)
+                showNeuralScan = false
+                Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    navigateToQuickPlay = true
+                }
+            }
+        }
+        .confirmationDialog("Start \(pendingQuickPlayMode?.name ?? "Mode")", isPresented: $showQuickStartOptions, titleVisibility: .visible) {
+            Button("Quick Start") {
+                quickPlayReadiness = max(50, viewModel.profile.metrics.readinessScore)
+                navigateToQuickPlay = true
+            }
+            Button("Scan & Calibrate") {
+                showNeuralScan = true
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Quick Start uses your latest readiness profile. Scan & Calibrate runs a fresh readiness scan.")
         }
     }
 
@@ -135,7 +163,7 @@ struct CommandCenterView: View {
                     ForEach(GameModeRegistry.all, id: \.id) { mode in
                         Button {
                             pendingQuickPlayMode = mode
-                            navigateToQuickPlay = true
+                            showQuickStartOptions = true
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(mode.name)

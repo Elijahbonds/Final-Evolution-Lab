@@ -27,6 +27,7 @@ struct GamePlayView: View {
     @State private var streakTimer: Task<Void, Never>?
     @State private var screenShake: CGFloat = 0
     @State private var showBiomechanicsHUD: Bool = true
+    @State private var showExitConfirmation: Bool = false
     @State private var liveLeakagePenalty: Double = 0
     @State private var leakageFlashJoint: JointType?
 
@@ -327,7 +328,7 @@ struct GamePlayView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    dismiss()
+                    attemptExit()
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
@@ -357,6 +358,12 @@ struct GamePlayView: View {
                 }
             }
         }
+        .alert("Exit match?", isPresented: $showExitConfirmation) {
+            Button("Keep playing", role: .cancel) {}
+            Button("Exit", role: .destructive) { dismiss() }
+        } message: {
+            Text("Leaving now will end the current match.")
+        }
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear { }
         .onDisappear {
@@ -367,6 +374,14 @@ struct GamePlayView: View {
             slowMoTimer?.cancel()
             timeScaleUpdateTask?.cancel()
             runMeterTimer?.cancel()
+        }
+    }
+
+    private func attemptExit() {
+        if isActive && !showResults {
+            showExitConfirmation = true
+        } else {
+            dismiss()
         }
     }
 
