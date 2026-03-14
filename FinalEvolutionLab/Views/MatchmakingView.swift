@@ -61,14 +61,13 @@ struct MatchmakingView: View {
                     .foregroundStyle(Theme.brandCyan)
                     .symbolEffect(.pulse, isActive: searchingPhase)
 
-                Text("GLOBAL MATCHMAKING")
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                Text("Global matchmaking")
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Theme.brandCyan)
-                    .tracking(3)
             }
 
-            Text(gameMode.name.uppercased())
-                .font(.system(size: 16, weight: .black, design: .monospaced))
+            Text(gameMode.name)
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(.white)
 
             HStack(spacing: 16) {
@@ -76,8 +75,8 @@ struct MatchmakingView: View {
                     Circle()
                         .fill(.green)
                         .frame(width: 6, height: 6)
-                    Text("\(viewModel.globalLeaderboard.onlinePlayerCount) ONLINE")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    Text("\(viewModel.globalLeaderboard.onlinePlayerCount) online")
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.green.opacity(0.8))
                 }
 
@@ -86,7 +85,7 @@ struct MatchmakingView: View {
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(viewModel.globalLeaderboard.connectionQuality == .good ? Theme.brandCyan : .orange)
                     Text(viewModel.globalLeaderboard.connectionQuality.rawValue)
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(viewModel.globalLeaderboard.connectionQuality == .good ? Theme.brandCyan.opacity(0.7) : .orange.opacity(0.7))
                 }
 
@@ -97,8 +96,8 @@ struct MatchmakingView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "clock.arrow.circlepath")
                                 .font(.system(size: 9))
-                            Text("HISTORY")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            Text("History")
+                                .font(.system(size: 10, weight: .semibold))
                         }
                         .foregroundStyle(.secondary)
                     }
@@ -136,25 +135,24 @@ struct MatchmakingView: View {
             }
 
             VStack(spacing: 8) {
-                Text("FIND OPPONENT")
+                Text("Find opponent")
                     .font(.system(size: 24, weight: .black))
                     .foregroundStyle(.white)
 
                 Text("Match by PRQ tier for balanced competition")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("TIER FILTER")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                Text("Tier filter")
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.tertiary)
-                    .tracking(2)
 
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
-                        TierChip(label: "ANY", isSelected: selectedTier == nil) {
+                        TierChip(label: "Any", isSelected: selectedTier == nil) {
                             selectedTier = nil
                         }
 
@@ -184,12 +182,12 @@ struct MatchmakingView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
-                    Text("SEARCH")
+                    Text("Search")
                 }
-                .font(.system(.subheadline, design: .monospaced, weight: .black))
+                .font(.system(.subheadline, weight: .bold))
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .frame(minHeight: 44)
                 .background(Theme.brandCyan)
                 .clipShape(.rect(cornerRadius: 14))
             }
@@ -219,24 +217,24 @@ struct MatchmakingView: View {
             }
 
             VStack(spacing: 8) {
-                Text("SEARCHING...")
-                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                Text("Searching...")
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(.white)
 
                 Text("Looking for \(tier.rawValue) opponents")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.caption)
                     .foregroundStyle(Theme.brandCyan.opacity(0.7))
 
                 Text("Scanning \(viewModel.globalLeaderboard.onlinePlayerCount) active players")
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
 
             Button {
                 viewModel.globalLeaderboard.cancelMatchmaking()
             } label: {
-                Text("CANCEL")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                Text("Cancel")
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
         }
@@ -259,12 +257,12 @@ struct MatchmakingView: View {
                             .foregroundStyle(Theme.brandBlue)
                     }
 
-                    Text("YOU")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    Text("You")
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.secondary)
 
                     Text(String(format: "%.0f", viewModel.effectiveMetrics.prqScore))
-                        .font(.system(.headline, design: .monospaced, weight: .black))
+                        .font(.system(.headline, design: .rounded, weight: .bold))
                         .foregroundStyle(.white)
                 }
 
@@ -287,20 +285,20 @@ struct MatchmakingView: View {
                             .foregroundStyle(.red)
                     }
 
-                    Text(result.opponent.displayName.prefix(8).uppercased())
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    Text(String(result.opponent.displayName.prefix(8)))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.secondary)
 
                     Text(String(format: "%.0f", result.opponent.prqScore))
-                        .font(.system(.headline, design: .monospaced, weight: .black))
+                        .font(.system(.headline, design: .rounded, weight: .bold))
                         .foregroundStyle(.white)
                 }
             }
 
             HStack(spacing: 12) {
-                StatPill(label: "TIER", value: result.opponent.tier.rawValue)
-                StatPill(label: "WIN RATE", value: String(format: "%.0f%%", result.opponent.winRate * 100))
-                StatPill(label: "GAMES", value: "\(result.opponent.totalGames)")
+                StatPill(label: "Tier", value: result.opponent.tier.rawValue)
+                StatPill(label: "Win rate", value: String(format: "%.0f%%", result.opponent.winRate * 100))
+                StatPill(label: "Games", value: "\(result.opponent.totalGames)")
             }
 
             Button {
@@ -309,9 +307,9 @@ struct MatchmakingView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "play.fill")
-                    Text("ACCEPT & PLAY")
+                    Text("Accept & play")
                 }
-                .font(.system(.subheadline, design: .monospaced, weight: .black))
+                .font(.system(.subheadline, weight: .bold))
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 44)
@@ -326,9 +324,9 @@ struct MatchmakingView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "waveform.path.ecg")
-                    Text("SCAN & CALIBRATE")
+                    Text("Scan & calibrate")
                 }
-                .font(.system(.caption, design: .monospaced, weight: .black))
+                .font(.system(.caption, weight: .bold))
                 .foregroundStyle(Theme.brandCyan)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 44)
@@ -340,8 +338,8 @@ struct MatchmakingView: View {
             Button {
                 viewModel.globalLeaderboard.cancelMatchmaking()
             } label: {
-                Text("FIND ANOTHER")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                Text("Find another")
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
         }
@@ -354,22 +352,22 @@ struct MatchmakingView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(.secondary)
 
-            Text("NO OPPONENTS FOUND")
-                .font(.system(size: 18, weight: .black, design: .monospaced))
+            Text("No opponents found")
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(.white)
 
             Text("Try a different tier or check back later")
-                .font(.system(.caption, design: .monospaced))
+                .font(.caption)
                 .foregroundStyle(.secondary)
 
             Button {
                 viewModel.globalLeaderboard.cancelMatchmaking()
             } label: {
-                Text("TRY AGAIN")
-                    .font(.system(.subheadline, design: .monospaced, weight: .black))
+                Text("Try again")
+                    .font(.system(.subheadline, weight: .bold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, 32)
-                    .padding(.vertical, 14)
+                    .frame(minHeight: 44)
                     .background(Theme.brandBlue)
                     .clipShape(.rect(cornerRadius: 14))
             }
@@ -380,8 +378,8 @@ struct MatchmakingView: View {
         Button {
             dismiss()
         } label: {
-            Text("BACK TO ARENA")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Back to arena")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.tertiary)
         }
         .padding(.bottom, 20)
@@ -403,12 +401,12 @@ struct MatchmakingView: View {
                                 )
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("vs \(record.opponentName.uppercased())")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                Text("vs \(record.opponentName)")
+                                    .font(.system(size: 11, weight: .semibold))
                                     .foregroundStyle(.white)
 
                                 Text("\(record.userScore) — \(record.opponentScore)")
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 10))
                                     .foregroundStyle(.secondary)
                             }
 
@@ -416,11 +414,11 @@ struct MatchmakingView: View {
 
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text(record.opponentTier.rawValue)
-                                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                    .font(.system(size: 9, weight: .semibold))
                                     .foregroundStyle(tierColor(record.opponentTier))
 
                                 Text(record.date, style: .relative)
-                                    .font(.system(size: 8, design: .monospaced))
+                                    .font(.system(size: 9))
                                     .foregroundStyle(.tertiary)
                             }
                         }
@@ -454,7 +452,7 @@ struct MatchmakingView: View {
         }
 
         return Text(quality.rawValue)
-            .font(.system(size: 8, weight: .black, design: .monospaced))
+            .font(.system(size: 9, weight: .semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -481,12 +479,11 @@ struct StatPill: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(.caption, design: .monospaced, weight: .black))
+                .font(.system(.caption, design: .rounded, weight: .bold))
                 .foregroundStyle(.white)
             Text(label)
-                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(.tertiary)
-                .tracking(1)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)

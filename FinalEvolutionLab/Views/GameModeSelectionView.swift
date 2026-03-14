@@ -78,10 +78,9 @@ struct GameModeSelectionView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("SELECT MODE")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Choose mode")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.brandBlue)
-                .tracking(4)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 10)
 
@@ -101,10 +100,10 @@ struct GameModeSelectionView: View {
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
                     Text("\(GameModeRegistry.all.count)")
-                        .font(.system(.caption, design: .monospaced, weight: .black))
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(Theme.brandCyan)
-                    Text("MODES")
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                    Text("modes")
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
 
@@ -116,8 +115,8 @@ struct GameModeSelectionView: View {
                     Image(systemName: "antenna.radiowaves.left.and.right")
                         .font(.system(size: 10))
                         .foregroundStyle(Theme.brandCyan.opacity(0.7))
-                    Text("MULTIPLAYER")
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                    Text("multiplayer")
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -146,12 +145,12 @@ struct GameModeSelectionView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("GLOBAL ARENA")
+                    Text("Global arena")
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
 
                     Text("Find opponents by PRQ tier")
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                        .font(.caption2)
                         .foregroundStyle(Theme.brandCyan.opacity(0.7))
                 }
 
@@ -184,10 +183,9 @@ struct GameModeSelectionView: View {
                     .fill(modes.first?.accentColor.opacity(0.3) ?? Theme.brandBlue.opacity(0.3))
                     .frame(width: 6, height: 6)
 
-                Text(category.rawValue.uppercased())
-                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                Text(category.rawValue)
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .tracking(3)
             }
 
             LazyVGrid(columns: columns, spacing: 14) {
@@ -243,13 +241,13 @@ struct GameModeCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(mode.name.uppercased())
+                    Text(mode.name)
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
                     Text(mode.subtitle)
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                        .font(.caption2)
                         .foregroundStyle(mode.accentColor.opacity(0.8))
                         .lineLimit(1)
                 }
@@ -258,7 +256,7 @@ struct GameModeCard: View {
                     Image(systemName: "location.fill")
                         .font(.system(size: 10))
                     Text(mode.environmentName)
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundStyle(.tertiary)
 
@@ -268,18 +266,18 @@ struct GameModeCard: View {
                     Image(systemName: "hand.draw.fill")
                         .font(.system(size: 10))
                     Text("Controller / Swipe")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundStyle(.secondary)
 
                 Text(mode.id.gameplayDNA)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(mode.accentColor.opacity(0.55))
                     .lineLimit(2)
 
                 if let hint = mode.hint {
                     Text(hint)
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(mode.accentColor.opacity(0.6))
                         .lineLimit(1)
                 }
@@ -335,7 +333,7 @@ struct GameModeCard: View {
                     Image(systemName: "antenna.radiowaves.left.and.right")
                         .font(.system(size: 10))
                     Text("LIVE")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .semibold))
                 }
                 .foregroundStyle(Theme.brandCyan)
                 .padding(.horizontal, 6)
@@ -347,7 +345,7 @@ struct GameModeCard: View {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: 10))
                     Text("TURNS")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .semibold))
                 }
                 .foregroundStyle(.orange)
                 .padding(.horizontal, 6)

@@ -59,10 +59,9 @@ struct CommandCenterView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("ALL SCREENS")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Command center")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.brandBlue)
-                .tracking(4)
 
             Text("Command")
                 .font(.system(size: 50, weight: .black))
@@ -79,42 +78,42 @@ struct CommandCenterView: View {
     private var commandGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
             commandCard(
-                title: "DASHBOARD",
+                title: "Dashboard",
                 subtitle: "Status / profile analytics",
                 icon: "waveform.path.ecg.rectangle",
                 color: Theme.brandBlue
             ) { showDashboard = true }
 
             commandCard(
-                title: "ARENA MODES",
+                title: "Arena modes",
                 subtitle: "All game modes + matchmaking",
                 icon: "trophy.fill",
                 color: .orange
             ) { showArenaModes = true }
 
             commandCard(
-                title: "LIVE EVENTS",
+                title: "Live events",
                 subtitle: "Tickets, fundraising, voting",
                 icon: "ticket.fill",
                 color: Theme.brandCyan
             ) { showLiveEvents = true }
 
             commandCard(
-                title: "MARKETPLACE",
+                title: "Marketplace",
                 subtitle: "Packs, inventory, auctions",
                 icon: "hammer.fill",
                 color: .orange
             ) { showMarketplace = true }
 
             commandCard(
-                title: "COACH PORTAL",
+                title: "Coach portal",
                 subtitle: "Exercises and critiques",
                 icon: "figure.strengthtraining.traditional",
                 color: Theme.foundationGreen
             ) { showCoach = true }
 
             commandCard(
-                title: "PROFILE VAULT",
+                title: "Profile vault",
                 subtitle: "Wallets, armory, stats",
                 icon: "person.crop.circle.fill",
                 color: Theme.elitePurple
@@ -124,7 +123,7 @@ struct CommandCenterView: View {
 
     private var quickPlaySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("QUICK PLAY")
+            sectionLabel("Quick play")
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(GameModeRegistry.all, id: \.id) { mode in
@@ -133,19 +132,19 @@ struct CommandCenterView: View {
                             navigateToQuickPlay = true
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(mode.name.uppercased())
-                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                Text(mode.name)
+                                    .font(.system(size: 12, weight: .bold))
                                     .foregroundStyle(.white)
                                     .lineLimit(1)
                                 Text(mode.subtitle)
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                                 HStack(spacing: 4) {
                                     Image(systemName: mode.iconName)
                                         .font(.system(size: 10))
                                     Text(mode.environmentName)
-                                        .font(.system(size: 10, design: .monospaced))
+                                        .font(.system(size: 11, weight: .medium))
                                 }
                                 .foregroundStyle(mode.accentColor.opacity(0.85))
                             }
@@ -173,33 +172,33 @@ struct CommandCenterView: View {
 
     private var gameplaySystemsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("SYSTEM SNAPSHOT")
+            sectionLabel("System snapshot")
             HStack(spacing: 10) {
-                snapshotPill(label: "MODES", value: "\(GameModeRegistry.all.count)", icon: "gamecontroller.fill", color: Theme.brandBlue)
-                snapshotPill(label: "EVENTS", value: "\(viewModel.upcomingLiveEvents.count)", icon: "ticket.fill", color: Theme.brandCyan)
-                snapshotPill(label: "LISTINGS", value: "\(viewModel.activeAuctionListings.count)", icon: "hammer.fill", color: .orange)
+                snapshotPill(label: "Modes", value: "\(GameModeRegistry.all.count)", icon: "gamecontroller.fill", color: Theme.brandBlue)
+                snapshotPill(label: "Events", value: "\(viewModel.upcomingLiveEvents.count)", icon: "ticket.fill", color: Theme.brandCyan)
+                snapshotPill(label: "Listings", value: "\(viewModel.activeAuctionListings.count)", icon: "hammer.fill", color: .orange)
             }
             HStack(spacing: 10) {
-                snapshotPill(label: "TICKETS", value: "\(viewModel.armoryTickets.count)", icon: "qrcode", color: .green)
-                snapshotPill(label: "SHARDS", value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)
-                snapshotPill(label: "CREDITS", value: "\(viewModel.profile.premiumCredits)", icon: "creditcard.fill", color: Theme.brandBlue)
+                snapshotPill(label: "Tickets", value: "\(viewModel.armoryTickets.count)", icon: "qrcode", color: .green)
+                snapshotPill(label: "Shards", value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)
+                snapshotPill(label: "Credits", value: "\(viewModel.profile.premiumCredits)", icon: "creditcard.fill", color: Theme.brandBlue)
             }
             HStack(spacing: 10) {
                 snapshotPill(
-                    label: "ACADEMY",
+                    label: "Academy",
                     value: "\(Int(viewModel.academyMasteryAverage * 100))%",
                     icon: "brain.head.profile",
                     color: Theme.elitePurple
                 )
                 snapshotPill(
-                    label: "PRESTIGE",
+                    label: "Prestige",
                     value: "\(viewModel.unlockedPrestigeCount)",
                     icon: "sparkles",
                     color: .yellow
                 )
                 snapshotPill(
-                    label: "OMNI",
-                    value: viewModel.academyProgress.omniEvolutionState.isUnlocked ? "UNLOCKED" : "LOCKED",
+                    label: "Omni",
+                    value: viewModel.academyProgress.omniEvolutionState.isUnlocked ? "Unlocked" : "Locked",
                     icon: "infinity.circle.fill",
                     color: Theme.foundationGreen
                 )
@@ -214,15 +213,15 @@ struct CommandCenterView: View {
 
     private var academyControlsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("ACADEMY / BRAIN BRAWL")
+            sectionLabel("Academy / Brain Brawl")
 
             HStack(spacing: 8) {
                 ForEach(MentorId.allCases, id: \.self) { mentor in
                     Button {
                         viewModel.selectMentor(mentor)
                     } label: {
-                        Text(mentor.rawValue.uppercased())
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        Text(mentor.rawValue)
+                            .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(viewModel.academyProgress.selectedMentor == mentor ? .black : .white)
                             .padding(.horizontal, 8)
                             .frame(minHeight: 44)
@@ -239,8 +238,8 @@ struct CommandCenterView: View {
                         Button {
                             _ = viewModel.unlockAcademyKnowledgeNode(nodeId: node.id)
                         } label: {
-                            Text(unlocked ? "UNLOCKED: \(node.title.uppercased())" : "UNLOCK \(node.title.uppercased()) • \(node.shardUnlockCost)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text(unlocked ? "Unlocked: \(node.title)" : "Unlock \(node.title) • \(node.shardUnlockCost)")
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(unlocked ? .black : .white)
                                 .padding(.horizontal, 10)
                                 .frame(minHeight: 44)
@@ -258,7 +257,7 @@ struct CommandCenterView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: 11))
 
                 Spacer()
 
@@ -272,8 +271,8 @@ struct CommandCenterView: View {
                 Button {
                     _ = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: true, sabotage: .timeWarp)
                 } label: {
-                    Text("BRAWL WIN")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("Simulate win")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .frame(minHeight: 44)
@@ -284,8 +283,8 @@ struct CommandCenterView: View {
                 Button {
                     _ = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: false, sabotage: nil)
                 } label: {
-                    Text("BRAWL LOSS")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("Simulate loss")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .frame(minHeight: 44)
@@ -315,12 +314,12 @@ struct CommandCenterView: View {
                     .foregroundStyle(color)
 
                 Text(title)
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
                 Text(subtitle)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
@@ -340,9 +339,8 @@ struct CommandCenterView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.tertiary)
-            .tracking(2)
     }
 
     private func snapshotPill(label: String, value: String, icon: String, color: Color) -> some View {
@@ -352,10 +350,10 @@ struct CommandCenterView: View {
                 .foregroundStyle(color)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.tertiary)
                 Text(value)
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
             }
         }

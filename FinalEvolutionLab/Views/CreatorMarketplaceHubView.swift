@@ -68,10 +68,9 @@ struct CreatorMarketplaceHubView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("MARKET LAYER")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Marketplace")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.orange)
-                .tracking(4)
 
             Text("Auction House")
                 .font(.system(size: 44, weight: .black))
@@ -83,19 +82,19 @@ struct CreatorMarketplaceHubView: View {
 
     private var balanceStrip: some View {
         HStack(spacing: 10) {
-            marketPill(icon: "diamond.fill", label: "SHARDS", value: "\(viewModel.profile.evolutionShards)", color: Theme.brandCyan)
-            marketPill(icon: "creditcard.fill", label: "POOL CREDITS", value: "\(viewModel.creatorMarketplace.servicePoolAvailableCredits)", color: Theme.brandBlue)
-            marketPill(icon: "flame.fill", label: "BURNED", value: "\(totalBurnedShards)", color: .orange)
+            marketPill(icon: "diamond.fill", label: "Shards", value: "\(viewModel.profile.evolutionShards)", color: Theme.brandCyan)
+            marketPill(icon: "creditcard.fill", label: "Pool credits", value: "\(viewModel.creatorMarketplace.servicePoolAvailableCredits)", color: Theme.brandBlue)
+            marketPill(icon: "flame.fill", label: "Burned", value: "\(totalBurnedShards)", color: .orange)
         }
     }
 
     private var packSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("PACK OPENING")
+            sectionLabel("Pack opening")
 
             HStack {
                 Text("Packs: \(packCount)")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white)
                 Spacer()
                 Stepper("", value: $packCount, in: 1...10)
@@ -107,8 +106,8 @@ struct CreatorMarketplaceHubView: View {
             Button {
                 pendingConfirmation = .openPacks(count: packCount)
             } label: {
-                Text("OPEN \(packCount) PACK • \(packCount * LabViewModel.creatorPackCostShards) SHARDS")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                Text("Open \(packCount) pack • \(packCount * LabViewModel.creatorPackCostShards) shards")
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 44)
@@ -123,11 +122,11 @@ struct CreatorMarketplaceHubView: View {
                             if let card = cardTemplate(for: asset.templateCardId) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(card.title)
-                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                        .font(.system(size: 11, weight: .semibold))
                                         .foregroundStyle(.white)
                                         .lineLimit(1)
-                                    Text(asset.rarity.rawValue.uppercased())
-                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    Text(asset.rarity.rawValue.capitalized)
+                                        .font(.system(size: 10, weight: .semibold))
                                         .foregroundStyle(rarityColor(asset.rarity))
                                 }
                                 .padding(8)
@@ -151,7 +150,7 @@ struct CreatorMarketplaceHubView: View {
 
     private var inventorySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("INVENTORY")
+            sectionLabel("Inventory")
             if viewModel.ownedCreatorAssets.isEmpty {
                 emptyCard("No creator assets")
             } else {
@@ -160,25 +159,25 @@ struct CreatorMarketplaceHubView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(card.title.uppercased())
-                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    Text(card.title)
+                                        .font(.system(size: 11, weight: .semibold))
                                         .foregroundStyle(.white)
-                                    Text("\(asset.rarity.rawValue.uppercased()) • \(asset.source.rawValue)")
-                                        .font(.system(size: 10, design: .monospaced))
+                                    Text("\(asset.rarity.rawValue.capitalized) • \(asset.source.rawValue)")
+                                        .font(.system(size: 10))
                                         .foregroundStyle(rarityColor(asset.rarity))
                                 }
                                 Spacer()
                                 if asset.isLockedInAuction {
-                                    Text("LISTED")
-                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    Text("Listed")
+                                        .font(.system(size: 10, weight: .bold))
                                         .foregroundStyle(.orange)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
                                         .background(.orange.opacity(0.12))
                                         .clipShape(Capsule())
                                 } else if asset.utilityActive(now: Date(), currentShardBalance: viewModel.profile.evolutionShards) {
-                                    Text("ACTIVE")
-                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    Text("Active")
+                                        .font(.system(size: 10, weight: .bold))
                                         .foregroundStyle(.green)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
@@ -188,7 +187,7 @@ struct CreatorMarketplaceHubView: View {
                             }
 
                             HStack(spacing: 8) {
-                                actionButton("EQUIP", color: Theme.brandBlue) {
+                                actionButton("Equip", color: Theme.brandBlue) {
                                     let ok = viewModel.equipOwnedCreatorCardAsset(assetId: asset.id)
                                     showFeedback(
                                         ok ? "Card equipped" : "Equip failed",
@@ -197,15 +196,15 @@ struct CreatorMarketplaceHubView: View {
                                     )
                                 }
 
-                                actionButton("MAINT 24H", color: Theme.brandCyan) {
+                                actionButton("Maintain 24h", color: Theme.brandCyan) {
                                     pendingConfirmation = .maintenance(assetId: asset.id, hours: 24)
                                 }
 
-                                actionButton("SIGN", color: .purple) {
+                                actionButton("Sign", color: .purple) {
                                     pendingConfirmation = .sign(assetId: asset.id)
                                 }
 
-                                actionButton("LIST", color: .orange) {
+                                actionButton("List", color: .orange) {
                                     let startingBid = suggestedStartBid(for: asset.rarity)
                                     let buyNow = startingBid * 2
                                     pendingConfirmation = .list(
@@ -235,14 +234,14 @@ struct CreatorMarketplaceHubView: View {
     private var activeListingsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                sectionLabel("ACTIVE LISTINGS")
+                sectionLabel("Active listings")
                 Spacer()
                 Button {
                     viewModel.settleExpiredAuctionListings()
                     showFeedback("Expired listings settled", detail: "Eligible auctions were processed.")
                 } label: {
-                    Text("SETTLE")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text("Settle")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.black)
                         .padding(.horizontal, 10)
                         .frame(minHeight: 44)
@@ -259,12 +258,12 @@ struct CreatorMarketplaceHubView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text(card?.title ?? listing.templateCardId)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                             Spacer()
-                            Text(listing.sellerId == viewModel.profile.id ? "YOU" : listing.sellerId)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text(listing.sellerId == viewModel.profile.id ? "You" : listing.sellerId)
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(listing.sellerId == viewModel.profile.id ? Theme.brandCyan : .secondary)
                         }
 
@@ -275,7 +274,7 @@ struct CreatorMarketplaceHubView: View {
                                 Text("Buy Now: \(buyNow) sh")
                             }
                         }
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
 
                         HStack(spacing: 6) {
@@ -300,7 +299,7 @@ struct CreatorMarketplaceHubView: View {
                             .accessibilityLabel("Decrease bid")
 
                             Text("Bid \(bidValues[listing.id, default: listing.currentBidShards + 100])")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundStyle(.white)
 
                             Spacer()
@@ -310,8 +309,8 @@ struct CreatorMarketplaceHubView: View {
                                     let bid = bidValues[listing.id, default: listing.currentBidShards + 100]
                                     pendingConfirmation = .bid(listingId: listing.id, amountShards: bid)
                                 } label: {
-                                    Text("BID")
-                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    Text("Bid")
+                                        .font(.system(size: 10, weight: .bold))
                                         .foregroundStyle(.black)
                                         .padding(.horizontal, 8)
                                         .frame(minHeight: 44)
@@ -322,8 +321,8 @@ struct CreatorMarketplaceHubView: View {
                                     Button {
                                         pendingConfirmation = .buyNow(listingId: listing.id)
                                     } label: {
-                                        Text("BUY NOW")
-                                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                                        Text("Buy now")
+                                            .font(.system(size: 10, weight: .bold))
                                             .foregroundStyle(.black)
                                             .padding(.horizontal, 8)
                                             .frame(minHeight: 44)
@@ -333,7 +332,7 @@ struct CreatorMarketplaceHubView: View {
                                 }
                             } else {
                                 Text("Seller")
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 10))
                                     .foregroundStyle(.tertiary)
                             }
                         }
@@ -356,7 +355,7 @@ struct CreatorMarketplaceHubView: View {
     private var salesHistorySection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                sectionLabel("RECENT SALES")
+                sectionLabel("Recent sales")
                 Spacer()
                 Button {
                     let claimed = viewModel.claimMySignatureRoyaltyCredits()
@@ -366,8 +365,8 @@ struct CreatorMarketplaceHubView: View {
                         isError: claimed == 0
                     )
                 } label: {
-                    Text("CLAIM ROYALTY \(viewModel.myClaimableRoyaltyCredits)")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text("Claim royalty \(viewModel.myClaimableRoyaltyCredits)")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.black)
                         .padding(.horizontal, 10)
                         .frame(minHeight: 44)
@@ -383,15 +382,15 @@ struct CreatorMarketplaceHubView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(cardTemplate(for: sale.templateCardId)?.title ?? sale.templateCardId)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.white)
                             Text("Tax Burn: \(sale.burnedTaxShards) • Royalty: \(sale.royaltyCreditsPaid)cr")
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(.system(size: 10))
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
                         Text("\(sale.salePriceShards) sh")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
                             .foregroundStyle(Theme.brandCyan)
                     }
                     .padding(10)
@@ -444,14 +443,13 @@ struct CreatorMarketplaceHubView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.tertiary)
-            .tracking(2)
     }
 
     private func emptyCard(_ text: String) -> some View {
-        Text(text.uppercased())
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
+        Text(text)
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 12)
@@ -464,7 +462,7 @@ struct CreatorMarketplaceHubView: View {
     private func actionButton(_ label: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(.black)
                 .padding(.horizontal, 8)
                 .frame(minHeight: 44)
@@ -480,10 +478,10 @@ struct CreatorMarketplaceHubView: View {
                 .foregroundStyle(color)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.tertiary)
                 Text(value)
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
             }
         }

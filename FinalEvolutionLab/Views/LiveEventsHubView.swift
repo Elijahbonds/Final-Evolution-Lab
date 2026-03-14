@@ -66,10 +66,9 @@ struct LiveEventsHubView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("COMMAND CENTER")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Command center")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.brandBlue)
-                .tracking(4)
 
             Text("Live Events")
                 .font(.system(size: 48, weight: .black))
@@ -81,22 +80,21 @@ struct LiveEventsHubView: View {
 
     private var walletStrip: some View {
         HStack(spacing: 10) {
-            WalletPill(icon: "creditcard.fill", label: "CREDITS", value: "\(viewModel.profile.premiumCredits)", color: Theme.brandBlue)
-            WalletPill(icon: "diamond.fill", label: "SHARDS", value: "\(viewModel.profile.evolutionShards)", color: Theme.brandCyan)
-            WalletPill(icon: "qrcode", label: "TICKETS", value: "\(viewModel.armoryTickets.count)", color: .orange)
+            WalletPill(icon: "creditcard.fill", label: "Credits", value: "\(viewModel.profile.premiumCredits)", color: Theme.brandBlue)
+            WalletPill(icon: "diamond.fill", label: "Shards", value: "\(viewModel.profile.evolutionShards)", color: Theme.brandCyan)
+            WalletPill(icon: "qrcode", label: "Tickets", value: "\(viewModel.armoryTickets.count)", color: .orange)
         }
     }
 
     private var referralCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("REFERRAL LINK")
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+            Text("Referral link")
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.tertiary)
-                .tracking(2)
 
             if let event = viewModel.upcomingLiveEvents.first {
                 Text(viewModel.referralLink(for: event.id))
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Theme.brandCyan)
                     .lineLimit(1)
             } else {
@@ -108,7 +106,7 @@ struct LiveEventsHubView: View {
             TextField("Referral source user id (optional)", text: $referralSourceUserId)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(.system(size: 12, weight: .medium))
                 .padding(10)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
@@ -116,7 +114,7 @@ struct LiveEventsHubView: View {
                 )
 
             Text("Referrer earns 5% shard bonus on ticket sales")
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }
         .padding(14)
@@ -132,7 +130,7 @@ struct LiveEventsHubView: View {
 
     private var eventsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("LIVE EVENTS")
+            sectionLabel("Live events")
             if viewModel.upcomingLiveEvents.isEmpty {
                 emptyCard("No upcoming events")
             } else {
@@ -147,8 +145,8 @@ struct LiveEventsHubView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(event.title.uppercased())
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                    Text(event.title)
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                     Text(event.description)
@@ -157,8 +155,8 @@ struct LiveEventsHubView: View {
                         .lineLimit(2)
                 }
                 Spacer()
-                Text(event.kind.rawValue.uppercased())
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                Text(event.kind.rawValue.capitalized)
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Theme.brandBlue)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -175,13 +173,13 @@ struct LiveEventsHubView: View {
                 ForEach(EventTicketTier.allCases, id: \.self) { tier in
                     if let pricing = viewModel.ticketPricing(for: event.id, tier: tier) {
                         HStack(spacing: 8) {
-                            Text(tier.displayName.uppercased())
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                            Text(tier.displayName)
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(.white)
                                 .frame(width: 96, alignment: .leading)
 
                             Text(priceLabel(pricing: pricing))
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.secondary)
 
                             Spacer()
@@ -189,8 +187,8 @@ struct LiveEventsHubView: View {
                             Button {
                                 pendingConfirmation = .purchase(eventId: event.id, tier: tier)
                             } label: {
-                                Text("BUY")
-                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                Text("Buy")
+                                    .font(.system(size: 11, weight: .bold))
                                     .foregroundStyle(.black)
                                     .padding(.horizontal, 10)
                                     .frame(minHeight: 44)
@@ -215,7 +213,7 @@ struct LiveEventsHubView: View {
 
     private var armorySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("TICKET ARMORY")
+            sectionLabel("Ticket armory")
             if viewModel.armoryTickets.isEmpty {
                 emptyCard("No tickets owned yet")
             } else {
@@ -227,10 +225,10 @@ struct LiveEventsHubView: View {
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(eventTitle(for: ticket.eventId)) • \(ticket.tier.displayName)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(.white)
                             Text(ticket.qrPayload)
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(.system(size: 10))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
@@ -239,8 +237,8 @@ struct LiveEventsHubView: View {
                             Button {
                                 pendingConfirmation = .checkIn(ticketId: ticket.id)
                             } label: {
-                                Text("CHECK IN")
-                                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                                Text("Check in")
+                                    .font(.system(size: 10, weight: .bold))
                                     .foregroundStyle(.black)
                                     .padding(.horizontal, 8)
                                     .frame(minHeight: 44)
@@ -248,8 +246,8 @@ struct LiveEventsHubView: View {
                                     .clipShape(Capsule())
                             }
                         } else {
-                            Text("CHECKED")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                            Text("Checked")
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(Theme.foundationGreen)
                         }
                     }
@@ -270,25 +268,25 @@ struct LiveEventsHubView: View {
 
     private var fundraisingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("TEAM FUNDRAISING")
+            sectionLabel("Team fundraising")
             if viewModel.activeFundraisingGoals.isEmpty {
                 emptyCard("No active goals")
             } else {
                 ForEach(viewModel.activeFundraisingGoals) { goal in
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(goal.title.uppercased())
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        Text(goal.title)
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(.white)
 
                         progressBar(progress: min(1, Double(goal.currentCredits) / Double(max(1, goal.goalCredits))))
 
                         HStack {
                             Text("\(goal.currentCredits) / \(goal.goalCredits) credits")
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Text("\(goal.percentComplete)%")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundStyle(Theme.brandCyan)
                         }
 
@@ -304,7 +302,7 @@ struct LiveEventsHubView: View {
                                     ForEach(goal.milestoneRewards, id: \.rewardId) { reward in
                                         let unlocked = goal.unlockedRewardIds.contains(reward.rewardId)
                                         Text("\(reward.thresholdPercent)% • \(reward.rewardType.rawValue)")
-                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                            .font(.system(size: 10, weight: .semibold))
                                             .foregroundStyle(unlocked ? .black : .secondary)
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 5)
@@ -318,17 +316,17 @@ struct LiveEventsHubView: View {
                         let donors = viewModel.topDonors(for: goal.id, limit: 3)
                         if !donors.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("TOP DONORS")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                Text("Top donors")
+                                    .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(.tertiary)
                                 ForEach(Array(donors.enumerated()), id: \.offset) { idx, donor in
                                     HStack {
                                         Text("#\(idx + 1) \(donor.userId)")
-                                            .font(.system(size: 11, design: .monospaced))
+                                            .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
                                         Spacer()
                                         Text("\(donor.credits)")
-                                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                                            .font(.system(size: 11, weight: .bold, design: .rounded))
                                             .foregroundStyle(.white)
                                     }
                                 }
@@ -352,7 +350,7 @@ struct LiveEventsHubView: View {
 
     private var liveVotingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("LIVE VOTING")
+            sectionLabel("Live voting")
             if let event = viewModel.upcomingLiveEvents.first(where: { $0.kind == .dunkShow }) {
                 let session = viewModel.eventHub.votingSessions.first(where: { $0.eventId == event.id })
                 VStack(alignment: .leading, spacing: 10) {
@@ -364,18 +362,18 @@ struct LiveEventsHubView: View {
                         Button {
                             pendingConfirmation = .openVoting(eventId: event.id)
                         } label: {
-                            votingActionLabel("OPEN", color: .green)
+                            votingActionLabel("Open", color: .green)
                         }
                         Button {
                             pendingConfirmation = .closeVoting(eventId: event.id)
                         } label: {
-                            votingActionLabel("CLOSE", color: .orange)
+                            votingActionLabel("Close", color: .orange)
                         }
                     }
 
                     HStack {
                         Text("SCORE: \(selectedVoteScore)")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                         Spacer()
                         Stepper("", value: $selectedVoteScore, in: 1...10)
@@ -392,8 +390,8 @@ struct LiveEventsHubView: View {
                             isError: !ok
                         )
                     } label: {
-                        Text("SUBMIT TICKET-HOLDER VOTE")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        Text("Submit ticket-holder vote")
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: 44)
@@ -402,16 +400,16 @@ struct LiveEventsHubView: View {
                     }
 
                     HStack {
-                        Text("Status: \(session?.isOpen == true ? "OPEN" : "CLOSED")")
+                        Text("Status: \(session?.isOpen == true ? "Open" : "Closed")")
                         Spacer()
                         Text("Votes: \(session?.votes.count ?? 0)")
                     }
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
 
                     if let outcome = viewModel.eventHub.voteOutcomeByEvent?[event.id] {
                         Text(outcome.summary)
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(Theme.brandCyan)
                     }
                 }
@@ -433,7 +431,7 @@ struct LiveEventsHubView: View {
 
     private var rewardsLedgerSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("REWARD LEDGER")
+            sectionLabel("Reward ledger")
             HStack {
                 ledgerCell("Referral Shards", value: "\(viewModel.eventHub.referralShardRewardsByUser[viewModel.profile.id] ?? 0)")
                 ledgerCell("Vote Shards", value: "\(viewModel.eventHub.participationShardRewardsByUser[viewModel.profile.id] ?? 0)")
@@ -447,8 +445,8 @@ struct LiveEventsHubView: View {
                 Button {
                     pendingConfirmation = .claimReferral
                 } label: {
-                    Text("CLAIM REFERRAL")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("Claim referral")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .frame(minHeight: 44)
@@ -466,11 +464,11 @@ struct LiveEventsHubView: View {
 
     private func ledgerCell(_ title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.tertiary)
             Text(value)
-                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -486,7 +484,7 @@ struct LiveEventsHubView: View {
             pendingConfirmation = .donate(goalId: goalId, amount: amount)
         } label: {
             Text("+\(amount)")
-                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundStyle(.black)
                 .padding(.horizontal, 10)
                 .frame(minHeight: 44)
@@ -502,14 +500,14 @@ struct LiveEventsHubView: View {
             Image(systemName: icon)
                 .font(.system(size: 10))
             Text(text)
-                .font(.system(size: 10, design: .monospaced))
+                .font(.system(size: 10))
         }
         .foregroundStyle(.secondary)
     }
 
     private func votingActionLabel(_ text: String, color: Color) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .black, design: .monospaced))
+            .font(.system(size: 11, weight: .bold))
             .foregroundStyle(color)
             .padding(.horizontal, 10)
             .frame(minHeight: 44)
@@ -533,14 +531,13 @@ struct LiveEventsHubView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.tertiary)
-            .tracking(2)
     }
 
     private func emptyCard(_ text: String) -> some View {
-        Text(text.uppercased())
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
+        Text(text)
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 12)
@@ -709,10 +706,10 @@ private struct WalletPill: View {
                 .foregroundStyle(color)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.tertiary)
                 Text(value)
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
             }
         }
