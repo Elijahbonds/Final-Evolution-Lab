@@ -134,18 +134,18 @@ struct CommandCenterView: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(mode.name.uppercased())
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
                                     .foregroundStyle(.white)
                                     .lineLimit(1)
                                 Text(mode.subtitle)
-                                    .font(.system(size: 8, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                                 HStack(spacing: 4) {
                                     Image(systemName: mode.iconName)
-                                        .font(.system(size: 8))
+                                        .font(.system(size: 10))
                                     Text(mode.environmentName)
-                                        .font(.system(size: 8, design: .monospaced))
+                                        .font(.system(size: 10, design: .monospaced))
                                 }
                                 .foregroundStyle(mode.accentColor.opacity(0.85))
                             }
@@ -222,10 +222,10 @@ struct CommandCenterView: View {
                         viewModel.selectMentor(mentor)
                     } label: {
                         Text(mentor.rawValue.uppercased())
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
                             .foregroundStyle(viewModel.academyProgress.selectedMentor == mentor ? .black : .white)
                             .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
+                            .frame(minHeight: 44)
                             .background(viewModel.academyProgress.selectedMentor == mentor ? Theme.brandBlue : Color.white.opacity(0.06))
                             .clipShape(Capsule())
                     }
@@ -240,10 +240,10 @@ struct CommandCenterView: View {
                             _ = viewModel.unlockAcademyKnowledgeNode(nodeId: node.id)
                         } label: {
                             Text(unlocked ? "UNLOCKED: \(node.title.uppercased())" : "UNLOCK \(node.title.uppercased()) • \(node.shardUnlockCost)")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(unlocked ? .black : .white)
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
+                                .frame(minHeight: 44)
                                 .background(unlocked ? Theme.foundationGreen : Color.white.opacity(0.06))
                                 .clipShape(Capsule())
                         }
@@ -252,18 +252,20 @@ struct CommandCenterView: View {
             }
 
             HStack {
-                Picker("", selection: $academyTrack) {
+                Picker("Academy track", selection: $academyTrack) {
                     ForEach(AcademyTrack.allCases, id: \.self) { track in
                         Text(track.rawValue).tag(track)
                     }
                 }
                 .pickerStyle(.menu)
-                .font(.system(size: 9, design: .monospaced))
+                .font(.system(size: 11, design: .monospaced))
 
                 Spacer()
 
                 Stepper("Wager \(academyWager)", value: $academyWager, in: BrainBrawlRulebook.default.minimumWager...BrainBrawlRulebook.default.maximumWager, step: 25)
                     .labelsHidden()
+                    .accessibilityLabel("Brain Brawl wager")
+                    .accessibilityValue("\(academyWager) shards")
             }
 
             HStack(spacing: 8) {
@@ -271,10 +273,10 @@ struct CommandCenterView: View {
                     _ = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: true, sabotage: .timeWarp)
                 } label: {
                     Text("BRAWL WIN")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
+                        .frame(minHeight: 44)
                         .background(Theme.foundationGreen)
                         .clipShape(.rect(cornerRadius: 10))
                 }
@@ -283,10 +285,10 @@ struct CommandCenterView: View {
                     _ = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: false, sabotage: nil)
                 } label: {
                     Text("BRAWL LOSS")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
+                        .frame(minHeight: 44)
                         .background(.orange)
                         .clipShape(.rect(cornerRadius: 10))
                 }
@@ -313,12 +315,12 @@ struct CommandCenterView: View {
                     .foregroundStyle(color)
 
                 Text(title)
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
                 Text(subtitle)
-                    .font(.system(size: 8, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
@@ -338,7 +340,7 @@ struct CommandCenterView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .font(.system(size: 11, weight: .bold, design: .monospaced))
             .foregroundStyle(.tertiary)
             .tracking(2)
     }
@@ -346,14 +348,14 @@ struct CommandCenterView: View {
     private func snapshotPill(label: String, value: String, icon: String, color: Color) -> some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(color)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(.tertiary)
                 Text(value)
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundStyle(.white)
             }
         }

@@ -98,7 +98,6 @@ struct ContentView: View {
             }
         }
         .tint(Theme.brandBlue)
-        .preferredColorScheme(.dark)
         .environment(\.simpleMode, simpleMode)
         .sheet(isPresented: $showSettings) {
             SettingsSheet(simpleMode: $simpleMode, viewModel: viewModel)

@@ -12,8 +12,8 @@ struct SystemScanView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var videoURL: URL?
     @State private var analysisProgress: Double = 0
-    @State private var scanLines: CGFloat = 0
     @State private var gridPulse: Bool = false
+    @State private var scanError: String?
 
     private enum ScanPhase {
         case picking
@@ -130,6 +130,14 @@ struct SystemScanView: View {
             .onChange(of: selectedItem) { _, newItem in
                 guard newItem != nil else { return }
                 startAnalysis()
+            }
+
+            if let scanError {
+                Text(scanError)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
             }
 
             Spacer()
@@ -498,9 +506,19 @@ struct SystemScanView: View {
     private func startAnalysis() {
         withAnimation(.spring(response: 0.4)) { phase = .analyzing }
         analysisProgress = 0
+        scanError = nil
 
         Task {
             let resolvedVideoURL = await resolveSelectedVideoURL(from: selectedItem)
+            guard let resolvedVideoURL else {
+                await MainActor.run {
+                    withAnimation(.spring(response: 0.4)) {
+                        phase = .picking
+                    }
+                    scanError = "Unable to read the selected clip. Try choosing a different local video."
+                }
+                return
+            }
             await MainActor.run {
                 videoURL = resolvedVideoURL
             }

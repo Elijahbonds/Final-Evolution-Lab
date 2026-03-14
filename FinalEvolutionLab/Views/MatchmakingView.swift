@@ -12,6 +12,7 @@ struct MatchmakingView: View {
     @State private var showNeuralScan = false
     @State private var sessionReadiness: Double = 50
     @State private var showRecentMatches = false
+    @State private var pendingCalibrateOpponent: MatchmakingOpponent?
 
     private var userTier: PRQTier {
         PRQTier.fromPRQ(viewModel.effectiveMetrics.prqScore)
@@ -31,11 +32,14 @@ struct MatchmakingView: View {
             }
             .padding()
         }
-        .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: $showNeuralScan) {
             NeuralReadinessScanView { readiness in
                 sessionReadiness = readiness
                 showNeuralScan = false
+                if let pendingCalibrateOpponent {
+                    onMatchFound(pendingCalibrateOpponent, readiness)
+                    self.pendingCalibrateOpponent = nil
+                }
             }
         }
         .sheet(isPresented: $showRecentMatches) {
@@ -300,25 +304,38 @@ struct MatchmakingView: View {
             }
 
             Button {
-                showNeuralScan = true
+                let readiness = max(50, viewModel.profile.metrics.readinessScore)
+                onMatchFound(result.opponent, readiness)
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "bolt.fill")
-                    Text("ACCEPT & CALIBRATE")
+                    Image(systemName: "play.fill")
+                    Text("ACCEPT & PLAY")
                 }
                 .font(.system(.subheadline, design: .monospaced, weight: .black))
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .frame(minHeight: 44)
                 .background(Theme.brandCyan)
                 .clipShape(.rect(cornerRadius: 14))
             }
             .padding(.horizontal, 32)
-            .onChange(of: showNeuralScan) { _, isShowing in
-                if !isShowing && sessionReadiness > 0 {
-                    onMatchFound(result.opponent, sessionReadiness)
+
+            Button {
+                pendingCalibrateOpponent = result.opponent
+                showNeuralScan = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "waveform.path.ecg")
+                    Text("SCAN & CALIBRATE")
                 }
+                .font(.system(.caption, design: .monospaced, weight: .black))
+                .foregroundStyle(Theme.brandCyan)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 44)
+                .background(Theme.brandCyan.opacity(0.1))
+                .clipShape(.rect(cornerRadius: 12))
             }
+            .padding(.horizontal, 32)
 
             Button {
                 viewModel.globalLeaderboard.cancelMatchmaking()

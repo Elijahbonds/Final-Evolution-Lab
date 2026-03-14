@@ -57,7 +57,6 @@ struct NeuralReadinessScanView: View {
             }
             .padding()
         }
-        .preferredColorScheme(.dark)
     }
 
     private var meshBackground: some View {

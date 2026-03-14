@@ -6,7 +6,8 @@ struct CreatorMarketplaceHubView: View {
     @State private var packCount: Int = 1
     @State private var lastPackPulls: [CreatorCardAsset] = []
     @State private var bidValues: [String: Int] = [:]
-    @State private var toastMessage: String?
+    @State private var feedbackBanner: MarketplaceFeedbackBanner?
+    @State private var pendingConfirmation: MarketplaceConfirmation?
 
     var body: some View {
         ScrollView {
@@ -27,17 +28,41 @@ struct CreatorMarketplaceHubView: View {
             viewModel.seedMarketplaceDemoLiquidityIfNeeded()
         }
         .overlay(alignment: .bottom) {
-            if let toastMessage {
-                Text(toastMessage)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Theme.brandBlue)
-                    .clipShape(Capsule())
-                    .padding(.bottom, 12)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            if let feedbackBanner {
+                HStack(spacing: 10) {
+                    Image(systemName: feedbackBanner.isError ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                        .font(.system(size: 14, weight: .bold))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(feedbackBanner.message)
+                            .font(.system(size: 12, weight: .bold))
+                        if let detail = feedbackBanner.detail {
+                            Text(detail)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.black.opacity(0.75))
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(.black)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(feedbackBanner.isError ? Color.orange : Theme.brandBlue)
+                .clipShape(.rect(cornerRadius: 12))
+                .padding(.horizontal)
+                .padding(.bottom, 12)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        }
+        .alert(item: $pendingConfirmation) { action in
+            Alert(
+                title: Text(action.title),
+                message: Text(action.message),
+                primaryButton: .default(Text(action.confirmButton)) {
+                    performConfirmedAction(action)
+                },
+                secondaryButton: .cancel()
+            )
         }
     }
 
@@ -75,18 +100,18 @@ struct CreatorMarketplaceHubView: View {
                 Spacer()
                 Stepper("", value: $packCount, in: 1...10)
                     .labelsHidden()
+                    .accessibilityLabel("Pack count")
+                    .accessibilityValue("\(packCount)")
             }
 
             Button {
-                let pulls = viewModel.openCreatorPacks(count: packCount)
-                lastPackPulls = pulls
-                showToast(pulls.isEmpty ? "Pack open failed" : "Opened \(pulls.count) pack(s)")
+                pendingConfirmation = .openPacks(count: packCount)
             } label: {
                 Text("OPEN \(packCount) PACK • \(packCount * LabViewModel.creatorPackCostShards) SHARDS")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .frame(minHeight: 44)
                     .background(.orange)
                     .clipShape(.rect(cornerRadius: 10))
             }
@@ -98,11 +123,11 @@ struct CreatorMarketplaceHubView: View {
                             if let card = cardTemplate(for: asset.templateCardId) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(card.title)
-                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
                                         .foregroundStyle(.white)
                                         .lineLimit(1)
                                     Text(asset.rarity.rawValue.uppercased())
-                                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
                                         .foregroundStyle(rarityColor(asset.rarity))
                                 }
                                 .padding(8)
@@ -139,13 +164,13 @@ struct CreatorMarketplaceHubView: View {
                                         .font(.system(size: 10, weight: .black, design: .monospaced))
                                         .foregroundStyle(.white)
                                     Text("\(asset.rarity.rawValue.uppercased()) • \(asset.source.rawValue)")
-                                        .font(.system(size: 8, design: .monospaced))
+                                        .font(.system(size: 10, design: .monospaced))
                                         .foregroundStyle(rarityColor(asset.rarity))
                                 }
                                 Spacer()
                                 if asset.isLockedInAuction {
                                     Text("LISTED")
-                                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
                                         .foregroundStyle(.orange)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
@@ -153,7 +178,7 @@ struct CreatorMarketplaceHubView: View {
                                         .clipShape(Capsule())
                                 } else if asset.utilityActive(now: Date(), currentShardBalance: viewModel.profile.evolutionShards) {
                                     Text("ACTIVE")
-                                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
                                         .foregroundStyle(.green)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
@@ -165,28 +190,29 @@ struct CreatorMarketplaceHubView: View {
                             HStack(spacing: 8) {
                                 actionButton("EQUIP", color: Theme.brandBlue) {
                                     let ok = viewModel.equipOwnedCreatorCardAsset(assetId: asset.id)
-                                    showToast(ok ? "Card equipped" : "Equip failed")
+                                    showFeedback(
+                                        ok ? "Card equipped" : "Equip failed",
+                                        detail: ok ? "Your active card boost has been updated." : "This card cannot be equipped right now.",
+                                        isError: !ok
+                                    )
                                 }
 
                                 actionButton("MAINT 24H", color: Theme.brandCyan) {
-                                    let ok = viewModel.activateCardMaintenance(assetId: asset.id, hours: 24)
-                                    showToast(ok ? "Maintenance extended" : "Not enough shards")
+                                    pendingConfirmation = .maintenance(assetId: asset.id, hours: 24)
                                 }
 
                                 actionButton("SIGN", color: .purple) {
-                                    let ok = viewModel.signCardAsSignature(assetId: asset.id)
-                                    showToast(ok ? "Card signed" : "Signature cap reached")
+                                    pendingConfirmation = .sign(assetId: asset.id)
                                 }
 
                                 actionButton("LIST", color: .orange) {
                                     let startingBid = suggestedStartBid(for: asset.rarity)
                                     let buyNow = startingBid * 2
-                                    let ok = viewModel.listOwnedCardForAuction(
+                                    pendingConfirmation = .list(
                                         assetId: asset.id,
                                         startingBidShards: startingBid,
                                         buyNowShards: buyNow
                                     )
-                                    showToast(ok ? "Listed for auction" : "Listing failed")
                                 }
                             }
                         }
@@ -213,13 +239,13 @@ struct CreatorMarketplaceHubView: View {
                 Spacer()
                 Button {
                     viewModel.settleExpiredAuctionListings()
-                    showToast("Expired listings settled")
+                    showFeedback("Expired listings settled", detail: "Eligible auctions were processed.")
                 } label: {
                     Text("SETTLE")
-                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
                         .foregroundStyle(.black)
                         .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
+                        .frame(minHeight: 44)
                         .background(Theme.foundationGreen)
                         .clipShape(Capsule())
                 }
@@ -238,7 +264,7 @@ struct CreatorMarketplaceHubView: View {
                                 .lineLimit(1)
                             Spacer()
                             Text(listing.sellerId == viewModel.profile.id ? "YOU" : listing.sellerId)
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(listing.sellerId == viewModel.profile.id ? Theme.brandCyan : .secondary)
                         }
 
@@ -249,7 +275,7 @@ struct CreatorMarketplaceHubView: View {
                                 Text("Buy Now: \(buyNow) sh")
                             }
                         }
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)
 
                         HStack(spacing: 6) {
@@ -260,6 +286,8 @@ struct CreatorMarketplaceHubView: View {
                                     .font(.system(size: 14))
                                     .foregroundStyle(Theme.brandBlue)
                             }
+                            .frame(minWidth: 44, minHeight: 44)
+                            .accessibilityLabel("Increase bid")
                             Button {
                                 bidValues[listing.id, default: listing.currentBidShards + 100] =
                                     max(listing.currentBidShards + 1, bidValues[listing.id, default: listing.currentBidShards + 100] - 100)
@@ -268,9 +296,11 @@ struct CreatorMarketplaceHubView: View {
                                     .font(.system(size: 14))
                                     .foregroundStyle(.secondary)
                             }
+                            .frame(minWidth: 44, minHeight: 44)
+                            .accessibilityLabel("Decrease bid")
 
                             Text("Bid \(bidValues[listing.id, default: listing.currentBidShards + 100])")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.white)
 
                             Spacer()
@@ -278,34 +308,32 @@ struct CreatorMarketplaceHubView: View {
                             if listing.sellerId != viewModel.profile.id {
                                 Button {
                                     let bid = bidValues[listing.id, default: listing.currentBidShards + 100]
-                                    let ok = viewModel.placeBidOnListing(listingId: listing.id, bidAmountShards: bid)
-                                    showToast(ok ? "Bid placed" : "Bid rejected")
+                                    pendingConfirmation = .bid(listingId: listing.id, amountShards: bid)
                                 } label: {
                                     Text("BID")
-                                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
                                         .foregroundStyle(.black)
                                         .padding(.horizontal, 8)
-                                        .padding(.vertical, 5)
+                                        .frame(minHeight: 44)
                                         .background(Theme.brandBlue)
                                         .clipShape(Capsule())
                                 }
                                 if listing.buyNowShards != nil {
                                     Button {
-                                        let ok = viewModel.buyNowListing(listingId: listing.id)
-                                        showToast(ok ? "Bought listing" : "Buy now failed")
+                                        pendingConfirmation = .buyNow(listingId: listing.id)
                                     } label: {
                                         Text("BUY NOW")
-                                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                                            .font(.system(size: 10, weight: .black, design: .monospaced))
                                             .foregroundStyle(.black)
                                             .padding(.horizontal, 8)
-                                            .padding(.vertical, 5)
+                                            .frame(minHeight: 44)
                                             .background(.orange)
                                             .clipShape(Capsule())
                                     }
                                 }
                             } else {
                                 Text("Seller")
-                                    .font(.system(size: 8, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.tertiary)
                             }
                         }
@@ -332,13 +360,17 @@ struct CreatorMarketplaceHubView: View {
                 Spacer()
                 Button {
                     let claimed = viewModel.claimMySignatureRoyaltyCredits()
-                    showToast(claimed > 0 ? "Claimed \(claimed) royalty credits" : "No royalty credits")
+                    showFeedback(
+                        claimed > 0 ? "Claimed \(claimed) royalty credits" : "No royalty credits",
+                        detail: claimed > 0 ? "Royalty credits moved to your wallet." : "No claimable signature royalties available.",
+                        isError: claimed == 0
+                    )
                 } label: {
                     Text("CLAIM ROYALTY \(viewModel.myClaimableRoyaltyCredits)")
-                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
                         .foregroundStyle(.black)
                         .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
+                        .frame(minHeight: 44)
                         .background(Theme.brandBlue)
                         .clipShape(Capsule())
                 }
@@ -354,7 +386,7 @@ struct CreatorMarketplaceHubView: View {
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.white)
                             Text("Tax Burn: \(sale.burnedTaxShards) • Royalty: \(sale.royaltyCreditsPaid)cr")
-                                .font(.system(size: 8, design: .monospaced))
+                                .font(.system(size: 10, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -412,14 +444,14 @@ struct CreatorMarketplaceHubView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .font(.system(size: 11, weight: .bold, design: .monospaced))
             .foregroundStyle(.tertiary)
             .tracking(2)
     }
 
     private func emptyCard(_ text: String) -> some View {
         Text(text.uppercased())
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .font(.system(size: 11, weight: .bold, design: .monospaced))
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 12)
@@ -432,10 +464,10 @@ struct CreatorMarketplaceHubView: View {
     private func actionButton(_ label: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .font(.system(size: 10, weight: .black, design: .monospaced))
                 .foregroundStyle(.black)
                 .padding(.horizontal, 8)
-                .padding(.vertical, 5)
+                .frame(minHeight: 44)
                 .background(color)
                 .clipShape(Capsule())
         }
@@ -448,10 +480,10 @@ struct CreatorMarketplaceHubView: View {
                 .foregroundStyle(color)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(.tertiary)
                 Text(value)
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundStyle(.white)
             }
         }
@@ -464,17 +496,135 @@ struct CreatorMarketplaceHubView: View {
         )
     }
 
-    private func showToast(_ message: String) {
+    private func showFeedback(_ message: String, detail: String? = nil, isError: Bool = false) {
         withAnimation(.spring(response: 0.25)) {
-            toastMessage = message
+            feedbackBanner = MarketplaceFeedbackBanner(message: message, detail: detail, isError: isError)
         }
         Task {
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: .seconds(2.25))
             await MainActor.run {
                 withAnimation(.easeOut(duration: 0.2)) {
-                    toastMessage = nil
+                    feedbackBanner = nil
                 }
             }
+        }
+    }
+
+    private func performConfirmedAction(_ action: MarketplaceConfirmation) {
+        switch action {
+        case let .openPacks(count):
+            let pulls = viewModel.openCreatorPacks(count: count)
+            lastPackPulls = pulls
+            showFeedback(
+                pulls.isEmpty ? "Pack open failed" : "Opened \(pulls.count) pack(s)",
+                detail: pulls.isEmpty ? "Insufficient shards for this pack purchase." : "New assets were added to your inventory.",
+                isError: pulls.isEmpty
+            )
+        case let .maintenance(assetId, hours):
+            let ok = viewModel.activateCardMaintenance(assetId: assetId, hours: hours)
+            showFeedback(
+                ok ? "Maintenance extended" : "Maintenance failed",
+                detail: ok ? "Card utility remains active." : "Not enough shards for maintenance cost.",
+                isError: !ok
+            )
+        case let .sign(assetId):
+            let ok = viewModel.signCardAsSignature(assetId: assetId)
+            showFeedback(
+                ok ? "Card signed" : "Signature cap reached",
+                detail: ok ? "This asset can now accrue resale royalties." : "Creator signature mint cap has been reached.",
+                isError: !ok
+            )
+        case let .list(assetId, startingBidShards, buyNowShards):
+            let ok = viewModel.listOwnedCardForAuction(
+                assetId: assetId,
+                startingBidShards: startingBidShards,
+                buyNowShards: buyNowShards
+            )
+            showFeedback(
+                ok ? "Listed for auction" : "Listing failed",
+                detail: ok ? "Card was locked and posted to active listings." : "Card is not eligible for listing.",
+                isError: !ok
+            )
+        case let .bid(listingId, amountShards):
+            let ok = viewModel.placeBidOnListing(listingId: listingId, bidAmountShards: amountShards)
+            showFeedback(
+                ok ? "Bid placed" : "Bid rejected",
+                detail: ok ? "Your shards are escrowed until outbid/settled." : "Bid must exceed current price and available shards.",
+                isError: !ok
+            )
+        case let .buyNow(listingId):
+            let ok = viewModel.buyNowListing(listingId: listingId)
+            showFeedback(
+                ok ? "Bought listing" : "Buy now failed",
+                detail: ok ? "Asset transferred to your inventory." : "Insufficient shards or listing no longer available.",
+                isError: !ok
+            )
+        }
+    }
+}
+
+private struct MarketplaceFeedbackBanner {
+    let message: String
+    let detail: String?
+    let isError: Bool
+}
+
+private enum MarketplaceConfirmation: Identifiable {
+    case openPacks(count: Int)
+    case maintenance(assetId: String, hours: Int)
+    case sign(assetId: String)
+    case list(assetId: String, startingBidShards: Int, buyNowShards: Int?)
+    case bid(listingId: String, amountShards: Int)
+    case buyNow(listingId: String)
+
+    var id: String {
+        switch self {
+        case let .openPacks(count): return "openpacks-\(count)"
+        case let .maintenance(assetId, hours): return "maint-\(assetId)-\(hours)"
+        case let .sign(assetId): return "sign-\(assetId)"
+        case let .list(assetId, startingBidShards, buyNowShards):
+            return "list-\(assetId)-\(startingBidShards)-\(buyNowShards ?? 0)"
+        case let .bid(listingId, amountShards): return "bid-\(listingId)-\(amountShards)"
+        case let .buyNow(listingId): return "buynow-\(listingId)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case let .openPacks(count): return "Open \(count) pack(s)?"
+        case .maintenance: return "Extend maintenance?"
+        case .sign: return "Sign this card?"
+        case .list: return "List this card for auction?"
+        case let .bid(_, amountShards): return "Place bid of \(amountShards) shards?"
+        case .buyNow: return "Buy listing now?"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .openPacks:
+            return "This spends shards and cannot be reversed."
+        case .maintenance:
+            return "Maintenance spends shards to keep card utility active."
+        case .sign:
+            return "Signing is limited and affects rarity/royalty state."
+        case .list:
+            return "Listing locks this card until sold, expired, or canceled."
+        case .bid:
+            return "Bid amount is escrowed until settlement or outbid."
+        case .buyNow:
+            return "This immediately purchases and settles the listing."
+        }
+    }
+
+    var confirmButton: String {
+        switch self {
+        case .openPacks: return "Open Packs"
+        case .maintenance: return "Extend"
+        case .sign: return "Sign"
+        case .list: return "List"
+        case .bid: return "Place Bid"
+        case .buyNow: return "Buy Now"
         }
     }
 }

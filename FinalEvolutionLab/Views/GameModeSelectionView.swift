@@ -3,12 +3,12 @@ import SwiftUI
 struct GameModeSelectionView: View {
     let viewModel: LabViewModel
     @State private var appeared = false
-    @State private var selectedMode: GameMode?
     @State private var showNeuralScan = false
     @State private var pendingMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToGame = false
     @State private var showMatchmaking = false
+    @State private var showStartOptions = false
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -36,6 +36,7 @@ struct GameModeSelectionView: View {
             NeuralReadinessScanView { readiness in
                 sessionReadiness = readiness
                 viewModel.profile.metrics.neuralDrive = min(100, readiness)
+                viewModel.profile.metrics.readinessScore = readiness
                 SaveSystem.saveProfile(viewModel.profile)
                 showNeuralScan = false
                 Task {
@@ -48,6 +49,8 @@ struct GameModeSelectionView: View {
             if let mode = pendingMode {
                 MatchmakingView(viewModel: viewModel, gameMode: mode) { opponent, readiness in
                     sessionReadiness = readiness
+                    viewModel.profile.metrics.readinessScore = readiness
+                    SaveSystem.saveProfile(viewModel.profile)
                     showMatchmaking = false
                     Task {
                         try? await Task.sleep(for: .milliseconds(300))
@@ -55,6 +58,18 @@ struct GameModeSelectionView: View {
                     }
                 }
             }
+        }
+        .confirmationDialog("Start \(pendingMode?.name ?? "Mode")", isPresented: $showStartOptions, titleVisibility: .visible) {
+            Button("Quick Start") {
+                sessionReadiness = max(50, viewModel.profile.metrics.readinessScore)
+                navigateToGame = true
+            }
+            Button("Scan & Calibrate") {
+                showNeuralScan = true
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Quick Start uses your latest readiness profile. Scan & Calibrate runs a fresh readiness scan.")
         }
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
@@ -85,7 +100,7 @@ struct GameModeSelectionView: View {
 
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
-                    Text("11")
+                    Text("\(GameModeRegistry.all.count)")
                         .font(.system(.caption, design: .monospaced, weight: .black))
                         .foregroundStyle(Theme.brandCyan)
                     Text("MODES")
@@ -99,7 +114,7 @@ struct GameModeSelectionView: View {
 
                 HStack(spacing: 4) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 9))
+                        .font(.system(size: 10))
                         .foregroundStyle(Theme.brandCyan.opacity(0.7))
                     Text("MULTIPLAYER")
                         .font(.system(.caption2, design: .monospaced, weight: .medium))
@@ -179,7 +194,7 @@ struct GameModeSelectionView: View {
                 ForEach(Array(modes.enumerated()), id: \.element.id) { modeIndex, mode in
                     GameModeCard(mode: mode) {
                         pendingMode = mode
-                        showNeuralScan = true
+                        showStartOptions = true
                     }
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
@@ -241,30 +256,30 @@ struct GameModeCard: View {
 
                 HStack(spacing: 4) {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 8))
+                        .font(.system(size: 10))
                     Text(mode.environmentName)
-                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
                 }
                 .foregroundStyle(.tertiary)
 
                 HStack(spacing: 5) {
                     Image(systemName: "gamecontroller.fill")
-                        .font(.system(size: 8))
+                        .font(.system(size: 10))
                     Image(systemName: "hand.draw.fill")
-                        .font(.system(size: 8))
+                        .font(.system(size: 10))
                     Text("Controller / Swipe")
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
                 }
                 .foregroundStyle(.secondary)
 
                 Text(mode.id.gameplayDNA)
-                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundStyle(mode.accentColor.opacity(0.55))
                     .lineLimit(2)
 
                 if let hint = mode.hint {
                     Text(hint)
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
                         .foregroundStyle(mode.accentColor.opacity(0.6))
                         .lineLimit(1)
                 }
@@ -303,6 +318,8 @@ struct GameModeCard: View {
             )
             .scaleEffect(isPressed ? 0.96 : 1)
         }
+        .accessibilityLabel("\(mode.name), \(mode.subtitle). \(mode.environmentName).")
+        .accessibilityHint("Double tap to choose quick start or calibrate before playing.")
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .light), trigger: isPressed)
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
@@ -316,9 +333,9 @@ struct GameModeCard: View {
             case .realtime:
                 HStack(spacing: 3) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 7))
+                        .font(.system(size: 10))
                     Text("LIVE")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
                 }
                 .foregroundStyle(Theme.brandCyan)
                 .padding(.horizontal, 6)
@@ -328,9 +345,9 @@ struct GameModeCard: View {
             case .turnBased:
                 HStack(spacing: 3) {
                     Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 7))
+                        .font(.system(size: 10))
                     Text("TURNS")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
                 }
                 .foregroundStyle(.orange)
                 .padding(.horizontal, 6)

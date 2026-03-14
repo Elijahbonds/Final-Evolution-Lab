@@ -5,7 +5,8 @@ struct LiveEventsHubView: View {
 
     @State private var referralSourceUserId: String = ""
     @State private var selectedVoteScore: Int = 8
-    @State private var toastMessage: String?
+    @State private var feedbackBanner: LiveEventFeedbackBanner?
+    @State private var pendingConfirmation: LiveEventsConfirmation?
 
     var body: some View {
         ScrollView {
@@ -25,17 +26,41 @@ struct LiveEventsHubView: View {
         .scrollIndicators(.hidden)
         .background(Theme.deepBlack)
         .overlay(alignment: .bottom) {
-            if let toastMessage {
-                Text(toastMessage)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Theme.brandCyan)
-                    .clipShape(Capsule())
-                    .padding(.bottom, 12)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            if let feedbackBanner {
+                HStack(spacing: 10) {
+                    Image(systemName: feedbackBanner.isError ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                        .font(.system(size: 14, weight: .bold))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(feedbackBanner.message)
+                            .font(.system(size: 12, weight: .bold))
+                        if let detail = feedbackBanner.detail {
+                            Text(detail)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.black.opacity(0.75))
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(.black)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(feedbackBanner.isError ? Color.orange : Theme.brandCyan)
+                .clipShape(.rect(cornerRadius: 12))
+                .padding(.horizontal)
+                .padding(.bottom, 12)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        }
+        .alert(item: $pendingConfirmation) { action in
+            Alert(
+                title: Text(action.title),
+                message: Text(action.message),
+                primaryButton: .default(Text(action.confirmButton)) {
+                    performConfirmedAction(action)
+                },
+                secondaryButton: .cancel()
+            )
         }
     }
 
@@ -65,7 +90,7 @@ struct LiveEventsHubView: View {
     private var referralCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("REFERRAL LINK")
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .tracking(2)
 
@@ -91,7 +116,7 @@ struct LiveEventsHubView: View {
                 )
 
             Text("Referrer earns 5% shard bonus on ticket sales")
-                .font(.system(size: 9, design: .monospaced))
+                .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(.secondary)
         }
         .padding(14)
@@ -133,7 +158,7 @@ struct LiveEventsHubView: View {
                 }
                 Spacer()
                 Text(event.kind.rawValue.uppercased())
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(Theme.brandBlue)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -151,32 +176,24 @@ struct LiveEventsHubView: View {
                     if let pricing = viewModel.ticketPricing(for: event.id, tier: tier) {
                         HStack(spacing: 8) {
                             Text(tier.displayName.uppercased())
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
                                 .foregroundStyle(.white)
                                 .frame(width: 96, alignment: .leading)
 
                             Text(priceLabel(pricing: pricing))
-                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.secondary)
 
                             Spacer()
 
                             Button {
-                                if let ticket = viewModel.purchaseEventTicket(
-                                    eventId: event.id,
-                                    tier: tier,
-                                    referralSourceUserId: sanitizedReferral
-                                ) {
-                                    showToast("Ticket minted: \(ticket.tier.displayName)")
-                                } else {
-                                    showToast("Purchase failed")
-                                }
+                                pendingConfirmation = .purchase(eventId: event.id, tier: tier)
                             } label: {
                                 Text("BUY")
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
                                     .foregroundStyle(.black)
                                     .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
+                                    .frame(minHeight: 44)
                                     .background(Theme.brandBlue)
                                     .clipShape(Capsule())
                             }
@@ -213,27 +230,26 @@ struct LiveEventsHubView: View {
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.white)
                             Text(ticket.qrPayload)
-                                .font(.system(size: 8, design: .monospaced))
+                                .font(.system(size: 10, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
                         Spacer()
                         if ticket.checkedInAt == nil {
                             Button {
-                                let ok = viewModel.checkInTicket(ticketId: ticket.id)
-                                showToast(ok ? "Ticket checked in (+75 shards)" : "Check-in failed")
+                                pendingConfirmation = .checkIn(ticketId: ticket.id)
                             } label: {
                                 Text("CHECK IN")
-                                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                                    .font(.system(size: 10, weight: .black, design: .monospaced))
                                     .foregroundStyle(.black)
                                     .padding(.horizontal, 8)
-                                    .padding(.vertical, 5)
+                                    .frame(minHeight: 44)
                                     .background(Theme.foundationGreen)
                                     .clipShape(Capsule())
                             }
                         } else {
                             Text("CHECKED")
-                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
                                 .foregroundStyle(Theme.foundationGreen)
                         }
                     }
@@ -268,7 +284,7 @@ struct LiveEventsHubView: View {
 
                         HStack {
                             Text("\(goal.currentCredits) / \(goal.goalCredits) credits")
-                                .font(.system(size: 9, design: .monospaced))
+                                .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Text("\(goal.percentComplete)%")
@@ -288,7 +304,7 @@ struct LiveEventsHubView: View {
                                     ForEach(goal.milestoneRewards, id: \.rewardId) { reward in
                                         let unlocked = goal.unlockedRewardIds.contains(reward.rewardId)
                                         Text("\(reward.thresholdPercent)% • \(reward.rewardType.rawValue)")
-                                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
                                             .foregroundStyle(unlocked ? .black : .secondary)
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 5)
@@ -303,16 +319,16 @@ struct LiveEventsHubView: View {
                         if !donors.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("TOP DONORS")
-                                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                                     .foregroundStyle(.tertiary)
                                 ForEach(Array(donors.enumerated()), id: \.offset) { idx, donor in
                                     HStack {
                                         Text("#\(idx + 1) \(donor.userId)")
-                                            .font(.system(size: 9, design: .monospaced))
+                                            .font(.system(size: 11, design: .monospaced))
                                             .foregroundStyle(.secondary)
                                         Spacer()
                                         Text("\(donor.credits)")
-                                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                                            .font(.system(size: 11, weight: .black, design: .monospaced))
                                             .foregroundStyle(.white)
                                     }
                                 }
@@ -346,14 +362,12 @@ struct LiveEventsHubView: View {
 
                     HStack(spacing: 8) {
                         Button {
-                            viewModel.openLiveVoting(eventId: event.id)
-                            showToast("Voting opened")
+                            pendingConfirmation = .openVoting(eventId: event.id)
                         } label: {
                             votingActionLabel("OPEN", color: .green)
                         }
                         Button {
-                            let summary = viewModel.closeLiveVoting(eventId: event.id)
-                            showToast(summary ?? "Voting closed")
+                            pendingConfirmation = .closeVoting(eventId: event.id)
                         } label: {
                             votingActionLabel("CLOSE", color: .orange)
                         }
@@ -366,17 +380,23 @@ struct LiveEventsHubView: View {
                         Spacer()
                         Stepper("", value: $selectedVoteScore, in: 1...10)
                             .labelsHidden()
+                            .accessibilityLabel("Vote score")
+                            .accessibilityValue("\(selectedVoteScore)")
                     }
 
                     Button {
                         let ok = viewModel.submitLiveVote(eventId: event.id, score: selectedVoteScore)
-                        showToast(ok ? "Vote submitted" : "Vote rejected")
+                        showFeedback(
+                            ok ? "Vote submitted" : "Vote rejected",
+                            detail: ok ? "Your dunk score was recorded." : "Voting requires an open session and a valid ticket.",
+                            isError: !ok
+                        )
                     } label: {
                         Text("SUBMIT TICKET-HOLDER VOTE")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                            .frame(minHeight: 44)
                             .background(Theme.brandBlue)
                             .clipShape(.rect(cornerRadius: 10))
                     }
@@ -386,12 +406,12 @@ struct LiveEventsHubView: View {
                         Spacer()
                         Text("Votes: \(session?.votes.count ?? 0)")
                     }
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
 
                     if let outcome = viewModel.eventHub.voteOutcomeByEvent?[event.id] {
                         Text(outcome.summary)
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .foregroundStyle(Theme.brandCyan)
                     }
                 }
@@ -425,14 +445,13 @@ struct LiveEventsHubView: View {
             HStack {
                 ledgerCell("Checked-In", value: "\(checkedInCount)")
                 Button {
-                    let claimed = viewModel.claimReferralShardRewards()
-                    showToast(claimed > 0 ? "Claimed \(claimed) shards" : "No referral rewards")
+                    pendingConfirmation = .claimReferral
                 } label: {
                     Text("CLAIM REFERRAL")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .frame(minHeight: 44)
                         .background(Theme.brandBlue)
                         .clipShape(.rect(cornerRadius: 10))
                 }
@@ -448,7 +467,7 @@ struct LiveEventsHubView: View {
     private func ledgerCell(_ title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased())
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundStyle(.tertiary)
             Text(value)
                 .font(.system(size: 13, weight: .black, design: .monospaced))
@@ -464,35 +483,36 @@ struct LiveEventsHubView: View {
 
     private func donationButton(goalId: String, amount: Int) -> some View {
         Button {
-            let ok = viewModel.donateToFundraisingGoal(goalId: goalId, creditsAmount: amount)
-            showToast(ok ? "Donated \(amount) credits" : "Donation failed")
+            pendingConfirmation = .donate(goalId: goalId, amount: amount)
         } label: {
             Text("+\(amount)")
-                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .font(.system(size: 11, weight: .black, design: .monospaced))
                 .foregroundStyle(.black)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .frame(minHeight: 44)
                 .background(Theme.brandCyan)
                 .clipShape(Capsule())
         }
+        .accessibilityLabel("Donate \(amount) credits")
+        .accessibilityHint("Opens confirmation before submitting donation.")
     }
 
     private func eventMeta(icon: String, text: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 8))
+                .font(.system(size: 10))
             Text(text)
-                .font(.system(size: 8, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
         }
         .foregroundStyle(.secondary)
     }
 
     private func votingActionLabel(_ text: String, color: Color) -> some View {
         Text(text)
-            .font(.system(size: 9, weight: .black, design: .monospaced))
+            .font(.system(size: 11, weight: .black, design: .monospaced))
             .foregroundStyle(color)
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .frame(minHeight: 44)
             .background(color.opacity(0.12))
             .clipShape(Capsule())
     }
@@ -513,14 +533,14 @@ struct LiveEventsHubView: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .font(.system(size: 11, weight: .bold, design: .monospaced))
             .foregroundStyle(.tertiary)
             .tracking(2)
     }
 
     private func emptyCard(_ text: String) -> some View {
         Text(text.uppercased())
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .font(.system(size: 11, weight: .bold, design: .monospaced))
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 12)
@@ -554,17 +574,124 @@ struct LiveEventsHubView: View {
         }
     }
 
-    private func showToast(_ message: String) {
+    private func showFeedback(_ message: String, detail: String? = nil, isError: Bool = false) {
         withAnimation(.spring(response: 0.25)) {
-            toastMessage = message
+            feedbackBanner = LiveEventFeedbackBanner(message: message, detail: detail, isError: isError)
         }
         Task {
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: .seconds(2.25))
             await MainActor.run {
                 withAnimation(.easeOut(duration: 0.2)) {
-                    toastMessage = nil
+                    feedbackBanner = nil
                 }
             }
+        }
+    }
+
+    private func performConfirmedAction(_ action: LiveEventsConfirmation) {
+        switch action {
+        case let .purchase(eventId, tier):
+            if let ticket = viewModel.purchaseEventTicket(
+                eventId: eventId,
+                tier: tier,
+                referralSourceUserId: sanitizedReferral
+            ) {
+                showFeedback("Ticket minted: \(ticket.tier.displayName)", detail: "Added to your ticket armory.")
+            } else {
+                showFeedback("Purchase failed", detail: "Insufficient balance or event pricing unavailable.", isError: true)
+            }
+        case let .donate(goalId, amount):
+            let ok = viewModel.donateToFundraisingGoal(goalId: goalId, creditsAmount: amount)
+            showFeedback(
+                ok ? "Donated \(amount) credits" : "Donation failed",
+                detail: ok ? "Team goal progress has been updated." : "Check credit balance or fundraising goal status.",
+                isError: !ok
+            )
+        case let .checkIn(ticketId):
+            let ok = viewModel.checkInTicket(ticketId: ticketId)
+            showFeedback(
+                ok ? "Ticket checked in (+75 shards)" : "Check-in failed",
+                detail: ok ? "You are marked present for this event." : "Check-in is only available during active event windows.",
+                isError: !ok
+            )
+        case .claimReferral:
+            let claimed = viewModel.claimReferralShardRewards()
+            showFeedback(
+                claimed > 0 ? "Claimed \(claimed) shards" : "No referral rewards",
+                detail: claimed > 0 ? "Referral rewards added to your shard wallet." : "Share an event referral link to earn rewards.",
+                isError: claimed == 0
+            )
+        case let .openVoting(eventId):
+            viewModel.openLiveVoting(eventId: eventId)
+            showFeedback("Voting opened", detail: "Ticket holders can now submit scores.")
+        case let .closeVoting(eventId):
+            let summary = viewModel.closeLiveVoting(eventId: eventId)
+            showFeedback("Voting closed", detail: summary ?? "Outcome has been finalized.")
+        }
+    }
+}
+
+private struct LiveEventFeedbackBanner {
+    let message: String
+    let detail: String?
+    let isError: Bool
+}
+
+private enum LiveEventsConfirmation: Identifiable {
+    case purchase(eventId: String, tier: EventTicketTier)
+    case donate(goalId: String, amount: Int)
+    case checkIn(ticketId: String)
+    case claimReferral
+    case openVoting(eventId: String)
+    case closeVoting(eventId: String)
+
+    var id: String {
+        switch self {
+        case let .purchase(eventId, tier): return "purchase-\(eventId)-\(tier.rawValue)"
+        case let .donate(goalId, amount): return "donate-\(goalId)-\(amount)"
+        case let .checkIn(ticketId): return "checkin-\(ticketId)"
+        case .claimReferral: return "claim-referral"
+        case let .openVoting(eventId): return "open-voting-\(eventId)"
+        case let .closeVoting(eventId): return "close-voting-\(eventId)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case let .purchase(_, tier): return "Confirm \(tier.displayName) ticket purchase?"
+        case let .donate(_, amount): return "Donate \(amount) credits?"
+        case .checkIn: return "Check in ticket now?"
+        case .claimReferral: return "Claim referral shards?"
+        case .openVoting: return "Open live voting?"
+        case .closeVoting: return "Close live voting?"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .purchase:
+            return "This spends wallet funds and mints a ticket."
+        case .donate:
+            return "Credits donated to team fundraising cannot be reversed."
+        case .checkIn:
+            return "Check-in confirms attendance for this event window."
+        case .claimReferral:
+            return "Claiming transfers pending referral shards into your wallet."
+        case .openVoting:
+            return "Voting session will open for eligible ticket holders."
+        case .closeVoting:
+            return "Voting will close and rewards/outcomes will be resolved."
+        }
+    }
+
+    var confirmButton: String {
+        switch self {
+        case .purchase: return "Buy Ticket"
+        case .donate: return "Donate"
+        case .checkIn: return "Check In"
+        case .claimReferral: return "Claim"
+        case .openVoting: return "Open"
+        case .closeVoting: return "Close Voting"
         }
     }
 }
@@ -582,10 +709,10 @@ private struct WalletPill: View {
                 .foregroundStyle(color)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(.tertiary)
                 Text(value)
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundStyle(.white)
             }
         }
