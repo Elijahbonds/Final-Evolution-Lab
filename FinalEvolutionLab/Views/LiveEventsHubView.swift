@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct LiveEventsHubView: View {
     let viewModel: LabViewModel
@@ -93,10 +96,41 @@ struct LiveEventsHubView: View {
                 .foregroundStyle(.tertiary)
 
             if let event = viewModel.upcomingLiveEvents.first {
-                Text(viewModel.referralLink(for: event.id))
+                let link = viewModel.referralLink(for: event.id)
+                Text(link)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Theme.brandCyan)
                     .lineLimit(1)
+                    .textSelection(.enabled)
+
+                HStack(spacing: 8) {
+                    Button {
+#if canImport(UIKit)
+                        UIPasteboard.general.string = link
+#endif
+                        showFeedback("Referral link copied", detail: "Paste and share this event referral URL.")
+                    } label: {
+                        Label("Copy link", systemImage: "doc.on.doc")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 10)
+                            .frame(minHeight: 44)
+                            .background(Theme.brandBlue)
+                            .clipShape(Capsule())
+                    }
+
+                    if let shareURL = URL(string: link) {
+                        ShareLink(item: shareURL) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 10)
+                                .frame(minHeight: 44)
+                                .background(Theme.foundationGreen)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
             } else {
                 Text("No active event link")
                     .font(.caption2)

@@ -237,8 +237,8 @@ struct CreatorMarketplaceHubView: View {
                 sectionLabel("Active listings")
                 Spacer()
                 Button {
-                    viewModel.settleExpiredAuctionListings()
-                    showFeedback("Expired listings settled", detail: "Eligible auctions were processed.")
+                    let expiringCount = viewModel.activeAuctionListings.filter { $0.expiresAt <= Date() }.count
+                    pendingConfirmation = .settleExpired(count: expiringCount)
                 } label: {
                     Text("Settle")
                         .font(.system(size: 10, weight: .bold))
@@ -557,6 +557,9 @@ struct CreatorMarketplaceHubView: View {
                 detail: ok ? "Asset transferred to your inventory." : "Insufficient shards or listing no longer available.",
                 isError: !ok
             )
+        case .settleExpired:
+            viewModel.settleExpiredAuctionListings()
+            showFeedback("Expired listings settled", detail: "Eligible auctions were processed.")
         }
     }
 }
@@ -574,6 +577,7 @@ private enum MarketplaceConfirmation: Identifiable {
     case list(assetId: String, startingBidShards: Int, buyNowShards: Int?)
     case bid(listingId: String, amountShards: Int)
     case buyNow(listingId: String)
+    case settleExpired(count: Int)
 
     var id: String {
         switch self {
@@ -584,6 +588,7 @@ private enum MarketplaceConfirmation: Identifiable {
             return "list-\(assetId)-\(startingBidShards)-\(buyNowShards ?? 0)"
         case let .bid(listingId, amountShards): return "bid-\(listingId)-\(amountShards)"
         case let .buyNow(listingId): return "buynow-\(listingId)"
+        case let .settleExpired(count): return "settle-\(count)"
         }
     }
 
@@ -595,6 +600,8 @@ private enum MarketplaceConfirmation: Identifiable {
         case .list: return "List this card for auction?"
         case let .bid(_, amountShards): return "Place bid of \(amountShards) shards?"
         case .buyNow: return "Buy listing now?"
+        case let .settleExpired(count):
+            return count > 0 ? "Settle \(count) expired listing(s)?" : "Run settlement scan?"
         }
     }
 
@@ -612,6 +619,8 @@ private enum MarketplaceConfirmation: Identifiable {
             return "Bid amount is escrowed until settlement or outbid."
         case .buyNow:
             return "This immediately purchases and settles the listing."
+        case .settleExpired:
+            return "Settlement processes expired auctions and releases outcomes."
         }
     }
 
@@ -623,6 +632,7 @@ private enum MarketplaceConfirmation: Identifiable {
         case .list: return "List"
         case .bid: return "Place Bid"
         case .buyNow: return "Buy Now"
+        case .settleExpired: return "Settle"
         }
     }
 }

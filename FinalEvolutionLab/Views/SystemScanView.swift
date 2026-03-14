@@ -14,6 +14,8 @@ struct SystemScanView: View {
     @State private var analysisProgress: Double = 0
     @State private var gridPulse: Bool = false
     @State private var scanError: String?
+    @State private var analysisTask: Task<Void, Never>?
+    @State private var temporarySelectedVideoURL: URL?
 
     private enum ScanPhase {
         case picking
@@ -22,6 +24,11 @@ struct SystemScanView: View {
     }
 
     @State private var generatedResult: SystemScanResult?
+
+    private struct ResolvedVideoSelection {
+        let url: URL
+        let isTemporary: Bool
+    }
 
     var body: some View {
         NavigationStack {
@@ -55,6 +62,11 @@ struct SystemScanView: View {
         }
         .presentationDetents([.large])
         .presentationBackground(Theme.deepBlack)
+        .onDisappear {
+            analysisTask?.cancel()
+            analysisTask = nil
+            cleanupTemporarySelection()
+        }
     }
 
     private var scanGrid: some View {
@@ -504,13 +516,14 @@ struct SystemScanView: View {
     }
 
     private func startAnalysis() {
+        analysisTask?.cancel()
         withAnimation(.spring(response: 0.4)) { phase = .analyzing }
         analysisProgress = 0
         scanError = nil
 
-        Task {
-            let resolvedVideoURL = await resolveSelectedVideoURL(from: selectedItem)
-            guard let resolvedVideoURL else {
+        analysisTask = Task {
+            let resolvedSelection = await resolveSelectedVideoURL(from: selectedItem)
+            guard let resolvedSelection else {
                 await MainActor.run {
                     withAnimation(.spring(response: 0.4)) {
                         phase = .picking
@@ -519,36 +532,49 @@ struct SystemScanView: View {
                 }
                 return
             }
+            if Task.isCancelled { return }
             await MainActor.run {
-                videoURL = resolvedVideoURL
+                cleanupTemporarySelection()
+                if resolvedSelection.isTemporary {
+                    temporarySelectedVideoURL = resolvedSelection.url
+                }
+            }
+            await MainActor.run {
+                videoURL = resolvedSelection.url
             }
 
             for i in 1...20 {
                 try? await Task.sleep(for: .milliseconds(200))
+                if Task.isCancelled { return }
                 withAnimation(.easeInOut(duration: 0.2)) {
                     analysisProgress = Double(i) / 20.0
                 }
             }
 
             let result = await SystemScanAnalysisEngine.analyze(
-                videoURL: resolvedVideoURL,
+                videoURL: resolvedSelection.url,
                 sport: sport,
                 goal: goal
             )
+            if Task.isCancelled { return }
             generatedResult = result
 
             try? await Task.sleep(for: .milliseconds(500))
+            if Task.isCancelled { return }
             withAnimation(.spring(response: 0.5)) {
                 phase = .results
                 gridPulse = false
             }
+            await MainActor.run {
+                cleanupTemporarySelection()
+            }
         }
     }
 
-    private func resolveSelectedVideoURL(from item: PhotosPickerItem?) async -> URL? {
+    private func resolveSelectedVideoURL(from item: PhotosPickerItem?) async -> ResolvedVideoSelection? {
         guard let item else { return nil }
         if let sourceURL = try? await item.loadTransferable(type: URL.self) {
-            return sourceURL
+            return ResolvedVideoSelection(url: sourceURL, isTemporary: false)
         }
         guard let data = try? await item.loadTransferable(type: Data.self) else {
             return nil
@@ -557,10 +583,16 @@ struct SystemScanView: View {
             .appendingPathComponent("scan_clip_\(UUID().uuidString).mov")
         do {
             try data.write(to: tempURL, options: .atomic)
-            return tempURL
+            return ResolvedVideoSelection(url: tempURL, isTemporary: true)
         } catch {
             return nil
         }
+    }
+
+    private func cleanupTemporarySelection() {
+        guard let temporarySelectedVideoURL else { return }
+        try? FileManager.default.removeItem(at: temporarySelectedVideoURL)
+        self.temporarySelectedVideoURL = nil
     }
 }
 

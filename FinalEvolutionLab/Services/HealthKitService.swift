@@ -6,6 +6,7 @@ import HealthKit
 class HealthKitService {
     var heartRate: Double = 0
     var activeCalories: Double = 0
+    var stepCount: Double = 0
     var restingHeartRate: Double = 0
     var hrvValue: Double = 0
     var isAuthorized: Bool = false
@@ -50,13 +51,15 @@ class HealthKitService {
         guard isAuthorized else { return }
         async let hr = fetchLatestQuantity(type: HKQuantityType(.heartRate), unit: HKUnit.count().unitDivided(by: .minute()))
         async let cal = fetchLatestQuantity(type: HKQuantityType(.activeEnergyBurned), unit: .kilocalorie())
+        async let steps = fetchLatestQuantity(type: HKQuantityType(.stepCount), unit: .count())
         async let rhr = fetchLatestQuantity(type: HKQuantityType(.restingHeartRate), unit: HKUnit.count().unitDivided(by: .minute()))
         async let hrv = fetchLatestQuantity(type: HKQuantityType(.heartRateVariabilitySDNN), unit: .secondUnit(with: .milli))
         async let weekAvg = fetchWeeklyHRVAverage()
 
-        let (hrVal, calVal, rhrVal, hrvVal, weekAvgVal) = await (hr, cal, rhr, hrv, weekAvg)
+        let (hrVal, calVal, stepVal, rhrVal, hrvVal, weekAvgVal) = await (hr, cal, steps, rhr, hrv, weekAvg)
         heartRate = hrVal
         activeCalories = calVal
+        stepCount = stepVal
         restingHeartRate = rhrVal
         hrvValue = hrvVal
         weeklyHRVAverage = weekAvgVal

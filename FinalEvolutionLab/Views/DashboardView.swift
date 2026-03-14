@@ -143,7 +143,7 @@ struct DashboardView: View {
 
             healthMetricTile(
                 icon: "figure.walk",
-                value: "—",
+                value: viewModel.healthKit.isAuthorized ? String(format: "%.0f", viewModel.healthKit.stepCount) : "—",
                 unit: "steps",
                 label: "Steps",
                 color: Theme.neonGreen

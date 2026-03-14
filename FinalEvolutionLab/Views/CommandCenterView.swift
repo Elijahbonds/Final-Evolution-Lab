@@ -13,6 +13,8 @@ struct CommandCenterView: View {
     @State private var navigateToQuickPlay = false
     @State private var academyWager: Int = BrainBrawlRulebook.default.minimumWager
     @State private var academyTrack: AcademyTrack = .stemLogic
+    @State private var academyStatusMessage: String?
+    @State private var academyStatusIsError: Bool = false
     @State private var bondsSourceInput: String = ""
     @State private var bondsRevisionFocus: String = "improved sequencing, cue clarity, and safer landing mechanics"
     @State private var bondsStatusMessage: String?
@@ -353,17 +355,28 @@ struct CommandCenterView: View {
                 HStack(spacing: 8) {
                     ForEach(AcademyKnowledgeCatalog.starterNodes, id: \.id) { node in
                         let unlocked = viewModel.academyProgress.unlockedKnowledgeNodeIds.contains(node.id)
+                        let canUnlock = canUnlockAcademyNode(node)
                         Button {
-                            _ = viewModel.unlockAcademyKnowledgeNode(nodeId: node.id)
+                            guard !unlocked else {
+                                academyStatusIsError = false
+                                academyStatusMessage = "\(node.title) is already unlocked."
+                                return
+                            }
+                            let ok = viewModel.unlockAcademyKnowledgeNode(nodeId: node.id)
+                            academyStatusIsError = !ok
+                            academyStatusMessage = ok
+                                ? "Unlocked \(node.title)."
+                                : academyUnlockFailureMessage(for: node)
                         } label: {
                             Text(unlocked ? "Unlocked: \(node.title)" : "Unlock \(node.title) • \(node.shardUnlockCost)")
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(unlocked ? .black : .white)
                                 .padding(.horizontal, 10)
                                 .frame(minHeight: 44)
-                                .background(unlocked ? Theme.foundationGreen : Color.white.opacity(0.06))
+                                .background(unlocked ? Theme.foundationGreen : (canUnlock ? Color.white.opacity(0.06) : Color.white.opacity(0.02)))
                                 .clipShape(Capsule())
                         }
+                        .disabled(unlocked)
                     }
                 }
             }
@@ -379,15 +392,24 @@ struct CommandCenterView: View {
 
                 Spacer()
 
-                Stepper("Wager \(academyWager)", value: $academyWager, in: BrainBrawlRulebook.default.minimumWager...BrainBrawlRulebook.default.maximumWager, step: 25)
-                    .labelsHidden()
+                HStack(spacing: 8) {
+                    Text("Wager: \(academyWager)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Stepper("Wager", value: $academyWager, in: BrainBrawlRulebook.default.minimumWager...BrainBrawlRulebook.default.maximumWager, step: 25)
+                        .labelsHidden()
+                }
                     .accessibilityLabel("Brain Brawl wager")
                     .accessibilityValue("\(academyWager) shards")
             }
 
             HStack(spacing: 8) {
                 Button {
-                    _ = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: true, sabotage: .timeWarp)
+                    let ok = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: true, sabotage: .timeWarp)
+                    academyStatusIsError = !ok
+                    academyStatusMessage = ok
+                        ? "Simulated win completed."
+                        : "Not enough shards for this wager + sabotage."
                 } label: {
                     Text("Simulate win")
                         .font(.system(size: 11, weight: .bold))
@@ -397,9 +419,14 @@ struct CommandCenterView: View {
                         .background(Theme.foundationGreen)
                         .clipShape(.rect(cornerRadius: 10))
                 }
+                .disabled(!canRunBrainBrawlWin)
 
                 Button {
-                    _ = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: false, sabotage: nil)
+                    let ok = viewModel.resolveBrainBrawlMatch(track: academyTrack, wager: academyWager, didWin: false, sabotage: nil)
+                    academyStatusIsError = !ok
+                    academyStatusMessage = ok
+                        ? "Simulated loss completed."
+                        : "Not enough shards for this wager."
                 } label: {
                     Text("Simulate loss")
                         .font(.system(size: 11, weight: .bold))
@@ -409,6 +436,13 @@ struct CommandCenterView: View {
                         .background(.orange)
                         .clipShape(.rect(cornerRadius: 10))
                 }
+                .disabled(!canRunBrainBrawlLoss)
+            }
+
+            if let academyStatusMessage {
+                Text(academyStatusMessage)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(academyStatusIsError ? .orange : Theme.brandCyan)
             }
         }
         .padding(14)
@@ -501,5 +535,31 @@ struct CommandCenterView: View {
                 .background(Theme.brandBlue)
                 .clipShape(.rect(cornerRadius: 10))
         }
+    }
+
+    private var canRunBrainBrawlLoss: Bool {
+        viewModel.profile.evolutionShards >= academyWager
+    }
+
+    private var canRunBrainBrawlWin: Bool {
+        let sabotageCost = BrainBrawlRulebook.default.debuffs.first(where: { $0.type == .timeWarp })?.shardCost ?? 0
+        return viewModel.profile.evolutionShards >= academyWager + sabotageCost
+    }
+
+    private func canUnlockAcademyNode(_ node: KnowledgeNode) -> Bool {
+        let hasPrereqs = node.prerequisiteNodeIds.allSatisfy { viewModel.academyProgress.unlockedKnowledgeNodeIds.contains($0) }
+        let hasShards = viewModel.profile.evolutionShards >= node.shardUnlockCost
+        return hasPrereqs && hasShards
+    }
+
+    private func academyUnlockFailureMessage(for node: KnowledgeNode) -> String {
+        let hasPrereqs = node.prerequisiteNodeIds.allSatisfy { viewModel.academyProgress.unlockedKnowledgeNodeIds.contains($0) }
+        if !hasPrereqs {
+            return "Prerequisites not met for \(node.title)."
+        }
+        if viewModel.profile.evolutionShards < node.shardUnlockCost {
+            return "Not enough shards to unlock \(node.title)."
+        }
+        return "Unable to unlock \(node.title)."
     }
 }

@@ -146,10 +146,12 @@ struct ContentView: View {
             Image(systemName: "gearshape.fill")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
                 .background(Color.white.opacity(0.06))
                 .clipShape(Circle())
         }
+        .accessibilityLabel("Settings")
+        .accessibilityHint("Opens app settings")
     }
 
     private var shardsBadge: some View {

@@ -173,12 +173,10 @@ struct MatchmakingView: View {
             }
 
             Button {
-                Task {
-                    await viewModel.globalLeaderboard.findMatch(
-                        userPRQ: viewModel.effectiveMetrics.prqScore,
-                        preferredTier: selectedTier
-                    )
-                }
+                viewModel.globalLeaderboard.startMatchmaking(
+                    userPRQ: viewModel.effectiveMetrics.prqScore,
+                    preferredTier: selectedTier
+                )
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
@@ -236,6 +234,7 @@ struct MatchmakingView: View {
                 Text("Cancel")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .frame(minHeight: 44)
             }
         }
         .onAppear {

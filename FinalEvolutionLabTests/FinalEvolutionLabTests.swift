@@ -207,4 +207,32 @@ struct FinalEvolutionLabTests {
         #expect(sources.map(\.sourceURL).contains("https://www.youtube.com/watch?v=J037GG99GT0"))
     }
 
+    @Test func matchmakingCancelPreventsLateMatchResult() async throws {
+        let service = await MainActor.run { GlobalLeaderboardService() }
+        await MainActor.run {
+            service.matchmakingPool = [
+                MatchmakingOpponent(
+                    id: "opp_1",
+                    displayName: "Opponent",
+                    athleteTag: "OPP",
+                    prqScore: 62,
+                    tier: .gold,
+                    avatarSystemName: "person.fill",
+                    winRate: 0.55,
+                    totalGames: 40
+                )
+            ]
+            service.startMatchmaking(userPRQ: 60, preferredTier: .gold)
+            service.cancelMatchmaking()
+        }
+
+        try? await Task.sleep(for: .seconds(4))
+        let state = await MainActor.run { service.matchmakingState }
+        let stayedIdle: Bool = {
+            if case .idle = state { return true }
+            return false
+        }()
+        #expect(stayedIdle)
+    }
+
 }

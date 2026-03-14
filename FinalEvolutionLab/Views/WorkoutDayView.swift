@@ -8,6 +8,7 @@ struct WorkoutDayView: View {
     @State private var timerTask: Task<Void, Never>?
     @State private var elapsedSeconds: Int = 0
     @State private var showFinishConfirm: Bool = false
+    @State private var showDiscardConfirm: Bool = false
 
     private var completionRate: Double {
         guard day.totalExerciseCount > 0 else { return 0 }
@@ -36,7 +37,7 @@ struct WorkoutDayView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button("Close") { attemptClose() }
                         .foregroundStyle(Theme.brandBlue)
                 }
             }
@@ -59,6 +60,14 @@ struct WorkoutDayView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("You completed \(vm.completedExerciseIds.count) of \(day.totalExerciseCount) exercises.")
+            }
+            .alert("Discard workout?", isPresented: $showDiscardConfirm) {
+                Button("Keep training", role: .cancel) {}
+                Button("Discard", role: .destructive) {
+                    dismiss()
+                }
+            } message: {
+                Text("Your current workout progress will be lost.")
             }
         }
         .presentationDetents([.large])
@@ -242,6 +251,15 @@ struct WorkoutDayView: View {
         let m = seconds / 60
         let s = seconds % 60
         return String(format: "%02d:%02d", m, s)
+    }
+
+    private func attemptClose() {
+        let hasInProgressWork = elapsedSeconds > 0 || !vm.completedExerciseIds.isEmpty
+        if hasInProgressWork {
+            showDiscardConfirm = true
+        } else {
+            dismiss()
+        }
     }
 }
 
