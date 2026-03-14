@@ -30,14 +30,16 @@ struct BondsBlueprintGenerationService: Sendable {
     }
 
     func sanitizeYouTubeSources(_ rawURLs: [String]) -> [BlueprintSourceAsset] {
-        rawURLs
+        var seenCanonicalURLs = Set<String>()
+        return rawURLs
             .compactMap { normalizeYouTubeURL($0) }
-            .map { normalized in
+            .filter { seenCanonicalURLs.insert($0).inserted }
+            .map { canonicalURL in
                 BlueprintSourceAsset(
-                    id: BlueprintSourceAsset.makeId(url: normalized),
+                    id: BlueprintSourceAsset.makeId(url: canonicalURL),
                     sourceType: .youtube,
-                    sourceURL: normalized,
-                    title: inferTitle(from: normalized),
+                    sourceURL: canonicalURL,
+                    title: inferTitle(from: canonicalURL),
                     notes: "Source reference for recreation + revision",
                     importedAt: Date()
                 )
@@ -140,12 +142,45 @@ struct BondsBlueprintGenerationService: Sendable {
     private func normalizeYouTubeURL(_ raw: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: trimmed),
-              let host = url.host?.lowercased() else {
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let host = components.host?.lowercased() else {
             return nil
         }
-        let supportedHosts = ["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be"]
-        guard supportedHosts.contains(host) else { return nil }
-        return url.absoluteString
+        let normalizedHost = host.replacingOccurrences(of: "www.", with: "")
+        let videoID: String?
+
+        if normalizedHost == "youtu.be" {
+            videoID = components.path
+                .split(separator: "/")
+                .first
+                .map(String.init)
+        } else if normalizedHost == "youtube.com" || normalizedHost == "m.youtube.com" {
+            if components.path == "/watch" {
+                videoID = components.queryItems?.first(where: { $0.name == "v" })?.value
+            } else if components.path.hasPrefix("/shorts/") || components.path.hasPrefix("/embed/") {
+                videoID = components.path
+                    .split(separator: "/")
+                    .dropFirst()
+                    .first
+                    .map(String.init)
+            } else {
+                videoID = nil
+            }
+        } else {
+            videoID = nil
+        }
+
+        guard let rawVideoID = videoID?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !rawVideoID.isEmpty else {
+            return nil
+        }
+
+        components = URLComponents()
+        components.scheme = "https"
+        components.host = "www.youtube.com"
+        components.path = "/watch"
+        components.queryItems = [URLQueryItem(name: "v", value: rawVideoID)]
+        return components.url?.absoluteString
     }
 
     private func inferTitle(from urlString: String) -> String {

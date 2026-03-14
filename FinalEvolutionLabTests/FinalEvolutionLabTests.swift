@@ -164,6 +164,7 @@ struct FinalEvolutionLabTests {
 
         #expect(sources.count == 2)
         #expect(sources.allSatisfy { $0.sourceType == .youtube })
+        #expect(sources.allSatisfy { $0.sourceURL.hasPrefix("https://www.youtube.com/watch?v=") })
     }
 
     @Test func bondsBlueprintProjectBuildsMidShotNarrativeBeats() async throws {
@@ -189,6 +190,21 @@ struct FinalEvolutionLabTests {
 
         #expect(curated.count == 5)
         #expect(curated.allSatisfy { $0.sourceType == .youtube })
+        #expect(curated.allSatisfy { $0.sourceURL.hasPrefix("https://www.youtube.com/watch?v=") })
+    }
+
+    @Test func bondsBlueprintSanitizerCanonicalizesAndDedupesVideoIDs() async throws {
+        let generator = BondsBlueprintGenerationService()
+        let sources = generator.sanitizeYouTubeSources([
+            "https://youtu.be/hrlGbS0r-hM?si=one",
+            "https://www.youtube.com/watch?v=hrlGbS0r-hM&ab_channel=test",
+            "https://m.youtube.com/watch?v=J037GG99GT0",
+            "https://youtube.com/shorts/J037GG99GT0?si=two"
+        ])
+
+        #expect(sources.count == 2)
+        #expect(sources.map(\.sourceURL).contains("https://www.youtube.com/watch?v=hrlGbS0r-hM"))
+        #expect(sources.map(\.sourceURL).contains("https://www.youtube.com/watch?v=J037GG99GT0"))
     }
 
 }

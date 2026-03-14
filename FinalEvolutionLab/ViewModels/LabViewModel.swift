@@ -148,6 +148,7 @@ class LabViewModel {
             }
             for source in legacySourceAssets where !bondsAIStudio.sourceAssets.contains(where: { $0.id == source.id }) {
                 bondsAIStudio.sourceAssets.append(source)
+                didMutate = true
             }
             let sourceAssets = bondsAIStudio.sourceAssets
             let project = bondsBlueprintGenerator.createProject(
@@ -162,9 +163,46 @@ class LabViewModel {
             didMutate = true
         }
 
+        if syncBondsProjectSourceIDsIfNeeded() {
+            didMutate = true
+        }
+
         if didMutate {
             SaveSystem.saveBondsAIStudio(bondsAIStudio)
         }
+    }
+
+    /// Keeps existing projects/beats aligned with newly ingested source assets.
+    private func syncBondsProjectSourceIDsIfNeeded() -> Bool {
+        let orderedSourceIDs = bondsAIStudio.sourceAssets.map(\.id)
+        guard !orderedSourceIDs.isEmpty else { return false }
+
+        var mutated = false
+        for projectIndex in bondsAIStudio.projects.indices {
+            var project = bondsAIStudio.projects[projectIndex]
+            var projectMutated = false
+            let missingProjectSourceIDs = orderedSourceIDs.filter { !project.sourceAssetIds.contains($0) }
+            if !missingProjectSourceIDs.isEmpty {
+                project.sourceAssetIds.append(contentsOf: missingProjectSourceIDs)
+                mutated = true
+                projectMutated = true
+            }
+
+            for beatIndex in project.beats.indices {
+                let missingBeatSourceIDs = orderedSourceIDs.filter { !project.beats[beatIndex].sourceAssetIds.contains($0) }
+                if !missingBeatSourceIDs.isEmpty {
+                    project.beats[beatIndex].sourceAssetIds.append(contentsOf: missingBeatSourceIDs)
+                    mutated = true
+                    projectMutated = true
+                }
+            }
+
+            if projectMutated {
+                bondsAIStudio.projects[projectIndex] = project
+            }
+        }
+
+        return mutated
     }
 
     var allExercises: [Exercise] {
@@ -247,7 +285,13 @@ class LabViewModel {
                 insertedCount += 1
             }
         }
-        if insertedCount > 0 {
+
+        var didMutate = insertedCount > 0
+        if syncBondsProjectSourceIDsIfNeeded() {
+            didMutate = true
+        }
+
+        if didMutate {
             SaveSystem.saveBondsAIStudio(bondsAIStudio)
         }
         return insertedCount
