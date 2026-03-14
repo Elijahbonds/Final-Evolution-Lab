@@ -6,6 +6,7 @@ struct ShareToFeedView: View {
     @State private var isCapturing: Bool = false
     @State private var showShareSheet: Bool = false
     @State private var captionText: String = ""
+    @State private var shareCaptureTask: Task<Void, Never>?
 
     var body: some View {
         ScrollView {
@@ -24,6 +25,10 @@ struct ShareToFeedView: View {
             if let items = shareItems {
                 ActivityViewRepresentable(activityItems: items)
             }
+        }
+        .onDisappear {
+            shareCaptureTask?.cancel()
+            shareCaptureTask = nil
         }
     }
 
@@ -218,10 +223,14 @@ struct ShareToFeedView: View {
         if screenshot == nil {
             screenshot = UnityManager.shared.takeScreenshot()
         }
-        Task {
+        shareCaptureTask?.cancel()
+        shareCaptureTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
-            isCapturing = false
-            showShareSheet = true
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                isCapturing = false
+                showShareSheet = true
+            }
         }
     }
 

@@ -10,6 +10,7 @@ struct CritiqueRequestView: View {
     @State private var showInsufficientCredits: Bool = false
     @State private var showReviewSheet: CritiqueRequest?
     @State private var reviewRating: Double = 4.0
+    @State private var autoResponseTasks: [String: Task<Void, Never>] = [:]
 
     private let exerciseOptions = [
         "Dunk Approach", "Vertical Jump", "Sprint Mechanics",
@@ -83,6 +84,12 @@ struct CritiqueRequestView: View {
         }
         .presentationDetents([.large])
         .presentationBackground(Theme.deepBlack)
+        .onDisappear {
+            for task in autoResponseTasks.values {
+                task.cancel()
+            }
+            autoResponseTasks.removeAll()
+        }
     }
 
     private var costBanner: some View {
@@ -244,9 +251,14 @@ struct CritiqueRequestView: View {
                 return
             }
             if let requestId = viewModel.requestCritiqueWithRequestId(exerciseName: selectedExercise, notes: notesText) {
-                Task {
+                autoResponseTasks[requestId]?.cancel()
+                autoResponseTasks[requestId] = Task {
                     try? await Task.sleep(for: .seconds(3))
-                    viewModel.simulateCoachResponse(requestId: requestId)
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        viewModel.simulateCoachResponse(requestId: requestId)
+                        autoResponseTasks[requestId] = nil
+                    }
                 }
                 withAnimation(.spring(response: 0.4)) {
                     showConfirmation = true

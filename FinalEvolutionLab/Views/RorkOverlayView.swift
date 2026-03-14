@@ -4,6 +4,7 @@ struct RorkOverlayView: View {
     @State private var scoreManager = RorkScoreManager.shared
     @State private var isAnimating: Bool = false
     @State private var showPulse: Bool = false
+    @State private var pulseResetTask: Task<Void, Never>?
 
     var body: some View {
         VStack {
@@ -16,6 +17,10 @@ struct RorkOverlayView: View {
             Spacer()
         }
         .allowsHitTesting(false)
+        .onDisappear {
+            pulseResetTask?.cancel()
+            pulseResetTask = nil
+        }
     }
 
     private var prqBadge: some View {
@@ -61,10 +66,14 @@ struct RorkOverlayView: View {
                 isAnimating = true
             }
             showPulse = true
-            Task {
+            pulseResetTask?.cancel()
+            pulseResetTask = Task {
                 try? await Task.sleep(for: .seconds(1.5))
-                showPulse = false
-                isAnimating = false
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    showPulse = false
+                    isAnimating = false
+                }
             }
         }
         .scaleEffect(isAnimating ? 1.05 : 1.0)
