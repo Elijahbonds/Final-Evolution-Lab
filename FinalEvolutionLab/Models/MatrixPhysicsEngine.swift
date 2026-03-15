@@ -1,7 +1,7 @@
 import Foundation
 import QuartzCore
 
-nonisolated struct TimeScaleManager: Sendable {
+struct TimeScaleManager: Sendable {
     static let normalScale: Double = 1.0
     static let slowMoScale: Double = 0.2
     static let finisherScale: Double = 0.15
@@ -23,14 +23,14 @@ nonisolated struct TimeScaleManager: Sendable {
     let blendPhase: BlendPhase
     let activeEffect: TimeEffect
 
-    nonisolated enum BlendPhase: String, Sendable {
+    enum BlendPhase: String, Sendable {
         case idle
         case blendingIn
         case sustained
         case blendingOut
     }
 
-    nonisolated enum TimeEffect: String, Sendable {
+    enum TimeEffect: String, Sendable {
         case none
         case slowMo
         case finisher
@@ -156,10 +156,10 @@ nonisolated struct TimeScaleManager: Sendable {
     }
 }
 
-nonisolated struct MatrixStateMachine: Sendable {
+struct MatrixStateMachine: Sendable {
     static let blendDuration: Double = 0.2
 
-    nonisolated enum Phase: String, Sendable {
+    enum Phase: String, Sendable {
         case idle
         case action
         case result
@@ -171,7 +171,7 @@ nonisolated struct MatrixStateMachine: Sendable {
     let phaseStartTime: Double
     let phaseData: PhaseData
 
-    nonisolated struct PhaseData: Sendable {
+    struct PhaseData: Sendable {
         let actionName: String
         let intensity: Double
         let isFinisher: Bool
@@ -232,7 +232,7 @@ nonisolated struct MatrixStateMachine: Sendable {
     var isFinisher: Bool { phaseData.isFinisher }
 }
 
-nonisolated struct ImpactFXConfig: Sendable {
+struct ImpactFXConfig: Sendable {
     let screenShakeIntensity: Double
     let radialBlurRadius: Double
     let chromaticAberration: Double
@@ -285,7 +285,7 @@ nonisolated struct ImpactFXConfig: Sendable {
     }
 }
 
-nonisolated struct MatrixCameraDirector: Sendable {
+struct MatrixCameraDirector: Sendable {
     static let standardFOV: Float = 48
     static let gatherFOV: Float = 42
     static let flightFOV: Float = 55

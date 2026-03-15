@@ -4,6 +4,7 @@ import AVKit
 struct VideoPlayerView: View {
     let url: URL
     @State private var player: AVPlayer?
+    @State private var endObserver: NSObjectProtocol?
 
     var body: some View {
         ZStack {
@@ -19,7 +20,7 @@ struct VideoPlayerView: View {
             let avPlayer = AVPlayer(url: url)
             avPlayer.isMuted = false
             avPlayer.play()
-            NotificationCenter.default.addObserver(
+            endObserver = NotificationCenter.default.addObserver(
                 forName: .AVPlayerItemDidPlayToEndTime,
                 object: avPlayer.currentItem,
                 queue: .main
@@ -30,6 +31,10 @@ struct VideoPlayerView: View {
             player = avPlayer
         }
         .onDisappear {
+            if let endObserver {
+                NotificationCenter.default.removeObserver(endObserver)
+                self.endObserver = nil
+            }
             player?.pause()
             player = nil
         }

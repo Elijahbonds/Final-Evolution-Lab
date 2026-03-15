@@ -3,98 +3,179 @@ import Foundation
 struct SaveSystem {
     private static let profileKey = "finalEvolution_profile"
     private static let sessionsKey = "finalEvolution_sessions"
+    private static let gameResultsKey = "finalEvolution_gameResults"
+    private static let coachEconomyKey = "finalEvolution_coachEconomy"
+    private static let critiqueRequestsKey = "finalEvolution_critiqueRequests"
+    private static let trainingProgressKey = "finalEvolution_trainingProgress"
+    private static let creatorMarketplaceKey = "finalEvolution_creatorMarketplace"
+    private static let eventHubKey = "finalEvolution_eventHub"
+    private static let academyProgressKey = "finalEvolution_academyProgress"
+    private static let cloneProfileKey = "finalEvolution_cloneProfile"
+    private static let movementDatabaseKey = "finalEvolution_movementDatabase"
+    private static let bondsAIStudioKey = "finalEvolution_bondsAIStudio"
+    private static let lastMutationTimestampKey = "finalEvolution_lastMutationTimestamp"
 
     static func saveProfile(_ profile: UserProfile) {
-        if let data = try? JSONEncoder().encode(profile) {
-            UserDefaults.standard.set(data, forKey: profileKey)
-        }
+        writeValue(profile, key: profileKey)
     }
 
     static func loadProfile() -> UserProfile {
-        guard let data = UserDefaults.standard.data(forKey: profileKey),
-              let profile = try? JSONDecoder().decode(UserProfile.self, from: data) else {
-            return .guest
-        }
-        return profile
+        readValue(UserProfile.self, key: profileKey, defaultValue: .guest)
     }
 
     static func saveSessions(_ sessions: [WorkoutSession]) {
-        if let data = try? JSONEncoder().encode(sessions) {
-            UserDefaults.standard.set(data, forKey: sessionsKey)
-        }
+        writeValue(sessions, key: sessionsKey)
     }
 
     static func loadSessions() -> [WorkoutSession] {
-        guard let data = UserDefaults.standard.data(forKey: sessionsKey),
-              let sessions = try? JSONDecoder().decode([WorkoutSession].self, from: data) else {
-            return []
-        }
-        return sessions
+        readValue([WorkoutSession].self, key: sessionsKey, defaultValue: [])
     }
-
-    private static let gameResultsKey = "finalEvolution_gameResults"
 
     static func saveGameResult(_ result: GameSessionResult) {
         var results = loadGameResults()
         results.append(result)
-        if let data = try? JSONEncoder().encode(results) {
-            UserDefaults.standard.set(data, forKey: gameResultsKey)
-        }
+        writeValue(results, key: gameResultsKey)
     }
 
     static func loadGameResults() -> [GameSessionResult] {
-        guard let data = UserDefaults.standard.data(forKey: gameResultsKey),
-              let results = try? JSONDecoder().decode([GameSessionResult].self, from: data) else {
-            return []
-        }
-        return results
+        readValue([GameSessionResult].self, key: gameResultsKey, defaultValue: [])
     }
 
-    private static let coachEconomyKey = "finalEvolution_coachEconomy"
-
     static func saveCoachEconomy(_ economy: CoachEconomy) {
-        if let data = try? JSONEncoder().encode(economy) {
-            UserDefaults.standard.set(data, forKey: coachEconomyKey)
-        }
+        writeValue(economy, key: coachEconomyKey)
     }
 
     static func loadCoachEconomy() -> CoachEconomy {
-        guard let data = UserDefaults.standard.data(forKey: coachEconomyKey),
-              let economy = try? JSONDecoder().decode(CoachEconomy.self, from: data) else {
-            return CoachEconomy()
-        }
-        return economy
+        readValue(CoachEconomy.self, key: coachEconomyKey, defaultValue: CoachEconomy())
     }
 
-    private static let critiqueRequestsKey = "finalEvolution_critiqueRequests"
-
     static func saveCritiqueRequests(_ requests: [CritiqueRequest]) {
-        if let data = try? JSONEncoder().encode(requests) {
-            UserDefaults.standard.set(data, forKey: critiqueRequestsKey)
-        }
+        writeValue(requests, key: critiqueRequestsKey)
     }
 
     static func loadCritiqueRequests() -> [CritiqueRequest] {
-        guard let data = UserDefaults.standard.data(forKey: critiqueRequestsKey),
-              let requests = try? JSONDecoder().decode([CritiqueRequest].self, from: data) else {
-            return []
-        }
-        return requests
+        readValue([CritiqueRequest].self, key: critiqueRequestsKey, defaultValue: [])
     }
 
-    private static let trainingProgressKey = "finalEvolution_trainingProgress"
-
     static func saveTrainingProgress(_ progress: TrainingProgress) {
-        if let data = try? JSONEncoder().encode(progress) {
-            UserDefaults.standard.set(data, forKey: trainingProgressKey)
-        }
+        writeValue(progress, key: trainingProgressKey)
     }
 
     static func loadTrainingProgress() -> TrainingProgress {
-        guard let data = UserDefaults.standard.data(forKey: trainingProgressKey),
-              let progress = try? JSONDecoder().decode(TrainingProgress.self, from: data) else {
-            return .initial
+        readValue(TrainingProgress.self, key: trainingProgressKey, defaultValue: .initial)
+    }
+
+    static func saveCreatorMarketplace(_ marketplace: CreatorCardMarketplaceState) {
+        writeValue(marketplace, key: creatorMarketplaceKey)
+    }
+
+    static func loadCreatorMarketplace() -> CreatorCardMarketplaceState {
+        readValue(CreatorCardMarketplaceState.self, key: creatorMarketplaceKey, defaultValue: CreatorCardMarketplaceState())
+    }
+
+    static func saveEventHub(_ eventHub: EventHubState) {
+        writeValue(eventHub, key: eventHubKey)
+    }
+
+    static func loadEventHub() -> EventHubState {
+        readValue(EventHubState.self, key: eventHubKey, defaultValue: EventHubState())
+    }
+
+    static func saveAcademyProgress(_ progress: AcademyProgressState) {
+        writeValue(progress, key: academyProgressKey)
+    }
+
+    static func loadAcademyProgress() -> AcademyProgressState {
+        readValue(AcademyProgressState.self, key: academyProgressKey, defaultValue: .initial)
+    }
+
+    static func saveCloneProfile(_ cloneProfile: CloneProfile) {
+        writeValue(cloneProfile, key: cloneProfileKey)
+    }
+
+    static func loadCloneProfile() -> CloneProfile? {
+        guard let data = UserDefaults.standard.data(forKey: cloneProfileKey) else { return nil }
+        return try? JSONDecoder().decode(CloneProfile.self, from: data)
+    }
+
+    static func saveMovementDatabase(_ movementDatabase: MovementDatabase) {
+        writeValue(movementDatabase, key: movementDatabaseKey)
+    }
+
+    static func loadMovementDatabase() -> MovementDatabase {
+        readValue(MovementDatabase.self, key: movementDatabaseKey, defaultValue: MovementDatabase())
+    }
+
+    static func saveBondsAIStudio(_ studio: BondsAIStudioState) {
+        writeValue(studio, key: bondsAIStudioKey)
+    }
+
+    static func loadBondsAIStudio() -> BondsAIStudioState {
+        readValue(BondsAIStudioState.self, key: bondsAIStudioKey, defaultValue: BondsAIStudioState())
+    }
+
+    static func refreshFromCloudIfAvailable() async {
+        guard let snapshot = await FirebasePersistenceService.pullSnapshot() else {
+            return
         }
-        return progress
+        let localMutationDate = Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: lastMutationTimestampKey))
+        guard snapshot.updatedAt > localMutationDate else {
+            return
+        }
+
+        writeValue(snapshot.profile, key: profileKey, triggerCloudSync: false)
+        writeValue(snapshot.sessions, key: sessionsKey, triggerCloudSync: false)
+        writeValue(snapshot.gameResults, key: gameResultsKey, triggerCloudSync: false)
+        writeValue(snapshot.coachEconomy, key: coachEconomyKey, triggerCloudSync: false)
+        writeValue(snapshot.critiqueRequests, key: critiqueRequestsKey, triggerCloudSync: false)
+        writeValue(snapshot.trainingProgress, key: trainingProgressKey, triggerCloudSync: false)
+        writeValue(snapshot.creatorMarketplace, key: creatorMarketplaceKey, triggerCloudSync: false)
+        writeValue(snapshot.eventHub, key: eventHubKey, triggerCloudSync: false)
+        writeValue(snapshot.academyProgress, key: academyProgressKey, triggerCloudSync: false)
+        if let cloneProfile = snapshot.cloneProfile {
+            writeValue(cloneProfile, key: cloneProfileKey, triggerCloudSync: false)
+        }
+        writeValue(snapshot.movementDatabase, key: movementDatabaseKey, triggerCloudSync: false)
+        writeValue(snapshot.bondsAIStudio, key: bondsAIStudioKey, triggerCloudSync: false)
+        UserDefaults.standard.set(snapshot.updatedAt.timeIntervalSince1970, forKey: lastMutationTimestampKey)
+    }
+
+    private static func writeValue<T: Encodable>(_ value: T, key: String, triggerCloudSync: Bool = true) {
+        guard let data = try? JSONEncoder().encode(value) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+
+        if triggerCloudSync {
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastMutationTimestampKey)
+            triggerFirebaseSync()
+        }
+    }
+
+    private static func readValue<T: Decodable>(_ type: T.Type, key: String, defaultValue: T) -> T {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let value = try? JSONDecoder().decode(T.self, from: data) else {
+            return defaultValue
+        }
+        return value
+    }
+
+    private static func triggerFirebaseSync() {
+        Task {
+            let snapshot = CloudAppSnapshot(
+                profile: loadProfile(),
+                sessions: loadSessions(),
+                gameResults: loadGameResults(),
+                coachEconomy: loadCoachEconomy(),
+                critiqueRequests: loadCritiqueRequests(),
+                trainingProgress: loadTrainingProgress(),
+                creatorMarketplace: loadCreatorMarketplace(),
+                eventHub: loadEventHub(),
+                academyProgress: loadAcademyProgress(),
+                cloneProfile: loadCloneProfile(),
+                movementDatabase: loadMovementDatabase(),
+                bondsAIStudio: loadBondsAIStudio(),
+                updatedAt: Date()
+            )
+            await FirebasePersistenceService.pushSnapshot(snapshot)
+        }
     }
 }

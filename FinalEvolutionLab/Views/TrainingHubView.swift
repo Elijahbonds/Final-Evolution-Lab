@@ -53,10 +53,10 @@ private struct TrainingHubContent: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("3-TRACK SYSTEM")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("3-track system")
+                .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(Theme.neonGreen)
-                .tracking(4)
+                .tracking(1)
 
             Text("Training")
                 .font(.system(size: 52, weight: .black))
@@ -73,10 +73,10 @@ private struct TrainingHubContent: View {
 
     private var equipmentSelector: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("EQUIPMENT")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
+            Text("Equipment")
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .tracking(2)
+                .tracking(0.5)
 
             ScrollView(.horizontal) {
                 HStack(spacing: 10) {
@@ -93,7 +93,7 @@ private struct TrainingHubContent: View {
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(equipment.displayName)
-                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                        .font(.system(size: 11, weight: .bold))
                                     Text(equipment.subtitle)
                                         .font(.system(size: 8, weight: .medium))
                                         .lineLimit(1)
@@ -101,6 +101,7 @@ private struct TrainingHubContent: View {
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 12)
+                            .frame(minHeight: 44)
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(isSelected ? Theme.brandCyan.opacity(0.12) : Color.white.opacity(0.03))
@@ -131,12 +132,12 @@ private struct TrainingHubContent: View {
                         Image(systemName: track.icon)
                             .font(.system(size: 16, weight: .bold))
 
-                        Text(track.rawValue.uppercased())
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
-                            .tracking(1)
+                        Text(track.rawValue)
+                            .font(.system(size: 10, weight: .bold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
+                    .frame(minHeight: 44)
                     .background(
                         vm.currentTrack == track
                             ? Theme.difficultyColor(track.difficulty).opacity(0.15)
@@ -161,10 +162,10 @@ private struct TrainingHubContent: View {
         VStack(spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(vm.currentTrack.rawValue.uppercased())
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text(vm.currentTrack.rawValue)
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(Theme.difficultyColor(vm.currentTrack.difficulty))
-                        .tracking(2)
+                        .tracking(1)
 
                     Text(vm.currentTrack.subtitle)
                         .font(.caption)
@@ -194,9 +195,9 @@ private struct TrainingHubContent: View {
             }
 
             HStack(spacing: 12) {
-                progressStat(icon: "checkmark.circle.fill", value: "\(vm.completedDays.count)", label: "DONE")
-                progressStat(icon: "list.bullet", value: "\(vm.availableDays.count)", label: "TOTAL")
-                progressStat(icon: "diamond.fill", value: "\(vm.progress.totalShardsEarned)", label: "SHARDS")
+                progressStat(icon: "checkmark.circle.fill", value: "\(vm.completedDays.count)", label: "Done")
+                progressStat(icon: "list.bullet", value: "\(vm.availableDays.count)", label: "Total")
+                progressStat(icon: "diamond.fill", value: "\(vm.progress.totalShardsEarned)", label: "Shards")
             }
         }
         .padding(20)
@@ -221,9 +222,9 @@ private struct TrainingHubContent: View {
                 .foregroundStyle(.white)
 
             Text(label)
-                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                .font(.system(size: 8, weight: .semibold))
                 .foregroundStyle(.tertiary)
-                .tracking(1)
+                .tracking(0.3)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -246,10 +247,10 @@ private struct TrainingHubContent: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("RECOVERY GATE")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text("Recovery gate")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.orange)
-                        .tracking(2)
+                        .tracking(0.5)
 
                     Text("Complete a Recovery session to unlock the next Max Intent day")
                         .font(.caption)
@@ -288,10 +289,10 @@ private struct TrainingHubContent: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("NEXT UP")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                        Text("Next up")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Theme.neonGreen)
-                            .tracking(2)
+                            .tracking(0.5)
 
                         Text("Day \(next.dayNumber)\(next.variant): \(next.title)")
                             .font(.system(.subheadline, weight: .bold))
@@ -323,10 +324,10 @@ private struct TrainingHubContent: View {
 
     private var scheduleSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("WEEKLY SCHEDULE")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
+            Text("Weekly schedule")
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .tracking(2)
+                .tracking(0.5)
 
             ForEach(Array(vm.availableDays.enumerated()), id: \.element.id) { index, day in
                 Button {
@@ -407,8 +408,8 @@ private struct TrainingDayRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(day.category.rawValue.uppercased())
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                Text(day.category.rawValue)
+                    .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(accentColor.opacity(0.7))
 
                 Text("\(day.totalExerciseCount) ex")

@@ -3,12 +3,13 @@ import SwiftUI
 struct GameModeSelectionView: View {
     let viewModel: LabViewModel
     @State private var appeared = false
-    @State private var selectedMode: GameMode?
     @State private var showNeuralScan = false
     @State private var pendingMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToGame = false
     @State private var showMatchmaking = false
+    @State private var showStartOptions = false
+    @State private var delayedNavigateTask: Task<Void, Never>?
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -36,37 +37,49 @@ struct GameModeSelectionView: View {
             NeuralReadinessScanView { readiness in
                 sessionReadiness = readiness
                 viewModel.profile.metrics.neuralDrive = min(100, readiness)
+                viewModel.profile.metrics.readinessScore = readiness
                 SaveSystem.saveProfile(viewModel.profile)
                 showNeuralScan = false
-                Task {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    navigateToGame = true
-                }
+                scheduleNavigateToGame()
             }
         }
         .sheet(isPresented: $showMatchmaking) {
             if let mode = pendingMode {
                 MatchmakingView(viewModel: viewModel, gameMode: mode) { opponent, readiness in
                     sessionReadiness = readiness
+                    viewModel.profile.metrics.readinessScore = readiness
+                    SaveSystem.saveProfile(viewModel.profile)
                     showMatchmaking = false
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(300))
-                        navigateToGame = true
-                    }
+                    scheduleNavigateToGame()
                 }
             }
         }
+        .confirmationDialog("Start \(pendingMode?.name ?? "Mode")", isPresented: $showStartOptions, titleVisibility: .visible) {
+            Button("Quick Start") {
+                sessionReadiness = max(50, viewModel.profile.metrics.readinessScore)
+                navigateToGame = true
+            }
+            Button("Scan & Calibrate") {
+                showNeuralScan = true
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Quick Start uses your latest readiness profile. Scan & Calibrate runs a fresh readiness scan.")
+        }
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
+        }
+        .onDisappear {
+            delayedNavigateTask?.cancel()
+            delayedNavigateTask = nil
         }
     }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("SELECT MODE")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Choose mode")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.brandBlue)
-                .tracking(4)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 10)
 
@@ -85,11 +98,11 @@ struct GameModeSelectionView: View {
 
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
-                    Text("11")
-                        .font(.system(.caption, design: .monospaced, weight: .black))
+                    Text("\(GameModeRegistry.all.count)")
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(Theme.brandCyan)
-                    Text("MODES")
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                    Text("modes")
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
 
@@ -99,16 +112,27 @@ struct GameModeSelectionView: View {
 
                 HStack(spacing: 4) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 9))
+                        .font(.system(size: 10))
                         .foregroundStyle(Theme.brandCyan.opacity(0.7))
-                    Text("MULTIPLAYER")
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                    Text("multiplayer")
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
             .padding(.top, 2)
         }
         .padding(.top, 8)
+    }
+
+    private func scheduleNavigateToGame() {
+        delayedNavigateTask?.cancel()
+        delayedNavigateTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                navigateToGame = true
+            }
+        }
     }
 
     private var globalMatchmakingBanner: some View {
@@ -131,12 +155,12 @@ struct GameModeSelectionView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("GLOBAL ARENA")
+                    Text("Global arena")
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
 
                     Text("Find opponents by PRQ tier")
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                        .font(.caption2)
                         .foregroundStyle(Theme.brandCyan.opacity(0.7))
                 }
 
@@ -169,17 +193,16 @@ struct GameModeSelectionView: View {
                     .fill(modes.first?.accentColor.opacity(0.3) ?? Theme.brandBlue.opacity(0.3))
                     .frame(width: 6, height: 6)
 
-                Text(category.rawValue.uppercased())
-                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                Text(category.rawValue)
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .tracking(3)
             }
 
             LazyVGrid(columns: columns, spacing: 14) {
                 ForEach(Array(modes.enumerated()), id: \.element.id) { modeIndex, mode in
                     GameModeCard(mode: mode) {
                         pendingMode = mode
-                        showNeuralScan = true
+                        showStartOptions = true
                     }
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
@@ -228,28 +251,43 @@ struct GameModeCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(mode.name.uppercased())
+                    Text(mode.name)
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
                     Text(mode.subtitle)
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
+                        .font(.caption2)
                         .foregroundStyle(mode.accentColor.opacity(0.8))
                         .lineLimit(1)
                 }
 
                 HStack(spacing: 4) {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 8))
+                        .font(.system(size: 10))
                     Text(mode.environmentName)
-                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundStyle(.tertiary)
 
+                HStack(spacing: 5) {
+                    Image(systemName: "gamecontroller.fill")
+                        .font(.system(size: 10))
+                    Image(systemName: "hand.draw.fill")
+                        .font(.system(size: 10))
+                    Text("Controller / Swipe")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(.secondary)
+
+                Text(mode.id.gameplayDNA)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(mode.accentColor.opacity(0.55))
+                    .lineLimit(2)
+
                 if let hint = mode.hint {
                     Text(hint)
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(mode.accentColor.opacity(0.6))
                         .lineLimit(1)
                 }
@@ -288,6 +326,8 @@ struct GameModeCard: View {
             )
             .scaleEffect(isPressed ? 0.96 : 1)
         }
+        .accessibilityLabel("\(mode.name), \(mode.subtitle). \(mode.environmentName).")
+        .accessibilityHint("Double tap to choose quick start or calibrate before playing.")
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .light), trigger: isPressed)
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
@@ -301,9 +341,9 @@ struct GameModeCard: View {
             case .realtime:
                 HStack(spacing: 3) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 7))
+                        .font(.system(size: 10))
                     Text("LIVE")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .semibold))
                 }
                 .foregroundStyle(Theme.brandCyan)
                 .padding(.horizontal, 6)
@@ -313,9 +353,9 @@ struct GameModeCard: View {
             case .turnBased:
                 HStack(spacing: 3) {
                     Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 7))
+                        .font(.system(size: 10))
                     Text("TURNS")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .semibold))
                 }
                 .foregroundStyle(.orange)
                 .padding(.horizontal, 6)
@@ -330,11 +370,11 @@ struct GameModeCard: View {
 }
 
 extension GameMode: Hashable {
-    nonisolated static func == (lhs: GameMode, rhs: GameMode) -> Bool {
+    static func == (lhs: GameMode, rhs: GameMode) -> Bool {
         lhs.id == rhs.id
     }
 
-    nonisolated func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
 }

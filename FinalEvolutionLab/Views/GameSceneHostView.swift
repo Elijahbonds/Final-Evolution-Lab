@@ -525,7 +525,7 @@ struct GameSceneHostView: UIViewRepresentable {
     }
 }
 
-nonisolated private struct CameraFollowConfig: Sendable {
+private struct CameraFollowConfig: Sendable {
     let offsetX: Float
     let offsetY: Float
     let offsetZ: Float
@@ -536,7 +536,7 @@ nonisolated private struct CameraFollowConfig: Sendable {
     let fovAction: CGFloat
 }
 
-nonisolated private struct MovementBounds: Sendable {
+private struct MovementBounds: Sendable {
     let minX: Float
     let maxX: Float
     let minZ: Float

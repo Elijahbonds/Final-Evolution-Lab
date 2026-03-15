@@ -1,11 +1,13 @@
 import Foundation
 
-nonisolated struct UserProfile: Sendable, Identifiable {
+struct UserProfile: Sendable, Identifiable {
     var id: String
     var displayName: String
     var athleteTag: String
     var metrics: PerformanceMetrics
     var evolutionShards: Int
+    var premiumCredits: Int
+    var creatorCredits: Int
     var totalWorkouts: Int
     var streakDays: Int
     var joinDate: Date
@@ -19,6 +21,7 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var systemScan: SystemScanResult?
     var activeCreatorCard: CreatorCardState?
     var ownedCardIds: [String]
+    var unlockedCosmeticRewardIds: [String]
 
     func ownsCard(_ cardId: String) -> Bool {
         ownedCardIds.contains(cardId)
@@ -26,13 +29,15 @@ nonisolated struct UserProfile: Sendable, Identifiable {
 }
 
 extension UserProfile: Codable {
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         displayName = try container.decode(String.self, forKey: .displayName)
         athleteTag = try container.decode(String.self, forKey: .athleteTag)
         metrics = try container.decode(PerformanceMetrics.self, forKey: .metrics)
         evolutionShards = try container.decode(Int.self, forKey: .evolutionShards)
+        premiumCredits = (try? container.decode(Int.self, forKey: .premiumCredits)) ?? 0
+        creatorCredits = (try? container.decode(Int.self, forKey: .creatorCredits)) ?? 0
         totalWorkouts = try container.decode(Int.self, forKey: .totalWorkouts)
         streakDays = try container.decode(Int.self, forKey: .streakDays)
         joinDate = try container.decode(Date.self, forKey: .joinDate)
@@ -45,6 +50,7 @@ extension UserProfile: Codable {
         systemScan = try container.decodeIfPresent(SystemScanResult.self, forKey: .systemScan)
         activeCreatorCard = try container.decodeIfPresent(CreatorCardState.self, forKey: .activeCreatorCard)
         ownedCardIds = (try? container.decode([String].self, forKey: .ownedCardIds)) ?? []
+        unlockedCosmeticRewardIds = (try? container.decode([String].self, forKey: .unlockedCosmeticRewardIds)) ?? []
     }
 
     static let guest = UserProfile(
@@ -53,6 +59,8 @@ extension UserProfile: Codable {
         athleteTag: "0xGuest",
         metrics: .empty,
         evolutionShards: 0,
+        premiumCredits: 0,
+        creatorCredits: 0,
         totalWorkouts: 0,
         streakDays: 0,
         joinDate: Date(),
@@ -64,11 +72,12 @@ extension UserProfile: Codable {
         hasCompletedOnboarding: false,
         systemScan: nil,
         activeCreatorCard: nil,
-        ownedCardIds: []
+        ownedCardIds: [],
+        unlockedCosmeticRewardIds: []
     )
 }
 
-nonisolated struct SystemScanResult: Codable, Sendable {
+struct SystemScanResult: Codable, Sendable {
     let id: String
     let date: Date
     let prqScore: Double
@@ -78,8 +87,20 @@ nonisolated struct SystemScanResult: Codable, Sendable {
     let notes: [String]
     let recommendedTrack: String
     var avatarConfig: AvatarSkinConfig
+    var movementScreening: MovementScreeningReport?
 
-    init(id: String, date: Date, prqScore: Double, verticalEstimateInches: Double, flightTimeSeconds: Double, movementGrade: String, notes: [String], recommendedTrack: String, avatarConfig: AvatarSkinConfig = .default) {
+    init(
+        id: String,
+        date: Date,
+        prqScore: Double,
+        verticalEstimateInches: Double,
+        flightTimeSeconds: Double,
+        movementGrade: String,
+        notes: [String],
+        recommendedTrack: String,
+        avatarConfig: AvatarSkinConfig = .default,
+        movementScreening: MovementScreeningReport? = nil
+    ) {
         self.id = id
         self.date = date
         self.prqScore = prqScore
@@ -89,9 +110,10 @@ nonisolated struct SystemScanResult: Codable, Sendable {
         self.notes = notes
         self.recommendedTrack = recommendedTrack
         self.avatarConfig = avatarConfig
+        self.movementScreening = movementScreening
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         date = try container.decode(Date.self, forKey: .date)
@@ -102,10 +124,11 @@ nonisolated struct SystemScanResult: Codable, Sendable {
         notes = try container.decode([String].self, forKey: .notes)
         recommendedTrack = try container.decode(String.self, forKey: .recommendedTrack)
         avatarConfig = (try? container.decode(AvatarSkinConfig.self, forKey: .avatarConfig)) ?? .default
+        movementScreening = try container.decodeIfPresent(MovementScreeningReport.self, forKey: .movementScreening)
     }
 }
 
-nonisolated struct AvatarSkinConfig: Codable, Sendable {
+struct AvatarSkinConfig: Codable, Sendable {
     var heightScale: Double
     var weightScale: Double
     var limbLength: Double
@@ -130,8 +153,11 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
 
     static func fromScan(prq: Double, vertical: Double, flight: Double, sport: String?) -> AvatarSkinConfig {
         let normalizedPRQ = min(max(prq / 100.0, 0), 1)
-        let heightBonus = min(0.15, vertical / 200.0)
-        let flightBonus = min(0.1, flight * 0.15)
+        let normalizedVertical = min(max(vertical / 45.0, 0), 1)
+        let normalizedFlight = min(max(flight / 1.2, 0), 1)
+
+        let heightBonus = min(0.18, normalizedVertical * 0.18)
+        let flightBonus = min(0.14, normalizedFlight * 0.14)
 
         let tone: AvatarSkinTone
         let outfit: AvatarOutfitStyle
@@ -159,17 +185,32 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
         }
 
         let sportWeightBias: Double
+        let limbBonus: Double
         switch sport ?? "" {
-        case "Basketball", "Volleyball": sportWeightBias = 0.95
-        case "Football": sportWeightBias = 1.1
-        case "Gymnastics": sportWeightBias = 0.88
-        default: sportWeightBias = 1.0
+        case "Basketball", "Volleyball":
+            sportWeightBias = 0.95
+            limbBonus = 0.04
+        case "Football":
+            sportWeightBias = 1.1
+            limbBonus = 0
+        case "Gymnastics":
+            sportWeightBias = 0.88
+            limbBonus = -0.03
+        case "Soccer", "Tennis":
+            sportWeightBias = 0.98
+            limbBonus = 0.02
+        case "Baseball", "Golf":
+            sportWeightBias = 1.02
+            limbBonus = 0.01
+        default:
+            sportWeightBias = 1.0
+            limbBonus = 0
         }
 
         return AvatarSkinConfig(
             heightScale: 1.0 + heightBonus,
             weightScale: sportWeightBias,
-            limbLength: 1.0 + flightBonus,
+            limbLength: 1.0 + flightBonus + limbBonus,
             skinTone: tone,
             outfitStyle: outfit,
             auraColorR: auraR,
@@ -180,7 +221,29 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
     }
 }
 
-nonisolated enum AvatarSkinTone: String, Codable, Sendable {
+enum AvatarArchetype: String, Codable, Sendable {
+    case highFlyer = "High Flyer"
+    case powerDriver = "Power Driver"
+    case agileCreator = "Agile Creator"
+    case balancedAthlete = "Balanced Athlete"
+}
+
+extension SystemScanResult {
+    var irlAvatarArchetype: AvatarArchetype {
+        if verticalEstimateInches >= 34 && flightTimeSeconds >= 0.75 {
+            return .highFlyer
+        }
+        if prqScore >= 72 && movementGrade.uppercased().contains("A") {
+            return .agileCreator
+        }
+        if notes.joined(separator: " ").localizedCaseInsensitiveContains("power") {
+            return .powerDriver
+        }
+        return .balancedAthlete
+    }
+}
+
+enum AvatarSkinTone: String, Codable, Sendable {
     case cyan
     case blue
     case green
@@ -188,17 +251,20 @@ nonisolated enum AvatarSkinTone: String, Codable, Sendable {
     case orange
 }
 
-nonisolated enum AvatarOutfitStyle: String, Codable, Sendable {
+enum AvatarOutfitStyle: String, Codable, Sendable {
     case standard
     case developing
     case flight
     case elite
 }
 
-nonisolated struct CreatorCardState: Codable, Sendable {
+struct CreatorCardState: Codable, Sendable {
     let cardId: String
     let creatorName: String
     let appliedAt: Date
+    let assetInstanceId: String?
     let costShards: Int
     let metricsBoost: PerformanceMetrics
+
+    var costCredits: Int { costShards } // Legacy key alias.
 }

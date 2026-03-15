@@ -7,7 +7,7 @@ struct ShardShopView: View {
     @State private var selectedCategory: ShopItem.ShopCategory = .outfit
     @State private var purchasedIds: Set<String> = []
     @State private var showPurchaseConfirm: ShopItem?
-    @State private var showInsufficientShards = false
+    @State private var showInsufficientCurrency: EconomyCurrency?
     @State private var appeared = false
 
     var body: some View {
@@ -44,13 +44,20 @@ struct ShardShopView: View {
                 }
             } message: {
                 if let item = showPurchaseConfirm {
-                    Text("Spend \(item.cost) shards on \(item.name)?")
+                    Text("Spend \(item.cost) \(currencyLabel(item.currency)) on \(item.name)?")
                 }
             }
-            .alert("Insufficient Shards", isPresented: $showInsufficientShards) {
+            .alert("Insufficient Balance", isPresented: Binding(
+                get: { showInsufficientCurrency != nil },
+                set: { if !$0 { showInsufficientCurrency = nil } }
+            )) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Earn more shards through workouts and arena matches.")
+                if showInsufficientCurrency == .credits {
+                    Text("Purchase more credits to buy this creator service.")
+                } else {
+                    Text("Earn more shards through workouts and arena matches.")
+                }
             }
             .onAppear {
                 loadPurchased()
@@ -83,8 +90,18 @@ struct ShardShopView: View {
 
             Spacer()
 
-            NeuralDriveOrb(value: Double(viewModel.profile.evolutionShards) / 100.0)
-                .frame(width: 60, height: 60)
+            VStack(alignment: .trailing, spacing: 6) {
+                HStack(spacing: 4) {
+                    Image(systemName: "creditcard.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.brandBlue)
+                    Text("\(viewModel.profile.premiumCredits)")
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                }
+                NeuralDriveOrb(value: Double(viewModel.profile.evolutionShards) / 100.0)
+                    .frame(width: 60, height: 60)
+            }
         }
         .padding(20)
         .background(
@@ -128,7 +145,7 @@ struct ShardShopView: View {
                 ShopItemCard(
                     item: item,
                     isPurchased: purchasedIds.contains(item.id),
-                    canAfford: viewModel.profile.evolutionShards >= item.cost
+                    canAfford: canAfford(item)
                 ) {
                     handlePurchaseTap(item)
                 }
@@ -141,19 +158,40 @@ struct ShardShopView: View {
 
     private func handlePurchaseTap(_ item: ShopItem) {
         if purchasedIds.contains(item.id) { return }
-        if viewModel.profile.evolutionShards < item.cost {
-            showInsufficientShards = true
+        if !canAfford(item) {
+            showInsufficientCurrency = item.currency
             return
         }
         showPurchaseConfirm = item
     }
 
     private func completePurchase(_ item: ShopItem) {
-        viewModel.profile.evolutionShards -= item.cost
+        switch item.currency {
+        case .shards:
+            viewModel.profile.evolutionShards -= item.cost
+        case .credits:
+            viewModel.profile.premiumCredits -= item.cost
+        }
         purchasedIds.insert(item.id)
         SaveSystem.saveProfile(viewModel.profile)
         savePurchased()
         showPurchaseConfirm = nil
+    }
+
+    private func canAfford(_ item: ShopItem) -> Bool {
+        switch item.currency {
+        case .shards:
+            return viewModel.profile.evolutionShards >= item.cost
+        case .credits:
+            return viewModel.profile.premiumCredits >= item.cost
+        }
+    }
+
+    private func currencyLabel(_ currency: EconomyCurrency) -> String {
+        switch currency {
+        case .shards: return "shards"
+        case .credits: return "credits"
+        }
     }
 
     private let purchasedKey = "finalEvolution_purchased"
@@ -207,7 +245,7 @@ struct ShopItemCard: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 4) {
-                    Image(systemName: "diamond.fill")
+                    Image(systemName: item.currency == .credits ? "creditcard.fill" : "diamond.fill")
                         .font(.system(size: 9))
                         .foregroundStyle(Theme.brandCyan)
 

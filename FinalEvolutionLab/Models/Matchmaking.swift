@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct MatchmakingOpponent: Identifiable, Sendable {
+struct MatchmakingOpponent: Identifiable, Sendable {
     let id: String
     let displayName: String
     let athleteTag: String
@@ -11,13 +11,13 @@ nonisolated struct MatchmakingOpponent: Identifiable, Sendable {
     let totalGames: Int
 }
 
-nonisolated struct MatchmakingResult: Sendable {
+struct MatchmakingResult: Sendable {
     let opponent: MatchmakingOpponent
     let estimatedWaitSeconds: Int
     let matchQuality: MatchQuality
 }
 
-nonisolated enum MatchQuality: String, Sendable {
+enum MatchQuality: String, Sendable {
     case perfect = "PERFECT"
     case good = "GOOD"
     case fair = "FAIR"
@@ -31,14 +31,14 @@ nonisolated enum MatchQuality: String, Sendable {
     }
 }
 
-nonisolated enum MatchmakingState: Sendable {
+enum MatchmakingState: Sendable {
     case idle
     case searching(PRQTier)
     case found(MatchmakingResult)
     case failed
 }
 
-nonisolated struct CritiqueRequest: Codable, Sendable, Identifiable {
+struct CritiqueRequest: Codable, Sendable, Identifiable {
     let id: String
     let athleteId: String
     var athleteName: String = ""
@@ -53,16 +53,21 @@ nonisolated struct CritiqueRequest: Codable, Sendable, Identifiable {
     var isReviewable: Bool {
         status == .completed && coachResponse != nil
     }
+
+    // Legacy key name retained for backward compatibility with persisted data.
+    var creditsCost: Int { shardsCost }
 }
 
-nonisolated enum CritiqueStatus: String, Codable, Sendable {
+enum CritiqueStatus: String, Codable, Sendable {
     case pending
     case inProgress
     case completed
     case rated
+    case cancelled
+    case disputed
 }
 
-nonisolated struct CritiqueResponse: Codable, Sendable {
+struct CritiqueResponse: Codable, Sendable {
     var coachId: String = ""
     let coachName: String
     let responseDate: Date
@@ -72,7 +77,7 @@ nonisolated struct CritiqueResponse: Codable, Sendable {
     let focusAreas: [String]
 }
 
-nonisolated struct DrawingAnnotation: Codable, Sendable, Identifiable {
+struct DrawingAnnotation: Codable, Sendable, Identifiable {
     var id: String = UUID().uuidString
     var points: [AnnotationPoint] = []
     var color: String = "red"
@@ -80,12 +85,12 @@ nonisolated struct DrawingAnnotation: Codable, Sendable, Identifiable {
     var label: String?
 }
 
-nonisolated struct AnnotationPoint: Codable, Sendable {
+struct AnnotationPoint: Codable, Sendable {
     let x: Double
     let y: Double
 }
 
-nonisolated struct RecentMatchRecord: Identifiable, Sendable {
+struct RecentMatchRecord: Identifiable, Sendable {
     let id: String
     let opponentName: String
     let opponentTier: PRQTier
@@ -97,7 +102,7 @@ nonisolated struct RecentMatchRecord: Identifiable, Sendable {
     var didWin: Bool { userScore > opponentScore }
 }
 
-nonisolated enum ConnectionQuality: String, Sendable {
+enum ConnectionQuality: String, Sendable {
     case excellent = "EXCELLENT"
     case good = "GOOD"
     case moderate = "MODERATE"

@@ -12,8 +12,10 @@ struct SystemScanView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var videoURL: URL?
     @State private var analysisProgress: Double = 0
-    @State private var scanLines: CGFloat = 0
     @State private var gridPulse: Bool = false
+    @State private var scanError: String?
+    @State private var analysisTask: Task<Void, Never>?
+    @State private var temporarySelectedVideoURL: URL?
 
     private enum ScanPhase {
         case picking
@@ -22,6 +24,11 @@ struct SystemScanView: View {
     }
 
     @State private var generatedResult: SystemScanResult?
+
+    private struct ResolvedVideoSelection {
+        let url: URL
+        let isTemporary: Bool
+    }
 
     var body: some View {
         NavigationStack {
@@ -55,6 +62,11 @@ struct SystemScanView: View {
         }
         .presentationDetents([.large])
         .presentationBackground(Theme.deepBlack)
+        .onDisappear {
+            analysisTask?.cancel()
+            analysisTask = nil
+            cleanupTemporarySelection()
+        }
     }
 
     private var scanGrid: some View {
@@ -130,6 +142,14 @@ struct SystemScanView: View {
             .onChange(of: selectedItem) { _, newItem in
                 guard newItem != nil else { return }
                 startAnalysis()
+            }
+
+            if let scanError {
+                Text(scanError)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
             }
 
             Spacer()
@@ -249,6 +269,12 @@ struct SystemScanView: View {
                 }
                 .padding(.horizontal)
 
+                if let screening = result.movementScreening {
+                    movementScreenSummarySection(screening)
+                    dysfunctionSection(screening)
+                    prescriptionSection(screening)
+                }
+
                 avatarPreviewSection(result.avatarConfig)
 
                 if !result.notes.isEmpty {
@@ -301,6 +327,115 @@ struct SystemScanView: View {
             .padding(.top, 16)
         }
         .scrollIndicators(.hidden)
+    }
+
+    private func movementScreenSummarySection(_ screening: MovementScreeningReport) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("MOVEMENT SCREENS")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            HStack(spacing: 8) {
+                ForEach(screening.screenResults) { screen in
+                    VStack(spacing: 4) {
+                        Text(screen.kind.rawValue)
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                        Text("\(Int(screen.totalScore))/\(Int(screen.maxScore))")
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                        Text(screen.riskBand.rawValue.uppercased())
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundStyle(screen.riskBand == .low ? Theme.foundationGreen : (screen.riskBand == .moderate ? .orange : .red))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Theme.surfaceElevated)
+                    .clipShape(.rect(cornerRadius: 10))
+                }
+            }
+
+            Text(
+                String(
+                    format: "Stress Test: %.1fs • %.0f fps • %d reps • fatigue %.0f%%",
+                    screening.stressTest.clipDurationSeconds,
+                    screening.stressTest.frameRate,
+                    screening.stressTest.estimatedRepCount,
+                    screening.stressTest.fatigueIndex * 100
+                )
+            )
+            .font(.system(size: 10, design: .monospaced))
+            .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+        )
+        .padding(.horizontal)
+    }
+
+    private func dysfunctionSection(_ screening: MovementScreeningReport) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("DYSFUNCTION FLAGS")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            if screening.dysfunctions.isEmpty {
+                Text("No major dysfunction flags detected across FMS/SFMA/FCS/FRC.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.foundationGreen)
+            } else {
+                ForEach(screening.dysfunctions.prefix(3)) { dysfunction in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(dysfunction.title.uppercased())
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                        Text(dysfunction.clinicalSummary)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("Correctives: \(dysfunction.correctiveFocus.joined(separator: " • "))")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(10)
+                    .background(Color.white.opacity(0.03))
+                    .clipShape(.rect(cornerRadius: 8))
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+        )
+        .padding(.horizontal)
+    }
+
+    private func prescriptionSection(_ screening: MovementScreeningReport) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("PRESCRIBED PATH")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+            Text("\(screening.prescription.trainingTrack.rawValue.uppercased()) • \(screening.prescription.equipmentFocus.rawValue.uppercased())")
+                .font(.system(size: 12, weight: .black, design: .monospaced))
+                .foregroundStyle(Theme.brandCyan)
+            Text(screening.prescription.rationale)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text("Priority: \(screening.prescription.priorityBlocks.joined(separator: " • "))")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+        )
+        .padding(.horizontal)
     }
 
     private func avatarPreviewSection(_ config: AvatarSkinConfig) -> some View {
@@ -381,100 +516,83 @@ struct SystemScanView: View {
     }
 
     private func startAnalysis() {
+        analysisTask?.cancel()
         withAnimation(.spring(response: 0.4)) { phase = .analyzing }
         analysisProgress = 0
+        scanError = nil
 
-        Task {
+        analysisTask = Task {
+            let resolvedSelection = await resolveSelectedVideoURL(from: selectedItem)
+            guard let resolvedSelection else {
+                await MainActor.run {
+                    withAnimation(.spring(response: 0.4)) {
+                        phase = .picking
+                    }
+                    scanError = "Unable to read the selected clip. Try choosing a different local video."
+                }
+                return
+            }
+            if Task.isCancelled { return }
+            await MainActor.run {
+                cleanupTemporarySelection()
+                if resolvedSelection.isTemporary {
+                    temporarySelectedVideoURL = resolvedSelection.url
+                }
+            }
+            await MainActor.run {
+                videoURL = resolvedSelection.url
+            }
+
             for i in 1...20 {
                 try? await Task.sleep(for: .milliseconds(200))
+                if Task.isCancelled { return }
                 withAnimation(.easeInOut(duration: 0.2)) {
                     analysisProgress = Double(i) / 20.0
                 }
             }
 
-            let result = generateScanResult()
+            let result = await SystemScanAnalysisEngine.analyze(
+                videoURL: resolvedSelection.url,
+                sport: sport,
+                goal: goal
+            )
+            if Task.isCancelled { return }
             generatedResult = result
 
             try? await Task.sleep(for: .milliseconds(500))
+            if Task.isCancelled { return }
             withAnimation(.spring(response: 0.5)) {
                 phase = .results
                 gridPulse = false
             }
+            await MainActor.run {
+                cleanupTemporarySelection()
+            }
         }
     }
 
-    private func generateScanResult() -> SystemScanResult {
-        let basePRQ: Double
-        let baseVertical: Double
-        let baseFlight: Double
-        let recommendedTrack: String
-
-        switch goal ?? "" {
-        case "Jump Higher":
-            basePRQ = Double.random(in: 55...78)
-            baseVertical = Double.random(in: 22...32)
-            baseFlight = Double.random(in: 0.45...0.65)
-            recommendedTrack = "Flight"
-        case "Get Faster":
-            basePRQ = Double.random(in: 50...72)
-            baseVertical = Double.random(in: 18...28)
-            baseFlight = Double.random(in: 0.38...0.55)
-            recommendedTrack = "Foundations"
-        case "Build Power":
-            basePRQ = Double.random(in: 60...82)
-            baseVertical = Double.random(in: 24...34)
-            baseFlight = Double.random(in: 0.50...0.68)
-            recommendedTrack = "Elite"
-        default:
-            basePRQ = Double.random(in: 45...70)
-            baseVertical = Double.random(in: 20...28)
-            baseFlight = Double.random(in: 0.40...0.55)
-            recommendedTrack = "Foundations"
+    private func resolveSelectedVideoURL(from item: PhotosPickerItem?) async -> ResolvedVideoSelection? {
+        guard let item else { return nil }
+        if let sourceURL = try? await item.loadTransferable(type: URL.self) {
+            return ResolvedVideoSelection(url: sourceURL, isTemporary: false)
         }
-
-        let grade: String
-        switch basePRQ {
-        case 80...: grade = "ELITE POTENTIAL"
-        case 65..<80: grade = "FLIGHT READY"
-        case 50..<65: grade = "BUILDING BASE"
-        default: grade = "FOUNDATION PHASE"
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            return nil
         }
-
-        var notes: [String] = []
-        if basePRQ < 60 {
-            notes.append("Focus on ankle stiffness drills to improve ground contact efficiency.")
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("scan_clip_\(UUID().uuidString).mov")
+        do {
+            try data.write(to: tempURL, options: .atomic)
+            return ResolvedVideoSelection(url: tempURL, isTemporary: true)
+        } catch {
+            return nil
         }
-        if baseVertical < 26 {
-            notes.append("Hip extension power can be improved with targeted plyometric progressions.")
-        }
-        notes.append("Knee tracking looks stable. Maintain current mobility work.")
-        if basePRQ >= 70 {
-            notes.append("Strong neural drive detected. Ready for advanced reactive training.")
-        }
-        if let sportName = sport, !sportName.isEmpty {
-            notes.append("\(sportName)-specific movement patterns will be prioritized in your program.")
-        }
+    }
 
-        let clampedPRQ = PRQ.clamp(basePRQ)
-
-        let avatarConfig = AvatarSkinConfig.fromScan(
-            prq: clampedPRQ,
-            vertical: baseVertical,
-            flight: baseFlight,
-            sport: sport
-        )
-
-        return SystemScanResult(
-            id: UUID().uuidString,
-            date: Date(),
-            prqScore: clampedPRQ,
-            verticalEstimateInches: baseVertical,
-            flightTimeSeconds: baseFlight,
-            movementGrade: grade,
-            notes: notes,
-            recommendedTrack: recommendedTrack,
-            avatarConfig: avatarConfig
-        )
+    private func cleanupTemporarySelection() {
+        guard let temporarySelectedVideoURL else { return }
+        try? FileManager.default.removeItem(at: temporarySelectedVideoURL)
+        self.temporarySelectedVideoURL = nil
     }
 }
 

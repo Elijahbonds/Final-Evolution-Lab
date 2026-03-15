@@ -33,6 +33,8 @@ struct DashboardView: View {
                             Button { showShareToFeed = false } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.secondary)
+                                    .frame(minWidth: 44, minHeight: 44)
+                                    .contentShape(Rectangle())
                             }
                         }
                     }
@@ -50,14 +52,19 @@ struct DashboardView: View {
                 gaugeAnimationProgress = Double(newValue) / 100.0
             }
         }
+        .onDisappear {
+            if motionHelper.isStreaming {
+                motionHelper.stopStreaming()
+            }
+        }
     }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("PERFORMANCE DASHBOARD")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Performance dashboard")
+                .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(Theme.neonGreen)
-                .tracking(4)
+                .tracking(1)
 
             Text("Status")
                 .font(.system(size: 44, weight: .black))
@@ -107,7 +114,7 @@ struct DashboardView: View {
 
             HStack(spacing: 12) {
                 Text(viewModel.userPRQTier.rawValue)
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(tierColor)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
@@ -137,15 +144,15 @@ struct DashboardView: View {
                 icon: "flame.fill",
                 value: String(format: "%.0f", viewModel.healthKit.activeCalories),
                 unit: "kcal",
-                label: "ACTIVE",
+                label: "Active",
                 color: .orange
             )
 
             healthMetricTile(
                 icon: "figure.walk",
-                value: "—",
+                value: viewModel.healthKit.isAuthorized ? String(format: "%.0f", viewModel.healthKit.stepCount) : "—",
                 unit: "steps",
-                label: "STEPS",
+                label: "Steps",
                 color: Theme.neonGreen
             )
 
@@ -176,9 +183,9 @@ struct DashboardView: View {
                 }
 
                 Text(label)
-                    .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                    .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .tracking(2)
+                    .tracking(0.5)
             }
         }
         .frame(maxWidth: .infinity)
@@ -200,10 +207,10 @@ struct DashboardView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.neonGreen)
 
-                Text("BIOMETRIC STREAM")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                Text("Biometric stream")
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
-                    .tracking(2)
+                    .tracking(0.5)
 
                 Spacer()
 
@@ -211,8 +218,8 @@ struct DashboardView: View {
                     .fill(motionHelper.isStreaming ? Theme.neonGreen : Color.gray)
                     .frame(width: 8, height: 8)
 
-                Text(motionHelper.isStreaming ? "LIVE" : "OFF")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                Text(motionHelper.isStreaming ? "Live" : "Off")
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(motionHelper.isStreaming ? Theme.neonGreen : .secondary)
             }
 
@@ -231,11 +238,11 @@ struct DashboardView: View {
                     motionHelper.startStreaming()
                 }
             } label: {
-                Text(motionHelper.isStreaming ? "STOP STREAM" : "START STREAM")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .tracking(1)
+                Text(motionHelper.isStreaming ? "Stop stream" : "Start stream")
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(motionHelper.isStreaming ? .white : .black)
                     .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
                     .padding(.vertical, 10)
                     .background(motionHelper.isStreaming ? Color.white.opacity(0.08) : Theme.neonGreen)
                     .clipShape(.rect(cornerRadius: 10))
@@ -273,10 +280,10 @@ struct DashboardView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.brandBlue)
 
-                Text("NEURAL SYNC")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                Text("Neural sync")
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
-                    .tracking(2)
+                    .tracking(0.5)
 
                 Spacer()
 
@@ -285,8 +292,8 @@ struct DashboardView: View {
                     .fill(unityManager.isUnityLoaded ? Theme.neonGreen : .orange)
                     .frame(width: 8, height: 8)
 
-                Text(unityManager.isUnityLoaded ? "LINKED" : "STANDBY")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                Text(unityManager.isUnityLoaded ? "Linked" : "Standby")
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(unityManager.isUnityLoaded ? Theme.neonGreen : .orange)
             }
 
@@ -317,10 +324,10 @@ struct DashboardView: View {
                 .font(.system(size: 18, weight: .black, design: .monospaced))
                 .foregroundStyle(.white)
 
-            Text(label.uppercased())
-                .font(.system(size: 7, weight: .bold, design: .monospaced))
+            Text(label)
+                .font(.system(size: 7, weight: .semibold))
                 .foregroundStyle(.tertiary)
-                .tracking(1)
+                .tracking(0.3)
         }
         .frame(maxWidth: .infinity)
     }
@@ -332,12 +339,12 @@ struct DashboardView: View {
             HStack(spacing: 8) {
                 Image(systemName: "square.and.arrow.up.fill")
                     .font(.system(size: 14, weight: .bold))
-                Text("SHARE TO FEED")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .tracking(2)
+                Text("Share to feed")
+                    .font(.system(size: 13, weight: .bold))
             }
             .foregroundStyle(.black)
             .frame(maxWidth: .infinity)
+            .frame(minHeight: 44)
             .padding(.vertical, 16)
             .background(Theme.neonGreen)
             .clipShape(.rect(cornerRadius: 14))

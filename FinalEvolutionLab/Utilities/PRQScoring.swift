@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum PRQ: Sendable {
+enum PRQ: Sendable {
     static let min: Double = 0
     static let max: Double = 100
     static let `default`: Double = 75

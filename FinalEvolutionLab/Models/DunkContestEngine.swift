@@ -1,7 +1,7 @@
 import Foundation
 import QuartzCore
 
-nonisolated enum DunkPhase: String, Sendable {
+enum DunkPhase: String, Sendable {
     case idle
     case approach
     case launch
@@ -10,7 +10,7 @@ nonisolated enum DunkPhase: String, Sendable {
     case scored
 }
 
-nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
+enum DunkTrickSlot: String, Sendable, CaseIterable {
     case windmill = "WINDMILL"
     case betweenLegs = "BETWEEN THE LEGS"
     case tomahawk = "TOMAHAWK"

@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct CurriculumTrack: Codable, Sendable, Identifiable {
+struct CurriculumTrack: Codable, Sendable, Identifiable {
     let id: String
     let name: String
     let subtitle: String
@@ -11,7 +11,7 @@ nonisolated struct CurriculumTrack: Codable, Sendable, Identifiable {
     var totalExercises: Int { exercises.count }
 }
 
-nonisolated struct WorkoutSession: Codable, Sendable, Identifiable {
+struct WorkoutSession: Codable, Sendable, Identifiable {
     let id: String
     let trackId: String
     let date: Date

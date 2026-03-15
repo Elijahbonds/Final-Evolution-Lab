@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum AvatarPoseState: String, Sendable {
+enum AvatarPoseState: String, Sendable {
     case idle
     case sprint
     case gather
@@ -21,7 +21,7 @@ nonisolated enum AvatarPoseState: String, Sendable {
     case celebrate
 }
 
-nonisolated struct AvatarStateMachine: Sendable {
+struct AvatarStateMachine: Sendable {
     static let blendTimeSeconds: Double = 0.2
     static let hitStopFrames: Int = 3
     static let hitStopDuration: Double = Double(hitStopFrames) / 60.0

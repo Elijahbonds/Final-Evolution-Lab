@@ -2,8 +2,16 @@ import SwiftUI
 
 struct AvatarDemoView: View {
     let exercise: Exercise
+    let cloneProfile: CloneProfile?
+    let badgeText: String
     @State private var phase: CGFloat = 0
     @State private var glowPulse: Bool = false
+
+    init(exercise: Exercise, cloneProfile: CloneProfile? = nil, badgeText: String = "AI AVATAR MODE") {
+        self.exercise = exercise
+        self.cloneProfile = cloneProfile
+        self.badgeText = badgeText
+    }
 
     private var movementAmplitude: CGFloat {
         switch exercise.difficulty {
@@ -87,11 +95,11 @@ struct AvatarDemoView: View {
             HStack(spacing: 6) {
                 Image(systemName: "figure.mixed.cardio")
                     .font(.system(size: 10, weight: .bold))
-                Text("AI AVATAR MODE")
+                Text(badgeText)
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(2)
             }
-            .foregroundStyle(Theme.brandCyan)
+            .foregroundStyle(cloneProfile == nil ? Theme.brandCyan : Theme.foundationGreen)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(.ultraThinMaterial)

@@ -1,0 +1,44 @@
+name: Swift
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build iOS app (no signing)
+        run: |
+          xcodebuild \
+            -project FinalEvolutionLab.xcodeproj \
+            -target FinalEvolutionLab \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Run tests (or compile test target fallback)
+        run: |
+          if xcodebuild -list -project FinalEvolutionLab.xcodeproj | awk '/Schemes:/{flag=1;next} flag && NF {print $1}' | grep -Fxq "FinalEvolutionLab"; then
+            xcodebuild \
+              -project FinalEvolutionLab.xcodeproj \
+              -scheme FinalEvolutionLab \
+              -destination "platform=iOS Simulator,OS=latest,name=iPhone 16" \
+              CODE_SIGNING_ALLOWED=NO \
+              test
+          else
+            echo "::warning::Shared scheme 'FinalEvolutionLab' not found; compiling test target instead."
+            xcodebuild \
+              -project FinalEvolutionLab.xcodeproj \
+              -target FinalEvolutionLabTests \
+              -configuration Debug \
+              -destination "generic/platform=iOS Simulator" \
+              CODE_SIGNING_ALLOWED=NO \
+              build
+          fi

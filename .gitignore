@@ -36,3 +36,7 @@ rork-eslint.config.js
 core
 node_modules
 .expo
+
+# Python cache
+__pycache__/
+*.pyc

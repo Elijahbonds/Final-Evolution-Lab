@@ -41,12 +41,12 @@ struct CoachView: View {
         VStack(spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("REQUEST A CRITIQUE")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    Text("Request a critique")
+                        .font(.system(.caption2, weight: .semibold))
                         .foregroundStyle(Theme.brandBlue)
-                        .tracking(2)
+                        .tracking(0.5)
 
-                    Text("Spend shards for expert movement analysis")
+                    Text("Spend credits for expert movement analysis")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -57,14 +57,15 @@ struct CoachView: View {
                     showCritiqueRequest = true
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 10))
-                        Text("\(LabViewModel.critiqueCostShards)")
+                        Text("\(LabViewModel.critiqueCostCredits)")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
                     }
                     .foregroundStyle(.black)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
+                    .frame(minHeight: 44)
                     .background(Theme.brandBlue)
                     .clipShape(Capsule())
                 }
@@ -111,10 +112,10 @@ struct CoachView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("EXERCISE LIBRARY")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Exercise library")
+                .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(Theme.brandBlue)
-                .tracking(4)
+                .tracking(1)
 
             Text("Coach")
                 .font(.system(size: 52, weight: .black))
@@ -128,12 +129,12 @@ struct CoachView: View {
         VStack(spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("CRITIQUE ECONOMY")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    Text("Critique economy")
+                        .font(.system(.caption2, weight: .semibold))
                         .foregroundStyle(Theme.brandCyan)
-                        .tracking(2)
+                        .tracking(0.5)
 
-                    Text("Earn shards by reviewing athlete scans")
+                    Text("Earn credits by reviewing athlete scans")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -146,12 +147,13 @@ struct CoachView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "pencil.and.outline")
                             .font(.system(size: 10, weight: .bold))
-                        Text("CRITIQUE")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                        Text("Critique")
+                            .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundStyle(.black)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
+                    .frame(minHeight: 44)
                     .background(Theme.brandCyan)
                     .clipShape(Capsule())
                 }
@@ -162,10 +164,10 @@ struct CoachView: View {
                     Text("\(viewModel.coachEconomy.critiquesCompleted)")
                         .font(.system(.headline, design: .monospaced, weight: .black))
                         .foregroundStyle(.white)
-                    Text("COMPLETED")
-                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    Text("Completed")
+                        .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(.tertiary)
-                        .tracking(1)
+                        .tracking(0.3)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -174,17 +176,17 @@ struct CoachView: View {
 
                 VStack(spacing: 2) {
                     HStack(spacing: 2) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(Theme.brandCyan)
-                        Text("\(viewModel.coachEconomy.pendingEarnings)")
+                        Text("\(viewModel.coachEconomy.pendingCredits)")
                             .font(.system(.headline, design: .monospaced, weight: .black))
                             .foregroundStyle(.white)
                     }
-                    Text("PENDING")
-                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    Text("Pending")
+                        .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(.tertiary)
-                        .tracking(1)
+                        .tracking(0.3)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -193,17 +195,17 @@ struct CoachView: View {
 
                 VStack(spacing: 2) {
                     HStack(spacing: 2) {
-                        Image(systemName: "diamond.fill")
+                        Image(systemName: "creditcard.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(Theme.foundationGreen)
-                        Text("\(viewModel.coachEconomy.totalEarned)")
+                        Text("\(viewModel.coachEconomy.totalCreditsEarned)")
                             .font(.system(.headline, design: .monospaced, weight: .black))
                             .foregroundStyle(.white)
                     }
-                    Text("EARNED")
-                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    Text("Earned")
+                        .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(.tertiary)
-                        .tracking(1)
+                        .tracking(0.3)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -211,21 +213,19 @@ struct CoachView: View {
                 .clipShape(.rect(cornerRadius: 10))
             }
 
-            if viewModel.coachEconomy.clearedEarnings > 0 {
+            if viewModel.coachEconomy.clearedCredits > 0 {
                 Button {
-                    let claimed = viewModel.coachEconomy.claimEarnings()
-                    viewModel.profile.evolutionShards += claimed
-                    SaveSystem.saveCoachEconomy(viewModel.coachEconomy)
-                    SaveSystem.saveProfile(viewModel.profile)
+                    _ = viewModel.withdrawCreatorCredits()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.down.circle.fill")
                             .font(.system(size: 12))
-                        Text("CLAIM \(viewModel.coachEconomy.clearedEarnings) SHARDS")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        Text("Claim \(viewModel.coachEconomy.clearedCredits) credits")
+                            .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
                     .padding(.vertical, 10)
                     .background(Theme.foundationGreen)
                     .clipShape(.rect(cornerRadius: 10))
@@ -249,10 +249,11 @@ struct CoachView: View {
                 Button {
                     withAnimation(.snappy) { selectedDifficulty = diff }
                 } label: {
-                    Text(diff.rawValue.uppercased())
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                    Text(diff.rawValue)
+                        .font(.system(.caption, weight: .semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
+                        .frame(minHeight: 44)
                         .background(
                             Capsule()
                                 .fill(selectedDifficulty == diff ?
@@ -322,8 +323,8 @@ struct ExerciseRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(exercise.category.rawValue.uppercased())
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                Text(exercise.category.rawValue)
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(Theme.difficultyColor(exercise.difficulty).opacity(0.7))
 
                 Image(systemName: "chevron.right")

@@ -1,0 +1,8 @@
+[project]
+name = "brain-brawl-backend-python"
+version = "0.1.0"
+description = "Framework-agnostic Brain Brawl backend scaffold in Python."
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["brain_brawl"]

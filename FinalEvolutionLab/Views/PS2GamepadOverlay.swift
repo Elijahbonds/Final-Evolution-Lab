@@ -246,14 +246,14 @@ struct PS2GamepadOverlay: View {
     }
 }
 
-nonisolated enum PS2FaceButton: String, Sendable {
+enum PS2FaceButton: String, Sendable {
     case triangle
     case square
     case circle
     case cross
 }
 
-nonisolated enum PS2DPadDirection: String, Sendable {
+enum PS2DPadDirection: String, Sendable {
     case up
     case down
     case left

@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum PRQTier: String, Codable, Sendable, CaseIterable {
+enum PRQTier: String, Codable, Sendable, CaseIterable {
     case diamond = "DIAMOND"
     case platinum = "PLATINUM"
     case gold = "GOLD"
@@ -65,6 +65,8 @@ class GlobalLeaderboardService {
     var onlinePlayerCount: Int = Int.random(in: 120...450)
     var recentMatches: [RecentMatchRecord] = []
     var connectionQuality: ConnectionQuality = .good
+    private var matchmakingTask: Task<Void, Never>?
+    private var onlinePresenceTask: Task<Void, Never>?
 
     func refreshRankings(userProfile: UserProfile, sampleData: [LeaderboardEntry]) {
         isLoading = true
@@ -118,49 +120,61 @@ class GlobalLeaderboardService {
         isLoading = false
     }
 
-    func findMatch(userPRQ: Double, preferredTier: PRQTier? = nil) async {
+    func startMatchmaking(userPRQ: Double, preferredTier: PRQTier? = nil) {
+        matchmakingTask?.cancel()
         let tier = preferredTier ?? PRQTier.fromPRQ(userPRQ)
         matchmakingState = .searching(tier)
 
-        try? await Task.sleep(for: .seconds(Double.random(in: 1.5...3.5)))
+        matchmakingTask = Task { [userPRQ, preferredTier] in
+            try? await Task.sleep(for: .seconds(Double.random(in: 1.5...3.5)))
+            guard !Task.isCancelled else { return }
 
-        let candidates = matchmakingPool.filter { opponent in
-            let opponentTier = PRQTier.fromPRQ(opponent.prqScore)
-            let prqDiff = abs(opponent.prqScore - userPRQ)
-            if let preferred = preferredTier {
-                return opponentTier == preferred
+            let candidates = matchmakingPool.filter { opponent in
+                let opponentTier = PRQTier.fromPRQ(opponent.prqScore)
+                let prqDiff = abs(opponent.prqScore - userPRQ)
+                if let preferred = preferredTier {
+                    return opponentTier == preferred
+                }
+                return opponentTier == tier || prqDiff <= 15
             }
-            return opponentTier == tier || prqDiff <= 15
-        }
+            guard !Task.isCancelled else { return }
 
-        guard let opponent = candidates.randomElement() ?? matchmakingPool.randomElement() else {
-            matchmakingState = .failed
-            return
-        }
+            guard let opponent = candidates.randomElement() ?? matchmakingPool.randomElement() else {
+                guard !Task.isCancelled else { return }
+                matchmakingState = .failed
+                matchmakingTask = nil
+                return
+            }
 
-        let prqDiff = abs(opponent.prqScore - userPRQ)
-        let quality: MatchQuality
-        if prqDiff <= 5 {
-            quality = .perfect
-        } else if prqDiff <= 15 {
-            quality = .good
-        } else {
-            quality = .fair
-        }
+            let prqDiff = abs(opponent.prqScore - userPRQ)
+            let quality: MatchQuality
+            if prqDiff <= 5 {
+                quality = .perfect
+            } else if prqDiff <= 15 {
+                quality = .good
+            } else {
+                quality = .fair
+            }
+            guard !Task.isCancelled else { return }
 
-        matchmakingState = .found(MatchmakingResult(
-            opponent: opponent,
-            estimatedWaitSeconds: Int.random(in: 2...8),
-            matchQuality: quality
-        ))
+            matchmakingState = .found(MatchmakingResult(
+                opponent: opponent,
+                estimatedWaitSeconds: Int.random(in: 2...8),
+                matchQuality: quality
+            ))
+            matchmakingTask = nil
+        }
     }
 
     func cancelMatchmaking() {
+        matchmakingTask?.cancel()
+        matchmakingTask = nil
         matchmakingState = .idle
     }
 
     func simulateOnlinePresence() {
-        Task {
+        onlinePresenceTask?.cancel()
+        onlinePresenceTask = Task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(Double.random(in: 8...15)))
                 let delta = Int.random(in: -5...8)
@@ -168,6 +182,11 @@ class GlobalLeaderboardService {
                 connectionQuality = Double.random(in: 0...1) > 0.15 ? .good : .moderate
             }
         }
+    }
+
+    func stopOnlinePresence() {
+        onlinePresenceTask?.cancel()
+        onlinePresenceTask = nil
     }
 
     func recordMatch(opponent: MatchmakingOpponent, userScore: Int, opponentScore: Int, gameMode: String) {

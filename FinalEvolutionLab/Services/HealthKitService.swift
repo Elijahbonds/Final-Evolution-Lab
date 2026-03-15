@@ -6,6 +6,7 @@ import HealthKit
 class HealthKitService {
     var heartRate: Double = 0
     var activeCalories: Double = 0
+    var stepCount: Double = 0
     var restingHeartRate: Double = 0
     var hrvValue: Double = 0
     var isAuthorized: Bool = false
@@ -20,24 +21,25 @@ class HealthKitService {
 
     private let store = HKHealthStore()
     private var refreshTask: Task<Void, Never>?
-
-    func requestAuthorization() async {
-        guard isAvailable else { return }
-
-        let readTypes: Set<HKObjectType> = [
+    private var requiredReadTypes: Set<HKObjectType> {
+        [
             HKQuantityType(.heartRate),
             HKQuantityType(.activeEnergyBurned),
             HKQuantityType(.restingHeartRate),
             HKQuantityType(.stepCount),
-            HKQuantityType(.heartRateVariabilitySDNN)
+            HKQuantityType(.heartRateVariabilitySDNN),
         ]
+    }
 
-        let shareTypes: Set<HKSampleType> = [
-            HKQuantityType(.activeEnergyBurned)
-        ]
+    private var requiredShareTypes: Set<HKSampleType> {
+        [HKQuantityType(.activeEnergyBurned)]
+    }
+
+    func requestAuthorization() async {
+        guard isAvailable else { return }
 
         do {
-            try await store.requestAuthorization(toShare: shareTypes, read: readTypes)
+            try await store.requestAuthorization(toShare: requiredShareTypes, read: requiredReadTypes)
             isAuthorized = true
             await fetchLatestData()
             startAutoRefresh()
@@ -46,17 +48,42 @@ class HealthKitService {
         }
     }
 
+    func refreshAuthorizationState() async {
+        guard isAvailable else {
+            isAuthorized = false
+            return
+        }
+        do {
+            let status = try await authorizationRequestStatus()
+            switch status {
+            case .unnecessary:
+                isAuthorized = true
+            case .shouldRequest, .unknown:
+                isAuthorized = false
+                stopAutoRefresh()
+            @unknown default:
+                isAuthorized = false
+                stopAutoRefresh()
+            }
+        } catch {
+            isAuthorized = false
+            stopAutoRefresh()
+        }
+    }
+
     func fetchLatestData() async {
         guard isAuthorized else { return }
         async let hr = fetchLatestQuantity(type: HKQuantityType(.heartRate), unit: HKUnit.count().unitDivided(by: .minute()))
         async let cal = fetchLatestQuantity(type: HKQuantityType(.activeEnergyBurned), unit: .kilocalorie())
+        async let steps = fetchLatestQuantity(type: HKQuantityType(.stepCount), unit: .count())
         async let rhr = fetchLatestQuantity(type: HKQuantityType(.restingHeartRate), unit: HKUnit.count().unitDivided(by: .minute()))
         async let hrv = fetchLatestQuantity(type: HKQuantityType(.heartRateVariabilitySDNN), unit: .secondUnit(with: .milli))
         async let weekAvg = fetchWeeklyHRVAverage()
 
-        let (hrVal, calVal, rhrVal, hrvVal, weekAvgVal) = await (hr, cal, rhr, hrv, weekAvg)
+        let (hrVal, calVal, stepVal, rhrVal, hrvVal, weekAvgVal) = await (hr, cal, steps, rhr, hrv, weekAvg)
         heartRate = hrVal
         activeCalories = calVal
+        stepCount = stepVal
         restingHeartRate = rhrVal
         hrvValue = hrvVal
         weeklyHRVAverage = weekAvgVal
@@ -223,23 +250,35 @@ class HealthKitService {
             return 0
         }
     }
+
+    private func authorizationRequestStatus() async throws -> HKAuthorizationRequestStatus {
+        try await withCheckedThrowingContinuation { continuation in
+            store.getRequestStatusForAuthorization(toShare: requiredShareTypes, read: requiredReadTypes) { status, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: status)
+                }
+            }
+        }
+    }
 }
 
-nonisolated enum NeuralReadinessGrade: String, Sendable {
+enum NeuralReadinessGrade: String, Sendable {
     case elite = "ELITE"
     case primed = "PRIMED"
     case ready = "READY"
     case recovering = "RECOVERING"
 }
 
-nonisolated struct ArcadePhysicsBuff: Sendable {
+struct ArcadePhysicsBuff: Sendable {
     let neuralDriveOverride: Double
     let speedMultiplier: Double
     let hangTimeBonus: Double
     let isRecoveryMode: Bool
 }
 
-nonisolated enum HRVTrend: String, Sendable {
+enum HRVTrend: String, Sendable {
     case improving = "IMPROVING"
     case stable = "STABLE"
     case declining = "DECLINING"

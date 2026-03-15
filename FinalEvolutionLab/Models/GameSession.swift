@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct GameSessionResult: Codable, Sendable, Identifiable {
+struct GameSessionResult: Codable, Sendable, Identifiable {
     let id: String
     let gameModeId: String
     let date: Date

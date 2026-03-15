@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct UnityExportManifest: Codable, Sendable {
+struct UnityExportManifest: Codable, Sendable {
     let version: String
     let exportDate: String
     let athlete: AthleteData
@@ -12,7 +12,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
     let ddaConfig: DDAExport
     let animationManifest: AnimationManifest
 
-    nonisolated struct AthleteData: Codable, Sendable {
+    struct AthleteData: Codable, Sendable {
         let id: String
         let displayName: String
         let athleteTag: String
@@ -20,9 +20,11 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let totalWorkouts: Int
         let streakDays: Int
         let evolutionShards: Int
+        let premiumCredits: Int
+        let creatorCredits: Int
     }
 
-    nonisolated struct MetricsData: Codable, Sendable {
+    struct MetricsData: Codable, Sendable {
         let prqScore: Double
         let neuralDrive: Double
         let efficiencyScore: Double
@@ -33,7 +35,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let auraLevel: String
     }
 
-    nonisolated struct ArcadePhysicsData: Codable, Sendable {
+    struct ArcadePhysicsData: Codable, Sendable {
         let hangTimeMultiplier: Double
         let explosiveFirstStep: Double
         let comboDecayRate: Double
@@ -48,7 +50,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let contestBonus: Double
     }
 
-    nonisolated struct GameModeExport: Codable, Sendable {
+    struct GameModeExport: Codable, Sendable {
         let id: String
         let name: String
         let sport: String
@@ -58,7 +60,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let movementConfig: MovementConfigExport
     }
 
-    nonisolated struct PhysicsConfigExport: Codable, Sendable {
+    struct PhysicsConfigExport: Codable, Sendable {
         let jumpHeight: Double
         let moveSpeed: Double
         let impactIntensity: Double
@@ -66,7 +68,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let particleTrailDensity: Double
     }
 
-    nonisolated struct MovementConfigExport: Codable, Sendable {
+    struct MovementConfigExport: Codable, Sendable {
         let topSpeed: Double
         let acceleration: Double
         let deceleration: Double
@@ -75,7 +77,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let chargedJump: Double
     }
 
-    nonisolated struct ComboSystemExport: Codable, Sendable {
+    struct ComboSystemExport: Codable, Sendable {
         let maxChainLength: Int
         let chainWindowSeconds: Double
         let styleLandingWindowSeconds: Double
@@ -85,13 +87,13 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let combatTricks: [TrickExport]
     }
 
-    nonisolated struct QTEGradeExport: Codable, Sendable {
+    struct QTEGradeExport: Codable, Sendable {
         let grade: String
         let multiplier: Double
         let triggersSlowMo: Bool
     }
 
-    nonisolated struct TrickExport: Codable, Sendable {
+    struct TrickExport: Codable, Sendable {
         let id: String
         let name: String
         let direction: String
@@ -101,7 +103,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let animationKey: String
     }
 
-    nonisolated struct TimeScaleExport: Codable, Sendable {
+    struct TimeScaleExport: Codable, Sendable {
         let normalScale: Double
         let slowMoScale: Double
         let finisherScale: Double
@@ -114,7 +116,7 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let stateMachineBlendDuration: Double
     }
 
-    nonisolated struct DDAExport: Codable, Sendable {
+    struct DDAExport: Codable, Sendable {
         let difficultyTier: String
         let aiAggressionFloor: Double
         let aiAggressionCeiling: Double
@@ -123,13 +125,13 @@ nonisolated struct UnityExportManifest: Codable, Sendable {
         let counterWindowShrink: Double
     }
 
-    nonisolated struct AnimationManifest: Codable, Sendable {
+    struct AnimationManifest: Codable, Sendable {
         let dunkAnimations: [AnimationEntry]
         let combatAnimations: [AnimationEntry]
         let generalAnimations: [AnimationEntry]
     }
 
-    nonisolated struct AnimationEntry: Codable, Sendable {
+    struct AnimationEntry: Codable, Sendable {
         let key: String
         let name: String
         let category: String
@@ -148,7 +150,9 @@ struct UnityExportBuilder {
             sport: profile.sport ?? "Unknown",
             totalWorkouts: profile.totalWorkouts,
             streakDays: profile.streakDays,
-            evolutionShards: profile.evolutionShards
+            evolutionShards: profile.evolutionShards,
+            premiumCredits: profile.premiumCredits,
+            creatorCredits: profile.creatorCredits
         )
 
         let prqTier = PRQTier.fromPRQ(metrics.prqScore)

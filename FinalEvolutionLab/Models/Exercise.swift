@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct Exercise: Codable, Sendable, Identifiable, Hashable {
+struct Exercise: Codable, Sendable, Identifiable, Hashable {
     let id: String
     let name: String
     let category: ExerciseCategory
@@ -11,7 +11,7 @@ nonisolated struct Exercise: Codable, Sendable, Identifiable, Hashable {
     let reps: String
     let restSeconds: Int
 
-    nonisolated enum ExerciseCategory: String, Codable, Sendable, CaseIterable {
+    enum ExerciseCategory: String, Codable, Sendable, CaseIterable {
         case plyometric = "Plyometric"
         case strength = "Strength"
         case mobility = "Mobility"
@@ -29,7 +29,7 @@ nonisolated struct Exercise: Codable, Sendable, Identifiable, Hashable {
         }
     }
 
-    nonisolated enum Difficulty: String, Codable, Sendable, CaseIterable {
+    enum Difficulty: String, Codable, Sendable, CaseIterable {
         case foundation = "Foundation"
         case flight = "Flight"
         case elite = "Elite"

@@ -1,7 +1,7 @@
 import Foundation
 
-nonisolated let rorkScoreUpdatedNotification = NSNotification.Name("RorkScoreUpdated")
-nonisolated let rorkScoreDidUpdateNotification = NSNotification.Name("rorkScoreDidUpdate")
+let rorkScoreUpdatedNotification = NSNotification.Name("RorkScoreUpdated")
+let rorkScoreDidUpdateNotification = NSNotification.Name("rorkScoreDidUpdate")
 
 @Observable
 @MainActor

@@ -27,8 +27,20 @@ struct GamePlayView: View {
     @State private var streakTimer: Task<Void, Never>?
     @State private var screenShake: CGFloat = 0
     @State private var showBiomechanicsHUD: Bool = true
+    @State private var showExitConfirmation: Bool = false
     @State private var liveLeakagePenalty: Double = 0
     @State private var leakageFlashJoint: JointType?
+    @State private var aiResponseTask: Task<Void, Never>?
+    @State private var lastActionClearTask: Task<Void, Never>?
+    @State private var hitFlashResetTask: Task<Void, Never>?
+    @State private var trickTextResetTask: Task<Void, Never>?
+    @State private var styleLandingResetTask: Task<Void, Never>?
+    @State private var dunkLaunchLabelResetTask: Task<Void, Never>?
+    @State private var dunkSequenceTask: Task<Void, Never>?
+    @State private var criticalFlashResetTask: Task<Void, Never>?
+    @State private var impactFlashResetTask: Task<Void, Never>?
+    @State private var screenShakeResetTask: Task<Void, Never>?
+    @State private var uiTaskBag: [String: Task<Void, Never>] = [:]
 
     @State private var dunkRound: Int = 1
     @State private var lastJudgeScores: (Int, Int, Int)?
@@ -327,7 +339,7 @@ struct GamePlayView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    dismiss()
+                    attemptExit()
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
@@ -357,6 +369,12 @@ struct GamePlayView: View {
                 }
             }
         }
+        .alert("Exit match?", isPresented: $showExitConfirmation) {
+            Button("Keep playing", role: .cancel) {}
+            Button("Exit", role: .destructive) { dismiss() }
+        } message: {
+            Text("Leaving now will end the current match.")
+        }
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear { }
         .onDisappear {
@@ -367,6 +385,25 @@ struct GamePlayView: View {
             slowMoTimer?.cancel()
             timeScaleUpdateTask?.cancel()
             runMeterTimer?.cancel()
+            aiResponseTask?.cancel()
+            lastActionClearTask?.cancel()
+            hitFlashResetTask?.cancel()
+            trickTextResetTask?.cancel()
+            styleLandingResetTask?.cancel()
+            dunkLaunchLabelResetTask?.cancel()
+            dunkSequenceTask?.cancel()
+            criticalFlashResetTask?.cancel()
+            impactFlashResetTask?.cancel()
+            screenShakeResetTask?.cancel()
+            cancelUITasks()
+        }
+    }
+
+    private func attemptExit() {
+        if isActive && !showResults {
+            showExitConfirmation = true
+        } else {
+            dismiss()
         }
     }
 
@@ -2331,9 +2368,10 @@ struct GamePlayView: View {
         )
         if Double.random(in: 0...1) < ddaChance {
             let aiDelay = dda.aiReactionSpeed(playerScore: score, aiScore: opponentScore)
-            Task {
+            aiResponseTask?.cancel()
+            aiResponseTask = Task {
                 try? await Task.sleep(for: .seconds(aiDelay))
-                guard isActive else { return }
+                guard !Task.isCancelled, isActive else { return }
                 withAnimation(.spring(response: 0.25)) {
                     opponentScore += DynamicDifficulty.opponentPoints(
                         playerScore: score,
@@ -2358,9 +2396,10 @@ struct GamePlayView: View {
         }
 
         let clearDelay: Double = isKarate ? 1.5 : 2.0
-        Task {
+        lastActionClearTask?.cancel()
+        lastActionClearTask = Task {
             try? await Task.sleep(for: .seconds(clearDelay))
-            guard isActive else { return }
+            guard !Task.isCancelled, isActive else { return }
             withAnimation { lastAction = "" }
         }
     }
@@ -2383,8 +2422,10 @@ struct GamePlayView: View {
 
     private func triggerKarateHitFlash() {
         withAnimation(.easeOut(duration: 0.05)) { karateHitFlash = true }
-        Task {
+        hitFlashResetTask?.cancel()
+        hitFlashResetTask = Task {
             try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.1)) { karateHitFlash = false }
         }
     }
@@ -2402,8 +2443,10 @@ struct GamePlayView: View {
         }
         triggerFlash()
         triggerScreenShake(intensity: 0.3)
-        Task {
+        trickTextResetTask?.cancel()
+        trickTextResetTask = Task {
             try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
             withAnimation { showTrickText = false; lastTrickName = "" }
         }
     }
@@ -2419,8 +2462,10 @@ struct GamePlayView: View {
             }
             triggerFlash()
             triggerScreenShake(intensity: 0.5)
-            Task {
+            styleLandingResetTask?.cancel()
+            styleLandingResetTask = Task {
                 try? await Task.sleep(for: .seconds(2.0))
+                guard !Task.isCancelled else { return }
                 withAnimation { showStyleLanding = false; lastAction = "" }
             }
         }
@@ -2506,8 +2551,10 @@ struct GamePlayView: View {
             }
         }
 
-        Task {
+        dunkLaunchLabelResetTask?.cancel()
+        dunkLaunchLabelResetTask = Task {
             try? await Task.sleep(for: .seconds(1.0))
+            guard !Task.isCancelled else { return }
             withAnimation { if lastAction == "PERFECT LAUNCH!" || lastAction == "LAUNCHED" { lastAction = "" } }
         }
     }
@@ -2551,9 +2598,10 @@ struct GamePlayView: View {
             }
         }
 
-        Task {
+        dunkSequenceTask?.cancel()
+        dunkSequenceTask = Task {
             try? await Task.sleep(for: .seconds(4.0))
-            guard isActive else { return }
+            guard !Task.isCancelled, isActive else { return }
             withAnimation(.easeOut(duration: 0.3)) {
                 lastJudgeScores = nil
                 crowdMessage = ""
@@ -2563,11 +2611,11 @@ struct GamePlayView: View {
             }
 
             try? await Task.sleep(for: .seconds(0.5))
-            guard isActive else { return }
+            guard !Task.isCancelled, isActive else { return }
             simulateAIDunk()
 
             try? await Task.sleep(for: .seconds(3.5))
-            guard isActive else { return }
+            guard !Task.isCancelled, isActive else { return }
             withAnimation(.easeOut(duration: 0.3)) {
                 lastJudgeScores = nil
                 crowdMessage = ""
@@ -2632,29 +2680,36 @@ struct GamePlayView: View {
 
     private func triggerCriticalFlash() {
         withAnimation(.easeOut(duration: 0.1)) { showCriticalFlash = true }
-        Task {
+        criticalFlashResetTask?.cancel()
+        criticalFlashResetTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.4)) { showCriticalFlash = false }
         }
     }
 
     private func triggerImpactFlash() {
         withAnimation(.easeOut(duration: 0.05)) { showImpactFlash = true }
-        Task {
+        impactFlashResetTask?.cancel()
+        impactFlashResetTask = Task {
             try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.2)) { showImpactFlash = false }
         }
     }
 
     private func triggerScreenShake(intensity: Double) {
         let amplitude = intensity * 4
-        Task {
+        screenShakeResetTask?.cancel()
+        screenShakeResetTask = Task {
             for _ in 0..<4 {
+                guard !Task.isCancelled else { return }
                 withAnimation(.linear(duration: 0.03)) {
                     screenShake = CGFloat.random(in: -amplitude...amplitude)
                 }
                 try? await Task.sleep(for: .milliseconds(30))
             }
+            guard !Task.isCancelled else { return }
             withAnimation(.spring(response: 0.1)) {
                 screenShake = 0
             }
@@ -2704,14 +2759,16 @@ struct GamePlayView: View {
 
     private func triggerFlash() {
         withAnimation(.easeOut(duration: 0.1)) { showFlash = true }
-        Task {
+        scheduleUITask("flash-reset") {
             try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.3)) { showFlash = false }
         }
     }
 
     private func endGame() {
         guard isActive else { return }
+        cancelUITasks()
         runMeterTimer?.cancel()
         runMeterTimer = nil
         streakTimer?.cancel()
@@ -2737,8 +2794,9 @@ struct GamePlayView: View {
         withAnimation(.spring(response: 0.4)) {
             isActive = false
         }
-        Task {
+        scheduleUITask("result-reveal") {
             try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
             withAnimation(.spring(response: 0.4)) {
                 showResults = true
             }
@@ -2798,9 +2856,9 @@ struct GamePlayView: View {
             }
 
             if gameMode.id == .football {
-                Task {
+                scheduleUITask("football-opponent-finish") {
                     try? await Task.sleep(for: .milliseconds(500))
-                    guard isActive else { return }
+                    guard !Task.isCancelled, isActive else { return }
                     withAnimation(.spring(response: 0.25)) { opponentScore += 1 }
                     endGame()
                 }
@@ -2818,9 +2876,10 @@ struct GamePlayView: View {
             )
             if Double.random(in: 0...1) < ddaChance {
                 let aiDelay = Double.random(in: 0.4...0.8)
-                Task {
+                aiResponseTask?.cancel()
+                aiResponseTask = Task {
                     try? await Task.sleep(for: .seconds(aiDelay))
-                    guard isActive else { return }
+                    guard !Task.isCancelled, isActive else { return }
                     let aiPoints = DynamicDifficulty.opponentPoints(
                         playerScore: score,
                         aiScore: opponentScore,
@@ -2842,9 +2901,10 @@ struct GamePlayView: View {
             if roundNumber > maxRounds { endGame() }
         }
 
-        Task {
+        lastActionClearTask?.cancel()
+        lastActionClearTask = Task {
             try? await Task.sleep(for: .seconds(1.5))
-            guard isActive else { return }
+            guard !Task.isCancelled, isActive else { return }
             withAnimation { lastAction = "" }
         }
     }
@@ -2900,12 +2960,12 @@ struct GamePlayView: View {
             }
             triggerScreenShake(intensity: 0.6)
             triggerImpactFlash()
-            Task {
+            scheduleUITask("football-runmeter-reset") {
                 try? await Task.sleep(for: .milliseconds(500))
-                guard isActive else { return }
+                guard !Task.isCancelled, isActive else { return }
                 withAnimation(.spring(response: 0.25)) { opponentScore += 1 }
                 try? await Task.sleep(for: .seconds(1.0))
-                guard isActive else { return }
+                guard !Task.isCancelled, isActive else { return }
                 withAnimation { lastAction = "" }
                 endGame()
             }
@@ -3021,8 +3081,9 @@ struct GamePlayView: View {
             leakageFlashJoint = joint
         }
 
-        Task {
+        scheduleUITask("leakage-penalty-reset") {
             try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.5)) {
                 liveLeakagePenalty = max(0, liveLeakagePenalty - 0.1)
                 leakageFlashJoint = nil
@@ -3331,8 +3392,9 @@ struct GamePlayView: View {
 
             matrixState = matrixState.resolveAction(at: CACurrentMediaTime())
 
-            Task {
+            scheduleUITask("trick-grade-reset") {
                 try? await Task.sleep(for: .seconds(2.0))
+                guard !Task.isCancelled else { return }
                 withAnimation { showTrickText = false; lastTrickName = ""; showQTEGrade = false }
                 matrixState = matrixState.toIdle(at: CACurrentMediaTime())
             }
@@ -3353,8 +3415,10 @@ struct GamePlayView: View {
             activeModifierState = .none
         }
 
-        Task {
+        lastActionClearTask?.cancel()
+        lastActionClearTask = Task {
             try? await Task.sleep(for: .seconds(2.0))
+            guard !Task.isCancelled else { return }
             withAnimation { lastAction = "" }
         }
     }
@@ -3605,8 +3669,10 @@ struct GamePlayView: View {
             withAnimation(.spring(response: 0.2)) {
                 lastAction = "BLOCKED!"
             }
-            Task {
+            lastActionClearTask?.cancel()
+            lastActionClearTask = Task {
                 try? await Task.sleep(for: .seconds(1.0))
+                guard !Task.isCancelled else { return }
                 withAnimation { lastAction = "" }
             }
         case .hit:
@@ -3622,10 +3688,12 @@ struct GamePlayView: View {
         }
         triggerMatrixSlowMo(effect: .perfectGuard)
         triggerScreenShake(intensity: 0.4)
-        Task {
+        scheduleUITask("perfect-guard-reset") {
             try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.3)) { showPerfectGuard = false }
             try? await Task.sleep(for: .seconds(1.0))
+            guard !Task.isCancelled else { return }
             withAnimation { lastAction = "" }
         }
     }
@@ -3634,8 +3702,9 @@ struct GamePlayView: View {
         withAnimation(.easeOut(duration: 0.05)) {
             showVanishFlash = true
         }
-        Task {
+        scheduleUITask("vanish-flash-reset") {
             try? await Task.sleep(for: .milliseconds(80))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.15)) { showVanishFlash = false }
         }
 
@@ -3657,8 +3726,9 @@ struct GamePlayView: View {
         }
         triggerCriticalFlash()
 
-        Task {
+        scheduleUITask("vanish-message-reset") {
             try? await Task.sleep(for: .seconds(2.0))
+            guard !Task.isCancelled else { return }
             withAnimation { showTrickText = false; lastTrickName = ""; lastAction = "" }
         }
     }
@@ -3726,8 +3796,10 @@ struct GamePlayView: View {
                             lastAction = defensiveState.handsUp ? "HANDS UP" : "HANDS DOWN"
                         }
                         simulateDefenderProximity()
-                        Task {
+                        lastActionClearTask?.cancel()
+                        lastActionClearTask = Task {
                             try? await Task.sleep(for: .seconds(1.0))
+                            guard !Task.isCancelled else { return }
                             withAnimation { if lastAction == "HANDS UP" || lastAction == "HANDS DOWN" { lastAction = "" } }
                         }
                     } label: {
@@ -3756,8 +3828,10 @@ struct GamePlayView: View {
                             lastAction = "QUICK PROTECT"
                         }
                         triggerScreenShake(intensity: 0.2)
-                        Task {
+                        lastActionClearTask?.cancel()
+                        lastActionClearTask = Task {
                             try? await Task.sleep(for: .seconds(DefensivePhysics.quickProtectDurationSeconds))
+                            guard !Task.isCancelled else { return }
                             withAnimation { if lastAction == "QUICK PROTECT" { lastAction = "" } }
                         }
                     } label: {
@@ -3824,8 +3898,9 @@ struct GamePlayView: View {
             showContestPill = true
         }
 
-        Task {
+        scheduleUITask("contest-pill-reset") {
             try? await Task.sleep(for: .seconds(2.5))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.3)) {
                 showContestPill = false
                 lastContestPercent = nil
@@ -3835,5 +3910,25 @@ struct GamePlayView: View {
         }
 
         return contestedChance
+    }
+
+    private func scheduleUITask(
+        _ key: String,
+        operation: @escaping @MainActor () async -> Void
+    ) {
+        uiTaskBag[key]?.cancel()
+        uiTaskBag[key] = Task {
+            await operation()
+            await MainActor.run {
+                uiTaskBag[key] = nil
+            }
+        }
+    }
+
+    private func cancelUITasks() {
+        for task in uiTaskBag.values {
+            task.cancel()
+        }
+        uiTaskBag.removeAll()
     }
 }

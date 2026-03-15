@@ -63,7 +63,6 @@ struct OnboardingView: View {
                     .padding(.bottom, 48)
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
         }

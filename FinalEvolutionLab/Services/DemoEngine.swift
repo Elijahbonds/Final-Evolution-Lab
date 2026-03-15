@@ -1,68 +1,55 @@
 import SwiftUI
-import AVFoundation
+import Foundation
 
-nonisolated enum DemoMode: String, Sendable, CaseIterable {
+enum DemoMode: String, Sendable, CaseIterable {
     case coach = "Coach"
     case avatar = "Avatar"
 }
 
-nonisolated enum VideoLoadState: Sendable {
+enum DemoLoadState: Sendable {
     case idle
     case loading
-    case ready(URL)
-    case failed
+    case ready(DemoContentPayload)
+    case needsRealClip
+}
+
+enum DemoContentPayload: Sendable {
+    case generatedAnimation(ExerciseDemoAsset)
+    case localClip(ExerciseDemoAsset, URL)
+    case referenceOnly(ExerciseDemoAsset)
 }
 
 @Observable
 @MainActor
 class DemoEngine {
     var currentMode: DemoMode = .coach
-    var videoLoadState: VideoLoadState = .idle
+    var loadState: DemoLoadState = .idle
     var isTransitioning: Bool = false
 
-    private static let videoMap: [String: String] = [
-        "f1": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#ScaledPogos",
-        "f2": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#BoxJumps",
-        "f3": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#SplitSquats",
-        "f4": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#AnkleMobility",
-        "f5": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#LateralShuffles",
-        "fl1": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#DepthJumps",
-        "fl2": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#LateralLeaps",
-        "fl3": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#BulgarianSplitSquats",
-        "fl4": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#HipFlexor",
-        "fl5": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#ConeAgility",
-        "e1": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#DunkSessions",
-        "e2": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#WeightedDepthJumps",
-        "e3": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#TrapBarDeadlifts",
-        "e4": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#NeuralDriveSprint",
-        "e5": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#RecoveryProtocol",
-    ]
+    func loadDemo(for exerciseId: String, movementDatabase: MovementDatabase) {
+        loadState = .loading
 
-    func loadVideo(for exerciseId: String) {
-        videoLoadState = .loading
+        // Priority: generated animation > local clip > request real clip.
+        if let generated = movementDatabase.asset(for: exerciseId, sourceType: .generatedAnimation) {
+            loadState = .ready(.generatedAnimation(generated))
+            return
+        }
 
-        guard let urlString = Self.videoMap[exerciseId],
-              let url = URL(string: urlString) else {
-            videoLoadState = .failed
+        if let local = movementDatabase.asset(for: exerciseId, sourceType: .localClip),
+           let clipFile = local.localClipFilename,
+           let clipURL = resolveLocalClipURL(filename: clipFile) {
+            loadState = .ready(.localClip(local, clipURL))
+            return
+        }
+
+        if let referenceOnly = movementDatabase.asset(for: exerciseId, sourceType: .referenceOnly) {
+            loadState = .ready(.referenceOnly(referenceOnly))
             currentMode = .avatar
             return
         }
 
-        Task {
-            let asset = AVURLAsset(url: url)
-            do {
-                let isPlayable = try await asset.load(.isPlayable)
-                if isPlayable {
-                    videoLoadState = .ready(url)
-                } else {
-                    videoLoadState = .failed
-                    currentMode = .avatar
-                }
-            } catch {
-                videoLoadState = .failed
-                currentMode = .avatar
-            }
-        }
+        loadState = .needsRealClip
+        currentMode = .avatar
     }
 
     func toggleMode() {
@@ -82,8 +69,67 @@ class DemoEngine {
         }
     }
 
-    var isVideoAvailable: Bool {
-        if case .ready = videoLoadState { return true }
+    var isCoachDemoAvailable: Bool {
+        guard case .ready(let payload) = loadState else { return false }
+        switch payload {
+        case .generatedAnimation, .localClip:
+            return true
+        case .referenceOnly:
+            return false
+        }
+    }
+
+    var isReferenceOnly: Bool {
+        guard case .ready(let payload) = loadState else { return false }
+        if case .referenceOnly = payload { return true }
         return false
+    }
+
+    var shouldShowRequestRealClip: Bool {
+        if case .needsRealClip = loadState { return true }
+        return isReferenceOnly
+    }
+
+    var activeAsset: ExerciseDemoAsset? {
+        guard case .ready(let payload) = loadState else { return nil }
+        switch payload {
+        case .generatedAnimation(let asset), .localClip(let asset, _), .referenceOnly(let asset):
+            return asset
+        }
+    }
+
+    var qualityPercentText: String {
+        guard let asset = activeAsset else { return "--" }
+        return "\(Int((max(0, min(1, asset.qualityScore))) * 100))%"
+    }
+
+    var sourceBadgeText: String {
+        guard let asset = activeAsset else {
+            if case .needsRealClip = loadState { return "REAL CLIP NEEDED" }
+            return "RESOLVING"
+        }
+        switch asset.sourceType {
+        case .generatedAnimation:
+            return "DIGITAL CLONE DEMO"
+        case .localClip:
+            return "LOCAL REAL CLIP"
+        case .referenceOnly:
+            return "REFERENCE PROCESSING"
+        }
+    }
+
+    private func resolveLocalClipURL(filename: String) -> URL? {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+        if let documents, FileManager.default.fileExists(atPath: documents.appendingPathComponent(filename).path) {
+            return documents.appendingPathComponent(filename)
+        }
+
+        let ns = filename as NSString
+        let name = ns.deletingPathExtension
+        let ext = ns.pathExtension
+        if !name.isEmpty, !ext.isEmpty {
+            return Bundle.main.url(forResource: name, withExtension: ext)
+        }
+        return nil
     }
 }

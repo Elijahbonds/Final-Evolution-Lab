@@ -1,12 +1,13 @@
 import Foundation
 import SwiftUI
 
-nonisolated struct CreatorCard: Identifiable, Sendable {
+struct CreatorCard: Identifiable, Sendable {
     let id: String
     let creatorName: String
     let title: String
     let description: String
-    let costShards: Int
+    let costCredits: Int
+    var costShards: Int { costCredits } // Legacy alias for older UI bindings.
     let iconName: String
     let accentColor: Color
     let metricsBoost: PerformanceMetrics
@@ -18,7 +19,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
             creatorName: "Coach V",
             title: "Coach V Elite Card",
             description: "Unlock Coach V's elite movement data. +15 PRQ, +20 Vertical, +10 Neural Drive.",
-            costShards: 500,
+            costCredits: 500,
             iconName: "crown.fill",
             accentColor: .yellow,
             metricsBoost: PerformanceMetrics(
@@ -43,7 +44,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
             creatorName: "Bonds Bounce",
             title: "Bonds Bounce Blueprint",
             description: "The vertical jump architecture. +12 PRQ, +25 Vertical, +8 Efficiency.",
-            costShards: 750,
+            costCredits: 750,
             iconName: "bolt.trianglebadge.exclamationmark.fill",
             accentColor: Color(red: 0.95, green: 0.49, blue: 0.15),
             metricsBoost: PerformanceMetrics(
@@ -68,7 +69,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
             creatorName: "Flight Lab",
             title: "Flight Lab Pro Card",
             description: "Advanced flight mechanics data. +10 PRQ, +18 Vertical, +15 Neural Drive.",
-            costShards: 600,
+            costCredits: 600,
             iconName: "airplane.departure",
             accentColor: Color(red: 0, green: 0.95, blue: 0.9),
             metricsBoost: PerformanceMetrics(
@@ -93,7 +94,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
             creatorName: "Neural Max",
             title: "Neural Max Override",
             description: "Peak CNS recruitment protocols. +8 PRQ, +12 Vertical, +25 Neural Drive.",
-            costShards: 400,
+            costCredits: 400,
             iconName: "brain.head.profile.fill",
             accentColor: Color(red: 0.6, green: 0.2, blue: 1.0),
             metricsBoost: PerformanceMetrics(
@@ -116,7 +117,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
     ]
 }
 
-nonisolated struct MovementSignature: Sendable {
+struct MovementSignature: Sendable {
     let style: MovementStyle
     let jumpApex: Double
     let hangTimeFactor: Double
@@ -125,7 +126,7 @@ nonisolated struct MovementSignature: Sendable {
     let trailColor: Color
 }
 
-nonisolated enum MovementStyle: String, Sendable {
+enum MovementStyle: String, Sendable {
     case explosive
     case vertical
     case fluid

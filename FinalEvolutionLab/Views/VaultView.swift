@@ -5,12 +5,17 @@ struct VaultView: View {
 
     @State private var showEditProfile = false
     @State private var showShardShop = false
+    @State private var showLiveEvents = false
+    @State private var showMarketplace = false
+    @State private var healthKitConnectTask: Task<Void, Never>?
+    @State private var isConnectingHealthKit = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 headerSection
                 profileCard
+                economyNavigationRow
                 healthKitSection
                 masterVaultSection
                 equipmentSection
@@ -27,6 +32,17 @@ struct VaultView: View {
         }
         .sheet(isPresented: $showShardShop) {
             ShardShopView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showLiveEvents) {
+            LiveEventsHubView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showMarketplace) {
+            CreatorMarketplaceHubView(viewModel: viewModel)
+        }
+        .onDisappear {
+            healthKitConnectTask?.cancel()
+            healthKitConnectTask = nil
+            isConnectingHealthKit = false
         }
     }
 
@@ -121,6 +137,40 @@ struct VaultView: View {
         )
     }
 
+    private var economyNavigationRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                showLiveEvents = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "ticket.fill")
+                    Text("LIVE EVENTS")
+                }
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Theme.brandCyan)
+                .clipShape(.rect(cornerRadius: 10))
+            }
+
+            Button {
+                showMarketplace = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "hammer.fill")
+                    Text("MARKETPLACE")
+                }
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.orange)
+                .clipShape(.rect(cornerRadius: 10))
+            }
+        }
+    }
+
     private var healthKitSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -133,9 +183,24 @@ struct VaultView: View {
 
                 if !viewModel.healthKit.isAuthorized {
                     Button {
-                        Task { await viewModel.connectHealthKit() }
+                        guard healthKitConnectTask == nil else { return }
+                        isConnectingHealthKit = true
+                        healthKitConnectTask = Task {
+                            await viewModel.connectHealthKit()
+                            guard !Task.isCancelled else { return }
+                            await MainActor.run {
+                                isConnectingHealthKit = false
+                                healthKitConnectTask = nil
+                            }
+                        }
                     } label: {
-                        Text("CONNECT")
+                        HStack(spacing: 6) {
+                            if isConnectingHealthKit {
+                                ProgressView()
+                                    .tint(Theme.brandBlue)
+                            }
+                            Text(isConnectingHealthKit ? "CONNECTING..." : "CONNECT")
+                        }
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -143,6 +208,7 @@ struct VaultView: View {
                             .foregroundStyle(Theme.brandBlue)
                             .clipShape(Capsule())
                     }
+                    .disabled(isConnectingHealthKit)
                 }
             }
 
@@ -187,8 +253,14 @@ struct VaultView: View {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                 StatCell(label: "TOTAL WORKOUTS", value: "\(viewModel.profile.totalWorkouts)", icon: "figure.run")
                 StatCell(label: "EVOLUTION SHARDS", value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill")
+                StatCell(label: "PREMIUM CREDITS", value: "\(viewModel.profile.premiumCredits)", icon: "creditcard.fill")
+                StatCell(label: "CREATOR CREDITS", value: "\(viewModel.profile.creatorCredits)", icon: "banknote.fill")
                 StatCell(label: "DAY STREAK", value: "\(viewModel.profile.streakDays)", icon: "flame.fill")
                 StatCell(label: "SESSIONS TODAY", value: "\(viewModel.todaysSessions.count)", icon: "clock.fill")
+                StatCell(label: "ARMORY TICKETS", value: "\(viewModel.armoryTickets.count)", icon: "qrcode")
+                StatCell(label: "FUNDRAISE %", value: "\(viewModel.activeFundraisingGoals.first?.percentComplete ?? 0)%", icon: "chart.bar.fill")
+                StatCell(label: "AUCTION LISTINGS", value: "\(viewModel.creatorMarketplace.activeListings.count)", icon: "hammer.fill")
+                StatCell(label: "SHARDS BURNED", value: "\(viewModel.creatorMarketplace.shardBurnedByAuctionTax + viewModel.creatorMarketplace.shardBurnedByMaintenance + viewModel.creatorMarketplace.shardBurnedByPackPulls + viewModel.creatorMarketplace.shardBurnedByServiceBridge)", icon: "flame")
             }
         }
     }
@@ -205,46 +277,48 @@ struct VaultView: View {
             }
 
             ForEach(VaultResources.videos, id: \.title) { resource in
-                Link(destination: resource.url) {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.1))
-                                .frame(width: 44, height: 44)
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.1))
+                            .frame(width: 44, height: 44)
 
-                            Image(systemName: resource.icon)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(resource.title.uppercased())
-                                .font(.system(.caption, design: .monospaced, weight: .bold))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-
-                            Text(resource.description)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.6))
+                        Image(systemName: resource.icon)
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
                     }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Theme.cardBackground)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.08), lineWidth: 0.5)
-                            )
-                    )
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(resource.title.uppercased())
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+
+                        Text(resource.description)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    Text("REFERENCE")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color(red: 0.95, green: 0.49, blue: 0.15))
+                        .clipShape(Capsule())
                 }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.08), lineWidth: 0.5)
+                        )
+                )
             }
         }
     }

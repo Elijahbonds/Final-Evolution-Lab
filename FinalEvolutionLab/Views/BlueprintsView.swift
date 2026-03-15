@@ -108,19 +108,17 @@ struct BlueprintsView: View {
 
                     Spacer()
 
-                    Link(destination: URL(string: "https://youtube.com/@FinalEvolutionFitness")!) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "play.rectangle.fill")
-                                .font(.system(size: 9, weight: .bold))
-                            Text("FULL LIBRARY")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        }
-                        .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.1))
-                        .clipShape(Capsule())
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles.rectangle.stack")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("REFERENCE ONLY")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
                     }
+                    .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.1))
+                    .clipShape(Capsule())
                 }
 
                 Text("Video guides with timestamps and coaching cues for every phase of the Bonds Bounce system.")
@@ -129,12 +127,10 @@ struct BlueprintsView: View {
             }
 
             ForEach(Array(BlueprintLibrary.blueprints.enumerated()), id: \.element.id) { index, bp in
-                Link(destination: bp.url) {
-                    BlueprintCard(blueprint: bp)
-                        .opacity(appeared ? 1 : 0)
-                        .offset(y: appeared ? 0 : 15)
-                        .animation(.spring(response: 0.5).delay(Double(index) * 0.08), value: appeared)
-                }
+                BlueprintCard(blueprint: bp)
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 15)
+                    .animation(.spring(response: 0.5).delay(Double(index) * 0.08), value: appeared)
             }
 
             VStack(alignment: .leading, spacing: 12) {
@@ -236,9 +232,13 @@ struct BlueprintCard: View {
                         .foregroundStyle(accentOrange.opacity(0.7))
                         .tracking(1)
 
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(accentOrange.opacity(0.5))
+                    Text(blueprint.allowsExternalOpen ? "OPEN" : "REFERENCE")
+                        .font(.system(size: 7, weight: .black, design: .monospaced))
+                        .foregroundStyle(blueprint.allowsExternalOpen ? accentOrange.opacity(0.7) : .black)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(blueprint.allowsExternalOpen ? Color.clear : accentOrange.opacity(0.9))
+                        .clipShape(Capsule())
                 }
             }
 

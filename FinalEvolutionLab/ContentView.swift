@@ -63,14 +63,17 @@ struct ContentView: View {
                 }
             }
 
-            Tab("Status", systemImage: "gauge.with.dots.needle.67percent", value: .dashboard) {
+            Tab("Command", systemImage: "square.grid.2x2.fill", value: .dashboard) {
                 NavigationStack {
-                    DashboardView(viewModel: viewModel)
+                    CommandCenterView(viewModel: viewModel)
                         .navigationTitle("")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
                             ToolbarItem(placement: .topBarLeading) {
                                 brandHeader
+                            }
+                            ToolbarItem(placement: .topBarTrailing) {
+                                shardsBadge
                             }
                         }
                         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -95,7 +98,6 @@ struct ContentView: View {
             }
         }
         .tint(Theme.brandBlue)
-        .preferredColorScheme(.dark)
         .environment(\.simpleMode, simpleMode)
         .sheet(isPresented: $showSettings) {
             SettingsSheet(simpleMode: $simpleMode, viewModel: viewModel)
@@ -144,20 +146,32 @@ struct ContentView: View {
             Image(systemName: "gearshape.fill")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
                 .background(Color.white.opacity(0.06))
                 .clipShape(Circle())
         }
+        .accessibilityLabel("Settings")
+        .accessibilityHint("Opens app settings")
     }
 
     private var shardsBadge: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "diamond.fill")
-                .font(.system(size: 10))
-                .foregroundStyle(Theme.brandCyan)
-            Text("\(viewModel.profile.evolutionShards)")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
-                .foregroundStyle(.white)
+        HStack(spacing: 8) {
+            HStack(spacing: 3) {
+                Image(systemName: "diamond.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.brandCyan)
+                Text("\(viewModel.profile.evolutionShards)")
+                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            HStack(spacing: 3) {
+                Image(systemName: "creditcard.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.brandBlue)
+                Text("\(viewModel.profile.premiumCredits)")
+                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    .foregroundStyle(.white)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -166,7 +180,7 @@ struct ContentView: View {
     }
 }
 
-nonisolated enum AppTab: String, Sendable {
+enum AppTab: String, Sendable {
     case lab
     case training
     case dashboard

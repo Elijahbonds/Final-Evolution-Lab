@@ -13,11 +13,21 @@ struct LabView: View {
     @State private var showGlobalMatchmaking: Bool = false
     @State private var showCoach: Bool = false
     @State private var showBlueprints: Bool = false
+    @State private var showLiveEvents: Bool = false
+    @State private var showMarketplace: Bool = false
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
+    @State private var pendingArenaNavigationTask: Task<Void, Never>?
+    @State private var courtLoadTask: Task<Void, Never>?
     @State private var freestyleDunk = DunkContestState()
     @State private var freestyleDunkTimer: Task<Void, Never>?
+    @State private var freestyleActionMessageTask: Task<Void, Never>?
+    @State private var freestyleFlashResetTask: Task<Void, Never>?
+    @State private var freestyleRoundResetTask: Task<Void, Never>?
+    @State private var freestyleShakeTask: Task<Void, Never>?
+    @State private var healthKitConnectTask: Task<Void, Never>?
+    @State private var isConnectingHealthKit = false
     @State private var freestyleLastAction: String = ""
     @State private var freestyleJudgeScores: (Int, Int, Int)?
     @State private var freestyleCrowdMessage: String = ""
@@ -43,6 +53,7 @@ struct LabView: View {
                 metricsGrid
                 CreatorCardBoostView(viewModel: viewModel)
                 coachAndBlueprintsRow
+                liveAndMarketRow
                 parentalOverviewSection
                 quickStartSection
                 recentActivitySection
@@ -54,8 +65,10 @@ struct LabView: View {
         .background(Theme.deepBlack)
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
-            Task {
+            courtLoadTask?.cancel()
+            courtLoadTask = Task {
                 try? await Task.sleep(for: .milliseconds(600))
+                guard !Task.isCancelled else { return }
                 withAnimation(.spring(response: 0.4)) { courtLoaded = true }
             }
         }
@@ -75,10 +88,7 @@ struct LabView: View {
                 MatchmakingView(viewModel: viewModel, gameMode: mode) { opponent, readiness in
                     sessionReadiness = readiness
                     showGlobalMatchmaking = false
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(300))
-                        navigateToArenaGame = true
-                    }
+                    scheduleArenaNavigation()
                 }
             }
         }
@@ -93,14 +103,30 @@ struct LabView: View {
         .navigationDestination(isPresented: $showBlueprints) {
             BlueprintsView(viewModel: viewModel)
         }
+        .navigationDestination(isPresented: $showLiveEvents) {
+            LiveEventsHubView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showMarketplace) {
+            CreatorMarketplaceHubView(viewModel: viewModel)
+        }
+        .onDisappear {
+            pendingArenaNavigationTask?.cancel()
+            pendingArenaNavigationTask = nil
+            courtLoadTask?.cancel()
+            courtLoadTask = nil
+            cancelFreestyleTasks()
+            healthKitConnectTask?.cancel()
+            healthKitConnectTask = nil
+            isConnectingHealthKit = false
+        }
     }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("VENICE BEACH")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Venice beach")
+                .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(Theme.brandBlue)
-                .tracking(4)
+                .tracking(1)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 10)
 
@@ -145,10 +171,9 @@ struct LabView: View {
                     Text("#\(viewModel.globalLeaderboard.userGlobalRank)")
                         .font(.system(.caption, design: .monospaced, weight: .black))
                         .foregroundStyle(.white)
-                    Text("GLOBAL")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    Text("Global")
+                        .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(.tertiary)
-                        .tracking(1)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -193,10 +218,10 @@ struct LabView: View {
                         BiomechanicsDashboardCard(audit: audit)
 
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("JOINT ANALYSIS")
-                                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                            Text("Joint analysis")
+                                .font(.system(.caption2, weight: .semibold))
                                 .foregroundStyle(Theme.brandCyan)
-                                .tracking(2)
+                                .tracking(0.5)
 
                             BiomechanicsOverlayView(audit: audit)
                                 .frame(height: 350)
@@ -229,10 +254,10 @@ struct LabView: View {
 
     private func attributeImpactSection(audit: BiomechanicsAudit) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("ATTRIBUTE IMPACT")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
+            Text("Attribute impact")
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(Theme.brandBlue)
-                .tracking(2)
+                .tracking(0.5)
 
             VStack(spacing: 8) {
                 AttributeImpactRow(
@@ -284,8 +309,8 @@ struct LabView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("GLOBAL ARENA")
-                        .font(.system(.subheadline, weight: .black))
+                    Text("Global arena")
+                        .font(.system(.subheadline, weight: .bold))
                         .foregroundStyle(.white)
 
                     HStack(spacing: 8) {
@@ -327,10 +352,10 @@ struct LabView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("FREESTYLE DUNK PRACTICE")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    Text("Freestyle dunk practice")
+                        .font(.system(.caption2, weight: .semibold))
                         .foregroundStyle(Theme.brandBlue)
-                        .tracking(2)
+                        .tracking(0.5)
 
                     Text("Venice Beach Court")
                         .font(.system(size: 10, weight: .medium))
@@ -351,6 +376,7 @@ struct LabView: View {
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(Theme.brandBlue)
                             .padding(8)
+                            .frame(minWidth: 44, minHeight: 44)
                             .background(Color.white.opacity(0.06))
                             .clipShape(Circle())
                     }
@@ -380,14 +406,14 @@ struct LabView: View {
                             freestyleScoringOverlay
                         }
                         .overlay(alignment: .topLeading) {
-                            Text("NEURAL DRIVE \(Int(viewModel.profile.metrics.neuralDrive))%")
+                            Text("Neural drive \(Int(viewModel.profile.metrics.neuralDrive))%")
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(Theme.brandCyan)
                                 .padding(8)
                         }
                         .overlay(alignment: .bottom) {
-                            Text("HOLD X TO GATHER")
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            Text("Hold X to gather")
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.7))
                                 .padding(.bottom, 40)
                         }
@@ -400,10 +426,10 @@ struct LabView: View {
                             VStack(spacing: 12) {
                                 ProgressView()
                                     .tint(Theme.brandBlue)
-                                Text("LOADING COURT")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                Text("Loading court")
+                                    .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(Theme.brandBlue.opacity(0.6))
-                                    .tracking(2)
+                                    .tracking(0.5)
                             }
                         }
                 }
@@ -489,8 +515,8 @@ struct LabView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "figure.run")
                             .font(.system(size: 14, weight: .bold))
-                        Text("START APPROACH")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                        Text("Start approach")
+                            .font(.system(size: 12, weight: .bold))
                     }
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
@@ -513,10 +539,9 @@ struct LabView: View {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.cyan)
-                    Text("HOLD TO SPRINT")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text("Hold to sprint")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
-                        .tracking(1)
                     Spacer()
                     Text("\(Int(freestyleDunk.sprintCharge * 100))%")
                         .font(.system(size: 12, weight: .black, design: .monospaced))
@@ -550,8 +575,8 @@ struct LabView: View {
                 Button {
                     releaseFreestyleSprint()
                 } label: {
-                    Text("RELEASE TO LAUNCH")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("Release to launch")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
@@ -572,10 +597,9 @@ struct LabView: View {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.green)
-                    Text("TAP TO JUMP")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text("Tap to jump")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
-                        .tracking(1)
                     Spacer()
                 }
 
@@ -588,8 +612,8 @@ struct LabView: View {
                 Button {
                     confirmFreestyleLaunch()
                 } label: {
-                    Text("JUMP!")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                    Text("Jump!")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -648,8 +672,8 @@ struct LabView: View {
                         HStack(spacing: 5) {
                             Image(systemName: freestyleDunk.isRotating ? "arrow.trianglehead.2.clockwise.rotate.90" : "play.fill")
                                 .font(.system(size: 12, weight: .bold))
-                            Text(freestyleDunk.isRotating ? "ROTATING" : "SPIN")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                            Text(freestyleDunk.isRotating ? "Rotating" : "Spin")
+                                .font(.system(size: 10, weight: .bold))
                         }
                         .foregroundStyle(freestyleDunk.isRotating ? .black : .purple)
                         .frame(maxWidth: .infinity)
@@ -666,8 +690,8 @@ struct LabView: View {
                         HStack(spacing: 5) {
                             Image(systemName: "arrow.down.to.line.compact")
                                 .font(.system(size: 12, weight: .bold))
-                            Text("SLAM!")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                            Text("Slam!")
+                                .font(.system(size: 11, weight: .bold))
                         }
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
@@ -691,10 +715,9 @@ struct LabView: View {
                     Image(systemName: "arrow.down.to.line.compact")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.orange)
-                    Text("STICK THE LANDING!")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text("Stick the landing!")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
-                        .tracking(1)
                     Spacer()
                 }
 
@@ -707,8 +730,8 @@ struct LabView: View {
                 Button {
                     confirmFreestyleLanding()
                 } label: {
-                    Text("LAND!")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                    Text("Land!")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -764,7 +787,7 @@ struct LabView: View {
                     .foregroundStyle(freestylePhaseColor)
                     .tracking(1)
                 if freestyleDunk.phase == .airborne {
-                    Text(String(format: "HEIGHT: %.0f%%", freestyleDunk.jumpHeight * 100))
+                    Text(String(format: "Height: %.0f%%", freestyleDunk.jumpHeight * 100))
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.6))
                 }
@@ -823,10 +846,10 @@ struct LabView: View {
 
     private var freestylePhaseLabel: String {
         switch freestyleDunk.phase {
-        case .approach: return "SPRINTING"
-        case .launch: return "GATHER"
-        case .airborne: return "IN THE AIR"
-        case .landing: return "LANDING"
+        case .approach: return "Sprinting"
+        case .launch: return "Gather"
+        case .airborne: return "In the air"
+        case .landing: return "Landing"
         default: return ""
         }
     }
@@ -890,7 +913,7 @@ struct LabView: View {
         let inGreen = freestyleDunk.launchGreenZone.contains(freestyleDunk.launchTiming)
         withAnimation(.spring(response: 0.2)) {
             freestyleDunk.confirmLaunch()
-            freestyleLastAction = inGreen ? "PERFECT LAUNCH!" : "LAUNCHED"
+            freestyleLastAction = inGreen ? "Perfect launch!" : "Launched"
         }
         triggerFreestyleShake(intensity: inGreen ? 0.4 : 0.2)
 
@@ -904,10 +927,12 @@ struct LabView: View {
             }
         }
 
-        Task {
+        freestyleActionMessageTask?.cancel()
+        freestyleActionMessageTask = Task {
             try? await Task.sleep(for: .seconds(1.0))
+            guard !Task.isCancelled else { return }
             withAnimation {
-                if freestyleLastAction == "PERFECT LAUNCH!" || freestyleLastAction == "LAUNCHED" {
+                if freestyleLastAction == "Perfect launch!" || freestyleLastAction == "Launched" {
                     freestyleLastAction = ""
                 }
             }
@@ -938,14 +963,18 @@ struct LabView: View {
 
         if result.total >= 138 {
             withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) { dunkFlash = true }
-            Task {
+            freestyleFlashResetTask?.cancel()
+            freestyleFlashResetTask = Task {
                 try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { dunkFlash = false }
             }
         }
 
-        Task {
+        freestyleRoundResetTask?.cancel()
+        freestyleRoundResetTask = Task {
             try? await Task.sleep(for: .seconds(3.5))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.3)) {
                 freestyleJudgeScores = nil
                 freestyleCrowdMessage = ""
@@ -961,15 +990,42 @@ struct LabView: View {
 
     private func triggerFreestyleShake(intensity: Double) {
         let amplitude = intensity * 3
-        Task {
+        freestyleShakeTask?.cancel()
+        freestyleShakeTask = Task {
             for _ in 0..<4 {
+                guard !Task.isCancelled else { return }
                 withAnimation(.linear(duration: 0.03)) {
                     freestyleScreenShake = CGFloat.random(in: -amplitude...amplitude)
                 }
                 try? await Task.sleep(for: .milliseconds(30))
             }
+            guard !Task.isCancelled else { return }
             withAnimation(.spring(response: 0.1)) {
                 freestyleScreenShake = 0
+            }
+        }
+    }
+
+    private func cancelFreestyleTasks() {
+        freestyleDunkTimer?.cancel()
+        freestyleDunkTimer = nil
+        freestyleActionMessageTask?.cancel()
+        freestyleActionMessageTask = nil
+        freestyleFlashResetTask?.cancel()
+        freestyleFlashResetTask = nil
+        freestyleRoundResetTask?.cancel()
+        freestyleRoundResetTask = nil
+        freestyleShakeTask?.cancel()
+        freestyleShakeTask = nil
+    }
+
+    private func scheduleArenaNavigation() {
+        pendingArenaNavigationTask?.cancel()
+        pendingArenaNavigationTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                navigateToArenaGame = true
             }
         }
     }
@@ -1000,10 +1056,10 @@ struct LabView: View {
                 }
 
                 VStack(spacing: 6) {
-                    Text("SYSTEM SCAN")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("System scan")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(Theme.brandCyan)
-                        .tracking(3)
+                        .tracking(0.5)
 
                     Text("Upload a jump video to get your PRQ")
                         .font(.subheadline)
@@ -1013,12 +1069,13 @@ struct LabView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "video.badge.plus")
                         .font(.system(size: 12, weight: .bold))
-                    Text("START SCAN")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("Start scan")
+                        .font(.system(size: 11, weight: .bold))
                 }
                 .foregroundStyle(.black)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 10)
+                .frame(minHeight: 44)
                 .background(Theme.brandCyan)
                 .clipShape(Capsule())
             }
@@ -1040,10 +1097,10 @@ struct LabView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("SCAN DATA")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    Text("Scan data")
+                        .font(.system(.caption2, weight: .semibold))
                         .foregroundStyle(Theme.brandCyan)
-                        .tracking(2)
+                        .tracking(0.5)
 
                     Text(scan.movementGrade)
                         .font(.system(.title3, weight: .black))
@@ -1055,10 +1112,11 @@ struct LabView: View {
                 Button {
                     showSystemScan = true
                 } label: {
-                    Text("RESCAN")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    Text("Rescan")
+                        .font(.system(size: 10, weight: .semibold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
+                        .frame(minHeight: 44)
                         .background(Theme.brandCyan.opacity(0.12))
                         .foregroundStyle(Theme.brandCyan)
                         .clipShape(Capsule())
@@ -1069,6 +1127,30 @@ struct LabView: View {
                 ScanStatPill(label: "PRQ", value: String(format: "%.1f", scan.prqScore), color: Theme.brandBlue)
                 ScanStatPill(label: "VERTICAL", value: String(format: "%.1f\"", scan.verticalEstimateInches), color: Theme.brandCyan)
                 ScanStatPill(label: "FLIGHT", value: String(format: "%.2fs", scan.flightTimeSeconds), color: Theme.elitePurple)
+            }
+
+            if let screening = scan.movementScreening {
+                HStack(spacing: 8) {
+                    ScanStatPill(
+                        label: "FMS",
+                        value: "\(Int(screening.screenResults.first(where: { $0.kind == .fms })?.totalScore ?? 0))/21",
+                        color: Theme.foundationGreen
+                    )
+                    ScanStatPill(
+                        label: "SFMA",
+                        value: "\(Int(screening.screenResults.first(where: { $0.kind == .sfma })?.totalScore ?? 0))/15",
+                        color: Theme.brandBlue
+                    )
+                    ScanStatPill(
+                        label: "FRC",
+                        value: "\(Int(screening.screenResults.first(where: { $0.kind == .frc })?.totalScore ?? 0))/12",
+                        color: .orange
+                    )
+                }
+
+                Text("Path: \(screening.prescription.trainingTrack.rawValue) • \(screening.prescription.equipmentFocus.rawValue)")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Theme.brandCyan)
             }
 
             if let firstNote = scan.notes.first {
@@ -1118,8 +1200,8 @@ struct LabView: View {
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(viewModel.profile.sport?.uppercased() ?? "")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                    Text(viewModel.profile.sport ?? "")
+                        .font(.system(.caption, weight: .semibold))
                         .foregroundStyle(.white)
 
                     HStack(spacing: 8) {
@@ -1229,10 +1311,10 @@ struct LabView: View {
         VStack(spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("NEURAL READINESS")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    Text("Neural readiness")
+                        .font(.system(.caption2, weight: .semibold))
                         .foregroundStyle(Theme.brandCyan)
-                        .tracking(2)
+                        .tracking(0.5)
 
                     Text(viewModel.healthKit.neuralReadinessGrade.rawValue)
                         .font(.system(.title3, weight: .black))
@@ -1251,9 +1333,9 @@ struct LabView: View {
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundStyle(trendColor)
                             Text("NRS")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .font(.system(size: 8, weight: .semibold))
                                 .foregroundStyle(.tertiary)
-                                .tracking(2)
+                                .tracking(0.3)
                         }
                     }
                 }
@@ -1284,8 +1366,8 @@ struct LabView: View {
                 if viewModel.healthKit.weeklyHRVAverage > 0 {
                     HStack(spacing: 12) {
                         HStack(spacing: 4) {
-                            Text("7D AVG")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            Text("7-day avg")
+                                .font(.system(size: 8, weight: .semibold))
                                 .foregroundStyle(.tertiary)
                             Text(String(format: "%.0fms", viewModel.healthKit.weeklyHRVAverage))
                                 .font(.system(size: 10, weight: .black, design: .monospaced))
@@ -1310,8 +1392,8 @@ struct LabView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "bed.double.fill")
                             .font(.system(size: 10))
-                        Text("RECOVERY MODE")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        Text("Recovery mode")
+                            .font(.system(size: 9, weight: .semibold))
                         if viewModel.healthKit.recoveryEstimateHours > 0 {
                             Text("~\(Int(viewModel.healthKit.recoveryEstimateHours))h")
                                 .font(.system(size: 9, weight: .black, design: .monospaced))
@@ -1342,28 +1424,44 @@ struct LabView: View {
                             Circle()
                                 .fill(.green)
                                 .frame(width: 4, height: 4)
-                            Text("AUTO")
-                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            Text("Auto")
+                                .font(.system(size: 8, weight: .semibold))
                                 .foregroundStyle(.green.opacity(0.6))
                         }
                     }
                 }
             } else {
                 Button {
-                    Task { await viewModel.connectHealthKit() }
+                    guard healthKitConnectTask == nil else { return }
+                    isConnectingHealthKit = true
+                    healthKitConnectTask = Task {
+                        await viewModel.connectHealthKit()
+                        guard !Task.isCancelled else { return }
+                        await MainActor.run {
+                            isConnectingHealthKit = false
+                            healthKitConnectTask = nil
+                        }
+                    }
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "heart.text.clipboard")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("CONNECT APPLE HEALTH")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        if isConnectingHealthKit {
+                            ProgressView()
+                                .tint(.black)
+                        } else {
+                            Image(systemName: "heart.text.clipboard")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        Text(isConnectingHealthKit ? "Connecting..." : "Connect Apple Health")
+                            .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
                     .padding(.vertical, 12)
                     .background(Theme.brandCyan)
                     .clipShape(.rect(cornerRadius: 12))
                 }
+                .disabled(isConnectingHealthKit)
 
                 Text("Sync HRV & Heart Rate for automated Neural Drive")
                     .font(.caption2)
@@ -1413,8 +1511,8 @@ struct LabView: View {
                             .foregroundStyle(Theme.brandBlue)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("COACH")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        Text("Coach")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.white)
                         Text("Exercises & Critiques")
                             .font(.system(size: 8, weight: .medium))
@@ -1450,8 +1548,8 @@ struct LabView: View {
                             .foregroundStyle(Theme.elitePurple)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("BLUEPRINTS")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        Text("Blueprints")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.white)
                         Text("Plans & Guides")
                             .font(.system(size: 8, weight: .medium))
@@ -1476,6 +1574,84 @@ struct LabView: View {
         }
     }
 
+    private var liveAndMarketRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                showLiveEvents = true
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Theme.brandCyan.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "ticket.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Theme.brandCyan)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Live events")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text("Tickets & Fundraising")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Theme.brandCyan.opacity(0.12), lineWidth: 0.5)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showMarketplace = true
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "hammer.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.orange)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Market")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text("Packs, Auctions, Bids")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.orange.opacity(0.12), lineWidth: 0.5)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
             MetricCard(title: SimpleModeLabels.prqScore(simpleMode), value: String(format: "%.1f", effectiveMetrics.prqScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
@@ -1487,10 +1663,10 @@ struct LabView: View {
 
     private var quickStartSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("QUICK START")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
+            Text("Quick start")
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .tracking(2)
+                .tracking(0.5)
 
             ForEach(viewModel.tracks) { track in
                 Button {
@@ -1513,10 +1689,10 @@ struct LabView: View {
 
     private var recentActivitySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("RECENT ACTIVITY")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
+            Text("Recent activity")
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .tracking(2)
+                .tracking(0.5)
 
             if viewModel.sessions.isEmpty {
                 VStack(spacing: 12) {
@@ -1562,8 +1738,8 @@ struct AttributeImpactRow: View {
                 .frame(width: 8, height: 8)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(attribute.uppercased())
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                Text(attribute)
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white)
                 Text("\(joint) → \(status.label)")
                     .font(.system(size: 8, weight: .medium, design: .monospaced))
@@ -1600,7 +1776,7 @@ struct TrackQuickStartRow: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(track.name.uppercased())
+                Text(track.name)
                     .font(.system(.subheadline, weight: .bold))
                     .foregroundStyle(.white)
 
@@ -1647,8 +1823,8 @@ struct SessionRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(trackName.uppercased())
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                Text(trackName)
+                    .font(.system(.caption, weight: .semibold))
                     .foregroundStyle(.white)
 
                 Text("\(session.exercisesCompleted)/\(session.totalExercises) exercises")

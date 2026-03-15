@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct ArcadePhysics: Sendable {
+struct ArcadePhysics: Sendable {
     let hangTimeMultiplier: Double
     let explosiveFirstStep: Double
     let comboDecayRate: Double
@@ -85,7 +85,7 @@ nonisolated struct ArcadePhysics: Sendable {
     }
 }
 
-nonisolated struct RimDistortionConfig: Sendable {
+struct RimDistortionConfig: Sendable {
     let flexAmount: Double
     let shakeIntensity: Double
     let radialBlurRadius: Double
@@ -110,7 +110,7 @@ nonisolated struct RimDistortionConfig: Sendable {
     }
 }
 
-nonisolated struct DunkCameraConfig: Sendable {
+struct DunkCameraConfig: Sendable {
     static let highAngleDeclination: Float = 27.0
     static let gatherZoomIn: Float = 0.85
     static let flightZoomOut: Float = 1.3
@@ -123,7 +123,7 @@ nonisolated struct DunkCameraConfig: Sendable {
     static let slowMoApexTrack: Bool = true
 }
 
-nonisolated enum AuraLevel: String, Sendable {
+enum AuraLevel: String, Sendable {
     case baseline = "BASELINE"
     case active = "ACTIVE"
     case primed = "PRIMED"
@@ -139,7 +139,7 @@ nonisolated enum AuraLevel: String, Sendable {
     }
 }
 
-nonisolated struct DunkPhysicsConfig: Sendable {
+struct DunkPhysicsConfig: Sendable {
     static let qteWindowSeconds: Double = 0.4
     static let apexWindowSeconds: Double = 0.35
 
@@ -157,11 +157,11 @@ nonisolated struct DunkPhysicsConfig: Sendable {
     }
 }
 
-nonisolated enum TrickDirection: String, Sendable, CaseIterable {
+enum TrickDirection: String, Sendable, CaseIterable {
     case up, down, left, right, neutral
 }
 
-nonisolated struct TrickCombo: Sendable, Identifiable {
+struct TrickCombo: Sendable, Identifiable {
     let id: String
     let name: String
     let displayName: String
@@ -204,7 +204,7 @@ nonisolated struct TrickCombo: Sendable, Identifiable {
     }
 }
 
-nonisolated struct GamePhysicsConfig: Sendable {
+struct GamePhysicsConfig: Sendable {
     let jumpHeight: Float
     let moveSpeed: Float
     let impactIntensity: Float

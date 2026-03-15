@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum ShardTransaction: String, Codable, Sendable {
+enum ShardTransaction: String, Codable, Sendable {
     case workoutComplete
     case gameWin
     case gameDraw
@@ -16,7 +16,7 @@ nonisolated enum ShardTransaction: String, Codable, Sendable {
     case achievementUnlock
 }
 
-nonisolated struct ShardReward: Sendable {
+struct ShardReward: Sendable {
     let amount: Int
     let transaction: ShardTransaction
 
@@ -53,19 +53,35 @@ nonisolated struct ShardReward: Sendable {
     }
 }
 
-nonisolated struct ShopItem: Identifiable, Sendable {
+struct ShopItem: Identifiable, Sendable {
     let id: String
     let name: String
     let description: String
     let cost: Int
+    let currency: EconomyCurrency
     let category: ShopCategory
     let iconName: String
 
-    nonisolated enum ShopCategory: String, Sendable, CaseIterable {
+    init(id: String, name: String, description: String, cost: Int, currency: EconomyCurrency = .shards, category: ShopCategory, iconName: String) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.cost = cost
+        self.currency = currency
+        self.category = category
+        self.iconName = iconName
+    }
+
+    enum ShopCategory: String, Sendable, CaseIterable {
         case outfit = "Outfits"
         case blueprint = "Blueprints"
         case critique = "Coaching"
     }
+}
+
+enum EconomyCurrency: String, Codable, Sendable {
+    case shards
+    case credits
 }
 
 struct ShopCatalog {
@@ -79,8 +95,8 @@ struct ShopCatalog {
         ShopItem(id: "bp_speed", name: "Speed Matrix", description: "Sprint mechanics breakdown", cost: 300, category: .blueprint, iconName: "bolt.circle.fill"),
         ShopItem(id: "bp_recovery", name: "Neural Recovery", description: "Advanced CNS recovery protocols", cost: 200, category: .blueprint, iconName: "heart.circle.fill"),
 
-        ShopItem(id: "critique_form", name: "Form Critique", description: "Expert movement analysis from Coach V", cost: 150, category: .critique, iconName: "eye.fill"),
-        ShopItem(id: "critique_program", name: "Program Review", description: "Full training program audit", cost: 400, category: .critique, iconName: "doc.text.magnifyingglass"),
+        ShopItem(id: "critique_form", name: "Form Critique", description: "Expert movement analysis from Coach V", cost: 150, currency: .credits, category: .critique, iconName: "eye.fill"),
+        ShopItem(id: "critique_program", name: "Program Review", description: "Full training program audit", cost: 400, currency: .credits, category: .critique, iconName: "doc.text.magnifyingglass"),
     ]
 
     static func items(for category: ShopItem.ShopCategory) -> [ShopItem] {
@@ -88,7 +104,9 @@ struct ShopCatalog {
     }
 }
 
-nonisolated struct CoachEconomy: Codable, Sendable {
+struct CoachEconomy: Codable, Sendable {
+    // Values are denominated in hard-currency credits.
+    // Property names remain for backward compatibility with persisted saves.
     var totalEarned: Int = 0
     var pendingEarnings: Int = 0
     var clearedEarnings: Int = 0
@@ -97,16 +115,21 @@ nonisolated struct CoachEconomy: Codable, Sendable {
     var rating: Double = 5.0
     var totalRatings: Int = 0
 
-    mutating func completeCritique(shards: Int, critiqueId: String) {
+    mutating func completeCritique(credits: Int, critiqueId: String) {
         let entry = EscrowEntry(
             id: critiqueId,
-            shards: shards,
+            shards: credits,
             createdAt: Date(),
             status: .held
         )
         escrowEntries.append(entry)
-        pendingEarnings += shards
+        pendingEarnings += credits
         critiquesCompleted += 1
+    }
+
+    // Legacy entry point.
+    mutating func completeCritique(shards: Int, critiqueId: String) {
+        completeCritique(credits: shards, critiqueId: critiqueId)
     }
 
     mutating func releaseCritique(critiqueId: String, athleteRating: Double) {
@@ -122,23 +145,43 @@ nonisolated struct CoachEconomy: Codable, Sendable {
         rating = (totalWeight + athleteRating) / Double(totalRatings)
     }
 
+    mutating func markCritiqueDisputed(critiqueId: String) {
+        guard let index = escrowEntries.firstIndex(where: { $0.id == critiqueId }) else { return }
+        let credits = escrowEntries[index].shards
+        switch escrowEntries[index].status {
+        case .held:
+            pendingEarnings = max(0, pendingEarnings - credits)
+        case .released:
+            clearedEarnings = max(0, clearedEarnings - credits)
+        case .disputed:
+            return
+        }
+        escrowEntries[index].status = .disputed
+    }
+
     mutating func claimEarnings() -> Int {
         let claimed = clearedEarnings
         totalEarned += claimed
         clearedEarnings = 0
         return claimed
     }
+
+    var totalCreditsEarned: Int { totalEarned }
+    var pendingCredits: Int { pendingEarnings }
+    var clearedCredits: Int { clearedEarnings }
 }
 
-nonisolated struct EscrowEntry: Codable, Sendable, Identifiable {
+struct EscrowEntry: Codable, Sendable, Identifiable {
     let id: String
     let shards: Int
     let createdAt: Date
     var status: EscrowStatus
     var releasedAt: Date?
+
+    var credits: Int { shards } // Legacy alias.
 }
 
-nonisolated enum EscrowStatus: String, Codable, Sendable {
+enum EscrowStatus: String, Codable, Sendable {
     case held
     case released
     case disputed
