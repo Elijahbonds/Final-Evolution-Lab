@@ -15,6 +15,11 @@ nonisolated enum ShardTransaction: String, Codable, Sendable {
     case dailyBonus
     case streakBonus
     case achievementUnlock
+    // Fuel the Freeway — Photo-to-Shard nutrition
+    case mealStructuralRepair   // High leucine/protein
+    case mealFascialElasticity  // Collagen / vitamin C
+    case mealSignalVelocity     // Hydration / electrolytes
+    case congestionCleared      // Movement snack after inflammatory detection
 }
 
 nonisolated struct ShardReward: Sendable {
@@ -53,6 +58,21 @@ nonisolated struct ShardReward: Sendable {
         case .elite: base = 25
         }
         return [ShardReward(amount: exercisesCompleted * base, transaction: .workoutComplete)]
+    }
+
+    /// Fuel the Freeway: shards for logging meals (AI vision or manual). High-grade fuel for CNS and fascia.
+    static func forMealLog(
+        structuralRepair: Bool,
+        fascialElasticity: Bool,
+        signalVelocity: Bool,
+        hadCongestionCleared: Bool
+    ) -> [ShardReward] {
+        var rewards: [ShardReward] = []
+        if structuralRepair { rewards.append(ShardReward(amount: 5, transaction: .mealStructuralRepair)) }
+        if fascialElasticity { rewards.append(ShardReward(amount: 10, transaction: .mealFascialElasticity)) }
+        if signalVelocity { rewards.append(ShardReward(amount: 5, transaction: .mealSignalVelocity)) }
+        if hadCongestionCleared { rewards.append(ShardReward(amount: 5, transaction: .congestionCleared)) }
+        return rewards
     }
 }
 

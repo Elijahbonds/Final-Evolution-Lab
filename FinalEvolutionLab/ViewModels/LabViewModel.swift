@@ -8,6 +8,10 @@ class LabViewModel {
     var sessions: [WorkoutSession] = []
     var leaderboard: [LeaderboardEntry] = SampleData.leaderboard
     var selectedTrack: CurriculumTrack?
+    /// When set, Training tab will switch to this track on next appear (used by Lab Quick Start).
+    var preselectedTrack: TrainingTrack?
+    /// When set, Arena tab will open this mode on next appear (e.g. Brain Brawl from Games dashboard).
+    var preselectedArenaModeId: GameModeId?
     var activeExercise: Exercise?
     var isWorkoutActive: Bool = false
     var workoutTimer: Int = 0
@@ -22,16 +26,21 @@ class LabViewModel {
     var biomechanicsAudit: BiomechanicsAudit?
     var globalLeaderboard = GlobalLeaderboardService()
     var critiqueRequests: [CritiqueRequest] = SaveSystem.loadCritiqueRequests()
+    var multipeerService = MultipeerService()
 
     init() {
         self.profile = SaveSystem.loadProfile()
         self.sessions = SaveSystem.loadSessions()
 
+        if profile.systemScan == nil {
+            applyScanResult(SystemScanResult.defaultForProfile(profile))
+        }
+
         if let scan = profile.systemScan {
             self.biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
         }
 
-        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
+        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard, effectivePrq: effectiveMetrics.prqScore)
 
         if healthKit.isAuthorized {
             Task {
@@ -56,15 +65,16 @@ class LabViewModel {
         return sessions.filter { $0.date >= weekAgo }.reduce(0) { $0 + $1.shardsEarned }
     }
 
-    /// Program(): Recommends training track from PRQ and biomechanics audit (deficiency-driven prescription).
+    /// Program(): Recommends training track from PRQ, Pop Force, and biomechanics audit (deficiency-driven prescription).
     var recommendedTrackFromAudit: TrainingTrack? {
         let prq = profile.metrics.prqScore
+        let popForce = profile.metrics.popForce
         let audit = biomechanicsAudit
         let leakage = audit?.leakagePercentage ?? 0
-        if prq < 50 || leakage > 50 {
+        if prq < 50 || leakage > 50 || popForce < 35 {
             return .foundations
         }
-        if prq < 65 || audit?.overallGrade == .developing {
+        if prq < 65 || audit?.overallGrade == .developing || popForce < 55 {
             return .flight
         }
         return .elite
@@ -109,7 +119,32 @@ class LabViewModel {
         workoutTimer = 0
         completedExerciseIds.removeAll()
 
-        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
+        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard, effectivePrq: effectiveMetrics.prqScore)
+    }
+
+    // MARK: - Fuel the Freeway (Photo-to-Shard nutrition)
+    /// When true, Fuel UI shows "Congestion Alert" — roadblock on CNS Freeway; Movement Snack clears it.
+    var hasCongestionAlert: Bool = false
+
+    func applyMealLogRewards(structuralRepair: Bool, fascialElasticity: Bool, signalVelocity: Bool, congestionCleared: Bool) {
+        let rewards = ShardReward.forMealLog(
+            structuralRepair: structuralRepair,
+            fascialElasticity: fascialElasticity,
+            signalVelocity: signalVelocity,
+            hadCongestionCleared: congestionCleared
+        )
+        let total = rewards.reduce(0) { $0 + $1.amount }
+        profile.evolutionShards += total
+        SaveSystem.saveProfile(profile)
+    }
+
+    func setCongestionAlert(_ value: Bool) {
+        hasCongestionAlert = value
+    }
+
+    /// User completed a Movement Snack; clear congestion and award shards if applicable.
+    func clearCongestion() {
+        hasCongestionAlert = false
     }
 
     var effectiveMetrics: PerformanceMetrics {
@@ -143,17 +178,18 @@ class LabViewModel {
         profile.metrics.prqScore = PRQ.clamp(result.prqScore)
         profile.metrics.verticalPotential = result.verticalEstimateInches
         profile.metrics.readinessScore = max(70, profile.metrics.readinessScore)
-        profile.metrics.efficiencyScore = max(70, profile.metrics.efficiencyScore)
-        profile.metrics.popForce = Self.derivePopForceFromScan(
+        let derivedPop = Self.derivePopForceFromScan(
             flightTimeSeconds: result.flightTimeSeconds,
             verticalInches: result.verticalEstimateInches,
             prq: result.prqScore
         )
+        profile.metrics.popForce = derivedPop
+        profile.metrics.efficiencyScore = max(70, min(100, profile.metrics.efficiencyScore * 0.6 + derivedPop * 0.4))
 
         biomechanicsAudit = BiomechanicsAudit.fromScanResult(result)
 
         SaveSystem.saveProfile(profile)
-        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
+        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard, effectivePrq: effectiveMetrics.prqScore)
     }
 
     /// Derives Pop Force (RFD/GRF proxy) from scan: flight time = reactivity, vertical = output.

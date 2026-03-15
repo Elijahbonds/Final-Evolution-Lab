@@ -12,7 +12,7 @@ nonisolated enum ModifierState: String, Sendable {
         case .none: return "STANDARD"
         case .style: return "STYLE"
         case .power: return "POWER"
-        case .special: return "SPECIAL"
+        case .special: return "ENERGY"
         }
     }
 
@@ -54,6 +54,15 @@ nonisolated struct DirectionalTrick: Sendable, Identifiable {
         DirectionalTrick(id: "sig_eastbay", name: "Eastbay Windmill", displayName: "EASTBAY!", direction: .down, modifier: .special, basePoints: 28, riskFactor: 2.2, animationKey: "dunk_eastbay"),
         DirectionalTrick(id: "sig_elbowHang", name: "Elbow Hang", displayName: "ELBOW HANG!", direction: .left, modifier: .special, basePoints: 22, riskFactor: 1.9, animationKey: "dunk_elbow"),
         DirectionalTrick(id: "sig_doubleClutch", name: "Double Clutch 720", displayName: "DOUBLE CLUTCH 720!", direction: .right, modifier: .special, basePoints: 30, riskFactor: 2.5, animationKey: "dunk_dc720"),
+        DirectionalTrick(id: "sig_360_eastbay", name: "360 Eastbay", displayName: "360 EASTBAY!", direction: .right, modifier: .special, basePoints: 32, riskFactor: 2.3, animationKey: "dunk_360_eastbay"),
+        DirectionalTrick(id: "sig_kick_up", name: "Kick Up", displayName: "KICK UP!", direction: .down, modifier: .special, basePoints: 26, riskFactor: 2.0, animationKey: "dunk_kick_up"),
+        DirectionalTrick(id: "sig_double_eastbay_car", name: "Double Up Eastbay Over Car", displayName: "DOUBLE UP EASTBAY OVER CAR!", direction: .neutral, modifier: .special, basePoints: 38, riskFactor: 2.6, animationKey: "dunk_double_eastbay_over_car"),
+        DirectionalTrick(id: "sig_honey_dip", name: "Honey Dip", displayName: "HONEY DIP!", direction: .up, modifier: .special, basePoints: 30, riskFactor: 2.1, animationKey: "dunk_honey_dip"),
+        DirectionalTrick(id: "sig_superman", name: "Superman", displayName: "SUPERMAN!", direction: .up, modifier: .special, basePoints: 28, riskFactor: 2.0, animationKey: "dunk_superman"),
+        DirectionalTrick(id: "sig_cradle", name: "Rock the Cradle", displayName: "ROCK THE CRADLE!", direction: .down, modifier: .special, basePoints: 26, riskFactor: 1.9, animationKey: "dunk_cradle"),
+        DirectionalTrick(id: "sig_self_alley_oop", name: "Self Alley-Oop", displayName: "SELF ALLEY-OOP!", direction: .down, modifier: .special, basePoints: 27, riskFactor: 1.95, animationKey: "dunk_self_alley_oop"),
+        DirectionalTrick(id: "sig_statue_of_liberty", name: "Statue of Liberty", displayName: "STATUE OF LIBERTY!", direction: .left, modifier: .special, basePoints: 25, riskFactor: 1.85, animationKey: "dunk_statue_of_liberty"),
+        DirectionalTrick(id: "sig_720", name: "720", displayName: "720!", direction: .right, modifier: .special, basePoints: 31, riskFactor: 2.25, animationKey: "dunk_720"),
     ]
 
     static let combatTricks: [DirectionalTrick] = [
@@ -82,7 +91,7 @@ nonisolated struct DirectionalTrick: Sendable, Identifiable {
         let filtered = pool.filter { $0.direction == direction && $0.modifier == modifier }
         if let match = filtered.first { return match }
         let fallback = pool.filter { $0.direction == direction }
-        return fallback.first ?? pool[0]
+        return fallback.first ?? pool.first ?? dunkTricks[0]
     }
 }
 

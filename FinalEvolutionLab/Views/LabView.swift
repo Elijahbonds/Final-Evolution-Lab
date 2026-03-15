@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LabView: View {
     let viewModel: LabViewModel
+    @Binding var selectedTab: AppTab
 
     @State private var appeared = false
     @State private var pulsePhase: CGFloat = 0
@@ -10,50 +11,78 @@ struct LabView: View {
     @State private var courtLoaded: Bool = false
     @State private var showSystemScan: Bool = false
     @State private var showBiomechanicsDetail: Bool = false
-    @State private var showGlobalMatchmaking: Bool = false
     @State private var showCoach: Bool = false
     @State private var showBlueprints: Bool = false
     @State private var showBiomechanicsEducation: Bool = false
     @State private var showRecoveryLab: Bool = false
-    @State private var pendingArenaMode: GameMode?
-    @State private var sessionReadiness: Double = 50
-    @State private var navigateToArenaGame: Bool = false
     @State private var freestyleDunk = DunkContestState()
     @State private var freestyleDunkTimer: Task<Void, Never>?
     @State private var freestyleLastAction: String = ""
     @State private var freestyleJudgeScores: (Int, Int, Int)?
     @State private var freestyleCrowdMessage: String = ""
     @State private var freestyleScreenShake: CGFloat = 0
+    @State private var freestyleDunkImpact: (modifier: DunkModifier, impactIntensity: Double)?
+    @State private var showDunkFullScreen: Bool = false
+    @State private var freestyleShardsEarned: Int?
     @Environment(\.simpleMode) private var simpleMode
+
+    private var freestyleStickInput: CGPoint {
+        switch freestyleDunk.phase {
+        case .approach:
+            return CGPoint(x: 0, y: CGFloat(freestyleDunk.sprintCharge))
+        case .launch:
+            return CGPoint(x: 0, y: 0.4)
+        case .airborne, .landing:
+            return .zero
+        case .idle, .scored:
+            return .zero
+        }
+    }
+
+    private var freestyleIsMidAir: Bool {
+        freestyleDunk.phase == .airborne || freestyleDunk.phase == .launch
+    }
 
     private var effectiveMetrics: PerformanceMetrics {
         viewModel.effectiveMetrics
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                headerSection
-                tierBanner
-                scanSection
-                biomechanicsSection
-                movementScienceSection
-                athleteProfileBanner
-                globalArenaCard
-                courtSection
-                neuralDriveCard
-                hrvReadinessCard
-                metricsGrid
-                CreatorCardBoostView(viewModel: viewModel)
-                coachAndBlueprintsRow
-                parentalOverviewSection
-                quickStartSection
-                recentActivitySection
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 24) {
+                    headerSection
+                    tierBanner
+                    scanSection
+                    biomechanicsSection
+                    movementScienceSection
+                    athleteProfileBanner
+                    courtSection
+                        .id("labCourtSection")
+                    neuralDriveCard
+                    hrvReadinessCard
+                    metricsGrid
+                    CreatorCardBoostView(viewModel: viewModel)
+                    coachAndBlueprintsRow
+                    parentalOverviewSection
+                    quickStartSection
+                    recentActivitySection
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            .scrollIndicators(.hidden)
+            .onChange(of: showDunkFullScreen) { _, isShowing in
+                if !isShowing {
+                    freestyleDunkTimer?.cancel()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        withAnimation(.easeOut(duration: 0.4)) {
+                            proxy.scrollTo("labCourtSection", anchor: .center)
+                        }
+                    }
+                }
+            }
         }
-        .scrollIndicators(.hidden)
         .background(Theme.deepBlack)
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
@@ -73,23 +102,6 @@ struct LabView: View {
         .sheet(isPresented: $showBiomechanicsDetail) {
             biomechanicsDetailSheet
         }
-        .sheet(isPresented: $showGlobalMatchmaking) {
-            if let mode = pendingArenaMode {
-                MatchmakingView(viewModel: viewModel, gameMode: mode) { opponent, readiness in
-                    sessionReadiness = readiness
-                    showGlobalMatchmaking = false
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(300))
-                        navigateToArenaGame = true
-                    }
-                }
-            }
-        }
-        .navigationDestination(isPresented: $navigateToArenaGame) {
-            if let mode = pendingArenaMode {
-                GamePlayView(viewModel: viewModel, gameMode: mode, sessionReadiness: sessionReadiness)
-            }
-        }
         .navigationDestination(isPresented: $showCoach) {
             CoachView(viewModel: viewModel)
         }
@@ -101,6 +113,42 @@ struct LabView: View {
         }
         .sheet(isPresented: $showRecoveryLab) {
             RecoveryLabView(viewModel: viewModel)
+        }
+        .fullScreenCover(isPresented: $showDunkFullScreen) {
+            DunkFlowView(
+                viewModel: viewModel,
+                freestyleDunk: $freestyleDunk,
+                freestyleDunkImpact: $freestyleDunkImpact,
+                freestyleJudgeScores: $freestyleJudgeScores,
+                freestyleCrowdMessage: $freestyleCrowdMessage,
+                freestyleShardsEarned: $freestyleShardsEarned,
+                freestyleScreenShake: $freestyleScreenShake,
+                dunkFlash: $dunkFlash,
+                courtLoaded: courtLoaded,
+                showDunkFullScreen: $showDunkFullScreen,
+                onFaceButton: handleFreestyleFaceButton(_:),
+                onLeftStick: handleFreestyleLeftStick(_:),
+                onDismiss: {
+                    freestyleDunkTimer?.cancel()
+                    freestyleDunk.advanceRound()
+                    showDunkFullScreen = false
+                },
+                onClaimRewards: {
+                    freestyleDunkTimer?.cancel()
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        freestyleJudgeScores = nil
+                        freestyleCrowdMessage = ""
+                        freestyleLastAction = ""
+                        freestyleShardsEarned = nil
+                    }
+                    withAnimation(.spring(response: 0.3)) {
+                        freestyleDunk.advanceRound()
+                        freestyleDunk.round = 1
+                        freestyleDunk.totalRounds = 999
+                    }
+                    showDunkFullScreen = false
+                }
+            )
         }
     }
 
@@ -275,63 +323,6 @@ struct LabView: View {
         )
     }
 
-    private var globalArenaCard: some View {
-        Button {
-            pendingArenaMode = GameModeRegistry.all.first
-            showGlobalMatchmaking = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.brandCyan.opacity(0.12))
-                        .frame(width: 48, height: 48)
-
-                    Image(systemName: "globe")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                        .symbolEffect(.pulse)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("GLOBAL ARENA")
-                        .font(.system(.subheadline, weight: .black))
-                        .foregroundStyle(.white)
-
-                    HStack(spacing: 8) {
-                        HStack(spacing: 3) {
-                            Circle()
-                                .fill(.green)
-                                .frame(width: 5, height: 5)
-                            Text("\(viewModel.globalLeaderboard.onlinePlayerCount) online")
-                                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.green.opacity(0.7))
-                        }
-
-                        Text("PRQ-based matchmaking")
-                            .font(.system(size: 9, weight: .medium, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan.opacity(0.6))
-                    }
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
-            }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
     private var courtSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -341,7 +332,7 @@ struct LabView: View {
                         .foregroundStyle(Theme.brandBlue)
                         .tracking(2)
 
-                    Text("Venice Beach Court")
+                    Text("Venice Beach Court · Solo")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -368,7 +359,15 @@ struct LabView: View {
 
             ZStack {
                 if courtLoaded {
-                    GameSceneHostView(gameMode: .basketballDunkContest, neuralDrive: viewModel.profile.metrics.neuralDrive)
+                    RealityKitDunkView(
+                        leftStickInput: freestyleStickInput,
+                        isMidAir: freestyleIsMidAir,
+                        dunkPhase: freestyleDunk.phase,
+                        jumpHeight: Float(freestyleDunk.jumpHeight),
+                        sprintCharge: Float(freestyleDunk.sprintCharge),
+                        avatarConfig: viewModel.profile.effectiveAvatarConfig,
+                        dunkImpactToTrigger: $freestyleDunkImpact
+                    )
                         .frame(height: showCourtExpanded ? 420 : 280)
                         .clipShape(.rect(cornerRadius: 20))
                         .overlay(
@@ -395,7 +394,7 @@ struct LabView: View {
                                 .padding(8)
                         }
                         .overlay(alignment: .bottom) {
-                            Text("SPRINT → GATHER → FLY → FACE BUTTONS FOR DUNKS")
+                            Text("SPRINT → GATHER → FLY → FACE BUTTONS FOR FINISHERS")
                                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
                                 .foregroundStyle(.white.opacity(0.8))
                                 .padding(.bottom, 40)
@@ -415,6 +414,9 @@ struct LabView: View {
                                     .tracking(2)
                             }
                         }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Loading court")
+                        .accessibilityHint("Venice Beach court is preparing")
                 }
 
                 if dunkFlash {
@@ -430,10 +432,14 @@ struct LabView: View {
                         .allowsHitTesting(false)
                         .transition(.opacity)
                 }
+
+                // Virtual controller lives only in DunkFullScreenView so tab bar/nav never overlap.
             }
             .offset(x: freestyleScreenShake)
 
+            // Trick selection and Start Approach must sit above any virtual controller overlay.
             freestyleDunkControls
+                .zIndex(1)
         }
         .padding(16)
         .background(
@@ -453,6 +459,10 @@ struct LabView: View {
         switch freestyleDunk.phase {
         case .idle:
             VStack(spacing: 8) {
+                Text("PICK FINISHER")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(Theme.brandBlue.opacity(0.8))
+                    .tracking(1.5)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(DunkTrickSlot.allCases, id: \.rawValue) { trick in
@@ -514,6 +524,8 @@ struct LabView: View {
                     .clipShape(.rect(cornerRadius: 14))
                     .shadow(color: .orange.opacity(0.3), radius: 8)
                 }
+                .accessibilityLabel("Start approach")
+                .accessibilityHint("Starts full-screen dunk; pick a finisher with face buttons in the air")
             }
 
         case .approach:
@@ -531,6 +543,7 @@ struct LabView: View {
                         .font(.system(size: 12, weight: .black, design: .monospaced))
                         .foregroundStyle(.cyan)
                         .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.1), value: freestyleDunk.sprintCharge)
                 }
 
                 GeometryReader { geo in
@@ -546,7 +559,7 @@ struct LabView: View {
                                 )
                             )
                             .frame(width: geo.size.width * freestyleDunk.sprintCharge)
-                            .animation(.linear(duration: 0.05), value: freestyleDunk.sprintCharge)
+                            .animation(.easeInOut(duration: 0.1), value: freestyleDunk.sprintCharge)
                     }
                 }
                 .frame(height: 12)
@@ -642,7 +655,7 @@ struct LabView: View {
                                 )
                             )
                             .frame(width: geo.size.width * min(1, freestyleDunk.completedRotation))
-                            .animation(.linear(duration: 0.05), value: freestyleDunk.completedRotation)
+                            .animation(.easeInOut(duration: 0.1), value: freestyleDunk.completedRotation)
                     }
                 }
                 .frame(height: 8)
@@ -753,7 +766,7 @@ struct LabView: View {
                     .fill(greenZone.contains(value) ? accentColor : .red)
                     .frame(width: 4)
                     .offset(x: geo.size.width * value - 2)
-                    .animation(.linear(duration: 0.03), value: value)
+                    .animation(.easeInOut(duration: 0.08), value: value)
             }
         }
         .frame(height: 16)
@@ -854,17 +867,16 @@ struct LabView: View {
 
     private func startFreestyleApproach() {
         guard freestyleDunk.phase == .idle else { return }
-        withAnimation(.spring(response: 0.2)) {
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
             freestyleDunk.startApproach()
         }
+        showDunkFullScreen = true
         freestyleDunkTimer?.cancel()
         freestyleDunkTimer = Task {
             while !Task.isCancelled && freestyleDunk.phase == .approach && freestyleDunk.isSprintHeld {
                 try? await Task.sleep(for: .milliseconds(16))
                 guard !Task.isCancelled else { return }
-                withAnimation(.linear(duration: 0.016)) {
-                    freestyleDunk.sprintCharge = min(1.0, freestyleDunk.sprintCharge + 0.016 * freestyleDunk.sprintChargeRate)
-                }
+                freestyleDunk.sprintCharge = min(1.0, freestyleDunk.sprintCharge + 0.016 * freestyleDunk.sprintChargeRate)
                 if freestyleDunk.sprintCharge >= 1.0 {
                     releaseFreestyleSprint()
                     return
@@ -876,73 +888,102 @@ struct LabView: View {
     private func releaseFreestyleSprint() {
         guard freestyleDunk.phase == .approach else { return }
         freestyleDunkTimer?.cancel()
-        withAnimation(.spring(response: 0.2)) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
             freestyleDunk.releaseSprint()
         }
         freestyleDunkTimer = Task {
             while !Task.isCancelled && freestyleDunk.phase == .launch {
                 try? await Task.sleep(for: .milliseconds(16))
                 guard !Task.isCancelled else { return }
-                withAnimation(.linear(duration: 0.016)) {
-                    freestyleDunk.launchTiming += freestyleDunk.launchTimingDirection * freestyleDunk.launchTimingSpeed * 0.016
-                    if freestyleDunk.launchTiming >= 1.0 { freestyleDunk.launchTimingDirection = -1 }
-                    if freestyleDunk.launchTiming <= 0.0 { freestyleDunk.launchTimingDirection = 1 }
-                    freestyleDunk.launchTiming = max(0, min(1, freestyleDunk.launchTiming))
-                }
+                freestyleDunk.launchTiming += freestyleDunk.launchTimingDirection * freestyleDunk.launchTimingSpeed * 0.016
+                if freestyleDunk.launchTiming >= 1.0 { freestyleDunk.launchTimingDirection = -1 }
+                if freestyleDunk.launchTiming <= 0.0 { freestyleDunk.launchTimingDirection = 1 }
+                freestyleDunk.launchTiming = max(0, min(1, freestyleDunk.launchTiming))
             }
         }
     }
 
+    /// Console/emulator: button press commits launch. No timing bar — snap to good timing for scoring.
     private func confirmFreestyleLaunch() {
         guard freestyleDunk.phase == .launch else { return }
         freestyleDunkTimer?.cancel()
-        let inGreen = freestyleDunk.launchGreenZone.contains(freestyleDunk.launchTiming)
-        withAnimation(.spring(response: 0.2)) {
+        let center = (freestyleDunk.launchGreenZone.lowerBound + freestyleDunk.launchGreenZone.upperBound) / 2
+        freestyleDunk.launchTiming = center
+        withAnimation(.spring(response: 0.26, dampingFraction: 0.8)) {
             freestyleDunk.confirmLaunch()
-            freestyleLastAction = inGreen ? "PERFECT LAUNCH!" : "LAUNCHED"
+            freestyleLastAction = "LAUNCHED"
         }
-        triggerFreestyleShake(intensity: inGreen ? 0.4 : 0.2)
+        triggerFreestyleShake(intensity: 0.35)
+        #if !targetEnvironment(simulator)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
 
         freestyleDunkTimer = Task {
             while !Task.isCancelled && (freestyleDunk.phase == .airborne || freestyleDunk.phase == .landing) {
                 try? await Task.sleep(for: .milliseconds(16))
                 guard !Task.isCancelled else { return }
-                withAnimation(.linear(duration: 0.016)) {
-                    freestyleDunk.updateAirborne(delta: 0.016)
-                }
+                freestyleDunk.updateAirborne(delta: 0.016)
             }
         }
 
         Task {
-            try? await Task.sleep(for: .seconds(1.0))
-            withAnimation {
-                if freestyleLastAction == "PERFECT LAUNCH!" || freestyleLastAction == "LAUNCHED" {
-                    freestyleLastAction = ""
-                }
+            try? await Task.sleep(for: .seconds(0.75))
+            withAnimation(.easeOut(duration: 0.2)) {
+                if freestyleLastAction == "LAUNCHED" { freestyleLastAction = "" }
             }
         }
     }
 
+    /// Console/emulator: button press commits landing. Snap to good timing for scoring.
     private func confirmFreestyleLanding() {
-        guard freestyleDunk.phase == .airborne || freestyleDunk.phase == .landing else { return }
+        guard freestyleDunk.phase == .landing else { return }
         freestyleDunkTimer?.cancel()
-        withAnimation(.spring(response: 0.15)) {
+        let center = (freestyleDunk.landingGreenZone.lowerBound + freestyleDunk.landingGreenZone.upperBound) / 2
+        freestyleDunk.landingTiming = center
+        withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
             freestyleDunk.confirmLanding()
         }
+        #if !targetEnvironment(simulator)
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        #endif
         executeFreestyleScoring()
     }
 
     private func executeFreestyleScoring() {
+        guard freestyleJudgeScores == nil else { return }
         let prq = viewModel.effectiveMetrics.prqScore
         let burst = viewModel.arcadePhysics.neuralBurstActive
         let result = freestyleDunk.calculateDunkScore(prq: prq, neuralBurst: burst)
 
+        let shardsEarned = max(5, min(35, 8 + result.total / 8))
+        let gameResult = GameSessionResult(
+            id: UUID().uuidString,
+            gameModeId: "freestyle_dunk",
+            date: Date(),
+            score: result.total,
+            opponentScore: 0,
+            shardsEarned: shardsEarned,
+            prqBonus: prq * 0.01,
+            isMultiplayer: false,
+            duration: 0,
+            roundsPlayed: 1
+        )
+        SaveSystem.saveGameResult(gameResult)
+        viewModel.gameResults.append(gameResult)
+        viewModel.profile.evolutionShards += shardsEarned
+        SaveSystem.saveProfile(viewModel.profile)
+
         withAnimation(.spring(response: 0.3)) {
             freestyleJudgeScores = (result.j1, result.j2, result.j3)
             freestyleCrowdMessage = result.message
+            freestyleShardsEarned = shardsEarned
         }
+        #if !targetEnvironment(simulator)
+        UINotificationFeedbackGenerator().notificationOccurred(result.total >= 135 ? .success : .warning)
+        #endif
 
         let impactLevel = freestyleDunk.impactIntensity
+        freestyleDunkImpact = (freestyleDunk.activeModifier, freestyleDunk.impactIntensity)
         triggerFreestyleShake(intensity: 0.5 + impactLevel * 0.5)
 
         if result.total >= 138 {
@@ -952,19 +993,35 @@ struct LabView: View {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { dunkFlash = false }
             }
         }
+        // ResultScreen is shown in DunkFullScreenView; user taps "Claim rewards & exit" to dismiss.
+    }
 
-        Task {
-            try? await Task.sleep(for: .seconds(3.5))
-            withAnimation(.easeOut(duration: 0.3)) {
-                freestyleJudgeScores = nil
-                freestyleCrowdMessage = ""
-                freestyleLastAction = ""
+    private func handleFreestyleFaceButton(_ button: PS2FaceButton) {
+        switch freestyleDunk.phase {
+        case .launch:
+            confirmFreestyleLaunch()
+        case .airborne:
+            if let arcade = ArcadeFaceButton(rawValue: button.rawValue) {
+                freestyleDunk.processArcadeInput(button: arcade)
             }
-            withAnimation(.spring(response: 0.3)) {
-                freestyleDunk.advanceRound()
-                freestyleDunk.round = 1
-                freestyleDunk.totalRounds = 999
-            }
+        case .landing:
+            confirmFreestyleLanding()
+        default:
+            break
+        }
+    }
+
+    /// Full-screen dunk: hold left stick up to sprint, release to launch. Hysteresis avoids accidental release.
+    private func handleFreestyleLeftStick(_ point: CGPoint) {
+        guard freestyleDunk.phase == .approach else { return }
+        let holdThreshold: CGFloat = 0.28
+        let releaseThreshold: CGFloat = 0.18
+        if point.y > holdThreshold {
+            freestyleDunk.isSprintHeld = true
+        } else if point.y < releaseThreshold {
+            let wasHolding = freestyleDunk.isSprintHeld
+            freestyleDunk.isSprintHeld = false
+            if wasHolding { releaseFreestyleSprint() }
         }
     }
 
@@ -1490,7 +1547,12 @@ struct LabView: View {
             MetricCard(title: SimpleModeLabels.prqScore(simpleMode), value: String(format: "%.1f", effectiveMetrics.prqScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
             MetricCard(title: SimpleModeLabels.efficiency(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.efficiencyScore), icon: "bolt.fill", color: .orange)
             MetricCard(title: SimpleModeLabels.readiness(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.readinessScore), icon: "heart.fill", color: .red)
-            MetricCard(title: SimpleModeLabels.popForce(simpleMode), value: String(format: "%.0f", effectiveMetrics.popForce), icon: "flame.fill", color: Theme.brandCyan)
+            Button {
+                showBiomechanicsEducation = true
+            } label: {
+                MetricCard(title: SimpleModeLabels.popForce(simpleMode), value: String(format: "%.0f", effectiveMetrics.popForce), icon: "flame.fill", color: Theme.brandCyan)
+            }
+            .buttonStyle(.plain)
             MetricCard(title: SimpleModeLabels.evolutionShards(simpleMode), value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)
         }
     }
@@ -1540,6 +1602,8 @@ struct LabView: View {
             ForEach(viewModel.tracks) { track in
                 Button {
                     viewModel.selectedTrack = track
+                    viewModel.preselectedTrack = TrainingTrack(rawValue: track.id) ?? .foundations
+                    selectedTab = .training
                 } label: {
                     TrackQuickStartRow(track: track)
                 }
@@ -1718,5 +1782,285 @@ struct SessionRow: View {
             RoundedRectangle(cornerRadius: 14)
                 .fill(Theme.cardBackground)
         )
+    }
+}
+
+// MARK: - Dunk flow: Get Ready (3-2-1-GO) then full-screen gameplay
+
+private struct DunkFlowView: View {
+    let viewModel: LabViewModel
+    @Binding var freestyleDunk: DunkContestState
+    @Binding var freestyleDunkImpact: (modifier: DunkModifier, impactIntensity: Double)?
+    @Binding var freestyleJudgeScores: (Int, Int, Int)?
+    @Binding var freestyleCrowdMessage: String
+    @Binding var freestyleShardsEarned: Int?
+    @Binding var freestyleScreenShake: CGFloat
+    @Binding var dunkFlash: Bool
+    let courtLoaded: Bool
+    @Binding var showDunkFullScreen: Bool
+    let onFaceButton: (PS2FaceButton) -> Void
+    var onLeftStick: (CGPoint) -> Void = { _ in }
+    let onDismiss: () -> Void
+    let onClaimRewards: () -> Void
+
+    @State private var showGetReady: Bool = true
+
+    var body: some View {
+        Group {
+            if showGetReady {
+                GetReadyScreen(
+                    title: "Dunk Contest",
+                    subtitle: "Hold left stick ↑ to sprint · Release to launch · Face buttons to finish",
+                    accentColor: Theme.brandCyan,
+                    onComplete: { withAnimation(.easeInOut(duration: 0.32)) { showGetReady = false } }
+                )
+                .statusBarHidden(true)
+                .transition(.opacity.combined(with: .scale(scale: 0.97)))
+            } else {
+                DunkFullScreenView(
+                    viewModel: viewModel,
+                    freestyleDunk: $freestyleDunk,
+                    freestyleDunkImpact: $freestyleDunkImpact,
+                    freestyleJudgeScores: $freestyleJudgeScores,
+                    freestyleCrowdMessage: $freestyleCrowdMessage,
+                    freestyleShardsEarned: $freestyleShardsEarned,
+                    freestyleScreenShake: $freestyleScreenShake,
+                    dunkFlash: $dunkFlash,
+                    courtLoaded: courtLoaded,
+                    onFaceButton: onFaceButton,
+                    onLeftStick: onLeftStick,
+                    onDismiss: onDismiss,
+                    onClaimRewards: onClaimRewards
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.99)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: showGetReady)
+        .onDisappear { showGetReady = true }
+    }
+}
+
+// MARK: - Full-Screen Dunk Gameplay (hides tab bar and nav; game-only UI)
+
+private struct DunkFullScreenView: View {
+    let viewModel: LabViewModel
+    @Binding var freestyleDunk: DunkContestState
+    @Binding var freestyleDunkImpact: (modifier: DunkModifier, impactIntensity: Double)?
+    @Binding var freestyleJudgeScores: (Int, Int, Int)?
+    @Binding var freestyleCrowdMessage: String
+    @Binding var freestyleShardsEarned: Int?
+    @Binding var freestyleScreenShake: CGFloat
+    @Binding var dunkFlash: Bool
+    let courtLoaded: Bool
+    let onFaceButton: (PS2FaceButton) -> Void
+    var onLeftStick: (CGPoint) -> Void = { _ in }
+    let onDismiss: () -> Void
+    let onClaimRewards: () -> Void
+
+    private var stickInput: CGPoint {
+        switch freestyleDunk.phase {
+        case .approach: return CGPoint(x: 0, y: CGFloat(freestyleDunk.sprintCharge))
+        case .launch: return CGPoint(x: 0, y: 0.4)
+        default: return .zero
+        }
+    }
+
+    private var isMidAir: Bool {
+        freestyleDunk.phase == .airborne || freestyleDunk.phase == .launch
+    }
+
+    private var phaseLabel: String {
+        switch freestyleDunk.phase {
+        case .approach: return "SPRINTING"
+        case .launch: return "GATHER"
+        case .airborne: return "IN THE AIR"
+        case .landing: return "LANDING"
+        default: return ""
+        }
+    }
+
+    private var phaseColor: Color {
+        switch freestyleDunk.phase {
+        case .approach: return .cyan
+        case .launch: return .green
+        case .airborne: return .purple
+        case .landing: return .orange
+        default: return .white
+        }
+    }
+
+    private var dunkPhaseHint: String {
+        switch freestyleDunk.phase {
+        case .approach: return "Hold left stick ↑ to sprint · Release to launch"
+        case .launch: return "Tap any face button in the green zone to jump"
+        case .airborne: return "△ □ ○ ✕ = finisher · Tap again to land"
+        case .landing: return "Tap face button to stick the landing"
+        default: return ""
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+
+            if courtLoaded {
+                RealityKitDunkView(
+                    leftStickInput: stickInput,
+                    isMidAir: isMidAir,
+                    dunkPhase: freestyleDunk.phase,
+                    jumpHeight: Float(freestyleDunk.jumpHeight),
+                    sprintCharge: Float(freestyleDunk.sprintCharge),
+                    avatarConfig: viewModel.profile.effectiveAvatarConfig,
+                    dunkImpactToTrigger: $freestyleDunkImpact
+                )
+                .ignoresSafeArea()
+
+                if ControllerDiscoveryService.shared.hasPhysicalController {
+                    controllerConnectedPill
+                } else {
+                    PS2GamepadOverlay(
+                        onFaceButton: onFaceButton,
+                        onDPad: { _ in },
+                        onLeftStick: onLeftStick,
+                        onRightStick: { _ in }
+                    )
+                    .ignoresSafeArea()
+                }
+            } else {
+                Color.black
+                    .ignoresSafeArea()
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .tint(Theme.brandCyan)
+                    Text("LOADING COURT")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan.opacity(0.9))
+                }
+                .accessibilityLabel("Loading court")
+            }
+
+            VStack {
+                HStack {
+                    if freestyleDunk.phase != .idle && freestyleDunk.phase != .scored {
+                        VStack(spacing: 4) {
+                            Text(phaseLabel)
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .foregroundStyle(phaseColor)
+                            if freestyleDunk.phase == .airborne {
+                                Text(String(format: "HEIGHT: %.0f%%", freestyleDunk.jumpHeight * 100))
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.white.opacity(0.6))
+                            }
+                        }
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(.black.opacity(0.7))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(phaseColor.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                        .padding(10)
+                    }
+                    Spacer()
+                    Button {
+                        var state = freestyleDunk
+                        state.phase = .idle
+                        freestyleDunk = state
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.white.opacity(0.8))
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                    .accessibilityLabel("Close")
+                    .accessibilityHint("Exits dunk and returns to Lab")
+                    .padding(10)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .allowsHitTesting(true)
+
+                Spacer()
+
+                if freestyleJudgeScores == nil && freestyleDunk.phase != .idle && freestyleDunk.phase != .scored {
+                    VStack(spacing: 8) {
+                        Text(dunkPhaseHint)
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .multilineTextAlignment(.center)
+                        if freestyleDunk.phase == .airborne || freestyleDunk.phase == .launch {
+                            Text("△ □ ○ ✕ = FINISHERS")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .tracking(2)
+                                .foregroundStyle(Theme.brandCyan.opacity(0.9))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.black.opacity(0.6))
+                    )
+                    .padding(.bottom, 100)
+                }
+            }
+            .offset(x: freestyleScreenShake)
+
+            if let scores = freestyleJudgeScores {
+                ResultScreen(
+                    winner: .p1,
+                    p1Score: scores.0 + scores.1 + scores.2,
+                    p2Score: 0,
+                    title: "JUDGES",
+                    accentColor: Theme.brandCyan,
+                    shardsEarned: freestyleShardsEarned ?? 0,
+                    prqGain: 0,
+                    prqCurrent: viewModel.effectiveMetrics.prqScore,
+                    returnButtonTitle: "CONTINUE?",
+                    onReturn: onClaimRewards
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .allowsHitTesting(true)
+            }
+
+            if dunkFlash {
+                Rectangle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Theme.brandCyan.opacity(0.2), Theme.brandBlue.opacity(0.08), .clear],
+                            center: .center,
+                            startRadius: 10,
+                            endRadius: 200
+                        )
+                    )
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: freestyleJudgeScores != nil)
+        .statusBarHidden(true)
+    }
+
+    private var controllerConnectedPill: some View {
+        VStack {
+            Spacer()
+            HStack(spacing: 6) {
+                Image(systemName: "gamecontroller.fill")
+                    .font(.system(size: 12))
+                Text(ControllerDiscoveryService.shared.controllerName ?? "Controller")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("connected")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(.ultraThinMaterial))
+            .padding(.bottom, 24)
+        }
+        .allowsHitTesting(false)
     }
 }

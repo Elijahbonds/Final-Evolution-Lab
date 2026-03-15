@@ -116,15 +116,20 @@ class TrainingViewModel {
         let totalCount = day.totalExerciseCount
         let completionRate = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0
 
-        let baseShard = 25
-        let bonusShards = Int(completionRate * 50)
-        let totalShards = baseShard + bonusShards
+        let rewards = ShardReward.forWorkout(exercisesCompleted: completedCount, trackDifficulty: activeProgram.track.difficulty)
+        let baseShards = rewards.first?.amount ?? 25
+        let completionBonus = Int(completionRate * 30)
+        let totalShards = baseShards + completionBonus
 
         progress.totalShardsEarned += totalShards
         labViewModel.profile.evolutionShards += totalShards
         labViewModel.profile.totalWorkouts += 1
         labViewModel.profile.metrics.prqScore = PRQ.clamp(labViewModel.profile.metrics.prqScore + Double(completedCount) * 0.3)
         labViewModel.profile.metrics.verticalPotential = min(100, labViewModel.profile.metrics.verticalPotential + Double(completedCount) * 0.5)
+        labViewModel.profile.metrics.efficiencyScore = min(100, max(labViewModel.profile.metrics.efficiencyScore, completionRate * 100))
+        if day.category == .strength || day.category == .maxIntent || day.category == .plyometrics {
+            labViewModel.profile.metrics.popForce = min(100, labViewModel.profile.metrics.popForce + Double(completedCount) * 0.15)
+        }
 
         let session = WorkoutSession(
             id: UUID().uuidString,
@@ -138,7 +143,7 @@ class TrainingViewModel {
         labViewModel.sessions.append(session)
 
         NotificationCenter.default.post(
-            name: NSNotification.Name("RorkScoreUpdated"),
+            name: NSNotification.Name("PRQScoreUpdated"),
             object: nil,
             userInfo: ["score": Int(labViewModel.profile.metrics.prqScore)]
         )

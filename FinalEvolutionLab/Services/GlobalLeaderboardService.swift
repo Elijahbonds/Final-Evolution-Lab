@@ -66,16 +66,18 @@ class GlobalLeaderboardService {
     var recentMatches: [RecentMatchRecord] = []
     var connectionQuality: ConnectionQuality = .good
 
-    func refreshRankings(userProfile: UserProfile, sampleData: [LeaderboardEntry]) {
+    /// - Parameter effectivePrq: When non-nil, use for the user's displayed PRQ and tier (e.g. with creator card boost). Keeps social display consistent with Lab/Arena.
+    func refreshRankings(userProfile: UserProfile, sampleData: [LeaderboardEntry], effectivePrq: Double? = nil) {
         isLoading = true
-        userTier = PRQTier.fromPRQ(userProfile.metrics.prqScore)
+        let displayPrq = effectivePrq ?? userProfile.metrics.prqScore
+        userTier = PRQTier.fromPRQ(displayPrq)
 
         var combined = sampleData
         let userEntry = LeaderboardEntry(
             id: userProfile.id,
             athleteName: userProfile.displayName,
             athleteTag: userProfile.athleteTag,
-            prqScore: userProfile.metrics.prqScore,
+            prqScore: displayPrq,
             evolutionShards: userProfile.evolutionShards,
             rank: 0,
             avatarSystemName: userProfile.avatarSystemName

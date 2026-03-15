@@ -15,6 +15,9 @@ struct DashboardView: View {
         ScrollView {
             VStack(spacing: 20) {
                 headerSection
+                if viewModel.sessions.isEmpty && viewModel.gameResults.isEmpty {
+                    emptyStateCard
+                }
                 prqGaugeCard
                 healthKitRow
                 recoveryLabButton
@@ -39,6 +42,8 @@ struct DashboardView: View {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.secondary)
                             }
+                            .accessibilityLabel("Close")
+                            .accessibilityHint("Closes share to feed")
                         }
                     }
                     .toolbarColorScheme(.dark, for: .navigationBar)
@@ -70,6 +75,33 @@ struct DashboardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)
+    }
+
+    private var emptyStateCard: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 40))
+                .foregroundStyle(Theme.neonGreen.opacity(0.5))
+            Text("No activity yet")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+            Text("Complete a workout in Train or play a round in the Lab to see your stats here.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(28)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Theme.neonGreen.opacity(0.12), lineWidth: 1)
+                )
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No activity yet. Complete a workout in Train or play a round in the Lab to see your stats here.")
     }
 
     private var prqGaugeCard: some View {
@@ -164,6 +196,8 @@ struct DashboardView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Recovery Lab")
+        .accessibilityHint("Readiness, suggestions, neural decompression")
     }
 
     private var healthKitRow: some View {

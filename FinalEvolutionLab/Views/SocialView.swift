@@ -24,7 +24,8 @@ struct SocialView: View {
             withAnimation(.spring(response: 0.5)) { appeared = true }
             viewModel.globalLeaderboard.refreshRankings(
                 userProfile: viewModel.profile,
-                sampleData: SampleData.leaderboard
+                sampleData: SampleData.leaderboard,
+                effectivePrq: viewModel.effectiveMetrics.prqScore
             )
         }
     }

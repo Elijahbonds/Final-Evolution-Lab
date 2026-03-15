@@ -9,10 +9,10 @@ final class NativeBridgeManager {
     private(set) var lastUpdateDate: Date?
 
     private init() {
-        prqScore = RorkScoreManager.shared.currentPrqScore
+        prqScore = PRQScoreManager.shared.currentPrqScore
 
         NotificationCenter.default.addObserver(
-            forName: rorkScoreUpdatedNotification,
+            forName: prqScoreUpdatedNotification,
             object: nil,
             queue: .main
         ) { [weak self] notification in
@@ -25,7 +25,7 @@ final class NativeBridgeManager {
         }
 
         NotificationCenter.default.addObserver(
-            forName: rorkScoreDidUpdateNotification,
+            forName: prqScoreDidUpdateNotification,
             object: nil,
             queue: .main
         ) { [weak self] notification in
@@ -39,14 +39,14 @@ final class NativeBridgeManager {
     }
 
     var prqTier: String {
-        RorkScoreManager.shared.prqTier
+        PRQScoreManager.shared.prqTier
     }
 
     var tierColor: String {
-        RorkScoreManager.shared.tierColor
+        PRQScoreManager.shared.tierColor
     }
 
     func simulateScore(_ score: Int) {
-        RorkScoreManager.shared.simulateUnityScore(score)
+        PRQScoreManager.shared.simulateUnityScore(score)
     }
 }

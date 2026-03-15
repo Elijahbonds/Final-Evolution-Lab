@@ -4,6 +4,7 @@ struct SettingsSheet: View {
     @Binding var simpleMode: Bool
     let viewModel: LabViewModel?
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(GameQualityPreset.userDefaultsKey) private var gameQualityRaw = GameQualityPreset.standard.rawValue
     @State private var showExportAlert: Bool = false
     @State private var exportJSON: String = ""
 
@@ -26,11 +27,30 @@ struct SettingsSheet: View {
                         }
                     }
                     .tint(Theme.brandBlue)
-                    .onChange(of: simpleMode) { _, newValue in
-                        UserDefaults.standard.set(newValue, forKey: "simpleMode")
-                    }
                 } header: {
                     Text("Display")
+                }
+
+                Section {
+                    Picker(selection: $gameQualityRaw) {
+                        ForEach(GameQualityPreset.allCases) { preset in
+                            Text(preset.displayName).tag(preset.rawValue)
+                        }
+                    } label: {
+                        Label {
+                            Text("Quality")
+                                .font(.body.weight(.semibold))
+                        } icon: {
+                            Image(systemName: "gauge.with.dots.needle.67percent")
+                                .foregroundStyle(Theme.brandCyan)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(Theme.brandCyan)
+                } header: {
+                    Text("Graphics")
+                } footer: {
+                    Text("High: 60fps, best visuals. Standard: 60fps, balanced. Performance: 30fps for battery and older devices. Applies on next game load.")
                 }
 
                 if let vm = viewModel {
@@ -84,6 +104,7 @@ struct SettingsSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                         .foregroundStyle(Theme.brandBlue)
+                        .accessibilityHint("Closes settings")
                 }
             }
         }

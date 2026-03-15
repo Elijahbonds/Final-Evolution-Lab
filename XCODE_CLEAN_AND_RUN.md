@@ -1,6 +1,6 @@
 # Xcode: Run the Latest Build (Not the Old One)
 
-This project is **Final Evolution Lab** — a **Swift/SwiftUI iOS app** with **SceneKit** 3D gameplay (Venice Beach, dunk contest, multi-sport Arena). It is **not** an Unreal Engine project; the gameplay runs in SceneKit inside this app.
+This project is **Final Evolution Lab** — a **Swift/SwiftUI iOS app** with **RealityKit** 3D for the dunk court and **UI-only** Arena (gradient + timing meter). It is **not** an Unreal Engine project. For sequencing and 3D vs UI, see **PROJECT_FLOWS.md**.
 
 - **Project:** `rork-final-evolution-lab/FinalEvolutionLab.xcodeproj`
 - **Scheme:** **FinalEvolutionLab**

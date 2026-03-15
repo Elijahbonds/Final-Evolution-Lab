@@ -52,24 +52,26 @@ nonisolated enum PRQ: Sendable {
         }
     }
 
+    /// Win chance per round: PRQ 50 ≈ 58–62%, 75 ≈ 72–76%, 90 ≈ 84–88% by mode. Floor and ceiling keep games fair.
     static func successChanceFromPRQ(_ prq: Double, for mode: GameModeId) -> Double {
         let safe = prq.isFinite ? prq : `default`
         let normalized = Swift.min(Swift.max(safe / 100.0, 0), 1)
-        let modeBase: Double
+        let (modeBase, ceiling): (Double, Double)
         switch mode {
-        case .basketballHeadToHead, .basketball3v3: modeBase = 0.40
-        case .basketballDunkContest: modeBase = 0.45
-        case .karate: modeBase = 0.38
-        case .baseball: modeBase = 0.35
-        case .football: modeBase = 0.42
-        case .soccer: modeBase = 0.40
-        case .golf: modeBase = 0.30
-        case .tennis: modeBase = 0.38
-        case .volleyball: modeBase = 0.40
-        case .gymnastics: modeBase = 0.35
-        case .brainBrawl: modeBase = 0.38
+        case .basketballHeadToHead, .basketball3v3: (modeBase, ceiling) = (0.34, 0.88)
+        case .basketballDunkContest: (modeBase, ceiling) = (0.36, 0.90)
+        case .karate: (modeBase, ceiling) = (0.30, 0.86)
+        case .baseball: (modeBase, ceiling) = (0.28, 0.84)
+        case .football: (modeBase, ceiling) = (0.32, 0.88)
+        case .soccer: (modeBase, ceiling) = (0.32, 0.86)
+        case .golf: (modeBase, ceiling) = (0.26, 0.82)
+        case .tennis: (modeBase, ceiling) = (0.32, 0.86)
+        case .volleyball: (modeBase, ceiling) = (0.34, 0.88)
+        case .gymnastics: (modeBase, ceiling) = (0.28, 0.84)
+        case .brainBrawl: (modeBase, ceiling) = (0.30, 0.86)
         }
-        return modeBase + normalized * (0.90 - modeBase)
+        let raw = modeBase + normalized * (ceiling - modeBase)
+        return Swift.min(Swift.max(raw, 0.18), 0.92)
     }
 
     static func attributeLabel(for mode: GameModeId) -> String {

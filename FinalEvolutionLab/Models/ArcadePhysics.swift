@@ -177,6 +177,15 @@ nonisolated struct TrickCombo: Sendable, Identifiable {
         TrickCombo(id: "tomahawk", name: "Tomahawk", displayName: "TOMAHAWK!", direction: .left, requiresFastInput: false, baseStylePoints: 7, isSpecial: false, riskMultiplier: 0.9),
         TrickCombo(id: "360_dunk", name: "360 Dunk", displayName: "360!", direction: .right, requiresFastInput: false, baseStylePoints: 10, isSpecial: false, riskMultiplier: 1.2),
         TrickCombo(id: "giant_killer", name: "Giant Killer", displayName: "GIANT KILLER!", direction: .neutral, requiresFastInput: true, baseStylePoints: 15, isSpecial: true, riskMultiplier: 1.5),
+        TrickCombo(id: "360_eastbay", name: "360 Eastbay", displayName: "360 EASTBAY!", direction: .right, requiresFastInput: false, baseStylePoints: 18, isSpecial: true, riskMultiplier: 1.8),
+        TrickCombo(id: "kick_up", name: "Kick Up", displayName: "KICK UP!", direction: .down, requiresFastInput: false, baseStylePoints: 16, isSpecial: true, riskMultiplier: 1.6),
+        TrickCombo(id: "double_eastbay_over_car", name: "Double Up Eastbay Over Car", displayName: "DOUBLE UP EASTBAY OVER CAR!", direction: .neutral, requiresFastInput: true, baseStylePoints: 22, isSpecial: true, riskMultiplier: 2.0),
+        TrickCombo(id: "honey_dip", name: "Honey Dip", displayName: "HONEY DIP!", direction: .up, requiresFastInput: false, baseStylePoints: 19, isSpecial: true, riskMultiplier: 1.9),
+        TrickCombo(id: "superman", name: "Superman", displayName: "SUPERMAN!", direction: .up, requiresFastInput: false, baseStylePoints: 18, isSpecial: true, riskMultiplier: 1.75),
+        TrickCombo(id: "cradle", name: "Rock the Cradle", displayName: "ROCK THE CRADLE!", direction: .down, requiresFastInput: false, baseStylePoints: 17, isSpecial: true, riskMultiplier: 1.65),
+        TrickCombo(id: "self_alley_oop", name: "Self Alley-Oop", displayName: "SELF ALLEY-OOP!", direction: .down, requiresFastInput: false, baseStylePoints: 18, isSpecial: true, riskMultiplier: 1.7),
+        TrickCombo(id: "statue_of_liberty", name: "Statue of Liberty", displayName: "STATUE OF LIBERTY!", direction: .left, requiresFastInput: false, baseStylePoints: 17, isSpecial: true, riskMultiplier: 1.6),
+        TrickCombo(id: "720", name: "720", displayName: "720!", direction: .right, requiresFastInput: false, baseStylePoints: 19, isSpecial: true, riskMultiplier: 1.85),
     ]
 
     static let karateCombos: [TrickCombo] = [
@@ -200,7 +209,7 @@ nonisolated struct TrickCombo: Sendable, Identifiable {
 
     static func resolve(direction: TrickDirection, mode: GameModeId) -> TrickCombo {
         let pool = combos(for: mode)
-        return pool.first(where: { $0.direction == direction }) ?? pool[0]
+        return pool.first(where: { $0.direction == direction }) ?? pool.first ?? dunkCombos[0]
     }
 }
 

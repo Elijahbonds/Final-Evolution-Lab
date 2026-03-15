@@ -11,6 +11,7 @@ struct NeuralReadinessScanView: View {
     @State private var pulseScale: CGFloat = 1.0
     @State private var ripples: [RippleEffect] = []
     @State private var gridPulse: Bool = false
+    @State private var scanTask: Task<Void, Never>?
 
     private enum ScanPhase {
         case ready
@@ -58,6 +59,9 @@ struct NeuralReadinessScanView: View {
             .padding()
         }
         .preferredColorScheme(.dark)
+        .onDisappear {
+            scanTask?.cancel()
+        }
     }
 
     private var meshBackground: some View {
@@ -330,6 +334,8 @@ struct NeuralReadinessScanView: View {
                 }
                 .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(.tertiary)
+                .accessibilityLabel("Skip scan")
+                .accessibilityHint("Uses default readiness score and closes")
             }
         }
         .padding(.bottom, 20)
@@ -346,10 +352,11 @@ struct NeuralReadinessScanView: View {
             gridPulse = true
         }
 
-        Task {
+        scanTask?.cancel()
+        scanTask = Task {
             for _ in 0..<100 {
                 try? await Task.sleep(for: .milliseconds(100))
-                guard phase == .scanning else { return }
+                guard !Task.isCancelled, phase == .scanning else { return }
                 withAnimation { timeRemaining = max(0, timeRemaining - 0.1) }
                 if timeRemaining <= 0 {
                     finishScan()

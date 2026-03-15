@@ -2,16 +2,56 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = LabViewModel()
-    @State private var selectedTab: AppTab = .lab
-    @State private var simpleMode: Bool = UserDefaults.standard.bool(forKey: "simpleMode")
+    @State private var selectedTab: AppTab = .games
+    @AppStorage("simpleMode") private var simpleMode: Bool = false
     @State private var showSettings: Bool = false
     @State private var showOnboarding: Bool = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            Tab("Games", systemImage: "gamecontroller.fill", value: .games) {
+                NavigationStack {
+                    EmulatorDashboardView(selectedTab: $selectedTab, viewModel: viewModel)
+                        .navigationTitle("")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                brandHeader
+                            }
+                            ToolbarItem(placement: .topBarTrailing) {
+                                HStack(spacing: 8) {
+                                    settingsButton
+                                    shardsBadge
+                                }
+                            }
+                        }
+                        .toolbarColorScheme(.dark, for: .navigationBar)
+                }
+            }
+
             Tab("Lab", systemImage: "brain.head.profile.fill", value: .lab) {
                 NavigationStack {
-                    LabView(viewModel: viewModel)
+                    LabView(viewModel: viewModel, selectedTab: $selectedTab)
+                        .navigationTitle("")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                brandHeader
+                            }
+                            ToolbarItem(placement: .topBarTrailing) {
+                                HStack(spacing: 8) {
+                                    settingsButton
+                                    shardsBadge
+                                }
+                            }
+                        }
+                        .toolbarColorScheme(.dark, for: .navigationBar)
+                }
+            }
+
+            Tab("Arena", systemImage: "sportscourt.fill", value: .arena) {
+                NavigationStack {
+                    ArenaView(viewModel: viewModel, selectedTab: $selectedTab)
                         .navigationTitle("")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
@@ -39,16 +79,19 @@ struct ContentView: View {
                                 brandHeader
                             }
                             ToolbarItem(placement: .topBarTrailing) {
-                                shardsBadge
+                                HStack(spacing: 8) {
+                                    settingsButton
+                                    shardsBadge
+                                }
                             }
                         }
                         .toolbarColorScheme(.dark, for: .navigationBar)
                 }
             }
 
-            Tab("Arena", systemImage: "trophy.fill", value: .social) {
+            Tab("Fuel", systemImage: "flask.fill", value: .fuel) {
                 NavigationStack {
-                    GameModeSelectionView(viewModel: viewModel)
+                    FuelHubView(viewModel: viewModel)
                         .navigationTitle("")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
@@ -56,7 +99,10 @@ struct ContentView: View {
                                 brandHeader
                             }
                             ToolbarItem(placement: .topBarTrailing) {
-                                shardsBadge
+                                HStack(spacing: 8) {
+                                    settingsButton
+                                    shardsBadge
+                                }
                             }
                         }
                         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -71,6 +117,12 @@ struct ContentView: View {
                         .toolbar {
                             ToolbarItem(placement: .topBarLeading) {
                                 brandHeader
+                            }
+                            ToolbarItem(placement: .topBarTrailing) {
+                                HStack(spacing: 8) {
+                                    settingsButton
+                                    shardsBadge
+                                }
                             }
                         }
                         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -87,7 +139,10 @@ struct ContentView: View {
                                 brandHeader
                             }
                             ToolbarItem(placement: .topBarTrailing) {
-                                settingsButton
+                                HStack(spacing: 8) {
+                                    settingsButton
+                                    shardsBadge
+                                }
                             }
                         }
                         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -118,9 +173,14 @@ struct ContentView: View {
             #endif
         }
         .overlay(alignment: .topTrailing) {
-            RorkOverlayView()
-                .padding(.top, 50)
+            if !showSettings && !showOnboarding {
+                PRQOverlayView()
+                    .padding(.top, 50)
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: showSettings)
+        .animation(.easeInOut(duration: 0.2), value: showOnboarding)
     }
 
     private var brandHeader: some View {
@@ -148,6 +208,8 @@ struct ContentView: View {
                 .background(Color.white.opacity(0.06))
                 .clipShape(Circle())
         }
+        .accessibilityLabel("Settings")
+        .accessibilityHint("Opens app settings")
     }
 
     private var shardsBadge: some View {
@@ -163,13 +225,17 @@ struct ContentView: View {
         .padding(.vertical, 5)
         .background(Color.white.opacity(0.06))
         .clipShape(Capsule())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Evolution shards, \(viewModel.profile.evolutionShards)")
     }
 }
 
 nonisolated enum AppTab: String, Sendable {
+    case games
     case lab
+    case arena
     case training
+    case fuel
     case dashboard
-    case social
     case vault
 }

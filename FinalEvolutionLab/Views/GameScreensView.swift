@@ -30,24 +30,30 @@ struct GetReadyScreen: View {
             .allowsHitTesting(false)
 
             VStack(spacing: 24) {
+                Text("GET READY")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .tracking(6)
+                    .foregroundStyle(accentColor.opacity(0.9))
                 Text(title)
-                    .font(.system(size: 32, weight: .black))
+                    .font(.system(size: 28, weight: .black))
                     .italic()
-                    .tracking(4)
+                    .tracking(3)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [.white, .white.opacity(0.7)],
+                            colors: [.white, .white.opacity(0.75)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
-                    .shadow(color: accentColor.opacity(0.4), radius: 16)
+                    .shadow(color: accentColor.opacity(0.4), radius: 12)
+                    .animation(.easeOut(duration: 0.3), value: title)
 
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                        .foregroundStyle(accentColor.opacity(0.8))
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.85))
                         .tracking(1)
+                        .multilineTextAlignment(.center)
                 }
 
                 ZStack {
@@ -97,19 +103,22 @@ struct GetReadyScreen: View {
                             .contentTransition(.numericText())
                     }
                 }
+                .animation(.spring(response: 0.22, dampingFraction: 0.7), value: showGo ? 1 : count)
                 .padding(.top, 8)
 
                 HStack(spacing: 6) {
                     Image(systemName: "gamecontroller.fill")
                         .font(.system(size: 10))
-                    Text("GET READY")
+                    Text("READY?")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
                         .tracking(5)
                 }
-                .foregroundStyle(.white.opacity(0.25))
+                .foregroundStyle(.white.opacity(0.35))
                 .padding(.top, 8)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(showGo ? "Go" : "Get ready, \(count) seconds")
         .onAppear {
             count = countdown
             pulse = false
@@ -123,32 +132,106 @@ struct GetReadyScreen: View {
     }
 
     private func startCountdown() {
-        withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+        withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
             outerRingRotation = 360
         }
         timer?.cancel()
         timer = Task {
             for i in stride(from: countdown, through: 1, by: -1) {
                 guard !Task.isCancelled else { return }
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.65)) {
                     count = i
                     ringScale = 0.5
                 }
-                withAnimation(.easeOut(duration: 0.8)) {
+                withAnimation(.easeOut(duration: 0.5)) {
                     pulse = true
-                    ringScale = 1.5
+                    ringScale = 1.4
                 }
-                try? await Task.sleep(for: .milliseconds(200))
+                try? await Task.sleep(for: .milliseconds(120))
                 withAnimation { pulse = false }
-                try? await Task.sleep(for: .milliseconds(800))
+                try? await Task.sleep(for: .milliseconds(480))
             }
             guard !Task.isCancelled else { return }
-            withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
+            withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) {
                 count = 0
                 showGo = true
             }
-            try? await Task.sleep(for: .milliseconds(400))
+            try? await Task.sleep(for: .milliseconds(380))
             onComplete()
+        }
+    }
+}
+
+/// Pre-game movement snack: one short exercise from Foundations or Longevity. User taps Done to proceed.
+struct PreGameMovementSnackView: View {
+    let exercise: TrainingExercise
+    var accentColor: Color = Theme.foundationGreen
+    let onComplete: () -> Void
+
+    @State private var appeared = false
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.88)
+                .ignoresSafeArea()
+                .background(.ultraThinMaterial.opacity(0.5))
+
+            RadialGradient(
+                colors: [accentColor.opacity(0.12), .clear],
+                center: .center,
+                startRadius: 20,
+                endRadius: 320
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+
+            VStack(spacing: 28) {
+                HStack(spacing: 8) {
+                    Image(systemName: exercise.category.systemImage)
+                        .font(.system(size: 14))
+                    Text("MOVEMENT SNACK")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(4)
+                }
+                .foregroundStyle(accentColor.opacity(0.9))
+
+                Text(exercise.name)
+                    .font(.system(size: 24, weight: .black))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Text(exercise.reps)
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .foregroundStyle(accentColor)
+
+                if !exercise.cues.isEmpty {
+                    Text(exercise.cues)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                }
+
+                Button {
+                    onComplete()
+                } label: {
+                    Text("DONE")
+                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                        .tracking(2)
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 14)
+                        .background(accentColor)
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 16)
+            }
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 12)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) { appeared = true }
         }
     }
 }
@@ -205,6 +288,7 @@ struct ResultScreen: View {
     var prqCurrent: Double = PRQ.default
     var modeAttributeLabel: String? = nil
     var modeAttributeValue: Double? = nil
+    var returnButtonTitle: String = "CLAIM REWARDS & EXIT"
     var onReturn: () -> Void
 
     enum ResultWinner {
@@ -296,6 +380,15 @@ struct ResultScreen: View {
                     .shadow(color: isP1Win ? accentColor.opacity(0.4) : .clear, radius: 20)
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 15)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityLabel(isP1Win ? "Victory" : (winner == .draw ? "Draw" : "Defeat"))
+                if isP1Win {
+                    Text("PLAYER 1 WINS")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(4)
+                        .foregroundStyle(accentColor.opacity(0.8))
+                        .opacity(appeared ? 1 : 0)
+                }
 
                 HStack(spacing: 20) {
                     VStack(spacing: 6) {
@@ -303,9 +396,12 @@ struct ResultScreen: View {
                             .font(.system(size: 40, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
                             .shadow(color: accentColor.opacity(0.3), radius: 8)
-                        Text("YOU")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(accentColor.opacity(0.7))
+                            .contentTransition(.numericText())
+                            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: p1Score)
+                        Text("P1")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .tracking(2)
+                            .foregroundStyle(accentColor.opacity(0.8))
                     }
 
                     Text("\u{2014}")
@@ -316,11 +412,16 @@ struct ResultScreen: View {
                         Text("\(p2Score)")
                             .font(.system(size: 40, weight: .black, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.4))
-                        Text("OPP")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .contentTransition(.numericText())
+                            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: p2Score)
+                        Text("P2")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .tracking(2)
                             .foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Score: Player 1 \(p1Score), Player 2 \(p2Score)")
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)
                 .background(
@@ -335,11 +436,13 @@ struct ResultScreen: View {
 
                 rewardsEarnedSection
                     .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 8)
+                    .offset(y: appeared ? 0 : 12)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.78).delay(0.15), value: appeared)
 
                 prqBreakdownSection
                     .opacity(appeared ? 1 : 0)
-                    .offset(y: appeared ? 0 : 8)
+                    .offset(y: appeared ? 0 : 12)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.78).delay(0.25), value: appeared)
 
                 Button {
                     onReturn()
@@ -347,7 +450,7 @@ struct ResultScreen: View {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.left")
                             .font(.system(size: 12, weight: .bold))
-                        Text("CLAIM REWARDS & EXIT")
+                        Text(returnButtonTitle)
                             .font(.system(.subheadline, design: .monospaced, weight: .black))
                     }
                     .foregroundStyle(.black)
@@ -363,6 +466,8 @@ struct ResultScreen: View {
                     .clipShape(.rect(cornerRadius: 14))
                     .shadow(color: accentColor.opacity(0.3), radius: 12)
                 }
+                .accessibilityLabel(returnButtonTitle)
+                .accessibilityHint("Returns to previous screen and claims rewards")
                 .padding(.top, 8)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 10)
@@ -372,17 +477,17 @@ struct ResultScreen: View {
         }
         .transition(.opacity)
         .onAppear {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1)) {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.75).delay(0.08)) {
                 appeared = true
             }
             if isP1Win {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.4).delay(0.3)) {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.5).delay(0.35)) {
                     trophyBounce = true
                 }
-                withAnimation(.spring(response: 0.3).delay(0.6)) {
+                withAnimation(.spring(response: 0.25).delay(0.55)) {
                     trophyBounce = false
                 }
-                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true).delay(0.5)) {
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true).delay(0.45)) {
                     glowPulse = true
                 }
             }

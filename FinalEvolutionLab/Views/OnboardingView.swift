@@ -37,8 +37,30 @@ struct OnboardingView: View {
             Theme.meshGradient.opacity(0.3).ignoresSafeArea()
 
             VStack(spacing: 0) {
+                HStack {
+                    if step > 0 {
+                        Button {
+                            withAnimation(.spring(response: 0.35)) { step -= 1 }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("Back")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundStyle(Theme.brandBlue)
+                        }
+                        .accessibilityLabel("Back")
+                        .accessibilityHint("Previous onboarding step")
+                        .padding(.leading, 4)
+                    }
+                    Spacer()
+                }
+                .frame(height: 44)
+                .padding(.horizontal, 20)
+
                 progressBar
-                    .padding(.top, 60)
+                    .padding(.top, 8)
                     .padding(.horizontal)
 
                 Spacer()
@@ -257,6 +279,8 @@ struct OnboardingView: View {
             .clipShape(.rect(cornerRadius: 14))
         }
         .disabled(!canAdvance)
+        .accessibilityLabel(step < 2 ? "Continue" : "Start Evolution")
+        .accessibilityHint(step < 2 ? "Go to next step" : "Finish setup and enter the app")
         .sensoryFeedback(.impact(weight: .medium), trigger: step)
     }
 }

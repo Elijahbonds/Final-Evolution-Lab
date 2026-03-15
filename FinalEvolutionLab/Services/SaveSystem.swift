@@ -34,9 +34,14 @@ struct SaveSystem {
 
     private static let gameResultsKey = "finalEvolution_gameResults"
 
+    private static let maxStoredGameResults = 100
+
     static func saveGameResult(_ result: GameSessionResult) {
         var results = loadGameResults()
         results.append(result)
+        if results.count > maxStoredGameResults {
+            results = Array(results.suffix(maxStoredGameResults))
+        }
         if let data = try? JSONEncoder().encode(results) {
             UserDefaults.standard.set(data, forKey: gameResultsKey)
         }
@@ -46,6 +51,9 @@ struct SaveSystem {
         guard let data = UserDefaults.standard.data(forKey: gameResultsKey),
               let results = try? JSONDecoder().decode([GameSessionResult].self, from: data) else {
             return []
+        }
+        if results.count > maxStoredGameResults {
+            return Array(results.suffix(maxStoredGameResults))
         }
         return results
     }

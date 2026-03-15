@@ -8,7 +8,9 @@ private struct VideoFile: Transferable {
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(exportedContentType: .movie) { video in
             SentTransferredFile(video.url)
-        } importing: { received in
+        }
+
+        FileRepresentation(importedContentType: .movie) { received in
             let name = received.file.lastPathComponent
             let temp = FileManager.default.temporaryDirectory.appending(path: name.isEmpty ? "scan_video.mov" : name)
             try? FileManager.default.removeItem(at: temp)
@@ -449,11 +451,15 @@ struct SystemScanView: View {
         }
     }
 
-    private func videoDurationSeconds(_ url: URL) -> Double? {
+    private func videoDurationSeconds(_ url: URL) async -> Double? {
         let asset = AVURLAsset(url: url)
-        let duration = asset.duration
-        guard duration.isNumeric else { return nil }
-        return CMTimeGetSeconds(duration)
+        do {
+            let duration = try await asset.load(.duration)
+            guard duration.isNumeric else { return nil }
+            return CMTimeGetSeconds(duration)
+        } catch {
+            return nil
+        }
     }
 
     private func startAnalysis() {
@@ -468,7 +474,7 @@ struct SystemScanView: View {
                 }
             }
 
-            let result = generateScanResult(usingVideoURL: videoURL)
+            let result = await generateScanResult(usingVideoURL: videoURL)
             generatedResult = result
 
             try? await Task.sleep(for: .milliseconds(500))
@@ -479,7 +485,7 @@ struct SystemScanView: View {
         }
     }
 
-    private func generateScanResult(usingVideoURL url: URL?) -> SystemScanResult {
+    private func generateScanResult(usingVideoURL url: URL?) async -> SystemScanResult {
         var basePRQ: Double
         var baseVertical: Double
         var baseFlight: Double
@@ -508,7 +514,7 @@ struct SystemScanView: View {
             recommendedTrack = "Foundations"
         }
 
-        if let url, let durationSeconds = videoDurationSeconds(url) {
+        if let url, let durationSeconds = await videoDurationSeconds(url) {
             let clipFlight = min(0.9, max(0.35, durationSeconds * 0.4))
             baseFlight = clipFlight * Double.random(in: 0.92...1.08)
         }
@@ -606,3 +612,4 @@ struct ScanMetricCell: View {
         )
     }
 }
+

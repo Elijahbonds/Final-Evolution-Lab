@@ -44,6 +44,9 @@ struct ExerciseDemoView: View {
             demoEngine.currentMode = .avatar
             demoEngine.loadVideo(for: exercise.id)
         }
+        .onDisappear {
+            timerTask?.cancel()
+        }
     }
 
     private var demoVisual: some View {
@@ -67,7 +70,7 @@ struct ExerciseDemoView: View {
 
             Group {
                 if demoEngine.currentMode == .coach && demoEngine.isVideoAvailable, case .ready(let url) = demoEngine.videoLoadState {
-                    VideoPlayerView(url: url)
+                    VideoPlayerView(url: url, onPlaybackFailed: { demoEngine.reportPlaybackFailed() })
                         .transition(.opacity)
                 } else {
                     AvatarDemoView(exercise: exercise)
@@ -109,43 +112,55 @@ struct ExerciseDemoView: View {
     }
 
     private var modeToggle: some View {
-        HStack(spacing: 0) {
-            ForEach(DemoMode.allCases, id: \.self) { mode in
-                Button {
-                    guard demoEngine.currentMode != mode else { return }
-                    if mode == .coach && !demoEngine.isVideoAvailable {
-                        return
+        VStack(spacing: 8) {
+            HStack(spacing: 0) {
+                ForEach(DemoMode.allCases, id: \.self) { mode in
+                    Button {
+                        guard demoEngine.currentMode != mode else { return }
+                        if mode == .coach && !demoEngine.isVideoAvailable {
+                            return
+                        }
+                        demoEngine.toggleMode()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: mode == .coach ? "play.rectangle.fill" : "figure.mixed.cardio")
+                                .font(.system(size: 12, weight: .bold))
+                            Text(mode == .coach ? "COACH" : "AVATAR")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            demoEngine.currentMode == mode
+                                ? Theme.brandBlue.opacity(0.15)
+                                : Color.white.opacity(0.03)
+                        )
+                        .foregroundStyle(
+                            demoEngine.currentMode == mode
+                                ? Theme.brandBlue
+                                : (mode == .coach && !demoEngine.isVideoAvailable ? Color.white.opacity(0.15) : Color.white.opacity(0.4))
+                        )
                     }
-                    demoEngine.toggleMode()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: mode == .coach ? "play.rectangle.fill" : "figure.mixed.cardio")
-                            .font(.system(size: 12, weight: .bold))
-                        Text(mode == .coach ? "COACH" : "AVATAR")
-                            .font(.system(size: 11, weight: .black, design: .monospaced))
-                            .tracking(1)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(
-                        demoEngine.currentMode == mode
-                            ? Theme.brandBlue.opacity(0.15)
-                            : Color.white.opacity(0.03)
-                    )
-                    .foregroundStyle(
-                        demoEngine.currentMode == mode
-                            ? Theme.brandBlue
-                            : (mode == .coach && !demoEngine.isVideoAvailable ? Color.white.opacity(0.15) : Color.white.opacity(0.4))
-                    )
+                    .disabled(mode == .coach && !demoEngine.isVideoAvailable)
+                    .accessibilityHint(mode == .coach && !demoEngine.isVideoAvailable
+                        ? "Fascial Highway 3D model is active as the primary educational tool. Coach video is unavailable."
+                        : (mode == .coach ? "Real-world application: coach video" : "Scientific view: Muscle and Motion 3D with sling anatomy"))
                 }
-                .disabled(mode == .coach && !demoEngine.isVideoAvailable)
+            }
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Theme.brandBlue.opacity(0.1), lineWidth: 0.5)
+            )
+            if !demoEngine.isVideoAvailable {
+                Text("Avatar = Scientific View (Spiral Line, slings). Coach = Real-world application when video is available.")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
             }
         }
-        .clipShape(.rect(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Theme.brandBlue.opacity(0.1), lineWidth: 0.5)
-        )
     }
 
     private var exerciseInfo: some View {

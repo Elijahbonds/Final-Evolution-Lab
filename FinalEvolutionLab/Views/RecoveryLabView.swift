@@ -50,6 +50,7 @@ struct RecoveryLabView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                         .foregroundStyle(Theme.brandBlue)
+                        .accessibilityHint("Closes Recovery Lab")
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)

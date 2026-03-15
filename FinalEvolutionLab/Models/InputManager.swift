@@ -181,15 +181,22 @@ nonisolated struct DunkTrickResolver: Sendable {
         switch button {
         case .square:
             if isDoubleTap { return .freeThrowLine }
+            if modifier == .signature { return .honeyDip }
+            if modifier == .flashy { return .superman }
             return modifier == .power ? .doubleClutch : .windmill
         case .triangle:
             if isDoubleTap { return .elbowHang }
+            if modifier == .signature { return .eastbay360 }
+            if modifier == .power { return .sevenTwenty }
             return modifier == .flashy ? .betweenLegs : .threeSixty
         case .circle:
             if isDoubleTap { return .reverseJam }
+            if modifier == .signature { return .kickUp }
+            if modifier == .flashy { return .selfAlleyOop }
             return modifier == .power ? .freeThrowLine : .tomahawk
         case .cross:
-            if isDoubleTap { return .doubleClutch }
+            if isDoubleTap { return .doubleEastbayOverCar }
+            if modifier == .signature { return .doubleEastbayOverCar }
             return modifier == .flashy ? .elbowHang : .reverseJam
         }
     }
@@ -361,9 +368,9 @@ nonisolated struct PS2MovementConfig: Sendable {
     let cameraTargetLerpFactor: Float
 
     static let standard = PS2MovementConfig(
-        topSpeed: 8.5,
-        acceleration: 12,
-        deceleration: 28,
+        topSpeed: 9.5,
+        acceleration: 18,
+        deceleration: 36,
         airControl: 0.22,
         baseJump: 7.2,
         chargedJump: 13.2,
@@ -372,14 +379,14 @@ nonisolated struct PS2MovementConfig: Sendable {
     )
 
     static let dunkContest = PS2MovementConfig(
-        topSpeed: 10.0,
-        acceleration: 50,
-        deceleration: 80,
+        topSpeed: 11.0,
+        acceleration: 55,
+        deceleration: 85,
         airControl: 0.65,
         baseJump: 8.0,
         chargedJump: 16.0,
-        cameraLerpFactor: 6,
-        cameraTargetLerpFactor: 8
+        cameraLerpFactor: 10,
+        cameraTargetLerpFactor: 12
     )
 
     static func forMode(_ mode: GameModeId) -> PS2MovementConfig {

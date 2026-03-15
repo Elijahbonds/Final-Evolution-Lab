@@ -2,24 +2,28 @@ import SwiftUI
 
 struct TrainingHubView: View {
     let labViewModel: LabViewModel
-    @State private var trainingVM: TrainingViewModel?
+    @State private var trainingVM: TrainingViewModel
     @State private var selectedDay: TrainingDay?
     @State private var appeared: Bool = false
 
+    init(labViewModel: LabViewModel) {
+        self.labViewModel = labViewModel
+        _trainingVM = State(initialValue: TrainingViewModel(labViewModel: labViewModel))
+    }
+
     var body: some View {
-        Group {
-            if let vm = trainingVM {
-                TrainingHubContent(vm: vm, labViewModel: labViewModel, selectedDay: $selectedDay, appeared: $appeared)
-            } else {
-                ProgressView()
-                    .tint(Theme.brandBlue)
-            }
-        }
+        TrainingHubContent(vm: trainingVM, labViewModel: labViewModel, selectedDay: $selectedDay, appeared: $appeared)
         .onAppear {
-            if trainingVM == nil {
-                trainingVM = TrainingViewModel(labViewModel: labViewModel)
+            if let track = labViewModel.preselectedTrack {
+                trainingVM.switchTrack(to: track)
+                labViewModel.preselectedTrack = nil
             }
             withAnimation(.spring(response: 0.5)) { appeared = true }
+        }
+        .onChange(of: labViewModel.preselectedTrack) { _, newTrack in
+            guard let track = newTrack else { return }
+            trainingVM.switchTrack(to: track)
+            labViewModel.preselectedTrack = nil
         }
     }
 }
@@ -57,6 +61,7 @@ private struct TrainingHubContent: View {
                 .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(Theme.neonGreen)
                 .tracking(4)
+                .accessibilityAddTraits(.isHeader)
 
             Text("Training")
                 .font(.system(size: 52, weight: .black))
@@ -77,6 +82,7 @@ private struct TrainingHubContent: View {
                 .font(.system(.caption2, design: .monospaced, weight: .bold))
                 .foregroundStyle(.secondary)
                 .tracking(2)
+                .accessibilityAddTraits(.isHeader)
 
             ScrollView(.horizontal) {
                 HStack(spacing: 10) {
@@ -111,6 +117,8 @@ private struct TrainingHubContent: View {
                             )
                             .foregroundStyle(isSelected ? Theme.brandCyan : .secondary)
                         }
+                        .accessibilityLabel(equipment.displayName)
+                        .accessibilityHint("Filter workouts by \(equipment.displayName)")
                     }
                 }
             }
@@ -170,6 +178,8 @@ private struct TrainingHubContent: View {
                             : .secondary
                     )
                 }
+                .accessibilityLabel("\(track.rawValue) track")
+                .accessibilityHint("Switch to \(track.rawValue) training")
             }
         }
         .clipShape(.rect(cornerRadius: 16))

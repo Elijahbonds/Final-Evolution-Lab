@@ -49,6 +49,216 @@ extension GameModeId {
             return .rhythmTap
         }
     }
+
+    /// Environment-specific copy and theming for Arena play (each mode built out in its venue).
+    var environmentActionTitle: String {
+        switch self {
+        case .basketballHeadToHead, .basketball3v3: return "SHOOT!"
+        case .basketballDunkContest: return "DUNK!"
+        case .karate: return "STRIKE!"
+        case .baseball: return "SWING!"
+        case .football: return "RUN!"
+        case .soccer: return "SHOOT!"
+        case .golf: return "SWING!"
+        case .tennis: return "RALLY!"
+        case .volleyball: return "SPIKE!"
+        case .gymnastics: return "STICK!"
+        case .brainBrawl: return "ANSWER!"
+        }
+    }
+
+    /// e.g. "Round", "Point", "Hole", "Question", "Bout", "At-bat", "Penalty"
+    var environmentRoundLabel: String {
+        switch self {
+        case .basketballHeadToHead, .basketball3v3, .basketballDunkContest: return "Round"
+        case .karate: return "Bout"
+        case .baseball: return "At-bat"
+        case .football: return "Drive"
+        case .soccer: return "Penalty"
+        case .golf: return "Hole"
+        case .tennis, .volleyball: return "Point"
+        case .gymnastics: return "Routine"
+        case .brainBrawl: return "Question"
+        }
+    }
+
+    /// Opponent label in play (e.g. "OPP", "CPU", "AI")
+    var environmentOpponentLabel: String {
+        switch self {
+        case .brainBrawl: return "AI"
+        case .karate: return "OPP"
+        default: return "OPP"
+        }
+    }
+
+    /// Number of rounds/points/holes etc. per match in Arena. Tuned per sport (e.g. first-to-3, best-of-5).
+    var environmentRoundCount: Int {
+        switch self {
+        case .brainBrawl: return 5
+        case .golf: return 3
+        case .soccer: return 5
+        case .tennis, .volleyball: return 5
+        case .karate, .football: return 5
+        default: return 3
+        }
+    }
+
+    /// Secondary color for environment gradient (e.g. darker tint).
+    var environmentSecondaryColor: Color {
+        switch self {
+        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3: return Color(red: 0.1, green: 0.4, blue: 0.5)
+        case .karate: return Color(red: 0.4, green: 0.05, blue: 0.05)
+        case .baseball: return Color(red: 0.05, green: 0.25, blue: 0.45)
+        case .football: return Color(red: 0.25, green: 0.15, blue: 0.05)
+        case .soccer: return Color(red: 0.05, green: 0.4, blue: 0.15)
+        case .golf: return Color(red: 0.1, green: 0.35, blue: 0.2)
+        case .tennis: return Color(red: 0.4, green: 0.35, blue: 0.05)
+        case .volleyball: return Color(red: 0.5, green: 0.35, blue: 0.05)
+        case .gymnastics: return Color(red: 0.2, green: 0.15, blue: 0.5)
+        case .brainBrawl: return Color(red: 0.3, green: 0.15, blue: 0.5)
+        }
+    }
+
+    /// One-line atmosphere for the play screen (e.g. "Sun, boards, and street rules.")
+    var environmentAtmosphere: String {
+        switch self {
+        case .basketballHeadToHead, .basketball3v3: return "Sun, boards, and street rules."
+        case .basketballDunkContest: return "Sprint, gather, fly—face buttons for style."
+        case .karate: return "Respect. Control. One clean point at a time."
+        case .baseball: return "Clear the fences. Derby rules."
+        case .football: return "One return. No second chances."
+        case .soccer: return "You vs the keeper. Penalty pressure."
+        case .golf: return "Closest to the pin. One swing per hole."
+        case .tennis: return "Serve, rally, finish. Beach court intensity."
+        case .volleyball: return "Sand, sun, and no mercy at the net."
+        case .gymnastics: return "Stick the landing. Form is everything."
+        case .brainBrawl: return "Your curriculum. AI opponent. First to answer wins."
+        }
+    }
+
+    /// Short line for Get Ready screen (instructional). Arena = timing meter (handheld skill).
+    var getReadySubtitle: String {
+        switch self {
+        case .basketballDunkContest: return "Sprint → Gather → Fly. Face buttons for finishers."
+        case .basketballHeadToHead, .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball, .gymnastics:
+            return "READY? Tap to start meter → tap in green to commit."
+        case .brainBrawl:
+            return "READY? Tap to start → tap in green to lock answer."
+        }
+    }
+
+    /// Display name for the opponent in this environment (e.g. "Keeper", "Dojo Master").
+    var opponentDisplayName: String {
+        switch self {
+        case .basketballHeadToHead, .basketball3v3: return "OPP"
+        case .basketballDunkContest: return "JUDGES"
+        case .karate: return "OPP"
+        case .baseball: return "PITCHER"
+        case .football: return "SPECIAL TEAMS"
+        case .soccer: return "KEEPER"
+        case .golf: return "FIELD"
+        case .tennis: return "OPP"
+        case .volleyball: return "NET"
+        case .gymnastics: return "JUDGES"
+        case .brainBrawl: return "AI"
+        }
+    }
+
+    /// Two- to three-sentence environment description for the play screen.
+    var environmentDescription: String {
+        switch self {
+        case .basketballHeadToHead:
+            return "Venice Beach half-court. One basket, one ball, first to score wins the round. Hand up to contest; your Court IQ drives the outcome."
+        case .basketballDunkContest:
+            return "The same iconic court, dunk contest rules. Sprint from the wing, hit the gather zone, then fly—face buttons pick your finisher. Hang Time is your edge."
+        case .basketball3v3:
+            return "Street rules, three on three. Every possession counts. Contest with hands up; Court IQ and timing decide who gets the bucket."
+        case .karate:
+            return "Point sparring in the dojo. One clean strike lands the bout. Control distance and timing; Fight IQ beats raw aggression."
+        case .baseball:
+            return "Home Run Derby at the stadium. You get one swing per at-bat. Clear the fence and you win the round; Bat Speed shapes your odds."
+        case .football:
+            return "Kick return, sudden death. One return—break it or get stopped. Burst Speed and vision; no second chances."
+        case .soccer:
+            return "Penalty shootout. You vs the keeper, one kick per round. Placement and composure; Shot Accuracy vs the save."
+        case .golf:
+            return "Closest to the pin. One swing per hole. Wind and lie are factored into your Swing Precision—get close to win the hole."
+        case .tennis:
+            return "Beach court rally. Serve, rally, put the point away. Rally Control and placement beat the opponent across the net."
+        case .volleyball:
+            return "Beach volleyball, rally scoring. Serve, receive, set, spike. Spike Power and timing through the block decide the point."
+        case .gymnastics:
+            return "Olympic-style routine. Execute, stick the landing. Form Score and consistency beat the judges."
+        case .brainBrawl:
+            return "Curriculum-based quiz vs AI. Same questions, first correct answer wins the question. Brain Speed and recall decide the round."
+        }
+    }
+
+    /// In-round commit feedback (perfect / good / miss) — high-quality, sport-specific copy.
+    var commitFeedbackPerfect: String {
+        switch self {
+        case .basketballHeadToHead, .basketball3v3: return "BUCKET!"
+        case .basketballDunkContest: return "SLAM!"
+        case .karate: return "STRIKE!"
+        case .baseball: return "GONE!"
+        case .football: return "HOUSE!"
+        case .soccer: return "GOAL!"
+        case .golf: return "TAP-IN!"
+        case .tennis: return "ACE!"
+        case .volleyball: return "KILL!"
+        case .gymnastics: return "STUCK!"
+        case .brainBrawl: return "CORRECT!"
+        }
+    }
+
+    var commitFeedbackGood: String {
+        switch self {
+        case .basketballHeadToHead, .basketball3v3: return "GOOD"
+        case .basketballDunkContest: return "NICE"
+        case .karate: return "POINT"
+        case .baseball: return "CONTACT"
+        case .football: return "YARDS"
+        case .soccer: return "ON TARGET"
+        case .golf: return "GREEN"
+        case .tennis: return "IN"
+        case .volleyball: return "POINT"
+        case .gymnastics: return "LANDED"
+        case .brainBrawl: return "RIGHT"
+        }
+    }
+
+    var commitFeedbackMiss: String {
+        switch self {
+        case .basketballHeadToHead, .basketball3v3: return "MISS"
+        case .basketballDunkContest: return "OFF"
+        case .karate: return "BLOCKED"
+        case .baseball: return "OUT"
+        case .football: return "STOPPED"
+        case .soccer: return "SAVED"
+        case .golf: return "WIDE"
+        case .tennis: return "OUT"
+        case .volleyball: return "BLOCKED"
+        case .gymnastics: return "DEDUCT"
+        case .brainBrawl: return "WRONG"
+        }
+    }
+
+    /// Charge bar title (e.g. "POWER UP — RELEASE TO SWING" for baseball).
+    var chargeBarTitle: String {
+        switch self {
+        case .basketballHeadToHead, .basketball3v3: return "CHARGING — RELEASE ✕ TO SHOOT"
+        case .basketballDunkContest: return "CHARGING — RELEASE ✕ TO DUNK"
+        case .karate: return "CHARGING — RELEASE ✕ TO STRIKE"
+        case .baseball: return "POWER UP — RELEASE ✕ TO SWING"
+        case .football: return "CHARGING — RELEASE ✕ TO BREAK"
+        case .soccer: return "AIM — RELEASE ✕ TO SHOOT"
+        case .golf: return "POWER UP — RELEASE ✕ TO SWING"
+        case .tennis: return "CHARGING — RELEASE ✕ TO RALLY"
+        case .volleyball: return "CHARGING — RELEASE ✕ TO SPIKE"
+        case .gymnastics: return "CHARGING — RELEASE ✕ TO STICK"
+        case .brainBrawl: return "THINK — TAP TO LOCK ANSWER"
+        }
+    }
 }
 
 nonisolated struct GameMode: Sendable, Identifiable, Hashable {
@@ -225,5 +435,73 @@ struct GameModeRegistry {
 
     static func modes(for sport: GameMode.SportCategory) -> [GameMode] {
         all.filter { $0.sport == sport }
+    }
+
+    // MARK: - Arena Venues (built-out arenas; modes grouped by environment)
+
+    struct ArenaVenue: Sendable, Identifiable {
+        let id: String
+        let name: String
+        let tagline: String
+        let iconName: String
+        let accentColor: Color
+        /// Matches GameMode.environmentName for grouping
+        let environmentName: String
+        /// One-line atmosphere (e.g. "Sun and street rules.")
+        var atmosphere: String { venueAtmosphere }
+        /// Extended description for venue card or detail.
+        var longDescription: String { venueLongDescription }
+
+        private var venueAtmosphere: String {
+            switch id {
+            case "venice_beach": return "Sun, boards, and the Pacific breeze."
+            case "dojo": return "Tatami, respect, one point at a time."
+            case "stadium_diamond": return "Fences, crowd, and the long ball."
+            case "stadium_field": return "Kick coverage and open grass."
+            case "stadium_pitch": return "Twelve yards. You and the keeper."
+            case "golf_green": return "Green, wind, and one clean swing."
+            case "beach_court": return "Sand, sun, and no mercy at the net."
+            case "arena": return "Routines, questions, and the podium."
+            default: return "Compete. Adapt. Evolve."
+            }
+        }
+
+        private var venueLongDescription: String {
+            switch id {
+            case "venice_beach":
+                return "Outdoor courts by the Pacific. Half-court head-to-head, 3v3 runs, and the legendary dunk contest. Chain nets, concrete, and street rules. Your Court IQ and Hang Time drive every possession."
+            case "dojo":
+                return "Traditional dojo for point sparring. Controlled contact, clean strikes, and respect. Distance and timing beat raw power. Fight IQ decides each bout."
+            case "stadium_diamond":
+                return "Pro stadium diamond. Home Run Derby rules: one swing per at-bat. Clear the fence to win the round. Bat Speed and timing against the pitcher."
+            case "stadium_field":
+                return "Full stadium field for kick return. Sudden death—one return. Special teams vs your burst. Break it for the win; get stopped and it’s over. Burst Speed is everything."
+            case "stadium_pitch":
+                return "Penalty shootout at the pitch. You vs the keeper, one kick per round. Placement and composure under pressure. Shot Accuracy decides who blinks first."
+            case "golf_green":
+                return "Par-3 style closest-to-the-pin. One swing per hole. Wind and lie factor into your result. Swing Precision and calm win the hole."
+            case "beach_court":
+                return "Beach volleyball court. Rally scoring, sun, and sand. Serve, receive, set, spike. Spike Power and timing through the block decide every point."
+            case "arena":
+                return "Academy Arena hosts gymnastics routines and Brain Brawl. Stick the landing for Form Score; outthink the AI for Brain Speed. One routine or one question at a time."
+            default:
+                return "Compete in this arena. Your readiness and skill decide the outcome."
+            }
+        }
+    }
+
+    static let arenaVenues: [ArenaVenue] = [
+        ArenaVenue(id: "venice_beach", name: "Venice Beach Court", tagline: "Outdoor hoops & beach tennis", iconName: "sportscourt.fill", accentColor: Color(red: 0, green: 0.83, blue: 1.0), environmentName: "Venice Beach Court"),
+        ArenaVenue(id: "dojo", name: "Dojo Arena", tagline: "Point sparring & combat", iconName: "figure.martial.arts", accentColor: Color(red: 1.0, green: 0.2, blue: 0.2), environmentName: "Dojo Arena"),
+        ArenaVenue(id: "stadium_diamond", name: "Stadium Diamond", tagline: "Home run derby", iconName: "figure.baseball", accentColor: Color(red: 0.1, green: 0.5, blue: 0.9), environmentName: "Stadium Diamond"),
+        ArenaVenue(id: "stadium_field", name: "Stadium Field", tagline: "Kick return sudden death", iconName: "football.fill", accentColor: Color(red: 0.5, green: 0.3, blue: 0.1), environmentName: "Stadium Field"),
+        ArenaVenue(id: "stadium_pitch", name: "Stadium Pitch", tagline: "Penalty shootout", iconName: "soccerball", accentColor: Color(red: 0.2, green: 0.7, blue: 0.3), environmentName: "Stadium Pitch"),
+        ArenaVenue(id: "golf_green", name: "Golf Green", tagline: "Closest to the pin", iconName: "figure.golf", accentColor: Color(red: 0.3, green: 0.7, blue: 0.4), environmentName: "Golf Green"),
+        ArenaVenue(id: "beach_court", name: "Beach Court", tagline: "Rally ace volleyball", iconName: "volleyball.fill", accentColor: Color(red: 0.98, green: 0.75, blue: 0.14), environmentName: "Beach Court"),
+        ArenaVenue(id: "arena", name: "Academy Arena", tagline: "Gymnastics & Brain Brawl", iconName: "figure.gymnastics", accentColor: Color(red: 0.5, green: 0.4, blue: 0.95), environmentName: "Arena"),
+    ]
+
+    static func modes(for venue: ArenaVenue) -> [GameMode] {
+        all.filter { $0.environmentName == venue.environmentName }
     }
 }

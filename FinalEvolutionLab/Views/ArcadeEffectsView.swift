@@ -179,6 +179,8 @@ struct GameActionFeedback: View {
     let isNeuralBurst: Bool
     var isKarate: Bool = false
 
+    @State private var appeared = false
+
     private var feedbackColor: Color {
         if isKarate { return .orange }
         if isCritical { return Theme.brandCyan }
@@ -187,23 +189,23 @@ struct GameActionFeedback: View {
     }
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             if isCritical && !isKarate {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.brandCyan)
                     .shadow(color: Theme.brandCyan.opacity(0.5), radius: 6)
             }
 
             if isNeuralBurst && !isKarate {
                 Image(systemName: "brain.head.profile.fill")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.elitePurple)
                     .shadow(color: Theme.elitePurple.opacity(0.5), radius: 6)
             }
 
             Text(text)
-                .font(.system(size: isKarate ? 24 : 13, weight: .black, design: .monospaced))
+                .font(.system(size: isKarate ? 24 : 16, weight: .black, design: .monospaced))
                 .foregroundStyle(
                     isKarate
                         ? AnyShapeStyle(LinearGradient(colors: [.orange, .yellow, .orange], startPoint: .leading, endPoint: .trailing))
@@ -211,10 +213,10 @@ struct GameActionFeedback: View {
                             ? AnyShapeStyle(LinearGradient(colors: [Theme.brandCyan, .white, Theme.brandCyan], startPoint: .leading, endPoint: .trailing))
                             : AnyShapeStyle(.white.opacity(0.95)))
                 )
-                .shadow(color: feedbackColor.opacity(0.6), radius: isKarate ? 16 : 8)
+                .shadow(color: feedbackColor.opacity(0.6), radius: isKarate ? 16 : 10)
         }
-        .padding(.horizontal, isKarate ? 18 : 14)
-        .padding(.vertical, isKarate ? 12 : 8)
+        .padding(.horizontal, isKarate ? 18 : 16)
+        .padding(.vertical, isKarate ? 12 : 10)
         .background(
             isKarate ? AnyShapeStyle(.orange.opacity(0.12)) :
             (isCritical ? AnyShapeStyle(Theme.brandCyan.opacity(0.12)) :
@@ -235,6 +237,14 @@ struct GameActionFeedback: View {
                     lineWidth: isKarate || isCritical ? 1.5 : 0.5
                 )
         )
-        .shadow(color: feedbackColor.opacity(0.15), radius: 12)
+        .shadow(color: feedbackColor.opacity(0.2), radius: 14)
+        .scaleEffect(appeared ? 1.0 : 0.82)
+        .animation(.spring(response: 0.25, dampingFraction: 0.65), value: text)
+        .onAppear {
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.65)) { appeared = true }
+        }
+        .onChange(of: text) { _, _ in
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) { appeared = true }
+        }
     }
 }

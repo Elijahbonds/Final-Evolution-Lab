@@ -15,6 +15,30 @@ nonisolated struct GameSessionResult: Codable, Sendable, Identifiable {
 
     var didWin: Bool { score > opponentScore }
 
+    /// Display name for UI (e.g. "Head to Head", "Brain Brawl").
+    var modeDisplayName: String {
+        switch gameModeId {
+        case "basketball_h2h": return "Head to Head"
+        case "basketball_dunk": return "Dunk Contest"
+        case "basketball_3v3": return "3v3 Streetball"
+        case "karate": return "Karate"
+        case "baseball": return "Home Run Derby"
+        case "football": return "Kick Return"
+        case "soccer": return "Penalty Shootout"
+        case "golf": return "Closest to Pin"
+        case "tennis": return "Rally Ace"
+        case "volleyball": return "Rally Ace"
+        case "gymnastics": return "Gymnastics"
+        case "brain_brawl": return "Brain Brawl"
+        default: return "Arena"
+        }
+    }
+
+    /// Short result line for lists: "W 3–1" or "L 2–3".
+    var scoreSummary: String {
+        "\(didWin ? "W" : "L") \(score)–\(opponentScore)"
+    }
+
     init(id: String, gameModeId: String, date: Date, score: Int, opponentScore: Int, shardsEarned: Int, prqBonus: Double, isMultiplayer: Bool, duration: Int, roundsPlayed: Int? = nil) {
         self.id = id
         self.gameModeId = gameModeId

@@ -62,6 +62,17 @@ struct TrainingProgramData {
         days: eliteDays
     )
 
+    /// Exercises for pre-game movement snacks: foundational track + longevity (recovery/mobility). Pick one at random.
+    static var movementSnackExercises: [TrainingExercise] {
+        let foundational = foundationsProgram.days.flatMap { $0.allExercises }
+        let longevity = foundational.filter { $0.category == .recovery || $0.category == .mobility }
+        return foundational + longevity
+    }
+
+    static func randomMovementSnack() -> TrainingExercise? {
+        movementSnackExercises.randomElement()
+    }
+
     // MARK: - Foundations Days
 
     static let foundationsDays: [TrainingDay] = [

@@ -1,25 +1,33 @@
 import Foundation
 
-nonisolated let rorkScoreUpdatedNotification = NSNotification.Name("RorkScoreUpdated")
-nonisolated let rorkScoreDidUpdateNotification = NSNotification.Name("rorkScoreDidUpdate")
+// MARK: - Performance Readiness Quotient (PRQ) — Native Swift, no custom runtime
+nonisolated let prqScoreUpdatedNotification = NSNotification.Name("PRQScoreUpdated")
+nonisolated let prqScoreDidUpdateNotification = NSNotification.Name("PRQScoreDidUpdate")
 
 @Observable
 @MainActor
-final class RorkScoreManager {
-    static let shared = RorkScoreManager()
+final class PRQScoreManager {
+    static let shared = PRQScoreManager()
 
-    static let userDefaultsKey = "rork_prq_score"
+    static let userDefaultsKey = "app_prq_score"
 
     private(set) var currentPrqScore: Int
 
+    private static let legacyUserDefaultsKey = "rork_prq_score"
+
     private init() {
-        currentPrqScore = UserDefaults.standard.integer(forKey: Self.userDefaultsKey)
+        var value = UserDefaults.standard.integer(forKey: Self.userDefaultsKey)
+        if value == 0, UserDefaults.standard.object(forKey: Self.legacyUserDefaultsKey) != nil {
+            value = UserDefaults.standard.integer(forKey: Self.legacyUserDefaultsKey)
+            UserDefaults.standard.set(value, forKey: Self.userDefaultsKey)
+        }
+        currentPrqScore = value
         if currentPrqScore == 0 {
             currentPrqScore = Int(PRQ.default)
         }
 
         NotificationCenter.default.addObserver(
-            forName: rorkScoreUpdatedNotification,
+            forName: prqScoreUpdatedNotification,
             object: nil,
             queue: .main
         ) { [weak self] notification in
@@ -27,8 +35,8 @@ final class RorkScoreManager {
                   let score = notification.userInfo?["score"] as? Int else { return }
             MainActor.assumeIsolated {
                 self.currentPrqScore = score
-                UserDefaults.standard.set(score, forKey: RorkScoreManager.userDefaultsKey)
-                NotificationCenter.default.post(name: rorkScoreDidUpdateNotification, object: nil, userInfo: ["score": score])
+                UserDefaults.standard.set(score, forKey: PRQScoreManager.userDefaultsKey)
+                NotificationCenter.default.post(name: prqScoreDidUpdateNotification, object: nil, userInfo: ["score": score])
             }
         }
     }
@@ -51,7 +59,7 @@ final class RorkScoreManager {
 
     func simulateUnityScore(_ score: Int) {
         NotificationCenter.default.post(
-            name: rorkScoreUpdatedNotification,
+            name: prqScoreUpdatedNotification,
             object: nil,
             userInfo: ["score": score]
         )

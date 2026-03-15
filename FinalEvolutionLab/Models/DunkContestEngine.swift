@@ -19,6 +19,15 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
     case elbowHang = "ELBOW HANG"
     case freeThrowLine = "FREE THROW LINE"
     case doubleClutch = "DOUBLE CLUTCH"
+    case eastbay360 = "360 EASTBAY"
+    case kickUp = "KICK UP"
+    case doubleEastbayOverCar = "DOUBLE UP EASTBAY OVER CAR"
+    case honeyDip = "HONEY DIP"
+    case superman = "SUPERMAN"
+    case cradle = "ROCK THE CRADLE"
+    case selfAlleyOop = "SELF ALLEY-OOP"
+    case statueOfLiberty = "STATUE OF LIBERTY"
+    case sevenTwenty = "720"
 
     var complexity: Double {
         switch self {
@@ -30,6 +39,15 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
         case .elbowHang: return 0.9
         case .freeThrowLine: return 1.0
         case .doubleClutch: return 0.65
+        case .eastbay360: return 0.92
+        case .kickUp: return 0.88
+        case .doubleEastbayOverCar: return 0.96
+        case .honeyDip: return 0.93
+        case .superman: return 0.91
+        case .cradle: return 0.87
+        case .selfAlleyOop: return 0.89
+        case .statueOfLiberty: return 0.84
+        case .sevenTwenty: return 0.94
         }
     }
 
@@ -43,6 +61,15 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
         case .elbowHang: return "hand.raised.fill"
         case .freeThrowLine: return "airplane"
         case .doubleClutch: return "hands.clap.fill"
+        case .eastbay360: return "arrow.trianglehead.2.clockwise.rotate.90"
+        case .kickUp: return "arrow.up.and.down"
+        case .doubleEastbayOverCar: return "car.fill"
+        case .honeyDip: return "hand.raised.fill"
+        case .superman: return "figure.run"
+        case .cradle: return "figure.stand"
+        case .selfAlleyOop: return "square.and.arrow.down"
+        case .statueOfLiberty: return "figure.arms.open"
+        case .sevenTwenty: return "arrow.trianglehead.2.clockwise.rotate.90"
         }
     }
 
@@ -52,10 +79,10 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
 
     var faceButtonCategory: ArcadeFaceButton {
         switch self {
-        case .windmill, .doubleClutch: return .square
-        case .betweenLegs, .threeSixty, .elbowHang: return .triangle
-        case .tomahawk, .reverseJam: return .circle
-        case .freeThrowLine: return .cross
+        case .windmill, .doubleClutch, .honeyDip, .superman: return .square
+        case .betweenLegs, .threeSixty, .elbowHang, .eastbay360, .cradle, .sevenTwenty: return .triangle
+        case .tomahawk, .reverseJam, .kickUp, .selfAlleyOop, .statueOfLiberty: return .circle
+        case .freeThrowLine, .doubleEastbayOverCar: return .cross
         }
     }
 }
@@ -68,12 +95,13 @@ struct DunkContestState {
     var roundScores: [(round: Int, score: Int, message: String)] = []
 
     var sprintCharge: Double = 0
-    var sprintChargeRate: Double = 2.2
+    /// Time to full charge ~0.6s at 60fps; feels intentional without dragging.
+    var sprintChargeRate: Double = 1.65
     var isSprintHeld: Bool = false
 
     var launchTiming: Double = 0
     var launchTimingDirection: Double = 1
-    var launchTimingSpeed: Double = 2.5
+    var launchTimingSpeed: Double = 2.0
     var launchGreenZone: ClosedRange<Double> = 0.4...0.7
 
     var selectedTrick: DunkTrickSlot = .tomahawk
@@ -86,7 +114,7 @@ struct DunkContestState {
 
     var landingTiming: Double = 0
     var landingTimingDirection: Double = 1
-    var landingTimingSpeed: Double = 2.8
+    var landingTimingSpeed: Double = 2.2
     var landingGreenZone: ClosedRange<Double> = 0.35...0.65
 
     var trickHistory: [DunkTrickSlot] = []
@@ -266,28 +294,35 @@ struct DunkContestState {
         launchTimingDirection = 1
 
         let difficulty = selectedTrick.complexity
-        let greenWidth = max(0.18, 0.38 - difficulty * 0.12)
-        let center = 0.5 + Double.random(in: -0.06...0.06)
+        let greenWidth = max(0.24, 0.44 - difficulty * 0.1)
+        let center = 0.5 + Double.random(in: -0.05...0.05)
         launchGreenZone = max(0, center - greenWidth / 2)...min(1, center + greenWidth / 2)
-        launchTimingSpeed = 2.0 + difficulty * 0.7
+        launchTimingSpeed = 1.5 + difficulty * 0.5
     }
 
     mutating func confirmLaunch() {
         guard phase == .launch else { return }
         phase = .airborne
         airPhaseStart = CACurrentMediaTime()
-        maxAirTime = 2.4 + jumpHeight * 1.0
+        maxAirTime = 2.6 + jumpHeight * 0.9
         rotationTarget = 0.5 + selectedTrick.complexity * 0.5
 
         let difficulty = selectedTrick.complexity
         let dd = dunkDifficulty
-        let landGreenWidth = max(0.14, 0.32 - dd * 0.07)
-        let landCenter = 0.5 + Double.random(in: -0.05...0.05)
+        let landGreenWidth = max(0.18, 0.36 - dd * 0.06)
+        let landCenter = 0.5 + Double.random(in: -0.04...0.04)
         landingGreenZone = max(0, landCenter - landGreenWidth / 2)...min(1, landCenter + landGreenWidth / 2)
-        landingTimingSpeed = 2.4 + difficulty * 0.5
+        landingTimingSpeed = 2.0 + difficulty * 0.4
     }
 
     mutating func updateAirborne(delta: Double) {
+        if phase == .landing {
+            landingTiming += landingTimingDirection * landingTimingSpeed * delta
+            if landingTiming >= 1.0 { landingTimingDirection = -1 }
+            if landingTiming <= 0.0 { landingTimingDirection = 1 }
+            landingTiming = max(0, min(1, landingTiming))
+            return
+        }
         guard phase == .airborne else { return }
         airTime += delta
         if isRotating {

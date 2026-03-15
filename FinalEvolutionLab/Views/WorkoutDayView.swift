@@ -38,6 +38,7 @@ struct WorkoutDayView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(Theme.brandBlue)
+                        .accessibilityHint("Closes workout and returns to training")
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -106,6 +107,8 @@ struct WorkoutDayView: View {
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Day \(day.dayNumber). \(day.title). \(day.totalExerciseCount) exercises.")
     }
 
     private var timerCard: some View {
@@ -140,6 +143,8 @@ struct WorkoutDayView: View {
                         .stroke(Theme.brandBlue.opacity(0.12), lineWidth: 0.5)
                 )
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Workout timer \(formatTime(elapsedSeconds)). \(vm.completedExerciseIds.count) of \(day.totalExerciseCount) completed.")
     }
 
     private func exerciseSection(title: String, exercises: [TrainingExercise], accentColor: Color) -> some View {
@@ -148,6 +153,7 @@ struct WorkoutDayView: View {
                 .font(.system(.caption2, design: .monospaced, weight: .bold))
                 .foregroundStyle(accentColor)
                 .tracking(2)
+                .accessibilityAddTraits(.isHeader)
 
             ForEach(exercises) { exercise in
                 Button {
@@ -160,6 +166,8 @@ struct WorkoutDayView: View {
                         accentColor: accentColor
                     )
                 }
+                .accessibilityLabel(exercise.name)
+                .accessibilityHint(vm.completedExerciseIds.contains(exercise.id) ? "Completed. Tap to view details" : "Tap to open exercise and log sets")
             }
         }
     }
@@ -190,6 +198,9 @@ struct WorkoutDayView: View {
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Progress \(Int(completionRate * 100)) percent complete")
+        .accessibilityValue("\(Int(completionRate * 100))%")
     }
 
     @ViewBuilder
@@ -211,6 +222,8 @@ struct WorkoutDayView: View {
                 .background(categoryColor)
                 .clipShape(.rect(cornerRadius: 14))
             }
+            .accessibilityLabel("Finish workout")
+            .accessibilityHint("Marks workout complete and saves progress")
             .sensoryFeedback(.impact(flexibility: .soft), trigger: vm.completedExerciseIds.count)
         }
     }

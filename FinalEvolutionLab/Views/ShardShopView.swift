@@ -29,6 +29,7 @@ struct ShardShopView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(Theme.brandBlue)
+                        .accessibilityHint("Closes the shard shop")
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -95,6 +96,8 @@ struct ShardShopView: View {
                         .stroke(Theme.brandCyan.opacity(0.15), lineWidth: 1)
                 )
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Your balance, \(viewModel.profile.evolutionShards) shards")
     }
 
     private var categoryPicker: some View {
@@ -117,6 +120,8 @@ struct ShardShopView: View {
                         )
                         .foregroundStyle(selectedCategory == cat ? Theme.brandBlue : .secondary)
                 }
+                .accessibilityLabel("\(cat.rawValue) category")
+                .accessibilityHint("Show \(cat.rawValue) items")
             }
         }
     }
@@ -229,5 +234,7 @@ struct ShopItemCard: View {
         }
         .buttonStyle(.plain)
         .disabled(isPurchased)
+        .accessibilityLabel("\(item.name), \(isPurchased ? "owned" : "\(item.cost) shards")")
+        .accessibilityHint(isPurchased ? "Already purchased" : (canAfford ? "Tap to purchase" : "Insufficient shards"))
     }
 }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// PlayStation-style virtual controller: D-pad (left), left stick (left), face buttons △ □ ○ ✕ (right), right stick (right).
-/// Layout matches DualShock: triangle top, square left, circle right, X (cross) bottom.
+/// Console-standard layout; touch targets optimized for mobile (thumb-friendly). Optional Cross down/up for charge mechanics.
 struct PS2GamepadOverlay: View {
     let onFaceButton: (PS2FaceButton) -> Void
     let onDPad: (PS2DPadDirection) -> Void
@@ -9,12 +9,21 @@ struct PS2GamepadOverlay: View {
     var onRightStick: (CGPoint) -> Void = { _ in }
     var onLeftShoulder: () -> Void = {}
     var onRightShoulder: () -> Void = {}
+    /// When set, Cross uses press/release (down/up) instead of single tap — for charge-and-release gameplay.
+    var onCrossDown: (() -> Void)? = nil
+    var onCrossUp: (() -> Void)? = nil
     var accentColor: Color = Theme.brandBlue
     var isActive: Bool = true
+    /// Mobile-optimized: larger touch targets (52pt face, 48pt d-pad, 64pt stick hit area).
+    var mobileOptimized: Bool = true
     @State private var leftStickOffset: CGSize = .zero
     @State private var rightStickOffset: CGSize = .zero
 
-    private let analogRange: CGFloat = 20
+    private var faceButtonSize: CGFloat { mobileOptimized ? 52 : 46 }
+    private var dPadButtonSize: CGFloat { mobileOptimized ? 48 : 44 }
+    private var stickHitSize: CGFloat { mobileOptimized ? 64 : 60 }
+    private let analogRange: CGFloat = 30
+    private let stickDeadzone: CGFloat = 10
 
     var body: some View {
         ZStack {
@@ -58,6 +67,8 @@ struct PS2GamepadOverlay: View {
             .frame(maxHeight: .infinity, alignment: .bottom)
         }
         .opacity(isActive ? 1 : 0.3)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Virtual controller. D-pad and left stick on the left, face buttons and right stick on the right. Hold Cross to charge, release to fire.")
     }
 
     private var dPadCluster: some View {
@@ -68,11 +79,11 @@ struct PS2GamepadOverlay: View {
                 dPadButton(.left, icon: "chevron.left")
 
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(white: 0.10).opacity(0.6))
+                    .fill(Color(white: 0.12).opacity(0.4))
                     .frame(width: 16, height: 16)
                     .overlay(
                         Circle()
-                            .fill(Color(white: 0.08))
+                            .fill(Color(white: 0.10).opacity(0.5))
                             .frame(width: 6, height: 6)
                     )
 
@@ -84,18 +95,19 @@ struct PS2GamepadOverlay: View {
     }
 
     private func dPadButton(_ direction: PS2DPadDirection, icon: String) -> some View {
-        Button {
+        let size = dPadButtonSize
+        return Button {
             onDPad(direction)
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: mobileOptimized ? 14 : 13, weight: .bold))
                 .foregroundStyle(.white.opacity(0.75))
-                .frame(width: 44, height: 44)
+                .frame(width: size, height: size)
                 .background(
                     RoundedRectangle(cornerRadius: 5)
                         .fill(
                             LinearGradient(
-                                colors: [Color(white: 0.22).opacity(0.9), Color(white: 0.12).opacity(0.9)],
+                                colors: [Color(white: 0.26).opacity(0.5), Color(white: 0.16).opacity(0.48)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -103,7 +115,7 @@ struct PS2GamepadOverlay: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 5)
-                        .stroke(Color(white: 0.08), lineWidth: 0.5)
+                        .stroke(Color(white: 0.15).opacity(0.6), lineWidth: 0.5)
                 )
         }
         .disabled(!isActive)
@@ -111,17 +123,45 @@ struct PS2GamepadOverlay: View {
     }
 
     private var faceButtonCluster: some View {
-        let btnSize: CGFloat = 46
-
-        return VStack(spacing: 3) {
+        let btnSize = faceButtonSize
+        let spacing: CGFloat = mobileOptimized ? 8 : 3
+        return VStack(spacing: spacing) {
             ps2FaceButton(.triangle, symbol: "△", color: Color(red: 0.3, green: 0.78, blue: 0.47), size: btnSize)
 
-            HStack(spacing: 18) {
+            HStack(spacing: mobileOptimized ? 22 : 18) {
                 ps2FaceButton(.square, symbol: "□", color: Color(red: 0.96, green: 0.44, blue: 0.71), size: btnSize)
                 ps2FaceButton(.circle, symbol: "○", color: Color(red: 0.97, green: 0.44, blue: 0.44), size: btnSize)
             }
 
-            ps2FaceButton(.cross, symbol: "✕", color: Color(red: 0.38, green: 0.65, blue: 0.98), size: btnSize)
+            crossButton(size: btnSize)
+        }
+    }
+
+    @ViewBuilder
+    private func crossButton(size: CGFloat) -> some View {
+        let color = Color(red: 0.38, green: 0.65, blue: 0.98)
+        if onCrossDown != nil, onCrossUp != nil {
+            Text("✕")
+                .font(.system(size: mobileOptimized ? 20 : 18, weight: .black))
+                .foregroundStyle(color.opacity(0.92))
+                .frame(width: size, height: size)
+                .contentShape(Circle())
+                .background(
+                    Circle()
+                        .fill(color.opacity(0.28))
+                        .overlay(Circle().stroke(color.opacity(0.55), lineWidth: 2))
+                )
+                .shadow(color: color.opacity(0.2), radius: 3)
+                .onLongPressGesture(minimumDuration: 1000, pressing: { pressing in
+                    guard isActive else { return }
+                    if pressing {
+                        onCrossDown?()
+                    } else {
+                        onCrossUp?()
+                    }
+                }, perform: {})
+        } else {
+            ps2FaceButton(.cross, symbol: "✕", color: color, size: size)
         }
     }
 
@@ -130,19 +170,20 @@ struct PS2GamepadOverlay: View {
             onFaceButton(button)
         } label: {
             Text(symbol)
-                .font(.system(size: 18, weight: .black))
-                .foregroundStyle(color)
+                .font(.system(size: mobileOptimized ? 20 : 18, weight: .black))
+                .foregroundStyle(color.opacity(0.92))
                 .frame(width: size, height: size)
                 .background(
                     Circle()
-                        .fill(color.opacity(0.12))
+                        .fill(color.opacity(0.28))
                         .overlay(
                             Circle()
-                                .stroke(color.opacity(0.45), lineWidth: 2)
+                                .stroke(color.opacity(0.55), lineWidth: 2)
                         )
                 )
-                .shadow(color: color.opacity(0.3), radius: 4)
+                .shadow(color: color.opacity(0.2), radius: 3)
         }
+        .buttonStyle(.plain)
         .disabled(!isActive)
         .sensoryFeedback(.impact(weight: .medium), trigger: button.rawValue)
     }
@@ -157,7 +198,7 @@ struct PS2GamepadOverlay: View {
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [Color(white: 0.26).opacity(0.9), Color(white: 0.15).opacity(0.9)],
+                                colors: [Color(white: 0.28).opacity(0.5), Color(white: 0.18).opacity(0.48)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -165,7 +206,7 @@ struct PS2GamepadOverlay: View {
                 )
                 .overlay(
                     Capsule()
-                        .stroke(Color(white: 0.10), lineWidth: 0.5)
+                        .stroke(Color(white: 0.15).opacity(0.6), lineWidth: 0.5)
                 )
         }
         .disabled(!isActive)
@@ -181,7 +222,7 @@ struct PS2GamepadOverlay: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color(white: 0.15).opacity(0.8), Color(white: 0.08).opacity(0.8)],
+                        colors: [Color(white: 0.18).opacity(0.45), Color(white: 0.10).opacity(0.4)],
                         center: .center,
                         startRadius: 0,
                         endRadius: 24
@@ -190,13 +231,13 @@ struct PS2GamepadOverlay: View {
                 .frame(width: 48, height: 48)
                 .overlay(
                     Circle()
-                        .stroke(Color(white: 0.06), lineWidth: 1.5)
+                        .stroke(Color(white: 0.12).opacity(0.5), lineWidth: 1.5)
                 )
 
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [Color(white: 0.32), Color(white: 0.20), Color(white: 0.15)],
+                        colors: [Color(white: 0.34).opacity(0.65), Color(white: 0.22).opacity(0.6), Color(white: 0.18).opacity(0.6)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -204,9 +245,9 @@ struct PS2GamepadOverlay: View {
                 .frame(width: 24, height: 24)
                 .overlay(
                     Circle()
-                        .stroke(Color(white: 0.24), lineWidth: 1)
+                        .stroke(Color(white: 0.26).opacity(0.7), lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
                 .offset(offset.wrappedValue)
 
             Text(title)
@@ -214,8 +255,8 @@ struct PS2GamepadOverlay: View {
                 .foregroundStyle(.white.opacity(0.3))
                 .offset(y: 20)
         }
-        .contentShape(Circle().size(width: 60, height: 60))
-        .frame(width: 60, height: 60)
+        .contentShape(Circle().size(width: stickHitSize, height: stickHitSize))
+        .frame(width: stickHitSize, height: stickHitSize)
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in
@@ -242,9 +283,13 @@ struct PS2GamepadOverlay: View {
 
     private func normalizedVector(for translation: CGSize) -> CGPoint {
         guard analogRange > 0 else { return .zero }
-        let normalizedX = max(-1, min(1, translation.width / analogRange))
-        let normalizedY = max(-1, min(1, -translation.height / analogRange))
-        return CGPoint(x: normalizedX, y: normalizedY)
+        let length = sqrt(translation.width * translation.width + translation.height * translation.height)
+        guard length > stickDeadzone else { return .zero }
+        let effectiveRange = analogRange - stickDeadzone
+        let scale = (length - stickDeadzone) / max(0.01, effectiveRange)
+        let nx = max(-1, min(1, (translation.width / max(0.01, length)) * scale))
+        let ny = max(-1, min(1, (-translation.height / max(0.01, length)) * scale))
+        return CGPoint(x: nx, y: ny)
     }
 }
 

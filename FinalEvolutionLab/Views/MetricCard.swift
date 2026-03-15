@@ -12,19 +12,18 @@ struct MetricCard: View {
                 Image(systemName: icon)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(color)
-
                 Spacer()
             }
 
             Text(value)
                 .font(.system(size: 28, weight: .black))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.textPrimary)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
 
             Text(title)
                 .font(.system(.caption2, design: .monospaced, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
                 .tracking(1)
         }
         .padding(16)
@@ -33,8 +32,13 @@ struct MetricCard: View {
                 .fill(Theme.cardBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(color.opacity(0.1), lineWidth: 1)
+                        .stroke(Theme.cardBorder.opacity(0.6), lineWidth: 0.5)
                 )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(color.opacity(0.15), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.35), radius: 8, x: 0, y: 4)
         )
     }
 }

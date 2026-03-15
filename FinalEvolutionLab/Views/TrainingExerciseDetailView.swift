@@ -12,6 +12,7 @@ struct TrainingExerciseDetailView: View {
     @State private var restTimer: Int = 0
     @State private var timerTask: Task<Void, Never>?
     @State private var exerciseDone: Bool = false
+    @State private var demoEngine = DemoEngine()
 
     var body: some View {
         NavigationStack {
@@ -35,6 +36,7 @@ struct TrainingExerciseDetailView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(Theme.brandBlue)
+                        .accessibilityHint("Closes exercise and returns to workout")
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -43,6 +45,9 @@ struct TrainingExerciseDetailView: View {
         }
         .presentationDetents([.large])
         .presentationBackground(Theme.deepBlack)
+        .onAppear {
+            demoEngine.loadVideo(for: exercise.id)
+        }
         .onDisappear {
             timerTask?.cancel()
         }
@@ -65,35 +70,72 @@ struct TrainingExerciseDetailView: View {
                             .stroke(accentColor.opacity(0.2), lineWidth: 1)
                     )
 
-                VStack(spacing: 12) {
-                    ExerciseCharacterView(category: exercise.category, difficulty: .foundation, compact: false)
-                        .frame(height: 140)
-                        .frame(maxWidth: .infinity)
+                // Avatar (ExerciseCharacterView) is the universal fallback for .loading and .failed; UE/console can swap in high-fidelity skeletal models. 0.5s cross-dissolve for PS5 Remote Play–style transition to coach video.
+                Group {
+                    if demoEngine.isVideoAvailable, case .ready(let url) = demoEngine.videoLoadState {
+                        VideoPlayerView(url: url, onPlaybackFailed: { demoEngine.reportPlaybackFailed() })
+                            .transition(.opacity)
+                    } else {
+                        VStack(spacing: 12) {
+                            ExerciseCharacterView(category: exercise.category, difficulty: .foundation, compact: false)
+                                .frame(height: 140)
+                                .frame(maxWidth: .infinity)
 
-                    HStack(spacing: 8) {
-                        Text(exercise.category.rawValue.uppercased())
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(accentColor)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(accentColor.opacity(0.12))
-                            .clipShape(Capsule())
-
-                        if isCompleted {
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 10))
-                                Text("DONE")
+                            HStack(spacing: 8) {
+                                Text(exercise.category.rawValue.uppercased())
                                     .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    .foregroundStyle(accentColor)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(accentColor.opacity(0.12))
+                                    .clipShape(Capsule())
+
+                                if isCompleted {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 10))
+                                        Text("DONE")
+                                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    }
+                                    .foregroundStyle(.green)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(Color.green.opacity(0.12))
+                                    .clipShape(Capsule())
+                                }
                             }
-                            .foregroundStyle(.green)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color.green.opacity(0.12))
-                            .clipShape(Capsule())
                         }
+                        .transition(.opacity)
                     }
                 }
+                .animation(.easeInOut(duration: 0.5), value: demoEngine.videoLoadState)
+                .clipShape(.rect(cornerRadius: 24))
+
+                if !demoEngine.isVideoAvailable {
+                    if case .loading = demoEngine.videoLoadState {
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .tint(Theme.brandBlue)
+                            Text("LOADING DEMO...")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(Theme.brandBlue.opacity(0.6))
+                                .tracking(2)
+                        }
+                        .transition(.opacity)
+                    } else if case .failed = demoEngine.videoLoadState {
+                        VStack(spacing: 8) {
+                            Image(systemName: "play.slash.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(Theme.brandBlue.opacity(0.5))
+                            Text("VIDEO UNAVAILABLE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .tracking(2)
+                        }
+                        .transition(.opacity)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.5), value: demoEngine.videoLoadState)
             }
 
             HStack(spacing: 20) {
@@ -257,6 +299,7 @@ struct TrainingExerciseDetailView: View {
                     .foregroundStyle(isCompleted ? .green : .black)
                     .clipShape(.rect(cornerRadius: 14))
                 }
+                .accessibilityHint("Marks exercise complete and returns to workout")
             } else if isResting {
                 Button {
                     skipRest()
@@ -269,6 +312,7 @@ struct TrainingExerciseDetailView: View {
                         .foregroundStyle(.white)
                         .clipShape(.rect(cornerRadius: 14))
                 }
+                .accessibilityHint("Skip rest period and continue to next set")
             } else {
                 Button {
                     completeSet()
@@ -281,6 +325,7 @@ struct TrainingExerciseDetailView: View {
                         .foregroundStyle(.white)
                         .clipShape(.rect(cornerRadius: 14))
                 }
+                .accessibilityHint("Log set \(currentSet) of \(exercise.sets) complete")
             }
         }
     }

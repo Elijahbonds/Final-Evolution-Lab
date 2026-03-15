@@ -45,6 +45,7 @@ struct BlueprintsView: View {
                 .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
                 .tracking(4)
+                .accessibilityAddTraits(.isHeader)
 
             Text("Blueprints")
                 .font(.system(size: 52, weight: .black))
@@ -73,6 +74,8 @@ struct BlueprintsView: View {
                         .background(selectedTab == tab ? Theme.brandBlue.opacity(0.15) : Color.white.opacity(0.03))
                         .foregroundStyle(selectedTab == tab ? Theme.brandBlue : .secondary)
                 }
+                .accessibilityLabel(tab.rawValue)
+                .accessibilityHint(selectedTab == tab ? "Selected" : "Switch to \(tab.rawValue)")
             }
         }
         .clipShape(.rect(cornerRadius: 12))
@@ -93,6 +96,8 @@ struct BlueprintsView: View {
                         .offset(y: appeared ? 0 : 20)
                         .animation(.spring(response: 0.5).delay(Double(index) * 0.1), value: appeared)
                 }
+                .accessibilityLabel(track.name)
+                .accessibilityHint("View \(track.name) track details and exercises")
             }
         }
     }

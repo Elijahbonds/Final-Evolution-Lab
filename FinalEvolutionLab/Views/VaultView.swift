@@ -5,12 +5,15 @@ struct VaultView: View {
 
     @State private var showEditProfile = false
     @State private var showShardShop = false
+    @State private var showCommunity = false
+    @State private var showTrade = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 headerSection
                 profileCard
+                tradeSection
                 healthKitSection
                 masterVaultSection
                 equipmentSection
@@ -27,6 +30,27 @@ struct VaultView: View {
         }
         .sheet(isPresented: $showShardShop) {
             ShardShopView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showTrade) {
+            TradeView(viewModel: viewModel, multipeer: viewModel.multipeerService, onDismiss: { showTrade = false })
+        }
+        .sheet(isPresented: $showCommunity) {
+            NavigationStack {
+                SocialView(viewModel: viewModel)
+                    .navigationTitle("")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { showCommunity = false } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .accessibilityLabel("Close")
+                            .accessibilityHint("Closes community")
+                        }
+                    }
+                    .toolbarColorScheme(.dark, for: .navigationBar)
+            }
         }
     }
 
@@ -107,6 +131,24 @@ struct VaultView: View {
                     .clipShape(Capsule())
                     .foregroundStyle(Theme.brandCyan)
                 }
+
+                Button {
+                    showCommunity = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.3.fill")
+                            .font(.system(size: 10))
+                        Text("COMMUNITY")
+                    }
+                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Theme.brandBlue.opacity(0.12))
+                    .clipShape(Capsule())
+                    .foregroundStyle(Theme.brandBlue)
+                }
+                .accessibilityLabel("Community")
+                .accessibilityHint("Opens rankings and Arena")
             }
         }
         .frame(maxWidth: .infinity)
@@ -119,6 +161,47 @@ struct VaultView: View {
                         .stroke(Theme.brandBlue.opacity(0.1), lineWidth: 1)
                 )
         )
+    }
+
+    private var tradeSection: some View {
+        Button {
+            showTrade = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.brandCyan.opacity(0.2))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Trade")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                    Text("Exchange shards with someone on the same Wi‑Fi")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Trade shards")
+        .accessibilityHint("Exchange evolution shards with a nearby device")
     }
 
     private var healthKitSection: some View {
@@ -459,6 +542,7 @@ struct EditProfileView: View {
                         dismiss()
                     }
                     .disabled(name.isEmpty)
+                    .accessibilityHint("Saves profile and closes")
                 }
             }
             .onAppear {

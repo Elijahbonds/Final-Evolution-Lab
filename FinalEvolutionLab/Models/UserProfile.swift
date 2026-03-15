@@ -24,6 +24,12 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     func ownsCard(_ cardId: String) -> Bool {
         ownedCardIds.contains(cardId)
     }
+
+    /// Avatar skin to use everywhere (from system scan or placeholder until scan data is in).
+    /// Placeholder is a neutral model lookalike so the main user always has a visible avatar before calibration.
+    var effectiveAvatarConfig: AvatarSkinConfig {
+        systemScan?.avatarConfig ?? AvatarSkinConfig.placeholder
+    }
 }
 
 extension UserProfile: Codable {
@@ -106,6 +112,39 @@ nonisolated struct SystemScanResult: Codable, Sendable {
         recommendedTrack = try container.decode(String.self, forKey: .recommendedTrack)
         avatarConfig = (try? container.decode(AvatarSkinConfig.self, forKey: .avatarConfig)) ?? .default
     }
+
+    /// Default scan for profiles that have not run a system scan yet. Auto-creates a character so the main user always loads with a skin.
+    static func defaultForProfile(_ profile: UserProfile) -> SystemScanResult {
+        let prq = PRQ.clamp(profile.metrics.prqScore)
+        let vertical = min(40, max(18, profile.metrics.verticalPotential * 0.28))
+        let flight = 0.48
+        let track: String
+        switch profile.goal ?? "" {
+        case "Jump Higher": track = "Flight"
+        case "Get Faster": track = "Foundations"
+        case "Build Power": track = "Elite"
+        default: track = "Foundations"
+        }
+        let grade: String
+        switch prq {
+        case 80...: grade = "ELITE POTENTIAL"
+        case 65..<80: grade = "FLIGHT READY"
+        case 50..<65: grade = "BUILDING BASE"
+        default: grade = "FOUNDATION PHASE"
+        }
+        let avatarConfig = AvatarSkinConfig.fromScan(prq: prq, vertical: vertical, flight: flight, sport: profile.sport)
+        return SystemScanResult(
+            id: UUID().uuidString,
+            date: Date(),
+            prqScore: prq,
+            verticalEstimateInches: vertical,
+            flightTimeSeconds: flight,
+            movementGrade: grade,
+            notes: [],
+            recommendedTrack: track,
+            avatarConfig: avatarConfig
+        )
+    }
 }
 
 nonisolated struct AvatarSkinConfig: Codable, Sendable {
@@ -129,6 +168,19 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
         auraColorG: 0.83,
         auraColorB: 1.0,
         trailIntensity: 0.3
+    )
+
+    /// Neutral model lookalike shown until system scan data is available. Same rig as post-scan avatar, distinct silver/grey aura.
+    static let placeholder = AvatarSkinConfig(
+        heightScale: 1.0,
+        weightScale: 1.0,
+        limbLength: 1.0,
+        skinTone: .cyan,
+        outfitStyle: .standard,
+        auraColorR: 0.52,
+        auraColorG: 0.54,
+        auraColorB: 0.58,
+        trailIntensity: 0.2
     )
 
     static func fromScan(prq: Double, vertical: Double, flight: Double, sport: String?) -> AvatarSkinConfig {

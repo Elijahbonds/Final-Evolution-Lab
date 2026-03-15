@@ -1,7 +1,8 @@
 import SwiftUI
 
-struct RorkOverlayView: View {
-    @State private var scoreManager = RorkScoreManager.shared
+/// Global PRQ badge overlay (emulator HUD). Controller-first; no custom runtime.
+struct PRQOverlayView: View {
+    @State private var scoreManager = PRQScoreManager.shared
     @State private var isAnimating: Bool = false
     @State private var showPulse: Bool = false
 
@@ -69,6 +70,8 @@ struct RorkOverlayView: View {
         }
         .scaleEffect(isAnimating ? 1.05 : 1.0)
         .animation(.spring(duration: 0.3), value: isAnimating)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("PRQ \(scoreManager.currentPrqScore), \(scoreManager.prqTier) tier")
     }
 
     private var tierGradient: LinearGradient {
