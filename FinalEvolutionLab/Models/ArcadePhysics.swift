@@ -288,6 +288,14 @@ nonisolated struct GamePhysicsConfig: Sendable {
                 floorShakeAmplitude: 0.01 + normalized * 0.03,
                 particleTrailDensity: 12 + normalized * 28
             )
+        case .brainBrawl:
+            return GamePhysicsConfig(
+                jumpHeight: 0.6 + normalized * 0.8,
+                moveSpeed: 0.5 + normalized * 0.5,
+                impactIntensity: 0.3 + normalized * 0.4,
+                floorShakeAmplitude: 0.01 + normalized * 0.02,
+                particleTrailDensity: 8 + normalized * 18
+            )
         }
     }
 }

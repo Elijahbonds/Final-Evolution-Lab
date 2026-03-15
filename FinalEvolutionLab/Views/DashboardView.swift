@@ -6,6 +6,7 @@ struct DashboardView: View {
     @State private var appeared: Bool = false
     @State private var gaugeAnimationProgress: Double = 0
     @State private var showShareToFeed: Bool = false
+    @State private var showRecoveryLab: Bool = false
 
     private var prqScore: Int { Int(viewModel.effectiveMetrics.prqScore) }
     private var prqNormalized: Double { viewModel.effectiveMetrics.prqScore / 100.0 }
@@ -16,6 +17,7 @@ struct DashboardView: View {
                 headerSection
                 prqGaugeCard
                 healthKitRow
+                recoveryLabButton
                 motionStreamCard
                 neuralSyncCard
                 shareToFeedButton
@@ -25,6 +27,9 @@ struct DashboardView: View {
         }
         .scrollIndicators(.hidden)
         .background(Theme.slateBackground)
+        .sheet(isPresented: $showRecoveryLab) {
+            RecoveryLabView(viewModel: viewModel)
+        }
         .sheet(isPresented: $showShareToFeed) {
             NavigationStack {
                 ShareToFeedView(viewModel: viewModel)
@@ -129,6 +134,36 @@ struct DashboardView: View {
                         .strokeBorder(Theme.neonGreen.opacity(0.15), lineWidth: 1)
                 )
         )
+    }
+
+    private var recoveryLabButton: some View {
+        Button {
+            showRecoveryLab = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "heart.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Recovery Lab")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text("Readiness, audit-based suggestions, neural decompression")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(.tertiary)
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Theme.cardBackground)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var healthKitRow: some View {

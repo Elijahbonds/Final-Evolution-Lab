@@ -295,11 +295,21 @@ struct ExerciseRow: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Theme.difficultyColor(exercise.difficulty).opacity(0.1))
                     .frame(width: 48, height: 48)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Theme.difficultyColor(exercise.difficulty).opacity(0.2), lineWidth: 0.5)
+                    )
 
-                Image(systemName: exercise.category.systemImage)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Theme.difficultyColor(exercise.difficulty))
+                if isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.green)
+                } else {
+                    ExerciseCharacterView(category: exercise.category, difficulty: exercise.difficulty, compact: true)
+                        .frame(width: 48, height: 48)
+                }
             }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {

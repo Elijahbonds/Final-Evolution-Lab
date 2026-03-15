@@ -12,6 +12,7 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case tennis = "tennis"
     case volleyball = "volleyball"
     case gymnastics = "gymnastics"
+    case brainBrawl = "brain_brawl"
 
     var id: String { rawValue }
 }
@@ -44,11 +45,13 @@ extension GameModeId {
             return .penaltyKick
         case .gymnastics:
             return .rhythmTap
+        case .brainBrawl:
+            return .rhythmTap
         }
     }
 }
 
-nonisolated struct GameMode: Sendable, Identifiable {
+nonisolated struct GameMode: Sendable, Identifiable, Hashable {
     let id: GameModeId
     let name: String
     let subtitle: String
@@ -58,6 +61,9 @@ nonisolated struct GameMode: Sendable, Identifiable {
     let multiplayerType: MultiplayerType
     let environmentName: String
     let hint: String?
+
+    nonisolated static func == (lhs: GameMode, rhs: GameMode) -> Bool { lhs.id == rhs.id }
+    nonisolated func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
     nonisolated enum SportCategory: String, Sendable {
         case basketball = "Basketball"
@@ -84,7 +90,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 1.0, green: 0.6, blue: 0.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: nil
+            hint: "Hands up = contest shot • Right stick = defender distance"
         ),
         GameMode(
             id: .basketballDunkContest,
@@ -95,7 +101,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0, green: 0.83, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: nil
+            hint: "Sprint → Gather → Fly → Face buttons for style (NBA Live 07–style)"
         ),
         GameMode(
             id: .basketball3v3,
@@ -106,7 +112,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.2, green: 0.8, blue: 0.4),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: nil
+            hint: "Hands up = contest • Right stick = defender distance"
         ),
         GameMode(
             id: .karate,
@@ -117,7 +123,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 1.0, green: 0.2, blue: 0.2),
             multiplayerType: .realtime,
             environmentName: "Dojo Arena",
-            hint: nil
+            hint: "Stick combos for style • Block with right stick"
         ),
         GameMode(
             id: .baseball,
@@ -172,7 +178,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.85, green: 0.75, blue: 0.1),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: nil
+            hint: "Serve, Forehand, Backhand • Aim with drag"
         ),
         GameMode(
             id: .volleyball,
@@ -194,7 +200,18 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.39, green: 0.4, blue: 0.95),
             multiplayerType: .turnBased,
             environmentName: "Arena",
-            hint: nil
+            hint: "Tumble, Vault, Dismount • Time for bonus"
+        ),
+        GameMode(
+            id: .brainBrawl,
+            name: "Brain Brawl",
+            subtitle: "Big Brain × Coursebox AI",
+            sport: .precision,
+            iconName: "brain.head.profile",
+            accentColor: Color(red: 0.6, green: 0.35, blue: 0.9),
+            multiplayerType: .turnBased,
+            environmentName: "Arena",
+            hint: "Answer curriculum questions vs AI. Your path, your quiz."
         ),
     ]
 

@@ -10,11 +10,13 @@ struct VideoPlayerView: View {
             if let player {
                 VideoPlayer(player: player)
                     .disabled(true)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ProgressView()
                     .tint(Theme.brandBlue)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             let avPlayer = AVPlayer(url: url)
             avPlayer.isMuted = false

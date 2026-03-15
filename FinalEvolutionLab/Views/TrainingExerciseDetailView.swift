@@ -59,16 +59,16 @@ struct TrainingExerciseDetailView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(height: 160)
+                    .frame(height: 200)
                     .overlay(
                         RoundedRectangle(cornerRadius: 24)
                             .stroke(accentColor.opacity(0.2), lineWidth: 1)
                     )
 
                 VStack(spacing: 12) {
-                    Image(systemName: exercise.category.systemImage)
-                        .font(.system(size: 44, weight: .bold))
-                        .foregroundStyle(accentColor)
+                    ExerciseCharacterView(category: exercise.category, difficulty: .foundation, compact: false)
+                        .frame(height: 140)
+                        .frame(maxWidth: .infinity)
 
                     HStack(spacing: 8) {
                         Text(exercise.category.rawValue.uppercased())

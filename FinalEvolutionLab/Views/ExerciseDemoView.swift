@@ -41,6 +41,7 @@ struct ExerciseDemoView: View {
         .presentationDetents([.large])
         .presentationBackground(Theme.deepBlack)
         .onAppear {
+            demoEngine.currentMode = .avatar
             demoEngine.loadVideo(for: exercise.id)
         }
     }
@@ -65,11 +66,9 @@ struct ExerciseDemoView: View {
                 )
 
             Group {
-                if demoEngine.currentMode == .coach && demoEngine.isVideoAvailable {
-                    if case .ready(let url) = demoEngine.videoLoadState {
-                        VideoPlayerView(url: url)
-                            .transition(.opacity)
-                    }
+                if demoEngine.currentMode == .coach && demoEngine.isVideoAvailable, case .ready(let url) = demoEngine.videoLoadState {
+                    VideoPlayerView(url: url)
+                        .transition(.opacity)
                 } else {
                     AvatarDemoView(exercise: exercise)
                         .transition(.opacity)
@@ -77,7 +76,7 @@ struct ExerciseDemoView: View {
             }
             .clipShape(.rect(cornerRadius: 24))
 
-            if !demoEngine.isVideoAvailable && demoEngine.currentMode == .coach {
+            if demoEngine.currentMode == .coach && !demoEngine.isVideoAvailable {
                 if case .loading = demoEngine.videoLoadState {
                     VStack(spacing: 12) {
                         ProgressView()
@@ -86,6 +85,19 @@ struct ExerciseDemoView: View {
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .foregroundStyle(Theme.brandBlue.opacity(0.6))
                             .tracking(2)
+                    }
+                } else {
+                    VStack(spacing: 8) {
+                        Image(systemName: "play.slash.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Theme.brandBlue.opacity(0.5))
+                        Text("VIDEO UNAVAILABLE")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .tracking(2)
+                        Text("Showing avatar demo")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.tertiary)
                     }
                 }
             }

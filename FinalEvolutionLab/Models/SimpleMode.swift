@@ -39,4 +39,8 @@ struct SimpleModeLabels {
     static func verticalPotential(_ simple: Bool) -> String {
         simple ? "JUMP POWER" : "VERTICAL"
     }
+
+    static func popForce(_ simple: Bool) -> String {
+        simple ? "POWER SPEED" : "POP FORCE"
+    }
 }

@@ -105,8 +105,12 @@ struct DunkContestState {
     var totalFreestylePoints: Int = 0
     var rimDistortionAmount: Double = 0
 
+    /// When true, contest never ends (freestyle practice).
+    var isFreestylePractice: Bool = false
+
     var isComplete: Bool {
-        round > totalRounds
+        guard !isFreestylePractice, totalRounds > 0 else { return false }
+        return round > totalRounds
     }
 
     var launchQuality: Double {
@@ -213,13 +217,15 @@ struct DunkContestState {
         let total = j1 + j2 + j3
 
         let message: String
-        if total >= 145 { message = "PERFECT DUNK!" }
-        else if total >= 140 { message = "LEGENDARY!" }
-        else if total >= 135 { message = "CROWD GOES WILD!" }
-        else if total >= 130 { message = "ELECTRIFYING!" }
-        else if total >= 120 { message = "POWERFUL!" }
-        else if total >= 110 { message = "SOLID DUNK" }
-        else { message = "NEEDS WORK" }
+        if total >= 148 { message = "PERFECT 50!" }
+        else if total >= 145 { message = "LEGENDARY!" }
+        else if total >= 140 { message = "CROWD GOES WILD!" }
+        else if total >= 135 { message = "ELECTRIFYING!" }
+        else if total >= 130 { message = "VINCE CARTER STYLE!" }
+        else if total >= 125 { message = "POWERFUL!" }
+        else if total >= 118 { message = "SOLID DUNK" }
+        else if total >= 108 { message = "NICE TRY" }
+        else { message = "NEXT TIME" }
 
         impactIntensity = jumpHeight * landingQuality
         rimDistortionAmount = activeModifier == .power ? 0.15 : (activeModifier == .signature ? 0.2 : 0.08)
@@ -326,5 +332,10 @@ struct DunkContestState {
         midAirState.reset()
         inputBuffer = ArcadeInputBuffer()
         totalFreestylePoints = 0
+    }
+
+    /// Best single-dunk score this session (for practice display).
+    var bestDunkScore: Int {
+        roundScores.map(\.score).max() ?? 0
     }
 }

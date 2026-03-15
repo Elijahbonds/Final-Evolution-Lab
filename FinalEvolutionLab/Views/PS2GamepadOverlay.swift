@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// PlayStation-style virtual controller: D-pad (left), left stick (left), face buttons △ □ ○ ✕ (right), right stick (right).
+/// Layout matches DualShock: triangle top, square left, circle right, X (cross) bottom.
 struct PS2GamepadOverlay: View {
     let onFaceButton: (PS2FaceButton) -> Void
     let onDPad: (PS2DPadDirection) -> Void

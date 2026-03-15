@@ -16,6 +16,7 @@ struct GameModeSelectionView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 headerSection
+                arenaPerformanceTip
                 globalMatchmakingBanner
 
                 ForEach(GameModeRegistry.sportCategories, id: \.rawValue) { category in
@@ -109,6 +110,30 @@ struct GameModeSelectionView: View {
             .padding(.top, 2)
         }
         .padding(.top, 8)
+    }
+
+    private static let arenaTips: [(icon: String, text: String)] = [
+        ("flame.fill", "Pop Force (RFD + GRF) affects how fast you build power in the Arena. Train reactive drills to raise it."),
+        ("bolt.fill", "Rate of Force Development: the quicker you produce force, the better your in-game burst and combos."),
+        ("arrow.down.to.line", "Ground Reaction Force efficiency means less energy wasted—more goes into your jump and first step."),
+    ]
+
+    private var arenaPerformanceTip: some View {
+        let tip = Self.arenaTips[Int(Date().timeIntervalSince1970 / 30) % Self.arenaTips.count]
+        return HStack(spacing: 10) {
+            Image(systemName: tip.icon)
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.brandCyan)
+            Text(tip.text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Theme.cardBackground)
+        )
     }
 
     private var globalMatchmakingBanner: some View {
@@ -329,12 +354,3 @@ struct GameModeCard: View {
     }
 }
 
-extension GameMode: Hashable {
-    nonisolated static func == (lhs: GameMode, rhs: GameMode) -> Bool {
-        lhs.id == rhs.id
-    }
-
-    nonisolated func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}

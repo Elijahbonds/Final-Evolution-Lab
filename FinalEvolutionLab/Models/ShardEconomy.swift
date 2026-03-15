@@ -5,6 +5,7 @@ nonisolated enum ShardTransaction: String, Codable, Sendable {
     case gameWin
     case gameDraw
     case gameLoss
+    case matchComplete
     case comboBonus
     case criticalHit
     case outfitPurchase
@@ -31,7 +32,9 @@ nonisolated struct ShardReward: Sendable {
             rewards.append(ShardReward(amount: 15, transaction: .gameLoss))
         }
 
-        if combo > 3 {
+        rewards.append(ShardReward(amount: 5, transaction: .matchComplete))
+
+        if combo >= 2 {
             rewards.append(ShardReward(amount: combo * 5, transaction: .comboBonus))
         }
 

@@ -92,6 +92,10 @@ struct OnboardingView: View {
                     .italic()
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
+                Text("Delete the fear. Your movement, audited.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.brandBlue.opacity(0.9))
+                    .padding(.top, 4)
             }
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {

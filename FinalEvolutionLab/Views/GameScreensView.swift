@@ -200,6 +200,7 @@ struct ResultScreen: View {
     let p2Score: Int
     var title: String? = nil
     var accentColor: Color = Theme.brandBlue
+    var shardsEarned: Int = 0
     var prqGain: Double = 0
     var prqCurrent: Double = PRQ.default
     var modeAttributeLabel: String? = nil
@@ -332,6 +333,10 @@ struct ResultScreen: View {
                 )
                 .opacity(appeared ? 1 : 0)
 
+                rewardsEarnedSection
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 8)
+
                 prqBreakdownSection
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 8)
@@ -342,7 +347,7 @@ struct ResultScreen: View {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.left")
                             .font(.system(size: 12, weight: .bold))
-                        Text("CLAIM & EXIT")
+                        Text("CLAIM REWARDS & EXIT")
                             .font(.system(.subheadline, design: .monospaced, weight: .black))
                     }
                     .foregroundStyle(.black)
@@ -416,7 +421,7 @@ struct ResultScreen: View {
                                 .lineLimit(1)
                         }
                         .foregroundStyle(accentColor)
-                        Text("\(Int(value * 100))")
+                        Text("\(Int(value.rounded()))")
                             .font(.system(size: 22, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
                         Text("RATING")
@@ -457,6 +462,58 @@ struct ResultScreen: View {
                             .stroke(Theme.brandBlue.opacity(0.15), lineWidth: 1)
                     )
             )
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var rewardsEarnedSection: some View {
+        HStack(spacing: 24) {
+            if shardsEarned > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "diamond.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.brandCyan)
+                    Text("+\(shardsEarned)")
+                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text("SHARDS")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan.opacity(0.9))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Theme.brandCyan.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Theme.brandCyan.opacity(0.25), lineWidth: 1)
+                        )
+                )
+            }
+            if prqGain > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "brain.head.profile.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.brandBlue)
+                    Text(String(format: "+%.1f", prqGain))
+                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text("PRQ")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.brandBlue.opacity(0.9))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Theme.brandBlue.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Theme.brandBlue.opacity(0.25), lineWidth: 1)
+                        )
+                )
+            }
         }
         .padding(.horizontal, 20)
     }

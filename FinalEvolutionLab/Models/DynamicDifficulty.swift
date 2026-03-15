@@ -89,6 +89,8 @@ nonisolated struct DynamicDifficulty: Sendable {
         case .soccer: modeAdjust = 1.0
         case .tennis: modeAdjust = 1.0
         case .volleyball: modeAdjust = 1.05
+        case .gymnastics: modeAdjust = 1.02
+        case .brainBrawl: modeAdjust = 0.95
         default: modeAdjust = 1.0
         }
         return baseWindow * windowScale * modeAdjust
@@ -129,6 +131,7 @@ nonisolated struct DynamicDifficulty: Sendable {
         case .tennis: modeScale = 0.9
         case .volleyball: modeScale = 1.0
         case .gymnastics: modeScale = 0.8
+        case .brainBrawl: modeScale = 0.85
         }
         let scaled = Double(maxPoints) * modeScale * (0.6 + normalized * 0.4)
         return max(1, Int(scaled.rounded()))

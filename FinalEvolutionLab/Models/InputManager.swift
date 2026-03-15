@@ -432,16 +432,60 @@ nonisolated struct PS2MovementConfig: Sendable {
                 cameraLerpFactor: 8,
                 cameraTargetLerpFactor: 10
             )
-        default:
+        case .baseball:
+            return PS2MovementConfig(
+                topSpeed: 5.0,
+                acceleration: 8,
+                deceleration: 20,
+                airControl: 0.12,
+                baseJump: 3.0,
+                chargedJump: 5.0,
+                cameraLerpFactor: 9,
+                cameraTargetLerpFactor: 11
+            )
+        case .golf:
+            return PS2MovementConfig(
+                topSpeed: 4.0,
+                acceleration: 6,
+                deceleration: 18,
+                airControl: 0.08,
+                baseJump: 2.0,
+                chargedJump: 4.0,
+                cameraLerpFactor: 7,
+                cameraTargetLerpFactor: 9
+            )
+        case .tennis:
             return PS2MovementConfig(
                 topSpeed: 7.0,
-                acceleration: 11,
-                deceleration: 25,
-                airControl: 0.20,
-                baseJump: 5.0,
-                chargedJump: 9.0,
+                acceleration: 13,
+                deceleration: 27,
+                airControl: 0.24,
+                baseJump: 6.0,
+                chargedJump: 11.0,
                 cameraLerpFactor: 8,
                 cameraTargetLerpFactor: 10
+            )
+        case .gymnastics:
+            return PS2MovementConfig(
+                topSpeed: 6.0,
+                acceleration: 14,
+                deceleration: 30,
+                airControl: 0.28,
+                baseJump: 7.5,
+                chargedJump: 12.0,
+                cameraLerpFactor: 8,
+                cameraTargetLerpFactor: 10
+            )
+        case .brainBrawl:
+            return PS2MovementConfig(
+                topSpeed: 5.0,
+                acceleration: 8,
+                deceleration: 22,
+                airControl: 0.15,
+                baseJump: 4.0,
+                chargedJump: 6.0,
+                cameraLerpFactor: 9,
+                cameraTargetLerpFactor: 11
             )
         }
     }

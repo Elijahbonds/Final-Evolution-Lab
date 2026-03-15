@@ -87,6 +87,13 @@ struct GamePlayView: View {
     @State private var qteGradeText: String = ""
     @State private var timeScaleUpdateTask: Task<Void, Never>? = nil
 
+    @State private var brainBrawlQuestions: [BrainBrawlQuestion] = []
+    @State private var brainBrawlQuestionIndex: Int = 0
+    @State private var brainBrawlQuestionStartTime: Date?
+    @State private var brainBrawlAnsweredThisRound: Bool = false
+
+    @State private var dunkImpactToTrigger: (modifier: DunkModifier, impactIntensity: Double)? = nil
+
     @Environment(\.dismiss) private var dismiss
 
     private enum GolfSwingPhase { case idle, backswing }
@@ -148,8 +155,16 @@ struct GamePlayView: View {
         case .soccer: 5
         case .volleyball: 1
         case .gymnastics: 6
+        case .brainBrawl: 10
         default: 1
         }
+    }
+
+    private var currentBrainBrawlQuestion: BrainBrawlQuestion? {
+        guard gameMode.id == .brainBrawl,
+              brainBrawlQuestionIndex >= 0,
+              brainBrawlQuestionIndex < brainBrawlQuestions.count else { return nil }
+        return brainBrawlQuestions[brainBrawlQuestionIndex]
     }
 
     var body: some View {
@@ -279,6 +294,7 @@ struct GamePlayView: View {
                     p2Score: opponentScore,
                     title: gameMode.name,
                     accentColor: gameMode.accentColor,
+                    shardsEarned: shardsReward,
                     prqGain: prqReward,
                     prqCurrent: playerPRQ,
                     modeAttributeLabel: prqAttributeLabel,
@@ -392,7 +408,7 @@ struct GamePlayView: View {
                     HStack(spacing: 3) {
                         Image(systemName: "brain.head.profile.fill")
                             .font(.system(size: 7))
-                        Text("\(prqAttributeLabel) \(Int(prqAttributeValue * 100))")
+                        Text("\(prqAttributeLabel) \(Int(prqAttributeValue.rounded()))")
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
                     }
                     .foregroundStyle(playerPRQ >= PRQ.legendaryThreshold ? .yellow : gameMode.accentColor.opacity(0.6))
@@ -535,6 +551,8 @@ struct GamePlayView: View {
             GameSceneHostView(
                 gameMode: gameMode.id,
                 neuralDrive: viewModel.profile.metrics.neuralDrive,
+                onBaseballHit: gameMode.id == .baseball ? applyBaseballHit : nil,
+                dunkImpactToTrigger: gameMode.id == .basketballDunkContest ? $dunkImpactToTrigger : nil,
                 leftStickInput: leftStickVector,
                 rightStickInput: rightStickVector,
                 isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
@@ -613,6 +631,9 @@ struct GamePlayView: View {
                 gestureOverlay
             }
 
+            if gameMode.id == .brainBrawl && isActive, let q = currentBrainBrawlQuestion {
+                brainBrawlQuizOverlay(question: q)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -656,6 +677,10 @@ struct GamePlayView: View {
     private var gestureOverlay: some View {
         Color.clear
             .contentShape(Rectangle())
+            .onTapGesture {
+                guard isActive, gameMode.id == .baseball else { return }
+                performAction("Bunt")
+            }
             .gesture(
                 DragGesture(minimumDistance: 10)
                     .onChanged { value in
@@ -700,6 +725,135 @@ struct GamePlayView: View {
                         swipeStartTime = nil
                     }
             )
+    }
+
+    // MARK: - Brain Brawl Quiz Overlay (Big Brain Academy–style vs AI/others, curriculum questions)
+
+    private func brainBrawlQuizOverlay(question: BrainBrawlQuestion) -> some View {
+        VStack(spacing: 0) {
+            Spacer()
+            VStack(spacing: 16) {
+                Text(question.subject.uppercased())
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(gameMode.accentColor.opacity(0.9))
+                Text(question.question)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 8)
+
+                VStack(spacing: 10) {
+                    ForEach(Array(question.choices.enumerated()), id: \.offset) { index, choice in
+                        Button {
+                            submitBrainBrawlAnswer(choiceIndex: index)
+                        } label: {
+                            HStack {
+                                Text(choice)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(.white)
+                                    .multilineTextAlignment(.leading)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(gameMode.accentColor.opacity(0.8))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.white.opacity(0.08))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(gameMode.accentColor.opacity(0.35), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        .disabled(brainBrawlAnsweredThisRound)
+                        .opacity(brainBrawlAnsweredThisRound ? 0.6 : 1)
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .padding(.vertical, 24)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.deepBlack.opacity(0.92))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(gameMode.accentColor.opacity(0.25), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 24)
+            Spacer()
+            Spacer()
+        }
+        .allowsHitTesting(true)
+    }
+
+    private func submitBrainBrawlAnswer(choiceIndex: Int) {
+        guard isActive, gameMode.id == .brainBrawl else { return }
+        if brainBrawlAnsweredThisRound { return }
+        guard let q = currentBrainBrawlQuestion else { return }
+
+        brainBrawlAnsweredThisRound = true
+        let correct = (choiceIndex == q.correctIndex)
+
+        let basePoints = 10
+        let speedBonus: Int
+        if let start = brainBrawlQuestionStartTime {
+            let elapsed = Date().timeIntervalSince(start)
+            if elapsed < 3.0 { speedBonus = 5 }
+            else if elapsed < 6.0 { speedBonus = 3 }
+            else { speedBonus = 1 }
+        } else {
+            speedBonus = 1
+        }
+        let points = correct ? (basePoints + speedBonus) : 0
+
+        withAnimation(.spring(response: 0.3)) {
+            score += points
+            lastAction = correct ? "Correct! +\(points)" : "Wrong – \(q.correctAnswer)"
+            lastActionIsCritical = correct && speedBonus >= 5
+            lastActionIsBurst = false
+        }
+        if correct {
+            triggerFlash()
+            hapticSuccess(isCritical: lastActionIsCritical)
+        } else {
+            hapticFail()
+        }
+
+        let aiChance = DynamicDifficulty.opponentSuccessChance(
+            baseChance: 0.5,
+            playerScore: score,
+            aiScore: opponentScore,
+            sessionReadiness: sessionReadiness,
+            playerPRQ: playerPRQ
+        )
+        let aiCorrect = Double.random(in: 0...1) < aiChance
+        let aiPoints = aiCorrect ? (8 + Int.random(in: 0...4)) : 0
+        withAnimation(.spring(response: 0.25)) {
+            opponentScore += aiPoints
+        }
+
+        roundNumber += 1
+        if roundNumber > maxRounds {
+            endGame()
+            return
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            guard isActive else { return }
+            brainBrawlQuestionIndex += 1
+            brainBrawlQuestionStartTime = Date()
+            brainBrawlAnsweredThisRound = false
+            withAnimation { lastAction = "" }
+        }
     }
 
     // MARK: - Dunk Judge Overlay
@@ -822,7 +976,11 @@ struct GamePlayView: View {
                 case .penaltyKick:
                     penaltyKickControlView
                 case .rhythmTap:
-                    gymnasticsControlView
+                    if gameMode.id == .brainBrawl {
+                        brainBrawlControlHint
+                    } else {
+                        gymnasticsControlView
+                    }
                 default:
                     EmptyView()
                 }
@@ -1297,10 +1455,10 @@ struct GamePlayView: View {
                     .font(.system(size: 20))
                     .foregroundStyle(gameMode.accentColor)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("TAP TO PERFORM")
+                    Text(gameMode.id == .brainBrawl ? "CHOOSE ACTION" : "TAP TO PERFORM")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
-                    Text("Time your moves for bonus points")
+                    Text(gameMode.id == .brainBrawl ? "Tap, swipe, or answer" : "Time your moves for bonus points")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
@@ -1317,68 +1475,128 @@ struct GamePlayView: View {
             )
 
             HStack(spacing: 10) {
-                Button {
-                    performAction("Tumble")
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("TUMBLE")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                if gameMode.id == .brainBrawl {
+                    Button { performAction("Tap") } label: {
+                        rhythmTapButtonLabel(icon: "hand.tap", title: "TAP")
                     }
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(gameMode.accentColor)
-                    .clipShape(.rect(cornerRadius: 14))
-                }
-                .disabled(!isActive)
-                .opacity(isActive ? 1 : 0.4)
+                    .disabled(!isActive)
+                    .opacity(isActive ? 1 : 0.4)
+                    Button { performAction("Swipe") } label: {
+                        rhythmTapButtonLabel(icon: "hand.draw", title: "SWIPE")
+                    }
+                    .disabled(!isActive)
+                    .opacity(isActive ? 1 : 0.4)
+                    Button { performAction("Answer") } label: {
+                        rhythmTapButtonLabel(icon: "bubble.left.and.bubble.right", title: "ANSWER")
+                    }
+                    .disabled(!isActive)
+                    .opacity(isActive ? 1 : 0.4)
+                } else {
+                    Button {
+                        performAction("Tumble")
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 16, weight: .bold))
+                            Text("TUMBLE")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(gameMode.accentColor)
+                        .clipShape(.rect(cornerRadius: 14))
+                    }
+                    .disabled(!isActive)
+                    .opacity(isActive ? 1 : 0.4)
 
-                Button {
-                    performAction("Vault")
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "figure.gymnastics")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("VAULT")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    Button {
+                        performAction("Vault")
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: "figure.gymnastics")
+                                .font(.system(size: 16, weight: .bold))
+                            Text("VAULT")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(gameMode.accentColor.opacity(0.25))
+                        .clipShape(.rect(cornerRadius: 14))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 1)
+                        )
                     }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(gameMode.accentColor.opacity(0.25))
-                    .clipShape(.rect(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 1)
-                    )
-                }
-                .disabled(!isActive)
-                .opacity(isActive ? 1 : 0.4)
+                    .disabled(!isActive)
+                    .opacity(isActive ? 1 : 0.4)
 
-                Button {
-                    performAction("Dismount")
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("DISMOUNT")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                    Button {
+                        performAction("Dismount")
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16, weight: .bold))
+                            Text("DISMOUNT")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(gameMode.accentColor)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(gameMode.accentColor.opacity(0.12))
+                        .clipShape(.rect(cornerRadius: 14))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(gameMode.accentColor.opacity(0.3), lineWidth: 1)
+                        )
                     }
-                    .foregroundStyle(gameMode.accentColor)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(gameMode.accentColor.opacity(0.12))
-                    .clipShape(.rect(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(gameMode.accentColor.opacity(0.3), lineWidth: 1)
-                    )
+                    .disabled(!isActive)
+                    .opacity(isActive ? 1 : 0.4)
                 }
-                .disabled(!isActive)
-                .opacity(isActive ? 1 : 0.4)
             }
+        }
+    }
+
+    private func rhythmTapButtonLabel(icon: String, title: String) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .bold))
+            Text(title)
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+        }
+        .foregroundStyle(.black)
+        .frame(maxWidth: .infinity)
+        .frame(height: 56)
+        .background(gameMode.accentColor)
+        .clipShape(.rect(cornerRadius: 14))
+    }
+
+    private var brainBrawlControlHint: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 20))
+                    .foregroundStyle(gameMode.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ROUND \(roundNumber)/\(maxRounds)")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Text("Answer the question above • Compete vs AI")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(gameMode.accentColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(gameMode.accentColor.opacity(0.2), lineWidth: 1)
+                    )
+            )
         }
     }
 
@@ -1515,9 +1733,16 @@ struct GamePlayView: View {
                     .foregroundStyle(.orange)
                     .tracking(2)
                 Spacer()
-                Text("R\(dunkEngine.round)/\(dunkEngine.totalRounds)")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
+                HStack(spacing: 8) {
+                    Text("R\(dunkEngine.round)/\(dunkEngine.totalRounds)")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5))
+                    if dunkEngine.bestDunkScore > 0 {
+                        Text("BEST: \(dunkEngine.bestDunkScore)")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(.yellow.opacity(0.9))
+                    }
+                }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -1927,9 +2152,15 @@ struct GamePlayView: View {
                 Spacer()
                 VStack(spacing: 6) {
                     Text(dunkPhaseLabel)
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
                         .foregroundStyle(dunkPhaseColor)
                         .tracking(2)
+                    if !dunkPhaseTip.isEmpty {
+                        Text(dunkPhaseTip)
+                            .font(.system(size: 8, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .lineLimit(1)
+                    }
                     if dunkEngine.phase == .airborne {
                         Text(String(format: "HEIGHT: %.0f%%", dunkEngine.jumpHeight * 100))
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
@@ -1954,10 +2185,20 @@ struct GamePlayView: View {
 
     private var dunkPhaseLabel: String {
         switch dunkEngine.phase {
-        case .approach: return "SPRINTING"
+        case .approach: return "SPRINT"
         case .launch: return "GATHER"
         case .airborne: return "IN THE AIR"
-        case .landing: return "LANDING"
+        case .landing: return "LAND"
+        default: return ""
+        }
+    }
+
+    private var dunkPhaseTip: String {
+        switch dunkEngine.phase {
+        case .approach: return "Release in green for max height"
+        case .launch: return "Hit the zone for perfect launch"
+        case .airborne: return "△□○✕ = different dunks"
+        case .landing: return "Style land = bonus points"
         default: return ""
         }
     }
@@ -2044,6 +2285,7 @@ struct GamePlayView: View {
         case .tennis: ["Serve", "Volley", "Baseline"]
         case .volleyball: ["Spike"]
         case .gymnastics: ["Tumble", "Vault", "Dismount"]
+        case .brainBrawl: ["Tap", "Swipe", "Answer"]
         }
     }
 
@@ -2089,7 +2331,7 @@ struct GamePlayView: View {
         VStack(spacing: 6) {
             ForEach(shardRewards, id: \.transaction.rawValue) { reward in
                 HStack {
-                    Text(reward.transaction.rawValue.replacingOccurrences(of: "game", with: "").uppercased())
+                    Text(rewardLabel(for: reward.transaction))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -2100,6 +2342,18 @@ struct GamePlayView: View {
             }
         }
         .padding(.horizontal, 20)
+    }
+
+    private func rewardLabel(for transaction: ShardTransaction) -> String {
+        switch transaction {
+        case .gameWin: return "WIN"
+        case .gameDraw: return "DRAW"
+        case .gameLoss: return "LOSS"
+        case .matchComplete: return "PARTICIPATION"
+        case .comboBonus: return "COMBO"
+        case .criticalHit: return "CRITICALS"
+        default: return transaction.rawValue.replacingOccurrences(of: "game", with: "").uppercased()
+        }
     }
 
     private var rewardsRow: some View {
@@ -2208,6 +2462,14 @@ struct GamePlayView: View {
         qteGradeText = ""
         timeScaleUpdateTask?.cancel()
         timeScaleUpdateTask = nil
+
+        if gameMode.id == .brainBrawl {
+            let trackId = viewModel.selectedTrack?.id
+            brainBrawlQuestions = BrainBrawlQuestionBank.questionsForTrack(trackId)
+            brainBrawlQuestionIndex = 0
+            brainBrawlQuestionStartTime = Date()
+            brainBrawlAnsweredThisRound = false
+        }
 
         if isTimerBased {
             switch gameMode.id {
@@ -2527,6 +2789,8 @@ struct GamePlayView: View {
             neuralBurst: arcadePhysics.neuralBurstActive
         )
 
+        dunkImpactToTrigger = (dunkEngine.activeModifier, dunkEngine.impactIntensity)
+
         withAnimation(.spring(response: 0.3)) {
             lastJudgeScores = (result.j1, result.j2, result.j3)
             crowdMessage = result.message
@@ -2694,6 +2958,8 @@ struct GamePlayView: View {
             return 3
         case .gymnastics:
             return action == "Vault" ? 5 : (action == "Tumble" ? 3 : 4)
+        case .brainBrawl:
+            return 2
         }
     }
 
@@ -2851,6 +3117,9 @@ struct GamePlayView: View {
 
     private func handleSwipeEnd(dx: Double, dy: Double, speed: Double) {
         guard isActive else { return }
+        if gameMode.id == .baseball {
+            return
+        }
         let charge = min(1, max(0, speed / 600))
         applyOutcomeFromCharge(charge > 0.15 ? charge : 0.1)
     }
@@ -2870,6 +3139,45 @@ struct GamePlayView: View {
         applyOutcomeFromCharge(charge)
         withAnimation(.spring(response: 0.15)) {
             aimPosition = CGPoint(x: 0.5, y: 0.5)
+        }
+    }
+
+    private func applyBaseballHit(_ result: HomeRunDerbyManager.HitResult) {
+        guard isActive else { return }
+        let points: Int
+        let message: String
+        switch result.grade {
+        case .perfect:
+            points = 2
+            message = result.estimatedDistanceFeet >= 350 ? "HOME RUN! \(result.estimatedDistanceFeet) ft" : "Perfect! \(result.estimatedDistanceFeet) ft"
+        case .great:
+            points = 1
+            message = "Solid contact! \(result.estimatedDistanceFeet) ft"
+        case .early, .late:
+            points = 1
+            message = "Foul / weak contact \(result.estimatedDistanceFeet) ft"
+        case .missed:
+            points = 0
+            message = "MISSED"
+        }
+        withAnimation(.spring(response: 0.3)) {
+            score += points
+            lastAction = message
+            lastActionIsCritical = result.grade == .perfect && result.estimatedDistanceFeet >= 350
+            lastActionIsBurst = false
+        }
+        if points > 0 {
+            triggerFlash()
+            triggerScreenShake(intensity: result.grade == .perfect ? 0.4 : Double(physicsConfig.floorShakeAmplitude) * 10)
+        }
+        if !isTimerBased {
+            roundNumber += 1
+            if roundNumber > maxRounds { endGame() }
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard isActive else { return }
+            withAnimation { lastAction = "" }
         }
     }
 
@@ -2971,7 +3279,10 @@ struct GamePlayView: View {
         case .golf: strings = ["Nice!", "Close!", "Gimme!"]
         case .football: strings = ["TOUCHDOWN!", "HOUSE!", "GONE!"]
         case .soccer: strings = ["GOAL!", "TOP CORNER!", "NET!"]
+        case .tennis: strings = ["ACE!", "WINNER!", "POINT!"]
         case .volleyball: strings = ["Point!", "Spike!", "Ace!", "Block!"]
+        case .gymnastics: strings = ["Stuck!", "Stick!", "Clean!"]
+        case .brainBrawl: strings = ["CORRECT!", "NICE!", "POINT!"]
         default: return isCritical ? "CRITICAL +\(points)" : "+\(points)"
         }
         let base = strings.randomElement() ?? strings[0]
@@ -2985,7 +3296,10 @@ struct GamePlayView: View {
         case .golf: strings = ["Short", "Long", "Lip out"]
         case .football: strings = ["Tackled", "Out of bounds"]
         case .soccer: strings = ["Saved", "Wide", "Over"]
+        case .tennis: strings = ["Fault", "Long", "Net"]
         case .volleyball: strings = ["Out", "Net", "Dig"]
+        case .gymnastics: strings = ["Step", "Bend", "Fall"]
+        case .brainBrawl: strings = ["Wrong", "Miss", "Next"]
         default: return "MISSED"
         }
         return (strings.randomElement() ?? strings[0]).uppercased()
@@ -2996,6 +3310,7 @@ struct GamePlayView: View {
         viewModel.profile.metrics.prqScore = PRQ.clamp(viewModel.profile.metrics.prqScore + prqReward)
         viewModel.profile.metrics.neuralDrive = min(100, viewModel.profile.metrics.neuralDrive + 3)
 
+        let isRoundBased = !isTimerBased && !isDunkContest && !isBlacktop && gameMode.id != .football
         let result = GameSessionResult(
             id: UUID().uuidString,
             gameModeId: gameMode.id.rawValue,
@@ -3005,7 +3320,8 @@ struct GamePlayView: View {
             shardsEarned: shardsReward,
             prqBonus: prqReward,
             isMultiplayer: multipeerService.isConnected,
-            duration: isTimerBased ? 60 : roundNumber * 5
+            duration: isTimerBased ? 60 : roundNumber * 5,
+            roundsPlayed: isRoundBased ? roundNumber : nil
         )
 
         SaveSystem.saveProfile(viewModel.profile)
@@ -3266,7 +3582,8 @@ struct GamePlayView: View {
     private func executeGoldenTrick(_ trick: DirectionalTrick) {
         let physics = leakageAdjustedPhysics
         let riskRoll = Double.random(in: 0...1)
-        let successThreshold = physics.successChanceBase / trick.riskFactor
+        let safeRisk = max(0.1, trick.riskFactor)
+        let successThreshold = min(1.0, physics.successChanceBase / safeRisk)
         let success = riskRoll < successThreshold
         let isCritical = success && Double.random(in: 0...1) < physics.criticalHitChance
 
@@ -3449,15 +3766,16 @@ struct GamePlayView: View {
             return
         }
 
+        let actions = actionsForMode
+        let index: Int
         switch button {
-        case .triangle:
-            performAction("Shoot")
-        case .square:
-            performAction("Dunk")
-        case .circle:
-            performAction("Sprint")
-        case .cross:
-            performAction("Style")
+        case .triangle: index = 0
+        case .square: index = 1
+        case .circle: index = 2
+        case .cross: index = 3
+        }
+        if index < actions.count {
+            performAction(actions[index])
         }
     }
 
@@ -3723,9 +4041,11 @@ struct GamePlayView: View {
                     Button {
                         withAnimation(.spring(response: 0.2)) {
                             defensiveState.toggleHandsUp()
+                            var d = defensiveState
+                            d.defenderDistance = defenderSimDistance
+                            defensiveState = d
                             lastAction = defensiveState.handsUp ? "HANDS UP" : "HANDS DOWN"
                         }
-                        simulateDefenderProximity()
                         Task {
                             try? await Task.sleep(for: .seconds(1.0))
                             withAnimation { if lastAction == "HANDS UP" || lastAction == "HANDS DOWN" { lastAction = "" } }

@@ -120,7 +120,29 @@ private struct TrainingHubContent: View {
     }
 
     private var trackSelector: some View {
-        HStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 10) {
+            if let recommended = labViewModel.recommendedTrackFromAudit, recommended != vm.currentTrack {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.caption)
+                        .foregroundStyle(Theme.brandCyan)
+                    Text("Program() recommends: \(recommended.rawValue)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Switch") {
+                        withAnimation(.spring(response: 0.3)) { vm.switchTrack(to: recommended) }
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.brandCyan)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Theme.brandCyan.opacity(0.08))
+                )
+            }
+            HStack(spacing: 0) {
             ForEach(TrainingTrack.allCases) { track in
                 Button {
                     withAnimation(.spring(response: 0.3)) {
@@ -155,6 +177,7 @@ private struct TrainingHubContent: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Theme.difficultyColor(vm.currentTrack.difficulty).opacity(0.15), lineWidth: 1)
         )
+        }
     }
 
     private var progressCard: some View {

@@ -41,19 +41,31 @@ class DemoEngine {
     func loadVideo(for exerciseId: String) {
         videoLoadState = .loading
 
-        guard let urlString = Self.videoMap[exerciseId],
-              let url = URL(string: urlString) else {
+        let url: URL? = {
+            if let bundled = Bundle.main.url(forResource: exerciseId, withExtension: "mp4") {
+                return bundled
+            }
+            if let urlString = Self.videoMap[exerciseId], let u = URL(string: urlString), u.scheme == "file" {
+                return u
+            }
+            if let urlString = Self.videoMap[exerciseId], let u = URL(string: urlString) {
+                return u
+            }
+            return nil
+        }()
+
+        guard let videoURL = url else {
             videoLoadState = .failed
             currentMode = .avatar
             return
         }
 
         Task {
-            let asset = AVURLAsset(url: url)
+            let asset = AVURLAsset(url: videoURL)
             do {
                 let isPlayable = try await asset.load(.isPlayable)
                 if isPlayable {
-                    videoLoadState = .ready(url)
+                    videoLoadState = .ready(videoURL)
                 } else {
                     videoLoadState = .failed
                     currentMode = .avatar

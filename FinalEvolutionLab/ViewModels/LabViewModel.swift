@@ -56,6 +56,20 @@ class LabViewModel {
         return sessions.filter { $0.date >= weekAgo }.reduce(0) { $0 + $1.shardsEarned }
     }
 
+    /// Program(): Recommends training track from PRQ and biomechanics audit (deficiency-driven prescription).
+    var recommendedTrackFromAudit: TrainingTrack? {
+        let prq = profile.metrics.prqScore
+        let audit = biomechanicsAudit
+        let leakage = audit?.leakagePercentage ?? 0
+        if prq < 50 || leakage > 50 {
+            return .foundations
+        }
+        if prq < 65 || audit?.overallGrade == .developing {
+            return .flight
+        }
+        return .elite
+    }
+
     func completeExercise(_ exercise: Exercise) {
         completedExerciseIds.insert(exercise.id)
         profile.metrics.neuralDrive = min(100, profile.metrics.neuralDrive + 2.5)
@@ -99,19 +113,55 @@ class LabViewModel {
     }
 
     var effectiveMetrics: PerformanceMetrics {
+        let basePrq = PRQ.clamp(profile.metrics.prqScore)
         guard let card = profile.activeCreatorCard,
               let catalogCard = CreatorCard.catalog.first(where: { $0.id == card.cardId }) else {
-            return profile.metrics
+            return PerformanceMetrics(
+                efficiencyScore: profile.metrics.efficiencyScore,
+                prqScore: basePrq,
+                readinessScore: profile.metrics.readinessScore,
+                verticalPotential: profile.metrics.verticalPotential,
+                neuralDrive: profile.metrics.neuralDrive,
+                popForce: profile.metrics.popForce,
+                currentOutfit: profile.metrics.currentOutfit
+            )
         }
         let boost = catalogCard.metricsBoost
         return PerformanceMetrics(
             efficiencyScore: min(100, profile.metrics.efficiencyScore + boost.efficiencyScore),
-            prqScore: min(100, profile.metrics.prqScore + boost.prqScore),
+            prqScore: PRQ.clamp(min(100, basePrq + boost.prqScore)),
             readinessScore: min(100, profile.metrics.readinessScore + boost.readinessScore),
             verticalPotential: min(100, profile.metrics.verticalPotential + boost.verticalPotential),
             neuralDrive: min(100, profile.metrics.neuralDrive + boost.neuralDrive),
+            popForce: min(100, profile.metrics.popForce + boost.popForce),
             currentOutfit: boost.currentOutfit
         )
+    }
+
+    func applyScanResult(_ result: SystemScanResult) {
+        profile.systemScan = result
+        profile.metrics.prqScore = PRQ.clamp(result.prqScore)
+        profile.metrics.verticalPotential = result.verticalEstimateInches
+        profile.metrics.readinessScore = max(70, profile.metrics.readinessScore)
+        profile.metrics.efficiencyScore = max(70, profile.metrics.efficiencyScore)
+        profile.metrics.popForce = Self.derivePopForceFromScan(
+            flightTimeSeconds: result.flightTimeSeconds,
+            verticalInches: result.verticalEstimateInches,
+            prq: result.prqScore
+        )
+
+        biomechanicsAudit = BiomechanicsAudit.fromScanResult(result)
+
+        SaveSystem.saveProfile(profile)
+        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
+    }
+
+    /// Derives Pop Force (RFD/GRF proxy) from scan: flight time = reactivity, vertical = output.
+    static func derivePopForceFromScan(flightTimeSeconds: Double, verticalInches: Double, prq: Double) -> Double {
+        let flightComponent = min(50, flightTimeSeconds * 80)
+        let verticalComponent = min(40, verticalInches * 1.25)
+        let prqComponent = prq * 0.1
+        return PRQ.clamp(flightComponent + verticalComponent + prqComponent)
     }
 
     var arcadePhysics: ArcadePhysics {
@@ -208,18 +258,6 @@ class LabViewModel {
         SaveSystem.saveProfile(profile)
     }
 
-    func applyScanResult(_ result: SystemScanResult) {
-        profile.systemScan = result
-        profile.metrics.prqScore = PRQ.clamp(result.prqScore)
-        profile.metrics.verticalPotential = result.verticalEstimateInches
-        profile.metrics.readinessScore = max(70, profile.metrics.readinessScore)
-        profile.metrics.efficiencyScore = max(70, profile.metrics.efficiencyScore)
-
-        biomechanicsAudit = BiomechanicsAudit.fromScanResult(result)
-
-        SaveSystem.saveProfile(profile)
-        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
-    }
 
     func applyCreatorCard(_ card: CreatorCard) {
         let alreadyOwned = profile.ownsCard(card.id)
@@ -228,12 +266,15 @@ class LabViewModel {
             profile.evolutionShards -= card.costShards
             profile.ownedCardIds.append(card.id)
         }
+        let oneWeekFromNow = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
         profile.activeCreatorCard = CreatorCardState(
             cardId: card.id,
             creatorName: card.creatorName,
             appliedAt: Date(),
             costShards: card.costShards,
-            metricsBoost: card.metricsBoost
+            metricsBoost: card.metricsBoost,
+            nextTaxDue: oneWeekFromNow,
+            weeklyTaxShards: Self.weeklyCardTaxShards
         )
         SaveSystem.saveProfile(profile)
     }
@@ -244,6 +285,8 @@ class LabViewModel {
     }
 
     static let critiqueCostShards = 500
+    /// Weekly Shard tax to keep equipped Creator Card buffs active (Spatial Sports Economy).
+    static let weeklyCardTaxShards = 25
 
     func requestCritique(exerciseName: String, notes: String) -> Bool {
         let cost = Self.critiqueCostShards
@@ -293,3 +336,4 @@ class LabViewModel {
         SaveSystem.saveCritiqueRequests(critiqueRequests)
     }
 }
+

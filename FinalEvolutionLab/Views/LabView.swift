@@ -13,6 +13,8 @@ struct LabView: View {
     @State private var showGlobalMatchmaking: Bool = false
     @State private var showCoach: Bool = false
     @State private var showBlueprints: Bool = false
+    @State private var showBiomechanicsEducation: Bool = false
+    @State private var showRecoveryLab: Bool = false
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
@@ -35,6 +37,7 @@ struct LabView: View {
                 tierBanner
                 scanSection
                 biomechanicsSection
+                movementScienceSection
                 athleteProfileBanner
                 globalArenaCard
                 courtSection
@@ -92,6 +95,12 @@ struct LabView: View {
         }
         .navigationDestination(isPresented: $showBlueprints) {
             BlueprintsView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showBiomechanicsEducation) {
+            BiomechanicsEducationView()
+        }
+        .sheet(isPresented: $showRecoveryLab) {
+            RecoveryLabView(viewModel: viewModel)
         }
     }
 
@@ -386,9 +395,9 @@ struct LabView: View {
                                 .padding(8)
                         }
                         .overlay(alignment: .bottom) {
-                            Text("HOLD X TO GATHER")
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.7))
+                            Text("SPRINT → GATHER → FLY → FACE BUTTONS FOR DUNKS")
+                                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.8))
                                 .padding(.bottom, 40)
                         }
                         .transition(.opacity.combined(with: .scale(scale: 0.98)))
@@ -1000,20 +1009,20 @@ struct LabView: View {
                 }
 
                 VStack(spacing: 6) {
-                    Text("SYSTEM SCAN")
+                    Text("YOUR AVATAR & SCORE")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(Theme.brandCyan)
                         .tracking(3)
 
-                    Text("Upload a jump video to get your PRQ")
+                    Text("Get your readiness score and in-game avatar — video optional")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
                 HStack(spacing: 8) {
-                    Image(systemName: "video.badge.plus")
+                    Image(systemName: "person.crop.circle.badge.plus")
                         .font(.system(size: 12, weight: .bold))
-                    Text("START SCAN")
+                    Text("SET UP")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                 }
                 .foregroundStyle(.black)
@@ -1481,7 +1490,43 @@ struct LabView: View {
             MetricCard(title: SimpleModeLabels.prqScore(simpleMode), value: String(format: "%.1f", effectiveMetrics.prqScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
             MetricCard(title: SimpleModeLabels.efficiency(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.efficiencyScore), icon: "bolt.fill", color: .orange)
             MetricCard(title: SimpleModeLabels.readiness(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.readinessScore), icon: "heart.fill", color: .red)
+            MetricCard(title: SimpleModeLabels.popForce(simpleMode), value: String(format: "%.0f", effectiveMetrics.popForce), icon: "flame.fill", color: Theme.brandCyan)
             MetricCard(title: SimpleModeLabels.evolutionShards(simpleMode), value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)
+        }
+    }
+
+    private var movementScienceSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MOVEMENT SCIENCE")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+            HStack(spacing: 12) {
+                Button {
+                    showBiomechanicsEducation = true
+                } label: {
+                    Label("RFD & GRF", systemImage: "book.closed.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.brandBlue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Theme.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+                Button {
+                    showRecoveryLab = true
+                } label: {
+                    Label("Recovery Lab", systemImage: "heart.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Theme.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 

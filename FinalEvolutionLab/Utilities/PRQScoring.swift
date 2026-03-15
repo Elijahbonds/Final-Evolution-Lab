@@ -30,7 +30,9 @@ nonisolated enum PRQ: Sendable {
         let comboBonus = Swift.min(1.0, Double(combo) * 0.05)
         let criticalBonus = Swift.min(0.5, Double(criticals) * 0.1)
         let dominanceBonus = won ? Swift.min(0.5, Double(Swift.max(0, scoreDifferential)) * 0.05) : 0
-        return clamp(base * modeMultiplier + comboBonus + criticalBonus + dominanceBonus)
+        let raw = base * modeMultiplier + comboBonus + criticalBonus + dominanceBonus
+        let minimumParticipation: Double = 0.1
+        return clamp(Swift.max(minimumParticipation, raw))
     }
 
     static func modeWeight(for mode: GameModeId) -> Double {
@@ -46,11 +48,13 @@ nonisolated enum PRQ: Sendable {
         case .tennis: 1.1
         case .volleyball: 1.2
         case .gymnastics: 1.0
+        case .brainBrawl: 0.95
         }
     }
 
     static func successChanceFromPRQ(_ prq: Double, for mode: GameModeId) -> Double {
-        let normalized = Swift.min(Swift.max(prq / 100.0, 0), 1)
+        let safe = prq.isFinite ? prq : `default`
+        let normalized = Swift.min(Swift.max(safe / 100.0, 0), 1)
         let modeBase: Double
         switch mode {
         case .basketballHeadToHead, .basketball3v3: modeBase = 0.40
@@ -63,6 +67,7 @@ nonisolated enum PRQ: Sendable {
         case .tennis: modeBase = 0.38
         case .volleyball: modeBase = 0.40
         case .gymnastics: modeBase = 0.35
+        case .brainBrawl: modeBase = 0.38
         }
         return modeBase + normalized * (0.90 - modeBase)
     }
@@ -79,11 +84,13 @@ nonisolated enum PRQ: Sendable {
         case .tennis: "Rally Control"
         case .volleyball: "Spike Power"
         case .gymnastics: "Form Score"
+        case .brainBrawl: "Brain Speed"
         }
     }
 
     static func attributeValue(prq: Double, for mode: GameModeId) -> Double {
-        let normalized = Swift.min(Swift.max(prq / 100.0, 0), 1)
+        let safe = prq.isFinite ? prq : `default`
+        let normalized = Swift.min(Swift.max(safe / 100.0, 0), 1)
         let modeScale: Double
         switch mode {
         case .basketballHeadToHead, .basketball3v3: modeScale = 0.85
@@ -96,6 +103,7 @@ nonisolated enum PRQ: Sendable {
         case .tennis: modeScale = 0.78
         case .volleyball: modeScale = 0.82
         case .gymnastics: modeScale = 0.75
+        case .brainBrawl: modeScale = 0.78
         }
         return (modeScale * normalized * 100).rounded() / 100
     }

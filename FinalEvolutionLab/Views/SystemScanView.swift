@@ -1,6 +1,22 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+import UniformTypeIdentifiers
+
+private struct VideoFile: Transferable {
+    let url: URL
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .movie) { video in
+            SentTransferredFile(video.url)
+        } importing: { received in
+            let name = received.file.lastPathComponent
+            let temp = FileManager.default.temporaryDirectory.appending(path: name.isEmpty ? "scan_video.mov" : name)
+            try? FileManager.default.removeItem(at: temp)
+            try FileManager.default.copyItem(at: received.file, to: temp)
+            return Self(url: temp)
+        }
+    }
+}
 
 struct SystemScanView: View {
     let sport: String?
@@ -11,6 +27,7 @@ struct SystemScanView: View {
     @State private var phase: ScanPhase = .picking
     @State private var selectedItem: PhotosPickerItem?
     @State private var videoURL: URL?
+    @State private var isLoadingVideo: Bool = false
     @State private var analysisProgress: Double = 0
     @State private var scanLines: CGFloat = 0
     @State private var gridPulse: Bool = false
@@ -83,56 +100,102 @@ struct SystemScanView: View {
     }
 
     private var pickingPhase: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 28) {
             Spacer()
 
-            VStack(spacing: 16) {
-                Image(systemName: "film.stack")
+            VStack(spacing: 14) {
+                Image(systemName: "person.crop.circle.badge.checkmark")
                     .font(.system(size: 48, weight: .bold))
                     .foregroundStyle(Theme.brandBlue)
                     .symbolEffect(.pulse)
 
-                Text("SELECT YOUR CLIP")
+                Text("SET UP YOUR AVATAR")
                     .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundStyle(Theme.brandBlue)
                     .tracking(3)
 
-                Text("Upload a dunk or vertical jump attempt from your camera roll. Our system will analyze your movement data and generate your PRQ score.")
+                Text("Get a readiness score (PRQ) and an in‑game avatar. Add a jump video for a personalized result, or skip to start right away.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, 28)
 
-                HStack(spacing: 20) {
-                    ScanFeaturePill(icon: "waveform.path.ecg", label: "FLIGHT TIME")
+                HStack(spacing: 14) {
+                    ScanFeaturePill(icon: "waveform.path.ecg", label: "FLIGHT")
                     ScanFeaturePill(icon: "arrow.up.and.down", label: "VERTICAL")
-                    ScanFeaturePill(icon: "brain.head.profile.fill", label: "PRQ SCORE")
+                    ScanFeaturePill(icon: "brain.head.profile.fill", label: "PRQ")
                 }
             }
 
-            PhotosPicker(
-                selection: $selectedItem,
-                matching: .videos,
-                photoLibrary: .shared()
-            ) {
-                HStack(spacing: 8) {
-                    Image(systemName: "photo.on.rectangle.angled")
-                    Text("OPEN CAMERA ROLL")
+            VStack(spacing: 12) {
+                PhotosPicker(
+                    selection: $selectedItem,
+                    matching: .videos,
+                    photoLibrary: .shared()
+                ) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "video.fill")
+                        Text("CHOOSE A JUMP VIDEO")
+                    }
+                    .font(.system(.subheadline, design: .monospaced, weight: .black))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Theme.brandBlue)
+                    .clipShape(.rect(cornerRadius: 14))
                 }
-                .font(.system(.subheadline, design: .monospaced, weight: .black))
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Theme.brandBlue)
-                .clipShape(.rect(cornerRadius: 14))
+                .onChange(of: selectedItem) { _, newItem in
+                    guard let newItem else { return }
+                    loadVideoAndStartAnalysis(newItem)
+                }
+
+                Button {
+                    videoURL = nil
+                    startAnalysis()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bolt.fill")
+                        Text("QUICK SETUP — NO VIDEO")
+                    }
+                    .font(.system(.subheadline, design: .monospaced, weight: .bold))
+                    .foregroundStyle(Theme.brandCyan)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Theme.brandCyan.opacity(0.12))
+                    .clipShape(.rect(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 24)
-            .onChange(of: selectedItem) { _, newItem in
-                guard newItem != nil else { return }
-                startAnalysis()
+            .overlay {
+                if isLoadingVideo {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                    VStack(spacing: 10) {
+                        ProgressView()
+                            .tint(Theme.brandCyan)
+                            .scaleEffect(1.2)
+                        Text("Loading video...")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
+            .allowsHitTesting(!isLoadingVideo)
 
             Spacer()
+        }
+    }
+
+    private func loadVideoAndStartAnalysis(_ item: PhotosPickerItem) {
+        isLoadingVideo = true
+        Task {
+            let loaded = try? await item.loadTransferable(type: VideoFile.self)
+            await MainActor.run {
+                videoURL = loaded?.url
+                isLoadingVideo = false
+                startAnalysis()
+            }
         }
     }
 
@@ -178,7 +241,7 @@ struct SystemScanView: View {
                     .tracking(2)
                     .contentTransition(.opacity)
 
-                Text("Processing movement data...")
+                Text(videoURL == nil ? "Setting up your avatar & score..." : "Processing movement data...")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -206,12 +269,12 @@ struct SystemScanView: View {
         ScrollView {
             VStack(spacing: 24) {
                 VStack(spacing: 8) {
-                    Text("SCAN COMPLETE")
+                    Text("ALL SET")
                         .font(.system(size: 12, weight: .black, design: .monospaced))
                         .foregroundStyle(Theme.brandCyan)
                         .tracking(4)
 
-                    Text("Your PRQ")
+                    Text("Your readiness score (PRQ)")
                         .font(.system(size: 34, weight: .black))
                         .italic()
                         .foregroundStyle(.white)
@@ -242,12 +305,18 @@ struct SystemScanView: View {
                     .font(.system(size: 20, weight: .black))
                     .foregroundStyle(gradeColor(result.prqScore))
 
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                let popForce = LabViewModel.derivePopForceFromScan(flightTimeSeconds: result.flightTimeSeconds, verticalInches: result.verticalEstimateInches, prq: result.prqScore)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                     ScanMetricCell(label: "VERTICAL", value: String(format: "%.1f\"", result.verticalEstimateInches), color: Theme.brandBlue)
                     ScanMetricCell(label: "FLIGHT", value: String(format: "%.2fs", result.flightTimeSeconds), color: Theme.brandCyan)
+                    ScanMetricCell(label: "POP FORCE", value: String(format: "%.0f", popForce), color: .orange)
                     ScanMetricCell(label: "TRACK", value: result.recommendedTrack.uppercased(), color: Theme.elitePurple)
                 }
                 .padding(.horizontal)
+                Text("Pop Force = RFD + GRF efficiency. Train reactive drills to improve.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 6)
 
                 avatarPreviewSection(result.avatarConfig)
 
@@ -380,6 +449,13 @@ struct SystemScanView: View {
         }
     }
 
+    private func videoDurationSeconds(_ url: URL) -> Double? {
+        let asset = AVURLAsset(url: url)
+        let duration = asset.duration
+        guard duration.isNumeric else { return nil }
+        return CMTimeGetSeconds(duration)
+    }
+
     private func startAnalysis() {
         withAnimation(.spring(response: 0.4)) { phase = .analyzing }
         analysisProgress = 0
@@ -392,7 +468,7 @@ struct SystemScanView: View {
                 }
             }
 
-            let result = generateScanResult()
+            let result = generateScanResult(usingVideoURL: videoURL)
             generatedResult = result
 
             try? await Task.sleep(for: .milliseconds(500))
@@ -403,10 +479,10 @@ struct SystemScanView: View {
         }
     }
 
-    private func generateScanResult() -> SystemScanResult {
-        let basePRQ: Double
-        let baseVertical: Double
-        let baseFlight: Double
+    private func generateScanResult(usingVideoURL url: URL?) -> SystemScanResult {
+        var basePRQ: Double
+        var baseVertical: Double
+        var baseFlight: Double
         let recommendedTrack: String
 
         switch goal ?? "" {
@@ -430,6 +506,11 @@ struct SystemScanView: View {
             baseVertical = Double.random(in: 20...28)
             baseFlight = Double.random(in: 0.40...0.55)
             recommendedTrack = "Foundations"
+        }
+
+        if let url, let durationSeconds = videoDurationSeconds(url) {
+            let clipFlight = min(0.9, max(0.35, durationSeconds * 0.4))
+            baseFlight = clipFlight * Double.random(in: 0.92...1.08)
         }
 
         let grade: String

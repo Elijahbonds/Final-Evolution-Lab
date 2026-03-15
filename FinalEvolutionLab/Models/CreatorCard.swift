@@ -27,6 +27,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 readinessScore: 5,
                 verticalPotential: 20,
                 neuralDrive: 10,
+                popForce: 8,
                 currentOutfit: "coach_v"
             ),
             movementSignature: MovementSignature(
@@ -52,6 +53,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 readinessScore: 5,
                 verticalPotential: 25,
                 neuralDrive: 8,
+                popForce: 12,
                 currentOutfit: "bonds_bounce"
             ),
             movementSignature: MovementSignature(
@@ -77,6 +79,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 readinessScore: 8,
                 verticalPotential: 18,
                 neuralDrive: 15,
+                popForce: 10,
                 currentOutfit: "flight_lab"
             ),
             movementSignature: MovementSignature(
@@ -102,6 +105,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 readinessScore: 10,
                 verticalPotential: 12,
                 neuralDrive: 25,
+                popForce: 6,
                 currentOutfit: "neural_max"
             ),
             movementSignature: MovementSignature(

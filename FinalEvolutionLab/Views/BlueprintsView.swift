@@ -108,7 +108,7 @@ struct BlueprintsView: View {
 
                     Spacer()
 
-                    Link(destination: URL(string: "https://youtube.com/@FinalEvolutionFitness")!) {
+                    Link(destination: SafeURL.make("https://youtube.com/@FinalEvolutionFitness")) {
                         HStack(spacing: 4) {
                             Image(systemName: "play.rectangle.fill")
                                 .font(.system(size: 9, weight: .bold))

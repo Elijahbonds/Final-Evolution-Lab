@@ -5,6 +5,8 @@ struct GameSceneHostView: UIViewRepresentable {
     var gameMode: GameModeId = .basketballHeadToHead
     var neuralDrive: Double = 50
     var onAction: () -> Void = {}
+    var onBaseballHit: ((HomeRunDerbyManager.HitResult) -> Void)? = nil
+    var dunkImpactToTrigger: Binding<(modifier: DunkModifier, impactIntensity: Double)?>? = nil
     var leftStickInput: CGPoint = .zero
     var rightStickInput: CGPoint = .zero
     var isMidAir: Bool = false
@@ -25,9 +27,16 @@ struct GameSceneHostView: UIViewRepresentable {
         scnView.addGestureRecognizer(tap)
 
         context.coordinator.scnView = scnView
+        context.coordinator.onBaseballHit = onBaseballHit
         context.coordinator.applyNeuralDriveTuning(in: scnView.scene)
         context.coordinator.startCameraFollowLoop()
         context.coordinator.startPlayerMovementLoop()
+        if gameMode == .baseball, let scene = scnView.scene {
+            let coordinator = context.coordinator
+            HomeRunDerbyManager.setOnHitResult(for: scene) { [weak coordinator] result in
+                coordinator?.onBaseballHit?(result)
+            }
+        }
 
         return scnView
     }
@@ -39,7 +48,19 @@ struct GameSceneHostView: UIViewRepresentable {
         context.coordinator.isMidAir = isMidAir
         context.coordinator.isSpecialMove = isSpecialMove
         context.coordinator.isSlowMotion = isSlowMotion
+        context.coordinator.onBaseballHit = onBaseballHit
         context.coordinator.applyNeuralDriveTuning(in: uiView.scene)
+
+        if gameMode == .basketballDunkContest,
+           let binding = dunkImpactToTrigger,
+           let value = binding.wrappedValue,
+           let scene = uiView.scene {
+            let rimPosition = SCNVector3(-4.5, 3.05, 0)
+            GameSceneFactory.triggerDunkImpactParticles(in: scene, at: rimPosition, modifier: value.modifier)
+            let config = ArcadePhysics.forDunk(modifier: value.modifier, jumpHeight: value.impactIntensity, impactIntensity: value.impactIntensity)
+            GameSceneFactory.triggerRimDistortion(in: scene, config: config)
+            DispatchQueue.main.async { binding.wrappedValue = nil }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -50,6 +71,7 @@ struct GameSceneHostView: UIViewRepresentable {
         let onAction: () -> Void
         let gameMode: GameModeId
         var neuralDrive: Double
+        var onBaseballHit: ((HomeRunDerbyManager.HitResult) -> Void)?
         weak var scnView: SCNView?
 
         var leftStickInput: CGPoint = .zero
@@ -68,6 +90,10 @@ struct GameSceneHostView: UIViewRepresentable {
         private var cinematicTransitionProgress: Float = 0
         private var playerVelocity: SCNVector3 = SCNVector3(0, 0, 0)
         private var lastPlayerY: Float = 0
+        private var lastMovementTime: CFTimeInterval = 0
+        private var lastCameraTime: CFTimeInterval = 0
+        private var wasInRunState: Bool = false
+        private var lastRunAnimSpeed: Float = 0
 
         private enum CinematicState: Equatable {
             case normal
@@ -89,6 +115,7 @@ struct GameSceneHostView: UIViewRepresentable {
             case .volleyball: return "vPlayer1"
             case .gymnastics: return "gymnast"
             case .football: return "returner"
+            case .brainBrawl: return "player"
             }
         }
 
@@ -114,6 +141,8 @@ struct GameSceneHostView: UIViewRepresentable {
                 return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 8, lookAtY: 1.5, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
             case .gymnastics:
                 return CameraFollowConfig(offsetX: 1, offsetY: 4, offsetZ: 8, lookAtY: 1.5, followSpeed: 4, targetSpeed: 6, fovNormal: 48, fovAction: 36)
+            case .brainBrawl:
+                return CameraFollowConfig(offsetX: 0, offsetY: 3, offsetZ: 6, lookAtY: 1.0, followSpeed: 4, targetSpeed: 6, fovNormal: 50, fovAction: 40)
             }
         }
 
@@ -141,6 +170,8 @@ struct GameSceneHostView: UIViewRepresentable {
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -1.5, maxZ: 1.5, speed: 0.09)
             case .gymnastics:
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -2.0, maxZ: 2.0, speed: 0.08)
+            case .brainBrawl:
+                return MovementBounds(minX: -2.5, maxX: 2.5, minZ: -2.5, maxZ: 2.5, speed: 0.06)
             }
         }
 
@@ -168,6 +199,7 @@ struct GameSceneHostView: UIViewRepresentable {
 
         func startCameraFollowLoop() {
             guard let scene = scnView?.scene else { return }
+            lastCameraTime = CACurrentMediaTime()
             let cameraAction = SCNAction.customAction(duration: 100000) { [weak self] _, _ in
                 self?.updateCameraFollow()
             }
@@ -176,6 +208,7 @@ struct GameSceneHostView: UIViewRepresentable {
 
         func startPlayerMovementLoop() {
             guard let scene = scnView?.scene else { return }
+            lastMovementTime = CACurrentMediaTime()
             let moveAction = SCNAction.customAction(duration: 100000) { [weak self] _, _ in
                 self?.updatePlayerMovement()
             }
@@ -186,10 +219,14 @@ struct GameSceneHostView: UIViewRepresentable {
             guard let scene = scnView?.scene,
                   let camNode = scene.rootNode.childNode(withName: "mainCamera", recursively: false) else { return }
 
+            let now = CACurrentMediaTime()
+            var delta = Float(now - lastCameraTime)
+            if delta <= 0 || delta > 0.05 { delta = 1.0 / 60.0 }
+            lastCameraTime = now
+
             let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true)
             let playerPos = playerNode?.presentation.position ?? SCNVector3(0, 0, 0)
 
-            let delta: Float = 1.0 / 60.0
             let config = cameraConfig
 
             let currentState = determineCinematicState()
@@ -313,34 +350,89 @@ struct GameSceneHostView: UIViewRepresentable {
             guard let scene = scnView?.scene,
                   let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true) else { return }
 
+            let now = CACurrentMediaTime()
+            var dt = Float(now - lastMovementTime)
+            if dt <= 0 || dt > 0.05 { dt = 1.0 / 60.0 }
+            lastMovementTime = now
+
+            let config = PS2MovementConfig.forMode(gameMode)
+            let bounds = movementBounds
+            let speedScale = bounds.speed / 0.12
+            let targetSpeedWorld = config.topSpeed * 0.015 * speedScale * Float(1.0 + neuralDrive / 200.0)
+
             let stickX = Float(leftStickInput.x)
             let stickY = Float(leftStickInput.y)
             let magnitude = hypot(stickX, stickY)
-            guard magnitude > 0.08 else {
-                animateIdleState(playerNode)
-                return
+
+            if magnitude > 0.08 {
+                let normX = stickX / magnitude
+                let normZ = -stickY / magnitude
+                let targetVx = normX * targetSpeedWorld
+                let targetVz = normZ * targetSpeedWorld
+                let accelRate = 1.0 - exp(-config.acceleration * Double(dt))
+                playerVelocity.x += (targetVx - playerVelocity.x) * Float(accelRate)
+                playerVelocity.z += (targetVz - playerVelocity.z) * Float(accelRate)
+                let vLen = hypot(playerVelocity.x, playerVelocity.z)
+                if vLen > targetSpeedWorld {
+                    let scale = targetSpeedWorld / vLen
+                    playerVelocity.x *= scale
+                    playerVelocity.z *= scale
+                }
+            } else {
+                let decelFactor = exp(-Float(config.deceleration) * 0.5 * dt)
+                playerVelocity.x *= decelFactor
+                playerVelocity.z *= decelFactor
+                if hypot(playerVelocity.x, playerVelocity.z) < 0.002 {
+                    playerVelocity.x = 0
+                    playerVelocity.z = 0
+                }
             }
 
-            let bounds = movementBounds
-            let speed = bounds.speed * Float(1.0 + neuralDrive / 200.0)
-
-            let moveX = stickX * speed
-            let moveZ = -stickY * speed
-
             var newPos = playerNode.position
-            newPos.x = min(bounds.maxX, max(bounds.minX, newPos.x + moveX))
-            newPos.z = min(bounds.maxZ, max(bounds.minZ, newPos.z + moveZ))
-
+            newPos.x += playerVelocity.x * dt
+            newPos.z += playerVelocity.z * dt
+            if newPos.x < bounds.minX {
+                newPos.x = bounds.minX
+                playerVelocity.x = 0
+            }
+            if newPos.x > bounds.maxX {
+                newPos.x = bounds.maxX
+                playerVelocity.x = 0
+            }
+            if newPos.z < bounds.minZ {
+                newPos.z = bounds.minZ
+                playerVelocity.z = 0
+            }
+            if newPos.z > bounds.maxZ {
+                newPos.z = bounds.maxZ
+                playerVelocity.z = 0
+            }
             playerNode.position = newPos
 
+            let moveX = playerVelocity.x
+            let moveZ = playerVelocity.z
+            let velMagnitude = hypot(moveX, moveZ)
             let targetAngle = atan2(moveX, moveZ)
             let currentAngle = playerNode.eulerAngles.y
             var angleDiff = targetAngle - currentAngle
             if angleDiff > .pi { angleDiff -= .pi * 2 }
             if angleDiff < -.pi { angleDiff += .pi * 2 }
-            playerNode.eulerAngles.y += angleDiff * 0.15
+            let turnSpeed: Float = velMagnitude > 0.01 ? 0.22 : 0.12
+            playerNode.eulerAngles.y += angleDiff * min(1, turnSpeed)
 
-            animateRunState(playerNode, speed: magnitude)
+            if velMagnitude > 0.02 {
+                let runAnimSpeed = min(1, 0.4 + velMagnitude / (targetSpeedWorld * 0.4))
+                if !wasInRunState || abs(runAnimSpeed - lastRunAnimSpeed) > 0.25 {
+                    wasInRunState = true
+                    lastRunAnimSpeed = runAnimSpeed
+                    animateRunState(playerNode, speed: runAnimSpeed)
+                }
+            } else {
+                if wasInRunState {
+                    wasInRunState = false
+                    animateIdleState(playerNode)
+                }
+            }
 
             if let ball = findBallNode(in: scene) {
                 let ballOffset = SCNVector3(0, 1.4, 0)
@@ -360,9 +452,13 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         private func animateRunState(_ node: SCNNode, speed: Float) {
-            guard node.action(forKey: "runBob") == nil else { return }
-            let bobHeight = Double(speed * 0.03)
-            let bobDuration = Double(max(0.15, 0.3 - speed * 0.1))
+            node.removeAction(forKey: "runBob")
+            for childName in ["lLeg", "rLeg", "lUpperArm", "rUpperArm"] {
+                node.childNode(withName: childName, recursively: false)?.removeAction(forKey: "legAnim")
+                node.childNode(withName: childName, recursively: false)?.removeAction(forKey: "armAnim")
+            }
+            let bobHeight = Double(speed * 0.028)
+            let bobDuration = Double(max(0.18, 0.32 - speed * 0.1))
             let bob = SCNAction.sequence([
                 SCNAction.moveBy(x: 0, y: bobHeight, z: 0, duration: bobDuration),
                 SCNAction.moveBy(x: 0, y: -bobHeight, z: 0, duration: bobDuration)
@@ -372,27 +468,35 @@ struct GameSceneHostView: UIViewRepresentable {
 
             if let lLeg = node.childNode(withName: "lLeg", recursively: false),
                let rLeg = node.childNode(withName: "rLeg", recursively: false) {
-                let legSwing = Double(speed * 0.4)
-                let legDuration = Double(max(0.12, 0.25 - speed * 0.08))
+                let legSwing = Double(speed * 0.38)
+                let legDuration = Double(max(0.14, 0.28 - speed * 0.08))
                 let lForward = SCNAction.rotateTo(x: CGFloat(-legSwing), y: 0, z: 0, duration: legDuration)
+                lForward.timingMode = .easeInEaseOut
                 let lBack = SCNAction.rotateTo(x: CGFloat(legSwing), y: 0, z: 0, duration: legDuration)
+                lBack.timingMode = .easeInEaseOut
                 lLeg.runAction(SCNAction.repeatForever(SCNAction.sequence([lForward, lBack])), forKey: "legAnim")
 
                 let rForward = SCNAction.rotateTo(x: CGFloat(legSwing), y: 0, z: 0, duration: legDuration)
+                rForward.timingMode = .easeInEaseOut
                 let rBack = SCNAction.rotateTo(x: CGFloat(-legSwing), y: 0, z: 0, duration: legDuration)
+                rBack.timingMode = .easeInEaseOut
                 rLeg.runAction(SCNAction.repeatForever(SCNAction.sequence([rForward, rBack])), forKey: "legAnim")
             }
 
             if let lArm = node.childNode(withName: "lUpperArm", recursively: false),
                let rArm = node.childNode(withName: "rUpperArm", recursively: false) {
-                let armSwing = Double(speed * 0.3)
-                let armDuration = Double(max(0.12, 0.25 - speed * 0.08))
+                let armSwing = Double(speed * 0.28)
+                let armDuration = Double(max(0.14, 0.26 - speed * 0.08))
                 let laFwd = SCNAction.rotateTo(x: CGFloat(armSwing), y: 0, z: 0.4, duration: armDuration)
+                laFwd.timingMode = .easeInEaseOut
                 let laBack = SCNAction.rotateTo(x: CGFloat(-armSwing), y: 0, z: 0.4, duration: armDuration)
+                laBack.timingMode = .easeInEaseOut
                 lArm.runAction(SCNAction.repeatForever(SCNAction.sequence([laFwd, laBack])), forKey: "armAnim")
 
                 let raFwd = SCNAction.rotateTo(x: CGFloat(-armSwing), y: 0, z: -0.4, duration: armDuration)
+                raFwd.timingMode = .easeInEaseOut
                 let raBack = SCNAction.rotateTo(x: CGFloat(armSwing), y: 0, z: -0.4, duration: armDuration)
+                raBack.timingMode = .easeInEaseOut
                 rArm.runAction(SCNAction.repeatForever(SCNAction.sequence([raFwd, raBack])), forKey: "armAnim")
             }
         }
@@ -405,8 +509,8 @@ struct GameSceneHostView: UIViewRepresentable {
                         child.removeAction(forKey: "legAnim")
                         child.removeAction(forKey: "armAnim")
                         let resetZ: Float = childName.contains("lUpper") ? 0.4 : (childName.contains("rUpper") ? -0.4 : 0)
-                        let reset = SCNAction.rotateTo(x: 0, y: 0, z: CGFloat(resetZ), duration: 0.2)
-                        reset.timingMode = .easeOut
+                        let reset = SCNAction.rotateTo(x: 0, y: 0, z: CGFloat(resetZ), duration: 0.26)
+                        reset.timingMode = .easeInEaseOut
                         child.runAction(reset)
                     }
                 }
