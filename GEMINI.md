@@ -48,3 +48,5 @@ For a **single Markdown export** (Swift + Unreal C++ + Python + key docs) with a
 - **`AI_STUDIO_FEL_ARCHITECTURE_BUNDLE.md`** — regenerate after code changes with:
 
   `python3 scripts/generate_ai_studio_bundle.py`
+
+- **`DOCS/INTEGRATION_RUNTIME.md`** — Supabase, Unity Meshy streaming, Unreal Meshy/Luma import paths (3D load checklist).
