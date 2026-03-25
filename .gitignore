@@ -6,7 +6,7 @@ android/
 ios/
 babel.config.js
 metro.config.js
-package.json
+# Root package.json is used for Netlify/npm scripts (static web); do not add Expo/RN deps here.
 package-lock.json
 tsconfig.json
 app.json

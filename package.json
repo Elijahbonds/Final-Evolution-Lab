@@ -1,0 +1,9 @@
+{
+  "name": "final-evolution-lab-web",
+  "private": true,
+  "description": "Static PWA shell under web/ — Netlify publish dir matches netlify.toml",
+  "scripts": {
+    "build": "node -e \"console.log('Static site: no build step (COOP/COEP in netlify.toml + web/_headers)')\"",
+    "deploy:netlify": "netlify deploy --prod"
+  }
+}

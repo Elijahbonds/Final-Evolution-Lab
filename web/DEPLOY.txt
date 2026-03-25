@@ -12,8 +12,13 @@ Routes
 
 Netlify
 -------
-  Repo root contains netlify.toml → publish = "web"
-  Deploy: ./scripts/deploy_web.sh   (requires netlify CLI linked to the site)
+  Repo root contains netlify.toml → publish = "web" (COOP/COEP on /play/ in netlify.toml + web/_headers)
+
+  From repo root (after `npm i -g netlify-cli` and `netlify login` once):
+    npm run build
+    netlify deploy --prod
+
+  Or: ./scripts/deploy_web.sh   (same as netlify deploy --prod --dir=web)
 
 Config
 ------
