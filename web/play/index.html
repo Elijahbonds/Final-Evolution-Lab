@@ -561,9 +561,9 @@
         Install Mobile Lab
         <small>PWA — iOS / Android “Add to Home Screen”</small>
       </button>
-      <a class="btn-3d btn-dmg" href="https://finalevolutiongroup.com/downloads/FinalEvolutionLabUnreal-Sovereign.dmg" id="link-dmg" role="button">
+      <a class="btn-3d btn-dmg" href="#" id="link-dmg" role="button" title="Set FEL_PUBLIC_DMG_URL in fel-public-config.js (Supabase Storage public URL) after upload">
         Download for Mac
-        <small>.dmg — from package_sovereign_desktop.sh (notarized build)</small>
+        <small>.dmg — Supabase sovereign-assets or set FEL_PUBLIC_DMG_URL</small>
       </a>
       <a class="btn-3d btn-web" href="#fel-runtime" id="link-web">
         Launch Web Emulator
@@ -665,7 +665,10 @@
       var a = document.getElementById("link-dmg");
       if (!a) return;
       var u = typeof window.FEL_PUBLIC_DMG_URL === "string" ? window.FEL_PUBLIC_DMG_URL.trim() : "";
-      if (u) a.href = u;
+      if (u) {
+        a.href = u;
+        a.removeAttribute("title");
+      }
     })();
   </script>
   <script type="module" src="./fel-play-wallet.js"></script>
