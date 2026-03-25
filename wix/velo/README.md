@@ -1,5 +1,7 @@
 # Wix Velo — Sovereign Shard store → Supabase wallet
 
+**GitHub-first bridge (recommended):** use the packaged site backend in **`final-evolution-wix-bridge/`** (README there: connect Wix ↔ GitHub, clone on Mac, `velo-relay.jsw` + `http-functions.js`). This folder (`wix/velo/`) stays the in-repo copy of **`http-functions.js`** aligned with that package.
+
 The Stripe Edge Function `stripe-webhook-handler` only accepts **Stripe-signed** events. For **Wix Stores** orders, deploy **`wix-order-completed`** and call it from Velo with a shared secret.
 
 ## 1. Supabase

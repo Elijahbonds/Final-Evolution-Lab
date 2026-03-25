@@ -1,0 +1,97 @@
+/**
+ * Sovereign Bridge — Velo Web Module (backend only).
+ * Relays Wix Store / Automation payloads to Supabase Edge `wix-order-completed`.
+ *
+ * Secrets (Wix Dashboard → Secrets Manager):
+ *   FEL_SUPABASE_ORDER_URL — https://xxx.supabase.co/functions/v1/wix-order-completed
+ *   FEL_WIX_WEBHOOK_SHARED_SECRET — must match Supabase WIX_WEBHOOK_SHARED_SECRET
+ */
+import { fetch } from "wix-fetch";
+import { getSecret } from "wix-secrets-backend";
+
+/** USD cents → shard / cortex (tune to Wix product prices). */
+export function creditsForWixCents(totalCents) {
+  const map = {
+    1999: { shard_delta: 500, cortex_delta: 120, product_sku: "wix_vva_blueprint" },
+    4999: { shard_delta: 750, cortex_delta: 40, product_sku: "wix_cortex_shard_pack" },
+    9999: { shard_delta: 2500, cortex_delta: 200, product_sku: "wix_sovereign_pro" },
+  };
+  const row = map[totalCents];
+  if (!row) {
+    return { shard_delta: 0, cortex_delta: 0, product_sku: "wix_custom" };
+  }
+  return { ...row };
+}
+
+/**
+ * POST JSON to Supabase Edge with shared secret header.
+ * Single round-trip — keep payloads minimal for low tail latency.
+ */
+export async function relayToSupabase(body) {
+  const url = await getSecret("FEL_SUPABASE_ORDER_URL");
+  const secret = await getSecret("FEL_WIX_WEBHOOK_SHARED_SECRET");
+  if (!url || !secret) {
+    throw new Error("Missing Wix secrets: FEL_SUPABASE_ORDER_URL / FEL_WIX_WEBHOOK_SHARED_SECRET");
+  }
+  const res = await fetch(String(url).trim(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-FEL-Wix-Secret": String(secret).trim(),
+    },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(text || `Upstream ${res.status}`);
+  }
+  return text;
+}
+
+/**
+ * Normalize Automation / webhook JSON → Supabase contract.
+ * Resolves supabase_user_id + athlete_id from nested metadata / customFields.
+ */
+export function buildOrderPaidPayloadFromRaw(raw) {
+  const orderId = raw.orderId || raw.id || raw.order_id;
+  const supabaseUserId =
+    raw.supabase_user_id ||
+    raw.userId ||
+    (raw.metadata && raw.metadata.supabase_user_id) ||
+    (raw.customFields && raw.customFields.supabase_user_id);
+  const athleteId =
+    raw.athlete_id ||
+    raw.athleteId ||
+    (raw.metadata && raw.metadata.athlete_id) ||
+    (raw.customFields && raw.customFields.athlete_id) ||
+    "";
+  const cents = parseInt(String(raw.totalAmountCents ?? raw.total?.amount ?? 0), 10) || 0;
+  const mapped = creditsForWixCents(cents);
+
+  return {
+    orderId,
+    supabaseUserId,
+    athleteId,
+    mapped,
+    wixPayload: {
+      wix_order_id: orderId ? String(orderId) : "",
+      supabase_user_id: supabaseUserId ? String(supabaseUserId).trim() : "",
+      athlete_id: athleteId ? String(athleteId).trim() : "",
+      shard_delta: mapped.shard_delta,
+      cortex_delta: mapped.cortex_delta,
+      product_sku: mapped.product_sku,
+    },
+  };
+}
+
+/**
+ * Full handler body for Automation webhook — use from http-functions.js.
+ */
+export async function executeWixOrderPaidFromAutomation(raw) {
+  const { orderId, supabaseUserId, wixPayload } = buildOrderPaidPayloadFromRaw(raw);
+  if (!orderId || !supabaseUserId) {
+    return { ok: false, error: "Missing orderId or supabase_user_id" };
+  }
+  const text = await relayToSupabase(wixPayload);
+  return { ok: true, text };
+}

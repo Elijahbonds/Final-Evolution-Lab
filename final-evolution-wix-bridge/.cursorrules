@@ -1,0 +1,22 @@
+# Final Evolution — Wix Velo (Sovereign Bridge)
+
+## Stack
+- **Velo** backend: `backend/http-functions.js` (HTTP Functions API), `backend/*.jsw` (Web Modules).
+- **Upstream:** Supabase Edge Function `wix-order-completed` — auth via header **`X-FEL-Wix-Secret`** (from Wix Secrets Manager, key `FEL_WIX_WEBHOOK_SHARED_SECRET`).
+- **Never** commit real secrets. Use Wix **Secrets** + Supabase Dashboard secrets only.
+
+## Bonds Standard (visual + UX)
+- **Background:** deep black / charcoal (`#0a0c10` family), not pure white full-bleed for “clinical” pages.
+- **Accents:** neon cyan `#5ce1e6` for forensic highlights; electric blue `#1e90ff` for primary actions.
+- **Typography:** system sans; micro-labels use increased letter-spacing for HUD-like section headers.
+- **Copy:** “Clinical movement education, not medical diagnosis” where relevant.
+
+## Latency — “16.6 ms”
+- **16.67 ms** = one frame at **60 Hz** — use as a **gameplay / HUD frame budget** and **ProMotion target**, not a guarantee for Wix → Supabase HTTP round-trips.
+- **Velo relay code must:** avoid extra sequential `fetch` calls; keep JSON small; return quickly; use **Automations** with tight timeouts; rely on **Supabase Realtime** on the client for wallet UI updates (sub-second typical).
+- Do not add blocking loops, `sleep`, or redundant API calls in `post_*` handlers.
+
+## Code rules
+- Use **`wix-fetch`** for outbound HTTP, **`wix-secrets-backend`** `getSecret` for credentials.
+- HTTP function names: `post_<routeName>` matching `/_functions/<routeName>`.
+- Prefer **`velo-relay.jsw`** for shared logic; keep `http-functions.js` thin.
