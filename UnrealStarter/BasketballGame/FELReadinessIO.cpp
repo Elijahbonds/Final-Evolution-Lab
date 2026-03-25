@@ -115,7 +115,9 @@ bool FELReadinessIO::ParseSnapshotJsonString(const FString& JsonStr, FFELReadine
 		Out.bPlayTwinBirthCinematicOnce = TwinBirth;
 	}
 	bool SfmaPass = true;
-	if (Root->TryGetBoolField(TEXT("sfmaMultiSegmentalRotationPassed"), SfmaPass))
+	// Swift `FelReadinessSnapshotExport` emits camelCase; accept snake_case alias for external tooling.
+	if (Root->TryGetBoolField(TEXT("sfmaMultiSegmentalRotationPassed"), SfmaPass) ||
+		Root->TryGetBoolField(TEXT("sfma_multi_segmental_rotation_passed"), SfmaPass))
 	{
 		Out.bSFMASpiralRotationScreenPass = SfmaPass;
 	}

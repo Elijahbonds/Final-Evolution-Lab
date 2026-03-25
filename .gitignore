@@ -7,8 +7,9 @@ ios/
 babel.config.js
 metro.config.js
 # Root package.json is used for Netlify/npm scripts (static web); do not add Expo/RN deps here.
-package-lock.json
-tsconfig.json
+/package-lock.json
+# Expo/RN at repo root only (if reintroduced)
+/tsconfig.json
 app.json
 
 # Xcode
@@ -33,6 +34,10 @@ Package.resolved
 
 # Local Supabase + Stripe public config for static web (copy from fel-public-config.example.js)
 web/fel-public-config.js
+
+# Vite React clinical gate (optional)
+web/clinical-gate-react/node_modules/
+web/clinical-gate-react/dist/
 
 # Optional local tooling sync folder
 .fel-local-tooling/

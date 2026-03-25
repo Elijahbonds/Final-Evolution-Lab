@@ -588,7 +588,7 @@ nonisolated struct FelReadinessSnapshotExport: Codable, Sendable {
     /// Swift `AvatarSkinConfig` — Unreal `AFELBasketballCharacter` mesh relative scale (digital twin rig).
     var avatarHeightScale: Double
     var avatarWeightScale: Double
-    /// SFMA rotation screen — Unreal `UFELBiometricOverlays` congestion (optional for legacy JSON).
+    /// SFMA rotation screen — Unreal `UFELBiometricOverlays` congestion (JSON key **`sfmaMultiSegmentalRotationPassed`**; Unreal also accepts `sfma_multi_segmental_rotation_passed`).
     var sfmaMultiSegmentalRotationPassed: Bool?
 
     enum CodingKeys: String, CodingKey {
