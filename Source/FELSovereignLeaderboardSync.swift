@@ -2,7 +2,7 @@ import Foundation
 
 /// Pushes `allTimePeakZ` + `displayName` to a public Sovereign leaderboard.
 /// **Shard purchases** are routed through `https://finalevolutiongroup.com/api/v1/shards` via `FELSovereignShardEconomy` (see `FELCreatorRevenueQueue` + `PRQManager.syncWallet`).
-/// **Supabase:** set `FEL_SUPABASE_URL` and `FEL_SUPABASE_ANON_KEY` in Info.plist; create table `sovereign_peak_leaderboard` with columns `athlete_id` (text, PK), `display_name` (text), `all_time_peak_z` (float). Enable RLS policies as appropriate for your launch.
+/// **Supabase:** migration `20260327120000_sovereign_peak_leaderboard.sql` — columns `athlete_id` (text PK), `display_name`, `all_time_peak_z`, `user_id` (auth.users, RLS). REST upsert `on_conflict=athlete_id`.
 /// **Webhook:** alternatively set `FEL_SOVEREIGN_LEADERBOARD_URL` (POST JSON body). Optional `FEL_SOVEREIGN_LEADERBOARD_TOKEN` for Bearer auth. Response may include `rank`, `world_rank`, or `global_rank`.
 enum FELSovereignLeaderboardSync {
     /// Wallet sync — delegates to `FELSovereignShardEconomy.syncWallet` (`user_balances` table).
@@ -55,6 +55,8 @@ enum FELSovereignLeaderboardSync {
               let root = URL(string: baseRaw.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             return nil
         }
+        guard let state = await FELSupabaseWalletSync.shared.authState() else { return nil }
+        let uid = state.userId.uuidString.lowercased()
         guard var comp = URLComponents(url: root, resolvingAgainstBaseURL: true) else { return nil }
         let p = comp.path.hasSuffix("/") ? String(comp.path.dropLast()) : comp.path
         comp.path = (p.isEmpty ? "" : p) + "/rest/v1/\(sovereignTable)"
@@ -64,7 +66,7 @@ enum FELSovereignLeaderboardSync {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(keyRaw, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(keyRaw)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(state.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
 
@@ -72,6 +74,7 @@ enum FELSovereignLeaderboardSync {
             "athlete_id": athleteId,
             "display_name": displayName,
             "all_time_peak_z": allTimePeakZ,
+            "user_id": uid,
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: row)
 

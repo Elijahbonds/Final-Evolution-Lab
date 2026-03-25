@@ -47,7 +47,14 @@ Your “01–10 Total Ignition” table is a **product layer** — merge into AC
 
 ---
 
-## 6. Deploy from M4 Pro (Edge Functions)
+## 6. Peak leaderboard (Supabase table)
+
+Migration **`20260327120000_sovereign_peak_leaderboard.sql`** creates **`sovereign_peak_leaderboard`** (`athlete_id` text PK, `display_name`, `all_time_peak_z`, **`user_id`** for RLS).  
+**Do not** recreate **`user_balances`** — it already exists in **`20260324120000_sovereign_bank.sql`**.
+
+---
+
+## 7. Deploy from M4 Pro (Edge Functions)
 
 ```bash
 cd /path/to/rork-final-evolution-lab
@@ -65,7 +72,7 @@ Secrets: Supabase Dashboard → Edge Functions → **Stripe** keys, **`STRIPE_WE
 
 ---
 
-## 7. Example Cloud Cortex prescription (SFMA rotation screen fail)
+## 8. Example Cloud Cortex prescription (SFMA rotation screen fail)
 
 One-line Neuro-Mechanic output (matches **`PRQManager.buildCloudCortexPrompt`** rules — under 200 characters):
 
