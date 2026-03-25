@@ -1,0 +1,28 @@
+Final Evolution Lab — TestFlight Beta Notes (Build 6 / Alpha 1 / Version 1.0.0)
+=======================================================================
+
+What to paste in App Store Connect → TestFlight → “What to Test” (or beta invite):
+
+Final Evolution Build 6 (Alpha 1): Cloud Cortex (Gemini), Sovereign Leaderboards, wallet Realtime, and Vertical Velocity Academy modules.
+
+---
+
+Internal QA checklist (optional)
+--------------------------------
+- Cloud Cortex: GEMINI_API_KEY set in scheme environment or build settings for AI coach line.
+- Sovereign leaderboard: FEL_SUPABASE_* or webhook URLs if testing global rank.
+- System Scan: camera permission uses Biomechanical System Scanning + SFMA copy (Info.plist).
+- Push: App ID has Push Notifications enabled. Both `Source/FinalEvolutionLab.entitlements` and `Source/FinalEvolutionLabRelease.entitlements` use **aps-environment production** for Gold Master / TestFlight parity.
+- Movement Snacks: `UIBackgroundModes` includes **remote-notification** via merged `Config/FELBackgroundModesInfo.plist` (outside `Source/` to avoid duplicate Copy Bundle Resources).
+- HealthKit: grant read/write on first use if testing readiness sync (usage strings reference SFMA-aligned readiness context).
+- Archive: `scripts/ios_clean_build.sh` forces **Release** for archive and preflights version **1.0.0 (5)**.
+
+Build pipeline
+--------------
+From repo root:
+  ./scripts/ios_clean_build.sh
+
+Produces:
+  build/FinalEvolutionLabUnreal.xcarchive
+
+Then: Xcode → Organizer → Distribute App → App Store Connect.

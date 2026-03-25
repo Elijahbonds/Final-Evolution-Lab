@@ -1,0 +1,18 @@
+; Merge into Config/DefaultEngine.ini for FEL basketball.
+; OpenWorld defaults → project always opens even before Content maps exist.
+; Do NOT uncomment L_FEL_Playtest until fel_quick_playtest_level.py has created that asset.
+
+[/Script/EngineSettings.GameMapsSettings]
+GameDefaultMap=/Engine/Maps/Templates/OpenWorld
+EditorStartupMap=/Engine/Maps/Templates/OpenWorld
+; After quick playtest map exists:
+; GameDefaultMap=/Game/FEL/Maps/L_FEL_Playtest.L_FEL_Playtest
+; EditorStartupMap=/Game/FEL/Maps/L_FEL_Playtest.L_FEL_Playtest
+; Or full Venice/Luma level:
+; GameDefaultMap=/Game/FEL/Maps/L_VeniceLuma_Main.L_VeniceLuma_Main
+; EditorStartupMap=/Game/FEL/Maps/L_VeniceLuma_Main.L_VeniceLuma_Main
+GlobalDefaultGameMode=/Script/FinalEvolutionLab.FELBasketballGameMode
+
+; Gold Master (Shipping / TestFlight): reduce log overhead on device — merge only into packaged Shipping configs if desired.
+; [Core.Log]
+; GlobalLogVerbosity=NoLogging

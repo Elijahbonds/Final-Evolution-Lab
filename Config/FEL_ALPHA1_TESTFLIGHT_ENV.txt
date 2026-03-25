@@ -1,0 +1,19 @@
+Alpha 1 Gold Master (1.0.0 build 6) — Supabase production wiring
+================================================================
+
+The app does not embed the Supabase URL in Swift source. It resolves at runtime from:
+
+  1) Xcode Scheme → Run / Archive → Environment Variables (highest priority for local runs), or
+  2) Build settings that expand into Info.plist: FEL_SUPABASE_URL and FEL_SUPABASE_ANON_KEY
+     (see FinalEvolutionLabUnreal.xcodeproj → INFOPLIST_KEY_FEL_SUPABASE_*).
+
+For TestFlight / external testers, set these to your **production** Supabase project:
+
+  FEL_SUPABASE_URL = https://<your-project-ref>.supabase.co
+  FEL_SUPABASE_ANON_KEY = <anon public key from Dashboard → Settings → API>
+
+This must be the same project where:
+  - `user_balances` and Realtime are enabled
+  - Edge Function `stripe-webhook-handler` is deployed and Stripe credits land
+
+Verify in-app: Settings → Sovereign sign-in → shard balance updates after a test purchase (Realtime).

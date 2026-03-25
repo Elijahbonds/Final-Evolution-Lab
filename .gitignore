@@ -28,11 +28,37 @@ Package.resolved
 *.swp
 *~
 
-# Rork
-.rork/
+# Env (never commit secrets)
 .env
-rork-eslint.config.js
+
+# Local Supabase + Stripe public config for static web (copy from fel-public-config.example.js)
+web/fel-public-config.js
+
+# Optional local tooling sync folder
+.fel-local-tooling/
 
 core
 node_modules
 .expo
+
+# TestFlight / altool forensic logs (may contain App Store Connect metadata)
+LOGS/
+
+# Supabase CLI — linked remote state (do not commit)
+.supabase/
+
+# Cursor / IDE
+.cursor/
+
+# Unity (if Library is generated locally)
+UnityProject/Library/
+UnityProject/Temp/
+UnityProject/Logs/
+UnityProject/obj/
+UnityProject/UserSettings/
+
+# Unreal build intermediates (if present next to templates)
+**/Binaries/
+**/Intermediate/
+**/Saved/
+**/DerivedDataCache/

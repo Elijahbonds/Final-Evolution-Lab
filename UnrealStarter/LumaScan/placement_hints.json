@@ -1,0 +1,27 @@
+{
+  "source": "UnrealStarter/LumaScan/mesh.obj",
+  "vertex_count": 505931,
+  "bounds_obj_space": {
+    "min": [-2.055261, -2.024527, -2.05259],
+    "max": [2.052454, -0.137491, 2.052608],
+    "center": [-0.0014035, -1.081009, 0.000009],
+    "size": [4.107715, 1.887036, 4.105198]
+  },
+  "notes": "Values are from the OBJ vertex data (pre-Unreal import). Unreal may swap axes when importing OBJ; after import, align the actor so the playable floor is horizontal and use these as starting offsets in the mesh's local space, then fine-tune in the viewport.",
+  "suggested_hoop_anchors_local": [
+    {
+      "name": "HoopEnd_A",
+      "location": [0.0, -1.081009, -1.65],
+      "comment": "Along -Z from center; adjust Y to floor height after you level the mesh in-editor"
+    },
+    {
+      "name": "HoopEnd_B",
+      "location": [0.0, -1.081009, 1.65],
+      "comment": "Along +Z from center; opposite end of a ~4m footprint"
+    }
+  ],
+  "suggested_character_spawn_local": {
+    "location": [0.0, -1.081009, 0.0],
+    "comment": "Center of scan; raise along Unreal Z (up) by capsule half-height after import orientation is fixed"
+  }
+}

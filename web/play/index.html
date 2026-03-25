@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="The Forensic Lab is Open — Neuro-Mechanic coaching, 16.6ms latency, Sovereign install. Final Evolution Vertical Velocity Academy." />
+  <meta name="theme-color" content="#1e90ff" />
+  <meta name="application-name" content="FEL Lab" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="FEL Lab" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./icons/icon-512.png" sizes="512x512" />
+  <link rel="stylesheet" href="/shared/fel-clinical.css" />
+  <title>The Forensic Lab is Open — Final Evolution</title>
+  <style>
+    :root {
+      --bg-deep: #0a0c10;
+      --cyan: #5ce1e6;
+      --blue: #1e90ff;
+      --muscle: #e8f4ff;
+      --glass: rgba(255, 255, 255, 0.06);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "SF Pro Display", system-ui, -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--muscle);
+      overflow-x: hidden;
+    }
+    /* Spiral line — scroll-linked parallax + slow spin (clinical gateway) */
+    .spiral-stage {
+      position: fixed;
+      inset: 0;
+      perspective: 1200px;
+      overflow: hidden;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .spiral-parallax {
+      position: absolute;
+      left: 50%;
+      top: 42%;
+      width: 140vmax;
+      height: 140vmax;
+      margin-left: -70vmax;
+      margin-top: -70vmax;
+      will-change: transform;
+      transition: transform 0.12s ease-out;
+    }
+    .spiral-ribbon {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 40%, rgba(30, 144, 255, 0.18), transparent 55%),
+        conic-gradient(from 180deg at 50% 50%, transparent, rgba(92, 225, 230, 0.14), transparent 60%);
+      border-radius: 42% 58% 62% 38% / 44% 36% 64% 56%;
+      transform-style: preserve-3d;
+      animation: spiralSpin 48s linear infinite;
+      filter: blur(0.5px);
+      opacity: 0.88;
+    }
+    .spiral-ribbon::after {
+      content: "";
+      position: absolute;
+      inset: 12%;
+      border-radius: inherit;
+      border: 1px solid rgba(92, 225, 230, 0.18);
+      transform: translateZ(40px) rotateX(12deg);
+    }
+    @keyframes spiralSpin {
+      from { transform: rotateZ(0deg) rotateX(18deg) rotateY(-8deg); }
+      to { transform: rotateZ(360deg) rotateX(18deg) rotateY(-8deg); }
+    }
+    .grain {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      opacity: 0.04;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+    }
+    .wrap {
+      position: relative;
+      z-index: 3;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: clamp(1.25rem, 4vw, 2.5rem);
+      padding-top: clamp(2rem, 6vh, 4rem);
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      letter-spacing: 0.35em;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 5vw, 2.4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin: 0 0 0.5rem;
+      background: linear-gradient(120deg, #fff 0%, var(--cyan) 45%, var(--blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subhead {
+      font-size: clamp(1rem, 2.8vw, 1.15rem);
+      line-height: 1.45;
+      font-weight: 700;
+      color: rgba(232, 244, 255, 0.92);
+      margin: 0 0 0.85rem;
+      letter-spacing: 0.02em;
+    }
+    .sub {
+      font-size: 0.98rem;
+      line-height: 1.55;
+      color: rgba(232, 244, 255, 0.68);
+      margin-bottom: 1rem;
+    }
+    .sovereign-edge {
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: rgba(232, 244, 255, 0.78);
+      margin-bottom: 1.75rem;
+      padding: 0.9rem 1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(92, 225, 230, 0.18);
+      background: rgba(30, 144, 255, 0.06);
+    }
+    .sovereign-edge strong {
+      color: var(--cyan);
+      font-weight: 800;
+    }
+    .btn-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    @media (min-width: 560px) {
+      .btn-grid { flex-direction: row; flex-wrap: wrap; }
+      .btn-3d { flex: 1 1 calc(33.33% - 1rem); min-width: 200px; }
+      .open-lab-wrap { flex: 1 1 100%; min-width: 100%; order: -1; }
+    }
+    .btn-3d {
+      position: relative;
+      display: block;
+      padding: 1.15rem 1.25rem 1.35rem;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      text-align: left;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      transform-style: preserve-3d;
+      transform: perspective(800px) rotateX(4deg);
+      box-shadow:
+        0 4px 0 rgba(0, 0, 0, 0.45),
+        0 12px 32px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .btn-3d:hover {
+      transform: perspective(800px) rotateX(0deg) translateY(-3px);
+      box-shadow:
+        0 6px 0 rgba(0, 0, 0, 0.4),
+        0 18px 40px rgba(30, 144, 255, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+    .btn-3d:active {
+      transform: perspective(800px) rotateX(6deg) translateY(2px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+    }
+    .btn-3d small {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      opacity: 0.78;
+      letter-spacing: 0.04em;
+    }
+    .open-lab-wrap {
+      position: relative;
+      width: 100%;
+      order: -1;
+      margin-bottom: 0.25rem;
+    }
+    /* Spiral Line — clinical 3D placeholder (CSS) behind primary CTA */
+    .open-lab-spiral {
+      position: absolute;
+      inset: -14px -10px -10px -10px;
+      border-radius: 22px;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        conic-gradient(from 200deg at 50% 50%, transparent 0%, rgba(92, 225, 230, 0.12) 18%, transparent 38%, rgba(30, 144, 255, 0.14) 58%, transparent 78%, rgba(92, 225, 230, 0.1) 100%);
+      filter: blur(0.5px);
+      opacity: 0.9;
+      animation: openLabSpiral 10s linear infinite;
+    }
+    .open-lab-spiral::after {
+      content: "";
+      position: absolute;
+      inset: 8%;
+      border-radius: 18px;
+      border: 1px solid rgba(92, 225, 230, 0.22);
+      box-shadow: 0 0 24px rgba(30, 144, 255, 0.15);
+      transform: rotateX(8deg);
+    }
+    @keyframes openLabSpiral {
+      from { transform: rotate(0deg) scale(1); }
+      to { transform: rotate(360deg) scale(1.02); }
+    }
+    .btn-open-lab {
+      position: relative;
+      z-index: 1;
+      background: linear-gradient(145deg, #1e6fd4 0%, #0d4a8c 45%, #061c3a 100%);
+      border: 1px solid rgba(92, 225, 230, 0.55);
+      box-shadow:
+        0 6px 0 rgba(0, 0, 0, 0.4),
+        0 16px 36px rgba(30, 144, 255, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    }
+    .btn-open-lab small {
+      color: rgba(232, 244, 255, 0.88);
+    }
+    .btn-pwa {
+      background: linear-gradient(145deg, #1a3a52 0%, #0d2840 50%, #061820 100%);
+      border: 1px solid rgba(92, 225, 230, 0.35);
+    }
+    .btn-dmg {
+      background: linear-gradient(145deg, #2a3d5c 0%, #152238 55%, #0a1420 100%);
+      border: 1px solid rgba(30, 144, 255, 0.4);
+    }
+    .btn-web {
+      background: linear-gradient(145deg, #1e2f4a 0%, #121e32 50%, #080f1a 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .sovereign-onboarding {
+      margin-top: 2.25rem;
+      padding: 1.35rem 1.25rem 1.5rem;
+      border-radius: 16px;
+      background: var(--glass);
+      border: 1px solid rgba(92, 225, 230, 0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .sovereign-onboarding h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.28em;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+    .sovereign-onboarding ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: rgba(232, 244, 255, 0.88);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+    .sovereign-onboarding li { margin-bottom: 0.65rem; }
+    .sovereign-onboarding strong { color: #fff; }
+    .latency-pill {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(30, 144, 255, 0.2);
+      border: 1px solid rgba(30, 144, 255, 0.45);
+      color: var(--cyan);
+    }
+    .foot {
+      margin-top: 2.5rem;
+      font-size: 0.75rem;
+      color: rgba(232, 244, 255, 0.45);
+      line-height: 1.5;
+    }
+    .btn-open-lab.glass-primary {
+      background: linear-gradient(155deg, rgba(30, 111, 212, 0.55) 0%, rgba(13, 74, 140, 0.45) 50%, rgba(6, 28, 58, 0.65) 100%);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(92, 225, 230, 0.45);
+      box-shadow:
+        0 8px 0 rgba(0, 0, 0, 0.35),
+        0 20px 48px rgba(30, 144, 255, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      margin-top: 2rem;
+    }
+    @media (min-width: 560px) {
+      .feature-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    }
+    .feature-card {
+      padding: 1rem 1rem 1.1rem;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(92, 225, 230, 0.15);
+      backdrop-filter: blur(8px);
+    }
+    .feature-card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+    .feature-card p {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: rgba(232, 244, 255, 0.78);
+    }
+    .feature-ico {
+      font-size: 1.35rem;
+      margin-bottom: 0.4rem;
+      filter: drop-shadow(0 0 8px rgba(92, 225, 230, 0.35));
+    }
+    .edu-section {
+      margin-top: 2.25rem;
+      padding: 1.5rem 1.25rem;
+      border-radius: 16px;
+      background: rgba(8, 12, 10, 0.65);
+      border: 1px solid rgba(92, 225, 230, 0.2);
+    }
+    .edu-section h2 {
+      margin: 0 0 1rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+    .edu-diagrams {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    @media (min-width: 560px) {
+      .edu-diagrams { grid-template-columns: 1fr 1fr; }
+    }
+    .diagram {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: radial-gradient(ellipse at 50% 0%, rgba(30, 144, 255, 0.12), transparent 55%), #050608;
+    }
+    .diagram svg { display: block; width: 100%; height: auto; }
+    .diagram figcaption {
+      padding: 0.65rem 0.85rem;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: rgba(232, 244, 255, 0.78);
+    }
+    .diagram figcaption strong { color: #fff; }
+    /* Clinical Mirror — hero readout (Muscle-and-motion × diagnostic display) */
+    .clinical-mirror-hero {
+      position: relative;
+      padding: 1.35rem 1.15rem 1.5rem;
+      margin-bottom: 1.15rem;
+      border-radius: 20px;
+      border: 1px solid rgba(92, 225, 230, 0.24);
+      background:
+        linear-gradient(168deg, rgba(18, 52, 88, 0.42) 0%, rgba(6, 10, 14, 0.92) 42%, rgba(10, 28, 48, 0.55) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.09),
+        0 16px 56px rgba(0, 0, 0, 0.42);
+      overflow: hidden;
+    }
+    .clinical-mirror-hero .mirror-beam {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      margin-left: -0.5px;
+      background: linear-gradient(180deg, transparent, rgba(92, 225, 230, 0.45), transparent);
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    .clinical-mirror-hero .mirror-scan {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, transparent 38%, rgba(92, 225, 230, 0.055) 50%, transparent 62%);
+      background-size: 220% 100%;
+      animation: mirrorScan 9s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .clinical-mirror-hero .mirror-floor {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 38%;
+      background: linear-gradient(0deg, rgba(30, 144, 255, 0.07), transparent);
+      pointer-events: none;
+    }
+    @keyframes mirrorScan {
+      0%, 100% { background-position: 0% 0; }
+      50% { background-position: 100% 0; }
+    }
+    .clinical-mirror-hero .badge,
+    .clinical-mirror-hero h1,
+    .clinical-mirror-hero .subhead,
+    .clinical-mirror-hero .sub {
+      position: relative;
+      z-index: 1;
+    }
+    /* 60 steps/sec ≈ 16.67 ms — OPEN LAB primary CTA pulse */
+    @keyframes felOpenLabPulse {
+      0%, 100% {
+        box-shadow:
+          0 8px 0 rgba(0, 0, 0, 0.35),
+          0 20px 48px rgba(30, 144, 255, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        filter: brightness(1);
+      }
+      50% {
+        box-shadow:
+          0 8px 0 rgba(0, 0, 0, 0.32),
+          0 22px 54px rgba(92, 225, 230, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.24);
+        filter: brightness(1.05);
+      }
+    }
+    .btn-open-lab.glass-primary.fel-latency-pulse {
+      animation: felOpenLabPulse 1s steps(60, end) infinite;
+    }
+    /* WebGPU / WASM runtime host — COOP/COEP in _headers enables crossOriginIsolated for threads */
+    .fel-runtime-shell {
+      margin-top: 2rem;
+      padding: 0;
+      border-radius: 18px;
+      border: 1px solid rgba(92, 225, 230, 0.22);
+      background: rgba(4, 8, 14, 0.75);
+      overflow: hidden;
+      min-height: min(56vh, 520px);
+    }
+    .fel-runtime-shell .fel-runtime-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid rgba(92, 225, 230, 0.15);
+      background: rgba(0, 0, 0, 0.35);
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+    .fel-runtime-shell iframe {
+      display: block;
+      width: 100%;
+      height: min(52vh, 480px);
+      border: 0;
+      background: #020408;
+    }
+    .fel-runtime-placeholder {
+      padding: 2rem 1.25rem;
+      text-align: center;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: rgba(232, 244, 255, 0.72);
+    }
+    .fel-runtime-placeholder code { font-size: 0.78rem; color: var(--cyan); }
+    .fel-wallet-strip {
+      margin-top: 1.5rem;
+      padding: 1rem 1.1rem 1.15rem;
+      border-radius: 14px;
+      border: 1px solid rgba(92, 225, 230, 0.22);
+      background: rgba(30, 144, 255, 0.07);
+      backdrop-filter: blur(10px);
+    }
+    .fel-wallet-strip h2 {
+      margin: 0 0 0.5rem;
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+    .fel-wallet-strip p {
+      margin: 0 0 0.65rem;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: rgba(232, 244, 255, 0.82);
+    }
+    .fel-wallet-strip a { color: var(--cyan); font-weight: 700; }
+    #fel-play-wallet-status { font-size: 0.88rem; line-height: 1.45; color: rgba(232, 244, 255, 0.92); }
+  </style>
+  <script src="/fel-public-config.js" onerror="window.__FEL_RUNTIME_SKIP__=1"></script>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="/">Gateway</a>
+    <a href="/play/" aria-current="page">PWA Lab</a>
+    <a href="/shop/">Shop</a>
+    <a href="/wallet/">Wallet</a>
+  </nav>
+  <div class="spiral-stage" aria-hidden="true">
+    <div class="spiral-parallax" id="spiralParallax">
+      <div class="spiral-ribbon"></div>
+    </div>
+  </div>
+  <div class="grain"></div>
+
+  <main class="wrap">
+    <section class="clinical-mirror-hero" aria-labelledby="hero-title">
+      <div class="mirror-beam" aria-hidden="true"></div>
+      <div class="mirror-scan" aria-hidden="true"></div>
+      <div class="mirror-floor" aria-hidden="true"></div>
+      <div class="badge">Sovereign ignition</div>
+      <h1 id="hero-title">The Forensic Lab is Open.</h1>
+      <p class="subhead">Neuro-Mechanic Coaching. 16.6ms Latency. Zero Roadblocks.</p>
+      <p class="sub">
+        Install the Vertical Velocity Academy to your home screen, grab the Mac lab build, or launch the web runtime — same Sovereign economy as the iOS app, everywhere you train.
+      </p>
+    </section>
+    <p class="sovereign-edge">
+      <strong>Sovereign advantage:</strong> bypass the App Store gate for clinical-grade performance. Add Final Evolution from the browser — <strong>install the Lab directly to your home screen</strong>, then sign in to sync Shards and Cloud Cortex with your FinalEvolutionGroup.com account.
+    </p>
+
+    <section class="fel-wallet-strip" aria-labelledby="fel-wallet-title">
+      <h2 id="fel-wallet-title">Sovereign wallet</h2>
+      <p>
+        Same Supabase session as <strong>/wallet/</strong> and the native app. Shards from Wix checkout update <code>user_balances</code> in real time — typically within one network round-trip after the Edge Function returns (≈16.67 ms is one 60 Hz frame, not wire latency).
+      </p>
+      <div id="fel-play-wallet-status">Loading wallet…</div>
+    </section>
+
+    <div class="btn-grid">
+      <div class="open-lab-wrap">
+        <div class="open-lab-spiral" aria-hidden="true"></div>
+        <button type="button" class="btn-3d btn-open-lab glass-primary fel-latency-pulse" id="btn-open-lab">
+          OPEN LAB
+          <small>/play gateway — PWA install (iOS Share → Add to Home Screen)</small>
+        </button>
+      </div>
+      <button type="button" class="btn-3d btn-pwa" id="btn-pwa">
+        Install Mobile Lab
+        <small>PWA — iOS / Android “Add to Home Screen”</small>
+      </button>
+      <a class="btn-3d btn-dmg" href="https://finalevolutiongroup.com/downloads/FinalEvolutionLabUnreal-Sovereign.dmg" id="link-dmg" role="button">
+        Download for Mac
+        <small>.dmg — from package_sovereign_desktop.sh (notarized build)</small>
+      </a>
+      <a class="btn-3d btn-web" href="#fel-runtime" id="link-web">
+        Launch Web Emulator
+        <small>WebGPU / WASM / Pixel Streaming</small>
+      </a>
+    </div>
+
+    <section id="fel-runtime" class="fel-runtime-shell" aria-label="Final Evolution Lab web runtime">
+      <div class="fel-runtime-head">
+        <span>Clinical mirror — WebGPU / WASM</span>
+        <span style="opacity:0.75;font-size:0.6rem;">crossOriginIsolated · COOP/COEP</span>
+      </div>
+      <iframe
+        id="fel-runtime-frame"
+        title="Final Evolution Lab runtime"
+        loading="lazy"
+        allow="fullscreen; gamepad; xr-spatial-tracking"
+        sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-popups"
+        style="display:none"
+      ></iframe>
+      <div id="fel-runtime-placeholder" class="fel-runtime-placeholder">
+        Set <code>window.FEL_RUNTIME_URL</code> in <code>fel-public-config.js</code> (copy from <code>fel-public-config.example.js</code>) to embed your Unity WebGL build, Unreal Pixel Streaming page, or WASM client. This PWA shell keeps the Sovereign gateway and install flow; the iframe loads your notarized web runtime when the URL is hosted with compatible CORS.
+      </div>
+    </section>
+
+    <section class="sovereign-onboarding" aria-labelledby="sov-onb-title">
+      <h2 id="sov-onb-title">Sovereign Onboarding</h2>
+      <ul>
+        <li><strong>DualSense (or any HID gamepad):</strong> pair via Bluetooth to your Mac or PC lab build. In the <strong>browser / web emulator</strong>, Chrome exposes the W3C <strong>Gamepad API</strong>; advanced profiles use <strong>WebHID</strong> for vendor-specific bands (e.g. PJF). Inputs route into the FEL input bridge for the same arena feel as console.</li>
+        <li><strong>TV mirror:</strong> AirPlay (Apple TV) or HDMI from your M4 Pro Mac mini — full-screen the lab or Pixel Streaming tab so the crew sees the Vertical Velocity HUD at room scale.</li>
+        <li><strong>16.6 ms frame budget:</strong> target ~60 Hz display sync (one frame ≈ 16.67 ms) for penultimate <em>Push 1, 2</em> cueing and Bonds Bounce timing — enable ProMotion / high refresh on supported displays and keep the web client on a wired connection for Pixel Streaming.</li>
+      </ul>
+      <span class="latency-pill">~16.6 ms / frame — elite dunk timing target</span>
+    </section>
+
+    <p class="foot">
+      Final Evolution Lab — clinical movement education, not medical diagnosis. Host <code>/play/</code> on HTTPS; upload the notarized DMG to the path in the Mac button or change the href. COOP/COEP headers live in <code>_headers</code> for Netlify-style deploys.
+    </p>
+  </main>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    }
+    var deferredInstall = null;
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferredInstall = e;
+      ["btn-open-lab", "btn-pwa"].forEach(function (id) {
+        var btn = document.getElementById(id);
+        if (btn) {
+          var small = btn.querySelector("small");
+          if (small) small.textContent = "Tap again to install (Chrome / Edge)";
+        }
+      });
+    });
+    function bindInstallButton(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("click", function () {
+        if (deferredInstall) {
+          deferredInstall.prompt();
+          deferredInstall.userChoice.finally(function () {
+            deferredInstall = null;
+          });
+          return;
+        }
+        alert("On iOS Safari: Share → Add to Home Screen. On Android Chrome: Menu → Install app, or use Install when offered.");
+      });
+    }
+    bindInstallButton("btn-open-lab");
+    bindInstallButton("btn-pwa");
+    (function felRuntimeIframe() {
+      var url = typeof window.FEL_RUNTIME_URL === "string" ? window.FEL_RUNTIME_URL.trim() : "";
+      var frame = document.getElementById("fel-runtime-frame");
+      var placeholder = document.getElementById("fel-runtime-placeholder");
+      if (!frame || !placeholder) return;
+      if (url.length > 0) {
+        frame.src = url;
+        frame.style.display = "block";
+        placeholder.style.display = "none";
+      }
+    })();
+    (function spiralParallax() {
+      var el = document.getElementById("spiralParallax");
+      if (!el) return;
+      function onScroll() {
+        var y = window.scrollY || window.pageYOffset || 0;
+        var deg = Math.min(y * 0.045, 28);
+        el.style.transform = "rotateZ(" + deg + "deg)";
+      }
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+    })();
+    document.getElementById("link-dmg").addEventListener("click", function () {
+      /* href: optional window.FEL_PUBLIC_DMG_URL from fel-public-config.js (e.g. Supabase sovereign-assets public URL) */
+    });
+    (function felDmgHrefFromConfig() {
+      var a = document.getElementById("link-dmg");
+      if (!a) return;
+      var u = typeof window.FEL_PUBLIC_DMG_URL === "string" ? window.FEL_PUBLIC_DMG_URL.trim() : "";
+      if (u) a.href = u;
+    })();
+  </script>
+  <script type="module" src="./fel-play-wallet.js"></script>
+</body>
+</html>

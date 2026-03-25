@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Sovereign Wallet — shard balance and Cloud Cortex credits (Supabase Realtime)." />
+  <meta name="theme-color" content="#0a0c10" />
+  <title>Wallet — Final Evolution</title>
+  <link rel="stylesheet" href="/shared/fel-clinical.css" />
+  <style>
+    label { display: block; font-size: 0.75rem; letter-spacing: 0.08em; color: var(--cyan); margin-bottom: 0.35rem; text-transform: uppercase; font-weight: 800; }
+    input {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid rgba(92, 225, 230, 0.25);
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--muscle);
+      margin-bottom: 0.75rem;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+    .stat {
+      flex: 1 1 140px;
+      padding: 1rem;
+      border-radius: 12px;
+      background: rgba(30, 144, 255, 0.08);
+      border: 1px solid rgba(92, 225, 230, 0.2);
+    }
+    .stat .label { font-size: 0.65rem; letter-spacing: 0.2em; color: var(--cyan); font-weight: 800; }
+    .stat .val { font-size: 1.5rem; font-weight: 900; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="/">Gateway</a>
+    <a href="/play/">PWA Lab</a>
+    <a href="/shop/">Shop</a>
+    <a href="/wallet/" aria-current="page">Wallet</a>
+  </nav>
+  <main class="wrap">
+    <div class="badge">Realtime mirror</div>
+    <h1>Wallet</h1>
+    <div id="config-warn" class="warn" hidden>
+      Missing <code>fel-public-config.js</code>. Copy <code>fel-public-config.example.js</code> to <code>web/fel-public-config.js</code>.
+    </div>
+
+    <section id="auth-panel" class="panel">
+      <h2 style="margin:0 0 0.75rem;font-size:0.7rem;letter-spacing:0.22em;color:var(--cyan);text-transform:uppercase;">Session</h2>
+      <div id="signed-out">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" />
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" />
+        <div class="row">
+          <button type="button" class="btn" id="btn-signin">Sign in</button>
+          <button type="button" class="btn btn-secondary" id="btn-signup">Create account</button>
+        </div>
+      </div>
+      <div id="signed-in" hidden>
+        <p class="mono" id="user-line"></p>
+        <div class="row">
+          <button type="button" class="btn btn-secondary" id="btn-signout">Sign out</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="balance-panel" class="panel" style="margin-top:1rem;" hidden>
+      <h2 style="margin:0 0 0.75rem;font-size:0.7rem;letter-spacing:0.22em;color:var(--cyan);text-transform:uppercase;">Balances</h2>
+      <div class="row">
+        <div class="stat">
+          <div class="label">Evolution shards</div>
+          <div class="val" id="val-shards">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Cloud Cortex</div>
+          <div class="val" id="val-cortex">—</div>
+        </div>
+      </div>
+      <p class="foot" style="margin-top:1rem;margin-bottom:0;">
+        Updates live when <code>stripe-webhook-handler</code> credits <code>user_balances</code>. Same row as the iOS app when signed into the same Supabase project.
+      </p>
+    </section>
+  </main>
+  <script src="/fel-public-config.js" onerror="window.__FEL_NO_CONFIG__=true"></script>
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const warnCfg = document.getElementById("config-warn");
+    if (window.__FEL_NO_CONFIG__ || !window.FEL_SUPABASE_URL || !window.FEL_SUPABASE_ANON_KEY) {
+      warnCfg.hidden = false;
+    }
+
+    const supabase =
+      window.FEL_SUPABASE_URL && window.FEL_SUPABASE_ANON_KEY
+        ? createClient(window.FEL_SUPABASE_URL, window.FEL_SUPABASE_ANON_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+          })
+        : null;
+
+    const elOut = document.getElementById("signed-out");
+    const elIn = document.getElementById("signed-in");
+    const userLine = document.getElementById("user-line");
+    const balPanel = document.getElementById("balance-panel");
+    const valShards = document.getElementById("val-shards");
+    const valCortex = document.getElementById("val-cortex");
+
+    let walletChannel = null;
+
+    function applyBalanceRow(row) {
+      if (!row) {
+        valShards.textContent = "0";
+        valCortex.textContent = "0";
+        return;
+      }
+      valShards.textContent = String(row.shard_balance ?? 0);
+      valCortex.textContent = String(row.cortex_credits ?? 0);
+    }
+
+    async function loadBalances(uid) {
+      if (!supabase) return;
+      const { data, error } = await supabase.from("user_balances").select("shard_balance, cortex_credits").eq("user_id", uid).maybeSingle();
+      if (error) {
+        console.error(error);
+        valShards.textContent = "?";
+        valCortex.textContent = "?";
+        return;
+      }
+      applyBalanceRow(data);
+    }
+
+    function subscribeWallet(uid) {
+      if (!supabase || walletChannel) return;
+      walletChannel = supabase
+        .channel("wallet-" + uid)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "user_balances", filter: "user_id=eq." + uid },
+          (payload) => {
+            if (payload.new) applyBalanceRow(payload.new);
+          }
+        )
+        .subscribe();
+    }
+
+    function unsubscribeWallet() {
+      if (supabase && walletChannel) {
+        supabase.removeChannel(walletChannel);
+        walletChannel = null;
+      }
+    }
+
+    function showSession(session) {
+      if (session?.user) {
+        elOut.hidden = true;
+        elIn.hidden = false;
+        balPanel.hidden = false;
+        userLine.textContent = session.user.email ?? session.user.id;
+        loadBalances(session.user.id);
+        subscribeWallet(session.user.id);
+      } else {
+        elOut.hidden = false;
+        elIn.hidden = true;
+        balPanel.hidden = true;
+        unsubscribeWallet();
+      }
+    }
+
+    document.getElementById("btn-signin").addEventListener("click", async () => {
+      if (!supabase) return;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) alert(error.message);
+    });
+
+    document.getElementById("btn-signup").addEventListener("click", async () => {
+      if (!supabase) return;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) alert(error.message);
+      else alert("Check email for confirmation if enabled.");
+    });
+
+    document.getElementById("btn-signout").addEventListener("click", async () => {
+      if (!supabase) return;
+      unsubscribeWallet();
+      await supabase.auth.signOut();
+    });
+
+    if (supabase) {
+      const { data: { session } } = await supabase.auth.getSession();
+      showSession(session);
+      supabase.auth.onAuthStateChange((_e, session) => {
+        unsubscribeWallet();
+        showSession(session);
+      });
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("next") === "/shop/") {
+      /* optional: auto-focus */
+    }
+  </script>
+</body>
+</html>

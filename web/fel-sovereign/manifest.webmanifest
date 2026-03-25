@@ -1,0 +1,10 @@
+{
+  "name": "Final Evolution Lab",
+  "short_name": "FEL",
+  "description": "Sovereign fitness-gaming loop — Biomechanical System Scan, arenas, and shard economy.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050508",
+  "theme_color": "#00B4D8"
+}

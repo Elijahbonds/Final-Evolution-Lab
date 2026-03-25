@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Sovereign Shop — Evolution Shards, Cloud Cortex, Vertical Velocity Blueprint." />
+  <meta name="theme-color" content="#0a0c10" />
+  <title>Sovereign Shop — Final Evolution</title>
+  <link rel="stylesheet" href="/shared/fel-clinical.css" />
+</head>
+<body>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="/">Gateway</a>
+    <a href="/play/">PWA Lab</a>
+    <a href="/shop/" aria-current="page">Shop</a>
+    <a href="/wallet/">Wallet</a>
+  </nav>
+  <main class="wrap">
+    <div class="badge">Sovereign economy</div>
+    <h1>Shop</h1>
+    <p class="panel" style="margin-top:0.75rem;">
+      Purchase bundles with Stripe Payment Links. Sign in on the <a href="/wallet/">Wallet</a> page first so we can pass your Supabase user id as <span class="mono">client_reference_id</span> — the Edge Function credits <span class="mono">user_balances</span> when checkout completes.
+    </p>
+    <div id="config-warn" class="warn" hidden>
+      Missing <code>fel-public-config.js</code>. Copy <code>fel-public-config.example.js</code> to <code>web/fel-public-config.js</code> and set Supabase + Stripe link URLs.
+    </div>
+    <div id="auth-warn" class="warn" hidden>
+      Sign in on <a href="/wallet/">Wallet</a> before checkout so purchases map to your account.
+    </div>
+    <div class="grid-3" id="products">
+      <div class="product-card">
+        <h3>Vertical Velocity Blueprint</h3>
+        <p class="price">$19.99</p>
+        <p>Cortex alignment + blueprint access. Webhook maps price metadata or SKU <span class="mono">vva_blueprint</span>.</p>
+        <p style="margin-top:0.75rem;"><a class="btn" id="buy-vva" href="#">Checkout</a></p>
+      </div>
+      <div class="product-card">
+        <h3>Cortex Shard Pack</h3>
+        <p class="price">$49.99</p>
+        <p>Shard + Cortex bundle. SKU <span class="mono">cortex_shard_pack</span>.</p>
+        <p style="margin-top:0.75rem;"><a class="btn" id="buy-shards" href="#">Checkout</a></p>
+      </div>
+      <div class="product-card">
+        <h3>Sovereign Pro</h3>
+        <p class="price">$99.99</p>
+        <p>Premium Sovereign tier. SKU <span class="mono">sovereign_pro</span>.</p>
+        <p style="margin-top:0.75rem;"><a class="btn" id="buy-pro" href="#">Checkout</a></p>
+      </div>
+    </div>
+    <p class="foot">
+      Configure Stripe products with <code>metadata.product_sku</code> as in <code>DOCS/SOVEREIGN_STRIPE_PRODUCTION.md</code>. Deploy the webhook with <code>supabase functions deploy stripe-webhook-handler --no-verify-jwt</code>.
+    </p>
+  </main>
+  <script src="/fel-public-config.js" onerror="window.__FEL_NO_CONFIG__=true"></script>
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const warnCfg = document.getElementById("config-warn");
+    const warnAuth = document.getElementById("auth-warn");
+
+    if (window.__FEL_NO_CONFIG__ || !window.FEL_SUPABASE_URL || !window.FEL_SUPABASE_ANON_KEY) {
+      warnCfg.hidden = false;
+    }
+
+    const supabase =
+      window.FEL_SUPABASE_URL && window.FEL_SUPABASE_ANON_KEY
+        ? createClient(window.FEL_SUPABASE_URL, window.FEL_SUPABASE_ANON_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+          })
+        : null;
+
+    function checkoutUrl(base) {
+      const s = base ? String(base) : "";
+      if (!s || s.indexOf("REPLACE") !== -1 || s.indexOf("YOUR_PROJECT") !== -1) {
+        alert("Set FEL_STRIPE_PAYMENT_LINK_* in fel-public-config.js (copy from fel-public-config.example.js).");
+        return null;
+      }
+      return new URL(s);
+    }
+
+    async function bind() {
+      let session = null;
+      if (supabase) {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+        if (!session) warnAuth.hidden = false;
+      } else {
+        warnAuth.hidden = false;
+      }
+
+      function go(id, linkName) {
+        const el = document.getElementById(id);
+        el.addEventListener("click", async (e) => {
+          e.preventDefault();
+          const base = window[linkName];
+          const u = checkoutUrl(base);
+          if (!u) return;
+          if (supabase) {
+            const { data } = await supabase.auth.getSession();
+            session = data.session;
+          }
+          if (!session?.user?.id) {
+            warnAuth.hidden = false;
+            window.location.href = "/wallet/?next=/shop/";
+            return;
+          }
+          u.searchParams.set("client_reference_id", session.user.id);
+          if (session.user.email) u.searchParams.set("prefilled_email", session.user.email);
+          window.location.href = u.toString();
+        });
+      }
+
+      go("buy-vva", "FEL_STRIPE_PAYMENT_LINK_VVA");
+      go("buy-shards", "FEL_STRIPE_PAYMENT_LINK_SHARDS");
+      go("buy-pro", "FEL_STRIPE_PAYMENT_LINK_PRO");
+    }
+
+    bind();
+  </script>
+</body>
+</html>

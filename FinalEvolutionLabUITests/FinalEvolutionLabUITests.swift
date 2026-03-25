@@ -2,7 +2,7 @@
 //  FinalEvolutionLabUITests.swift
 //  FinalEvolutionLabUITests
 //
-//  Created by Rork on March 2, 2026.
+//  Final Evolution Lab — UI tests.
 //
 
 import XCTest

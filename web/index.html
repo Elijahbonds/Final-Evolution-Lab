@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Final Evolution — Dark Clinical gateway to the Vertical Velocity Academy, Sovereign Shop, and Wallet." />
+  <meta name="theme-color" content="#0a0c10" />
+  <title>Final Evolution — Clinical Gateway</title>
+  <link rel="stylesheet" href="/shared/fel-clinical.css" />
+  <style>
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    @media (min-width: 640px) {
+      .hero-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    .hero-card {
+      display: block;
+      padding: 1.25rem;
+      border-radius: 16px;
+      text-decoration: none;
+      color: inherit;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(92, 225, 230, 0.2);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .hero-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(30, 144, 255, 0.15);
+    }
+    .hero-card strong {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      color: var(--cyan);
+      margin-bottom: 0.35rem;
+    }
+    .hero-card span { font-size: 0.92rem; line-height: 1.45; color: rgba(232, 244, 255, 0.82); }
+  </style>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="/" aria-current="page">Gateway</a>
+    <a href="/play/">PWA Lab</a>
+    <a href="/shop/">Shop</a>
+    <a href="/wallet/">Wallet</a>
+  </nav>
+  <main class="wrap">
+    <div class="badge">Bonds standard</div>
+    <h1>Clinical gateway</h1>
+    <p class="panel" style="margin-top:0.75rem;">
+      High-conversion entry to the Lab: install the PWA, fund your Sovereign wallet, and mirror performance across devices — same Supabase session as the iOS app.
+    </p>
+    <div class="hero-grid">
+      <a class="hero-card" href="/play/">
+        <strong>PWA / Play</strong>
+        <span>OPEN LAB — spiral hero, 16.6 ms story, home-screen install.</span>
+      </a>
+      <a class="hero-card" href="/shop/">
+        <strong>Sovereign shop</strong>
+        <span>Shard packs &amp; Vertical Velocity Blueprint via Stripe Payment Links.</span>
+      </a>
+      <a class="hero-card" href="/wallet/">
+        <strong>Wallet</strong>
+        <span>Sign in and watch shard balance update in realtime after checkout.</span>
+      </a>
+    </div>
+    <p class="foot">
+      Static site root is <code>web/</code> — deploy with <code>netlify.toml</code> or <code>scripts/deploy_web.sh</code>.
+    </p>
+  </main>
+</body>
+</html>

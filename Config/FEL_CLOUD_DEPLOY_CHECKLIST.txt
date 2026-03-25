@@ -1,0 +1,25 @@
+Final Evolution Lab — cloud / CI handoff checklist
+====================================================
+
+Repository
+----------
+- Remote: link your Git host (GitHub/GitLab) and branch (e.g. `main`).
+- App Swift sources live under **`Source/`**.
+
+Secrets & env (never commit plaintext secrets)
+----------------------------------------------
+- Map at build time: **GEMINI_API_KEY**, **FEL_SUPABASE_URL**, **FEL_SUPABASE_ANON_KEY**
+- Optional: **FEL_SOVEREIGN_LEADERBOARD_URL**, **FEL_SOVEREIGN_LEADERBOARD_TOKEN**
+
+Capabilities
+------------
+- Full list: **`Config/FEL_IOS_CAPABILITIES_CHECKLIST.txt`**
+
+Before release build
+--------------------
+- From repo root: **`./scripts/fel_clean_artifacts.sh`** (optional — trims DerivedData / SwiftPM clutter patterns).
+
+Smoke test
+----------
+- Build **FinalEvolutionLabUnreal** for **iOS Simulator** then **generic iOS** (device).
+- Run unit/UI tests if enabled in scheme.

@@ -1,0 +1,36 @@
+// Prefer copying `FinalEvolutionLab.Build.cs` from this folder when bootstrapping a new module; merge into your module's FinalEvolutionLab.Build.cs — do not duplicate module names.
+//
+// Add alongside FELBasketballCharacter.cpp: UFELInputComponent.cpp, FELHoopTargetActor.cpp, FELArenaModeCatalog.cpp, UFELArenaModeData.cpp, UFELDemoManager.cpp,
+// FELMotionWarpingLibrary.cpp, UFELLandingIKComponent.cpp, AFELAcademyTerminal.cpp, UFELArenaPreloadSubsystem.cpp, UFELCloudSyncSubsystem.cpp,
+// FELDeepMotionSessionSubsystem.cpp, UFELAcademyMocapCatalogSubsystem.cpp,
+// FELPerfectFormChecklistWidget.cpp, FELBiometricEnvironmentActor.cpp, FELExerciseDemonstrator.cpp, FELKineticLeakage.cpp, FELNeuroSkill.h, FELSportMastery.h,
+// FELKalmanFilter1D.h, FELFlightTimeAnalysis.h, FELJointAngleThresholds.h (header-only; System Scan / Gold Master biomechanics),
+// FELJumpTimingTypes.h (UENUM), FELNeuroMechanicPhysics.h,
+// FELQuizWidget.cpp, FELPlatformPaths.cpp,
+// FELProgressionSubsystem.cpp, FELOnboardingWidget.cpp, FELMatchResultsWidget.cpp, FELNativeBridge.cpp,
+// FELMatchTypes (header only + .generated.h via UHT).
+// iOS: add FELPlatformPaths_IOS.mm and FELNativeBridge_IOS.mm (Documents/FEL + NSNotification → Swift).
+//
+// PublicDependencyModuleNames must include at least:
+//   "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "PhysicsCore", "Json", "JsonUtilities", "HTTP", "UMG", "Slate", "SlateCore"
+//   + "Niagara" for BondsBounceLeakVFX (FELBasketballCharacter::SpawnBondsBounceLeakVFX).
+//
+// Example:
+// PublicDependencyModuleNames.AddRange(new string[] {
+//     "Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore", "Json", "JsonUtilities"
+// });
+//
+// Json + JsonUtilities: readiness_snapshot.json load + last_session_result.json export (see ../VISION_ALIGNMENT.md).
+//
+// --- Shipping (Gold Master) ---
+// UE sets UE_BUILD_SHIPPING for packaged Shipping builds; strip dev HUD / hot-reload in C++ with #if !UE_BUILD_SHIPPING
+// (see FELBasketballPlayerController.cpp). Do not redefine engine macros here unless you have a custom pipeline.
+//
+// Optional — only if your module must flip a project-specific switch:
+//   if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+//   {
+//       PublicDefinitions.Add("FEL_FORCE_SHIPPING_UI=1");
+//   }
+//
+// For log verbosity in cooked builds, prefer DefaultEngine.ini [Core.Log] or project packaging settings rather than
+// disabling UE_LOG globally in Build.cs (can break engine diagnostics).

@@ -1,0 +1,16 @@
+# Netlify publish root is `web/` — this file applies site-wide.
+# Cross-origin isolation for WebGPU / WASM under /play/ (see also web/play/_headers).
+# Mobile Safari: COOP/COEP on /play/ only; /shop/ and /wallet/ stay unrestricted for Supabase + Stripe redirects.
+
+/play/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  X-Content-Type-Options: nosniff
+
+/play/index.html
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
+/play/sw.js
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp

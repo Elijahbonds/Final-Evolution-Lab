@@ -2,11 +2,11 @@
 //  FinalEvolutionLabTests.swift
 //  FinalEvolutionLabTests
 //
-//  Created by Rork on March 2, 2026.
+//  Final Evolution Lab — unit tests.
 //
 
 import Testing
-@testable import FinalEvolutionLab
+@testable import FinalEvolutionLabUnreal
 
 struct FinalEvolutionLabTests {
 

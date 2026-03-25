@@ -1,0 +1,28 @@
+{
+  "academyPlyosMasteryBonus": 0.02,
+  "active_mode": "basketball_h2h",
+  "ankleKineticHeat": 0.48,
+  "currentOutfit": "standard",
+  "efficiencyScore": 62.5,
+  "flightTimeSeconds": 0.52,
+  "hangTimeScale": 0.98,
+  "hipKineticHeat": 0.12,
+  "isPrimed": true,
+  "kineticLeakageMultiplier": 0.91,
+  "kneeKineticHeat": 0.12,
+  "movementGrade": "FLIGHT READY",
+  "neuralDrive": 55,
+  "popForce": 48,
+  "prqScore": 88,
+  "neuroMechanicLogoTexture": "/Game/FEL/UI/Brand/T_NeuroMechanic_Logo.T_NeuroMechanic_Logo",
+  "bondsBounceLogoTexture": "/Game/FEL/UI/Brand/T_BondsBounce_Logo.T_BondsBounce_Logo",
+  "creatorCardTextures": [
+    "/Game/FEL/UI/Cards/T_Creator_Vertical.T_Creator_Vertical",
+    "/Game/FEL/UI/Cards/T_Creator_Speed.T_Creator_Speed",
+    "/Game/FEL/UI/Cards/T_Creator_Recovery.T_Creator_Recovery"
+  ],
+  "readinessScore": 71,
+  "signature_trait_id": "bonds_apex_ignition",
+  "verticalEstimateInches": 32,
+  "verticalPotential": 64
+}

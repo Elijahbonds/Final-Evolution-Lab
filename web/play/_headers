@@ -1,0 +1,19 @@
+# When publishing the full site, Netlify reads `web/_headers` at the publish root.
+# This file is kept in sync for partial /play-only deploys.
+# Netlify / static host — cross-origin isolation for WebGPU / WASM workers.
+# COEP `require-corp`: every embedded asset must be same-origin or send
+# `Cross-Origin-Resource-Policy: cross-origin` (or credentialless fetch). Prevents cross-origin
+# WebGPU buffer leaks / undefined behavior in Chromium. Tune per CDN if fonts/scripts break.
+
+/play/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  X-Content-Type-Options: nosniff
+
+/play/index.html
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
+/play/sw.js
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp

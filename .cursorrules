@@ -1,0 +1,27 @@
+# Final Evolution Lab — default stack
+# New product work targets Unreal Engine (see UNREAL_ONLY.md). Swift under Source/ (iOS shell) is legacy unless a task says otherwise.
+
+# Unreal Engine 5.2+ (when working with Unreal C++, Blueprints, or editor scripts)
+
+- Always use **Unreal Engine 5.2+ C++ standards** and the **Unreal Coding Standard** (avoid APIs that only exist in much newer minors unless the user asks for them).
+- Use **PascalCase** for types, variables, and functions.
+- Ensure all actor components are initialized in the constructor using **CreateDefaultSubobject**.
+- Use **UPROPERTY** specifiers such as **EditAnywhere** and **BlueprintReadOnly** for designer-facing variables.
+- Use **UFUNCTION** with appropriate specifiers (BlueprintCallable, etc.) when exposing to Blueprints.
+- Include **GENERATED_BODY()** and correct module includes in UObject/UActor classes.
+- Prefer **FVector**, **FRotator**, **FTransform**, and Unreal container types (**TArray**, **TMap**) over raw STL where appropriate.
+
+# Niagara / HLSL (when working with VFX or materials)
+
+- For custom particle or material logic, use **HLSL** (High-Level Shading Language) in Niagara scripts or Material functions.
+- Keep Cursor prompts specific (e.g. "swirling vortex based on particle age") so generated HLSL is targeted.
+
+# Python (Unreal Editor scripting)
+
+- Use Unreal's **Python API** for editor automation (asset import, batch rename, level layout).
+- Prefer the official Unreal Python bindings; keep scripts in your project's Script/ or a dedicated Editor/Python folder.
+
+# Indexing and workflow
+
+- Index your Unreal project's **Source** folder so Cursor can navigate engine and project APIs.
+- Use **Live Coding** (Ctrl+Alt+F11 in editor) to apply C++ changes without restarting the engine.

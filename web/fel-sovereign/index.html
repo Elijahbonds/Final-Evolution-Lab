@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#00B4D8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <title>Final Evolution Lab</title>
+  <style>
+    html, body { margin:0; height:100%; background:#050508; color:#e8f4ff; font-family: system-ui, sans-serif; }
+    #fel-host { position:fixed; inset:0; }
+    #fel-host iframe { border:0; width:100%; height:100%; }
+  </style>
+</head>
+<body>
+  <div id="fel-host">
+    <!-- Replace data-src with your Pixel Streaming player or WASM canvas host when deployed. -->
+    <p style="padding:1rem;">Sovereign shell — mount Pixel Streaming or WASM client here. Gamepad: use W3C Gamepad API + WebHID in your bridge; forward into Unreal via `UFELInputManager::InjectBrowserGamepadSample`.</p>
+  </div>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{
+  "modes": {
+    "basketball_h2h": {
+      "modeDisplayName": "Street Ball",
+      "unrealBasketballSlice": "StreetBall",
+      "timeLimitSeconds": 0,
+      "ballCount": 1,
+      "targetScore": 3,
+      "physicsJumpScale": 1.0,
+      "physicsWalkScale": 1.0,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
+    "basketball_dunk": {
+      "modeDisplayName": "Dunk Contest",
+      "unrealBasketballSlice": "FirstToTwentyOne",
+      "ballSpawnType": "SingleAtPrimary",
+      "bIsDunkContest": true,
+      "timeLimitSeconds": 0,
+      "ballCount": 1,
+      "targetScore": 21,
+      "physicsJumpScale": 1.0,
+      "physicsWalkScale": 1.0,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
+    "basketball_3v3": {
+      "modeDisplayName": "Half-Court Shootout",
+      "unrealBasketballSlice": "HalfCourtShootout",
+      "timeLimitSeconds": 0,
+      "ballCount": 2,
+      "targetScore": 11,
+      "physicsJumpScale": 1.0,
+      "physicsWalkScale": 1.0,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
+    "karate": { "modeDisplayName": "Karate (slice)", "unrealBasketballSlice": "StreetBall", "targetScore": 5, "ballCount": 1 },
+    "baseball": { "modeDisplayName": "Baseball (slice)", "unrealBasketballSlice": "Practice", "targetScore": 3, "ballCount": 1 },
+    "football": { "modeDisplayName": "Football (slice)", "unrealBasketballSlice": "StreetBall", "targetScore": 5, "ballCount": 1 },
+    "soccer": { "modeDisplayName": "Soccer (slice)", "unrealBasketballSlice": "StreetBall", "targetScore": 5, "ballCount": 1 },
+    "golf": { "modeDisplayName": "Golf (slice)", "unrealBasketballSlice": "Practice", "targetScore": 3, "ballCount": 1 },
+    "tennis": { "modeDisplayName": "Tennis (slice)", "unrealBasketballSlice": "TimedBlitz", "timeLimitSeconds": 120, "targetScore": 5, "ballCount": 1 },
+    "volleyball": { "modeDisplayName": "Volleyball (slice)", "unrealBasketballSlice": "TimedBlitz", "timeLimitSeconds": 120, "targetScore": 5, "ballCount": 1 },
+    "gymnastics": { "modeDisplayName": "Gymnastics (slice)", "unrealBasketballSlice": "Practice", "targetScore": 3, "ballCount": 1 },
+    "brain_brawl": {
+      "modeDisplayName": "Brain Brawl",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 5,
+      "bScoringEnabled": false,
+      "bNeuroKineticLeakageForDunkParity": true
+    }
+  }
+}

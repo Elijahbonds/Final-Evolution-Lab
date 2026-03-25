@@ -1,0 +1,21 @@
+Final Evolution Lab — TestFlight “Sovereign Alpha”
+What to test (1.0.0 build 6)
+===========================
+
+Focus: Spiral Line awareness, Push 1–2 haptics, wallet sync
+
+1) Vertical Velocity / approach timing
+   - In arena rhythm or academy cues, feel the penultimate “Push” (heavy) vs the “1, 2” takeoff snaps.
+   - On PS5 with DualSense, confirm stacked haptics feel grounded then sharp (not mushy).
+
+2) Sovereign wallet
+   - After signing in, confirm Evolution Shards / Cortex credits match your FinalEvolutionGroup.com account when applicable.
+   - If your team runs a live checkout test, the in-app balance should update without relaunch (Realtime).
+
+3) Cloud Cortex (if enabled)
+   - Prescription text should appear in the compact HUD without covering the main 3D view.
+
+4) Stability
+   - Note any crashes, thermal throttling on long sessions, or Bluetooth controller dropouts.
+
+Thank you — feedback goes to the Final Evolution team.

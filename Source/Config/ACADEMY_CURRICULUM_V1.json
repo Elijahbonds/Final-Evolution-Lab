@@ -1,0 +1,133 @@
+{
+  "version": "1.0.4",
+  "name": "Vertical Velocity Academy — Total Ignition (10 forensic modules)",
+  "cloud_cortex": {
+    "ankle_piston_prescription": {
+      "label": "Module 2: The Ankle Piston",
+      "description": "Forensic ankle segment — dorsiflexion elastic recoil and ankle stiffness; pair with mod3 Piston (IAP) and mod8 Rhythmic Penultimate when metrics imply ankle-limited push.",
+      "context_modules": ["mod2", "mod3", "mod8"],
+      "keywords": ["ankle", "dorsiflexion", "penultimate", "elastic recoil"]
+    },
+    "multi_segmental_rotation_fail": {
+      "prescribe_modules": ["mod6"],
+      "primary_corrective": "Isometric Split Stance Wall Push",
+      "nms_reset": "Isometric Split Stance Wall Push + mod5 Spiral Line context (rotation roadblock → clearance before load)",
+      "context_modules": ["mod5"]
+    },
+    "flight_blueprint_continuous_hops": {
+      "plyometric_depth": "Elasticity — extensive / regressed",
+      "duration_seconds": "45-60",
+      "training_exercise_id": "me_fl_d3_5"
+    }
+  },
+  "modules": [
+    {
+      "id": "mod1",
+      "number": 1,
+      "title": "Bio-Electric Freeway",
+      "subtitle": "CNS Freeway & Roadblock Theory",
+      "muscleMotionLayer": "Global neuromyofascial — full-body electric highway",
+      "muscle_motion_overlay": "global_highway",
+      "phase": "Foundations",
+      "forensic_lesson": "Map signal velocity losses before loading power."
+    },
+    {
+      "id": "mod2",
+      "number": 2,
+      "title": "The Internal GPS",
+      "subtitle": "SFMA / FMS as Assessment GPS",
+      "muscleMotionLayer": "Multi-planar screening — regional interdependence",
+      "muscle_motion_overlay": "screen_compass",
+      "phase": "Foundations",
+      "forensic_lesson": "Fail = roadblock; screen before you load."
+    },
+    {
+      "id": "mod3",
+      "number": 3,
+      "title": "The Piston",
+      "subtitle": "IAP — Diaphragm & Pelvic Floor",
+      "muscleMotionLayer": "Deep front line — intra-abdominal piston (3D)",
+      "muscle_motion_overlay": "deep_front_line_piston",
+      "phase": "Foundations",
+      "forensic_lesson": "360° breathing as fascial rehydration."
+    },
+    {
+      "id": "mod4",
+      "number": 4,
+      "title": "Movement Snacks",
+      "subtitle": "24/7 Athlete — 90/90 & micro-dosing mobility",
+      "muscleMotionLayer": "Spiral line hydration — thoracic & hip rotation snacks",
+      "muscle_motion_overlay": "spiral_line_snacks",
+      "phase": "Foundations",
+      "forensic_lesson": "Micro-dose rotation and hydration between hard sessions."
+    },
+    {
+      "id": "mod5",
+      "number": 5,
+      "title": "Anatomy of the Sling",
+      "subtitle": "Spiral, Front & Back Functional Lines",
+      "muscleMotionLayer": "Spiral line — oblique slings & cross-body transfer (3D)",
+      "muscle_motion_overlay": "spiral_line_highlight",
+      "phase": "Foundations",
+      "forensic_lesson": "Jump and run travel along slings — leaks show in rotation."
+    },
+    {
+      "id": "mod6",
+      "number": 6,
+      "title": "Clearing the Path",
+      "subtitle": "NMS Correctives & GFR",
+      "muscleMotionLayer": "Lateral & spiral lines — rotation capacity",
+      "muscle_motion_overlay": "nms_rotation_clearance",
+      "phase": "Foundations",
+      "forensic_lesson": "Rotation fail → Isometric Split Stance Wall Push before load.",
+      "primary_nms_drill": "Isometric Split Stance Wall Push"
+    },
+    {
+      "id": "mod7",
+      "number": 7,
+      "title": "The Loaded Spring",
+      "subtitle": "PJF Band / TBB overcoming ISOs",
+      "muscleMotionLayer": "Posterior & spiral integration — elastic storage",
+      "muscle_motion_overlay": "elastic_spring_chain",
+      "phase": "Load",
+      "forensic_lesson": "Store and return load before reactive volume."
+    },
+    {
+      "id": "mod8",
+      "number": 8,
+      "title": "The Rhythmic Penultimate",
+      "subtitle": "RFD & Push 1, 2",
+      "muscleMotionLayer": "Deep front + lateral lines — ankle–hip sequencing",
+      "muscle_motion_overlay": "penultimate_timing",
+      "phase": "Launch",
+      "forensic_lesson": "Bonds Bounce timing — Push 1, 2 on the penultimate."
+    },
+    {
+      "id": "mod9",
+      "number": 9,
+      "title": "The Elastic Engine",
+      "subtitle": "Tiered Plyometrics — Extensive to Deep",
+      "muscleMotionLayer": "Full kinetic chain — extensive → reactive elasticity",
+      "muscle_motion_overlay": "plyometric_depth_ladder",
+      "phase": "Flight",
+      "forensic_lesson": "Regressed/extensive plyos before deep-tier reactive demand."
+    },
+    {
+      "id": "mod10",
+      "number": 10,
+      "title": "Flight Blueprint",
+      "subtitle": "Programming & Approach Variations",
+      "muscleMotionLayer": "All lines integrated — competition-ready sequencing",
+      "muscle_motion_overlay": "flight_blueprint_full",
+      "phase": "Flight",
+      "forensic_lesson": "Program correctives → stiffness → progressed plyos → approach.",
+      "signature_drills": [
+        {
+          "name": "Continuous Hops (Tripod)",
+          "plyometric_depth": "Elasticity — extensive / regressed",
+          "duration": "45-60s"
+        }
+      ]
+    }
+  ]
+}

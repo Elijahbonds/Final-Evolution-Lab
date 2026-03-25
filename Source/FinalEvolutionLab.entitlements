@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!-- Alpha 1 Build 6 / Distribution: aps-environment FORCED to production (TestFlight + App Store). -->
+<dict>
+	<key>aps-environment</key>
+	<string>production</string>
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+</dict>
+</plist>

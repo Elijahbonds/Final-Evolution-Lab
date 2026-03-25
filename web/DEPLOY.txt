@@ -1,0 +1,26 @@
+Final Evolution — static web deploy (FinalEvolutionGroup.com)
+==============================================================
+
+Publish directory: this folder (`web/`) is the site root.
+
+Routes
+------
+  /              Clinical gateway (index.html)
+  /play/         PWA lab (COOP/COEP headers in _headers for WebGPU/WASM)
+  /shop/         Stripe Payment Links + Supabase sign-in (fel-public-config.js)
+  /wallet/       Realtime wallet mirror (user_balances)
+
+Netlify
+-------
+  Repo root contains netlify.toml → publish = "web"
+  Deploy: ./scripts/deploy_web.sh   (requires netlify CLI linked to the site)
+
+Config
+------
+  Copy fel-public-config.example.js → fel-public-config.js (gitignored)
+  Set SUPABASE_URL, SUPABASE_ANON_KEY, and FEL_STRIPE_PAYMENT_LINK_*.
+
+Headers
+-------
+  web/_headers applies when the whole `web/` tree is published. web/play/_headers is a duplicate
+  reference for partial deploys; prefer the root _headers for Netlify.

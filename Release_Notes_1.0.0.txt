@@ -1,0 +1,32 @@
+Final Evolution — Release Notes (1.0.0 Final Command)
+======================================================
+
+Neuro-Mechanic & performance
+----------------------------
+• Neuro-Mechanic Fatigue Detection: AI Coach performance snapshots and Arena “System Scan” banners surface fatigue trends from jump history and coach JSON — stay signed in after System Scan so readiness stays aligned with Unreal.
+• Forensic lighting gate: Arena ambient luminance must meet the 1.0.0 threshold before forensic readiness export is trusted; calibration progress guides Avatar / digital-twin capture quality.
+
+Sovereign Gear Parity
+---------------------
+• Sovereign gear and Bonds Apex Ignition unlocks respect biomechanical validation: if System Scan metrics and engine jump physics disagree (compromised data path), Sovereign bonuses are not written to save — protecting MyTeam / twin parity with Unreal `readiness_snapshot.json`.
+
+PS5 Pro — PSSR 2.0 Enhanced
+----------------------------
+• PSSR 2.0 Enhanced path with Luma Venice–grade materials; a runtime quality guard maintains the 120 FPS target when mirror-finish / RTGI load spikes, automatically easing RT cost until the frame budget recovers.
+
+Hybrid app
+----------
+• Swift shell + embedded Unreal viewport + RealityKit Lab; shared `readiness_snapshot.json` for Arena handoff per SHIP_CRITERIA.
+
+Build & distribution
+--------------------
+• Gold Master packaging: `scripts/package_gold_master.sh` — pre-flight App Store Connect API env check, optional TestFlight upload via API key or Apple ID + app-specific password (see script header).
+
+Version 1.0.0 build 6 (Alpha 1 — Xcode CURRENT_PROJECT_VERSION = 6)
+-------------------------------------------------------------
+• Refined Avatar Scaling: `readiness_snapshot.json` now carries explicit **avatarHeightScale** and **avatarWeightScale** from `AvatarSkinConfig` (`PRQManager.swift`) so the Unreal digital twin and physics handshake match the athlete profile (height/weight rig parity for System Scan → Arena).
+• IPA export: Development export options no longer use an invalid `thinning` plist value (clean `-exportArchive` for TestFlight artifacts).
+
+Lighting & forensic integrity (Arena)
+-------------------------------------
+• Lighting Pause Overlay (`ArenaView.swift`): when ambient luma is below the 1.0.0 threshold, a full-screen forensic pause blocks capture until light is sufficient — referenced in tester troubleshooting for “Compromised Data” recovery.

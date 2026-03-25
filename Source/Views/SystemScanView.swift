@@ -1,0 +1,1023 @@
+import SwiftUI
+import PhotosUI
+import AVFoundation
+import UniformTypeIdentifiers
+
+/// Animated “ghost” guide: phone angle + standing zone for the first biomechanics capture.
+private struct FirstScanGhostGuideOverlay: View {
+    var phase: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+            ZStack {
+                RoundedRectangle(cornerRadius: 36, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [Theme.brandCyan.opacity(0.35 + 0.25 * phase), Theme.brandBlue.opacity(0.2)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2
+                    )
+                    .frame(width: w * 0.42, height: w * 0.88)
+                    .rotationEffect(.degrees(-8))
+                    .position(x: w * 0.72, y: h * 0.42)
+                    .shadow(color: Theme.brandCyan.opacity(0.15 + 0.1 * phase), radius: 18)
+
+                Image(systemName: "iphone.gen2")
+                    .font(.system(size: 44, weight: .light))
+                    .foregroundStyle(.white.opacity(0.14 + 0.08 * phase))
+                    .rotationEffect(.degrees(-8))
+                    .position(x: w * 0.72, y: h * 0.42)
+
+                Image(systemName: "figure.stand")
+                    .font(.system(size: 120, weight: .ultraLight))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Theme.brandBlue.opacity(0.12), Theme.brandCyan.opacity(0.18)],
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
+                    )
+                    .position(x: w * 0.38, y: h * 0.48)
+                    .scaleEffect(0.96 + 0.04 * phase)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("FIRST SCAN")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(3)
+                    Text("Stand 6–8 ft back • full body in frame")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.85))
+                    Text("Film landscape — phone at hip height, slight upward tilt toward takeoff.")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(14)
+                .frame(maxWidth: w * 0.52, alignment: .leading)
+                .background(Color.white.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .position(x: w * 0.34, y: h * 0.2)
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+private struct VideoFile: Transferable {
+    let url: URL
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .movie) { video in
+            SentTransferredFile(video.url)
+        }
+
+        FileRepresentation(importedContentType: .movie) { received in
+            let name = received.file.lastPathComponent
+            let temp = FileManager.default.temporaryDirectory.appending(path: name.isEmpty ? "scan_video.mov" : name)
+            try? FileManager.default.removeItem(at: temp)
+            try FileManager.default.copyItem(at: received.file, to: temp)
+            return Self(url: temp)
+        }
+    }
+}
+
+struct SystemScanView: View {
+    let sport: String?
+    let goal: String?
+    /// When set with Demo Mode on, Fast-Track can reuse `systemScan` or `defaultForProfile` without video analysis.
+    var profileForDemoFastTrack: UserProfile? = nil
+    let onComplete: (SystemScanResult) -> Void
+    /// Deep-link to Vertical Velocity Academy module (`mod1`…`mod12`).
+    var onOpenAcademyModule: ((String) -> Void)? = nil
+
+    @AppStorage("felDemoModeShowcase") private var felDemoModeShowcase = false
+    @EnvironmentObject private var unrealRuntime: UFELUnrealOverlayRuntime
+    @Environment(\.dismiss) private var dismiss
+    @State private var phase: ScanPhase = .picking
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var videoURL: URL?
+    @State private var isLoadingVideo: Bool = false
+    @State private var analysisProgress: Double = 0
+    @State private var scanLines: CGFloat = 0
+    @State private var gridPulse: Bool = false
+    @State private var ghostGuidePhase: CGFloat = 0
+
+    private enum ScanPhase {
+        case picking
+        case analyzing
+        case results
+    }
+
+    @State private var generatedResult: SystemScanResult?
+    @State private var showAvatarCustomize = false
+    @State private var editableAvatarConfig: AvatarSkinConfig?
+    @State private var compareJoint: JointType?
+    @State private var compareFlip: Bool = false
+    @State private var compareTask: Task<Void, Never>?
+
+    var body: some View {
+        ZStack {
+            if !unrealRuntime.bIsUnrealReady {
+                NavigationStack {
+                    ZStack {
+                        Theme.deepBlack.ignoresSafeArea()
+                        Theme.meshGradient.opacity(0.3).ignoresSafeArea()
+                        scanGrid
+
+                        if phase == .picking {
+                            FirstScanGhostGuideOverlay(phase: ghostGuidePhase)
+                                .allowsHitTesting(false)
+                        }
+
+                        VStack(spacing: 0) {
+                            switch phase {
+                            case .picking:
+                                pickingPhase
+                            case .analyzing:
+                                analyzingPhase
+                            case .results:
+                                if let result = generatedResult {
+                                    resultsPhase(result)
+                                }
+                            }
+                        }
+                    }
+                    .navigationTitle("")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { dismiss() }
+                                .foregroundStyle(Theme.brandBlue)
+                        }
+                    }
+                    .toolbarColorScheme(.dark, for: .navigationBar)
+                }
+            }
+            if unrealRuntime.bIsUnrealReady {
+                UFELUnrealViewportContainer()
+            }
+        }
+        .onAppear {
+            unrealRuntime.setUnrealReady(true)
+        }
+        .onDisappear {
+            unrealRuntime.setUnrealReady(false)
+        }
+        .sheet(isPresented: $showAvatarCustomize) {
+            if let result = generatedResult {
+                AvatarCustomizeView(
+                    initialConfig: editableAvatarConfig ?? result.avatarConfig,
+                    onSave: { editableAvatarConfig = $0 }
+                )
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Theme.deepBlack)
+        .onDisappear {
+            compareTask?.cancel()
+            compareTask = nil
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                ghostGuidePhase = 1
+            }
+        }
+    }
+
+    private var scanGrid: some View {
+        Canvas { context, size in
+            let spacing: CGFloat = 32
+            let cols = Int(size.width / spacing) + 1
+            let rows = Int(size.height / spacing) + 1
+            let lineOpacity = gridPulse ? 0.06 : 0.02
+
+            for col in 0...cols {
+                let x = CGFloat(col) * spacing
+                var path = Path()
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: size.height))
+                context.stroke(path, with: .color(Theme.brandBlue.opacity(lineOpacity)), lineWidth: 0.5)
+            }
+            for row in 0...rows {
+                let y = CGFloat(row) * spacing
+                var path = Path()
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: size.width, y: y))
+                context.stroke(path, with: .color(Theme.brandBlue.opacity(lineOpacity)), lineWidth: 0.5)
+            }
+        }
+        .ignoresSafeArea()
+    }
+
+    private var pickingPhase: some View {
+        VStack(spacing: 28) {
+            Spacer()
+
+            VStack(spacing: 14) {
+                Image(systemName: "person.crop.circle.badge.checkmark")
+                    .font(.system(size: 48, weight: .bold))
+                    .foregroundStyle(Theme.brandBlue)
+                    .symbolEffect(.pulse)
+
+                Text("SET UP YOUR AVATAR")
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(Theme.brandBlue)
+                    .tracking(3)
+
+                Text("Get a readiness score (PRQ) and an in‑game avatar. Add a jump video for a personalized result, or skip to start right away.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+
+                HStack(spacing: 14) {
+                    ScanFeaturePill(icon: "waveform.path.ecg", label: "FLIGHT")
+                    ScanFeaturePill(icon: "arrow.up.and.down", label: "VERTICAL")
+                    ScanFeaturePill(icon: "brain.head.profile.fill", label: "PRQ")
+                }
+            }
+
+            VStack(spacing: 12) {
+                PhotosPicker(
+                    selection: $selectedItem,
+                    matching: .videos,
+                    photoLibrary: .shared()
+                ) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "video.fill")
+                        Text("CHOOSE A JUMP VIDEO")
+                    }
+                    .font(.system(.subheadline, design: .monospaced, weight: .black))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Theme.brandBlue)
+                    .clipShape(.rect(cornerRadius: 14))
+                }
+                .onChange(of: selectedItem) { _, newItem in
+                    guard let newItem else { return }
+                    loadVideoAndStartAnalysis(newItem)
+                }
+
+                Button {
+                    videoURL = nil
+                    startAnalysis()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bolt.fill")
+                        Text("QUICK SETUP — NO VIDEO")
+                    }
+                    .font(.system(.subheadline, design: .monospaced, weight: .bold))
+                    .foregroundStyle(Theme.brandCyan)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Theme.brandCyan.opacity(0.12))
+                    .clipShape(.rect(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+            .overlay {
+                if isLoadingVideo {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                    VStack(spacing: 10) {
+                        ProgressView()
+                            .tint(Theme.brandCyan)
+                            .scaleEffect(1.2)
+                        Text("Loading video...")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .allowsHitTesting(!isLoadingVideo)
+
+            Spacer()
+        }
+    }
+
+    private func loadVideoAndStartAnalysis(_ item: PhotosPickerItem) {
+        isLoadingVideo = true
+        Task {
+            let loaded = try? await item.loadTransferable(type: VideoFile.self)
+            await MainActor.run {
+                videoURL = loaded?.url
+                isLoadingVideo = false
+                startAnalysis()
+            }
+        }
+    }
+
+    private var analyzingPhase: some View {
+        VStack(spacing: 32) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .stroke(Theme.brandCyan.opacity(0.1), lineWidth: 3)
+                    .frame(width: 160, height: 160)
+
+                Circle()
+                    .trim(from: 0, to: analysisProgress)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Theme.brandBlue, Theme.brandCyan],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .frame(width: 160, height: 160)
+                    .rotationEffect(.degrees(-90))
+
+                VStack(spacing: 6) {
+                    Text("\(Int(analysisProgress * 100))%")
+                        .font(.system(size: 40, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+
+                    Text("ANALYZING")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(3)
+                }
+            }
+
+            VStack(spacing: 8) {
+                Text(analysisLabel)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(Theme.brandCyan)
+                    .tracking(2)
+                    .contentTransition(.opacity)
+
+                Text(videoURL == nil ? "Setting up your avatar & score..." : "Processing movement data...")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                gridPulse = true
+            }
+        }
+    }
+
+    private var analysisLabel: String {
+        switch analysisProgress {
+        case 0..<0.25: "DETECTING BODY POSE..."
+        case 0.25..<0.5: "MEASURING FLIGHT TIME..."
+        case 0.5..<0.75: "CALCULATING VERTICAL..."
+        case 0.75..<1.0: "GENERATING PRQ SCORE..."
+        default: "COMPLETE"
+        }
+    }
+
+    private func resultsPhase(_ result: SystemScanResult) -> some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                VStack(spacing: 8) {
+                    Text("ALL SET")
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(4)
+
+                    Text("Your readiness score (PRQ)")
+                        .font(.system(size: 34, weight: .black))
+                        .italic()
+                        .foregroundStyle(.white)
+                }
+
+                ZStack {
+                    Circle()
+                        .fill(gradeColor(result.prqScore).opacity(0.08))
+                        .frame(width: 160, height: 160)
+
+                    Circle()
+                        .stroke(gradeColor(result.prqScore).opacity(0.3), lineWidth: 3)
+                        .frame(width: 160, height: 160)
+
+                    VStack(spacing: 4) {
+                        Text(String(format: "%.1f", result.prqScore))
+                            .font(.system(size: 52, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+
+                        Text("PRQ")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                            .tracking(3)
+                    }
+                }
+
+                Text(result.movementGrade)
+                    .font(.system(size: 20, weight: .black))
+                    .foregroundStyle(gradeColor(result.prqScore))
+
+                prqBreakdownSection(result)
+
+                let audit = BiomechanicsAudit.fromScanResult(result)
+                movementAuditSection(audit: audit, scanResult: result)
+
+                let popForce = LabViewModel.derivePopForceFromScan(flightTimeSeconds: result.flightTimeSeconds, verticalInches: result.verticalEstimateInches, prq: result.prqScore)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    ScanMetricCell(label: "VERTICAL", value: String(format: "%.1f\"", result.verticalEstimateInches), color: Theme.brandBlue)
+                    ScanMetricCell(label: "FLIGHT", value: String(format: "%.2fs", result.flightTimeSeconds), color: Theme.brandCyan)
+                    ScanMetricCell(label: "POP FORCE", value: String(format: "%.0f", popForce), color: .orange)
+                    ScanMetricCell(label: "TRACK", value: result.recommendedTrack.uppercased(), color: Theme.elitePurple)
+                }
+                .padding(.horizontal)
+                Text("Pop Force = RFD + GRF efficiency. Train reactive drills to improve.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 6)
+
+                avatarPreviewSection(editableAvatarConfig ?? result.avatarConfig, audit: audit)
+
+                Button {
+                    showAvatarCustomize = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "paintbrush.pointed.fill")
+                        Text("Customize appearance & outfit")
+                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    }
+                    .foregroundStyle(Theme.brandCyan)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Theme.brandCyan.opacity(0.5), lineWidth: 1)
+                    )
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 4)
+
+                if !result.notes.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("MOVEMENT NOTES")
+                            .font(.system(.caption2, design: .monospaced, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .tracking(2)
+
+                        ForEach(result.notes, id: \.self) { note in
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "arrow.right.circle.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Theme.brandBlue)
+                                    .padding(.top, 2)
+
+                                Text(note)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Theme.cardBackground)
+                    )
+                    .padding(.horizontal)
+                }
+
+                Button {
+                    let finalResult = editableAvatarConfig.map { result.withAvatarConfig($0) } ?? result
+                    onComplete(finalResult)
+                    dismiss()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bolt.fill")
+                        Text("ENTER THE LAB")
+                    }
+                    .font(.system(.subheadline, design: .monospaced, weight: .black))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(gradeColor(result.prqScore))
+                    .clipShape(.rect(cornerRadius: 14))
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
+            }
+            .padding(.top, 16)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func prqBreakdownSection(_ result: SystemScanResult) -> some View {
+        let b = SystemScanMovementDecoder.prqBreakdown(scan: result, goal: goal)
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("PRQ BREAKDOWN")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(Theme.brandCyan)
+                .tracking(2)
+
+            Text("PRQ blends Neural Drive (reactive flight) with Biomechanical Integrity (vertical stiffness and joint chain quality). Tier bias nudges the score toward your stated goal.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            GeometryReader { geo in
+                let w = geo.size.width
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.06))
+                    HStack(spacing: 0) {
+                        Capsule()
+                            .fill(Theme.brandCyan.opacity(0.85))
+                            .frame(width: max(8, w * b.neuralShare))
+                        Capsule()
+                            .fill(Theme.brandBlue.opacity(0.85))
+                            .frame(width: max(8, w * b.structuralShare))
+                    }
+                }
+            }
+            .frame(height: 14)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Neural drive \(Int(b.neuralShare * 100)) percent, biomechanical integrity \(Int(b.structuralShare * 100)) percent")
+
+            HStack {
+                Label {
+                    Text("Neural Drive (reactive)")
+                        .font(.caption2)
+                } icon: {
+                    Circle().fill(Theme.brandCyan.opacity(0.85)).frame(width: 8, height: 8)
+                }
+                Spacer()
+                Text(String(format: "%.0f pts contrib.", b.neuralComponent))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+            }
+            HStack {
+                Label {
+                    Text("Biomechanical integrity")
+                        .font(.caption2)
+                } icon: {
+                    Circle().fill(Theme.brandBlue.opacity(0.85)).frame(width: 8, height: 8)
+                }
+                Spacer()
+                Text(String(format: "%.0f pts contrib.", b.structuralComponent))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+            }
+            Text(String(format: "Goal tier contribution: %.1f pts", b.tierComponent))
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+        )
+        .padding(.horizontal)
+    }
+
+    private func movementAuditSection(audit: BiomechanicsAudit, scanResult: SystemScanResult) -> some View {
+        let cards = SystemScanMovementDecoder.jointInsights(from: audit)
+        return VStack(alignment: .leading, spacing: 14) {
+            Text("MOVEMENT AUDIT")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(Theme.foundationGreen)
+                .tracking(2)
+            Text("Education first — we name the leak, then route you to the exact Academy module. No fear; just the next rep.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            ForEach(cards) { card in
+                jointInsightCard(card, scanResult: scanResult)
+            }
+
+            if let j = compareJoint {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Perfect vs. leaky — \(j.displayName)")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                    Text(compareFlip ? "Leaky: compensation steals exit velocity." : "Primed: force stacks through the chain.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .animation(.easeInOut(duration: 0.35), value: compareFlip)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Theme.brandCyan.opacity(0.08)))
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Theme.foundationGreen.opacity(0.2), lineWidth: 0.5)
+                )
+        )
+        .padding(.horizontal)
+    }
+
+    private func jointInsightCard(_ card: SystemScanMovementDecoder.JointInsightCard, scanResult: SystemScanResult) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: card.id.systemImage)
+                    .foregroundStyle(heatColor(card.heat01))
+                Text(card.statusLabel)
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                Spacer()
+                Text("\(card.heatPercent)% heat")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(heatColor(card.heat01))
+            }
+
+            if card.isLeak {
+                Text("Why this matters")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(Theme.brandBlue)
+                    .tracking(1)
+                Text(card.whyMatters)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(card.whyMatters)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    startCompareAnimation(for: card.id)
+                } label: {
+                    Text("Compare")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Capsule().stroke(Theme.brandCyan.opacity(0.4), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+
+                if let mid = card.fixModuleId, let title = card.fixModuleDisplayTitle, card.isLeak {
+                    Button {
+                        let finalResult = editableAvatarConfig.map { scanResult.withAvatarConfig($0) } ?? scanResult
+                        onComplete(finalResult)
+                        onOpenAcademyModule?(mid)
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "book.pages.fill")
+                            Text("Fix this — \(title)")
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.foundationGreen)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(heatColor(card.heat01).opacity(card.isLeak ? 0.45 : 0.12), lineWidth: 1)
+                )
+        )
+    }
+
+    private func heatColor(_ heat01: Double) -> Color {
+        if heat01 > SystemScanMovementDecoder.leakThreshold { return .orange }
+        if heat01 > 0.35 { return Theme.foundationGreen }
+        return Theme.brandCyan
+    }
+
+    private func startCompareAnimation(for joint: JointType) {
+        compareTask?.cancel()
+        compareJoint = joint
+        compareFlip = false
+        compareTask = Task { @MainActor in
+            let steps = 6
+            for _ in 0..<steps {
+                try? await Task.sleep(for: .milliseconds(500))
+                compareFlip.toggle()
+            }
+            try? await Task.sleep(for: .milliseconds(200))
+            compareJoint = nil
+        }
+    }
+
+    private func avatarPreviewSection(_ config: AvatarSkinConfig, audit: BiomechanicsAudit) -> some View {
+        let heats = AcademyPrescriptionEngine.heatTriple(from: audit)
+        return VStack(spacing: 10) {
+            Text("AVATAR MODEL")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            HStack(spacing: 16) {
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                Color(red: config.auraColorR, green: config.auraColorG, blue: config.auraColorB)
+                                    .opacity(0.15)
+                            )
+                            .frame(width: 80, height: 80)
+
+                        Image(systemName: "figure.stand")
+                            .font(.system(size: 36, weight: .medium))
+                            .foregroundStyle(
+                                Color(red: config.auraColorR, green: config.auraColorG, blue: config.auraColorB)
+                            )
+                            .scaleEffect(x: config.weightScale, y: config.heightScale)
+                            .overlay(alignment: .bottom) {
+                                HStack(spacing: 4) {
+                                    leakDot(heats.0)
+                                    leakDot(heats.1)
+                                    leakDot(heats.2)
+                                }
+                                .offset(y: 8)
+                            }
+                    }
+
+                    Text(config.outfitStyle.rawValue.uppercased())
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(
+                            Color(red: config.auraColorR, green: config.auraColorG, blue: config.auraColorB)
+                        )
+                        .tracking(1)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    avatarStatRow(label: "HEIGHT", value: String(format: "%.0f%%", config.heightScale * 100))
+                    avatarStatRow(label: "BUILD", value: String(format: "%.0f%%", config.weightScale * 100))
+                    avatarStatRow(label: "REACH", value: String(format: "%.0f%%", config.limbLength * 100))
+                    avatarStatRow(label: "AURA", value: String(format: "%.0f%%", config.trailIntensity * 100))
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(
+                            Color(red: config.auraColorR, green: config.auraColorG, blue: config.auraColorB).opacity(0.15),
+                            lineWidth: 0.5
+                        )
+                )
+        )
+        .padding(.horizontal)
+    }
+
+    private func leakDot(_ heat: Double) -> some View {
+        Circle()
+            .strokeBorder(heatColor(heat), lineWidth: heat > SystemScanMovementDecoder.leakThreshold ? 2 : 1)
+            .background(Circle().fill(heatColor(heat).opacity(0.35)))
+            .frame(width: 10, height: 10)
+    }
+
+    private func avatarStatRow(label: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .frame(width: 48, alignment: .leading)
+            Text(value)
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private func gradeColor(_ score: Double) -> Color {
+        switch score {
+        case 80...: Theme.elitePurple
+        case 60..<80: Theme.brandBlue
+        case 40..<60: Theme.foundationGreen
+        default: .orange
+        }
+    }
+
+    private func videoDurationSeconds(_ url: URL) async -> Double? {
+        let asset = AVURLAsset(url: url)
+        do {
+            let duration = try await asset.load(.duration)
+            guard duration.isNumeric else { return nil }
+            return CMTimeGetSeconds(duration)
+        } catch {
+            return nil
+        }
+    }
+
+    /// Nominal capture rate (e.g. 120 / 240 on supported iPhone cameras) for sub-frame flight timing.
+    private func nominalVideoFrameRateHz(_ url: URL) async -> Double? {
+        let asset = AVURLAsset(url: url)
+        do {
+            let tracks: [AVAssetTrack] = try await asset.loadTracks(withMediaType: .video)
+            guard let track = tracks.first else { return nil }
+            let fps: Float = try await track.load(.nominalFrameRate)
+            let hz = Double(fps)
+            return hz > 0 ? hz : nil
+        } catch {
+            return nil
+        }
+    }
+
+    private func applyDemoFastTrackFromCache() {
+        guard let profile = profileForDemoFastTrack else { return }
+        let base: SystemScanResult
+        if let cached = profile.systemScan {
+            base = cached.demoFastTrackClone()
+        } else {
+            base = SystemScanResult.defaultForProfile(profile).demoFastTrackClone()
+        }
+        withAnimation(.spring(response: 0.45)) {
+            generatedResult = base
+            phase = .results
+            gridPulse = false
+        }
+    }
+
+    private func startAnalysis() {
+        withAnimation(.spring(response: 0.4)) { phase = .analyzing }
+        analysisProgress = 0
+
+        Task {
+            for i in 1...20 {
+                try? await Task.sleep(for: .milliseconds(200))
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    analysisProgress = Double(i) / 20.0
+                }
+            }
+
+            let result = await generateScanResult(usingVideoURL: videoURL)
+            generatedResult = result
+
+            try? await Task.sleep(for: .milliseconds(500))
+            withAnimation(.spring(response: 0.5)) {
+                phase = .results
+                gridPulse = false
+            }
+        }
+    }
+
+    private func generateScanResult(usingVideoURL url: URL?) async -> SystemScanResult {
+        var baseVertical: Double
+        var baseFlight: Double
+        let recommendedTrack: String
+
+        switch goal ?? "" {
+        case "Jump Higher":
+            baseVertical = Double.random(in: 22...32)
+            baseFlight = Double.random(in: 0.45...0.65)
+            recommendedTrack = "Flight"
+        case "Get Faster":
+            baseVertical = Double.random(in: 18...28)
+            baseFlight = Double.random(in: 0.38...0.55)
+            recommendedTrack = "Foundations"
+        case "Build Power":
+            baseVertical = Double.random(in: 24...34)
+            baseFlight = Double.random(in: 0.50...0.68)
+            recommendedTrack = "Elite"
+        default:
+            baseVertical = Double.random(in: 20...28)
+            baseFlight = Double.random(in: 0.40...0.55)
+            recommendedTrack = "Foundations"
+        }
+
+        var nominalFps: Double?
+        var toeFrame: Int?
+        var heelFrame: Int?
+
+        if let url, let durationSeconds = await videoDurationSeconds(url) {
+            nominalFps = await nominalVideoFrameRateHz(url)
+            if let fps = nominalFps, fps >= 30, durationSeconds > 0 {
+                let totalFrames = max(3, Int((durationSeconds * fps).rounded()))
+                let toe = max(0, min(totalFrames - 3, totalFrames / 4))
+                let span = max(2, Int((baseFlight * fps).rounded()))
+                let heel = min(totalFrames - 1, toe + span)
+                if let ft = FELFlightTimeAnalysis.flightSeconds(toeOffFrame: toe, heelStrikeFrame: heel, nominalFPS: fps) {
+                    baseFlight = ft
+                    toeFrame = toe
+                    heelFrame = heel
+                }
+            } else {
+                let clipFlight = min(0.9, max(0.35, durationSeconds * 0.4))
+                baseFlight = clipFlight * Double.random(in: 0.92...1.08)
+            }
+        }
+
+        let tier = FELPRQScanFormula.goalTier(from: goal)
+        let clampedPRQ = FELPRQScanFormula.computeScanPRQ(
+            verticalInches: baseVertical,
+            flightSeconds: baseFlight,
+            goalTier: tier
+        )
+
+        let grade: String
+        switch clampedPRQ {
+        case 80...: grade = "ELITE POTENTIAL"
+        case 65..<80: grade = "FLIGHT READY"
+        case 50..<65: grade = "BUILDING BASE"
+        default: grade = "FOUNDATION PHASE"
+        }
+
+        var notes: [String] = []
+        if clampedPRQ < 60 {
+            notes.append("Focus on ankle stiffness drills to improve ground contact efficiency.")
+        }
+        if baseVertical < 26 {
+            notes.append("Hip extension power can be improved with targeted plyometric progressions.")
+        }
+        notes.append("Knee tracking looks stable. Maintain current mobility work.")
+        if clampedPRQ >= 70 {
+            notes.append("Strong neural drive detected. Ready for advanced reactive training.")
+        }
+        if let sportName = sport, !sportName.isEmpty {
+            notes.append("\(sportName)-specific movement patterns will be prioritized in your program.")
+        }
+
+        let avatarConfig = AvatarSkinConfig.fromScan(
+            prq: clampedPRQ,
+            vertical: baseVertical,
+            flight: baseFlight,
+            sport: sport
+        )
+
+        return SystemScanResult(
+            id: UUID().uuidString,
+            date: Date(),
+            prqScore: clampedPRQ,
+            verticalEstimateInches: baseVertical,
+            flightTimeSeconds: baseFlight,
+            movementGrade: grade,
+            notes: notes,
+            recommendedTrack: recommendedTrack,
+            avatarConfig: avatarConfig,
+            videoNominalFrameRateHz: nominalFps,
+            toeOffFrameIndex: toeFrame,
+            heelStrikeFrameIndex: heelFrame
+        )
+    }
+}
+
+struct ScanFeaturePill: View {
+    let icon: String
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+            Text(label)
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+        }
+        .foregroundStyle(Theme.brandCyan.opacity(0.6))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Theme.brandCyan.opacity(0.06))
+        .clipShape(Capsule())
+    }
+}
+
+struct ScanMetricCell: View {
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(value)
+                .font(.system(.headline, design: .monospaced, weight: .black))
+                .foregroundStyle(.white)
+
+            Text(label)
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .tracking(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(color.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(color.opacity(0.12), lineWidth: 0.5)
+                )
+        )
+    }
+}
+

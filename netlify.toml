@@ -1,0 +1,48 @@
+# Publish the `web/` folder as the site root (FinalEvolutionGroup.com static shell).
+# Routes: / → gateway, /play/ → PWA, /shop/ → Stripe links, /wallet/ → Supabase Realtime.
+# COOP/COEP: mirrors `web/_headers` — cross-origin isolation for WebGPU / WASM under /play/.
+# Large binaries (Mac DMG, Win zip): host on Supabase Storage `sovereign-assets` — see scripts/upload_to_supabase_storage.sh
+# See web/DEPLOY.txt and scripts/deploy_web.sh
+[build]
+  publish = "web"
+  command = "echo 'Static site: no build step'"
+
+# Optional: pin Node if you add a build later
+# [build.environment]
+#   NODE_VERSION = "20"
+
+# Trailing slash consistency (optional)
+[[redirects]]
+  from = "/play"
+  to = "/play/"
+  status = 301
+
+[[redirects]]
+  from = "/shop"
+  to = "/shop/"
+  status = 301
+
+[[redirects]]
+  from = "/wallet"
+  to = "/wallet/"
+  status = 301
+
+# Cross-origin isolation for high-performance WebGPU / SharedArrayBuffer on /play/ (GBA-style PWA shell).
+[[headers]]
+  for = "/play/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/play/index.html"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
+
+[[headers]]
+  for = "/play/sw.js"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
