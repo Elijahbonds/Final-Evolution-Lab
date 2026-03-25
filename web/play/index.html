@@ -508,6 +508,66 @@
     }
     .fel-wallet-strip a { color: var(--cyan); font-weight: 700; }
     #fel-play-wallet-status { font-size: 0.88rem; line-height: 1.45; color: rgba(232, 244, 255, 0.92); }
+    /* Total Ignition — GBA4iOS-style install protocol (Safari iOS) */
+    .fel-install-protocol {
+      margin-top: 1.75rem;
+      padding: 1.25rem 1.35rem 1.4rem;
+      border-radius: 16px;
+      border: 1px solid rgba(92, 225, 230, 0.28);
+      background: rgba(6, 10, 14, 0.85);
+    }
+    .fel-install-protocol h2 {
+      margin: 0 0 1rem;
+      font-size: 0.68rem;
+      letter-spacing: 0.28em;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+    .fel-install-stage {
+      margin-bottom: 1rem;
+      padding-left: 0.85rem;
+      border-left: 2px solid rgba(30, 144, 255, 0.45);
+    }
+    .fel-install-stage:last-child { margin-bottom: 0; }
+    .fel-install-stage strong {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      color: var(--blue);
+      margin-bottom: 0.35rem;
+    }
+    .fel-install-stage p {
+      margin: 0;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: rgba(232, 244, 255, 0.82);
+    }
+    .fel-safari-hint {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.65rem;
+      flex-wrap: wrap;
+    }
+    .fel-pulse-arrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 999px;
+      background: rgba(92, 225, 230, 0.12);
+      border: 1px solid rgba(92, 225, 230, 0.45);
+      color: var(--cyan);
+      font-size: 1.25rem;
+      animation: felPulseCyan 1.2s ease-in-out infinite;
+      box-shadow: 0 0 18px rgba(92, 225, 230, 0.25);
+    }
+    @keyframes felPulseCyan {
+      0%, 100% { transform: translateY(0); opacity: 1; }
+      50% { transform: translateY(6px); opacity: 0.85; }
+    }
   </style>
   <script src="/fel-public-config.js" onerror="window.__FEL_RUNTIME_SKIP__=1"></script>
 </head>
@@ -540,6 +600,30 @@
     <p class="sovereign-edge">
       <strong>Sovereign advantage:</strong> bypass the App Store gate for clinical-grade performance. Add Final Evolution from the browser — <strong>install the Lab directly to your home screen</strong>, then sign in to sync Shards and Cloud Cortex with your FinalEvolutionGroup.com account.
     </p>
+
+    <section class="fel-install-protocol" aria-labelledby="install-protocol-title">
+      <h2 id="install-protocol-title">Total ignition — install protocol</h2>
+      <div class="fel-install-stage">
+        <strong>Stage 1 — The protocol</strong>
+        <p>
+          Final Evolution Lab is a high-performance <em>clinical movement education</em> tool. To hold a <strong>~60 Hz</strong> frame budget (~16.67 ms per frame) for timing cues, the Sovereign PWA runs outside the App Store — same economy as native when you sign in.
+        </p>
+      </div>
+      <div class="fel-install-stage">
+        <strong>Stage 2 — The action (iOS Safari)</strong>
+        <p>Open this page in <strong>Safari</strong>, then use the Share sheet.</p>
+        <div class="fel-safari-hint" aria-hidden="true">
+          <span class="fel-pulse-arrow" title="Share">↓</span>
+          <span style="font-size:0.8rem;color:rgba(232,244,255,0.65);">Tap <strong>Share</strong> at the bottom of the Safari toolbar.</span>
+        </div>
+      </div>
+      <div class="fel-install-stage">
+        <strong>Stage 3 — The ignition</strong>
+        <p>
+          Tap <strong>Add to Home Screen</strong>, confirm the name, then launch the Lab from the icon — standalone, full-screen, GBA4iOS-style.
+        </p>
+      </div>
+    </section>
 
     <section class="fel-wallet-strip" aria-labelledby="fel-wallet-title">
       <h2 id="fel-wallet-title">Sovereign wallet</h2>
