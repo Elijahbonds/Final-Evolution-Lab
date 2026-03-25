@@ -9,7 +9,9 @@ final class LiveVotingSocketService {
         return AsyncStream { continuation in
             listenersByEvent[eventId, default: [:]][token] = continuation
             continuation.onTermination = { [weak self] _ in
-                self?.disconnect(eventId: eventId, token: token)
+                Task { @MainActor in
+                    self?.disconnect(eventId: eventId, token: token)
+                }
             }
         }
     }

@@ -1256,7 +1256,7 @@ class LabViewModel {
         return true
     }
 
-    func openCreatorPacks(count: Int = 1, odds: CreatorPackOdds = .myTeamStyle) -> [CreatorCardAsset] {
+    func openCreatorPacks(count: Int = 1, odds: CreatorPackOdds = CreatorPackOdds.myTeamStyle) -> [CreatorCardAsset] {
         let pulls = max(1, count)
         let totalCost = pulls * Self.creatorPackCostShards
         guard profile.evolutionShards >= totalCost, !CreatorCard.catalog.isEmpty else { return [] }
@@ -1317,7 +1317,7 @@ class LabViewModel {
         return signCardAsSignature(assetId: assetId, creatorId: template.creatorId, year: year)
     }
 
-    func activateCardMaintenance(assetId: String, hours: Int = Self.defaultCardMaintenanceHours) -> Bool {
+    func activateCardMaintenance(assetId: String, hours: Int = LabViewModel.defaultCardMaintenanceHours) -> Bool {
         guard let index = creatorMarketplace.inventory.firstIndex(where: {
             $0.id == assetId && $0.ownerId == profile.id
         }) else { return false }
@@ -1341,7 +1341,7 @@ class LabViewModel {
         return true
     }
 
-    func listOwnedCardForAuction(assetId: String, startingBidShards: Int, buyNowShards: Int?, durationHours: Int = Self.defaultAuctionDurationHours) -> Bool {
+    func listOwnedCardForAuction(assetId: String, startingBidShards: Int, buyNowShards: Int?, durationHours: Int = LabViewModel.defaultAuctionDurationHours) -> Bool {
         guard startingBidShards > 0 else { return false }
         if let buyNowShards, buyNowShards <= startingBidShards { return false }
         guard let assetIndex = creatorMarketplace.inventory.firstIndex(where: {
