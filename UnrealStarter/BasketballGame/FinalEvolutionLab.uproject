@@ -1,0 +1,31 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.7",
+	"Category": "",
+	"Description": "Final Evolution Lab — canonical Unreal runtime (Arena, readiness bridge, Academy subsystems). Source: Source/FinalEvolutionLab/.",
+	"Modules": [
+		{
+			"Name": "FinalEvolutionLab",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
+			"Name": "PixelStreaming",
+			"Enabled": true
+		},
+		{
+			"Name": "PixelStreamingPlayer",
+			"Enabled": false
+		},
+		{
+			"Name": "MotionWarping",
+			"Enabled": true
+		}
+	]
+}

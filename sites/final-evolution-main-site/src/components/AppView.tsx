@@ -4,6 +4,7 @@ import { LabGameplayAudio } from "./LabGameplayAudio";
 import { LiveVeloStats } from "./LiveVeloStats";
 import { VVA_Player } from "./VVA_Player";
 import { useReadinessSnapshot } from "../hooks/useReadinessSnapshot";
+import { AthleteIdentityHandshake } from "./AthleteIdentityHandshake";
 
 /** Demo SFMA map when no `readiness_snapshots` row (signed-out or empty). */
 const DEMO_JOINTS: Partial<Record<SFMAJointId, "locked" | "mobile">> = {
@@ -18,11 +19,9 @@ const DEMO_JOINTS: Partial<Record<SFMAJointId, "locked" | "mobile">> = {
   ankle_r: "locked",
 };
 
-/**
- * In-browser lab preview: movement readiness, timing, and training graph (production runtime ships in the Mac app).
- */
+/** Athlete readiness dashboard — live clinical sync, kinetic heatmap, and system calibration graph. */
 export function AppView({ className = "" }: { className?: string }) {
-  const { payload, loading, error } = useReadinessSnapshot();
+  const { payload, identity, loading, error, signedIn } = useReadinessSnapshot();
 
   const mergedJoints = useMemo(() => {
     return { ...DEMO_JOINTS, ...(payload.joints ?? {}) };
@@ -49,39 +48,42 @@ export function AppView({ className = "" }: { className?: string }) {
       <div className="relative mx-auto max-w-6xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[0.6rem] font-bold uppercase tracking-[0.4em] text-fel-cyan">Inside the lab</p>
+            <p className="text-[0.6rem] font-bold uppercase tracking-[0.4em] text-fel-cyan">Athlete readiness</p>
             <h2 id="app-view-heading" className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Jump timing · stiffness · drive
+              PRQ · stiffness · neural drive
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-white/50">
-              A live read on how you organize force and timing — built for athletes and coaches. Not a medical device.
+              A live read on how you organize force and timing — tied to your Performance Readiness Quotient (PRQ) and
+              System Scan intake. Movement education, not a medical device.
             </p>
             {error ? (
-              <p className="mt-2 text-xs text-amber-400/90">Could not load movement snapshot. {error}</p>
+              <p className="mt-2 text-xs text-amber-400/90">Could not load clinical movement snapshot. {error}</p>
             ) : loading ? (
-              <p className="mt-2 text-xs text-white/35">Loading readiness snapshot…</p>
+              <p className="mt-2 text-xs text-white/35">Loading athlete readiness snapshot…</p>
             ) : null}
           </div>
           <div className="font-mono text-[0.65rem] uppercase tracking-widest text-white/35">
-            Timing <span className="text-fel-cyan">16.6 ms</span>
+            Live <span className="text-fel-cyan">clinical sync</span>
           </div>
         </div>
 
-        {/* Input → timing → training graph */}
+        <AthleteIdentityHandshake identity={identity} loading={loading} signedIn={signedIn} />
+
+        {/* Signal capture → athlete readiness → system calibration */}
         <div className="mt-10 rounded-2xl border border-white/10 bg-black/60 p-6 backdrop-blur-xl sm:p-8">
           <div className="flex flex-col items-stretch gap-6 lg:flex-row lg:items-center lg:justify-between">
             <ControllerNode />
             <LatencyBridge />
-            <BlueprintNode />
+            <SystemCalibrationNode />
           </div>
         </div>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:gap-10">
           <BiometricMirror joints={mergedJoints} redCongestion={redCongestion} />
           <div className="flex flex-col justify-center">
-            <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Performance HUD</p>
+            <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Athlete readiness</p>
             <p className="mt-2 text-sm text-white/55">
-              Stiffness and effort update in real time so you can see patterns, not just numbers.
+              Stiffness, drive, and timing telemetry update in real time — patterns first, not vanity metrics.
             </p>
             <div className="mt-6">
               <LiveVeloStats />
@@ -89,54 +91,25 @@ export function AppView({ className = "" }: { className?: string }) {
           </div>
         </div>
 
-        <VVAModuleMap />
-
         <div className="mt-12">
           <VVA_Player />
         </div>
+
+        <div className="mt-14 rounded-2xl border border-fel-cyan/35 bg-gradient-to-br from-fel-cyan/[0.08] to-black/80 p-8 text-center shadow-[0_0_36px_rgba(92,225,230,0.12)] sm:p-10">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.3em] text-fel-cyan">Sovereign access</p>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/60">
+            Complete secure checkout to unlock the Sovereign Lab Mac installer. Your PRQ and Academy entitlements stay in
+            sync with the Sovereign economy.
+          </p>
+          <a
+            href="#sovereign-access"
+            className="mt-8 inline-flex min-h-[52px] min-w-[240px] items-center justify-center rounded-full border border-fel-cyan/60 bg-fel-cyan/10 px-10 text-sm font-black uppercase tracking-[0.14em] text-fel-cyan transition hover:border-fel-cyan hover:bg-fel-cyan/20"
+          >
+            Sovereign checkout
+          </a>
+        </div>
       </div>
     </section>
-  );
-}
-
-/** Curriculum topics ↔ how they show up in training. */
-function VVAModuleMap() {
-  const rows = [
-    {
-      vva: "Rhythm before takeoff",
-      blueprint: "Last step timing and foot strike",
-    },
-    {
-      vva: "Spiral line & fascia",
-      blueprint: "How load travels through the body",
-    },
-    {
-      vva: "Reactive stiffness",
-      blueprint: "Spring-like quality of the leg",
-    },
-    {
-      vva: "Neural drive",
-      blueprint: "How hard the system is working, in time",
-    },
-  ] as const;
-
-  return (
-    <div className="mt-12 rounded-2xl border border-white/10 bg-black/50 p-6 backdrop-blur-md sm:p-8">
-      <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
-        Academy modules
-      </p>
-      <p className="mt-2 text-sm text-white/50">
-        Each topic connects to the same training graph you use in session — timing first, then force, then output.
-      </p>
-      <ul className="mt-6 divide-y divide-white/10">
-        {rows.map((r) => (
-          <li key={r.vva} className="grid gap-2 py-4 sm:grid-cols-2 sm:gap-8">
-            <span className="font-mono text-[0.7rem] uppercase tracking-wide text-fel-cyan/90">{r.vva}</span>
-            <span className="text-sm text-white/70">{r.blueprint}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 
@@ -148,10 +121,10 @@ function ControllerNode() {
         <div className="absolute right-3 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/50" />
         <div className="absolute bottom-3 left-1/2 h-3 w-16 -translate-x-1/2 rounded-sm bg-fel-cyan/30" />
         <span className="absolute left-2 top-2 text-[0.5rem] font-mono uppercase tracking-widest text-fel-cyan/80">
-          Controller
+          Signal capture
         </span>
       </div>
-      <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/60">Input</p>
+      <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/60">Input channel</p>
     </div>
   );
 }
@@ -175,32 +148,32 @@ function LatencyBridge() {
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="rounded border border-fel-cyan/60 bg-black/90 px-4 py-2 font-mono text-lg font-black tabular-nums text-fel-cyan shadow-[0_0_24px_rgba(92,225,230,0.35)]">
-            16.6&nbsp;ms
+            PRQ
           </span>
         </div>
       </div>
       <p className="mt-2 text-center text-[0.6rem] uppercase tracking-[0.35em] text-white/40">
-        One frame · one decision
+        Athlete readiness · timing · output
       </p>
     </div>
   );
 }
 
-function BlueprintNode() {
+function SystemCalibrationNode() {
   return (
     <div className="flex flex-1 flex-col items-center text-center">
       <div className="w-full max-w-xs rounded-xl border border-fel-amber/35 bg-gradient-to-br from-fel-amber/10 to-transparent px-5 py-6 shadow-[0_0_28px_rgba(252,238,10,0.12)]">
-        <p className="font-mono text-[0.55rem] uppercase tracking-[0.3em] text-fel-amber/90">Training graph</p>
+        <p className="font-mono text-[0.55rem] uppercase tracking-[0.3em] text-fel-amber/90">System calibration</p>
         <p className="mt-3 text-lg font-black uppercase leading-tight text-white">
-          Bonds Bounce
+          Protocol
           <br />
-          <span className="text-fel-cyan">Blueprint</span>
+          <span className="text-fel-cyan">phases</span>
         </p>
         <p className="mt-3 text-[0.65rem] leading-relaxed text-white/45">
-          Approach · load · jump — structured phases you can repeat
+          Approach · load · takeoff — repeatable phases mapped to your readiness band
         </p>
       </div>
-      <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/60">Training graph</p>
+      <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/60">System calibration</p>
     </div>
   );
 }

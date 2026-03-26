@@ -1,0 +1,13 @@
+# Unreal Engine — local build outputs (keep Content/Source/Config in VCS)
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+*.sln
+*.VC.db
+*.opensdf
+*.sdf
+*.xcodeproj
+*.xcworkspace

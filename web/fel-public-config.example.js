@@ -13,5 +13,6 @@ window.FEL_STRIPE_PAYMENT_LINK_PRO = "https://buy.stripe.com/test_REPLACE_PRO";
 /** Optional: full URL to Unity WebGL, Unreal Pixel Streaming player page, or WASM shell (same-origin or CORS-enabled). */
 window.FEL_RUNTIME_URL = "";
 
-/** Optional: Mac Gold Master .dmg — e.g. after upload via scripts/upload_to_supabase_storage.sh (public object URL). */
-window.FEL_PUBLIC_DMG_URL = "";
+/** Optional: Mac Gold Master .dmg public URL (match sites/.../constants/downloads.ts + sovereign-assets upload). */
+window.FEL_PUBLIC_DMG_URL =
+  "https://YOUR_PROJECT.supabase.co/storage/v1/object/public/sovereign-assets/mac/SovereignLab_1.0_Gold.dmg";

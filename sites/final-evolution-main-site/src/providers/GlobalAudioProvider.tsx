@@ -19,7 +19,7 @@ const HUD_VELO_THROTTLE_MS = 50;
 export type LabAudioContextValue = {
   ready: boolean;
   warmUp: () => Promise<void>;
-  /** Biomechanical: metallic snap — ankle stiffness / ground contact (~16.6 ms trigger alignment). */
+  /** Biomechanical: metallic snap — ankle stiffness / ground contact. */
   playMetallicGroundSnap: () => void;
   playAnkleStiffnessSnap: () => void;
   /** Neural hum: scales with normalized vertical velocity (0–1). */

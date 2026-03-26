@@ -1,6 +1,6 @@
 # Unreal: Build in Editor, Export to Xcode for iOS Testing
 
-This repo does **not** contain an Unreal Engine project (no `.uproject`). The **UnrealStarter** folder has drop-in C++ (e.g. `FELPlayerController`) for use in a **separate** Unreal project. The **Final Evolution Lab** iOS app in this repo is **Swift/SwiftUI + RealityKit** and is built only in Xcode.
+**Canonical Unreal project (in-repo):** `UnrealStarter/BasketballGame/FinalEvolutionLab.uproject` with module `Source/FinalEvolutionLab/` — open in UE 5.7, then **Generate Xcode Project** (or **File → Refresh Xcode Project**) for iOS. The **Swift/SwiftUI** app under `FinalEvolutionLab/` is the **legacy shell**; shipping gameplay is **Unreal-first** per **`UNREAL_ONLY.md`**.
 
 If you have (or create) an Unreal project and want to run it in the Editor, then export to Xcode for iOS device/simulator testing, use the steps below.
 
@@ -66,7 +66,7 @@ If you have (or create) an Unreal project and want to run it in the Editor, then
 ## 4. Relation to this repo (Final Evolution Lab)
 
 - **This repo:** iOS app **Final Evolution Lab** — Swift/SwiftUI, RealityKit dunk court, Arena UI. Build and run via **FinalEvolutionLabUnreal.xcodeproj** (see **XCODE_CLEAN_AND_RUN.md**).
-- **Unreal:** A separate Unreal project (not in this repo). Use the steps above to build in Editor and export to Xcode for iOS testing. To use the **UnrealStarter** code (e.g. `FELPlayerController`), copy it into that Unreal project’s Source folder as in **UnrealStarter/README.md**.
+- **Unreal:** Use **`UnrealStarter/BasketballGame/FinalEvolutionLab.uproject`** in this repo. Use the steps above to build in Editor and export to Xcode for iOS testing. Additional drop-in snippets (if any) are listed in **UnrealStarter/README.md**.
 
 ---
 

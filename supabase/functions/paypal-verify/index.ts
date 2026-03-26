@@ -6,7 +6,7 @@
 // Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
 //          PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_ENV (sandbox|live)
 //
-// Amount → shards: $499 → 5000, $99 → 1200, $49 → 500
+// Amount → Sovereign economy: $499 → 5000 shards; $99 → 1200 shards + 500 Blueprint (cortex); $49 → 500 shards
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -51,26 +51,71 @@ async function getPayPalOrder(orderId: string, token: string): Promise<Record<st
   return json as Record<string, unknown>;
 }
 
-/** Map captured USD total → shard credit (Sovereign Alpha SKUs). */
-function shardsForAmountUsd(total: number): number | null {
-  const rounded = Math.round(total * 100) / 100;
-  if (Math.abs(rounded - 499) < 0.02) return 5000;
-  if (Math.abs(rounded - 99) < 0.02) return 1200;
-  if (Math.abs(rounded - 49) < 0.02) return 500;
+/** Map captured USD total → Sovereign economy credit (shards + optional Blueprint / cortex). */
+type SovereignCredit = { shards: number; cortex: number };
+
+/** PayPal JSON sometimes uses string amounts; rare clients send numbers. */
+function parseMoneyValue(raw: unknown): number | null {
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string") {
+    const n = parseFloat(raw.replace(/,/g, "").trim());
+    return Number.isFinite(n) ? n : null;
+  }
   return null;
 }
 
+/**
+ * Integer-cent tier match (avoids 49.0000001 float drift). ±1 cent forgiveness after rounding.
+ * Must stay aligned with `sites/final-evolution-main-site/src/constants/paypal.ts` TIER_SHARD_DELTA / TIER_BLUEPRINT_CREDIT_DELTA.
+ */
+function sovereignCreditForAmountUsd(total: number): SovereignCredit | null {
+  if (!Number.isFinite(total) || total <= 0) return null;
+  const cents = Math.round(total * 100);
+
+  const tiers: Array<{ cents: number; shards: number; cortex: number }> = [
+    { cents: 49900, shards: 5000, cortex: 0 },
+    { cents: 9900, shards: 1200, cortex: 500 },
+    { cents: 4900, shards: 500, cortex: 0 },
+  ];
+
+  for (const t of tiers) {
+    if (cents === t.cents) return { shards: t.shards, cortex: t.cortex };
+  }
+  for (const t of tiers) {
+    if (Math.abs(cents - t.cents) <= 1) return { shards: t.shards, cortex: t.cortex };
+  }
+  return null;
+}
+
+/** Prefer capture line items; fall back to purchase unit total when COMPLETED but captures are absent. */
 function extractCapturedAmountUsd(order: Record<string, unknown>): number | null {
   const units = order.purchase_units as unknown[] | undefined;
   const u0 = units?.[0] as Record<string, unknown> | undefined;
-  const payments = u0?.payments as Record<string, unknown> | undefined;
+  if (!u0) return null;
+
+  const payments = u0.payments as Record<string, unknown> | undefined;
   const captures = payments?.captures as unknown[] | undefined;
-  const cap0 = captures?.[0] as Record<string, unknown> | undefined;
-  const amount = cap0?.amount as Record<string, unknown> | undefined;
-  const value = amount?.value;
-  if (typeof value !== "string") return null;
-  const n = parseFloat(value);
-  return Number.isFinite(n) ? n : null;
+  if (captures && captures.length > 0) {
+    let sum = 0;
+    for (const c of captures) {
+      const cap = c as Record<string, unknown>;
+      const amount = cap.amount as Record<string, unknown> | undefined;
+      const code = amount?.currency_code;
+      if (typeof code === "string" && code !== "USD") continue;
+      const v = parseMoneyValue(amount?.value);
+      if (v == null) continue;
+      sum += v;
+    }
+    if (sum > 0) return Math.round(sum * 100) / 100;
+  }
+
+  const uAmount = u0.amount as Record<string, unknown> | undefined;
+  const unitCode = uAmount?.currency_code;
+  if (typeof unitCode === "string" && unitCode !== "USD") return null;
+  const unitTotal = parseMoneyValue(uAmount?.value);
+  if (unitTotal != null && unitTotal > 0) return Math.round(unitTotal * 100) / 100;
+
+  return null;
 }
 
 serve(async (req) => {
@@ -163,8 +208,8 @@ serve(async (req) => {
     });
   }
 
-  const shardDelta = shardsForAmountUsd(amountUsd);
-  if (shardDelta == null) {
+  const credit = sovereignCreditForAmountUsd(amountUsd);
+  if (credit == null) {
     return new Response(
       JSON.stringify({
         error: "unsupported_amount",
@@ -196,9 +241,10 @@ serve(async (req) => {
 
   const { error: rpcErr } = await supabase.rpc("credit_shards", {
     p_user_id: userId,
-    p_shard_delta: shardDelta,
+    p_shard_delta: credit.shards,
     p_idempotency_key: idempotencyKey,
     p_metadata: metadata,
+    p_cortex_delta: credit.cortex,
   });
 
   if (rpcErr) {
@@ -213,7 +259,8 @@ serve(async (req) => {
     JSON.stringify({
       ok: true,
       orderID,
-      shard_delta: shardDelta,
+      shard_delta: credit.shards,
+      blueprint_credits_delta: credit.cortex,
       athlete_id: athleteId || null,
     }),
     { status: 200, headers: { ...cors, "Content-Type": "application/json" } },

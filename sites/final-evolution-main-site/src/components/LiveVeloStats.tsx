@@ -84,19 +84,17 @@ function StatPanel({
   );
 }
 
-/**
- * Live velocity / neuromechanical HUD — dynamic SVG sparklines (demo drift when uncontrolled).
- */
+/** Live readiness telemetry — dynamic sparklines (browser illustration; Sovereign Lab runtime is authoritative). */
 export function LiveVeloStats({
   stiffnessKnPerM = 42.5,
   neuralDrivePct = 78.2,
-  penultimateStretchMs = 16.6,
+  penultimateStretchMs = 18,
   historyLength = 32,
   className = "",
 }: LiveVeloStatsProps) {
   const [tick, setTick] = useState(0);
 
-  /** ~60 fps chart cadence (~16.67 ms) — matches penultimate frame budget narrative. */
+  /** Smooth chart refresh for visualization. */
   useEffect(() => {
     let rafId = 0;
     let last = performance.now();
@@ -140,11 +138,11 @@ export function LiveVeloStats({
     <div
       className={`grid gap-4 sm:grid-cols-3 ${className}`}
       role="region"
-      aria-label="Live velocity: reactive stiffness, neural drive, and penultimate stretch"
+      aria-label="Athlete readiness telemetry: tissue stiffness, neural drive, takeoff window"
     >
       <StatPanel
         gradientId="fel-grad-stiff"
-        label="Reactive stiffness"
+        label="Tissue stiffness"
         unit="kN/m"
         value={stiffnessHist[stiffnessHist.length - 1] ?? stiffnessKnPerM}
         color="#5ce1e6"
@@ -160,7 +158,7 @@ export function LiveVeloStats({
       />
       <StatPanel
         gradientId="fel-grad-penultimate"
-        label="Penultimate stretch"
+        label="Takeoff window"
         unit="ms"
         value={penultimateHist[penultimateHist.length - 1] ?? penultimateStretchMs}
         color="#ff3355"

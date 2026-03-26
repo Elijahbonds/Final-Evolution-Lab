@@ -1,0 +1,122 @@
+Gold Master — Mac Shipping .dmg (retail)
+=========================================
+
+Phases 7–10 (quick map)
+-----------------------
+| Phase | What | Repo automation |
+|-------|------|-----------------|
+| 7 | Mac Shipping .app + UDZO .dmg | `Scripts/package_gold_master_mac_shipping.sh` |
+| 8 | Notarize + staple .dmg | Same script with `FEL_NOTARIZE=1`, or `scripts/notarize_mac_dmg.sh` on an existing .dmg |
+| 9 | Upload to Supabase `mac/SovereignLab_1.0_Gold.dmg` | `scripts/upload_gold_master_mac_dmg.sh` (or `upload_to_supabase_storage.sh` — Gold filename defaults to prefix `mac/`) |
+| 10 | Deploy marketing site + smoke URLs | `scripts/deploy_main_site_netlify.sh`, `scripts/verify_gold_master_distribution.sh` |
+
+One-shot runner: `scripts/run_gold_master_release.sh` — runs 7→9 when Supabase env is set; add `FEL_VERIFY_AFTER_RELEASE=1` for step 10.
+
+Sovereign Gold Pipeline (Build → Package → Notarize → Upload → Verify)
+----------------------------------------------------------------------
+One copy-paste flow — replace the two `<Paste_…>` placeholders; never commit keys.
+
+1. Identity & cloud handshake
+
+     export SUPABASE_URL="https://rlqkschgvlrva-wsdzjxq.supabase.co"
+     export SUPABASE_SERVICE_ROLE_KEY="<Paste_Service_Role_Key_Here>"
+     export FEL_NOTARY_KEYCHAIN_PROFILE="<Paste_Notary_Profile_Name_Here>"
+
+2. Trigger the pipeline (from repo root)
+
+     cd /Users/elijahbonds/Documents/rork-final-evolution-lab
+     FEL_NOTARIZE=1 \
+     FEL_VERIFY_AFTER_RELEASE=1 \
+     FEL_REQUIRE_UNIVERSAL=1 \
+     FEL_MAC_UNIVERSAL=1 \
+     FEL_NETLIFY_DOWNLOAD_URL="https://finalevolutiongroup.com/download/final-evolution" \
+       ./scripts/run_gold_master_release.sh
+
+   If apex DNS is not wired yet, use your Netlify URL instead, e.g.
+   `FEL_NETLIFY_DOWNLOAD_URL="https://YOUR_SITE.netlify.app/download/final-evolution"`.
+   Omit `FEL_NETLIFY_DOWNLOAD_URL` entirely to skip the on-domain 30x check (Supabase DMG URL is still verified).
+
+Shipping config lives in `Config/DefaultGame.ini` (PPBC_Shipping, ForDistribution, IncludeDebugFiles=False).
+
+Single command (RunUAT + UDZO .dmg)
+------------------------------------
+From repo root, after adjusting `UE_ROOT` if needed:
+
+  bash "UnrealStarter/BasketballGame/Scripts/package_gold_master_mac_shipping.sh"
+
+Universal binary (Intel + Apple Silicon): `DefaultEngine.ini` uses `MacTargetArchitectureUniversal`.
+The script prints `lipo -archs` after packaging — expect `arm64 x86_64`. If you only see `arm64`, re-run with:
+
+  FEL_MAC_UNIVERSAL=1 bash "UnrealStarter/BasketballGame/Scripts/package_gold_master_mac_shipping.sh"
+
+Output:
+  - Staged app: `Saved/Archive/GoldMaster_Mac_Shipping/Mac/` or `.../MacNoEditor/FinalEvolutionLab.app`
+  - DMG:        `Saved/Archive/GoldMaster_Mac_Shipping/SovereignLab_1.0_Gold.dmg` (override with `DMG_NAME`)
+
+Phase 8 — Notarize the DMG (distribution)
+-------------------------------------------
+Apple expects a **notarized** disk image for downloads outside the Mac App Store. The staged `.app` must be **Developer ID** signed with **hardened runtime** (Unreal Mac packaging + `DefaultEngine.ini` team / signing).
+
+After the DMG exists, either:
+
+  A) Same script, one shot (set your notarytool app-specific-password profile in Keychain first):
+
+     FEL_NOTARIZE=1 FEL_NOTARY_KEYCHAIN_PROFILE="YourNotaryProfile" \
+       bash "UnrealStarter/BasketballGame/Scripts/package_gold_master_mac_shipping.sh"
+
+  B) Or reuse `scripts/package_sovereign_desktop.sh` with `FEL_MAC_APP` pointing at the staged `.app`
+     and `FEL_NOTARIZE=1` (see that file’s header).
+
+Then: `xcrun stapler validate <path/to/SovereignLab_1.0_Gold.dmg>` should succeed.
+
+Notarize an **existing** DMG (no rebuild):
+
+  export FEL_NOTARY_KEYCHAIN_PROFILE="YourNotaryProfile"
+  ./scripts/notarize_mac_dmg.sh "UnrealStarter/BasketballGame/Saved/Archive/GoldMaster_Mac_Shipping/SovereignLab_1.0_Gold.dmg"
+
+Phase 9 — Upload
+----------------
+From repo root (service role key local only; never commit):
+
+  export SUPABASE_URL="https://<project>.supabase.co"
+  export SUPABASE_SERVICE_ROLE_KEY="<service_role>"
+  ./scripts/upload_gold_master_mac_dmg.sh
+
+Optional explicit DMG path:
+
+  ./scripts/upload_gold_master_mac_dmg.sh /path/to/SovereignLab_1.0_Gold.dmg
+
+Equivalent manual upload:
+
+  FEL_STORAGE_PREFIX=mac ./scripts/upload_to_supabase_storage.sh \
+    "UnrealStarter/BasketballGame/Saved/Archive/GoldMaster_Mac_Shipping/SovereignLab_1.0_Gold.dmg"
+
+Object key must be `mac/SovereignLab_1.0_Gold.dmg` so Netlify / `sites/.../downloads.ts` stay aligned.
+
+Phase 10 — Go live (marketing site + verify)
+--------------------------------------------
+The short Mac download path **`/download/final-evolution`** is configured on **`sites/final-evolution-main-site`** (not the repo-root `web/` Netlify config). After Phase 9:
+
+1. Deploy that site to Netlify production:
+
+     ./scripts/deploy_main_site_netlify.sh
+
+   (Requires Node, `netlify` CLI, and the site linked under `sites/final-evolution-main-site`.)
+
+2. Smoke-check Supabase DMG + optional on-domain redirect:
+
+     ./scripts/verify_gold_master_distribution.sh
+
+   With your live hostname:
+
+     FEL_NETLIFY_DOWNLOAD_URL="https://<prod-host>/download/final-evolution" \
+       ./scripts/verify_gold_master_distribution.sh
+
+   If your Supabase project URL changed, set `FEL_DMG_PUBLIC_URL` to the same string as
+   `GOLD_MASTER_DMG_PRODUCTION_URL` in `sites/final-evolution-main-site/src/constants/downloads.ts`.
+
+The script passes `-nodebuginfo` for a smaller staged payload; it does **not** use `-mapsextra` (maps come from `+MapsToCook` in DefaultGame.ini).
+
+Sovereign Lab icon / splash
+----------------------------
+Editor: Project Settings → Platforms → Mac (icon) + Packaging (splash). Import assets under `/Game/FEL/Brand/Mac/` first.

@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
         "/download/final-evolution": {
           target: "https://rlqkschgvlrva-wsdzjxq.supabase.co",
           changeOrigin: true,
-          rewrite: () => "/storage/v1/object/public/sovereign-assets/mac/FinalEvolution.dmg",
+          rewrite: () => "/storage/v1/object/public/sovereign-assets/mac/SovereignLab_1.0_Gold.dmg",
         },
       },
     },

@@ -1,5 +1,15 @@
-# Fast DMG delivery — CDN redirect to Supabase public object (302)
-/download/final-evolution  https://rlqkschgvlrva-wsdzjxq.supabase.co/storage/v1/object/public/sovereign-assets/mac/FinalEvolution.dmg  302
+# macOS .dmg — 302 to Supabase public object
+/download/final-evolution  https://rlqkschgvlrva-wsdzjxq.supabase.co/storage/v1/object/public/sovereign-assets/mac/SovereignLab_1.0_Gold.dmg  302
 
-# Single Page App — client routes (Netlify)
+# iOS OTA — serve installer page (itms-services handoff); must precede SPA catch-all
+/download/ios    /download/ios/index.html   200
+/download/ios/   /download/ios/index.html   200
+
+# Deep links (alpha — same shell as home; client may hydrate #fel-lab etc.)
+/play    /index.html   200
+/play/*  /index.html   200
+/lab     /index.html   200
+/lab/*   /index.html   200
+
+# SPA — client routes (Netlify)
 /*    /index.html   200

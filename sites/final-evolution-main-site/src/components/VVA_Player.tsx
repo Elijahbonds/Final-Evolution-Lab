@@ -14,72 +14,86 @@ export type VVAModule = {
 const MODULES: VVAModule[] = [
   {
     id: 1,
-    title: "Penultimate rhythm",
+    title: "CNS Freeway",
     script:
-      "Module one: penultimate rhythm. The stride before takeoff is your clock. Align ground contact with the sixteen point six millisecond lab frame so stiffness and drive stay phase-locked.",
+      "Module one: central nervous system readiness — timing, coordination, and the signal quality that lets you express force without fighting yourself.",
     spiralLineLecture: false,
   },
   {
     id: 2,
-    title: "Spiral line / fascial plane",
+    title: "SFMA / FMS screening",
     script:
-      "Module two: the spiral line. Fascial continuity routes load from foot through hip to shoulder. Trace the cyan spiral in your mind — this is the lecture plane for elastic recoil, not isolation.",
-    spiralLineLecture: true,
-  },
-  {
-    id: 3,
-    title: "Reactive stiffness lab",
-    script:
-      "Module three: reactive stiffness measured in kilonewtons per meter. Too soft, you leak energy. Too rigid, you shatter timing. Find the band that matches your sport and surface.",
+      "Module two: screening layers that map movement restriction to strategy — so you train what actually limits performance.",
     spiralLineLecture: false,
   },
   {
-    id: 4,
-    title: "Neural drive meter",
+    id: 3,
+    title: "Slings & spiral line",
     script:
-      "Module four: neural drive percent. This is intent, not fatigue alone. Drive should peak inside the penultimate window — not before, not after.",
+      "Module three: how load travels through the body’s elastic chains — from foot through hip to shoulder — for recoil, not isolation.",
+    spiralLineLecture: true,
+  },
+  {
+    id: 4,
+    title: "Correctives",
+    script:
+      "Module four: re-patterning drills that clear the path for power — address the constraint, then reload the pattern.",
     spiralLineLecture: false,
   },
   {
     id: 5,
-    title: "Eccentric braking",
+    title: "Penultimate rhythm",
     script:
-      "Module five: eccentric braking. Control the descent before you explode. The lab measures how fast you decelerate into the next impulse.",
+      "Module five: the last step before takeoff — rhythm and foot strike that set up your jump.",
     spiralLineLecture: false,
   },
   {
     id: 6,
-    title: "Collagen recoil window",
+    title: "Reactive stiffness",
     script:
-      "Module six: collagen recoil. Tissue has a timing budget. Miss the window and you are fighting viscosity instead of elasticity.",
+      "Module six: spring-like quality of the leg — tuned to surface, sport, and how you intend to land.",
     spiralLineLecture: false,
   },
   {
     id: 7,
-    title: "Ground reaction vector",
+    title: "Neural drive optimization",
     script:
-      "Module seven: ground reaction vector. Force is a vector, not a score. Aim magnitude and direction together — sagittal bias is not always correct.",
+      "Module seven: intent and effort in the right window — drive is about timing and quality, not only fatigue.",
     spiralLineLecture: false,
   },
   {
     id: 8,
-    title: "Fascial sequencing",
+    title: "Eccentric control",
     script:
-      "Module eight: fascial sequencing. Segments fire in order. When one link is congested, the graph shows red — fix upstream before you chase symptoms.",
+      "Module eight: deceleration before acceleration — own the descent before you explode upward.",
     spiralLineLecture: false,
   },
   {
     id: 9,
-    title: "Return-to-play gate",
+    title: "Elastic recoil",
     script:
-      "Module nine: return to play gate. Clear objective thresholds before competition. The lab is education, not a clearance certificate — your clinician decides.",
+      "Module nine: hop progressions and tissue timing — elasticity depth, not just volume.",
     spiralLineLecture: false,
   },
   {
     id: 10,
-    title: "Program integration",
+    title: "Ground reaction & vectors",
     script:
-      "Module ten: bringing it together — training, review, and progression in one workflow. For education only; not medical advice.",
+      "Module ten: force has direction — aim magnitude and direction together for the task.",
+    spiralLineLecture: false,
+  },
+  {
+    id: 11,
+    title: "Return-to-play progression",
+    script:
+      "Module eleven: objective thresholds before competition — education and metrics; your clinician clears you for sport.",
+    spiralLineLecture: false,
+  },
+  {
+    id: 12,
+    title: "Flight protocol",
+    script:
+      "Module twelve: continuous hops and elasticity depth — tying the curriculum to repeatable, measurable performance.",
     spiralLineLecture: false,
   },
 ];
@@ -207,7 +221,7 @@ export function VVA_Player({ className = "" }: { className?: string }) {
       className={`rounded-2xl border border-fel-cyan/35 bg-black/55 p-6 backdrop-blur-md sm:p-8 ${className}`}
     >
       <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Academy</p>
-      <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">Ten guided modules</h3>
+      <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">Twelve guided modules</h3>
       <p className="mt-2 text-sm text-white/50">
         {useEleven
           ? "Narration uses your ElevenLabs voice profile. Not medical advice."

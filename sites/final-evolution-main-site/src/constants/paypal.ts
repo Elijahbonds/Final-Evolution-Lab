@@ -9,9 +9,16 @@ export type SovereignAlphaTier = "alpha_49" | "alpha_99" | "alpha_499";
 export const PAYPAL_VERIFY_URL_DEFAULT =
   "https://rlqkschgvlrva-wsdzjxq.supabase.co/functions/v1/paypal-verify";
 
-/** Must match `paypal-verify` Edge mapping. */
+/** Must match `paypal-verify` Edge mapping (Evolution Shards). */
 export const TIER_SHARD_DELTA: Record<SovereignAlphaTier, number> = {
   alpha_49: 500,
   alpha_99: 1200,
   alpha_499: 5000,
+};
+
+/** Blueprint credits (DB: `cortex_credits`) — Pro tier only; must match Edge mapping. */
+export const TIER_BLUEPRINT_CREDIT_DELTA: Record<SovereignAlphaTier, number> = {
+  alpha_49: 0,
+  alpha_99: 500,
+  alpha_499: 0,
 };

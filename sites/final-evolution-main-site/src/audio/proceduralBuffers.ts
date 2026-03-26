@@ -1,6 +1,6 @@
 /**
  * Procedural AudioBuffers — 48 kHz float, full dynamic range.
- * Audit: FX stay synthetic (zero asset bytes); optional music beds may use efficient AAC ≤256 kbps.
+ * Clinical audio: FX stay synthetic (zero asset bytes); optional music beds may use efficient AAC ≤256 kbps.
  */
 
 /** Sharp metallic ground contact — odd harmonics + fast decay (ankle stiffness cue). */

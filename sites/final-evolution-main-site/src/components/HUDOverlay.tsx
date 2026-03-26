@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLabAudio } from "../hooks/useLabAudio";
 
 /**
- * Floating glassmorphism HUD — clinical telemetry + biofeedback pulse rings (synced to metallic snap @ ~16.6 ms standard).
+ * Floating glassmorphism HUD — clinical telemetry + biofeedback pulse rings (synced to ground-contact audio).
  */
 export function HUDOverlay() {
   const {
@@ -26,20 +26,20 @@ export function HUDOverlay() {
     veloBar?: boolean;
   }> = [
     {
-      label: "STIFFNESS",
-      sub: "leg spring quality",
+      label: "TISSUE STIFFNESS",
+      sub: "spring-like response",
       position: "left-[6%] top-[22%]",
       pulse: true,
     },
     {
-      label: "DRIVE",
-      sub: "effort / intent",
+      label: "NEURAL DRIVE",
+      sub: "effort · intent",
       position: "right-[8%] top-[38%]",
       pulse: true,
     },
     {
-      label: "VELOCITY",
-      sub: "timing & output",
+      label: "OUTPUT VELOCITY",
+      sub: "timing · readiness",
       position: "left-[12%] bottom-[28%]",
       pulse: true,
       veloBar: true,

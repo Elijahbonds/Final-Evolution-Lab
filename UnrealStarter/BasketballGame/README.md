@@ -1,22 +1,26 @@
 # FEL basketball (Unreal) — game modes, Elijah, ball, Venice + Luma
 
-C++ templates for **UE 5.2+**; verified on **UE 5.7** with **Xcode 26** (see **`UE57_IWYU.md`** for `.cpp` include order). **Meshes are not compiled** — import OBJ/GLB per **`../IMPORT_CHECKLIST.md`**, then build C++.
+**Canonical project file:** **`FinalEvolutionLab.uproject`** in this folder — module sources live in **`Source/FinalEvolutionLab/`** (not loose in `BasketballGame/`). Open the `.uproject` in **UE 5.7**, generate IDE project files, build **FinalEvolutionLabEditor**. See repo root **`UNREAL_ONLY.md`**.
 
-**Not a separate product:** This folder is **FEL Arena / Gaming Labs** — a technical and design **lab** inside the same ecosystem as the Swift app (`PITCH_DECK.md`, `app-synopsis.md`). It is **not** positioned as its own basketball title. Read **`../VISION_ALIGNMENT.md`** for north star, honest scope, guardrails, and Swift schema links (`PerformanceMetrics`, `GameSessionResult`, `GameModeId`, `PRQScoring`).
+C++ targets **UE 5.2+**; verified on **UE 5.7** with **Xcode 26** (see **`UE57_IWYU.md`** for `.cpp` include order). **Meshes are not compiled** — import OBJ/GLB per **`../IMPORT_CHECKLIST.md`**, then build C++.
+
+**Not a separate product:** This folder is **FEL Arena / Gaming Labs** — the **shipping Unreal runtime** for Final Evolution Lab per **`UNREAL_ONLY.md`**. Read **`../VISION_ALIGNMENT.md`** for north star, scope, and Swift schema links (`PerformanceMetrics`, `GameSessionResult`, `GameModeId`, `PRQScoring`) for readiness export.
 
 ## Prerequisites
 
-1. **Unreal C++ project** (e.g. `FinalEvolutionLab`) that **compiles** on your Mac (see **`../MAC_PLATFORM_MAC_INVALID.md`** — Xcode / UE version).
+1. **Unreal Engine 5.7** installed; open **`FinalEvolutionLab.uproject`** (see **`../MAC_PLATFORM_MAC_INVALID.md`** if Xcode/UE pairing fails).
 2. Assets in Content:
    - **`SKM_ElijahBonds_Walking`** → `/Game/FEL/Characters/ElijahBonds/`
    - **`SM_HoopBusBasketball`** → `/Game/FEL/Props/`
    - **`SM_LumaCourt`** → `/Game/FEL/Environment/Luma/`
    - **`SM_VeniceCourt`** (import `Venice_beach_UE5/Venice_mesh.obj` or GLB) → `/Game/FEL/Environment/Venice/`
 
-## Integrate into your module (e.g. `FinalEvolutionLab`)
+## Integrate (forking to another repo / module name)
 
-1. Copy every **`FEL*.h`** and **`FEL*.cpp`** from this folder into **`Source/FinalEvolutionLab/`** (same folder as `FinalEvolutionLab.Build.cs`).
-2. Replace **`FINALEVOLUTIONLAB_API`** with your module’s API macro (e.g. **`FINALEVOLUTIONLAB_API`** if the module is `FinalEvolutionLab`).
+**In-repo:** sources are already under **`Source/FinalEvolutionLab/`** with **`FinalEvolutionLab.Build.cs`**. Skip copying unless you fork.
+
+1. Copy **`Source/FinalEvolutionLab/`** into your game module if you use a different project name.
+2. Use your module’s API macro where required.
 3. In **`FinalEvolutionLab.Build.cs`**, ensure dependencies include at least:
 
 ```csharp
@@ -29,8 +33,8 @@ PublicDependencyModuleNames.AddRange(new string[] {
 (`Json` modules are required for **readiness snapshot** + **session export**; **`UMG` / `Slate` / `SlateCore`** for **`UFELNeuroDebugHUDWidget`**; Enhanced Input is optional for this slice—see **`CONFIG_DefaultInput_FEL.ini`** — includes **`FELHotReloadReadiness` → R** for JSON hot-reload in non-Shipping.)
 
 4. Regenerate project files, build.
-5. **Editor:** create map **`Content/FEL/Maps/L_VeniceLuma_Main`** (name as you like), place **Venice** + **Luma** static meshes per **`VENICE_LUMA_LEVEL.md`**, add **PlayerStart**, set **World Settings → GameMode Override** to **`FELBasketballGameMode`** (or a Blueprint child).
-6. Optional: merge **`CONFIG_DefaultEngine.ini.snippet`** into `Config/DefaultEngine.ini` (adjust map path).
+5. **Editor:** **Street 1v1, dunk contest, and 3v3** share one level: **`/Game/FEL/Venues/VeniceBeach/VeniceBeach`** (Luma scan shell — see **`Content/FEL/Venues/VENUE_SETUP.txt`**). **Karate** uses **`/Game/FEL/Venues/Dojo/Dojo`**. Add **PlayerStart(s)**, props, lighting; set **World Settings → GameMode** to **`FELBasketballGameMode`** (or BP child). Run **`EditorPython/fel_bootstrap_venue_folders.py`** to create Content folders.
+6. Optional: merge **`CONFIG_DefaultEngine.ini.snippet`** into `Config/DefaultEngine.ini` (point **GameDefaultMap** at VeniceBeach when the map exists).
 
 ## What you get
 

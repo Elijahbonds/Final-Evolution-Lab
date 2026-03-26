@@ -8,7 +8,9 @@
 
 ## 1. Recommended folder structure (real Unreal project)
 
-Assume your game module is named **`MyProjec`** (replace with your project name everywhere).
+**In-repo canonical layout (implemented):** `UnrealStarter/BasketballGame/FinalEvolutionLab.uproject` with module **`Source/FinalEvolutionLab/`** (all FEL `.h` / `.cpp` live here — no longer flat in `BasketballGame/`). Legacy merge diagram below still applies if you fork to a **different** project name.
+
+Assume your game module is named **`MyProjec`** (replace with your project name everywhere) **only when copying out of the repo**.
 
 ```
 MyProjec/
@@ -30,7 +32,7 @@ MyProjec/
     └── MyProjec/
         ├── MyProjec.Build.cs
         ├── MyProjec.h / MyProjec.cpp
-        └── FEL/                   ← all C++ from repo UnrealStarter/BasketballGame/
+        └── FEL/                   ← (legacy) C++ was once copied flat; now use **Source/FinalEvolutionLab/** in-repo
             ├── FELReadinessTypes.h
             ├── FELReadinessIO.h / .cpp
             ├── FELKineticLeakage.h / .cpp
@@ -43,7 +45,7 @@ MyProjec/
             ├── FELSessionExport.h / .cpp
             ├── FELArenaBridge.h / .cpp
             ├── FELNeuroMechanicBridgeSubsystem.h / .cpp
-            └── … (see glob under BasketballGame/)
+            └── … (see glob under `Source/FinalEvolutionLab/`)
 ```
 
 **Editor Python (keep in repo, symlink or copy):**

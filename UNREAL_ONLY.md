@@ -23,9 +23,16 @@ Swift is **not** required for gameplay, film vault, or streaming UI when those l
 
 | Path | Role |
 |------|------|
-| **`UnrealStarter/`** | **Active.** C++ snippets, editor Python, import docs, BasketballGame module — merge into **your** `.uproject` (e.g. `~/Documents/Unreal Projects/MyProjec`). |
-| **`FinalEvolutionLab/`** | **Frozen / reference.** Prior iOS shell; do not extend for new product features unless you deliberately split platforms again. |
+| **`UnrealStarter/BasketballGame/FinalEvolutionLab.uproject`** | **Canonical in-repo Unreal project.** Module: `Source/FinalEvolutionLab/` (all FEL C++), `Config/` defaults merged from `CONFIG_*` snippets, `Content/` for maps & assets. Open this in UE 5.7, **Generate Xcode Project** (Mac) or **Refresh Visual Studio** / Rider, then build **FinalEvolutionLabEditor**. |
+| **`UnrealStarter/`** (other) | Editor Python (`EditorPython/`), packaging script (`scripts/package_fel_mac.sh`), import docs (`IMPORT_CHECKLIST.md`, `FEL_UE52_LevelSetup.md`). |
+| **`FinalEvolutionLab/`** (Xcode tree at repo root) | **Legacy iOS shell** — not the shipping gameplay client; see **Swift codebase status** below. |
 | **Root markdown** (`PITCH_DECK.md`, `VISION_ALIGNMENT.md`, etc.) | Product + planning; implementation lands in **Unreal**. |
+
+### End-to-end integration (designed system)
+
+1. **Gameplay & shell:** One UE client — Arena (`FELBasketballGameMode`, modes catalog, HUD), readiness (`FELReadinessIO`, `UFELNeuroMechanicBridgeSubsystem`), Academy subsystems, session export — all in `Source/FinalEvolutionLab/`.  
+2. **Swift (optional bridge):** Writes `readiness_snapshot.json`; Unreal reads via existing I/O (see `PHASE3_UNREAL_MERGE_AND_BRIDGE.md`, `NEURO_MECHANIC_BRIDGE.md`). Deprecate in-match Swift Arena when UE ships on device.  
+3. **Ship:** Mac Development / iOS packaging from Unreal (`PACKAGE_AND_TEST.md`, `RUN_UNREAL_ON_IPHONE_XCODE.md`); **not** the separate Swift-only Xcode app for core Arena simulation.
 
 ---
 
@@ -44,7 +51,7 @@ Swift is **not** required for gameplay, film vault, or streaming UI when those l
 
 ## Phased work (recommended)
 
-1. **Lock the UE project** — One `.uproject` under version control (or separate repo) with `UnrealStarter` code merged and building.
+1. **Lock the UE project** — Use **`UnrealStarter/BasketballGame/FinalEvolutionLab.uproject`** (in-repo). Generate IDE project files from the `.uproject`, compile **FinalEvolutionLabEditor**, run `EditorPython/fel_quick_playtest_level.py` for `L_FEL_Playtest`, then PIE.
 2. **One vertical slice** — Open level → Elijah pawn → ball + hoop logic from `BasketballGame/` (see `PACKAGE_AND_TEST.md`).
 3. **Film Vault v0** — Single `MediaPlayer` full-screen + pause/seek; then add second player + sync.
 4. **Deprecate parallel Swift features** — No new tabs in iOS for features that exist in UE; document parity gaps in this file if any.

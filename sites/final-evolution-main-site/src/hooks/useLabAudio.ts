@@ -7,7 +7,7 @@ import { useLabAudioContext } from "../providers/GlobalAudioProvider";
  * - **Neural hum** — low-latency sine drone; `setVerticalVelocity(0–1)` maps pitch/level to vertical velocity.
  * - **Shard chime** — high-fidelity partials for Sovereign Thank You (after verified purchase).
  *
- * Buffers pre-warm on first user gesture. `biofeedbackPulseGeneration` increments each snap for HUD rings (16.6 ms cadence target).
+ * Buffers pre-warm on first user gesture. `biofeedbackPulseGeneration` increments each snap for HUD rings.
  */
 export function useLabAudio() {
   const ctx = useLabAudioContext();

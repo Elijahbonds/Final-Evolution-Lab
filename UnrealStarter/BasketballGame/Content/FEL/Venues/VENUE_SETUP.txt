@@ -1,0 +1,58 @@
+Final Evolution Lab — venue content checklist (Unreal Editor)
+==============================================================
+
+BASKETBALL (1v1, dunk contest, 3v3) — ONE MAP
+---------------------------------------------
+All three modes load: /Game/FEL/Venues/VeniceBeach/VeniceBeach
+(OpenLevel + asset warm-up use FELArenaVenueTravel / FELDigitalTwinVenuePaths::VeniceBeachArena — single venue matrix in FELArenaVenueTravel.cpp.)
+
+1. Export your Luma capture (UUID in Source: FELLumaCaptureIds::VeniceBeachCourt) to mesh or splat.
+2. Import into /Game/FEL/Environment/Luma or /Game/FEL/Environment/Venice
+3. Build level VeniceBeach.umap: court mesh, collision, lighting, post-process, PlayerStart(s) for 1v1 and 3v3 offsets.
+4. Props: benches, fencing, hoops/backboard, scoreboard decal, boardwalk skydome or HDR — parent under subfolders for streaming.
+5. CONFIG_DefaultGame_FEL.ini cooks VeniceBeach + Dojo. Uncomment +DirectoriesToAlwaysCook in that file for Environment/* once those folders contain your imports.
+
+KARATE — DOJO MAP
+-----------------
+Map: /Game/FEL/Venues/Dojo/Dojo
+1. Create interior: tatami materials, wood beams, paper screens, rim lighting.
+2. Optional: Luma scan as cyclorama behind fighters; keep collision simple.
+3. Match FELDigitalTwinVenuePaths::DojoStadium for OpenLevel from readiness (active_mode karate).
+
+SOCCER — STADIUM MAP
+--------------------
+Travel + registry: /Game/FEL/Venues/SoccerStadium/SoccerStadium (FELDigitalTwinVenuePaths::SoccerStadium).
+Readiness `active_mode` soccer issues OpenLevel to this map (FELReadinessIO → FELArenaVenueTravel).
+
+1. Run EditorPython/fel_quick_soccer_stadium_level.py for a flat pitch + PlayerStart, or build the level by hand.
+2. Import Meshy stadium / ball / goal GLBs into /Game/FEL/Environment/Soccer/ (or StreamingAssets/Meshy) — names in Content/FEL/External/Meshy/README.md.
+3. Optional looping crowd bed: /Game/FEL/Audio/Ambience/SC_Crowd_Stadium_Loop (Sound Cue, loop enabled).
+4. At runtime, FELSoccerStadiumPresentation spawns crowd instancing + goals; AFELBasketballActor uses the Meshy soccer ball when present.
+
+EDITOR HELP
+-----------
+Run Python (Output Log):  py "../../../UnrealStarter/BasketballGame/EditorPython/fel_bootstrap_venue_folders.py"
+Creates empty Content folders for imports.
+
+TITAN / GOLD MASTER — clinical placeholders (MapsToCook)
+----------------------------------------------------------
+`Config/DefaultGame.ini` lists all venue MapsToCook. If a path has no `.umap`, packaging fails.
+
+Recommended (interactive — one Editor session, all venues):
+  py "<repo>/UnrealStarter/BasketballGame/EditorPython/fel_clinical_placeholder_venues.py"
+
+Automated (one Editor launch per venue; UE 5.7 Mac may return nonzero exit after `-Quit` even when save succeeds):
+  export UE_ROOT="/Users/Shared/Epic Games/UE_5.7"
+  bash "<repo>/UnrealStarter/BasketballGame/EditorPython/fel_clinical_placeholder_venues_batch.sh"
+  find Content/FEL/Venues -name "*.umap" | wc -l   # expect 11
+
+Mac DMG package (after C++ build + placeholders):
+  See `GOLD_MASTER_MAC_PACKAGING.txt` in this folder for RunUAT BuildCookRun + optional hdiutil .dmg step.
+
+BLUEPRINT NOTE
+--------------
+Default `GlobalDefaultGameMode` is native `FELBasketballGameMode` (see Config/DefaultEngine.ini).
+There are no `*.uasset` Blueprints in this repo; if your fork subclasses the C++ game mode or pawn,
+open those Blueprints in-editor after a C++ rebuild and click Compile so parent class PRQ APIs refresh.
+
+Cook: merge CONFIG_DefaultGame_FEL.ini into DefaultGame.ini, then Project → Package, or your package_gold_master.sh / RunUAT BuildCookRun.

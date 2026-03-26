@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "paths": [
+    {
+      "id": "core",
+      "title": "Core Neuro Kinesis",
+      "difficulty01": 0.42,
+      "interestKeywords": ["core", "foundation", "warmup", "brain", "body", "baseline"]
+    },
+    {
+      "id": "sport_physics",
+      "title": "Sport Science & Biomechanics",
+      "difficulty01": 0.52,
+      "interestKeywords": ["sport", "biomechanics", "physics", "jump", "sprint", "athlete", "training", "muscle"]
+    },
+    {
+      "id": "orbit_lite",
+      "title": "Orbital Thinking (intro)",
+      "difficulty01": 0.58,
+      "interestKeywords": ["space", "orbit", "planet", "moon", "gravity", "nasa", "astro", "rocket"]
+    },
+    {
+      "id": "data_reasoning",
+      "title": "Data & Reasoning",
+      "difficulty01": 0.55,
+      "interestKeywords": ["data", "graph", "statistics", "logic", "math", "percent", "experiment", "science"]
+    }
+  ],
+  "questions": [
+    {
+      "question": "Which structure is most associated with procedural motor learning for repeated jump timing?",
+      "answers": ["Cerebellum", "Occipital lobe", "Broca's area", "Medulla only"],
+      "correctIndex": 0,
+      "domain": "Analyze",
+      "pathIds": ["core"]
+    },
+    {
+      "question": "In sprint biomechanics, increased anterior pelvic tilt during acceleration often couples with:",
+      "answers": ["Lumbar hyperextension strategy", "Ankle dorsiflexion only", "Pure knee flexion dominance", "Shoulder abduction drive"],
+      "correctIndex": 0,
+      "domain": "Analyze",
+      "pathIds": ["core", "sport_physics"]
+    },
+    {
+      "question": "Rate of force development (RFD) is most sensitive to training that emphasizes:",
+      "answers": ["High-velocity intent and short ground contact", "Only long-duration aerobic volume", "Static stretching only", "Passive ice immersion"],
+      "correctIndex": 0,
+      "domain": "Compute",
+      "pathIds": ["core", "sport_physics"]
+    },
+    {
+      "question": "The stretch-shortening cycle (SSC) primarily exploits:",
+      "answers": ["Elastic energy storage and reflex potentiation", "Pure isometric hold", "Frictionless sliding only", "Visual tracking alone"],
+      "correctIndex": 0,
+      "domain": "Identify",
+      "pathIds": ["core", "sport_physics"]
+    },
+    {
+      "question": "Ground reaction force during a countermovement jump is typically highest:",
+      "answers": ["During the braking phase before takeoff", "At the apex of flight", "After landing only", "During passive standing"],
+      "correctIndex": 0,
+      "domain": "Visualize",
+      "pathIds": ["sport_physics"]
+    },
+    {
+      "question": "A stable orbit around a single dominant mass is best approximated as:",
+      "answers": ["A conic section under inverse-square gravity", "A straight line at constant altitude", "A random walk", "Pure uniform linear motion without curvature"],
+      "correctIndex": 0,
+      "domain": "Analyze",
+      "pathIds": ["orbit_lite"]
+    },
+    {
+      "question": "If a moon is tidally locked to its planet, which statement is most accurate?",
+      "answers": ["Its rotation period matches its orbital period", "It does not orbit at all", "It always faces the star", "Its day is half its year"],
+      "correctIndex": 0,
+      "domain": "Memorize",
+      "pathIds": ["orbit_lite"]
+    },
+    {
+      "question": "Escaping a gravitational well requires reaching:",
+      "answers": ["Escape velocity for that body", "Zero orbital speed", "Mach 1 only", "Geostationary altitude only"],
+      "correctIndex": 0,
+      "domain": "Compute",
+      "pathIds": ["orbit_lite"]
+    },
+    {
+      "question": "In a controlled experiment, the variable you intentionally change is the:",
+      "answers": ["Independent variable", "Dependent variable", "Confounding variable", "Control variable only"],
+      "correctIndex": 0,
+      "domain": "Identify",
+      "pathIds": ["data_reasoning"]
+    },
+    {
+      "question": "A correlation between two metrics implies:",
+      "answers": ["Association, not necessarily causation", "Proof of causation", "No relationship", "Identical measurement error"],
+      "correctIndex": 0,
+      "domain": "Analyze",
+      "pathIds": ["data_reasoning"]
+    },
+    {
+      "question": "If 20% of athletes improve PRQ after a drill block, that percentage represents:",
+      "answers": ["A proportion of the sample", "The causal mechanism", "The population mean always", "Measurement noise only"],
+      "correctIndex": 0,
+      "domain": "Compute",
+      "pathIds": ["data_reasoning"]
+    }
+  ]
+}

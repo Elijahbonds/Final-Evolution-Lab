@@ -2,9 +2,16 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import type { SovereignAlphaTier } from "./constants/paypal";
 import { PRODUCTION_FREWAY_URL } from "./constants/site";
 import { AppView } from "./components/AppView";
+import {
+  SectionAcademy,
+  SectionArena,
+  SectionPRQ,
+  SectionSystemScan,
+} from "./components/ClinicalGatewaySections";
 import { HUDOverlay } from "./components/HUDOverlay";
 import { MedicalDisclaimerGateway } from "./components/MedicalDisclaimerGateway";
 import { PayPalMessagesStrip, SovereignPaymentPortal } from "./components/SovereignPaymentPortal";
+import { SiteNav } from "./components/SiteNav";
 import { ThankYou } from "./components/ThankYou";
 
 const HeroSpiral = lazy(() =>
@@ -22,11 +29,11 @@ function readMedicalAck(): boolean {
 export default function App() {
   const heroVideo = import.meta.env.VITE_HERO_VIDEO_URL || undefined;
   const [medicalAck, setMedicalAck] = useState(readMedicalAck);
-  const [labDisclaimerOpen, setLabDisclaimerOpen] = useState(false);
   const [downloadUnlocked, setDownloadUnlocked] = useState(false);
   const [creditBalance, setCreditBalance] = useState(0);
 
-  const scrollToLab = useCallback(() => {
+  /** Athlete readiness dashboard — same-page, no external routes. */
+  const scrollToTruthDashboard = useCallback(() => {
     document.getElementById("fel-lab")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
@@ -76,14 +83,7 @@ export default function App() {
 
   return (
     <div className="min-h-full bg-fel-black">
-      <MedicalDisclaimerGateway open={!medicalAck} mode="landing" onClose={handleLandingAcknowledge} />
-
-      <MedicalDisclaimerGateway
-        open={labDisclaimerOpen}
-        mode="lab"
-        onClose={() => setLabDisclaimerOpen(false)}
-        onEnterLab={scrollToLab}
-      />
+      <MedicalDisclaimerGateway open={!medicalAck} onClose={handleLandingAcknowledge} />
 
       <section className="relative">
         <Suspense
@@ -104,43 +104,55 @@ export default function App() {
               THE BIOMECHANICAL TRUTH
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
-              Forensic movement analysis. Elite vertical jump protocols. 16.6 ms precision.
+              Your <strong className="font-semibold text-white/90">Performance Readiness Quotient (PRQ)</strong>,{" "}
+              <strong className="font-semibold text-white/90">System Scan</strong> intake, and{" "}
+              <strong className="font-semibold text-white/90">12-Module Academy</strong> — one sovereign lane for
+              athletes and staff who train with intent.
             </p>
 
             <div className="mt-10">
               <button
                 type="button"
-                onClick={() => setLabDisclaimerOpen(true)}
+                onClick={scrollToTruthDashboard}
                 className="inline-flex min-h-[56px] min-w-[220px] items-center justify-center rounded-full bg-fel-cyan px-12 text-base font-black uppercase tracking-[0.14em] text-black shadow-[0_0_36px_rgba(92,225,230,0.5)] transition hover:bg-fel-cyan/90 hover:shadow-[0_0_52px_rgba(92,225,230,0.6)]"
               >
-                Open Lab
+                Open lab
               </button>
               <p className="mt-4 max-w-md text-xs text-white/40">
-                Movement education — not medical diagnosis or treatment.
+                Movement education — not medical diagnosis or treatment. Opens the calibration and readiness dashboard
+                on this page.
               </p>
             </div>
           </div>
         </div>
       </section>
 
+      <SiteNav />
+      <SectionPRQ />
+      <SectionSystemScan />
+      <SectionAcademy />
+      <SectionArena />
       <AppView />
 
       <section
-        id="pricing"
+        id="sovereign-access"
         className="relative z-40 border-t border-white/10 bg-fel-black px-6 py-16 sm:px-12"
       >
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
-                Training access
+                Sovereign access
               </h2>
               <p className="mt-2 max-w-2xl text-sm text-white/55">
-                Secure checkout. Your download unlocks after payment completes successfully.
+                Secure PayPal checkout. <strong className="text-white/90">Evolution Shards</strong> for progression,{" "}
+                <strong className="text-white/90">System calibration credits</strong> for advanced protocol builds, and
+                full <strong className="text-white/90">12-Module Academy</strong> access at the top tier. The Mac
+                installer unlocks when payment completes successfully.
               </p>
             </div>
             <div className="rounded-xl border border-fel-cyan/30 bg-black/40 px-4 py-3 text-right">
-              <p className="text-[0.55rem] font-bold uppercase tracking-[0.28em] text-white/45">Credits</p>
+              <p className="text-[0.55rem] font-bold uppercase tracking-[0.28em] text-white/45">Evolution Shards</p>
               <p className="font-mono text-2xl font-black tabular-nums text-fel-cyan">{creditBalance}</p>
             </div>
           </div>

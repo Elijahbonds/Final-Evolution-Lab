@@ -17,6 +17,23 @@
   to = "/play/"
   status = 301
 
+# PWA under /play/: static files win first; unknown paths get the play shell (not site root)
+[[redirects]]
+  from = "/play/*"
+  to = "/play/index.html"
+  status = 200
+
+# Lab deep links — no /lab/ folder; serve clinical gateway shell
+[[redirects]]
+  from = "/lab"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/lab/*"
+  to = "/index.html"
+  status = 200
+
 [[redirects]]
   from = "/shop"
   to = "/shop/"

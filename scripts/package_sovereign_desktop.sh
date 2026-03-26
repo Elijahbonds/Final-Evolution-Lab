@@ -7,10 +7,7 @@
 # Required (Mac DMG):
 #   FEL_MAC_APP       — path to FinalEvolutionLabUnreal.app (or your cooked Unreal app)
 # Optional (notarization):
-#   FEL_NOTARIZE      — set to 1 to run xcrun notarytool + stapler
-#   FEL_APPLE_ID      — Apple ID for notarytool
-#   FEL_TEAM_ID       — Developer team ID
-#   FEL_NOTARY_KEYCHAIN_PROFILE — app-specific password keychain profile name for notarytool --keychain-profile
+#   FEL_NOTARIZE=1  and  FEL_NOTARY_KEYCHAIN_PROFILE — xcrun notarytool --keychain-profile (see Apple TN3147)
 #
 # Required (Windows zip):
 #   FEL_WIN_FOLDER    — directory containing the .exe + DLLs
@@ -47,17 +44,13 @@ package_mac() {
   echo "==> Mac: creating DMG → $dmg"
   hdiutil create -volname "$name" -srcfolder "$app" -ov -format UDZO "$dmg"
   if [[ "${FEL_NOTARIZE:-0}" == "1" ]]; then
-    if [[ -z "${FEL_APPLE_ID:-}" || -z "${FEL_TEAM_ID:-}" ]]; then
-      echo "ERROR: FEL_NOTARIZE=1 requires FEL_APPLE_ID and FEL_TEAM_ID"
+    if [[ -z "${FEL_NOTARY_KEYCHAIN_PROFILE:-}" ]]; then
+      echo "ERROR: FEL_NOTARIZE=1 requires FEL_NOTARY_KEYCHAIN_PROFILE (notarytool store-credentials)" >&2
       exit 1
     fi
-    echo "==> notarytool submit + staple (requires ASC API key or keychain profile)"
-    if [[ -n "${FEL_NOTARY_KEYCHAIN_PROFILE:-}" ]]; then
-      xcrun notarytool submit "$dmg" --keychain-profile "$FEL_NOTARY_KEYCHAIN_PROFILE" --wait
-    else
-      echo "Set FEL_NOTARY_KEYCHAIN_PROFILE or use API key method per Apple TN3147."
-    fi
-    xcrun stapler staple "$dmg" || true
+    echo "==> notarytool submit + staple"
+    xcrun notarytool submit "$dmg" --keychain-profile "$FEL_NOTARY_KEYCHAIN_PROFILE" --wait
+    xcrun stapler staple "$dmg"
   fi
 }
 

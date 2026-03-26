@@ -8,7 +8,7 @@ import {
 
 export type { SovereignAlphaTier };
 
-/** PayPal JS SDK (loaded from index.html): Smart Buttons + Messages. */
+/** PayPal Smart Buttons + Messages (checkout script). */
 declare global {
   interface Window {
     paypal?: PayPalNamespace;
@@ -52,9 +52,9 @@ const TIER_CONFIG: Record<
   SovereignAlphaTier,
   { title: string; amountUsd: string; buttonColor: "gold" | "silver" }
 > = {
-  alpha_49: { title: "Starter — Training credits", amountUsd: "49.00", buttonColor: "gold" },
-  alpha_99: { title: "Pro — Training credits", amountUsd: "99.00", buttonColor: "silver" },
-  alpha_499: { title: "Academy — Full access", amountUsd: "499.00", buttonColor: "gold" },
+  alpha_49: { title: "Starter — Evolution Shards", amountUsd: "49.00", buttonColor: "gold" },
+  alpha_99: { title: "Pro — System calibration credits", amountUsd: "99.00", buttonColor: "silver" },
+  alpha_499: { title: "Academy — Full syllabus access", amountUsd: "499.00", buttonColor: "gold" },
 };
 
 function readAthleteId(): string {
@@ -110,17 +110,17 @@ function waitForPayPal(timeoutMs = 20000): Promise<PayPalNamespace> {
     script.defer = true;
     
     const timeout = setTimeout(() => {
-      reject(new Error("PayPal SDK load timed out."));
+      reject(new Error("PayPal checkout could not load (timeout)."));
     }, timeoutMs);
 
     script.onload = () => {
       clearTimeout(timeout);
       if (window.paypal) resolve(window.paypal);
-      else reject(new Error("PayPal SDK namespace not found."));
+      else reject(new Error("PayPal checkout is unavailable."));
     };
     script.onerror = () => {
       clearTimeout(timeout);
-      reject(new Error("Failed to load PayPal SDK script."));
+      reject(new Error("Failed to load PayPal checkout."));
     };
     
     document.head.appendChild(script);
@@ -267,8 +267,12 @@ export function SovereignPaymentPortal({
                 }),
               });
 
-              const body = (await res.json().catch(() => ({}))) as { error?: string };
-              if (!res.ok) {
+              const body = (await res.json().catch(() => ({}))) as {
+                error?: string;
+                ok?: boolean;
+                shard_delta?: number;
+              };
+              if (!res.ok || body.ok !== true) {
                 if (import.meta.env.DEV && body.error) {
                   console.error("paypal-verify:", body.error);
                 }
@@ -279,7 +283,8 @@ export function SovereignPaymentPortal({
                 return;
               }
 
-              const shardDelta = TIER_SHARD_DELTA[tier];
+              const shardDelta =
+                typeof body.shard_delta === "number" ? body.shard_delta : TIER_SHARD_DELTA[tier];
               onPurchaseVerifiedRef.current?.({ tier, shardDelta });
             } catch (e) {
               setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");

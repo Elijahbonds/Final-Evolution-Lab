@@ -11,4 +11,6 @@
 | `Meshy_AI_Tennis_Racket_Profe_0323202215_texture.glb` | Tennis racket |
 | `Meshy_AI_Tennis_Ball_Bright__0323202210_texture.glb` | Tennis ball |
 
-**Import:** Drag into `/Game/FEL/...` in the Unreal Editor or use Editor Python batch import; align with `fel_luma_venue_texture_presave.py` platform stamps for materials.
+**Import:** Drag into `/Game/FEL/Environment/Soccer/` (recommended) or `/Game/FEL/StreamingAssets/Meshy/` in the Unreal Editor. Static mesh names usually match the GLB file name; `AFELSoccerStadiumPresentation` and `AFELBasketballActor::ApplyArenaBallVisual` load those paths at runtime. Stadium shell: merge into `/Game/FEL/Venues/SoccerStadium/SoccerStadium` after running `EditorPython/fel_quick_soccer_stadium_level.py`.
+
+**Crowd SFX:** Add a looping Sound Cue at `/Game/FEL/Audio/Ambience/SC_Crowd_Stadium_Loop` (or assign `CrowdAmbienceSound` on a `FELSoccerStadiumPresentation` placed in the level).

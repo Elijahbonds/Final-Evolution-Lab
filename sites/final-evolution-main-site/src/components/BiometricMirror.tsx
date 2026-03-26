@@ -80,7 +80,7 @@ export function BiometricMirror({ joints = {}, redCongestion = false, className 
             aria-hidden
           />
           <p className="absolute left-3 top-3 z-20 max-w-[11rem] rounded border border-fel-red/60 bg-black/70 px-2 py-1 text-[0.55rem] font-bold uppercase leading-tight tracking-wide text-fel-red shadow-[0_0_12px_rgba(255,51,85,0.5)]">
-            Red congestion · MSF rotation screen
+            Movement screen · multi-segmental rotation
           </p>
         </>
       ) : null}
@@ -94,9 +94,9 @@ export function BiometricMirror({ joints = {}, redCongestion = false, className 
       />
       <div className="relative px-4 pb-5 pt-4">
         <p className="text-[0.55rem] font-bold uppercase tracking-[0.35em] text-fel-cyan/90">
-          Biometric mirror
+          Kinetic heatmap
         </p>
-        <p className="mt-1 text-[0.65rem] text-white/45">SFMA overlay · forensic wireframe</p>
+        <p className="mt-1 text-[0.65rem] text-white/45">Segmental map · clinical wireframe</p>
 
         <style>{`@keyframes felCongestionPulse { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }`}</style>
         <svg
@@ -104,7 +104,7 @@ export function BiometricMirror({ joints = {}, redCongestion = false, className 
           className={`mx-auto mt-3 h-[min(420px,55vh)] w-full max-w-[280px] ${redCongestion ? "opacity-95 saturate-150" : ""}`}
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          aria-label="Stylized skeleton with SFMA joint overlays"
+          aria-label="Kinetic heatmap — segmental joint map"
         >
           <defs>
             <filter id="felJointGlow" x="-50%" y="-50%" width="200%" height="200%">

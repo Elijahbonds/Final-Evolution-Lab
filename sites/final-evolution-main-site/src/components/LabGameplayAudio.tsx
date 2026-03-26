@@ -2,8 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLabAudio } from "../hooks/useLabAudio";
 
 /**
- * Demo: metallic snap on synthetic ground contact + neural hum vs vertical velocity.
- * Haptic: Vibration API (~16 ms). DualSense actuators → native Unreal / iOS bridge.
+ * Ambient lab audio: ground-contact cue + neural hum vs vertical velocity (browser haptics when available).
  */
 export function LabGameplayAudio() {
   const {

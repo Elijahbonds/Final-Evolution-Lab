@@ -66,11 +66,8 @@ type HeroSpiralProps = {
 };
 
 /**
- * Full-bleed hero: Three.js spiral “mid-jump” line on pure black.
- * Optional `videoUrl`: subtle ambient loop behind WebGL, or full-bleed fallback if WebGL is missing.
- *
- * **Rendering:** Uses the browser’s `requestAnimationFrame` (typically ~60 Hz on standard displays).
- * The **16.6 ms** value in the product is the **lab motion-timing target**, not a hard guarantee for this canvas.
+ * Full-bleed hero: spiral “mid-jump” line on pure black (interactive 3D canvas when available).
+ * Optional `videoUrl`: subtle ambient loop behind the canvas, or fallback background.
  */
 export function HeroSpiral({ videoUrl }: HeroSpiralProps) {
   const [webglOk, setWebglOk] = useState(true);
@@ -141,7 +138,7 @@ export function HeroSpiral({ videoUrl }: HeroSpiralProps) {
       ) : !fallbackVideo ? (
         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center bg-fel-black px-6 text-center">
           <p className="text-sm text-fel-cyan/80">
-            This device can’t show the 3D hero. The rest of the site works normally.
+            This device can’t show the 3D hero visual. The rest of the site works normally.
           </p>
         </div>
       ) : null}

@@ -8,7 +8,9 @@ set -euo pipefail
 UE_ROOT="${UE_ROOT:-/Users/Shared/Epic Games/UE_5.7}"
 RUNUAT="${UE_ROOT}/Engine/Build/BatchFiles/RunUAT.sh"
 
-PROJECT="${1:-${HOME}/Documents/Unreal Projects/MyProjec/MyProjec.uproject}"
+# Default: in-repo canonical UE project (see UNREAL_ONLY.md)
+REPO_UE_DEFAULT="$(cd "$(dirname "$0")/../BasketballGame" && pwd)/FinalEvolutionLab.uproject"
+PROJECT="${1:-$REPO_UE_DEFAULT}"
 ARCHIVE="${2:-${PWD}/FEL-Mac-Development-Archive}"
 
 if [[ ! -x "${RUNUAT}" ]]; then

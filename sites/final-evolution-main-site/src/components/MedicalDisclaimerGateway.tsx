@@ -1,25 +1,14 @@
 import { useEffect } from "react";
 
-export type MedicalDisclaimerMode = "landing" | "lab";
-
 type MedicalDisclaimerGatewayProps = {
   open: boolean;
-  mode: MedicalDisclaimerMode;
   onClose: () => void;
-  /** Lab mode: after consent, scroll into the same-page lab experience (no external 404). */
-  onEnterLab?: () => void;
 };
 
 /**
- * Clinical gate — z-index 1100, above hero, HUD, and pricing chrome.
- * Mandatory first-run: use `mode="landing"` until acknowledged.
+ * Clinical gate — first visit only. Above hero, HUD, and pricing chrome.
  */
-export function MedicalDisclaimerGateway({
-  open,
-  mode,
-  onClose,
-  onEnterLab,
-}: MedicalDisclaimerGatewayProps) {
+export function MedicalDisclaimerGateway({ open, onClose }: MedicalDisclaimerGatewayProps) {
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -31,8 +20,6 @@ export function MedicalDisclaimerGateway({
 
   if (!open) return null;
 
-  const isLanding = mode === "landing";
-
   return (
     <div
       className="fixed inset-0 z-[1100] flex items-center justify-center p-4 sm:p-8"
@@ -40,13 +27,7 @@ export function MedicalDisclaimerGateway({
       aria-modal="true"
       aria-labelledby="medical-disclaimer-title"
     >
-      <button
-        type="button"
-        className={`absolute inset-0 bg-black/85 backdrop-blur-sm ${isLanding ? "pointer-events-none" : ""}`}
-        aria-label={isLanding ? undefined : "Close"}
-        onClick={isLanding ? undefined : onClose}
-        tabIndex={isLanding ? -1 : 0}
-      />
+      <div className="pointer-events-none absolute inset-0 bg-black/85 backdrop-blur-sm" aria-hidden />
       <div className="relative z-[1101] max-h-[min(92vh,720px)] w-full max-w-lg overflow-y-auto rounded-2xl border-2 border-fel-cyan/50 bg-[#050608] p-6 shadow-[0_0_48px_rgba(92,225,230,0.2)] sm:p-8">
         <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Medical disclaimer</p>
         <h2 id="medical-disclaimer-title" className="mt-3 text-xl font-black text-white sm:text-2xl">
@@ -64,35 +45,13 @@ export function MedicalDisclaimerGateway({
           </p>
         </div>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-          {!isLanding ? (
-            <button
-              type="button"
-              className="rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/10"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-          ) : null}
-          {isLanding ? (
-            <button
-              type="button"
-              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-fel-cyan px-8 text-sm font-black uppercase tracking-wide text-black shadow-[0_0_24px_rgba(92,225,230,0.4)] transition hover:bg-fel-cyan/90 sm:w-auto"
-              onClick={onClose}
-            >
-              Continue
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-fel-cyan px-8 text-sm font-black uppercase tracking-wide text-black shadow-[0_0_24px_rgba(92,225,230,0.4)] transition hover:bg-fel-cyan/90"
-              onClick={() => {
-                onClose();
-                onEnterLab?.();
-              }}
-            >
-              Enter lab — I understand
-            </button>
-          )}
+          <button
+            type="button"
+            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-fel-cyan px-8 text-sm font-black uppercase tracking-wide text-black shadow-[0_0_24px_rgba(92,225,230,0.4)] transition hover:bg-fel-cyan/90 sm:w-auto"
+            onClick={onClose}
+          >
+            Continue
+          </button>
         </div>
       </div>
     </div>
