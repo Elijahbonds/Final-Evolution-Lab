@@ -48,7 +48,11 @@ function StatPanel({
   const path = useMemo(() => buildSparkline(history, w, h), [history]);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-black/40 p-4 backdrop-blur-sm">
+    <div
+      className="rounded-xl border border-white/10 bg-black/40 p-4 backdrop-blur-sm"
+      role="img"
+      aria-label={`${label}: ${value.toFixed(1)} ${unit}`}
+    >
       <p className="text-[0.55rem] font-bold uppercase tracking-[0.28em] text-white/50">{label}</p>
       <div className="mt-1 flex items-baseline gap-2">
         <span className="font-mono text-2xl font-black tabular-nums text-white" style={{ textShadow: `0 0 20px ${color}44` }}>
@@ -133,7 +137,11 @@ export function LiveVeloStats({
   }, [penultimateStretchMs, historyLength, tick]);
 
   return (
-    <div className={`grid gap-4 sm:grid-cols-3 ${className}`}>
+    <div
+      className={`grid gap-4 sm:grid-cols-3 ${className}`}
+      role="region"
+      aria-label="Live velocity: reactive stiffness, neural drive, and penultimate stretch"
+    >
       <StatPanel
         gradientId="fel-grad-stiff"
         label="Reactive stiffness"

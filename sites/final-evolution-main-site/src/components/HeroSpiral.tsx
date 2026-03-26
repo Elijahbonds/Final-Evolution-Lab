@@ -123,8 +123,8 @@ export function HeroSpiral({ videoUrl }: HeroSpiralProps) {
           >
             <Canvas
               className="h-full w-full"
-              dpr={[1, 1.5]}
-              performance={{ min: 0.5 }}
+              frameloop="always"
+              dpr={[1, 2]}
               gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
               camera={{ position: [0, 0.4, 6.2], fov: 42 }}
               onCreated={({ gl }) => {

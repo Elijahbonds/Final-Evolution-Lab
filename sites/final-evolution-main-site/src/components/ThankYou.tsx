@@ -1,7 +1,7 @@
 import { GOLD_MASTER_DMG_URL } from "../constants/downloads";
 
 export type ThankYouProps = {
-  /** True only after `paypal-verify` returns OK (shards credited, idempotent). */
+  /** True after PayPal capture (optimistic); DMG link matches Supabase public object. */
   downloadUnlocked: boolean;
 };
 
@@ -18,8 +18,8 @@ export function ThankYou({ downloadUnlocked }: ThankYouProps) {
         <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Thank you</p>
         <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">Sovereign Alpha — welcome</h2>
         <p className="mt-4 text-sm leading-relaxed text-white/55">
-          After PayPal capture, <code className="text-fel-cyan/80">paypal-verify</code> credits shards and unlocks the
-          Gold Master below.
+          On PayPal capture, shards update immediately and this download unlocks.{" "}
+          <code className="text-fel-cyan/80">paypal-verify</code> confirms the order in the background.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-4">
@@ -29,7 +29,7 @@ export function ThankYou({ downloadUnlocked }: ThankYouProps) {
               download
               className="animate-pulse inline-flex min-h-[64px] min-w-[280px] items-center justify-center rounded-sm bg-[#5ce1e6] px-8 text-lg font-black uppercase tracking-[0.15em] text-black shadow-[0_0_40px_rgba(92,225,230,0.8)] transition hover:bg-white hover:shadow-[0_0_48px_rgba(92,225,230,0.95)]"
             >
-              DOWNLOAD GOLD MASTER (MAC)
+              DOWNLOAD GOLD MASTER
             </a>
           ) : (
             <button

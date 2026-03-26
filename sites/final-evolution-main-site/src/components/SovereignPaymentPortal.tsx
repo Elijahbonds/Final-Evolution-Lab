@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  PAYPAL_VERIFY_URL_DEFAULT,
+  TIER_SHARD_DELTA,
+  type SovereignAlphaTier,
+} from "../constants/paypal";
+
+export type { SovereignAlphaTier };
 
 /** PayPal JS SDK (loaded from index.html): Smart Buttons + Messages. */
 declare global {
@@ -41,9 +48,6 @@ type PayPalOrderPayload = {
   }>;
 };
 
-/** Sovereign Alpha tiers — must match paypal-verify amount → shard mapping ($49 / $99 / $499). */
-export type SovereignAlphaTier = "alpha_49" | "alpha_99" | "alpha_499";
-
 const TIER_CONFIG: Record<
   SovereignAlphaTier,
   { title: string; amountUsd: string; buttonColor: "gold" | "silver" }
@@ -83,10 +87,12 @@ function getSupabase(): SupabaseClient | null {
   return supabaseSingleton;
 }
 
-function verifyEndpoint(): string | null {
+function verifyEndpoint(): string {
+  const explicit = import.meta.env.VITE_PAYPAL_VERIFY_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
   const base = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
-  if (!base) return null;
-  return `${base}/functions/v1/paypal-verify`;
+  if (base) return `${base}/functions/v1/paypal-verify`;
+  return PAYPAL_VERIFY_URL_DEFAULT;
 }
 
 let scriptPromise: Promise<PayPalNamespace> | null = null;
@@ -123,17 +129,32 @@ function waitForPayPal(timeoutMs = 20000): Promise<PayPalNamespace> {
 export type SovereignPaymentPortalProps = {
   tier: SovereignAlphaTier;
   className?: string;
+  /** After server verify succeeds (optional; use with optimistic capture). */
   onSuccess?: () => void;
+  /** Immediately after PayPal capture, before Edge verify — optimistic shards + unlock. */
+  onCaptureOptimistic?: (info: { tier: SovereignAlphaTier; shardDelta: number }) => void;
+  /** Roll back optimistic UI if `paypal-verify` fails. */
+  onVerifyFailed?: () => void;
 };
 
 /**
  * PayPal Smart Payment Buttons (PayPal, card, Pay Later).
  * onApprove: capture order, POST { orderID, athlete_id } to `paypal-verify`.
  */
-export function SovereignPaymentPortal({ tier, className = "", onSuccess }: SovereignPaymentPortalProps) {
+export function SovereignPaymentPortal({
+  tier,
+  className = "",
+  onSuccess,
+  onCaptureOptimistic,
+  onVerifyFailed,
+}: SovereignPaymentPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
+  const onCaptureOptimisticRef = useRef(onCaptureOptimistic);
+  onCaptureOptimisticRef.current = onCaptureOptimistic;
+  const onVerifyFailedRef = useRef(onVerifyFailed);
+  onVerifyFailedRef.current = onVerifyFailed;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cfg = TIER_CONFIG[tier];
@@ -148,10 +169,6 @@ export function SovereignPaymentPortal({ tier, className = "", onSuccess }: Sove
     (async () => {
       if (!getSupabase()) {
         setError("Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
-        return;
-      }
-      if (!verifyEndpoint()) {
-        setError("Missing VITE_SUPABASE_URL.");
         return;
       }
 
@@ -194,9 +211,13 @@ export function SovereignPaymentPortal({ tier, className = "", onSuccess }: Sove
             try {
               await actions.order.capture();
 
+              const shardDelta = TIER_SHARD_DELTA[tier];
+              onCaptureOptimisticRef.current?.({ tier, shardDelta });
+
               const supabase = getSupabase();
               if (!supabase) {
                 setError("Supabase not configured.");
+                onVerifyFailedRef.current?.();
                 return;
               }
 
@@ -204,15 +225,11 @@ export function SovereignPaymentPortal({ tier, className = "", onSuccess }: Sove
               const session = auth.session;
               if (!session?.user?.id) {
                 setError("Session expired.");
+                onVerifyFailedRef.current?.();
                 return;
               }
 
               const endpoint = verifyEndpoint();
-              if (!endpoint) {
-                setError("Missing VITE_SUPABASE_URL.");
-                return;
-              }
-
               const athleteId = readAthleteId();
 
               const res = await fetch(endpoint, {
@@ -231,12 +248,14 @@ export function SovereignPaymentPortal({ tier, className = "", onSuccess }: Sove
               const payload = (await res.json().catch(() => ({}))) as { error?: string };
               if (!res.ok) {
                 setError(payload.error ?? `Verify failed (${res.status})`);
+                onVerifyFailedRef.current?.();
                 return;
               }
 
               onSuccessRef.current?.();
             } catch (e) {
               setError(e instanceof Error ? e.message : "Checkout error");
+              onVerifyFailedRef.current?.();
             } finally {
               setBusy(false);
             }
@@ -270,7 +289,7 @@ export function SovereignPaymentPortal({ tier, className = "", onSuccess }: Sove
         <span className="text-lg font-black text-white/90">${cfg.amountUsd}</span>
       </div>
       <p className="mb-4 text-xs leading-relaxed text-white/50">
-        PayPal, credit card, or Pay Later — shards credit after server verification.
+        PayPal, credit card, or Pay Later — shards update optimistically on capture; server verifies in background.
       </p>
       <div
         ref={containerRef}

@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_PAYPAL_CLIENT_ID: string;
   /** Optional loop for hero when WebGL is unavailable or as ambient layer. */
   readonly VITE_HERO_VIDEO_URL: string;
+  /** Override `paypal-verify` URL; defaults to canonical Edge Function. */
+  readonly VITE_PAYPAL_VERIFY_URL?: string;
 }
 
 interface ImportMeta {

@@ -1,4 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import type { SovereignAlphaTier } from "./constants/paypal";
 import { PRODUCTION_FREWAY_URL } from "./constants/site";
 import { AppView } from "./components/AppView";
 import { HUDOverlay } from "./components/HUDOverlay";
@@ -12,10 +13,21 @@ const HeroSpiral = lazy(() =>
 
 const PWA_PLAY_URL = "https://relaxed-sawine-6d11dc.netlify.app/play";
 
+function readMedicalAck(): boolean {
+  try {
+    return localStorage.getItem("fel_medical_ack") === "1";
+  } catch {
+    return false;
+  }
+}
+
 export default function App() {
   const heroVideo = import.meta.env.VITE_HERO_VIDEO_URL || undefined;
+  const [medicalAck, setMedicalAck] = useState(readMedicalAck);
   const [labDisclaimerOpen, setLabDisclaimerOpen] = useState(false);
   const [downloadUnlocked, setDownloadUnlocked] = useState(false);
+  const [optimisticShards, setOptimisticShards] = useState(0);
+  const pendingShardRef = useRef(0);
 
   useEffect(() => {
     try {
@@ -27,22 +39,60 @@ export default function App() {
     }
   }, []);
 
-  const handlePaypalVerified = useCallback(() => {
-    setDownloadUnlocked(true);
+  const handleLandingAcknowledge = useCallback(() => {
     try {
-      sessionStorage.setItem("fel_dmg_unlock", "1");
+      localStorage.setItem("fel_medical_ack", "1");
     } catch {
       /* */
     }
-    window.setTimeout(() => {
-      document.getElementById("thank-you")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 150);
+    setMedicalAck(true);
+  }, []);
+
+  const handleCaptureOptimistic = useCallback(
+    ({ shardDelta }: { tier: SovereignAlphaTier; shardDelta: number }) => {
+      pendingShardRef.current = shardDelta;
+      setOptimisticShards((s) => s + shardDelta);
+      setDownloadUnlocked(true);
+      try {
+        sessionStorage.setItem("fel_dmg_unlock", "1");
+      } catch {
+        /* */
+      }
+      window.setTimeout(() => {
+        document.getElementById("thank-you")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+    },
+    []
+  );
+
+  const handleVerifyFailed = useCallback(() => {
+    const d = pendingShardRef.current;
+    pendingShardRef.current = 0;
+    setOptimisticShards((s) => Math.max(0, s - d));
+    setDownloadUnlocked(false);
+    try {
+      sessionStorage.removeItem("fel_dmg_unlock");
+    } catch {
+      /* */
+    }
+  }, []);
+
+  const handleVerifySuccess = useCallback(() => {
+    pendingShardRef.current = 0;
   }, []);
 
   return (
     <div className="min-h-full bg-fel-black">
       <MedicalDisclaimerGateway
+        open={!medicalAck}
+        mode="landing"
+        labUrl={PWA_PLAY_URL}
+        onClose={handleLandingAcknowledge}
+      />
+
+      <MedicalDisclaimerGateway
         open={labDisclaimerOpen}
+        mode="lab"
         labUrl={PWA_PLAY_URL}
         onClose={() => setLabDisclaimerOpen(false)}
       />
@@ -62,14 +112,25 @@ export default function App() {
             <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
               Dark clinical · sovereign lab
             </p>
-            <h1 className="mt-3 text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl [text-shadow:0_0_40px_rgba(92,225,230,0.25)]">
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl [text-shadow:0_0_40px_rgba(92,225,230,0.25)]">
+                Biomechanical Truth
+              </h1>
+              <span
+                className="inline-flex items-center rounded border border-fel-cyan/50 bg-black/50 px-2 py-1 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-fel-cyan"
+                title="Hero WebGL present mode and HUD cadence target 60 Hz"
+              >
+                60fps
+              </span>
+            </div>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white/90 sm:text-2xl">
               Bypass the App Store.
               <br />
               <span className="text-fel-cyan">Enter the Lab.</span>
-            </h1>
+            </h2>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
-              Neon Spiral Line telemetry, 16.6 ms frame discipline, and a sovereign shard
-              economy — clinical movement education, not medical diagnosis.
+              Neon Spiral Line telemetry, 16.6 ms frame discipline, and a sovereign shard economy —
+              clinical movement education, not medical diagnosis.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -92,23 +153,48 @@ export default function App() {
         className="relative z-40 border-t border-white/10 bg-fel-black px-6 py-16 sm:px-12"
       >
         <div className="mx-auto max-w-6xl">
-          <h2 className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
-            Alpha 1 — pricing
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-white/55">
-            PayPal Complete Payments. After capture, <code className="text-fel-cyan/80">paypal-verify</code>{" "}
-            confirms the order and credits shards. Set{" "}
-            <code className="text-white/50">localStorage.fel_athlete_id</code> to link your lab athlete id.
-          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
+                Alpha 1 — pricing
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm text-white/55">
+                PayPal Complete Payments. On capture, shards update optimistically;{" "}
+                <code className="text-fel-cyan/80">paypal-verify</code> (
+                <code className="text-white/45">rlqkschgvlrva-wsdzjxq…/paypal-verify</code>) confirms
+                server-side. Set <code className="text-white/50">localStorage.fel_athlete_id</code> to link
+                your lab athlete id.
+              </p>
+            </div>
+            <div className="rounded-xl border border-fel-cyan/30 bg-black/40 px-4 py-3 text-right">
+              <p className="text-[0.55rem] font-bold uppercase tracking-[0.28em] text-white/45">Shards</p>
+              <p className="font-mono text-2xl font-black tabular-nums text-fel-cyan">{optimisticShards}</p>
+            </div>
+          </div>
 
           <div className="mt-6">
             <PayPalMessagesStrip amountUsd={499} />
           </div>
 
           <div className="mt-10 grid gap-8 md:grid-cols-3">
-            <SovereignPaymentPortal tier="alpha_49" onSuccess={handlePaypalVerified} />
-            <SovereignPaymentPortal tier="alpha_99" onSuccess={handlePaypalVerified} />
-            <SovereignPaymentPortal tier="alpha_499" onSuccess={handlePaypalVerified} />
+            <SovereignPaymentPortal
+              tier="alpha_49"
+              onCaptureOptimistic={handleCaptureOptimistic}
+              onVerifyFailed={handleVerifyFailed}
+              onSuccess={handleVerifySuccess}
+            />
+            <SovereignPaymentPortal
+              tier="alpha_99"
+              onCaptureOptimistic={handleCaptureOptimistic}
+              onVerifyFailed={handleVerifyFailed}
+              onSuccess={handleVerifySuccess}
+            />
+            <SovereignPaymentPortal
+              tier="alpha_499"
+              onCaptureOptimistic={handleCaptureOptimistic}
+              onVerifyFailed={handleVerifyFailed}
+              onSuccess={handleVerifySuccess}
+            />
           </div>
         </div>
       </section>
