@@ -4,6 +4,8 @@ node_modules/
 .bundle/
 android/
 ios/
+!UnrealStarter/BasketballGame/Config/IOS/
+!UnrealStarter/BasketballGame/Config/IOS/**
 babel.config.js
 metro.config.js
 # Root package.json is used for Netlify/npm scripts (static web); do not add Expo/RN deps here.
