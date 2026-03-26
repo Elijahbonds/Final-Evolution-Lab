@@ -1,7 +1,11 @@
 /** Sovereign Alpha tiers — must match `paypal-verify` amount → shard mapping ($49 / $99 / $499). */
 export type SovereignAlphaTier = "alpha_49" | "alpha_99" | "alpha_499";
 
-/** Canonical Edge Function URL (override with `VITE_PAYPAL_VERIFY_URL` for staging). */
+/**
+ * Canonical `paypal-verify` Edge Function (shard crediting).
+ * Production: same Supabase project as `VITE_SUPABASE_URL` (live: *.supabase.co).
+ * Override with `VITE_PAYPAL_VERIFY_URL` only for staging.
+ */
 export const PAYPAL_VERIFY_URL_DEFAULT =
   "https://rlqkschgvlrva-wsdzjxq.supabase.co/functions/v1/paypal-verify";
 

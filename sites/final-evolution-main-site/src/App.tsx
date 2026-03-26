@@ -11,7 +11,8 @@ const HeroSpiral = lazy(() =>
   import("./components/HeroSpiral").then((m) => ({ default: m.HeroSpiral }))
 );
 
-const PWA_PLAY_URL = "https://relaxed-sawine-6d11dc.netlify.app/play";
+/** Lab PWA shell — same apex as marketing site (`/play` route or redirect). */
+const LAB_PLAY_URL = `${PRODUCTION_FREWAY_URL}/play`;
 
 function readMedicalAck(): boolean {
   try {
@@ -77,14 +78,14 @@ export default function App() {
       <MedicalDisclaimerGateway
         open={!medicalAck}
         mode="landing"
-        labUrl={PWA_PLAY_URL}
+        labUrl={LAB_PLAY_URL}
         onClose={handleLandingAcknowledge}
       />
 
       <MedicalDisclaimerGateway
         open={labDisclaimerOpen}
         mode="lab"
-        labUrl={PWA_PLAY_URL}
+        labUrl={LAB_PLAY_URL}
         onClose={() => setLabDisclaimerOpen(false)}
       />
 

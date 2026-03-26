@@ -49,7 +49,8 @@ export function ThankYou({ downloadUnlocked }: ThankYouProps) {
           {downloadUnlocked ? (
             <a
               href={GOLD_MASTER_DMG_URL}
-              download
+              download="FinalEvolution.dmg"
+              rel="noopener noreferrer"
               className="animate-pulse inline-flex min-h-[64px] min-w-[280px] items-center justify-center rounded-sm bg-[#5ce1e6] px-8 text-lg font-black uppercase tracking-[0.15em] text-black shadow-[0_0_40px_rgba(92,225,230,0.8)] transition hover:bg-white hover:shadow-[0_0_48px_rgba(92,225,230,0.95)]"
             >
               DOWNLOAD GOLD MASTER

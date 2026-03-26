@@ -71,6 +71,7 @@ function readAthleteId(): string {
 
 let supabaseSingleton: SupabaseClient | null = null;
 
+/** Auth session + Edge calls — must match live project (`VITE_SUPABASE_URL` → *.supabase.co). */
 function getSupabase(): SupabaseClient | null {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -87,6 +88,7 @@ function getSupabase(): SupabaseClient | null {
   return supabaseSingleton;
 }
 
+/** Shard crediting: POST to `${VITE_SUPABASE_URL}/functions/v1/paypal-verify` when env is set; else canonical default. */
 function verifyEndpoint(): string {
   const explicit = import.meta.env.VITE_PAYPAL_VERIFY_URL?.trim();
   if (explicit) return explicit.replace(/\/$/, "");
