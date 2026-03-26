@@ -68,6 +68,9 @@ type HeroSpiralProps = {
 /**
  * Full-bleed hero: Three.js spiral “mid-jump” line on pure black.
  * Optional `videoUrl`: subtle ambient loop behind WebGL, or full-bleed fallback if WebGL is missing.
+ *
+ * **Rendering:** Uses the browser’s `requestAnimationFrame` (typically ~60 Hz on standard displays).
+ * The **16.6 ms** value in the product is the **lab motion-timing target**, not a hard guarantee for this canvas.
  */
 export function HeroSpiral({ videoUrl }: HeroSpiralProps) {
   const [webglOk, setWebglOk] = useState(true);
@@ -117,7 +120,7 @@ export function HeroSpiral({ videoUrl }: HeroSpiralProps) {
           <Suspense
             fallback={
               <div className="flex h-full w-full items-center justify-center bg-fel-black text-xs text-white/40">
-                Loading lab…
+                Loading…
               </div>
             }
           >
@@ -138,8 +141,7 @@ export function HeroSpiral({ videoUrl }: HeroSpiralProps) {
       ) : !fallbackVideo ? (
         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center bg-fel-black px-6 text-center">
           <p className="text-sm text-fel-cyan/80">
-            WebGL unavailable. Set <code className="text-white/60">VITE_HERO_VIDEO_URL</code>{" "}
-            for a full-bleed Spiral Line loop.
+            This device can’t show the 3D hero. The rest of the site works normally.
           </p>
         </div>
       ) : null}

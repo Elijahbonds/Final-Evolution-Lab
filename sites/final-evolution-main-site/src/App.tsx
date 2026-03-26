@@ -24,7 +24,7 @@ export default function App() {
   const [medicalAck, setMedicalAck] = useState(readMedicalAck);
   const [labDisclaimerOpen, setLabDisclaimerOpen] = useState(false);
   const [downloadUnlocked, setDownloadUnlocked] = useState(false);
-  const [shardBalance, setShardBalance] = useState(0);
+  const [creditBalance, setCreditBalance] = useState(0);
 
   const scrollToLab = useCallback(() => {
     document.getElementById("fel-lab")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -51,7 +51,7 @@ export default function App() {
 
   const handlePurchaseVerified = useCallback(
     ({ shardDelta }: { tier: SovereignAlphaTier; shardDelta: number }) => {
-      setShardBalance((s) => s + shardDelta);
+      setCreditBalance((s) => s + shardDelta);
       setDownloadUnlocked(true);
       try {
         sessionStorage.setItem("fel_dmg_unlock", "1");
@@ -141,7 +141,7 @@ export default function App() {
             </div>
             <div className="rounded-xl border border-fel-cyan/30 bg-black/40 px-4 py-3 text-right">
               <p className="text-[0.55rem] font-bold uppercase tracking-[0.28em] text-white/45">Credits</p>
-              <p className="font-mono text-2xl font-black tabular-nums text-fel-cyan">{shardBalance}</p>
+              <p className="font-mono text-2xl font-black tabular-nums text-fel-cyan">{creditBalance}</p>
             </div>
           </div>
 

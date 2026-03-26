@@ -172,6 +172,8 @@ export function SovereignPaymentPortal({
   onVerifyFailedRef.current = onVerifyFailed;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** After PayPal capture OK, while Edge function confirms payment and applies credits. */
+  const [verifyingCredits, setVerifyingCredits] = useState(false);
   const cfg = TIER_CONFIG[tier];
 
   useEffect(() => {
@@ -207,7 +209,7 @@ export function SovereignPaymentPortal({
             const { data } = await supabase.auth.getSession();
             const uid = data.session?.user?.id;
             if (!uid) {
-              setError("Sign in (Wallet) before checkout.");
+              setError("Please sign in before checkout.");
               throw new Error("auth");
             }
             return actions.order.create({
@@ -222,18 +224,19 @@ export function SovereignPaymentPortal({
           },
           onApprove: async (data, actions) => {
             setBusy(true);
+            setVerifyingCredits(false);
             setError(null);
             try {
               const captured = await actions.order.capture();
               if (!isPayPalCaptureCompleted(captured)) {
-                setError("PayPal capture did not return COMPLETED.");
+                setError("Payment did not complete. Please try again or use a different card.");
                 onVerifyFailedRef.current?.();
                 return;
               }
 
               const supabase = getSupabase();
               if (!supabase) {
-                setError("Supabase not configured.");
+                setError("We couldn’t confirm your payment. Please try again.");
                 onVerifyFailedRef.current?.();
                 return;
               }
@@ -241,10 +244,12 @@ export function SovereignPaymentPortal({
               const { data: auth } = await supabase.auth.getSession();
               const session = auth.session;
               if (!session?.user?.id) {
-                setError("Session expired.");
+                setError("Your session expired. Sign in and try again.");
                 onVerifyFailedRef.current?.();
                 return;
               }
+
+              setVerifyingCredits(true);
 
               const endpoint = verifyEndpoint();
               const athleteId = readAthleteId();
@@ -262,9 +267,14 @@ export function SovereignPaymentPortal({
                 }),
               });
 
-              const payload = (await res.json().catch(() => ({}))) as { error?: string };
+              const body = (await res.json().catch(() => ({}))) as { error?: string };
               if (!res.ok) {
-                setError(payload.error ?? `Verify failed (${res.status})`);
+                if (import.meta.env.DEV && body.error) {
+                  console.error("paypal-verify:", body.error);
+                }
+                setError(
+                  "Payment was received, but we couldn’t apply credits yet. Contact support with your receipt."
+                );
                 onVerifyFailedRef.current?.();
                 return;
               }
@@ -272,9 +282,10 @@ export function SovereignPaymentPortal({
               const shardDelta = TIER_SHARD_DELTA[tier];
               onPurchaseVerifiedRef.current?.({ tier, shardDelta });
             } catch (e) {
-              setError(e instanceof Error ? e.message : "Checkout error");
+              setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
               onVerifyFailedRef.current?.();
             } finally {
+              setVerifyingCredits(false);
               setBusy(false);
             }
           },
@@ -309,6 +320,21 @@ export function SovereignPaymentPortal({
       <p className="mb-4 text-xs leading-relaxed text-white/50">
         PayPal, card, or Pay Later. Your credits and download unlock after payment completes successfully.
       </p>
+      {busy ? (
+        <p
+          className="mb-3 flex items-center gap-2 text-xs text-fel-cyan/95"
+          role="status"
+          aria-live="polite"
+        >
+          <span
+            className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-fel-cyan border-t-transparent"
+            aria-hidden
+          />
+          {verifyingCredits
+            ? "Verifying payment and applying credits to your account…"
+            : "Processing payment…"}
+        </p>
+      ) : null}
       <div
         ref={containerRef}
         className={`min-h-[120px] w-full max-w-md ${busy ? "pointer-events-none opacity-60" : ""}`}

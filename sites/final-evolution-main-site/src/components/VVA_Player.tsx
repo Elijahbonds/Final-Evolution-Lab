@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { elevenLabsConfigured, playElevenLabsTts } from "../services/elevenLabsTts";
 
 /** Neural Cyan — matches Tailwind `fel-cyan` / lab HUD. */
 const NEURAL_CYAN = "#5ce1e6";
@@ -6,9 +7,7 @@ const NEURAL_CYAN = "#5ce1e6";
 export type VVAModule = {
   id: number;
   title: string;
-  /** Voiceover script (Web Speech API). */
   script: string;
-  /** Spiral Line lecture — full-width waveform (Neural Cyan). */
   spiralLineLecture: boolean;
 };
 
@@ -125,58 +124,94 @@ function SpiralLineWaveform({ active }: { active: boolean }) {
     <div className="mt-4 overflow-hidden rounded-xl border border-fel-cyan/40 bg-black/60">
       <canvas ref={canvasRef} width={720} height={120} className="h-24 w-full max-w-full" />
       <p className="border-t border-fel-cyan/20 px-3 py-2 text-[0.6rem] uppercase tracking-[0.25em] text-fel-cyan/80">
-        Spiral line · Neural Cyan waveform
+        Spiral line · movement waveform
       </p>
     </div>
   );
 }
 
 /**
- * Vertical Velocity Academy — ten modules, automated voiceover (speech synthesis), Spiral Line waveform on module 2.
+ * Academy modules — ElevenLabs voice when configured; otherwise browser speech synthesis.
  */
 export function VVA_Player({ className = "" }: { className?: string }) {
   const [index, setIndex] = useState(0);
   const [speaking, setSpeaking] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const mod = MODULES[index]!;
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
+  const useEleven = useMemo(() => elevenLabsConfigured(), []);
   const canSpeak = useMemo(
-    () => typeof window !== "undefined" && "speechSynthesis" in window,
-    []
+    () => useEleven || (typeof window !== "undefined" && "speechSynthesis" in window),
+    [useEleven]
   );
 
   const stopSpeech = useCallback(() => {
-    if (canSpeak) window.speechSynthesis.cancel();
+    abortRef.current?.abort();
+    abortRef.current = null;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
     setSpeaking(false);
-  }, [canSpeak]);
+  }, []);
 
-  const speakCurrent = useCallback(() => {
-    if (!canSpeak) return;
+  const speakCurrent = useCallback(async () => {
+    setVoiceError(null);
     stopSpeech();
+    setSpeaking(true);
+
+    if (useEleven) {
+      try {
+        abortRef.current = new AbortController();
+        const audio = await playElevenLabsTts(mod.script, abortRef.current.signal);
+        audioRef.current = audio;
+        audio.addEventListener(
+          "ended",
+          () => {
+            setSpeaking(false);
+            audioRef.current = null;
+          },
+          { once: true }
+        );
+      } catch (e) {
+        setVoiceError(e instanceof Error ? e.message : "Playback failed");
+        setSpeaking(false);
+      }
+      return;
+    }
+
+    if (!("speechSynthesis" in window)) {
+      setSpeaking(false);
+      return;
+    }
     const u = new SpeechSynthesisUtterance(mod.script);
     u.rate = 0.96;
     u.pitch = 1;
     u.onend = () => setSpeaking(false);
     u.onerror = () => setSpeaking(false);
-    setSpeaking(true);
     window.speechSynthesis.speak(u);
-  }, [canSpeak, mod.script, stopSpeech]);
+  }, [mod.script, stopSpeech, useEleven]);
 
   useEffect(() => {
-    return () => {
-      if (canSpeak) window.speechSynthesis.cancel();
-    };
-  }, [canSpeak]);
+    return () => stopSpeech();
+  }, [stopSpeech]);
 
   return (
     <div
       className={`rounded-2xl border border-fel-cyan/35 bg-black/55 p-6 backdrop-blur-md sm:p-8 ${className}`}
     >
-      <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
-        Academy
-      </p>
+      <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Academy</p>
       <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">Ten guided modules</h3>
       <p className="mt-2 text-sm text-white/50">
-        Optional audio uses your browser. Not medical advice.
+        {useEleven
+          ? "Narration uses your ElevenLabs voice profile. Not medical advice."
+          : "Optional narration uses your browser voice, or add ElevenLabs keys in the site environment. Not medical advice."}
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
@@ -209,11 +244,11 @@ export function VVA_Player({ className = "" }: { className?: string }) {
       <div className="mt-6 flex flex-wrap gap-3">
         <button
           type="button"
-          onClick={speakCurrent}
+          onClick={() => void speakCurrent()}
           disabled={!canSpeak}
           className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-fel-cyan px-8 text-sm font-black uppercase tracking-wide text-black shadow-[0_0_24px_rgba(92,225,230,0.35)] transition hover:bg-fel-cyan/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {speaking ? "Speaking…" : "Play voiceover"}
+          {speaking ? "Playing…" : "Play narration"}
         </button>
         <button
           type="button"
@@ -223,7 +258,14 @@ export function VVA_Player({ className = "" }: { className?: string }) {
           Stop
         </button>
       </div>
-      {!canSpeak ? <p className="mt-3 text-xs text-amber-400/90">Speech synthesis unavailable.</p> : null}
+      {!canSpeak ? (
+        <p className="mt-3 text-xs text-amber-400/90">Narration is unavailable in this browser.</p>
+      ) : null}
+      {voiceError ? (
+        <p className="mt-3 text-xs text-amber-400/90" role="alert">
+          {voiceError}
+        </p>
+      ) : null}
     </div>
   );
 }

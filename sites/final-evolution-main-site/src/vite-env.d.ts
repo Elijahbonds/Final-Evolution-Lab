@@ -9,6 +9,10 @@ interface ImportMetaEnv {
   readonly VITE_HERO_VIDEO_URL: string;
   /** Override `paypal-verify` URL; defaults to canonical Edge Function. */
   readonly VITE_PAYPAL_VERIFY_URL?: string;
+  /** ElevenLabs API key (prefer server proxy in production). */
+  readonly VITE_ELEVENLABS_API_KEY?: string;
+  /** ElevenLabs voice ID (Dashboard → Voices). */
+  readonly VITE_ELEVENLABS_VOICE_ID?: string;
 }
 
 interface ImportMeta {

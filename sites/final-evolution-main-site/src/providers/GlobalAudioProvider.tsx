@@ -25,7 +25,7 @@ export type LabAudioContextValue = {
   /** Neural hum: scales with normalized vertical velocity (0–1). */
   setVerticalVelocity: (normalized: number) => void;
   setNeuralDriveVelocity: (normalized: number) => void;
-  /** Sovereign: high-fidelity shard credit (Thank You). */
+  /** Thank-you purchase chime (credit applied). */
   playShardChime: () => void;
   playShardDeposit: () => void;
   playUnlock: () => void;
@@ -53,6 +53,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const initRef = useRef(false);
   const lastHudVeloRef = useRef(0);
 
+  /** Builds audio graph once; buffers are in-memory (no network I/O on trigger). First sound may wait for user gesture to unlock AudioContext on some browsers. */
   const ensureGraph = useCallback(async () => {
     if (initRef.current && audioCtxRef.current) {
       if (audioCtxRef.current.state === "suspended") await audioCtxRef.current.resume();

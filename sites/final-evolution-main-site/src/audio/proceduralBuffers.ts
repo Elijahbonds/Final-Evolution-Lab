@@ -24,7 +24,7 @@ export function createMetallicGroundSnapBuffer(ctx: BaseAudioContext): AudioBuff
   return buf;
 }
 
-/** High-fidelity sovereign shard credit — crystal partials + long tail. */
+/** High-fidelity purchase chime — crystal partials + long tail. */
 export function createShardChimeBuffer(ctx: BaseAudioContext): AudioBuffer {
   const sampleRate = ctx.sampleRate;
   const duration = 0.52;
