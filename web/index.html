@@ -1,76 +1,207 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="Final Evolution — Dark Clinical gateway to the Vertical Velocity Academy, Sovereign Shop, and Wallet." />
-  <meta name="theme-color" content="#0a0c10" />
-  <title>Final Evolution — Clinical Gateway</title>
-  <link rel="stylesheet" href="/shared/fel-clinical.css" />
+  <meta name="description" content="Final Evolution — Bypass the App Store. Sovereign Lab, 16.6ms frame standard, Spiral Line visualization, Shard economy." />
+  <meta name="theme-color" content="#000000" />
+  <title>Final Evolution — Enter the Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            fel: {
+              black: "#000000",
+              cyan: "#5ce1e6",
+              blue: "#1e90ff",
+            },
+          },
+          fontFamily: {
+            sans: ['"SF Pro Display"', "system-ui", "-apple-system", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
   <style>
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1rem;
-      margin-top: 1.5rem;
+    .text-glow-cyan {
+      text-shadow: 0 0 40px rgba(92, 225, 230, 0.35);
     }
-    @media (min-width: 640px) {
-      .hero-grid { grid-template-columns: repeat(3, 1fr); }
-    }
-    .hero-card {
-      display: block;
-      padding: 1.25rem;
-      border-radius: 16px;
-      text-decoration: none;
-      color: inherit;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(92, 225, 230, 0.2);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .hero-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(30, 144, 255, 0.15);
-    }
-    .hero-card strong {
-      display: block;
-      font-size: 0.72rem;
-      letter-spacing: 0.14em;
-      color: var(--cyan);
-      margin-bottom: 0.35rem;
-    }
-    .hero-card span { font-size: 0.92rem; line-height: 1.45; color: rgba(232, 244, 255, 0.82); }
   </style>
 </head>
-<body>
-  <nav class="site-nav" aria-label="Primary">
-    <a href="/" aria-current="page">Gateway</a>
-    <a href="/play/">PWA Lab</a>
-    <a href="/shop/">Shop</a>
-    <a href="/wallet/">Wallet</a>
-  </nav>
-  <main class="wrap">
-    <div class="badge">Bonds standard</div>
-    <h1>Clinical gateway</h1>
-    <p class="panel" style="margin-top:0.75rem;">
-      High-conversion entry to the Lab: install the PWA, fund your Sovereign wallet, and mirror performance across devices — same Supabase session as the iOS app.
-    </p>
-    <div class="hero-grid">
-      <a class="hero-card" href="/play/">
-        <strong>PWA / Play</strong>
-        <span>OPEN LAB — spiral hero, 16.6 ms story, home-screen install.</span>
-      </a>
-      <a class="hero-card" href="/shop/">
-        <strong>Sovereign shop</strong>
-        <span>Shard packs &amp; Vertical Velocity Blueprint via Stripe Payment Links.</span>
-      </a>
-      <a class="hero-card" href="/wallet/">
-        <strong>Wallet</strong>
-        <span>Sign in and watch shard balance update in realtime after checkout.</span>
-      </a>
-    </div>
-    <p class="foot">
-      Static site root is <code>web/</code> — deploy with <code>netlify.toml</code> or <code>scripts/deploy_web.sh</code>.
-    </p>
-  </main>
+<body class="h-full bg-fel-black text-white antialiased selection:bg-fel-cyan/30 selection:text-white">
+  <!-- Muscle & Motion–style 3D diagram layer (SVG fascial / spiral motifs, low-opacity) -->
+  <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+    <div class="absolute inset-0 bg-gradient-to-b from-fel-cyan/[0.03] via-transparent to-transparent"></div>
+    <svg
+      class="absolute left-1/2 top-1/2 h-[140vmin] w-[140vmin] -translate-x-1/2 -translate-y-1/2 opacity-[0.14]"
+      viewBox="0 0 800 800"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style="transform: translate(-50%, -50%) perspective(1200px) rotateX(12deg) rotateY(-8deg);"
+    >
+      <defs>
+        <linearGradient id="felStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#5ce1e6" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#1e90ff" stop-opacity="0.4" />
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <!-- Spiral line–inspired sweep -->
+      <path
+        d="M120 400 Q 200 120 400 200 T 680 400 Q 560 680 400 600 T 120 400"
+        stroke="url(#felStroke)"
+        stroke-width="1.2"
+        filter="url(#glow)"
+      />
+      <path
+        d="M200 520 C 320 360 480 360 600 520"
+        stroke="#5ce1e6"
+        stroke-opacity="0.35"
+        stroke-width="0.8"
+      />
+      <!-- “Muscle fiber” parallel curves -->
+      <path d="M140 280 Q 400 240 660 300" stroke="#5ce1e6" stroke-opacity="0.2" stroke-width="0.6" />
+      <path d="M130 320 Q 400 300 670 340" stroke="#5ce1e6" stroke-opacity="0.15" stroke-width="0.5" />
+      <path d="M150 480 Q 400 520 650 480" stroke="#1e90ff" stroke-opacity="0.18" stroke-width="0.6" />
+      <ellipse cx="400" cy="400" rx="280" ry="180" stroke="#5ce1e6" stroke-opacity="0.08" stroke-width="1" transform="rotate(-12 400 400)" />
+    </svg>
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgba(92,225,230,0.06),transparent_55%)]"></div>
+  </div>
+
+  <div class="relative z-10 flex min-h-full flex-col">
+    <header class="border-b border-white/10 bg-black/80 backdrop-blur-md">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <a href="/" class="text-sm font-black tracking-tight text-white">
+          FINAL EVOLUTION<span class="ml-2 text-xs font-normal text-fel-cyan/80">LAB</span>
+        </a>
+        <nav class="flex flex-wrap items-center gap-4 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/70">
+          <a href="/" class="text-fel-cyan">Home</a>
+          <a href="/play/" class="transition hover:text-fel-cyan">PWA</a>
+          <a href="/shop/" class="transition hover:text-fel-cyan">Shop</a>
+          <a href="/wallet/" class="transition hover:text-fel-cyan">Wallet</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
+      <p class="mb-4 text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Dark clinical · sovereign performance</p>
+      <h1 class="max-w-4xl text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl text-glow-cyan">
+        Bypass the App Store.<br />
+        <span class="text-fel-cyan">Enter the Lab.</span>
+      </h1>
+      <p class="mt-6 max-w-2xl text-lg leading-relaxed text-white/65">
+        Install the Final Evolution PWA, sync your Sovereign wallet, and train with the same Vertical Velocity Academy logic as native — clinical movement education, not medical diagnosis.
+      </p>
+
+      <div class="mt-10 flex flex-wrap items-center gap-4">
+        <a
+          href="/play/"
+          class="inline-flex min-h-[52px] min-w-[200px] items-center justify-center rounded-full bg-fel-cyan px-10 text-base font-black uppercase tracking-wide text-black shadow-[0_0_32px_rgba(92,225,230,0.45)] transition hover:bg-fel-cyan/90 hover:shadow-[0_0_48px_rgba(92,225,230,0.55)]"
+        >
+          Open Lab
+        </a>
+        <button
+          type="button"
+          id="join-academy"
+          class="inline-flex min-h-[52px] min-w-[200px] items-center justify-center rounded-full border-2 border-fel-cyan/50 bg-transparent px-10 text-base font-bold uppercase tracking-wide text-fel-cyan transition hover:border-fel-cyan hover:bg-fel-cyan/10"
+        >
+          Join Academy
+        </button>
+        <a href="/wallet/" class="text-sm font-semibold text-white/50 underline-offset-4 hover:text-fel-cyan hover:underline">
+          Sign in for checkout
+        </a>
+      </div>
+
+      <div id="config-warn" class="mt-6 hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
+        Copy <code class="rounded bg-black/40 px-1">fel-public-config.example.js</code> to <code class="rounded bg-black/40 px-1">fel-public-config.js</code> and set Stripe Payment Link URLs.
+      </div>
+      <div id="auth-warn" class="mt-4 hidden rounded-xl border border-fel-blue/40 bg-fel-blue/10 px-4 py-3 text-sm text-white/85">
+        Sign in on <a href="/wallet/" class="font-bold text-fel-cyan underline">Wallet</a> before checkout so shards credit to your Supabase account.
+      </div>
+
+      <section class="mt-24 grid gap-6 sm:grid-cols-3">
+        <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
+          <h2 class="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-fel-cyan">16.6ms latency standard</h2>
+          <p class="mt-3 text-sm leading-relaxed text-white/70">
+            Target a ~60 Hz frame budget (~16.67 ms per frame) for penultimate timing and HUD responsiveness — the same story as ProMotion lab builds.
+          </p>
+        </article>
+        <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
+          <h2 class="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-fel-cyan">Spiral line visualization</h2>
+          <p class="mt-3 text-sm leading-relaxed text-white/70">
+            Fascial-plane overlays tie SFMA context to Unreal clinical mirrors — education-first, not a diagnosis.
+          </p>
+        </article>
+        <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
+          <h2 class="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-fel-cyan">Sovereign shard economy</h2>
+          <p class="mt-3 text-sm leading-relaxed text-white/70">
+            Stripe Checkout → Supabase <code class="text-fel-cyan/90">stripe-webhook-handler</code> → <code class="text-fel-cyan/90">user_balances</code> in real time.
+          </p>
+        </article>
+      </section>
+
+      <p class="mt-20 max-w-2xl text-xs leading-relaxed text-white/35">
+        Final Evolution Lab — clinical movement education, not medical diagnosis. Hosted on Netlify from <code class="text-white/50">web/</code>; point <code class="text-white/50">finalevolutiongroup.com</code> DNS here when you retire Wix.
+      </p>
+    </main>
+  </div>
+
+  <script src="/fel-public-config.js" onerror="window.__FEL_NO_CONFIG__=true"></script>
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const warnCfg = document.getElementById("config-warn");
+    const warnAuth = document.getElementById("auth-warn");
+
+    if (window.__FEL_NO_CONFIG__ || !window.FEL_SUPABASE_URL || !window.FEL_SUPABASE_ANON_KEY) {
+      warnCfg?.classList.remove("hidden");
+    }
+
+    const supabase =
+      window.FEL_SUPABASE_URL && window.FEL_SUPABASE_ANON_KEY
+        ? createClient(window.FEL_SUPABASE_URL, window.FEL_SUPABASE_ANON_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+          })
+        : null;
+
+    function checkoutUrl(base) {
+      const s = base ? String(base) : "";
+      if (!s || s.indexOf("REPLACE") !== -1 || s.indexOf("YOUR_PROJECT") !== -1) {
+        alert("Set FEL_STRIPE_PAYMENT_LINK_VVA in fel-public-config.js for Join Academy checkout.");
+        return null;
+      }
+      return new URL(s);
+    }
+
+    document.getElementById("join-academy")?.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const base = window.FEL_STRIPE_PAYMENT_LINK_VVA;
+      const u = checkoutUrl(base);
+      if (!u) return;
+
+      if (!supabase) {
+        warnAuth?.classList.remove("hidden");
+        return;
+      }
+
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (!session?.user?.id) {
+        warnAuth?.classList.remove("hidden");
+        window.location.href = "/wallet/?next=/";
+        return;
+      }
+
+      u.searchParams.set("client_reference_id", session.user.id);
+      if (session.user.email) u.searchParams.set("prefilled_email", session.user.email);
+      window.location.href = u.toString();
+    });
+  </script>
 </body>
 </html>

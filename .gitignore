@@ -39,6 +39,9 @@ web/fel-public-config.js
 web/clinical-gate-react/node_modules/
 web/clinical-gate-react/dist/
 
+# Marketing site (Vite) — build output
+sites/final-evolution-main-site/dist/
+
 # Optional local tooling sync folder
 .fel-local-tooling/
 

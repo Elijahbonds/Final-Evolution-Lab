@@ -27,6 +27,12 @@
   to = "/wallet/"
   status = 301
 
+# SPA fallback: serve index.html for client routes without a matching static file (after assets above).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
 # Cross-origin isolation for high-performance WebGPU / SharedArrayBuffer on /play/ (GBA-style PWA shell).
 [[headers]]
   for = "/play/*"

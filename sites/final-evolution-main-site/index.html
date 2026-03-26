@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-fel-black">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <title>Final Evolution — Enter the Lab</title>
+  </head>
+  <body class="h-full antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Install the Sovereign Curriculum Cache Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then((reg) => {
+            console.log('Sovereign Cache Worker Active:', reg.scope);
+          }).catch((err) => {
+            console.error('Sovereign Cache Worker failed:', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
