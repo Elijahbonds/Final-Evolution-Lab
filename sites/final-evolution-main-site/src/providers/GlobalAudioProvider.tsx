@@ -9,26 +9,40 @@ import {
   type ReactNode,
 } from "react";
 import {
-  createAnkleStiffnessSnapBuffer,
-  createShardDepositChimeBuffer,
+  createMetallicGroundSnapBuffer,
+  createShardChimeBuffer,
   createUnlockSwellBuffer,
 } from "../audio/proceduralBuffers";
+
+const HUD_VELO_THROTTLE_MS = 50;
 
 export type LabAudioContextValue = {
   ready: boolean;
   warmUp: () => Promise<void>;
+  /** Biomechanical: metallic snap — ankle stiffness / ground contact (~16.6 ms trigger alignment). */
+  playMetallicGroundSnap: () => void;
   playAnkleStiffnessSnap: () => void;
+  /** Neural hum: scales with normalized vertical velocity (0–1). */
+  setVerticalVelocity: (normalized: number) => void;
   setNeuralDriveVelocity: (normalized: number) => void;
+  /** Sovereign: high-fidelity shard credit (Thank You). */
+  playShardChime: () => void;
   playShardDeposit: () => void;
   playUnlock: () => void;
-  /** Vibration API; DualSense haptics require native / Gamepad extension — web uses short pulse. */
   pulseHapticSync: (ms?: number) => void;
+  /** Increments each metallic snap — HUD pulse sync. */
+  biofeedbackPulseGeneration: number;
+  /** Throttled 0–1 for HUD velo meter. */
+  verticalVelocityDisplay: number;
 };
 
 const LabAudioCtx = createContext<LabAudioContextValue | null>(null);
 
 export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
+  const [pulseGeneration, setPulseGeneration] = useState(0);
+  const [verticalVelocityDisplay, setVerticalVelocityDisplay] = useState(0);
+
   const audioCtxRef = useRef<AudioContext | null>(null);
   const snapBufRef = useRef<AudioBuffer | null>(null);
   const chimeBufRef = useRef<AudioBuffer | null>(null);
@@ -37,6 +51,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const humGainRef = useRef<GainNode | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
   const initRef = useRef(false);
+  const lastHudVeloRef = useRef(0);
 
   const ensureGraph = useCallback(async () => {
     if (initRef.current && audioCtxRef.current) {
@@ -50,8 +65,8 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     master.connect(ctx.destination);
     masterGainRef.current = master;
 
-    snapBufRef.current = createAnkleStiffnessSnapBuffer(ctx);
-    chimeBufRef.current = createShardDepositChimeBuffer(ctx);
+    snapBufRef.current = createMetallicGroundSnapBuffer(ctx);
+    chimeBufRef.current = createShardChimeBuffer(ctx);
     unlockBufRef.current = createUnlockSwellBuffer(ctx);
 
     const humOsc = ctx.createOscillator();
@@ -99,24 +114,31 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     src.start();
   }, []);
 
-  const playAnkleStiffnessSnap = useCallback(() => {
-    playBuffer(snapBufRef.current);
-  }, [playBuffer]);
-
-  const setNeuralDriveVelocity = useCallback((normalized: number) => {
+  const applyVerticalVelocity = useCallback((normalized: number) => {
     const ctx = audioCtxRef.current;
     const humOsc = humOscRef.current;
     const humGain = humGainRef.current;
     if (!ctx || !humOsc || !humGain) return;
     const n = Math.max(0, Math.min(1, normalized));
     const now = ctx.currentTime;
-    const hz = 48 + n * 155;
-    const amp = 0.002 + n * n * 0.12;
+    const hz = 46 + n * 168;
+    const amp = 0.002 + n * n * 0.13;
     humOsc.frequency.setTargetAtTime(hz, now, 0.02);
     humGain.gain.setTargetAtTime(amp, now, 0.03);
+
+    const t = performance.now();
+    if (t - lastHudVeloRef.current >= HUD_VELO_THROTTLE_MS) {
+      lastHudVeloRef.current = t;
+      setVerticalVelocityDisplay(n);
+    }
   }, []);
 
-  const playShardDeposit = useCallback(() => {
+  const playMetallicGroundSnap = useCallback(() => {
+    playBuffer(snapBufRef.current);
+    setPulseGeneration((g) => g + 1);
+  }, [playBuffer]);
+
+  const playShardChime = useCallback(() => {
     playBuffer(chimeBufRef.current);
   }, [playBuffer]);
 
@@ -138,20 +160,27 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     () => ({
       ready,
       warmUp,
-      playAnkleStiffnessSnap,
-      setNeuralDriveVelocity,
-      playShardDeposit,
+      playMetallicGroundSnap,
+      playAnkleStiffnessSnap: playMetallicGroundSnap,
+      setVerticalVelocity: applyVerticalVelocity,
+      setNeuralDriveVelocity: applyVerticalVelocity,
+      playShardChime,
+      playShardDeposit: playShardChime,
       playUnlock,
       pulseHapticSync,
+      biofeedbackPulseGeneration: pulseGeneration,
+      verticalVelocityDisplay,
     }),
     [
       ready,
       warmUp,
-      playAnkleStiffnessSnap,
-      setNeuralDriveVelocity,
-      playShardDeposit,
+      playMetallicGroundSnap,
+      applyVerticalVelocity,
+      playShardChime,
       playUnlock,
       pulseHapticSync,
+      pulseGeneration,
+      verticalVelocityDisplay,
     ]
   );
 

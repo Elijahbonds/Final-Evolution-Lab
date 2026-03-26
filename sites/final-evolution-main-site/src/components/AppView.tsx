@@ -19,7 +19,7 @@ const DEMO_JOINTS: Partial<Record<SFMAJointId, "locked" | "mobile">> = {
 };
 
 /**
- * Game / fitness lab canvas: DualSense ↔ 16.6 ms frame budget ↔ Bonds Bounce Blueprint,
+ * Game / fitness lab canvas: DualSense ↔ 16.6 ms frame budget ↔ Bonds Bounce Blueprint (Unreal Engine 5.7 runtime),
  * with biometric mirror + live velo HUD (Muscle-and-Motion × cyberpunk forensic UI).
  */
 export function AppView({ className = "" }: { className?: string }) {
@@ -51,7 +51,7 @@ export function AppView({ className = "" }: { className?: string }) {
           <div>
             <p className="text-[0.6rem] font-bold uppercase tracking-[0.4em] text-fel-cyan">Game / fitness engine</p>
             <h2 id="app-view-heading" className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Bonds Bounce Blueprint · live bind
+              Bonds Bounce Blueprint · UE 5.7 runtime
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-white/50">
               One frame budget (~16.67 ms @ 60 Hz): controller samples → penultimate cue → lab logic. Not a medical
@@ -101,7 +101,7 @@ export function AppView({ className = "" }: { className?: string }) {
   );
 }
 
-/** Maps Vertical Velocity Academy curriculum nodes → Bonds Bounce Blueprint graph (visual contract). */
+/** Maps VVA curriculum nodes → Bonds Bounce Blueprint graph in Unreal 5.7 (visual contract). */
 function VVAModuleMap() {
   const rows = [
     {
@@ -128,8 +128,8 @@ function VVAModuleMap() {
         Vertical Velocity Academy ↔ Blueprint
       </p>
       <p className="mt-2 text-sm text-white/50">
-        Site visualization: each VVA module is wired to the same training graph shown above — DualSense
-        samples frame-align with the 16.6 ms penultimate standard before the Lab runtime.
+        Site visualization: each VVA module maps to the same UE 5.7 training graph — DualSense samples
+        frame-align with the 16.6 ms penultimate standard before the Unreal lab runtime.
       </p>
       <ul className="mt-6 divide-y divide-white/10">
         {rows.map((r) => (

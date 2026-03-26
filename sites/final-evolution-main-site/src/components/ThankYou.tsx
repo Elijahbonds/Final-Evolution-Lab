@@ -3,7 +3,7 @@ import { GOLD_MASTER_DMG_URL } from "../constants/downloads";
 import { useLabAudio } from "../hooks/useLabAudio";
 
 export type ThankYouProps = {
-  /** True after PayPal capture (optimistic); DMG link matches Supabase public object. */
+  /** True after PayPal capture COMPLETED + `paypal-verify` OK. */
   downloadUnlocked: boolean;
 };
 
@@ -11,7 +11,7 @@ export type ThankYouProps = {
  * Post-purchase surface — Gold Master DMG download (Supabase Storage public URL).
  */
 export function ThankYou({ downloadUnlocked }: ThankYouProps) {
-  const { playShardDeposit, playUnlock, warmUp } = useLabAudio();
+  const { playShardChime, playUnlock, warmUp } = useLabAudio();
   const prevUnlockedRef = useRef<boolean | null>(null);
 
   useEffect(() => {
@@ -24,13 +24,13 @@ export function ThankYou({ downloadUnlocked }: ThankYouProps) {
       return;
     }
     if (downloadUnlocked && !prevUnlockedRef.current) {
-      playShardDeposit();
+      playShardChime();
       const t = window.setTimeout(() => playUnlock(), 140);
       prevUnlockedRef.current = downloadUnlocked;
       return () => clearTimeout(t);
     }
     prevUnlockedRef.current = downloadUnlocked;
-  }, [downloadUnlocked, playShardDeposit, playUnlock]);
+  }, [downloadUnlocked, playShardChime, playUnlock]);
 
   return (
     <section
@@ -41,8 +41,8 @@ export function ThankYou({ downloadUnlocked }: ThankYouProps) {
         <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Thank you</p>
         <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">Sovereign Alpha — welcome</h2>
         <p className="mt-4 text-sm leading-relaxed text-white/55">
-          On PayPal capture, shards update immediately and this download unlocks.{" "}
-          <code className="text-fel-cyan/80">paypal-verify</code> confirms the order in the background.
+          After PayPal returns <strong className="text-white/75">COMPLETED</strong> and{" "}
+          <code className="text-fel-cyan/80">paypal-verify</code> succeeds, shards credit and this download unlocks.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-4">

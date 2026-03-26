@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import type { SovereignAlphaTier } from "./constants/paypal";
 import { PRODUCTION_FREWAY_URL } from "./constants/site";
 import { AppView } from "./components/AppView";
@@ -26,8 +26,7 @@ export default function App() {
   const [medicalAck, setMedicalAck] = useState(readMedicalAck);
   const [labDisclaimerOpen, setLabDisclaimerOpen] = useState(false);
   const [downloadUnlocked, setDownloadUnlocked] = useState(false);
-  const [optimisticShards, setOptimisticShards] = useState(0);
-  const pendingShardRef = useRef(0);
+  const [shardBalance, setShardBalance] = useState(0);
 
   useEffect(() => {
     try {
@@ -48,10 +47,9 @@ export default function App() {
     setMedicalAck(true);
   }, []);
 
-  const handleCaptureOptimistic = useCallback(
+  const handlePurchaseVerified = useCallback(
     ({ shardDelta }: { tier: SovereignAlphaTier; shardDelta: number }) => {
-      pendingShardRef.current = shardDelta;
-      setOptimisticShards((s) => s + shardDelta);
+      setShardBalance((s) => s + shardDelta);
       setDownloadUnlocked(true);
       try {
         sessionStorage.setItem("fel_dmg_unlock", "1");
@@ -66,19 +64,12 @@ export default function App() {
   );
 
   const handleVerifyFailed = useCallback(() => {
-    const d = pendingShardRef.current;
-    pendingShardRef.current = 0;
-    setOptimisticShards((s) => Math.max(0, s - d));
     setDownloadUnlocked(false);
     try {
       sessionStorage.removeItem("fel_dmg_unlock");
     } catch {
       /* */
     }
-  }, []);
-
-  const handleVerifySuccess = useCallback(() => {
-    pendingShardRef.current = 0;
   }, []);
 
   return (
@@ -159,16 +150,15 @@ export default function App() {
                 Alpha 1 — pricing
               </h2>
               <p className="mt-2 max-w-2xl text-sm text-white/55">
-                PayPal Complete Payments. On capture, shards update optimistically;{" "}
-                <code className="text-fel-cyan/80">paypal-verify</code> (
-                <code className="text-white/45">rlqkschgvlrva-wsdzjxq…/paypal-verify</code>) confirms
-                server-side. Set <code className="text-white/50">localStorage.fel_athlete_id</code> to link
-                your lab athlete id.
+                PayPal Complete Payments. Download unlocks only when PayPal capture is{" "}
+                <strong className="text-white/70">COMPLETED</strong> and{" "}
+                <code className="text-fel-cyan/80">paypal-verify</code> succeeds. Set{" "}
+                <code className="text-white/50">localStorage.fel_athlete_id</code> to link your lab athlete id.
               </p>
             </div>
             <div className="rounded-xl border border-fel-cyan/30 bg-black/40 px-4 py-3 text-right">
               <p className="text-[0.55rem] font-bold uppercase tracking-[0.28em] text-white/45">Shards</p>
-              <p className="font-mono text-2xl font-black tabular-nums text-fel-cyan">{optimisticShards}</p>
+              <p className="font-mono text-2xl font-black tabular-nums text-fel-cyan">{shardBalance}</p>
             </div>
           </div>
 
@@ -179,21 +169,18 @@ export default function App() {
           <div className="mt-10 grid gap-8 md:grid-cols-3">
             <SovereignPaymentPortal
               tier="alpha_49"
-              onCaptureOptimistic={handleCaptureOptimistic}
+              onPurchaseVerified={handlePurchaseVerified}
               onVerifyFailed={handleVerifyFailed}
-              onSuccess={handleVerifySuccess}
             />
             <SovereignPaymentPortal
               tier="alpha_99"
-              onCaptureOptimistic={handleCaptureOptimistic}
+              onPurchaseVerified={handlePurchaseVerified}
               onVerifyFailed={handleVerifyFailed}
-              onSuccess={handleVerifySuccess}
             />
             <SovereignPaymentPortal
               tier="alpha_499"
-              onCaptureOptimistic={handleCaptureOptimistic}
+              onPurchaseVerified={handlePurchaseVerified}
               onVerifyFailed={handleVerifyFailed}
-              onSuccess={handleVerifySuccess}
             />
           </div>
         </div>

@@ -1,9 +1,10 @@
 # Final Evolution Lab — default stack
-# New product work targets Unreal Engine (see UNREAL_ONLY.md). Swift under Source/ (iOS shell) is legacy unless a task says otherwise.
+# New product work targets Unreal Engine (see UNREAL_ONLY.md). Swift under FinalEvolutionLab/ (iOS shell) is **legacy** unless a task says otherwise. **Primary native gameplay and tools: Unreal Engine C++ / Blueprint / UMG.**
 
-# Unreal Engine 5.2+ (when working with Unreal C++, Blueprints, or editor scripts)
+# Unreal Engine 5.7+ (when working with Unreal C++, Blueprints, or editor scripts)
 
-- Always use **Unreal Engine 5.2+ C++ standards** and the **Unreal Coding Standard** (avoid APIs that only exist in much newer minors unless the user asks for them).
+- Default **runtime target:** **Unreal Engine 5.7** project assets (C++ / Blueprint / UMG). Use **5.2+ C++ style** where docs still reference older minors unless the task specifies 5.7-only APIs.
+- Follow the **Unreal Coding Standard** (avoid APIs that only exist in much newer minors unless the user asks for them).
 - Use **PascalCase** for types, variables, and functions.
 - Ensure all actor components are initialized in the constructor using **CreateDefaultSubobject**.
 - Use **UPROPERTY** specifiers such as **EditAnywhere** and **BlueprintReadOnly** for designer-facing variables.

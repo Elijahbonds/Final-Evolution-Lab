@@ -126,14 +126,30 @@ function waitForPayPal(timeoutMs = 20000): Promise<PayPalNamespace> {
   return scriptPromise;
 }
 
+function isPayPalCaptureCompleted(order: unknown): boolean {
+  if (!order || typeof order !== "object") return false;
+  const o = order as Record<string, unknown>;
+  if (o.status === "COMPLETED") return true;
+  try {
+    const pu = o.purchase_units;
+    if (!Array.isArray(pu) || !pu[0] || typeof pu[0] !== "object") return false;
+    const p0 = pu[0] as Record<string, unknown>;
+    const pm = p0.payments;
+    if (!pm || typeof pm !== "object") return false;
+    const cap = (pm as Record<string, unknown>).captures;
+    if (!Array.isArray(cap) || !cap[0] || typeof cap[0] !== "object") return false;
+    return (cap[0] as { status?: string }).status === "COMPLETED";
+  } catch {
+    return false;
+  }
+}
+
 export type SovereignPaymentPortalProps = {
   tier: SovereignAlphaTier;
   className?: string;
-  /** After server verify succeeds (optional; use with optimistic capture). */
-  onSuccess?: () => void;
-  /** Immediately after PayPal capture, before Edge verify — optimistic shards + unlock. */
-  onCaptureOptimistic?: (info: { tier: SovereignAlphaTier; shardDelta: number }) => void;
-  /** Roll back optimistic UI if `paypal-verify` fails. */
+  /** PayPal capture is COMPLETED and `paypal-verify` succeeded — shards + download gate. */
+  onPurchaseVerified?: (info: { tier: SovereignAlphaTier; shardDelta: number }) => void;
+  /** Capture or Edge verify failed. */
   onVerifyFailed?: () => void;
 };
 
@@ -144,15 +160,12 @@ export type SovereignPaymentPortalProps = {
 export function SovereignPaymentPortal({
   tier,
   className = "",
-  onSuccess,
-  onCaptureOptimistic,
+  onPurchaseVerified,
   onVerifyFailed,
 }: SovereignPaymentPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const onSuccessRef = useRef(onSuccess);
-  onSuccessRef.current = onSuccess;
-  const onCaptureOptimisticRef = useRef(onCaptureOptimistic);
-  onCaptureOptimisticRef.current = onCaptureOptimistic;
+  const onPurchaseVerifiedRef = useRef(onPurchaseVerified);
+  onPurchaseVerifiedRef.current = onPurchaseVerified;
   const onVerifyFailedRef = useRef(onVerifyFailed);
   onVerifyFailedRef.current = onVerifyFailed;
   const [error, setError] = useState<string | null>(null);
@@ -209,10 +222,12 @@ export function SovereignPaymentPortal({
             setBusy(true);
             setError(null);
             try {
-              await actions.order.capture();
-
-              const shardDelta = TIER_SHARD_DELTA[tier];
-              onCaptureOptimisticRef.current?.({ tier, shardDelta });
+              const captured = await actions.order.capture();
+              if (!isPayPalCaptureCompleted(captured)) {
+                setError("PayPal capture did not return COMPLETED.");
+                onVerifyFailedRef.current?.();
+                return;
+              }
 
               const supabase = getSupabase();
               if (!supabase) {
@@ -252,7 +267,8 @@ export function SovereignPaymentPortal({
                 return;
               }
 
-              onSuccessRef.current?.();
+              const shardDelta = TIER_SHARD_DELTA[tier];
+              onPurchaseVerifiedRef.current?.({ tier, shardDelta });
             } catch (e) {
               setError(e instanceof Error ? e.message : "Checkout error");
               onVerifyFailedRef.current?.();
@@ -289,7 +305,9 @@ export function SovereignPaymentPortal({
         <span className="text-lg font-black text-white/90">${cfg.amountUsd}</span>
       </div>
       <p className="mb-4 text-xs leading-relaxed text-white/50">
-        PayPal, credit card, or Pay Later — shards update optimistically on capture; server verifies in background.
+        PayPal, card, or Pay Later — shards and download unlock only after capture status{" "}
+        <strong className="text-white/70">COMPLETED</strong> and <code className="text-fel-cyan/80">paypal-verify</code>{" "}
+        OK.
       </p>
       <div
         ref={containerRef}
