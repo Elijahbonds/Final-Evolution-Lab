@@ -41,6 +41,7 @@ web/clinical-gate-react/dist/
 
 # Marketing site (Vite) — build output
 sites/final-evolution-main-site/dist/
+sites/final-evolution-main-site/.netlify/
 
 # Optional local tooling sync folder
 .fel-local-tooling/

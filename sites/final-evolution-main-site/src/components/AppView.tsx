@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { BiometricMirror, type SFMAJointId } from "./BiometricMirror";
 import { LiveVeloStats } from "./LiveVeloStats";
+import { useReadinessSnapshot } from "../hooks/useReadinessSnapshot";
 
-/** Demo SFMA map: asymmetric pattern for forensic readability. */
+/** Demo SFMA map when no `readiness_snapshots` row (signed-out or empty). */
 const DEMO_JOINTS: Partial<Record<SFMAJointId, "locked" | "mobile">> = {
   cervical: "mobile",
   t_spine: "locked",
@@ -19,6 +21,14 @@ const DEMO_JOINTS: Partial<Record<SFMAJointId, "locked" | "mobile">> = {
  * with biometric mirror + live velo HUD (Muscle-and-Motion × cyberpunk forensic UI).
  */
 export function AppView({ className = "" }: { className?: string }) {
+  const { payload, loading, error } = useReadinessSnapshot();
+
+  const mergedJoints = useMemo(() => {
+    return { ...DEMO_JOINTS, ...(payload.joints ?? {}) };
+  }, [payload.joints]);
+
+  const redCongestion = payload.sfma_multi_segmental_rotation_passed === false;
+
   return (
     <section
       className={`relative border-t border-fel-cyan/20 bg-[#020203] px-6 py-16 sm:px-10 ${className}`}
@@ -44,6 +54,11 @@ export function AppView({ className = "" }: { className?: string }) {
               One frame budget (~16.67 ms @ 60 Hz): controller samples → penultimate cue → lab logic. Not a medical
               device — performance telemetry for education.
             </p>
+            {error ? (
+              <p className="mt-2 text-xs text-amber-400/90">Readiness mirror: {error}</p>
+            ) : loading ? (
+              <p className="mt-2 text-xs text-white/35">Loading readiness snapshot…</p>
+            ) : null}
           </div>
           <div className="font-mono text-[0.65rem] uppercase tracking-widest text-white/35">
             Latency target <span className="text-fel-cyan">16.6ms</span>
@@ -60,12 +75,12 @@ export function AppView({ className = "" }: { className?: string }) {
         </div>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:gap-10">
-          <BiometricMirror joints={DEMO_JOINTS} />
+          <BiometricMirror joints={mergedJoints} redCongestion={redCongestion} />
           <div className="flex flex-col justify-center">
             <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Performance HUD</p>
             <p className="mt-2 text-sm text-white/55">
-              Reactive stiffness, neural drive, and penultimate stretch — SVG traces update on a slow loop for the
-              landing page shell (wire to WebSocket / lab stream in production).
+              Reactive stiffness & neural drive — SVG series advance at <span className="text-fel-cyan">60 fps</span>{" "}
+              (~16.67 ms ticks) for penultimate visual fidelity; wire to lab stream in production.
             </p>
             <div className="mt-6">
               <LiveVeloStats />

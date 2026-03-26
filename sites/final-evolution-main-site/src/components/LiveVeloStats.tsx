@@ -92,16 +92,27 @@ export function LiveVeloStats({
 }: LiveVeloStatsProps) {
   const [tick, setTick] = useState(0);
 
+  /** ~60 fps chart cadence (~16.67 ms) — matches penultimate frame budget narrative. */
   useEffect(() => {
-    const id = window.setInterval(() => setTick((t) => t + 1), 1200);
-    return () => window.clearInterval(id);
+    let rafId = 0;
+    let last = performance.now();
+    const frameMs = 1000 / 60;
+    const loop = (now: number) => {
+      if (now - last >= frameMs) {
+        last = now;
+        setTick((t) => t + 1);
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   const stiffnessHist = useMemo(() => {
     const base = stiffnessKnPerM;
     return Array.from({ length: historyLength }, (_, i) => {
       const phase = (i + tick) * 0.35;
-      return base + Math.sin(phase) * 4 + (Math.random() - 0.5) * 1.2;
+      return base + Math.sin(phase) * 4;
     });
   }, [stiffnessKnPerM, historyLength, tick]);
 
@@ -109,7 +120,7 @@ export function LiveVeloStats({
     const base = neuralDrivePct;
     return Array.from({ length: historyLength }, (_, i) => {
       const phase = (i + tick) * 0.28;
-      return clamp(base + Math.sin(phase) * 6 + (Math.random() - 0.5) * 2, 0, 100);
+      return clamp(base + Math.sin(phase) * 6, 0, 100);
     });
   }, [neuralDrivePct, historyLength, tick]);
 
@@ -117,7 +128,7 @@ export function LiveVeloStats({
     const base = penultimateStretchMs;
     return Array.from({ length: historyLength }, (_, i) => {
       const phase = (i + tick) * 0.5;
-      return clamp(base + Math.sin(phase) * 1.4 + (Math.random() - 0.5) * 0.4, 12, 22);
+      return clamp(base + Math.sin(phase) * 1.4, 12, 22);
     });
   }, [penultimateStretchMs, historyLength, tick]);
 

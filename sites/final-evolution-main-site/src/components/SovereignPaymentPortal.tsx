@@ -194,23 +194,28 @@ export function SovereignPaymentPortal({ tier, className = "", onSuccess }: Sove
             try {
               await actions.order.capture();
 
-              // OPTIMISTIC UPDATE: Move to ThankYou page instantly (< 200ms friction)
-              onSuccessRef.current?.();
-
-              // Continue backend verification in the background
               const supabase = getSupabase();
-              if (!supabase) return;
-              
+              if (!supabase) {
+                setError("Supabase not configured.");
+                return;
+              }
+
               const { data: auth } = await supabase.auth.getSession();
               const session = auth.session;
-              if (!session?.user?.id) return;
+              if (!session?.user?.id) {
+                setError("Session expired.");
+                return;
+              }
 
               const endpoint = verifyEndpoint();
-              if (!endpoint) return;
+              if (!endpoint) {
+                setError("Missing VITE_SUPABASE_URL.");
+                return;
+              }
 
               const athleteId = readAthleteId();
 
-              fetch(endpoint, {
+              const res = await fetch(endpoint, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -221,10 +226,18 @@ export function SovereignPaymentPortal({ tier, className = "", onSuccess }: Sove
                   orderID: data.orderID,
                   athlete_id: athleteId || undefined,
                 }),
-              }).catch(console.error);
+              });
 
+              const payload = (await res.json().catch(() => ({}))) as { error?: string };
+              if (!res.ok) {
+                setError(payload.error ?? `Verify failed (${res.status})`);
+                return;
+              }
+
+              onSuccessRef.current?.();
             } catch (e) {
               setError(e instanceof Error ? e.message : "Checkout error");
+            } finally {
               setBusy(false);
             }
           },
