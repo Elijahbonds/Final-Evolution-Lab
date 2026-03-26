@@ -1,4 +1,6 @@
+import { useEffect, useRef } from "react";
 import { GOLD_MASTER_DMG_URL } from "../constants/downloads";
+import { useLabAudio } from "../hooks/useLabAudio";
 
 export type ThankYouProps = {
   /** True after PayPal capture (optimistic); DMG link matches Supabase public object. */
@@ -9,6 +11,27 @@ export type ThankYouProps = {
  * Post-purchase surface — Gold Master DMG download (Supabase Storage public URL).
  */
 export function ThankYou({ downloadUnlocked }: ThankYouProps) {
+  const { playShardDeposit, playUnlock, warmUp } = useLabAudio();
+  const prevUnlockedRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    void warmUp();
+  }, [warmUp]);
+
+  useEffect(() => {
+    if (prevUnlockedRef.current === null) {
+      prevUnlockedRef.current = downloadUnlocked;
+      return;
+    }
+    if (downloadUnlocked && !prevUnlockedRef.current) {
+      playShardDeposit();
+      const t = window.setTimeout(() => playUnlock(), 140);
+      prevUnlockedRef.current = downloadUnlocked;
+      return () => clearTimeout(t);
+    }
+    prevUnlockedRef.current = downloadUnlocked;
+  }, [downloadUnlocked, playShardDeposit, playUnlock]);
+
   return (
     <section
       id="thank-you"

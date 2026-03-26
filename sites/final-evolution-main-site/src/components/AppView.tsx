@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { BiometricMirror, type SFMAJointId } from "./BiometricMirror";
+import { LabGameplayAudio } from "./LabGameplayAudio";
 import { LiveVeloStats } from "./LiveVeloStats";
+import { VVA_Player } from "./VVA_Player";
 import { useReadinessSnapshot } from "../hooks/useReadinessSnapshot";
 
 /** Demo SFMA map when no `readiness_snapshots` row (signed-out or empty). */
@@ -34,6 +36,7 @@ export function AppView({ className = "" }: { className?: string }) {
       className={`relative border-t border-fel-cyan/20 bg-[#020203] px-6 py-16 sm:px-10 ${className}`}
       aria-labelledby="app-view-heading"
     >
+      <LabGameplayAudio />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
@@ -89,6 +92,10 @@ export function AppView({ className = "" }: { className?: string }) {
         </div>
 
         <VVAModuleMap />
+
+        <div className="mt-12">
+          <VVA_Player />
+        </div>
       </div>
     </section>
   );
