@@ -26,20 +26,20 @@ export function HUDOverlay() {
     veloBar?: boolean;
   }> = [
     {
-      label: "REACTIVE STIFFNESS",
-      sub: "knee–ankle coupling",
+      label: "STIFFNESS",
+      sub: "leg spring quality",
       position: "left-[6%] top-[22%]",
       pulse: true,
     },
     {
-      label: "NEURAL DRIVE",
-      sub: "motor unit recruitment",
+      label: "DRIVE",
+      sub: "effort / intent",
       position: "right-[8%] top-[38%]",
       pulse: true,
     },
     {
-      label: "VELO SNAP",
-      sub: "penultimate · vertical velocity",
+      label: "VELOCITY",
+      sub: "timing & output",
       position: "left-[12%] bottom-[28%]",
       pulse: true,
       veloBar: true,

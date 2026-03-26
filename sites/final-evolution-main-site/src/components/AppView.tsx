@@ -19,8 +19,7 @@ const DEMO_JOINTS: Partial<Record<SFMAJointId, "locked" | "mobile">> = {
 };
 
 /**
- * Game / fitness lab canvas: DualSense ↔ 16.6 ms frame budget ↔ Bonds Bounce Blueprint (Unreal Engine 5.7 runtime),
- * with biometric mirror + live velo HUD (Muscle-and-Motion × cyberpunk forensic UI).
+ * In-browser lab preview: movement readiness, timing, and training graph (production runtime ships in the Mac app).
  */
 export function AppView({ className = "" }: { className?: string }) {
   const { payload, loading, error } = useReadinessSnapshot();
@@ -33,7 +32,8 @@ export function AppView({ className = "" }: { className?: string }) {
 
   return (
     <section
-      className={`relative border-t border-fel-cyan/20 bg-[#020203] px-6 py-16 sm:px-10 ${className}`}
+      id="fel-lab"
+      className={`relative scroll-mt-24 border-t border-fel-cyan/20 bg-[#020203] px-6 py-16 sm:px-10 ${className}`}
       aria-labelledby="app-view-heading"
     >
       <LabGameplayAudio />
@@ -49,26 +49,25 @@ export function AppView({ className = "" }: { className?: string }) {
       <div className="relative mx-auto max-w-6xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[0.6rem] font-bold uppercase tracking-[0.4em] text-fel-cyan">Game / fitness engine</p>
+            <p className="text-[0.6rem] font-bold uppercase tracking-[0.4em] text-fel-cyan">Inside the lab</p>
             <h2 id="app-view-heading" className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Bonds Bounce Blueprint · UE 5.7 runtime
+              Jump timing · stiffness · drive
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-white/50">
-              One frame budget (~16.67 ms @ 60 Hz): controller samples → penultimate cue → lab logic. Not a medical
-              device — performance telemetry for education.
+              A live read on how you organize force and timing — built for athletes and coaches. Not a medical device.
             </p>
             {error ? (
-              <p className="mt-2 text-xs text-amber-400/90">Readiness mirror: {error}</p>
+              <p className="mt-2 text-xs text-amber-400/90">Could not load movement snapshot. {error}</p>
             ) : loading ? (
               <p className="mt-2 text-xs text-white/35">Loading readiness snapshot…</p>
             ) : null}
           </div>
           <div className="font-mono text-[0.65rem] uppercase tracking-widest text-white/35">
-            Latency target <span className="text-fel-cyan">16.6ms</span>
+            Timing <span className="text-fel-cyan">16.6 ms</span>
           </div>
         </div>
 
-        {/* Latency spine: DualSense → frame → blueprint */}
+        {/* Input → timing → training graph */}
         <div className="mt-10 rounded-2xl border border-white/10 bg-black/60 p-6 backdrop-blur-xl sm:p-8">
           <div className="flex flex-col items-stretch gap-6 lg:flex-row lg:items-center lg:justify-between">
             <ControllerNode />
@@ -82,8 +81,7 @@ export function AppView({ className = "" }: { className?: string }) {
           <div className="flex flex-col justify-center">
             <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Performance HUD</p>
             <p className="mt-2 text-sm text-white/55">
-              Reactive stiffness & neural drive — SVG series advance at <span className="text-fel-cyan">60 fps</span>{" "}
-              (~16.67 ms ticks) for penultimate visual fidelity; wire to lab stream in production.
+              Stiffness and effort update in real time so you can see patterns, not just numbers.
             </p>
             <div className="mt-6">
               <LiveVeloStats />
@@ -101,35 +99,34 @@ export function AppView({ className = "" }: { className?: string }) {
   );
 }
 
-/** Maps VVA curriculum nodes → Bonds Bounce Blueprint graph in Unreal 5.7 (visual contract). */
+/** Curriculum topics ↔ how they show up in training. */
 function VVAModuleMap() {
   const rows = [
     {
-      vva: "VVA · Penultimate rhythm",
-      blueprint: "Bonds Bounce — penultimate stride segment",
+      vva: "Rhythm before takeoff",
+      blueprint: "Last step timing and foot strike",
     },
     {
-      vva: "VVA · Spiral line / fascial plane",
-      blueprint: "Blueprint — stiffness routing & cue windows",
+      vva: "Spiral line & fascia",
+      blueprint: "How load travels through the body",
     },
     {
-      vva: "VVA · Reactive stiffness lab",
-      blueprint: "Blueprint — kN/m targets + drive caps",
+      vva: "Reactive stiffness",
+      blueprint: "Spring-like quality of the leg",
     },
     {
-      vva: "VVA · Neural drive meter",
-      blueprint: "Blueprint — % drive vs. penultimate window (16.6 ms tick)",
+      vva: "Neural drive",
+      blueprint: "How hard the system is working, in time",
     },
   ] as const;
 
   return (
     <div className="mt-12 rounded-2xl border border-white/10 bg-black/50 p-6 backdrop-blur-md sm:p-8">
       <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
-        Vertical Velocity Academy ↔ Blueprint
+        Academy modules
       </p>
       <p className="mt-2 text-sm text-white/50">
-        Site visualization: each VVA module maps to the same UE 5.7 training graph — DualSense samples
-        frame-align with the 16.6 ms penultimate standard before the Unreal lab runtime.
+        Each topic connects to the same training graph you use in session — timing first, then force, then output.
       </p>
       <ul className="mt-6 divide-y divide-white/10">
         {rows.map((r) => (
@@ -151,10 +148,10 @@ function ControllerNode() {
         <div className="absolute right-3 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/50" />
         <div className="absolute bottom-3 left-1/2 h-3 w-16 -translate-x-1/2 rounded-sm bg-fel-cyan/30" />
         <span className="absolute left-2 top-2 text-[0.5rem] font-mono uppercase tracking-widest text-fel-cyan/80">
-          DualSense
+          Controller
         </span>
       </div>
-      <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/60">Input · IMU + triggers</p>
+      <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/60">Input</p>
     </div>
   );
 }
@@ -183,7 +180,7 @@ function LatencyBridge() {
         </div>
       </div>
       <p className="mt-2 text-center text-[0.6rem] uppercase tracking-[0.35em] text-white/40">
-        Frame-aligned transport · lab clock
+        One frame · one decision
       </p>
     </div>
   );
@@ -200,10 +197,10 @@ function BlueprintNode() {
           <span className="text-fel-cyan">Blueprint</span>
         </p>
         <p className="mt-3 text-[0.65rem] leading-relaxed text-white/45">
-          Penultimate stride · reactive stiffness targets · neural drive caps
+          Approach · load · jump — structured phases you can repeat
         </p>
       </div>
-      <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/60">Lab logic · deterministic</p>
+      <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white/60">Training graph</p>
     </div>
   );
 }

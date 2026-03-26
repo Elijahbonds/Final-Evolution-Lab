@@ -6,6 +6,15 @@ export default defineConfig(({ mode }) => {
   const paypalClientId = env.VITE_PAYPAL_CLIENT_ID || "sb";
 
   return {
+    server: {
+      proxy: {
+        "/download/final-evolution": {
+          target: "https://rlqkschgvlrva-wsdzjxq.supabase.co",
+          changeOrigin: true,
+          rewrite: () => "/storage/v1/object/public/sovereign-assets/mac/FinalEvolution.dmg",
+        },
+      },
+    },
     plugins: [
       react(),
       {

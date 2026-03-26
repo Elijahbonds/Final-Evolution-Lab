@@ -2,7 +2,13 @@
   command = "npm run build"
   publish = "dist"
 
-# Client-side routes (if any) — static files still win when present.
+# macOS installer — short URL, high-speed 302 to Supabase Storage
+[[redirects]]
+  from = "/download/final-evolution"
+  to = "https://rlqkschgvlrva-wsdzjxq.supabase.co/storage/v1/object/public/sovereign-assets/mac/FinalEvolution.dmg"
+  status = 302
+
+# Single Page App — all paths serve index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"

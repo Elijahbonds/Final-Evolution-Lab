@@ -78,9 +78,9 @@ const MODULES: VVAModule[] = [
   },
   {
     id: 10,
-    title: "Sovereign integration",
+    title: "Program integration",
     script:
-      "Module ten: sovereign integration. Shards fund Academy depth. Your movement graph, film vault, and arena runtime stay under your control — clinical movement education, not medical diagnosis.",
+      "Module ten: bringing it together — training, review, and progression in one workflow. For education only; not medical advice.",
     spiralLineLecture: false,
   },
 ];
@@ -172,11 +172,11 @@ export function VVA_Player({ className = "" }: { className?: string }) {
       className={`rounded-2xl border border-fel-cyan/35 bg-black/55 p-6 backdrop-blur-md sm:p-8 ${className}`}
     >
       <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
-        Vertical Velocity Academy
+        Academy
       </p>
-      <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">Automated voiceover — 10 modules</h3>
+      <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">Ten guided modules</h3>
       <p className="mt-2 text-sm text-white/50">
-        Education only — not medical advice. Voice uses your browser speech engine.
+        Optional audio uses your browser. Not medical advice.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">

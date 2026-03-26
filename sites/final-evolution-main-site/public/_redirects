@@ -1,0 +1,5 @@
+# Fast DMG delivery — CDN redirect to Supabase public object (302)
+/download/final-evolution  https://rlqkschgvlrva-wsdzjxq.supabase.co/storage/v1/object/public/sovereign-assets/mac/FinalEvolution.dmg  302
+
+# Single Page App — client routes (Netlify)
+/*    /index.html   200

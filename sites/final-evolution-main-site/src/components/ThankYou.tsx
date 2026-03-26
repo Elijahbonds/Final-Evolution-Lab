@@ -1,14 +1,16 @@
 import { useEffect, useRef } from "react";
-import { GOLD_MASTER_DMG_URL } from "../constants/downloads";
+import { GOLD_MASTER_DOWNLOAD_PATH, GOLD_MASTER_DMG_URL } from "../constants/downloads";
 import { useLabAudio } from "../hooks/useLabAudio";
 
 export type ThankYouProps = {
-  /** True after PayPal capture COMPLETED + `paypal-verify` OK. */
+  /** True after payment completes successfully (verified). */
   downloadUnlocked: boolean;
 };
 
+const DMG_HREF = import.meta.env.DEV ? GOLD_MASTER_DMG_URL : GOLD_MASTER_DOWNLOAD_PATH;
+
 /**
- * Post-purchase surface — Gold Master DMG download (Supabase Storage public URL).
+ * Post-purchase — download via clean on-domain path (Netlify → Supabase Storage).
  */
 export function ThankYou({ downloadUnlocked }: ThankYouProps) {
   const { playShardChime, playUnlock, warmUp } = useLabAudio();
@@ -39,21 +41,21 @@ export function ThankYou({ downloadUnlocked }: ThankYouProps) {
     >
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Thank you</p>
-        <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">Sovereign Alpha — welcome</h2>
+        <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">Welcome to the lab</h2>
         <p className="mt-4 text-sm leading-relaxed text-white/55">
-          After PayPal returns <strong className="text-white/75">COMPLETED</strong> and{" "}
-          <code className="text-fel-cyan/80">paypal-verify</code> succeeds, shards credit and this download unlocks.
+          Your payment went through. Your Mac installer is ready below.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-4">
           {downloadUnlocked ? (
             <a
-              href={GOLD_MASTER_DMG_URL}
+              href={DMG_HREF}
               download="FinalEvolution.dmg"
               rel="noopener noreferrer"
+              title="Requires macOS 14 or later. Apple Silicon (M-series) recommended for best performance."
               className="animate-pulse inline-flex min-h-[64px] min-w-[280px] items-center justify-center rounded-sm bg-[#5ce1e6] px-8 text-lg font-black uppercase tracking-[0.15em] text-black shadow-[0_0_40px_rgba(92,225,230,0.8)] transition hover:bg-white hover:shadow-[0_0_48px_rgba(92,225,230,0.95)]"
             >
-              DOWNLOAD GOLD MASTER
+              Download for Mac
             </a>
           ) : (
             <button
@@ -61,13 +63,13 @@ export function ThankYou({ downloadUnlocked }: ThankYouProps) {
               disabled
               className="inline-flex min-h-[56px] min-w-[260px] cursor-not-allowed items-center justify-center rounded-full border-2 border-white/20 bg-white/5 px-10 text-base font-bold uppercase tracking-wide text-white/35"
             >
-              Download Gold Master
+              Download for Mac
             </button>
           )}
           <p className="max-w-md text-xs text-white/40">
             {downloadUnlocked
-              ? "Direct link — Supabase public storage (macOS .dmg)."
-              : "Completes a PayPal purchase above to unlock this download."}
+              ? "Installer · macOS 14+ · Apple Silicon recommended."
+              : "Complete checkout above to unlock your download."}
           </p>
         </div>
       </div>

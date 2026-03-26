@@ -11,9 +11,6 @@ const HeroSpiral = lazy(() =>
   import("./components/HeroSpiral").then((m) => ({ default: m.HeroSpiral }))
 );
 
-/** Lab PWA shell — same apex as marketing site (`/play` route or redirect). */
-const LAB_PLAY_URL = `${PRODUCTION_FREWAY_URL}/play`;
-
 function readMedicalAck(): boolean {
   try {
     return localStorage.getItem("fel_medical_ack") === "1";
@@ -28,6 +25,10 @@ export default function App() {
   const [labDisclaimerOpen, setLabDisclaimerOpen] = useState(false);
   const [downloadUnlocked, setDownloadUnlocked] = useState(false);
   const [shardBalance, setShardBalance] = useState(0);
+
+  const scrollToLab = useCallback(() => {
+    document.getElementById("fel-lab")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   useEffect(() => {
     try {
@@ -75,18 +76,13 @@ export default function App() {
 
   return (
     <div className="min-h-full bg-fel-black">
-      <MedicalDisclaimerGateway
-        open={!medicalAck}
-        mode="landing"
-        labUrl={LAB_PLAY_URL}
-        onClose={handleLandingAcknowledge}
-      />
+      <MedicalDisclaimerGateway open={!medicalAck} mode="landing" onClose={handleLandingAcknowledge} />
 
       <MedicalDisclaimerGateway
         open={labDisclaimerOpen}
         mode="lab"
-        labUrl={LAB_PLAY_URL}
         onClose={() => setLabDisclaimerOpen(false)}
+        onEnterLab={scrollToLab}
       />
 
       <section className="relative">
@@ -102,37 +98,26 @@ export default function App() {
         <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-end pb-16 pl-6 pr-6 sm:pb-20 sm:pl-12">
           <div className="pointer-events-auto max-w-3xl">
             <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
-              Dark clinical · sovereign lab
+              Final Evolution Lab
             </p>
-            <div className="mt-3 flex flex-wrap items-end gap-3">
-              <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl [text-shadow:0_0_40px_rgba(92,225,230,0.25)]">
-                Biomechanical Truth
-              </h1>
-              <span
-                className="inline-flex items-center rounded border border-fel-cyan/50 bg-black/50 px-2 py-1 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-fel-cyan"
-                title="Hero WebGL present mode and HUD cadence target 60 Hz"
-              >
-                60fps
-              </span>
-            </div>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white/90 sm:text-2xl">
-              Bypass the App Store.
-              <br />
-              <span className="text-fel-cyan">Enter the Lab.</span>
-            </h2>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
-              Neon Spiral Line telemetry, 16.6 ms frame discipline, and a sovereign shard economy —
-              clinical movement education, not medical diagnosis.
+            <h1 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl [text-shadow:0_0_40px_rgba(92,225,230,0.25)]">
+              THE BIOMECHANICAL TRUTH
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
+              Forensic movement analysis. Elite vertical jump protocols. 16.6 ms precision.
             </p>
 
-            <div className="mt-10 flex flex-wrap items-center gap-4">
+            <div className="mt-10">
               <button
                 type="button"
                 onClick={() => setLabDisclaimerOpen(true)}
-                className="inline-flex min-h-[52px] min-w-[200px] items-center justify-center rounded-full bg-fel-cyan px-10 text-base font-black uppercase tracking-wide text-black shadow-[0_0_32px_rgba(92,225,230,0.45)] transition hover:bg-fel-cyan/90 hover:shadow-[0_0_48px_rgba(92,225,230,0.55)]"
+                className="inline-flex min-h-[56px] min-w-[220px] items-center justify-center rounded-full bg-fel-cyan px-12 text-base font-black uppercase tracking-[0.14em] text-black shadow-[0_0_36px_rgba(92,225,230,0.5)] transition hover:bg-fel-cyan/90 hover:shadow-[0_0_52px_rgba(92,225,230,0.6)]"
               >
                 Open Lab
               </button>
+              <p className="mt-4 max-w-md text-xs text-white/40">
+                Movement education — not medical diagnosis or treatment.
+              </p>
             </div>
           </div>
         </div>
@@ -141,24 +126,21 @@ export default function App() {
       <AppView />
 
       <section
-        id="sovereign-payments"
+        id="pricing"
         className="relative z-40 border-t border-white/10 bg-fel-black px-6 py-16 sm:px-12"
       >
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">
-                Alpha 1 — pricing
+                Training access
               </h2>
               <p className="mt-2 max-w-2xl text-sm text-white/55">
-                PayPal Complete Payments. Download unlocks only when PayPal capture is{" "}
-                <strong className="text-white/70">COMPLETED</strong> and{" "}
-                <code className="text-fel-cyan/80">paypal-verify</code> succeeds. Set{" "}
-                <code className="text-white/50">localStorage.fel_athlete_id</code> to link your lab athlete id.
+                Secure checkout. Your download unlocks after payment completes successfully.
               </p>
             </div>
             <div className="rounded-xl border border-fel-cyan/30 bg-black/40 px-4 py-3 text-right">
-              <p className="text-[0.55rem] font-bold uppercase tracking-[0.28em] text-white/45">Shards</p>
+              <p className="text-[0.55rem] font-bold uppercase tracking-[0.28em] text-white/45">Credits</p>
               <p className="font-mono text-2xl font-black tabular-nums text-fel-cyan">{shardBalance}</p>
             </div>
           </div>
@@ -190,13 +172,10 @@ export default function App() {
       <ThankYou downloadUnlocked={downloadUnlocked} />
 
       <footer className="border-t border-white/10 px-6 py-10 text-center text-xs text-white/35 sm:px-12">
-        Freeway (live):{" "}
         <a href={PRODUCTION_FREWAY_URL} className="text-fel-cyan underline-offset-2 hover:underline">
           {PRODUCTION_FREWAY_URL.replace(/^https:\/\//, "")}
         </a>
-        {" · "}
-        Frame budget <span className="text-white/50">~16.67 ms</span> @ 60 Hz — clinical gate before Lab (
-        <span className="text-white/45">z-index 1100</span>).
+        {" · "}Movement education. Not medical advice.
       </footer>
     </div>
   );

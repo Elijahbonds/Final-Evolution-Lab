@@ -52,9 +52,9 @@ const TIER_CONFIG: Record<
   SovereignAlphaTier,
   { title: string; amountUsd: string; buttonColor: "gold" | "silver" }
 > = {
-  alpha_49: { title: "Shard Pack — Alpha", amountUsd: "49.00", buttonColor: "gold" },
-  alpha_99: { title: "Shard Pack — Pro", amountUsd: "99.00", buttonColor: "silver" },
-  alpha_499: { title: "VVA Academy — Sovereign", amountUsd: "499.00", buttonColor: "gold" },
+  alpha_49: { title: "Starter — Training credits", amountUsd: "49.00", buttonColor: "gold" },
+  alpha_99: { title: "Pro — Training credits", amountUsd: "99.00", buttonColor: "silver" },
+  alpha_499: { title: "Academy — Full access", amountUsd: "499.00", buttonColor: "gold" },
 };
 
 function readAthleteId(): string {
@@ -307,9 +307,7 @@ export function SovereignPaymentPortal({
         <span className="text-lg font-black text-white/90">${cfg.amountUsd}</span>
       </div>
       <p className="mb-4 text-xs leading-relaxed text-white/50">
-        PayPal, card, or Pay Later — shards and download unlock only after capture status{" "}
-        <strong className="text-white/70">COMPLETED</strong> and <code className="text-fel-cyan/80">paypal-verify</code>{" "}
-        OK.
+        PayPal, card, or Pay Later. Your credits and download unlock after payment completes successfully.
       </p>
       <div
         ref={containerRef}

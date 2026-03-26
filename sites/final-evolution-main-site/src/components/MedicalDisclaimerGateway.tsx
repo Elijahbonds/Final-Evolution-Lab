@@ -4,11 +4,10 @@ export type MedicalDisclaimerMode = "landing" | "lab";
 
 type MedicalDisclaimerGatewayProps = {
   open: boolean;
-  /** Landing = first-run site gate; Lab = before opening PWA. */
   mode: MedicalDisclaimerMode;
-  /** Production PWA shell — used when `mode="lab"`. */
-  labUrl: string;
   onClose: () => void;
+  /** Lab mode: after consent, scroll into the same-page lab experience (no external 404). */
+  onEnterLab?: () => void;
 };
 
 /**
@@ -18,8 +17,8 @@ type MedicalDisclaimerGatewayProps = {
 export function MedicalDisclaimerGateway({
   open,
   mode,
-  labUrl,
   onClose,
+  onEnterLab,
 }: MedicalDisclaimerGatewayProps) {
   useEffect(() => {
     if (!open) return;
@@ -41,7 +40,6 @@ export function MedicalDisclaimerGateway({
       aria-modal="true"
       aria-labelledby="medical-disclaimer-title"
     >
-      {/* First-run landing gate: backdrop does not dismiss — must acknowledge. */}
       <button
         type="button"
         className={`absolute inset-0 bg-black/85 backdrop-blur-sm ${isLanding ? "pointer-events-none" : ""}`}
@@ -52,18 +50,17 @@ export function MedicalDisclaimerGateway({
       <div className="relative z-[1101] max-h-[min(92vh,720px)] w-full max-w-lg overflow-y-auto rounded-2xl border-2 border-fel-cyan/50 bg-[#050608] p-6 shadow-[0_0_48px_rgba(92,225,230,0.2)] sm:p-8">
         <p className="text-[0.6rem] font-bold uppercase tracking-[0.35em] text-fel-cyan">Medical disclaimer</p>
         <h2 id="medical-disclaimer-title" className="mt-3 text-xl font-black text-white sm:text-2xl">
-          Clinical movement education — not medical care
+          Movement education — not medical care
         </h2>
         <div className="mt-5 space-y-3 text-sm leading-relaxed text-white/75">
           <p>
-            Final Evolution Lab provides movement education, biomechanics visualization, and training
-            experiences. It is <strong className="text-white/90">not</strong> a medical device and does
-            not diagnose, treat, cure, or prevent any disease or injury.
+            Final Evolution Lab offers movement education and training visualization. It is{" "}
+            <strong className="text-white/90">not</strong> a medical device and does not diagnose, treat,
+            cure, or prevent any disease or injury.
           </p>
           <p>
-            Consult a qualified physician before beginning any exercise program. Stop if you feel pain,
-            dizziness, or shortness of breath. By continuing, you accept responsibility for your use of
-            the Lab.
+            Talk to a qualified clinician before starting a new exercise program. Stop if you feel pain,
+            dizziness, or shortness of breath.
           </p>
         </div>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
@@ -82,18 +79,19 @@ export function MedicalDisclaimerGateway({
               className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-fel-cyan px-8 text-sm font-black uppercase tracking-wide text-black shadow-[0_0_24px_rgba(92,225,230,0.4)] transition hover:bg-fel-cyan/90 sm:w-auto"
               onClick={onClose}
             >
-              I understand — continue
+              Continue
             </button>
           ) : (
-            <a
-              href={labUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
               className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-fel-cyan px-8 text-sm font-black uppercase tracking-wide text-black shadow-[0_0_24px_rgba(92,225,230,0.4)] transition hover:bg-fel-cyan/90"
-              onClick={() => onClose()}
+              onClick={() => {
+                onClose();
+                onEnterLab?.();
+              }}
             >
-              Enter Lab — I understand
-            </a>
+              Enter lab — I understand
+            </button>
           )}
         </div>
       </div>
