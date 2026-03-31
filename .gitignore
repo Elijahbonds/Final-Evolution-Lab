@@ -1,3 +1,16 @@
 node_modules
 .env
 .expo
+
+# Local IDE / tooling
+.cursor/
+
+# Build outputs
+build/
+web/clinical-gate-react/dist/
+
+# Leftover duplicate Xcode tree (canonical Swift app lives under ios/)
+FinalEvolutionLabUnreal.xcodeproj/
+
+# macOS
+.DS_Store
