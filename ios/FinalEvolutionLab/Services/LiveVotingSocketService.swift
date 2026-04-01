@@ -8,9 +8,11 @@ final class LiveVotingSocketService {
         let token = UUID()
         return AsyncStream { continuation in
             listenersByEvent[eventId, default: [:]][token] = continuation
+            // Avoid capturing main-actor isolated `self` in a @Sendable closure.
             continuation.onTermination = { [weak self] _ in
+                guard let self else { return }
                 Task { @MainActor in
-                    self?.disconnect(eventId: eventId, token: token)
+                    self.disconnect(eventId: eventId, token: token)
                 }
             }
         }
@@ -38,3 +40,4 @@ final class LiveVotingSocketService {
         }
     }
 }
+

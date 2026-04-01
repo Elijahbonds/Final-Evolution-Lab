@@ -1,6 +1,19 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "FELArenaModeUX.h"
+#include "HAL/Platform.h"
+
+namespace
+{
+FString FEL_DefaultArenaControlsFooter()
+{
+#if PLATFORM_IOS || PLATFORM_ANDROID
+	return TEXT("Virtual sticks: move & look  |  Tap to jump  |  Swipe up (right) signature  |  Gamepad supported");
+#else
+	return TEXT("WASD move  |  Mouse look  |  Space jump  |  Gamepad supported");
+#endif
+}
+} // namespace
 
 FString FELArenaModeUX::GetObjectiveSubtitle(const EFELArenaMode Mode)
 {
@@ -86,14 +99,30 @@ FString FELArenaModeUX::GetControlFooterHint(const EFELArenaMode Mode)
 	case EFELArenaMode::MarketBrowse:
 		return TEXT("Move + look to navigate  |  Tap / trace shop hotspots");
 	case EFELArenaMode::Surfing:
+#if PLATFORM_IOS || PLATFORM_ANDROID
+		return TEXT("Sticks move & look  |  Line + balance use PRQ (see HUD)");
+#else
 		return TEXT("WASD move  |  Mouse look  |  Line + balance use PRQ (see HUD)");
+#endif
 	case EFELArenaMode::Skateboarding:
+#if PLATFORM_IOS || PLATFORM_ANDROID
+		return TEXT("Sticks move & look  |  Trick line + balance — PRQ widens windows");
+#else
 		return TEXT("WASD move  |  Mouse look  |  Trick line + balance — PRQ widens windows");
+#endif
 	case EFELArenaMode::Snowboarding:
+#if PLATFORM_IOS || PLATFORM_ANDROID
+		return TEXT("Sticks move & look  |  Carve line on TrainingFloor — avoid wipeouts");
+#else
 		return TEXT("WASD move  |  Mouse look  |  Carve line on TrainingFloor — avoid wipeouts");
+#endif
 	case EFELArenaMode::Baseball:
+#if PLATFORM_IOS || PLATFORM_ANDROID
+		return TEXT("Tap / shoot — swing  |  Sticks move & look");
+#else
 		return TEXT("Jump / Space / tap / shoot — swing  |  WASD move  |  Mouse look");
+#endif
 	default:
-		return TEXT("WASD move  |  Mouse look  |  Space jump  |  Gamepad supported");
+		return FEL_DefaultArenaControlsFooter();
 	}
 }

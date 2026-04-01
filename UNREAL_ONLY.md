@@ -54,16 +54,18 @@ Swift is **not** required for gameplay, film vault, or streaming UI when those l
 1. **Lock the UE project** — Use **`UnrealStarter/BasketballGame/FinalEvolutionLab.uproject`** (in-repo). Generate IDE project files from the `.uproject`, compile **FinalEvolutionLabEditor**, run `EditorPython/fel_quick_playtest_level.py` for `L_FEL_Playtest`, then PIE.
 2. **One vertical slice** — Open level → Elijah pawn → ball + hoop logic from `BasketballGame/` (see `PACKAGE_AND_TEST.md`).
 3. **Film Vault v0** — Single `MediaPlayer` full-screen + pause/seek; then add second player + sync.
-4. **Deprecate parallel Swift features** — No new tabs in iOS for features that exist in UE; document parity gaps in this file if any.
+4. **Single surface** — New features land in Unreal only; do not duplicate in Swift unless explicitly requested for a legacy app.
 
 ---
 
 ## Agent / Cursor instructions
 
+**Policy:** **FEL: implement only in Unreal; never Swift unless I say so.**
+
 When implementing Final Evolution Lab features:
 
-- **Default target:** Unreal C++ / Blueprint / UMG under the user’s UE project + files in **`UnrealStarter/`**.
-- **Do not** add large Swift modules for arena, film, or stream unless the task explicitly says “iOS native.”
+- **Default target:** Unreal only — C++ / Blueprint / UMG / Niagara / Editor Python under **`UnrealStarter/BasketballGame/`** (and shared **`UnrealStarter/EditorPython/`**).
+- **Do not** edit Swift, SceneKit, or `ios/FinalEvolutionLab` unless the user **explicitly** asks for Swift/iOS work. Do not suggest Swift as the primary path for gameplay, arena, film, or UI.
 - Follow **`.cursorrules`** (UE 5.2+ C++ standard) for engine code.
 
 ---
@@ -73,6 +75,20 @@ When implementing Final Evolution Lab features:
 The **`FinalEvolutionLab`** Xcode target remains in the repo as **historical / reference** code (ideas, UI experiments, data models). It is **not** the canonical way to ship **iOS** — that is **Unreal’s iOS target** (same game as console/PC). If you need Apple-only APIs (e.g. HealthKit), prefer **Unreal plugins** or a **minimal** native bridge; you still do **not** need a separate “side” app.
 
 **Removing** the Swift tree is a **manual product decision** (archive, export, then delete). This doc does not delete it automatically.
+
+---
+
+## Dual track until convergence (App Store + in-app)
+
+This section title is retained so **Phase 8** tooling and `FELArenaRuntimePreference` cross-references stay greppable. **Implementation:** default to **Unreal only** (see Agent instructions above). “Convergence” means Unreal’s **iOS** packaged build becomes the primary player-facing download; any in-repo Swift shell remains optional reference, not the ship path for new features.
+
+**Single iOS app (ship):** The **Unreal Engine** packaged iOS build is the **one** player-facing gaming app. The in-repo **Swift** project (`ios/`) remains optional legacy / lab tooling, not a second install path for core Arena.
+
+---
+
+## Dual track (historical note)
+
+Some docs still describe a **SceneKit / Swift** shell alongside Unreal. **For Cursor agents and new work, assume Unreal-only** — ship and iterate in UE (including UE’s **iOS** packaging target). The Swift tree may remain in the repo for reference; it is **not** the default implementation surface unless explicitly requested.
 
 ---
 

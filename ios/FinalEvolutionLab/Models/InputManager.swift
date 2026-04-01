@@ -233,7 +233,7 @@ struct ComboResolver: Sendable {
     }
 
     static var combatModes: Set<GameModeId> {
-        [.karate]
+        [.karate1v1, .karateEndless]
     }
 
     static func isDunkAllowed(for mode: GameModeId) -> Bool {
@@ -284,7 +284,7 @@ struct CombatInputResolver: Sendable {
         blockTimestamp: Double,
         impactTimestamp: Double,
         stickDirection: ComboDirection?,
-        mode: GameModeId = .karate
+        mode: GameModeId = .karate1v1
     ) -> CombatOutcome {
         guard ComboResolver.isCombatAllowed(for: mode) else { return .hit }
         guard blockPressed else { return .hit }
@@ -388,7 +388,7 @@ struct PS2MovementConfig: Sendable {
             return .dunkContest
         case .basketballHeadToHead, .basketball3v3:
             return .standard
-        case .karate:
+        case .karate1v1, .karateEndless:
             return PS2MovementConfig(
                 topSpeed: 7.0,
                 acceleration: 14,

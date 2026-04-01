@@ -129,7 +129,6 @@ void UFELExerciseDemoPipelineSubsystem::TriggerExerciseDemoForMode(
 	UFELDemoManager* DemoManager,
 	const float PRQ0to100)
 {
-	(void)PRQ0to100;
 	if (!DemoManager)
 	{
 		return;
@@ -169,5 +168,5 @@ void UFELExerciseDemoPipelineSubsystem::TriggerExerciseDemoForMode(
 #endif
 
 	PreloadExerciseDemoForMode(Mode);
-	DemoManager->TriggerExerciseDemo(DemoMontage);
+	DemoManager->TriggerExerciseDemo(DemoMontage, PRQ0to100);
 }

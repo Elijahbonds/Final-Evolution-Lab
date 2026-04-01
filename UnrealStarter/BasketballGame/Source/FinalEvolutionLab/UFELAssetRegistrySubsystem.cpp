@@ -205,6 +205,17 @@ void UFELAssetRegistrySubsystem::PurgeAllVenueWarmHandles()
 	FlushAsyncLoading();
 }
 
+void UFELAssetRegistrySubsystem::RegisterAcademyModuleDemonstrationMontage(
+	const FString& ModuleKey,
+	const TSoftObjectPtr<UAnimMontage> Montage)
+{
+	if (ModuleKey.IsEmpty() || Montage.IsNull())
+	{
+		return;
+	}
+	AcademyModuleDemonstrationMontage.Add(ModuleKey, Montage);
+}
+
 bool UFELAssetRegistrySubsystem::HasModuleDemonstrationMontage(const FString& ModuleKey) const
 {
 	const TSoftObjectPtr<UAnimMontage>* Found = AcademyModuleDemonstrationMontage.Find(ModuleKey);

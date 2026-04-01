@@ -9,6 +9,43 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 
+void AFELExerciseDemonstrator::BindMontageFinishedDelegate(UAnimInstance* AI, UAnimMontage* Montage)
+{
+	if (!AI || !Montage)
+	{
+		return;
+	}
+	UnbindMontageFinishedDelegate();
+	ActiveDemonstrationMontage = Montage;
+	// UE 5.7+: per-montage end delegate (OnMontageEnded MC delegate no longer exposes AddUObject).
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &AFELExerciseDemonstrator::HandleMontageEnded);
+	AI->Montage_SetEndDelegate(EndDelegate, Montage);
+}
+
+void AFELExerciseDemonstrator::UnbindMontageFinishedDelegate()
+{
+	if (MeshComponent)
+	{
+		if (UAnimInstance* const AI = MeshComponent->GetAnimInstance(); AI && ActiveDemonstrationMontage)
+		{
+			FOnMontageEnded Empty;
+			AI->Montage_SetEndDelegate(Empty, ActiveDemonstrationMontage);
+		}
+	}
+	ActiveDemonstrationMontage = nullptr;
+}
+
+void AFELExerciseDemonstrator::HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (ActiveDemonstrationMontage && Montage != ActiveDemonstrationMontage)
+	{
+		return;
+	}
+	UnbindMontageFinishedDelegate();
+	OnDemonstrationMontageEnded.Broadcast(bInterrupted);
+}
+
 AFELExerciseDemonstrator::AFELExerciseDemonstrator()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -23,6 +60,12 @@ AFELExerciseDemonstrator::AFELExerciseDemonstrator()
 void AFELExerciseDemonstrator::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void AFELExerciseDemonstrator::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UnbindMontageFinishedDelegate();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AFELExerciseDemonstrator::ConfigureDemonstrator(
@@ -59,7 +102,7 @@ void AFELExerciseDemonstrator::PlayDemonstrationMontage(UAnimMontage* Montage)
 	{
 		return;
 	}
-	const auto TryPlay = [this, Montage]()
+	const auto TryPlay = [this, Montage]() -> bool
 	{
 		if (UAnimInstance* const AI = MeshComponent->GetAnimInstance())
 		{
@@ -72,6 +115,10 @@ void AFELExerciseDemonstrator::PlayDemonstrationMontage(UAnimMontage* Montage)
 					*GetNameSafe(Montage));
 			}
 #endif
+			if (Len > 0.f)
+			{
+				BindMontageFinishedDelegate(AI, Montage);
+			}
 			return true;
 		}
 		return false;

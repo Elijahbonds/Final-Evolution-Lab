@@ -1,7 +1,8 @@
 # Copyright (c) Final Evolution Lab.
 #
 # Titan / Gold Master: minimal playable .umap for every MapsToCook venue.
-# Clinical placeholder: Engine cube floor + PlayerStart (+ NeuroArena cyan fill light).
+# Clinical placeholder: Engine cube floor + PlayerStart + sun/sky fill (+ NeuroArena cyan fill light).
+# Re-run safe: removes prior actors labeled FEL_* before rebuilding (same Editor session).
 #
 # Interactive (Editor Output Log — one process, all venues):
 #   py "<repo>/UnrealStarter/BasketballGame/EditorPython/fel_clinical_placeholder_venues.py"
@@ -101,6 +102,61 @@ def _release_world_before_next_map():
         pass
 
 
+def _clear_fel_placeholder_actors():
+    """Best-effort: remove FEL_* placeholders so re-running the script does not stack duplicates."""
+    try:
+        for a in unreal.EditorLevelLibrary.get_all_level_actors():
+            if not a:
+                continue
+            try:
+                label = a.get_actor_label()
+            except Exception:
+                continue
+            if isinstance(label, str) and label.startswith("FEL_"):
+                try:
+                    unreal.EditorLevelLibrary.destroy_actor(a)
+                except Exception:
+                    try:
+                        a.destroy_actor()
+                    except Exception:
+                        pass
+    except Exception as exc:
+        unreal.log_warning(f"FEL Titan: placeholder cleanup — {exc}")
+
+
+def _spawn_sun_and_sky():
+    """Readable materials and shadows on clinical floors (no HDRI — lightweight)."""
+    try:
+        sun = unreal.EditorLevelLibrary.spawn_actor_from_class(
+            unreal.DirectionalLight,
+            unreal.Vector(0.0, 0.0, 1400.0),
+            unreal.Rotator(-52.0, 38.0, 0.0),
+        )
+        if sun:
+            sun.set_actor_label("FEL_Sun")
+            try:
+                sun.light_component.set_intensity(10.0)
+                sun.light_component.set_light_color(unreal.LinearColor(1.0, 0.98, 0.92, 1.0))
+            except Exception:
+                pass
+        sky = unreal.EditorLevelLibrary.spawn_actor_from_class(
+            unreal.SkyLight,
+            unreal.Vector(0.0, 0.0, 600.0),
+            unreal.Rotator(0.0, 0.0, 0.0),
+        )
+        if sky:
+            sky.set_actor_label("FEL_SkyLight")
+            try:
+                comp = getattr(sky, "light_component", None) or getattr(sky, "sky_light_component", None)
+                if comp:
+                    comp.set_intensity(1.0)
+                    comp.set_light_color(unreal.LinearColor(0.75, 0.85, 1.0, 1.0))
+            except Exception:
+                pass
+    except Exception as exc:
+        unreal.log_warning(f"FEL Titan: sun/sky spawn skipped — {exc}")
+
+
 def _spawn_neuro_fill_light():
     pl = unreal.EditorLevelLibrary.spawn_actor_from_class(
         unreal.PointLight, unreal.Vector(280.0, -180.0, 420.0), unreal.Rotator(0.0, 0.0, 0.0)
@@ -116,6 +172,8 @@ def _build_one(package_parent: str, map_name: str, neuro: bool, post_release: bo
     asset_full = _ensure_world(package_parent, map_name)
     if not _load_map(package_parent, map_name):
         return
+    _clear_fel_placeholder_actors()
+    _spawn_sun_and_sky()
     if neuro:
         _spawn_neuro_fill_light()
         _spawn_floor("FEL_NeuroFloor", (96.0, 96.0, 0.25), -30.0)

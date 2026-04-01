@@ -142,6 +142,10 @@ void AFELBasketballGameMode::ConfigureArenaFromReadinessSnapshot(const FFELReadi
 	{
 		CurrentMode = EFELArenaMode::BasketballHeadToHead;
 	}
+	{
+		FString Normalized = Snap.ActiveArenaMode.TrimStartAndEnd().ToLower();
+		ActiveArenaSettingsModeKey = Normalized.IsEmpty() ? FELArenaModeToIdString(CurrentMode) : Normalized;
+	}
 
 	ApplyArenaRulesFromFactorySync();
 	RequestArenaModeDataAsync();
@@ -158,7 +162,7 @@ void AFELBasketballGameMode::ApplyKarateLabModeFromPendingSnap()
 
 void AFELBasketballGameMode::ApplyArenaRulesFromFactorySync()
 {
-	CurrentArenaRules = FELArenaRulesRegistry::GetMergedRules(CurrentMode);
+	CurrentArenaRules = FELArenaRulesRegistry::GetMergedRules(CurrentMode, ActiveArenaSettingsModeKey);
 	ApplyKarateLabModeFromPendingSnap();
 	PlayMode = CurrentArenaRules.UnrealBasketballSlice;
 	TimedBlitzSeconds = FMath::Max(5.f, CurrentArenaRules.TimeLimitSeconds);
@@ -202,7 +206,7 @@ void AFELBasketballGameMode::OnArenaModeDataLoaded()
 	{
 		LoadedArenaModeData = DA;
 		CurrentArenaRules = DA->ArenaRules;
-		FELArenaRulesRegistry::ApplyJsonOverridesToRules(CurrentMode, CurrentArenaRules);
+		FELArenaRulesRegistry::ApplyJsonOverridesToRules(CurrentMode, CurrentArenaRules, ActiveArenaSettingsModeKey);
 		FELArenaRulesRegistry::SanitizeRulesInPlace(CurrentArenaRules, CurrentMode);
 		ApplyKarateLabModeFromPendingSnap();
 	}
@@ -279,7 +283,8 @@ void AFELBasketballGameMode::BroadcastBiometricToWorld()
 
 void AFELBasketballGameMode::ApplyModeSpecificBehaviors(const EFELArenaMode PreviousMode)
 {
-	if (PreviousMode == CurrentMode)
+	// Karate shares EFELArenaMode::Karate but JSON rows (karate_h2h vs karate_endless) differ — always refresh Dojo lab when still Karate.
+	if (PreviousMode == CurrentMode && CurrentMode != EFELArenaMode::Karate)
 	{
 		return;
 	}
@@ -1204,7 +1209,7 @@ void AFELBasketballGameMode::SyncNeuroFieldsFromSnapshot(const FFELReadinessSnap
 
 FString AFELBasketballGameMode::GetArenaGameModeId() const
 {
-	return FELArenaModeToIdString(CurrentMode);
+	return ActiveArenaSettingsModeKey.IsEmpty() ? FELArenaModeToIdString(CurrentMode) : ActiveArenaSettingsModeKey;
 }
 
 void AFELBasketballGameMode::TriggerExerciseDemo()

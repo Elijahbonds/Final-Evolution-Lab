@@ -125,6 +125,13 @@ AFELBasketballCharacter::AFELBasketballCharacter(const FObjectInitializer& Objec
 	{
 		Move->bOrientRotationToMovement = true;
 		CachedAirControlBeforeBondsApexJump = Move->AirControl;
+		// Street / arcade polish: snappier accel–decel and readable yaw without fighting neuro walk caps.
+		Move->MaxAcceleration = 3000.f;
+		Move->BrakingDecelerationWalking = 2800.f;
+		Move->GroundFriction = 8.5f;
+		Move->RotationRate = FRotator(0.f, 680.f, 0.f);
+		Move->bUseSeparateBrakingFriction = true;
+		Move->BrakingFriction = 5.5f;
 	}
 
 	GetMesh()->SetupAttachment(GetCapsuleComponent());
@@ -165,6 +172,11 @@ AFELBasketballCharacter::AFELBasketballCharacter(const FObjectInitializer& Objec
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.f;
 	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->CameraLagSpeed = 14.f;
+	CameraBoom->bEnableCameraRotationLag = true;
+	CameraBoom->CameraRotationLagSpeed = 12.f;
+	CameraBoom->CameraLagMaxDistance = 28.f;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);

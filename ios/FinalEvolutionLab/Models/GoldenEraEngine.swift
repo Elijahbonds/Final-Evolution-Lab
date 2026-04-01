@@ -74,7 +74,7 @@ struct DirectionalTrick: Sendable, Identifiable {
     static func resolve(direction: ComboDirection, modifier: ModifierState, mode: GameModeId) -> DirectionalTrick {
         let pool: [DirectionalTrick]
         switch mode {
-        case .karate:
+        case .karate1v1, .karateEndless:
             pool = combatTricks
         default:
             pool = dunkTricks

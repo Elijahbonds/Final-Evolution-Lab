@@ -96,6 +96,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "FEL|Match")
 	FOnFELMatchComplete OnMatchComplete;
 
+	/** Readiness `active_mode` (lowercase) — selects ArenaSettings.json row; session export + HUD attribute labels. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEL|Arena")
+	FString ActiveArenaSettingsModeKey;
+
 	/** Canonical arena mode id string for session export / HUD (matches readiness active_mode). */
 	UFUNCTION(BlueprintCallable, Category = "FEL")
 	FString GetArenaGameModeId() const;

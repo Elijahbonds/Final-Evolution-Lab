@@ -1,10 +1,14 @@
 import SwiftUI
 
+/// Arena session id strings match `FELArenaModeIds` in Unreal `FELArenaModeDefinitions.h` and keys under `modes` in `ArenaSettings.json`.
 enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiable {
     case basketballHeadToHead = "basketball_h2h"
     case basketballDunkContest = "basketball_dunk"
     case basketball3v3 = "basketball_3v3"
-    case karate = "karate"
+    /// Timed 1v1 point sparring vs AI (`FELArenaModeDefinitions::KarateHeadToHead`).
+    case karate1v1 = "karate_h2h"
+    /// No shot clock — train combos and score until you exit (`KarateEndless`).
+    case karateEndless = "karate_endless"
     case baseball = "baseball"
     case football = "football"
     case soccer = "soccer"
@@ -14,6 +18,14 @@ enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiable {
     case gymnastics = "gymnastics"
 
     var id: String { rawValue }
+
+    /// Shared dojo rules, SceneKit dojo, and combat UI (`karate` aliases in Unreal JSON).
+    var isKarateFamily: Bool {
+        switch self {
+        case .karate1v1, .karateEndless: return true
+        default: return false
+        }
+    }
 }
 
 enum InputScheme: String, Sendable {
@@ -35,7 +47,7 @@ enum ControlInputMode: String, Sendable, CaseIterable {
 extension GameModeId {
     var inputScheme: InputScheme {
         switch self {
-        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .karate:
+        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .karate1v1, .karateEndless:
             return .charge
         case .baseball:
             return .swipe
@@ -67,7 +79,7 @@ extension GameModeId {
             return "NBA Live 06 x NBA Street trick physics and specials"
         case .basketball3v3:
             return "NBA Street 3v3 flow with team combo physics"
-        case .karate:
+        case .karate1v1, .karateEndless:
             return "Matrix Revolutions cinematic combat x Naruto Storm chaining"
         case .baseball:
             return "Wii Sports Home Run Derby readability and timing"
@@ -148,15 +160,26 @@ struct GameModeRegistry {
             hint: nil
         ),
         GameMode(
-            id: .karate,
-            name: "Karate",
-            subtitle: "Point Sparring",
+            id: .karate1v1,
+            name: "Karate 1v1",
+            subtitle: "Timed point sparring vs AI",
             sport: .combat,
             iconName: "figure.martial.arts",
             accentColor: Color(red: 1.0, green: 0.2, blue: 0.2),
             multiplayerType: .realtime,
             environmentName: "Dojo Arena",
-            hint: nil
+            hint: "90s bout · score vs opponent"
+        ),
+        GameMode(
+            id: .karateEndless,
+            name: "Karate Endless",
+            subtitle: "Dojo training, no time limit",
+            sport: .combat,
+            iconName: "figure.martial.arts",
+            accentColor: Color(red: 0.95, green: 0.35, blue: 0.25),
+            multiplayerType: .solo,
+            environmentName: "Dojo Arena",
+            hint: "Chain strikes until you leave the arena"
         ),
         GameMode(
             id: .baseball,
@@ -204,7 +227,7 @@ struct GameModeRegistry {
         ),
         GameMode(
             id: .tennis,
-            name: "Rally Ace",
+            name: "Tennis",
             subtitle: "Serve & Volley Showdown",
             sport: .precision,
             iconName: "tennis.racket",
@@ -215,7 +238,7 @@ struct GameModeRegistry {
         ),
         GameMode(
             id: .volleyball,
-            name: "Rally Ace",
+            name: "Volleyball",
             subtitle: "Drag to Aim, Spike to Win",
             sport: .field,
             iconName: "volleyball.fill",

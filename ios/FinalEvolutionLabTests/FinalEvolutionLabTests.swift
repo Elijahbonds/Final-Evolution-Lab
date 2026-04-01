@@ -5,10 +5,16 @@
 //  Created by Rork on March 2, 2026.
 //
 
+import SceneKit
 import Testing
 @testable import FinalEvolutionLab
 
 struct FinalEvolutionLabTests {
+
+    @Test func arenaSceneKitPhase9SmokeBuildsBasketballScene() async throws {
+        let scene = GameSceneFactory.buildScene(for: .basketballHeadToHead)
+        #expect(scene.rootNode.childNodes.count > 0)
+    }
 
     @Test func bidEscrowStoresAndClearsByListing() async throws {
         var market = CreatorCardMarketplaceState()

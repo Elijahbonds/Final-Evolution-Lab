@@ -10,10 +10,14 @@
 /** Loads optional JSON overrides once; defaults are the factory fallback when a file or key is missing. */
 struct FELArenaRulesRegistry
 {
-	static FFELArenaRules GetMergedRules(EFELArenaMode Mode);
+	/**
+	 * Merge factory defaults with `modes` in ArenaSettings.json.
+	 * @param JsonModeKeyOverride When set (e.g. readiness `active_mode` = karate_h2h), selects that JSON row when multiple keys map to the same EFELArenaMode.
+	 */
+	static FFELArenaRules GetMergedRules(EFELArenaMode Mode, const FString& JsonModeKeyOverride = FString());
 
 	/** Hotfix layer on top of UFELArenaModeData or factory defaults (Content/FEL/Config/ArenaSettings.json). */
-	static void ApplyJsonOverridesToRules(EFELArenaMode Mode, FFELArenaRules& InOut);
+	static void ApplyJsonOverridesToRules(EFELArenaMode Mode, FFELArenaRules& InOut, const FString& JsonModeKeyOverride = FString());
 
 	/** Numeric clamps + sport neuro bounds (shared by GetMergedRules and Data Asset path). */
 	static void SanitizeRulesInPlace(FFELArenaRules& R, EFELArenaMode Mode);

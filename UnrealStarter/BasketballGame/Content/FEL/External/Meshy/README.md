@@ -3,6 +3,20 @@
 **Source of truth:** GLBs in this folder are copied from `UnityProject/Assets/StreamingAssets/Meshy/` for **Unreal Engine 5** import (FBX/glTF pipeline per project settings).  
 **Unity:** The duplicate `UnityProject/.../Meshy/` path is **deprecated** for new work — keep Unity-only scripts in sync only if you still ship UaaL; otherwise edit Unreal content here.
 
+## Basketball / Venice (primary FEL props)
+
+| File | Unreal import target | Notes |
+|------|----------------------|--------|
+| `Meshy_AI_HoopBus_Basketball_0319064117_texture.glb` | `/Game/FEL/Props/` → **`SM_HoopBusBasketball`** (or keep default name — `FELBasketballActor` resolves both) | `IMPORT_CHECKLIST.md` |
+| `Meshy_AI_Elijah_Bonds_biped_Animation_Walking_withSkin.glb` | `/Game/FEL/Characters/ElijahBonds/` → **`SKM_ElijahBonds_Walking`** | Movement test character |
+| `Meshy_AI_Elijah_Bonds_biped_Animation_Running_withSkin.glb` | Same folder (optional run variant) | Used by iOS SceneKit hero if present |
+| Venice / Luma | `UnrealStarter/MeshyAssets/Venice_beach_UE5/`, `UnrealStarter/LumaScan/` | See `VENICE_LUMA_LEVEL.md` |
+| Extra Luma scans (OBJ) | `UnrealStarter/LumaExports/capture_03/`, `capture_04/`, `capture_05/` | Optional backdrops / mobile LOD on same `VeniceBeach` map — import to `/Game/FEL/Environment/LumaCaptures/` |
+
+**iOS SceneKit:** Copy the same `.glb` filenames into `ios/FinalEvolutionLab/Meshy/` (see that folder’s `README.md`).
+
+## Soccer / tennis (stadium props)
+
 | File | Use |
 |------|-----|
 | `Meshy_AI_Stadium_Soccer_stad_0323202143_stylize.glb` | Soccer stadium environment |

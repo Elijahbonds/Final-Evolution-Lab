@@ -32,7 +32,10 @@ struct LabView: View {
     @State private var freestyleJudgeScores: (Int, Int, Int)?
     @State private var freestyleCrowdMessage: String = ""
     @State private var freestyleScreenShake: CGFloat = 0
+    @State private var freestyleSceneActionNonce: UInt64 = 0
+    @State private var freestyleSceneActionName: String = ""
     @Environment(\.simpleMode) private var simpleMode
+    @AppStorage(FELArenaDiagnosticsPreference.userDefaultsKey) private var arenaDiagnosticsOverlayEnabled: Bool = false
 
     private var effectiveMetrics: PerformanceMetrics {
         viewModel.effectiveMetrics
@@ -223,13 +226,21 @@ struct LabView: View {
                                 .foregroundStyle(Theme.brandCyan)
                                 .tracking(0.5)
 
-                            BiomechanicsOverlayView(audit: audit)
-                                .frame(height: 350)
-                                .clipShape(.rect(cornerRadius: 16))
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(Theme.cardBackground)
-                                )
+                            if arenaDiagnosticsOverlayEnabled {
+                                BiomechanicsOverlayView(audit: audit)
+                                    .frame(height: 350)
+                                    .clipShape(.rect(cornerRadius: 16))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(Theme.cardBackground)
+                                    )
+                            } else {
+                                Text("Turn on Arena diagnostics in Settings to show the live skeleton overlay.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, 24)
+                            }
                         }
 
                         attributeImpactSection(audit: audit)
@@ -349,20 +360,22 @@ struct LabView: View {
     }
 
     private var courtSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Freestyle dunk practice")
-                        .font(.system(.caption2, weight: .semibold))
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Freestyle dunk lab")
+                        .font(.system(size: 13, weight: .heavy))
                         .foregroundStyle(Theme.brandBlue)
-                        .tracking(0.5)
-
-                    Text("Venice Beach Court")
-                        .font(.system(size: 10, weight: .medium))
+                    Text("Venice Beach Court · SceneKit preview")
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.secondary)
+                    Text("Chain approach → sprint → jump timing → spin → slam. The mini arena mirrors your phase so the runner, camera, and dunks stay in sync.")
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.55))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 HStack(spacing: 6) {
                     NeuralAuraBadge(auraLevel: viewModel.arcadePhysics.auraLevel)
@@ -385,14 +398,24 @@ struct LabView: View {
 
             ZStack {
                 if courtLoaded {
-                    GameSceneHostView(gameMode: .basketballDunkContest, neuralDrive: viewModel.profile.metrics.neuralDrive)
+                    GameSceneHostView(
+                        gameMode: .basketballDunkContest,
+                        neuralDrive: viewModel.profile.metrics.neuralDrive,
+                        leftStickInput: freestyleLeftStick,
+                        rightStickInput: freestyleRightStick,
+                        isMidAir: freestyleDunk.phase == .airborne || freestyleDunk.phase == .launch,
+                        isSpecialMove: freestyleDunk.phase == .airborne && (freestyleDunk.isRotating || freestyleDunk.completedRotation >= 0.9),
+                        isSlowMotion: false,
+                        sceneActionNonce: freestyleSceneActionNonce,
+                        sceneActionName: freestyleSceneActionName
+                    )
                         .frame(height: showCourtExpanded ? 420 : 280)
                         .clipShape(.rect(cornerRadius: 20))
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
                                 .stroke(
                                     LinearGradient(
-                                        colors: [Theme.brandBlue.opacity(0.3), Theme.brandCyan.opacity(0.15), .clear],
+                                        colors: [Theme.brandBlue.opacity(0.35), Theme.brandCyan.opacity(0.2), .clear],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     ),
@@ -406,16 +429,21 @@ struct LabView: View {
                             freestyleScoringOverlay
                         }
                         .overlay(alignment: .topLeading) {
-                            Text("Neural drive \(Int(viewModel.profile.metrics.neuralDrive))%")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(Theme.brandCyan)
-                                .padding(8)
-                        }
-                        .overlay(alignment: .bottom) {
-                            Text("Hold X to gather")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.7))
-                                .padding(.bottom, 40)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Neural drive \(Int(viewModel.profile.metrics.neuralDrive))%")
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(Theme.brandCyan)
+                                if freestyleDunk.phase == .approach {
+                                    Text("Sprint charge drives the runner forward")
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundStyle(.white.opacity(0.65))
+                                } else if freestyleDunk.phase == .launch {
+                                    Text("Tap Jump on the green window")
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundStyle(.green.opacity(0.85))
+                                }
+                            }
+                            .padding(10)
                         }
                         .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
@@ -665,6 +693,7 @@ struct LabView: View {
 
                 HStack(spacing: 8) {
                     Button {
+                        bumpFreestyleSceneAction("Style")
                         withAnimation(.spring(response: 0.15)) {
                             freestyleDunk.isRotating.toggle()
                         }
@@ -864,10 +893,40 @@ struct LabView: View {
         }
     }
 
+    /// Drives SceneKit runner movement from the lab dunk state machine (no physical gamepad required).
+    private var freestyleLeftStick: CGPoint {
+        switch freestyleDunk.phase {
+        case .approach:
+            return CGPoint(x: 0, y: -CGFloat(min(1, freestyleDunk.sprintCharge * 1.2)))
+        case .launch:
+            return CGPoint(x: 0, y: -0.9)
+        case .airborne:
+            let wobble = CGFloat(freestyleDunk.completedRotation * 0.5 - 0.25)
+            return CGPoint(x: freestyleDunk.isRotating ? wobble : 0, y: -0.4)
+        case .landing:
+            return CGPoint(x: 0, y: 0.35)
+        default:
+            return .zero
+        }
+    }
+
+    private var freestyleRightStick: CGPoint {
+        if freestyleDunk.phase == .airborne, freestyleDunk.isRotating {
+            return CGPoint(x: 0.85, y: 0.1)
+        }
+        return .zero
+    }
+
+    private func bumpFreestyleSceneAction(_ name: String) {
+        freestyleSceneActionNonce &+= 1
+        freestyleSceneActionName = name
+    }
+
     // MARK: - Freestyle Dunk Engine Logic
 
     private func startFreestyleApproach() {
         guard freestyleDunk.phase == .idle else { return }
+        bumpFreestyleSceneAction("Approach")
         withAnimation(.spring(response: 0.2)) {
             freestyleDunk.startApproach()
         }
@@ -889,6 +948,7 @@ struct LabView: View {
 
     private func releaseFreestyleSprint() {
         guard freestyleDunk.phase == .approach else { return }
+        bumpFreestyleSceneAction("Sprint")
         freestyleDunkTimer?.cancel()
         withAnimation(.spring(response: 0.2)) {
             freestyleDunk.releaseSprint()
@@ -909,6 +969,7 @@ struct LabView: View {
 
     private func confirmFreestyleLaunch() {
         guard freestyleDunk.phase == .launch else { return }
+        bumpFreestyleSceneAction("Jump")
         freestyleDunkTimer?.cancel()
         let inGreen = freestyleDunk.launchGreenZone.contains(freestyleDunk.launchTiming)
         withAnimation(.spring(response: 0.2)) {
@@ -941,6 +1002,7 @@ struct LabView: View {
 
     private func confirmFreestyleLanding() {
         guard freestyleDunk.phase == .airborne || freestyleDunk.phase == .landing else { return }
+        bumpFreestyleSceneAction("Dunk")
         freestyleDunkTimer?.cancel()
         withAnimation(.spring(response: 0.15)) {
             freestyleDunk.confirmLanding()
@@ -949,6 +1011,7 @@ struct LabView: View {
     }
 
     private func executeFreestyleScoring() {
+        bumpFreestyleSceneAction("Finish")
         let prq = viewModel.effectiveMetrics.prqScore
         let burst = viewModel.arcadePhysics.neuralBurstActive
         let result = freestyleDunk.calculateDunkScore(prq: prq, neuralBurst: burst)

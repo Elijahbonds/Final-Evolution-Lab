@@ -71,8 +71,10 @@ bool FELArenaVenueTravel::ResolveOpenLevelName(const EFELArenaMode Mode, FName& 
 		OutLevelPackageName = FName(FELDigitalTwinVenuePaths::LumaVeniceShop);
 		return true;
 	case EFELArenaMode::Surfing:
-	case EFELArenaMode::Skateboarding:
 		OutLevelPackageName = FName(FELDigitalTwinVenuePaths::VeniceBeachArena);
+		return true;
+	case EFELArenaMode::Skateboarding:
+		OutLevelPackageName = FName(FELDigitalTwinVenuePaths::DojoStadium);
 		return true;
 	case EFELArenaMode::Snowboarding:
 		OutLevelPackageName = FName(FELArenaVenueLevelPaths::TrainingFloor);
@@ -172,7 +174,7 @@ FString FELArenaVenueTravel::GetVenueMatrixLabel(const EFELArenaMode Mode)
 	case EFELArenaMode::Surfing:
 		return TEXT("VeniceBeach (surf)");
 	case EFELArenaMode::Skateboarding:
-		return TEXT("VeniceBeach (skate)");
+		return TEXT("Dojo (skate)");
 	case EFELArenaMode::Snowboarding:
 		return TEXT("TrainingFloor (snow)");
 	default:

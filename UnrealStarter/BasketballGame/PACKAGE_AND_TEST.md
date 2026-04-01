@@ -22,6 +22,7 @@ Use this when you want a **Mac Development build for internal QA**, a **folder/z
 | [10. Repo artifacts & FinalEvolutionLab defaults](#10-repo-artifacts--myprojec-defaults) | Files in this repo + what’s on disk |
 | [11. Short path (TL;DR)](#11-short-path-tldr) | Ordered steps |
 | [12. Cross-links](#12-cross-links) | Related docs |
+| [13. Phase 7 — Mobile / Luma tuning](#13-phase-7--mobile--luma-tuning-target-fps--device-tier) | FPS targets, ASTC presave, platform manager |
 
 ### Large builds / remote play
 
@@ -182,6 +183,41 @@ Read in order:
 | **`../../XCODE_CLEAN_AND_RUN.md` §4** | Unreal vs Swift Xcode |
 | **`QA_GAMEPLAY_AUDIT.md`** | Mode/export QA matrix |
 | **`GAME_MODES.md`** | `PlayMode` behavior |
+
+---
+
+## 13. Phase 7 — Mobile / Luma tuning (target FPS & device tier)
+
+**Intent:** One place for **performance budgets** on Unreal iOS builds and the **SceneKit** lab shell — not a substitute for on-device profiling.
+
+### Target frame rates
+
+| Stack | Target | Notes |
+|-------|--------|--------|
+| **Unreal (iOS)** | **60 FPS** | `UFELPlatformManager::ApplyIOSSettings` sets `t.MaxFPS=60`. `PollIOSDynamicResolution` eases `r.ScreenPercentage` toward **70%** when frame time exceeds ~16.7 ms. `DefaultEngine.ini` may set `bSmoothFrameRate` with a **58–62** Hz smoothed range for display sync. |
+| **Unreal (editor / Mac smoke)** | **58–62 FPS** (smoothed) | Same `SmoothedFrameRateRange` in `Config/DefaultEngine.ini` when enabled. |
+| **SceneKit (`GameSceneHostView`)** | **60 FPS** | `preferredFramesPerSecond = 60`, physics `timeStep = 1/60`, **2× MSAA** (Phase 7: reduced from 4× for fill-rate). |
+
+**Device tiers (rule of thumb):** **A15+ / M1 iPad** — full resolution + DRS at 100% until thermal throttling; **older phones** — expect `PollIOSDynamicResolution` and optional thermal throttle (`ApplyThermalThrottle`) to reduce internal resolution. **Switch** uses `Config/Switch/DefaultScalability.ini`; **iOS** uses `Config/IOS/DefaultScalability.ini` (merged with engine defaults).
+
+### Luma / shop textures (before iOS cook)
+
+1. In **Unreal Editor**, with the **Python Editor Script Plugin** enabled, run **`EditorPython/fel_luma_venue_texture_presave.py`** (Execute Python Script), or use automation that sets `FEL_RUN_STAMP=1` and `FEL_STAMP_PLATFORM=ios` (see script header).
+2. That script stamps **`Texture2D`** assets under **`/Game/FEL/Venues/Luma_Venice_Shop`** to **ASTC** for iOS cooks.
+
+### `UFELPlatformManager` (Luma-relevant hooks)
+
+| API / behavior | Role |
+|----------------|------|
+| `ApplyIOSLiveSessionLuminancePostProcess` | Adjusts **bloom / auto-exposure** on the follow camera from live luminance deltas (readable “Sonic Flare” in bright Venice / shop lighting). |
+| `PollIOSDynamicResolution` | Keeps frame time near **60 Hz** by lowering screen percentage when over budget. |
+| `PollPS5ProPSSRQualityGuard` | On **PS5 Pro**, eases RTGI when FPS drops on **Luma / Venice** map names (see `.cpp`). |
+
+Profile Luma-tagged maps with **`stat fps`** / **`stat unit`** (development builds schedule these once via `ScheduleDevelopmentStatOverlay`).
+
+### SceneKit lab
+
+Arena scenes use the defaults in **`GameSceneHostView`**: fixed physics timestep **1/60**, **2× MSAA**, **60 FPS** preference. Heavy particle counts remain mode-specific in `GameSceneFactory`.
 
 ---
 

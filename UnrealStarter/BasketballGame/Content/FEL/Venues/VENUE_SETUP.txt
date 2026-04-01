@@ -6,8 +6,14 @@ BASKETBALL (1v1, dunk contest, 3v3) — ONE MAP
 All three modes load: /Game/FEL/Venues/VeniceBeach/VeniceBeach
 (OpenLevel + asset warm-up use FELArenaVenueTravel / FELDigitalTwinVenuePaths::VeniceBeachArena — single venue matrix in FELArenaVenueTravel.cpp.)
 
+Audit (Luma + Meshy):
+- ArenaSettings.json: basketball_h2h, basketball_dunk, basketball_3v3 share the same unrealOpenLevelPackage (VeniceBeach).
+- Primary Luma: UnrealStarter/LumaScan/mesh.obj → import as SM_LumaCourt (backdrop shell; ~4m footprint, often scaled).
+- Venice court geometry: Meshy Venice_beach_UE5 → SM_VeniceCourt (playable floor / lines).
+- Additional Luma OBJs in repo: UnrealStarter/LumaExports/capture_03, capture_04, capture_05 — import as optional backdrops/LOD (see VENICE_LUMA_LEVEL.md §1b).
+
 1. Export your Luma capture (UUID in Source: FELLumaCaptureIds::VeniceBeachCourt) to mesh or splat.
-2. Import into /Game/FEL/Environment/Luma or /Game/FEL/Environment/Venice
+2. Import into /Game/FEL/Environment/Luma or /Game/FEL/Environment/Venice (and optionally /Game/FEL/Environment/LumaCaptures for capture_03–05)
 3. Build level VeniceBeach.umap: court mesh, collision, lighting, post-process, PlayerStart(s) for 1v1 and 3v3 offsets.
 4. Props: benches, fencing, hoops/backboard, scoreboard decal, boardwalk skydome or HDR — parent under subfolders for streaming.
 5. CONFIG_DefaultGame_FEL.ini cooks VeniceBeach + Dojo. Uncomment +DirectoriesToAlwaysCook in that file for Environment/* once those folders contain your imports.
@@ -34,9 +40,21 @@ EDITOR HELP
 Run Python (Output Log):  py "../../../UnrealStarter/BasketballGame/EditorPython/fel_bootstrap_venue_folders.py"
 Creates empty Content folders for imports.
 
+RELEASE GATE — MapsToCook ↔ VENUE_SETUP ↔ .umap on disk
+---------------------------------------------------------
+Before **Shipping** / **Gold Master** cook:
+
+1. Every **`unrealOpenLevelPackage`** in **`Content/FEL/Config/ArenaSettings.json`** must have a matching entry in **`Config/DefaultGame.ini`** → **`+MapsToCook=(FilePath="/Game/...")`** (same asset path without `.VeniceBeach` suffix style: use the map asset path Unreal expects for OpenLevel).
+2. Every **`MapsToCook`** path must resolve to a real **`.umap`** under **`Content/`** (typically `/Game/FEL/Venues/<Name>/<Name>.umap`). **No `.umap` → cook/packaging fails** or loads break at runtime.
+3. Run from repo: **`bash UnrealStarter/BasketballGame/verify_fel_venue_maps.sh`** — exits non-zero if any cooked map is missing on disk.
+
+Keep **`VENUE_SETUP.txt`** sections in sync when adding venues: document the map, then add **`MapsToCook`**, then re-run the verify script.
+
 TITAN / GOLD MASTER — clinical placeholders (MapsToCook)
 ----------------------------------------------------------
 `Config/DefaultGame.ini` lists all venue MapsToCook. If a path has no `.umap`, packaging fails.
+
+Placeholder script now: clears prior `FEL_*` actors on each venue pass, spawns **directional light + sky light** + floor + PlayerStart so environments read cleanly (re-run safe).
 
 Recommended (interactive — one Editor session, all venues):
   py "<repo>/UnrealStarter/BasketballGame/EditorPython/fel_clinical_placeholder_venues.py"

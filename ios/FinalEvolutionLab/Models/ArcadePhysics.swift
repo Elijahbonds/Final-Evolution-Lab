@@ -191,7 +191,7 @@ struct TrickCombo: Sendable, Identifiable {
         switch mode {
         case .basketballDunkContest, .basketballHeadToHead, .basketball3v3:
             return dunkCombos
-        case .karate:
+        case .karate1v1, .karateEndless:
             return karateCombos
         default:
             return dunkCombos
@@ -224,7 +224,7 @@ struct GamePhysicsConfig: Sendable {
                 floorShakeAmplitude: 0.02 + normalized * 0.04,
                 particleTrailDensity: 12 + normalized * 28
             )
-        case .karate:
+        case .karate1v1, .karateEndless:
             return GamePhysicsConfig(
                 jumpHeight: 0.9 + normalized * 1.1,
                 moveSpeed: 0.75 + (normalized + auditBonus) * 0.85,

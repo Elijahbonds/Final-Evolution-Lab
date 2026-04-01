@@ -20,11 +20,15 @@ You do **not** use the Mac editor’s `.xcworkspace` as the app that installs on
 
 Archive output defaults to: `UnrealStarter/BasketballGame/Saved/Archive/IOS_Development/`
 
+### Legacy Swift shell (optional)
+
+The **legacy iOS app** (`ios/FinalEvolutionLab`) is **not** the ship path. **One** gaming app for players: the **packaged Unreal** iOS build. The Swift project is SceneKit lab / experiments; optional **Pixel Streaming** and `fel://` deep links are documented in **`DOCS/FEL_PHASE4_SHELL_UNREAL_HANDOFF.md`**. Product: **`UNREAL_ONLY.md`**.
+
 ### FEL runtime paths & native bridge (Phase 8)
 
 - **Writable JSON / flags:** `ProjectSavedDir()/FEL/` (e.g. `session_results.json`, `readiness_snapshot.json`, `lab_onboarding_completed.flag`). Same layout on iOS inside the app sandbox.
 - **Clinical / retail copy:** optional `Content/FEL/Config/FEL_ClinicalUIPolicy.json` (cooked with the game).
-- **Native bridge:** `FELNativeBridge` calls `FEL_IOS_*` C entry points; the game module ships **stub** implementations so iOS Development links without the separate Swift host. Replace at link time if you embed Unreal in a Swift shell.
+- **Native bridge:** `FELNativeBridge` calls `FEL_IOS_*` C entry points; the game module ships **stub** implementations for iOS Development. Replace with a static library only if you add a custom native host (not required for the single Unreal app).
 - **Engine prerequisite:** Epic Launcher → UE 5.7 → **iOS** platform installed, or UBT reports *Missing files required to build IOS targets*.
 - **Team / bundle:** `Config/DefaultEngine.ini` → `[/Script/IOSRuntimeSettings.IOSRuntimeSettings]` (`IOSTeamID`, bundle id) and Xcode Signing for device deploy.
 

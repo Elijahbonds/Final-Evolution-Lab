@@ -297,6 +297,7 @@ void UFELPlatformManager::PollIOSDynamicResolution()
 #endif
 
 #if PLATFORM_IOS
+// Phase 7 — see BasketballGame/PACKAGE_AND_TEST.md §13 (live session luminance vs bloom / exposure).
 void UFELPlatformManager::ApplyIOSLiveSessionLuminancePostProcess(const float NormalizedLuma01, const float DeltaLuma)
 {
 	UWorld* W = FEL_ResolveWorldForSubsystem(this);

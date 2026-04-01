@@ -27,6 +27,7 @@ struct GamePlayView: View {
     @State private var streakTimer: Task<Void, Never>?
     @State private var screenShake: CGFloat = 0
     @State private var showBiomechanicsHUD: Bool = true
+    @AppStorage(FELArenaDiagnosticsPreference.userDefaultsKey) private var arenaDiagnosticsOverlayEnabled: Bool = false
     @State private var showExitConfirmation: Bool = false
     @State private var liveLeakagePenalty: Double = 0
     @State private var leakageFlashJoint: JointType?
@@ -69,6 +70,8 @@ struct GamePlayView: View {
     @State private var golfDragStartY: CGFloat = 0
     @State private var leftStickVector: CGPoint = .zero
     @State private var rightStickVector: CGPoint = .zero
+    @State private var sceneKitActionNonce: UInt64 = 0
+    @State private var sceneKitActionName: String = ""
     @State private var lastStickComboFireAt: Double = 0
 
     @State private var specialMeter: Double = 0
@@ -101,10 +104,18 @@ struct GamePlayView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    @AppStorage(FELArenaRuntimePreference.userDefaultsKey) private var arenaRuntimeRaw: String = FELArenaRuntimePreference.labSceneKit.rawValue
+    @AppStorage(FELArenaRuntimePreference.pixelStreamingURLKey) private var pixelStreamURL: String = ""
+
+    private var arenaRuntimePreference: FELArenaRuntimePreference {
+        FELArenaRuntimePreference(rawValue: arenaRuntimeRaw) ?? .labSceneKit
+    }
+
     private enum GolfSwingPhase { case idle, backswing }
     private enum FootballPhase { case `catch`, run }
 
-    private var isKarate: Bool { gameMode.id == .karate }
+    private var isKarate: Bool { gameMode.id.isKarateFamily }
+    private var isKarateEndlessMode: Bool { gameMode.id == .karateEndless }
     private var inputScheme: InputScheme { gameMode.id.inputScheme }
     private var supportsTricks: Bool { gameMode.id == .basketballDunkContest || gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3 || isKarate }
     private var specialMeterFull: Bool { specialMeter >= 100 }
@@ -133,6 +144,22 @@ struct GamePlayView: View {
 
     private var isDunkContest: Bool {
         gameMode.id == .basketballDunkContest
+    }
+
+    /// Drives SceneKit cinematic camera (dunk air, style meter, slow-mo).
+    private var sceneKitMidAirHint: Bool {
+        if isDunkContest {
+            return dunkEngine.phase == .airborne || dunkEngine.phase == .launch
+        }
+        return false
+    }
+
+    private var sceneKitSpecialMoveHint: Bool {
+        if isSlowMo || showVanishFlash || showPerfectGuard { return true }
+        if isDunkContest, dunkEngine.phase == .airborne {
+            return specialMeter >= 55 || showStyleLanding
+        }
+        return false
     }
 
     private var isBlacktop: Bool {
@@ -164,6 +191,25 @@ struct GamePlayView: View {
         }
     }
 
+    @ViewBuilder
+    private var unrealArenaHandoffBanner: some View {
+        let streamURL = URL(string: pixelStreamURL.trimmingCharacters(in: .whitespacesAndNewlines))
+        VStack(spacing: 6) {
+            Text("Full simulation (Unreal): you are still in the lightweight native arena — not the Luma/Venice Unreal map. Install the UE iOS build (see UnrealStarter/scripts) or open Pixel Streaming below.")
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.92))
+            if let streamURL, streamURL.scheme?.lowercased() == "https" || streamURL.scheme?.lowercased() == "http" {
+                Link("Open stream", destination: streamURL)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.brandCyan)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity)
+        .background(Color.orange.opacity(0.22))
+    }
+
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
@@ -173,13 +219,16 @@ struct GamePlayView: View {
                 .offset(x: screenShake)
 
             VStack(spacing: 0) {
+                if arenaRuntimePreference == .fullUnreal {
+                    unrealArenaHandoffBanner
+                }
                 hudBar
                 Spacer()
                 controlPanel
             }
             .offset(x: screenShake)
 
-            if showBiomechanicsHUD, let audit = viewModel.biomechanicsAudit {
+            if arenaDiagnosticsOverlayEnabled, showBiomechanicsHUD, let audit = viewModel.biomechanicsAudit {
                 LiveBiomechanicsOverlay(
                     audit: audit,
                     isActive: isActive,
@@ -352,17 +401,19 @@ struct GamePlayView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 8) {
-                    Button {
-                        withAnimation(.spring(response: 0.3)) {
-                            showBiomechanicsHUD.toggle()
+                    if arenaDiagnosticsOverlayEnabled {
+                        Button {
+                            withAnimation(.spring(response: 0.3)) {
+                                showBiomechanicsHUD.toggle()
+                            }
+                        } label: {
+                            Image(systemName: showBiomechanicsHUD ? "figure.run.motion" : "figure.stand")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(showBiomechanicsHUD ? Theme.brandCyan : .secondary)
+                                .frame(width: 28, height: 28)
+                                .background(Color.white.opacity(0.06))
+                                .clipShape(Circle())
                         }
-                    } label: {
-                        Image(systemName: showBiomechanicsHUD ? "figure.run.motion" : "figure.stand")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(showBiomechanicsHUD ? Theme.brandCyan : .secondary)
-                            .frame(width: 28, height: 28)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(Circle())
                     }
                     NeuralAuraBadge(auraLevel: arcadePhysics.auraLevel)
                     peerStatusBadge
@@ -455,6 +506,11 @@ struct GamePlayView: View {
                         Text("First to \(targetScore)")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                             .foregroundStyle(gameMode.accentColor)
+                    } else if isKarateEndlessMode {
+                        Text("ENDLESS")
+                            .font(.system(size: 14, weight: .black, design: .monospaced))
+                            .foregroundStyle(gameMode.accentColor)
+                            .shadow(color: gameMode.accentColor.opacity(0.35), radius: 6)
                     } else if isTimerBased {
                         Text(timeFormatted)
                             .font(.system(size: 20, weight: .black, design: .monospaced))
@@ -574,9 +630,11 @@ struct GamePlayView: View {
                 neuralDrive: viewModel.profile.metrics.neuralDrive,
                 leftStickInput: leftStickVector,
                 rightStickInput: rightStickVector,
-                isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
-                isSpecialMove: isSlowMo || showVanishFlash || showPerfectGuard,
-                isSlowMotion: isSlowMo
+                isMidAir: sceneKitMidAirHint,
+                isSpecialMove: sceneKitSpecialMoveHint,
+                isSlowMotion: isSlowMo,
+                sceneActionNonce: sceneKitActionNonce,
+                sceneActionName: sceneKitActionName
             )
             .clipShape(.rect(cornerRadius: 0))
 
@@ -2068,12 +2126,13 @@ struct GamePlayView: View {
         }
     }
 
+    /// PS2 / lab verbs per mode — ids align with `GameModeId.rawValue` ↔ `FELArenaModeIds` (Unreal `FELArenaModeDefinitions.h`).
     private var actionsForMode: [String] {
         switch gameMode.id {
         case .basketballHeadToHead: ["Shoot", "Drive", "Crossover"]
         case .basketballDunkContest: ["Power Dunk", "360 Dunk", "Windmill"]
         case .basketball3v3: ["Pass", "Shoot", "Drive"]
-        case .karate: ["Punch", "Kick", "Block"]
+        case .karate1v1, .karateEndless: ["Punch", "Kick", "Block"]
         case .baseball: ["Swing", "Bunt"]
         case .football: ["Catch", "Break Away"]
         case .soccer: ["Shoot"]
@@ -2248,7 +2307,7 @@ struct GamePlayView: View {
 
         if isTimerBased {
             switch gameMode.id {
-            case .karate: timeRemaining = 90
+            case .karate1v1: timeRemaining = 90
             case .tennis: timeRemaining = 120
             case .volleyball: timeRemaining = 90
             case .basketball3v3: timeRemaining = 120
@@ -2284,6 +2343,8 @@ struct GamePlayView: View {
 
     private func performAction(_ action: String) {
         guard isActive else { return }
+        sceneKitActionNonce &+= 1
+        sceneKitActionName = action
 
         let physics = leakageAdjustedPhysics
         let modeChance = PRQ.successChanceFromPRQ(playerPRQ, for: gameMode.id)
@@ -2388,7 +2449,7 @@ struct GamePlayView: View {
 
         if isBlacktop && score >= targetScore {
             endGame()
-        } else if !isTimerBased && !isDunkContest && !isBlacktop {
+        } else if !isTimerBased && !isDunkContest && !isBlacktop && !isKarateEndlessMode {
             roundNumber += 1
             if roundNumber > maxRounds {
                 endGame()
@@ -2729,7 +2790,7 @@ struct GamePlayView: View {
             }
         case .basketball3v3:
             return action == "Shoot" ? 3 : 2
-        case .karate:
+        case .karate1v1, .karateEndless:
             switch action {
             case "Kick": return 3
             case "Punch": return 1

@@ -11,6 +11,15 @@
 - Import **`UnrealStarter/LumaScan/mesh.obj`** into **`/Game/FEL/Environment/Luma/`** (keep **`mesh.mtl`** + **`textures/`** beside the OBJ).
 - Rename static mesh → **`SM_LumaCourt`**.  
 - **Reference:** `/Game/FEL/Environment/Luma/SM_LumaCourt`
+- Bounds / hoop hints (OBJ space): **`UnrealStarter/LumaScan/placement_hints.json`**.
+
+### 1b. Extra Luma scans (same Venice Beach venue — backdrop / LOD)
+
+Repo includes **three** additional textured-mesh exports: **`UnrealStarter/LumaExports/capture_03/`**, **`capture_04/`**, **`capture_05/`** (each has `mesh.obj`, `mesh.mtl`, `textures/`). See **`UnrealStarter/LumaExports/README.md`** for size/material notes.
+
+- Import each into **`/Game/FEL/Environment/LumaCaptures/`** (or subfolders per capture).
+- Suggested renames: **`SM_LumaCapture03`**, **`SM_LumaCapture04`**, **`SM_LumaCapture05`**.
+- Use on **`VeniceBeach`** as non-primary shells (offset from **`SM_VeniceCourt`**), or swap **`SM_LumaCourt`** for **`capture_04`** on low-end targets. Full workflow: **`BasketballGame/VENICE_LUMA_LEVEL.md`** §0 and §1b.
 
 ## 2. Elijah Bonds (movement test)
 

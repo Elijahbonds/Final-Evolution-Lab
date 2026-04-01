@@ -1,5 +1,10 @@
 import unreal
 
+# Spawns ONE Luma import + hoop props + Elijah. For Venice Beach shipping map, also import:
+# - SM_VeniceCourt (Meshy) + optional SM_LumaCapture03/04/05 from UnrealStarter/LumaExports/* — see
+#   BasketballGame/VENICE_LUMA_LEVEL.md (audit §0–1b). Add extra StaticMeshActors in-editor; optional
+# ASSET_PATHS entries must use Copy Reference from Content Browser after import.
+
 # Modified to match the default names Unreal generates when you drag and drop the files!
 ASSET_PATHS = {
     "luma_environment": "/Game/FEL/Environment/Luma/mesh.mesh",

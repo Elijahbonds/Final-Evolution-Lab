@@ -125,7 +125,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "FEL|Input|Enhanced")
 	TObjectPtr<UInputAction> IA_SprintLongPress;
 
-	/** Optional: bind vertical swipe → Signature Move in IMC (pairs with right-half fast up-swipe in `ProcessTouchDrive`). */
+	/**
+	 * Optional: bind vertical swipe → Signature Move in IMC (pairs with right-half fast up-swipe in `ProcessTouchDrive`).
+	 * Cooked iOS builds without /Game/FEL/Input assets still get signature via `ProcessTouchDrive`.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "FEL|Input|Enhanced")
 	TObjectPtr<UInputAction> IA_SignatureVerticalSwipe;
 

@@ -1,5 +1,5 @@
 # Final Evolution Lab — default stack
-# New product work targets Unreal Engine (see UNREAL_ONLY.md). Swift under FinalEvolutionLab/ (iOS shell) is **legacy** unless a task says otherwise. **Primary native gameplay and tools: Unreal Engine C++ / Blueprint / UMG.**
+# **FEL: implement only in Unreal; never Swift unless I say so.** All product work: `UnrealStarter/BasketballGame/` (C++ / Blueprint / UMG / Niagara / Editor Python under `BasketballGame/EditorPython` or `UnrealStarter/EditorPython`). Do not edit `ios/`, `FinalEvolutionLab/`, or any `.swift` file unless the user explicitly requests Swift/iOS work. See UNREAL_ONLY.md.
 
 # Unreal Engine 5.7+ (when working with Unreal C++, Blueprints, or editor scripts)
 

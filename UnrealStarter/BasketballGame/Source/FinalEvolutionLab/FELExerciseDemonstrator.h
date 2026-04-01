@@ -12,6 +12,8 @@ class USkeletalMesh;
 class UAnimInstance;
 class UAnimMontage;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFELDemonstrationMontageEnded, bool, bInterrupted);
+
 UCLASS()
 class FINALEVOLUTIONLAB_API AFELExerciseDemonstrator : public AActor
 {
@@ -19,6 +21,10 @@ class FINALEVOLUTIONLAB_API AFELExerciseDemonstrator : public AActor
 
 public:
 	AFELExerciseDemonstrator();
+
+	/** Fires when the active demonstration montage finishes (or is interrupted). */
+	UPROPERTY(BlueprintAssignable, Category = "FEL|Demonstration")
+	FFELDemonstrationMontageEnded OnDemonstrationMontageEnded;
 
 	/** Applies mesh + AnimBP class and initial global play rate (call after spawn). */
 	UFUNCTION(BlueprintCallable, Category = "FEL|Demonstration")
@@ -28,7 +34,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FEL|Demonstration")
 	void ApplyDemonstrationPlayRateFromNeuro(float PRQ0to100, float KineticLeakageMultiplier01);
 
-	/** DeepMotion / Academy montage on the default slot (defers if AnimInstance not ready yet). */
+	/** DeepMotion / Academy montage (defers if AnimInstance not ready yet). Binds completion for UI / camera handoff. */
 	UFUNCTION(BlueprintCallable, Category = "FEL|Demonstration")
 	void PlayDemonstrationMontage(UAnimMontage* Montage);
 
@@ -37,4 +43,14 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	void BindMontageFinishedDelegate(UAnimInstance* AI, UAnimMontage* Montage);
+	void UnbindMontageFinishedDelegate();
+
+	UFUNCTION()
+	void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> ActiveDemonstrationMontage = nullptr;
 };

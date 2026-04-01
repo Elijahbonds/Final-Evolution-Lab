@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Phase 10 — Engineering sign-off: static inventory for FEL Phases 1–9 + optional UBT matrix.
+# Invoked by Phase 9: `verify_fel_phase9_automation.sh` (static checks without --compile by default).
 #
 # This is distinct from packaging “go live” Phase 10 in GOLD_MASTER_MAC_PACKAGING.txt
 # (Netlify + verify_gold_master_distribution.sh).

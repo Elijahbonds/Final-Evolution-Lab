@@ -175,11 +175,8 @@ void AFELBasketballPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 #if FEL_TOUCH_DRIVE
-	if (IsLocalPlayerController() && !IA_SignatureVerticalSwipe)
-	{
-		UE_LOG(LogTemp, Error,
-			TEXT("FATAL: IA_SignatureVerticalSwipe unassigned in IMC_FELMobile — assign the Enhanced Input Action on AFELBasketballPlayerController or vertical swipe / signature will not fire."));
-	}
+	// Signature / sprint / jump are driven in ProcessTouchDrive + optional IA_* bindings. IA_SignatureVerticalSwipe is
+	// only for Enhanced Input parity when assets exist; not required for cooked iOS without /Game/FEL/Input UAssets.
 	if (MobileTouchMappingContext && IsLocalPlayerController())
 	{
 		if (ULocalPlayer* LP = GetLocalPlayer())
@@ -248,6 +245,8 @@ void AFELBasketballPlayerController::OnDelayedRenderingFlush()
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("Map: %s"), *CurrentMap));
 		}
 	}
+#if !(PLATFORM_IOS || PLATFORM_ANDROID)
+	// Desktop: stabilize exposure after shader warmup. Mobile ES3.1 + manual AEM often clamps to black until EV settles.
 	if (AFELBasketballCharacter* Ch = Cast<AFELBasketballCharacter>(GetPawn()))
 	{
 		FEL_ApplyManualExposureBaselineToFollowCamera(Ch->FollowCamera);
@@ -256,6 +255,7 @@ void AFELBasketballPlayerController::OnDelayedRenderingFlush()
 			FEL_ForceCameraAutoExposureBias(Ch->FollowCamera, 1.0f);
 		}
 	}
+#endif
 }
 
 void AFELBasketballPlayerController::RemoveAppliedArenaModeMappingContexts()
@@ -902,19 +902,6 @@ void AFELBasketballPlayerController::SetupInputComponent()
 		if (IA_SignatureVerticalSwipe)
 		{
 			EIC->BindAction(IA_SignatureVerticalSwipe, ETriggerEvent::Triggered, this, &AFELBasketballPlayerController::OnIASignatureVerticalSwipe);
-		}
-		else
-		{
-			const FString Msg = TEXT("[FEL] IA_SignatureVerticalSwipe MISSING — assign UInputAction on PlayerController + IMC_FELMobile");
-			UE_LOG(LogTemp, Error, TEXT("%s"), *Msg);
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(
-					-1,
-					25.f,
-					FColor::Red,
-					Msg);
-			}
 		}
 		if (IA_JumpPrimary)
 		{

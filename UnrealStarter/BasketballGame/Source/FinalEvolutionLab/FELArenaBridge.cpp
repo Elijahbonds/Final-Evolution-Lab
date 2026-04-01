@@ -2,28 +2,131 @@
 
 #include "FELArenaBridge.h"
 
-static double ModeScaleForBasketball(const FString& Id)
+namespace
 {
-	if (Id == TEXT("basketball_h2h") || Id == TEXT("basketball_3v3"))
+	FString NormalizeModeId(const FString& Id)
 	{
+		return Id.TrimStartAndEnd().ToLower();
+	}
+
+	double ModeScaleForDisplay(const FString& NormalizedId)
+	{
+		// Tunable: slightly different curves per mode (parity with Swift PRQ presentation).
+		if (NormalizedId == TEXT("basketball_h2h") || NormalizedId == TEXT("basketball_3v3"))
+		{
+			return 0.85;
+		}
+		if (NormalizedId == TEXT("basketball_dunk"))
+		{
+			return 0.90;
+		}
+		if (NormalizedId == TEXT("karate") || NormalizedId == TEXT("karate_h2h") || NormalizedId == TEXT("karate_endless"))
+		{
+			return 0.88;
+		}
+		if (NormalizedId == TEXT("baseball") || NormalizedId == TEXT("football") || NormalizedId == TEXT("soccer"))
+		{
+			return 0.87;
+		}
+		if (NormalizedId == TEXT("golf") || NormalizedId == TEXT("tennis") || NormalizedId == TEXT("volleyball"))
+		{
+			return 0.86;
+		}
+		if (NormalizedId == TEXT("gymnastics"))
+		{
+			return 0.89;
+		}
+		if (NormalizedId == TEXT("brain_brawl"))
+		{
+			return 0.84;
+		}
+		if (NormalizedId == TEXT("surfing") || NormalizedId == TEXT("skateboarding") || NormalizedId == TEXT("snowboarding"))
+		{
+			return 0.88;
+		}
+		if (NormalizedId == TEXT("market_browse"))
+		{
+			return 0.82;
+		}
 		return 0.85;
 	}
-	if (Id == TEXT("basketball_dunk"))
-	{
-		return 0.90;
-	}
-	return 0.85;
 }
 
 FString FELArenaBridge::AttributeLabelForGameModeId(const FString& Id)
 {
-	if (Id == TEXT("basketball_h2h") || Id == TEXT("basketball_3v3"))
+	const FString N = NormalizeModeId(Id);
+
+	if (N == TEXT("basketball_h2h"))
 	{
 		return TEXT("Court IQ");
 	}
-	if (Id == TEXT("basketball_dunk"))
+	if (N == TEXT("basketball_3v3"))
+	{
+		return TEXT("Spacing IQ");
+	}
+	if (N == TEXT("basketball_dunk"))
 	{
 		return TEXT("Hang Time");
+	}
+	if (N == TEXT("karate"))
+	{
+		return TEXT("Discipline");
+	}
+	if (N == TEXT("karate_h2h"))
+	{
+		return TEXT("Strike Tempo");
+	}
+	if (N == TEXT("karate_endless"))
+	{
+		return TEXT("Endurance");
+	}
+	if (N == TEXT("baseball"))
+	{
+		return TEXT("Barrel Control");
+	}
+	if (N == TEXT("football"))
+	{
+		return TEXT("Field Vision");
+	}
+	if (N == TEXT("soccer"))
+	{
+		return TEXT("First Touch");
+	}
+	if (N == TEXT("golf"))
+	{
+		return TEXT("Tempo");
+	}
+	if (N == TEXT("tennis"))
+	{
+		return TEXT("Court Coverage");
+	}
+	if (N == TEXT("volleyball"))
+	{
+		return TEXT("Read & React");
+	}
+	if (N == TEXT("gymnastics"))
+	{
+		return TEXT("Body Line");
+	}
+	if (N == TEXT("brain_brawl"))
+	{
+		return TEXT("Cognitive Load");
+	}
+	if (N == TEXT("surfing"))
+	{
+		return TEXT("Line IQ");
+	}
+	if (N == TEXT("skateboarding"))
+	{
+		return TEXT("Edge Grip");
+	}
+	if (N == TEXT("snowboarding"))
+	{
+		return TEXT("Carve Control");
+	}
+	if (N == TEXT("market_browse"))
+	{
+		return TEXT("Fit & Presence");
 	}
 	return TEXT("Arena");
 }
@@ -32,23 +135,57 @@ double FELArenaBridge::AttributeDisplay01To100(double PRQ, const FString& GameMo
 {
 	const double Safe = FMath::IsFinite(PRQ) ? PRQ : 75.0;
 	const double N = FMath::Clamp(Safe / 100.0, 0.0, 1.0);
-	const double ModeScale = ModeScaleForBasketball(GameModeId);
+	const double ModeScale = ModeScaleForDisplay(NormalizeModeId(GameModeId));
 	return FMath::RoundToDouble(ModeScale * N * 100.0) / 100.0;
 }
 
 double FELArenaBridge::ModeWeightForGameModeId(const FString& Id)
 {
-	if (Id == TEXT("basketball_h2h"))
+	const FString N = NormalizeModeId(Id);
+
+	if (N == TEXT("basketball_h2h"))
 	{
 		return 1.2;
 	}
-	if (Id == TEXT("basketball_dunk"))
+	if (N == TEXT("basketball_dunk"))
 	{
 		return 1.0;
 	}
-	if (Id == TEXT("basketball_3v3"))
+	if (N == TEXT("basketball_3v3"))
 	{
 		return 1.3;
+	}
+	if (N == TEXT("karate") || N == TEXT("karate_h2h"))
+	{
+		return 1.1;
+	}
+	if (N == TEXT("karate_endless"))
+	{
+		return 0.95;
+	}
+	if (N == TEXT("baseball") || N == TEXT("football") || N == TEXT("soccer"))
+	{
+		return 1.05;
+	}
+	if (N == TEXT("golf") || N == TEXT("tennis") || N == TEXT("volleyball"))
+	{
+		return 1.0;
+	}
+	if (N == TEXT("gymnastics"))
+	{
+		return 1.0;
+	}
+	if (N == TEXT("brain_brawl"))
+	{
+		return 0.9;
+	}
+	if (N == TEXT("surfing") || N == TEXT("skateboarding") || N == TEXT("snowboarding"))
+	{
+		return 1.0;
+	}
+	if (N == TEXT("market_browse"))
+	{
+		return 0.85;
 	}
 	return 1.0;
 }

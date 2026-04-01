@@ -69,6 +69,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FEL|Registry|Academy")
 	UAnimMontage* ResolveModuleDemonstrationMontage(const FString& ModuleKey, bool bLoadSynchronously);
 
+	/** Runtime or Blueprint hook: bind DeepMotion / catalogue montages to mod1…mod15 (or extra keys) without editing CDO in editor. */
+	UFUNCTION(BlueprintCallable, Category = "FEL|Registry|Academy")
+	void RegisterAcademyModuleDemonstrationMontage(const FString& ModuleKey, TSoftObjectPtr<UAnimMontage> Montage);
+
 	UFUNCTION(BlueprintPure, Category = "FEL|Registry|Academy")
 	TSoftObjectPtr<UAnimMontage> GetModuleDemonstrationMontageSoft(const FString& ModuleKey) const;
 

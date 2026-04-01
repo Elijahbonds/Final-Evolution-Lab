@@ -9,9 +9,9 @@ C++ targets **UE 5.2+**; verified on **UE 5.7** with **Xcode 26** (see **`UE57_I
 ## Prerequisites
 
 1. **Unreal Engine 5.7** installed; open **`FinalEvolutionLab.uproject`** (see **`../MAC_PLATFORM_MAC_INVALID.md`** if Xcode/UE pairing fails).
-2. Assets in Content:
+2. Assets in Content (Meshy — same GLB names as **`../../ios/FinalEvolutionLab/Meshy/README.md`** if you mirror into the iOS app bundle):
    - **`SKM_ElijahBonds_Walking`** → `/Game/FEL/Characters/ElijahBonds/`
-   - **`SM_HoopBusBasketball`** → `/Game/FEL/Props/`
+   - **`SM_HoopBusBasketball`** → `/Game/FEL/Props/` (or default Meshy import name — `AFELBasketballActor` tries both)
    - **`SM_LumaCourt`** → `/Game/FEL/Environment/Luma/`
    - **`SM_VeniceCourt`** (import `Venice_beach_UE5/Venice_mesh.obj` or GLB) → `/Game/FEL/Environment/Venice/`
 

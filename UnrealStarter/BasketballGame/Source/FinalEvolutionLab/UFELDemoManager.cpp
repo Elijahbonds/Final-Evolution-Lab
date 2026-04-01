@@ -2,6 +2,7 @@
 
 #include "UFELDemoManager.h"
 #include "FELBasketballGameMode.h"
+#include "FELBasketballModes.h"
 #include "FELPerfectFormChecklistWidget.h"
 #include "FELArenaRulesTypes.h"
 #include "UFELArenaModeData.h"
@@ -25,10 +26,30 @@ AFELBasketballGameMode* UFELDemoManager::GetFELGameMode() const
 	return Cast<AFELBasketballGameMode>(GetOwner());
 }
 
-void UFELDemoManager::TriggerExerciseDemo(UAnimMontage* OptionalDemonstrationMontage)
+bool UFELDemoManager::CanExerciseDemoRunThisPhase(const AFELBasketballGameMode* GM) const
+{
+	if (!GM)
+	{
+		return false;
+	}
+	switch (ExerciseDemoPhasePolicy)
+	{
+	case EFELExerciseDemoGameplayPolicy::PreMatchOnly:
+		return GM->MatchPhase == EFELMatchPhase::WaitingToStart;
+	case EFELExerciseDemoGameplayPolicy::PracticeOpenPlay:
+		return GM->MatchPhase == EFELMatchPhase::WaitingToStart
+			|| (GM->MatchPhase == EFELMatchPhase::InProgress && GM->PlayMode == EFELBasketballPlayMode::Practice);
+	case EFELExerciseDemoGameplayPolicy::AnyExceptMatchComplete:
+		return GM->MatchPhase != EFELMatchPhase::MatchComplete;
+	default:
+		return false;
+	}
+}
+
+void UFELDemoManager::TriggerExerciseDemo(UAnimMontage* OptionalDemonstrationMontage, float PRQOverride0to100)
 {
 	AFELBasketballGameMode* GM = GetFELGameMode();
-	if (!GM || GM->MatchPhase != EFELMatchPhase::WaitingToStart)
+	if (!GM || !CanExerciseDemoRunThisPhase(GM))
 	{
 		return;
 	}
@@ -93,12 +114,13 @@ void UFELDemoManager::TriggerExerciseDemo(UAnimMontage* OptionalDemonstrationMon
 	{
 		return;
 	}
-	const float PRQ = GM->GetNeuroPRQScoreFloat();
+	const float PRQ = (PRQOverride0to100 >= 0.f) ? PRQOverride0to100 : GM->GetNeuroPRQScoreFloat();
 	const float Leak = GM->GetNeuroKineticLeakageMultiplierFloat();
 	Demo->ConfigureDemonstrator(Mesh, AnimClass, 1.f);
 	Demo->ApplyDemonstrationPlayRateFromNeuro(PRQ, Leak);
 	if (OptionalDemonstrationMontage)
 	{
+		Demo->OnDemonstrationMontageEnded.AddDynamic(this, &UFELDemoManager::HandleDemonstrationMontageEnded);
 		Demo->PlayDemonstrationMontage(OptionalDemonstrationMontage);
 	}
 	ActiveDemonstrator = Demo;
@@ -112,9 +134,23 @@ void UFELDemoManager::TriggerExerciseDemo(UAnimMontage* OptionalDemonstrationMon
 	ShowPerfectFormOverlay(Hud);
 }
 
+void UFELDemoManager::HandleDemonstrationMontageEnded(bool bInterrupted)
+{
+	(void)bInterrupted;
+	if (!bEndDemoWhenDemonstrationMontageCompletes)
+	{
+		return;
+	}
+	EndExerciseDemoIfActive();
+}
+
 void UFELDemoManager::EndExerciseDemoIfActive()
 {
 	HidePerfectFormOverlay();
+	if (ActiveDemonstrator.IsValid())
+	{
+		ActiveDemonstrator->OnDemonstrationMontageEnded.RemoveAll(this);
+	}
 	if (!ActiveDemonstrator.IsValid())
 	{
 		return;

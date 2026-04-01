@@ -1,36 +1,64 @@
-# FEL basketball — all game modes
+# FEL Arena — game modes (single source of truth)
 
-These modes are **Arena-style shells**: same verbs as **`PITCH_DECK.md`** (street play, shootout, timed challenge, practice, first-to-N). They are the **Unreal lab** surface for Gaming Labs — not a finished consumer mode pack.
+This document is the **shared matrix** for design, QA, and automation: **15 sport / activity modes** plus **Sovereign Shop** (`market_browse`). Config rows add **Karate variants** (`karate`, `karate_h2h`, `karate_endless`) so JSON can express H2H vs endless without extra enums. Runtime wiring uses `active_mode` in **`readiness_snapshot.json`** and matching rows in **`Content/FEL/Config/ArenaSettings.json`**.
 
-**PRQ / attribute modulation (today vs vision):**
-
-- **In Unreal now:** HUD shows **PRQ** and the primary Arena attribute (**Court IQ** or **Hang Time**) derived like **`PRQScoring.swift`**; **`readiness_snapshot.json`** tunes jump, move speed, and ball mass; match end emits **`GameSessionResult`-shaped** JSON (shards / `prqBonus` are lab formulas).
-- **Still pending for “full” vision:** **Shot accuracy** and other attributes as **gameplay** variance (miss cones, contests), iOS **ingest** of session files, and strict **readiness-gated** policy as in shipping Arena.
-
-Details and schema links: **`../VISION_ALIGNMENT.md`**.
-
-Set **`PlayMode`** on **`FELBasketballGameMode`** (World Settings, map override, or Blueprint child). Tune numbers on the same actor.
-
-| Mode | Swift `gameModeId` | Balls | Scoring | Win / end condition | Tunable properties | PRQ hook (vision) |
-|------|---------------------|-------|---------|---------------------|--------------------|-------------------|
-| **Street Ball** | `basketball_h2h` | 1 | On | None (open play) | — | Court IQ + tuning; **no automatic match end** → **no** `last_session_result.json` until you add a stop rule |
-| **Half-Court Shootout** | `basketball_3v3` | 2 | On | First to **`ShootoutTargetBuckets`** (default **11**) | `ShootoutTargetBuckets` | Higher **modeWeight** → more shards; attribute = Court IQ |
-| **Timed Blitz** | `basketball_h2h` | 1 | On | Clock hits **0** → shows final bucket count | `TimedBlitzSeconds` (default **120**) | Same as H2H; time pressure could later scale with **neuralDrive** |
-| **Practice** | `basketball_h2h` | 1 | **Off** | Never ends on score | — | **No economy**; **no match end** → **no** session file unless you add stop UI; movement tuning still applies |
-| **First to 21** | `basketball_dunk` | 1 | On | Reach **`FirstToNTargetBuckets`** (default **21**) | `FirstToNTargetBuckets` | **Hang Time** attribute line; dunk-line tuning can lean on **verticalPotential** later |
-
-## Behaviour details
-
-- **Game state** (`FELBasketballGameState`) stores score, target, timer, and **`bMatchEnded`**.
-- **Hoop volumes** only add score when scoring is enabled and the match has not ended.
-- When a mode **ends** (target reached or time up), **move / look input** is disabled; restart **PIE** or reload the level.
-- **HUD** shows mode name, **PRQ**, primary **Arena attribute** (Court IQ / Hang Time), score (`X / target` when applicable), countdown for timed modes, and an end banner.
-- Drop **`example_readiness_snapshot.json`** into `Saved/FEL/readiness_snapshot.json` (or `Content/FEL/Config/`) to override defaults; see **`../VISION_ALIGNMENT.md`**.
-
-## Blueprint
-
-Subclass **`FELBasketballGameMode`** and set **`PlayMode`** + overrides per map, or use **World Settings → GameMode Override** pointing at that Blueprint.
+**Shell note:** Modes are Arena-style labs (shared verbs, readiness tuning, PRQ HUD). They are not a finished consumer SKU.
 
 ---
 
-*Implemented in `FinalEvolutionLab` and mirrored under `UnrealStarter/BasketballGame/`.*
+## Matrix (`active_mode` → venue → PRQ attribute)
+
+| `active_mode` | Default venue (`.umap` package) | HUD PRQ attribute (`FELArenaBridge`) | Notes |
+|---------------|-----------------------------------|--------------------------------------|--------|
+| `basketball_h2h` | VeniceBeach | Court IQ | Street 1v1 |
+| `basketball_dunk` | VeniceBeach | Hang Time | Dunk contest |
+| `basketball_3v3` | VeniceBeach | Spacing IQ | Street 3v3 |
+| `karate` | Dojo | Discipline | Legacy row; prefer `karate_h2h` / `karate_endless` for new snapshots |
+| `karate_h2h` | Dojo | Strike Tempo | Timed / target score |
+| `karate_endless` | Dojo | Endurance | No round cap |
+| `baseball` | BaseballPark | Barrel Control | |
+| `football` | Gridiron | Field Vision | |
+| `soccer` | SoccerStadium | First Touch | |
+| `golf` | Links | Tempo | |
+| `tennis` | TennisCourt | Court Coverage | |
+| `volleyball` | SandCourt | Read & React | |
+| `gymnastics` | TrainingFloor | Body Line | |
+| `brain_brawl` | NeuroArena | Cognitive Load | Academy / no ball |
+| `surfing` | VeniceBeach | Line IQ | Coastal reuse until dedicated surf venue |
+| `skateboarding` | Dojo | Edge Grip | Park line (Dojo reuse until dedicated skate venue) |
+| `snowboarding` | TrainingFloor | Carve Control | Slope line (TrainingFloor reuse until alpine venue) |
+| `market_browse` | Luma_Venice_Shop | Fit & Presence | Sovereign Shop (non-sport) |
+
+**“16 modes” pitch:** **15** rows above from `basketball_h2h` through `snowboarding` (treat **Karate** as one product with three JSON ids), plus **`market_browse`** = **16 shipped slots**. Alternatively **15 sport + shop** without counting Karate variants twice.
+
+---
+
+## PRQ / economy (Unreal)
+
+- **Attribute label** comes from **`FELArenaBridge::AttributeLabelForGameModeId`** (per `active_mode`, case-insensitive).
+- **Displayed 0–1 attribute** uses **`AttributeDisplay01To100`** (mode-specific scale).
+- **Shards** use **`ModeWeightForGameModeId`** in **`ComputeShardsEarned`** when economy is enabled.
+
+Details and Swift parity notes: **`VISION_ALIGNMENT.md`** (repo root) and `FELArenaBridge.h`.
+
+---
+
+## Karate variants (H2H vs endless)
+
+Merged enum is **`EFELArenaMode::Karate`**; **JSON row key** (`karate_h2h`, `karate_endless`, …) is stored on game state and passed into **`FELArenaRulesRegistry`** so rules differ without new enum values. See `FELBasketballGameMode` + `FELArenaRulesRegistry`.
+
+---
+
+## Release gate: maps must exist
+
+**`Config/DefaultGame.ini`** → **`MapsToCook`** must list every venue package that **`ArenaSettings.json`** references, and each path must resolve to a **`.umap`** on disk. See **`Content/FEL/Venues/VENUE_SETUP.txt`** and run **`verify_fel_venue_maps.sh`** before packaging.
+
+---
+
+## Blueprint / native
+
+Default game mode is native **`FELBasketballGameMode`** (`Config/DefaultEngine.ini`). Subclass in-editor if you extend C++ and need Blueprint overrides.
+
+---
+
+*Implemented under `UnrealStarter/BasketballGame/Source/FinalEvolutionLab/`; config: `Content/FEL/Config/ArenaSettings.json` (mirror: `ArenaSettings.json`).*

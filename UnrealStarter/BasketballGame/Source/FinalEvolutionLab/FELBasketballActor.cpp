@@ -18,16 +18,17 @@ namespace
 {
 	static UStaticMesh* FELResolveBallStaticMesh()
 	{
-		if (FPackageName::DoesPackageExist(TEXT("/Game/FEL/Props/SM_HoopBusBasketball")))
+		// Prefer renamed `SM_HoopBusBasketball`; fall back to default Meshy import names (IMPORT_CHECKLIST.md).
+		static const TCHAR* Paths[] = {
+			TEXT("/Game/FEL/Props/SM_HoopBusBasketball.SM_HoopBusBasketball"),
+			TEXT("/Game/FEL/Props/Meshy_AI_HoopBus_Basketball_0319064117_texture.Meshy_AI_HoopBus_Basketball_0319064117_texture"),
+			TEXT("/Game/FEL/StreamingAssets/Meshy/Meshy_AI_HoopBus_Basketball_0319064117_texture.Meshy_AI_HoopBus_Basketball_0319064117_texture"),
+		};
+		for (const TCHAR* P : Paths)
 		{
-			if (UStaticMesh* Fel = LoadObject<UStaticMesh>(
-					nullptr,
-					TEXT("/Game/FEL/Props/SM_HoopBusBasketball.SM_HoopBusBasketball"),
-					nullptr,
-					LOAD_None,
-					nullptr))
+			if (UStaticMesh* M = LoadObject<UStaticMesh>(nullptr, P, nullptr, LOAD_None, nullptr))
 			{
-				return Fel;
+				return M;
 			}
 		}
 		return LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/EngineMeshes/Sphere.Sphere"), nullptr, LOAD_None, nullptr);

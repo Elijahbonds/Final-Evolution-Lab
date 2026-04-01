@@ -340,9 +340,9 @@ namespace FELArenaRulesRegistryInternal
 		return Path;
 	}
 
-	static void ApplyJsonOverridesToRulesImpl(EFELArenaMode Mode, FFELArenaRules& InOut)
+	static void ApplyJsonOverridesToRulesImpl(EFELArenaMode Mode, FFELArenaRules& InOut, const FString& JsonModeKeyOverride)
 	{
-		const FString ModeId = FELArenaModeToIdString(Mode);
+		FString ModeId = JsonModeKeyOverride.IsEmpty() ? FELArenaModeToIdString(Mode) : JsonModeKeyOverride.TrimStartAndEnd().ToLower();
 		FString Json;
 		if (!FFileHelper::LoadFileToString(Json, *JsonPath()))
 		{
@@ -362,7 +362,15 @@ namespace FELArenaRulesRegistryInternal
 			return;
 		}
 
-		const TSharedPtr<FJsonObject> RuleObj = ModesObj->GetObjectField(ModeId);
+		TSharedPtr<FJsonObject> RuleObj;
+		if (ModesObj->HasField(ModeId))
+		{
+			RuleObj = ModesObj->GetObjectField(ModeId);
+		}
+		else if (Mode == EFELArenaMode::Karate && ModeId != TEXT("karate") && ModesObj->HasField(TEXT("karate")))
+		{
+			RuleObj = ModesObj->GetObjectField(TEXT("karate"));
+		}
 		if (!RuleObj.IsValid())
 		{
 			return;
@@ -430,6 +438,20 @@ namespace FELArenaRulesRegistryInternal
 		}
 		if (Mode == EFELArenaMode::Karate)
 		{
+			// Prefer explicit JSON row key (e.g. karate_h2h vs karate_endless) so lab variants differ when active_mode matches.
+			if (ModeId == TEXT("karate_h2h"))
+			{
+				InOut.KarateLabMode = EFELKarateLabMode::HeadToHeadStorm;
+			}
+			else if (ModeId == TEXT("karate_endless"))
+			{
+				InOut.KarateLabMode = EFELKarateLabMode::EndlessAgentWaves;
+			}
+			else if (ModeId == TEXT("karate_matrix_revolutions") || ModeId == TEXT("karate_revolutions_siege") || ModeId == TEXT("karate_revolutions"))
+			{
+				InOut.KarateLabMode = EFELKarateLabMode::MatrixRevolutionsSiege;
+			}
+			// Optional field overrides key inference.
 			FString KS;
 			if (RuleObj->TryGetStringField(TEXT("karateLabMode"), KS))
 			{
@@ -529,7 +551,7 @@ namespace FELArenaRulesRegistryInternal
 	}
 }
 
-FFELArenaRules FELArenaRulesRegistry::GetMergedRules(EFELArenaMode Mode)
+FFELArenaRules FELArenaRulesRegistry::GetMergedRules(EFELArenaMode Mode, const FString& JsonModeKeyOverride)
 {
 	if (Mode == EFELArenaMode::Unknown)
 	{
@@ -537,14 +559,14 @@ FFELArenaRules FELArenaRulesRegistry::GetMergedRules(EFELArenaMode Mode)
 	}
 
 	FFELArenaRules R = FELArenaRulesRegistryInternal::BuildFactoryDefaults(Mode);
-	FELArenaRulesRegistryInternal::ApplyJsonOverridesToRulesImpl(Mode, R);
+	FELArenaRulesRegistryInternal::ApplyJsonOverridesToRulesImpl(Mode, R, JsonModeKeyOverride);
 	FELArenaRulesRegistryInternal::SanitizeRulesInPlaceImpl(R, Mode);
 	return R;
 }
 
-void FELArenaRulesRegistry::ApplyJsonOverridesToRules(const EFELArenaMode Mode, FFELArenaRules& InOut)
+void FELArenaRulesRegistry::ApplyJsonOverridesToRules(const EFELArenaMode Mode, FFELArenaRules& InOut, const FString& JsonModeKeyOverride)
 {
-	FELArenaRulesRegistryInternal::ApplyJsonOverridesToRulesImpl(Mode, InOut);
+	FELArenaRulesRegistryInternal::ApplyJsonOverridesToRulesImpl(Mode, InOut, JsonModeKeyOverride);
 }
 
 void FELArenaRulesRegistry::SanitizeRulesInPlace(FFELArenaRules& R, const EFELArenaMode Mode)

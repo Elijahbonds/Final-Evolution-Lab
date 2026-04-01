@@ -48,6 +48,24 @@
       "timeLimitSeconds": 150,
       "ballCount": 1
     },
+    "karate_h2h": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo.Dojo",
+      "modeDisplayName": "Karate · 1v1",
+      "unrealBasketballSlice": "StreetBall",
+      "targetScore": 5,
+      "timeLimitSeconds": 90,
+      "ballCount": 1,
+      "bScoringEnabled": true
+    },
+    "karate_endless": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo.Dojo",
+      "modeDisplayName": "Karate · Endless",
+      "unrealBasketballSlice": "StreetBall",
+      "targetScore": 0,
+      "timeLimitSeconds": 0,
+      "ballCount": 1,
+      "bScoringEnabled": true
+    },
     "baseball": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/BaseballPark/BaseballPark.BaseballPark",
       "modeDisplayName": "Baseball · Ballpark",
@@ -133,8 +151,8 @@
       "physicsJumpScale": 1.04
     },
     "skateboarding": {
-      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
-      "modeDisplayName": "Skate · Line",
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo.Dojo",
+      "modeDisplayName": "Skate · Dojo",
       "unrealBasketballSlice": "Practice",
       "ballSpawnType": "None",
       "bIsDunkContest": false,

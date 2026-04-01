@@ -121,7 +121,7 @@ struct DynamicDifficulty: Sendable {
         switch mode {
         case .basketballHeadToHead, .basketball3v3: modeScale = 1.0
         case .basketballDunkContest: modeScale = 0.8
-        case .karate: modeScale = 1.2
+        case .karate1v1, .karateEndless: modeScale = 1.2
         case .baseball: modeScale = 0.7
         case .football: modeScale = 1.5
         case .soccer: modeScale = 0.9
