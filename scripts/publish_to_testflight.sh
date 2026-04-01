@@ -19,7 +19,7 @@
 #   ./scripts/publish_to_testflight.sh
 #
 # Environment:
-#   FEL_ARCHIVE_PATH   — path to .xcarchive (default: build/FinalEvolutionLabUnreal.xcarchive)
+#   FEL_ARCHIVE_PATH   — path to .xcarchive (default: build/FinalEvolutionLab.xcarchive)
 #   FEL_IPA_PATH       — explicit IPA (skips export when set and file exists)
 #   FEL_VALIDATE_ONLY  — set to 1 to run validation only (no upload)
 #
@@ -27,10 +27,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PROJECT="FinalEvolutionLabUnreal.xcodeproj"
+PROJECT="ios/FinalEvolutionLab.xcodeproj"
 PBX="$ROOT/$PROJECT/project.pbxproj"
-SCHEME="FinalEvolutionLabUnreal"
-ARCHIVE_PATH="${FEL_ARCHIVE_PATH:-$ROOT/build/FinalEvolutionLabUnreal.xcarchive}"
+SCHEME="FinalEvolutionLab"
+ARCHIVE_PATH="${FEL_ARCHIVE_PATH:-$ROOT/build/FinalEvolutionLab.xcarchive}"
 EXPORT_DIR="${FEL_EXPORT_DIR:-$ROOT/build/export}"
 DIST_DIR="${FEL_DIST_DIR:-$ROOT/build/distribution}"
 EXPORT_PLIST="${FEL_EXPORT_OPTIONS_PLIST:-$ROOT/Config/ExportOptions-TestFlight.plist}"
@@ -122,7 +122,7 @@ else
 fi
 
 mkdir -p "$DIST_DIR"
-STAMPED="$DIST_DIR/FinalEvolutionLabUnreal-1.0.0-5.ipa"
+STAMPED="$DIST_DIR/FinalEvolutionLab-1.0.0-6.ipa"
 echo "==> Staging artifact (ditto)"
 ditto "$IPA_PATH" "$STAMPED"
 echo "  [OK] $STAMPED"

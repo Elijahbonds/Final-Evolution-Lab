@@ -51,16 +51,16 @@ fi
 echo "========================================================="
 echo ""
 
-PROJECT="FinalEvolutionLabUnreal.xcodeproj"
-SCHEME="FinalEvolutionLabUnreal"
+PROJECT="ios/FinalEvolutionLab.xcodeproj"
+SCHEME="FinalEvolutionLab"
 CONFIG="${FEL_CONFIGURATION:-Debug}"
 # If your Mac shows a different name in Xcode’s destination list, set e.g.:
 #   FEL_MAC_DESTINATION='platform=macOS,name=…'
 MAC_DEST="${FEL_MAC_DESTINATION:-platform=macOS,name=My Mac}"
 
 if [[ "${FEL_SKIP_CLEAN:-}" != "1" ]]; then
-  echo "==> Removing DerivedData for FinalEvolutionLabUnreal"
-  rm -rf ~/Library/Developer/Xcode/DerivedData/FinalEvolutionLabUnreal-*
+  echo "==> Removing DerivedData for FinalEvolutionLab"
+  rm -rf ~/Library/Developer/Xcode/DerivedData/FinalEvolutionLab-*
 else
   echo "==> Skipping DerivedData clean (FEL_SKIP_CLEAN=1)"
 fi
@@ -106,7 +106,7 @@ echo ""
 echo "==> FINAL VERIFICATION (Gold Master Build 6)"
 FINAL_OK=1
 
-PBX="$ROOT/FinalEvolutionLabUnreal.xcodeproj/project.pbxproj"
+PBX="$ROOT/ios/FinalEvolutionLab.xcodeproj/project.pbxproj"
 if grep -q 'INFOPLIST_KEY_GEMINI_API_KEY' "$PBX"; then
   echo "  [OK] GEMINI_API_KEY wired via GENERATE_INFOPLIST_FILE (INFOPLIST_KEY_GEMINI_API_KEY)."
 else

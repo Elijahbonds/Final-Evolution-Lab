@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> Removing DerivedData for FinalEvolutionLabUnreal (if present)"
-rm -rf "${HOME}/Library/Developer/Xcode/DerivedData"/FinalEvolutionLabUnreal-* 2>/dev/null || true
+echo "==> Removing DerivedData for FinalEvolutionLab (if present)"
+rm -rf "${HOME}/Library/Developer/Xcode/DerivedData"/FinalEvolutionLab-* 2>/dev/null || true
 
 echo "==> Removing SwiftPM local build dirs"
 rm -rf .build .swiftpm 2>/dev/null || true

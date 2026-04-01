@@ -12,9 +12,9 @@ if [[ "${FULL_PURGE}" == "1" ]]; then
   echo "    Mode: FULL purge of ~/Library/Developer/Xcode/DerivedData"
   rm -rf "${HOME}/Library/Developer/Xcode/DerivedData"
 else
-  echo "    Mode: project-scoped FinalEvolutionLabUnreal-* (set FEL_DERIVED_DATA_FULL_PURGE=1 for full DerivedData wipe)"
-  rm -rf "${HOME}/Library/Developer/Xcode/DerivedData"/FinalEvolutionLabUnreal-* 2>/dev/null || true
+  echo "    Mode: project-scoped FinalEvolutionLab-* (set FEL_DERIVED_DATA_FULL_PURGE=1 for full DerivedData wipe)"
+  rm -rf "${HOME}/Library/Developer/Xcode/DerivedData"/FinalEvolutionLab-* 2>/dev/null || true
 fi
 
-echo "==> Done. Next: quit Xcode (⌘Q), reopen FinalEvolutionLabUnreal.xcodeproj, Product → Clean Build Folder (⇧⌘K), then Build (⌘B) / Run (⌘R)."
+echo "==> Done. Next: quit Xcode (⌘Q), reopen ios/FinalEvolutionLab.xcodeproj, Product → Clean Build Folder (⇧⌘K), then Build (⌘B) / Run (⌘R)."
 echo "    See XCODE_CLEAN_AND_RUN.md for the full checklist."

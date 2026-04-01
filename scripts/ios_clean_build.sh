@@ -24,11 +24,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PROJECT="FinalEvolutionLabUnreal.xcodeproj"
-SCHEME="FinalEvolutionLabUnreal"
+PROJECT="ios/FinalEvolutionLab.xcodeproj"
+SCHEME="FinalEvolutionLab"
 PBX="$ROOT/$PROJECT/project.pbxproj"
 CONFIG="${FEL_CONFIGURATION:-Release}"
-ARCHIVE_PATH="${FEL_ARCHIVE_PATH:-$ROOT/build/FinalEvolutionLabUnreal.xcarchive}"
+ARCHIVE_PATH="${FEL_ARCHIVE_PATH:-$ROOT/build/FinalEvolutionLab.xcarchive}"
 DO_ARCHIVE="${FEL_ARCHIVE:-1}"
 # Final Evolution LLC — match project.pbxproj DEVELOPMENT_TEAM for Release; override via env for CI.
 DEFAULT_TEAM_ID="78L8GWA44F"
@@ -69,11 +69,11 @@ fi
 echo "==> Removing optional local tooling clutter (if present)"
 rm -rf "$ROOT/.fel-local-tooling" 2>/dev/null || true
 
-echo "==> Purging DerivedData for FinalEvolutionLabUnreal"
+echo "==> Purging DerivedData for FinalEvolutionLab"
 purge_derived_data() {
   local d
   shopt -s nullglob
-  for d in "${HOME}/Library/Developer/Xcode/DerivedData"/FinalEvolutionLabUnreal-*; do
+  for d in "${HOME}/Library/Developer/Xcode/DerivedData"/FinalEvolutionLab-*; do
     [[ -d "$d" ]] || continue
     chmod -R u+w "$d" 2>/dev/null || true
     if ! rm -rf "$d" 2>/dev/null; then
