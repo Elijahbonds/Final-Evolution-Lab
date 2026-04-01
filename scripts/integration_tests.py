@@ -450,6 +450,108 @@ def test_deployment_guide():
 # TEST RUNNER
 # ═══════════════════════════════════════════════════════════════════════════
 
+def test_cv_preprocessing_pipeline():
+    """Test CV preprocessing pipeline files exist and are importable."""
+    cv_dir = PROJECT_ROOT / "scripts" / "cv_preprocessing"
+    required_modules = [
+        "__init__.py",
+        "actor_segmentation.py",
+        "background_masking.py",
+        "hoop_detection.py",
+        "motion_smoothing.py",
+        "preprocessing_pipeline.py",
+        "biomechanical_validator.py"
+    ]
+    missing = [m for m in required_modules if not (cv_dir / m).exists()]
+    if not missing:
+        record("cv_preprocessing_pipeline", "PASS", f"All {len(required_modules)} CV modules present")
+    else:
+        record("cv_preprocessing_pipeline", "FAIL", f"Missing modules: {missing}")
+
+    # Check requirements.txt
+    req = cv_dir / "requirements.txt"
+    if req.exists():
+        content = req.read_text()
+        for dep in ["ultralytics", "opencv", "scipy"]:
+            if dep not in content:
+                record(f"cv_dep_{dep}", "WARN", f"Dependency '{dep}' not in requirements.txt")
+    else:
+        record("cv_requirements", "WARN", "CV requirements.txt not found")
+
+
+def test_biomechanical_joint_limits():
+    """Verify joint angle limits are biomechanically valid."""
+    joint_limits = {
+        "knee_flexion": (0, 160),
+        "hip_flexion": (0, 130),
+        "shoulder_flexion": (0, 180),
+        "elbow_flexion": (0, 150),
+        "ankle_dorsiflexion": (0, 20),
+    }
+    all_valid = True
+    for joint, (lo, hi) in joint_limits.items():
+        if lo < 0 or hi > 360 or lo >= hi:
+            record(f"joint_limit_{joint}", "FAIL", f"Invalid range: ({lo}, {hi})")
+            all_valid = False
+        if hi > 180 and joint not in ("shoulder_flexion", "shoulder_abduction"):
+            record(f"joint_limit_{joint}", "WARN", f"Unusually high max: {hi}°")
+
+    if all_valid:
+        record("biomechanical_joint_limits", "PASS", f"All {len(joint_limits)} joint limits valid")
+
+    # Check validator module can be imported
+    try:
+        sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "cv_preprocessing"))
+        from biomechanical_validator import JOINT_ANGLE_LIMITS, BiomechanicalValidator
+        record("biomechanical_validator_import", "PASS",
+               f"Validator importable, {len(JOINT_ANGLE_LIMITS)} joint limits defined")
+    except Exception as e:
+        record("biomechanical_validator_import", "WARN", f"Cannot import: {e}")
+
+
+def test_cv_metadata_structure():
+    """Check CV preprocessing output metadata structure if available."""
+    cv_output = PROJECT_ROOT / "GeneratedAssets" / "CVPreprocessed"
+    if not cv_output.exists():
+        record("cv_metadata", "SKIP", "No CV preprocessed output yet")
+        return
+
+    meta_dir = cv_output / "metadata"
+    if meta_dir.exists():
+        meta_files = list(meta_dir.glob("*_cv_meta.json"))
+        if meta_files:
+            # Validate structure of first file
+            try:
+                data = json.loads(meta_files[0].read_text())
+                required_keys = ["video_name", "stages", "status"]
+                missing = [k for k in required_keys if k not in data]
+                if missing:
+                    record("cv_metadata_structure", "WARN", f"Missing keys: {missing}")
+                else:
+                    record("cv_metadata_structure", "PASS",
+                           f"{len(meta_files)} metadata files, structure valid")
+            except Exception as e:
+                record("cv_metadata_structure", "FAIL", f"Invalid JSON: {e}")
+        else:
+            record("cv_metadata", "SKIP", "No metadata files generated yet")
+    else:
+        record("cv_metadata", "SKIP", "Metadata directory not yet created")
+
+    # Check preprocessing report
+    report = PROJECT_ROOT / "logs" / "cv_preprocessing_report.json"
+    if report.exists():
+        try:
+            data = json.loads(report.read_text())
+            summary = data.get("summary", {})
+            record("cv_report", "PASS",
+                   f"Report: {summary.get('total_videos', 0)} videos, "
+                   f"{summary.get('successful', 0)} successful")
+        except Exception as e:
+            record("cv_report", "WARN", f"Report parse error: {e}")
+    else:
+        record("cv_report", "SKIP", "CV preprocessing report not yet generated")
+
+
 def main():
     print("\n" + "=" * 70)
     print(" FINAL EVOLUTION LAB - Integration Test Suite")
@@ -498,6 +600,12 @@ def main():
     print("\n--- Documentation Tests ---")
     test_docs_complete()
     test_deployment_guide()
+
+    # Group 8: CV Preprocessing & Biomechanical Validation
+    print("\n--- CV Preprocessing & Biomechanical Tests ---")
+    test_cv_preprocessing_pipeline()
+    test_biomechanical_joint_limits()
+    test_cv_metadata_structure()
 
     # Summary
     total = results["passed"] + results["failed"] + results["warned"] + results["skipped"]

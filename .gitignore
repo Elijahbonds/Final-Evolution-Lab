@@ -39,4 +39,11 @@ __pycache__/
 
 # Build outputs
 Builds/
+
+# CV Preprocessing generated artifacts (large binary/data files)
+GeneratedAssets/CVPreprocessed/*/segmentation/masks/
+GeneratedAssets/CVPreprocessed/*/segmentation/*_segmentation_meta.json
+GeneratedAssets/CVPreprocessed/*/masked/*.mp4
+GeneratedAssets/CVPreprocessed/*/hoop/annotated/
+GeneratedAssets/CVPreprocessed/*/smoothed/
 logs/

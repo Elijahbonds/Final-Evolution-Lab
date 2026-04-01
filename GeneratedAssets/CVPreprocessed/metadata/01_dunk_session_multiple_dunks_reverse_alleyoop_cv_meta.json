@@ -1,0 +1,53 @@
+{
+  "video_name": "01_dunk_session_multiple_dunks_reverse_alleyoop",
+  "source_path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+  "output_dir": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/01_dunk_session_multiple_dunks_reverse_alleyoop",
+  "stages": {
+    "segmentation": {
+      "status": "success",
+      "detection_rate": 1.0,
+      "avg_confidence": 0.5,
+      "method": "OpenCV_MOG2_Fallback",
+      "frames_processed": 1375,
+      "duration_sec": 19.88
+    },
+    "masking": {
+      "status": "success",
+      "avg_mask_coverage": 0.13156345091540392,
+      "output_videos": {
+        "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/01_dunk_session_multiple_dunks_reverse_alleyoop/masked/01_dunk_session_multiple_dunks_reverse_alleyoop_masked.mp4"
+      },
+      "duration_sec": 28.23
+    },
+    "hoop_detection": {
+      "status": "success",
+      "hoop_detected": true,
+      "spatial_reference": {
+        "hoop_center_px": [
+          352,
+          308
+        ],
+        "hoop_radius_px": 84,
+        "pixels_per_inch": 9.33,
+        "pixels_per_foot": 112.0,
+        "estimated_hoop_height_px": 308,
+        "reference_height_feet": 10.0,
+        "confidence": 0.5999999999999999,
+        "is_calibrated": true
+      },
+      "detection_rate": 1.0,
+      "duration_sec": 3.82
+    },
+    "smoothing": {
+      "status": "success",
+      "method": "kalman",
+      "jitter_original": 32.83371033644897,
+      "jitter_smoothed": 26.874738599786212,
+      "jitter_reduction": 0.1814894410531379,
+      "duration_sec": 0.06
+    }
+  },
+  "status": "success",
+  "start_time": "2026-04-01T23:20:13.365707",
+  "end_time": "2026-04-01T23:21:05.349974"
+}

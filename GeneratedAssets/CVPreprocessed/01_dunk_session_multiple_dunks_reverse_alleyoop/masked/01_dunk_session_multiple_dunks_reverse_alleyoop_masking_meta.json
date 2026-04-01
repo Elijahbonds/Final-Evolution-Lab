@@ -1,0 +1,15 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+  "video_name": "01_dunk_session_multiple_dunks_reverse_alleyoop",
+  "total_frames": 1375,
+  "frames_processed": 1375,
+  "frames_with_mask": 1375,
+  "avg_mask_coverage": 0.13156345091540392,
+  "modes_generated": [
+    "masked"
+  ],
+  "output_videos": {
+    "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/01_dunk_session_multiple_dunks_reverse_alleyoop/masked/01_dunk_session_multiple_dunks_reverse_alleyoop_masked.mp4"
+  },
+  "feather_radius": 3
+}

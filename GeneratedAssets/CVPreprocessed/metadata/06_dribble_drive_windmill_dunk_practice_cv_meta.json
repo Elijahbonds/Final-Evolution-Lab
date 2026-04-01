@@ -1,0 +1,53 @@
+{
+  "video_name": "06_dribble_drive_windmill_dunk_practice",
+  "source_path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+  "output_dir": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/06_dribble_drive_windmill_dunk_practice",
+  "stages": {
+    "segmentation": {
+      "status": "success",
+      "detection_rate": 0.9807692307692307,
+      "avg_confidence": 0.5,
+      "method": "OpenCV_MOG2_Fallback",
+      "frames_processed": 260,
+      "duration_sec": 1.93
+    },
+    "masking": {
+      "status": "success",
+      "avg_mask_coverage": 0.0320309497537981,
+      "output_videos": {
+        "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/06_dribble_drive_windmill_dunk_practice/masked/06_dribble_drive_windmill_dunk_practice_masked.mp4"
+      },
+      "duration_sec": 2.33
+    },
+    "hoop_detection": {
+      "status": "success",
+      "hoop_detected": true,
+      "spatial_reference": {
+        "hoop_center_px": [
+          272,
+          346
+        ],
+        "hoop_radius_px": 180,
+        "pixels_per_inch": 20.0,
+        "pixels_per_foot": 240.0,
+        "estimated_hoop_height_px": 346,
+        "reference_height_feet": 10.0,
+        "confidence": 0.6599999999999999,
+        "is_calibrated": true
+      },
+      "detection_rate": 1.0,
+      "duration_sec": 0.2
+    },
+    "smoothing": {
+      "status": "success",
+      "method": "kalman",
+      "jitter_original": 15.437755065691562,
+      "jitter_smoothed": 12.035865813438718,
+      "jitter_reduction": 0.2203616547727919,
+      "duration_sec": 0.02
+    }
+  },
+  "status": "success",
+  "start_time": "2026-04-01T23:22:14.469885",
+  "end_time": "2026-04-01T23:22:18.958820"
+}

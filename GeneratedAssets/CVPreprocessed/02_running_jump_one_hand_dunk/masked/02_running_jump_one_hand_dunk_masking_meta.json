@@ -1,0 +1,15 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/02_running_jump_one_hand_dunk.mp4",
+  "video_name": "02_running_jump_one_hand_dunk",
+  "total_frames": 452,
+  "frames_processed": 452,
+  "frames_with_mask": 452,
+  "avg_mask_coverage": 0.5908590965308501,
+  "modes_generated": [
+    "masked"
+  ],
+  "output_videos": {
+    "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/02_running_jump_one_hand_dunk/masked/02_running_jump_one_hand_dunk_masked.mp4"
+  },
+  "feather_radius": 3
+}

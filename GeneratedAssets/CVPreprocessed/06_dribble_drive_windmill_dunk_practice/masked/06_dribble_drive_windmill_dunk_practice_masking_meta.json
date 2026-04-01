@@ -1,0 +1,15 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+  "video_name": "06_dribble_drive_windmill_dunk_practice",
+  "total_frames": 260,
+  "frames_processed": 260,
+  "frames_with_mask": 260,
+  "avg_mask_coverage": 0.0320309497537981,
+  "modes_generated": [
+    "masked"
+  ],
+  "output_videos": {
+    "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/06_dribble_drive_windmill_dunk_practice/masked/06_dribble_drive_windmill_dunk_practice_masked.mp4"
+  },
+  "feather_radius": 3
+}

@@ -1,0 +1,975 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+  "video_name": "10_full_court_game_crossover_eurostep_layups",
+  "resolution": {
+    "width": 480,
+    "height": 854
+  },
+  "fps": 30.0,
+  "total_frames": 1787,
+  "frames_sampled": 179,
+  "frames_with_hoop": 175,
+  "detection_rate": 0.9776536312849162,
+  "spatial_reference": {
+    "hoop_center_px": [
+      163,
+      388
+    ],
+    "hoop_radius_px": 53,
+    "pixels_per_inch": 5.89,
+    "pixels_per_foot": 70.67,
+    "estimated_hoop_height_px": 388,
+    "reference_height_feet": 10.0,
+    "confidence": 0.5865542154566745,
+    "is_calibrated": true
+  },
+  "hoop_stable": true,
+  "frame_detections": [
+    {
+      "frame": 0,
+      "timestamp": 0.0,
+      "detection": {
+        "center": [
+          337,
+          326
+        ],
+        "bbox": [
+          295,
+          284,
+          379,
+          368
+        ],
+        "radius_px": 42,
+        "confidence": 0.6,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 10,
+      "timestamp": 0.3333333333333333,
+      "detection": {
+        "center": [
+          271,
+          333
+        ],
+        "bbox": [
+          217,
+          279,
+          325,
+          387
+        ],
+        "radius_px": 54,
+        "confidence": 0.6,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 20,
+      "timestamp": 0.6666666666666666,
+      "detection": {
+        "center": [
+          307,
+          367
+        ],
+        "bbox": [
+          261,
+          321,
+          353,
+          413
+        ],
+        "radius_px": 46,
+        "confidence": 0.6,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 30,
+      "timestamp": 1.0,
+      "detection": {
+        "center": [
+          248,
+          373
+        ],
+        "bbox": [
+          199,
+          324,
+          297,
+          422
+        ],
+        "radius_px": 49,
+        "confidence": 0.6,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 40,
+      "timestamp": 1.3333333333333333,
+      "detection": {
+        "center": [
+          207,
+          373
+        ],
+        "bbox": [
+          147,
+          313,
+          267,
+          433
+        ],
+        "radius_px": 60,
+        "confidence": 0.6,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 50,
+      "timestamp": 1.6666666666666667,
+      "detection": {
+        "center": [
+          171,
+          371
+        ],
+        "bbox": [
+          95,
+          295,
+          247,
+          447
+        ],
+        "radius_px": 76,
+        "confidence": 0.6,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 60,
+      "timestamp": 2.0,
+      "detection": {
+        "center": [
+          165,
+          349
+        ],
+        "bbox": [
+          64,
+          248,
+          266,
+          450
+        ],
+        "radius_px": 101,
+        "confidence": 0.6,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 70,
+      "timestamp": 2.3333333333333335,
+      "detection": {
+        "center": [
+          153,
+          399
+        ],
+        "bbox": [
+          126,
+          372,
+          180,
+          426
+        ],
+        "radius_px": 27,
+        "confidence": 0.48227459016393437,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 80,
+      "timestamp": 2.6666666666666665,
+      "detection": {
+        "center": [
+          103,
+          431
+        ],
+        "bbox": [
+          51,
+          379,
+          155,
+          483
+        ],
+        "radius_px": 52,
+        "confidence": 0.49229410616705693,
+        "method": "hough_circle"
+      }
+    },
+    {
+      "frame": 90,
+      "timestamp": 3.0,
+      "detection": {
+        "center": [
+          226,
+          371
+        ],
+        "bbox": [
+          171,
+          316,
+          282,
+          427
+        ],
+        "radius_px": 55,
+        "confidence": 0.5774568696330991,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 100,
+      "timestamp": 3.3333333333333335,
+      "detection": {
+        "center": [
+          223,
+          378
+        ],
+        "bbox": [
+          167,
+          322,
+          279,
+          434
+        ],
+        "radius_px": 55,
+        "confidence": 0.5874568696330991,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 110,
+      "timestamp": 3.6666666666666665,
+      "detection": {
+        "center": [
+          227,
+          382
+        ],
+        "bbox": [
+          172,
+          327,
+          282,
+          437
+        ],
+        "radius_px": 54,
+        "confidence": 0.5974568696330991,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 120,
+      "timestamp": 4.0,
+      "detection": {
+        "center": [
+          217,
+          387
+        ],
+        "bbox": [
+          161,
+          330,
+          273,
+          443
+        ],
+        "radius_px": 56,
+        "confidence": 0.5974568696330991,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 130,
+      "timestamp": 4.333333333333333,
+      "detection": {
+        "center": [
+          200,
+          379
+        ],
+        "bbox": [
+          144,
+          322,
+          257,
+          435
+        ],
+        "radius_px": 56,
+        "confidence": 0.5941152419984387,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 140,
+      "timestamp": 4.666666666666667,
+      "detection": {
+        "center": [
+          191,
+          371
+        ],
+        "bbox": [
+          135,
+          315,
+          246,
+          427
+        ],
+        "radius_px": 55,
+        "confidence": 0.5941152419984387,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 150,
+      "timestamp": 5.0,
+      "detection": {
+        "center": [
+          188,
+          363
+        ],
+        "bbox": [
+          135,
+          310,
+          241,
+          416
+        ],
+        "radius_px": 53,
+        "confidence": 0.5941152419984386,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 160,
+      "timestamp": 5.333333333333333,
+      "detection": {
+        "center": [
+          188,
+          359
+        ],
+        "bbox": [
+          140,
+          310,
+          237,
+          407
+        ],
+        "radius_px": 48,
+        "confidence": 0.5941152419984386,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 170,
+      "timestamp": 5.666666666666667,
+      "detection": {
+        "center": [
+          189,
+          351
+        ],
+        "bbox": [
+          138,
+          300,
+          241,
+          403
+        ],
+        "radius_px": 51,
+        "confidence": 0.6058877829820452,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 180,
+      "timestamp": 6.0,
+      "detection": {
+        "center": [
+          194,
+          342
+        ],
+        "bbox": [
+          140,
+          289,
+          247,
+          395
+        ],
+        "radius_px": 53,
+        "confidence": 0.6166583723653394,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 190,
+      "timestamp": 6.333333333333333,
+      "detection": {
+        "center": [
+          199,
+          332
+        ],
+        "bbox": [
+          147,
+          280,
+          251,
+          384
+        ],
+        "radius_px": 51,
+        "confidence": 0.6102080405932864,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 200,
+      "timestamp": 6.666666666666667,
+      "detection": {
+        "center": [
+          187,
+          306
+        ],
+        "bbox": [
+          137,
+          257,
+          236,
+          356
+        ],
+        "radius_px": 49,
+        "confidence": 0.6002080405932864,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 210,
+      "timestamp": 7.0,
+      "detection": {
+        "center": [
+          164,
+          303
+        ],
+        "bbox": [
+          114,
+          252,
+          215,
+          353
+        ],
+        "radius_px": 50,
+        "confidence": 0.5821988680718189,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 220,
+      "timestamp": 7.333333333333333,
+      "detection": {
+        "center": [
+          159,
+          299
+        ],
+        "bbox": [
+          108,
+          248,
+          209,
+          349
+        ],
+        "radius_px": 50,
+        "confidence": 0.5821988680718189,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 230,
+      "timestamp": 7.666666666666667,
+      "detection": {
+        "center": [
+          171,
+          308
+        ],
+        "bbox": [
+          119,
+          256,
+          223,
+          360
+        ],
+        "radius_px": 51,
+        "confidence": 0.5855404957064791,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 240,
+      "timestamp": 8.0,
+      "detection": {
+        "center": [
+          185,
+          315
+        ],
+        "bbox": [
+          131,
+          261,
+          239,
+          370
+        ],
+        "radius_px": 54,
+        "confidence": 0.5855404957064791,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 250,
+      "timestamp": 8.333333333333334,
+      "detection": {
+        "center": [
+          202,
+          333
+        ],
+        "bbox": [
+          147,
+          279,
+          256,
+          387
+        ],
+        "radius_px": 54,
+        "confidence": 0.5769141295862608,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 260,
+      "timestamp": 8.666666666666666,
+      "detection": null
+    },
+    {
+      "frame": 270,
+      "timestamp": 9.0,
+      "detection": null
+    },
+    {
+      "frame": 280,
+      "timestamp": 9.333333333333334,
+      "detection": {
+        "center": [
+          209,
+          348
+        ],
+        "bbox": [
+          155,
+          294,
+          263,
+          402
+        ],
+        "radius_px": 54,
+        "confidence": 0.5769141295862608,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 290,
+      "timestamp": 9.666666666666666,
+      "detection": {
+        "center": [
+          202,
+          359
+        ],
+        "bbox": [
+          147,
+          304,
+          257,
+          414
+        ],
+        "radius_px": 55,
+        "confidence": 0.5869141295862608,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 300,
+      "timestamp": 10.0,
+      "detection": {
+        "center": [
+          207,
+          365
+        ],
+        "bbox": [
+          150,
+          308,
+          264,
+          421
+        ],
+        "radius_px": 56,
+        "confidence": 0.5869141295862608,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 310,
+      "timestamp": 10.333333333333334,
+      "detection": {
+        "center": [
+          192,
+          380
+        ],
+        "bbox": [
+          130,
+          318,
+          254,
+          442
+        ],
+        "radius_px": 61,
+        "confidence": 0.5889396955503512,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 320,
+      "timestamp": 10.666666666666666,
+      "detection": {
+        "center": [
+          207,
+          421
+        ],
+        "bbox": [
+          143,
+          358,
+          270,
+          484
+        ],
+        "radius_px": 63,
+        "confidence": 0.5989396955503513,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 330,
+      "timestamp": 11.0,
+      "detection": {
+        "center": [
+          208,
+          428
+        ],
+        "bbox": [
+          146,
+          366,
+          270,
+          490
+        ],
+        "radius_px": 61,
+        "confidence": 0.5914608704137392,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 340,
+      "timestamp": 11.333333333333334,
+      "detection": null
+    },
+    {
+      "frame": 350,
+      "timestamp": 11.666666666666666,
+      "detection": {
+        "center": [
+          209,
+          427
+        ],
+        "bbox": [
+          150,
+          368,
+          268,
+          487
+        ],
+        "radius_px": 59,
+        "confidence": 0.5887950819672131,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 360,
+      "timestamp": 12.0,
+      "detection": {
+        "center": [
+          216,
+          427
+        ],
+        "bbox": [
+          159,
+          370,
+          272,
+          483
+        ],
+        "radius_px": 56,
+        "confidence": 0.588795081967213,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 370,
+      "timestamp": 12.333333333333334,
+      "detection": {
+        "center": [
+          221,
+          427
+        ],
+        "bbox": [
+          168,
+          374,
+          274,
+          480
+        ],
+        "radius_px": 52,
+        "confidence": 0.588795081967213,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 380,
+      "timestamp": 12.666666666666666,
+      "detection": {
+        "center": [
+          220,
+          414
+        ],
+        "bbox": [
+          168,
+          362,
+          272,
+          466
+        ],
+        "radius_px": 52,
+        "confidence": 0.5974214480874316,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 390,
+      "timestamp": 13.0,
+      "detection": {
+        "center": [
+          225,
+          406
+        ],
+        "bbox": [
+          176,
+          356,
+          275,
+          456
+        ],
+        "radius_px": 49,
+        "confidence": 0.6048214480874317,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 400,
+      "timestamp": 13.333333333333334,
+      "detection": {
+        "center": [
+          245,
+          397
+        ],
+        "bbox": [
+          198,
+          351,
+          291,
+          444
+        ],
+        "radius_px": 46,
+        "confidence": 0.5948214480874316,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 410,
+      "timestamp": 13.666666666666666,
+      "detection": {
+        "center": [
+          253,
+          391
+        ],
+        "bbox": [
+          211,
+          349,
+          295,
+          433
+        ],
+        "radius_px": 42,
+        "confidence": 0.5948214480874316,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 420,
+      "timestamp": 14.0,
+      "detection": {
+        "center": [
+          266,
+          377
+        ],
+        "bbox": [
+          228,
+          339,
+          304,
+          415
+        ],
+        "radius_px": 38,
+        "confidence": 0.5992462138953941,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 430,
+      "timestamp": 14.333333333333334,
+      "detection": {
+        "center": [
+          266,
+          355
+        ],
+        "bbox": [
+          227,
+          316,
+          304,
+          393
+        ],
+        "radius_px": 38,
+        "confidence": 0.5892462138953942,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 440,
+      "timestamp": 14.666666666666666,
+      "detection": {
+        "center": [
+          285,
+          346
+        ],
+        "bbox": [
+          247,
+          307,
+          324,
+          384
+        ],
+        "radius_px": 38,
+        "confidence": 0.6047342115534737,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 450,
+      "timestamp": 15.0,
+      "detection": {
+        "center": [
+          301,
+          345
+        ],
+        "bbox": [
+          262,
+          306,
+          340,
+          385
+        ],
+        "radius_px": 39,
+        "confidence": 0.6073999999999999,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 460,
+      "timestamp": 15.333333333333334,
+      "detection": {
+        "center": [
+          305,
+          344
+        ],
+        "bbox": [
+          264,
+          304,
+          345,
+          384
+        ],
+        "radius_px": 40,
+        "confidence": 0.6073999999999999,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 470,
+      "timestamp": 15.666666666666666,
+      "detection": {
+        "center": [
+          302,
+          343
+        ],
+        "bbox": [
+          261,
+          302,
+          343,
+          385
+        ],
+        "radius_px": 41,
+        "confidence": 0.6073999999999999,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 480,
+      "timestamp": 16.0,
+      "detection": {
+        "center": [
+          297,
+          345
+        ],
+        "bbox": [
+          255,
+          302,
+          339,
+          387
+        ],
+        "radius_px": 42,
+        "confidence": 0.6073999999999999,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    },
+    {
+      "frame": 490,
+      "timestamp": 16.333333333333332,
+      "detection": {
+        "center": [
+          291,
+          343
+        ],
+        "bbox": [
+          245,
+          297,
+          337,
+          389
+        ],
+        "radius_px": 46,
+        "confidence": 0.5999999999999999,
+        "method": "temporal_average",
+        "is_stable": true
+      }
+    }
+  ]
+}

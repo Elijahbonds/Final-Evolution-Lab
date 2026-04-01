@@ -1,0 +1,15 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/03_self_alleyoop_dunks_hoopbus.mp4",
+  "video_name": "03_self_alleyoop_dunks_hoopbus",
+  "total_frames": 652,
+  "frames_processed": 652,
+  "frames_with_mask": 652,
+  "avg_mask_coverage": 0.06188948368002304,
+  "modes_generated": [
+    "masked"
+  ],
+  "output_videos": {
+    "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/03_self_alleyoop_dunks_hoopbus/masked/03_self_alleyoop_dunks_hoopbus_masked.mp4"
+  },
+  "feather_radius": 3
+}

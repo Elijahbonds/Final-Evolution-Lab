@@ -1,0 +1,15 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+  "video_name": "10_full_court_game_crossover_eurostep_layups",
+  "total_frames": 1787,
+  "frames_processed": 1787,
+  "frames_with_mask": 1787,
+  "avg_mask_coverage": 0.15177743609300762,
+  "modes_generated": [
+    "masked"
+  ],
+  "output_videos": {
+    "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/10_full_court_game_crossover_eurostep_layups/masked/10_full_court_game_crossover_eurostep_layups_masked.mp4"
+  },
+  "feather_radius": 3
+}

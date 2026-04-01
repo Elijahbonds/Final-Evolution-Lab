@@ -1,0 +1,109 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/05_dunk_compilation_multiple_players.mp4",
+  "video_name": "05_dunk_compilation_multiple_players",
+  "resolution": {
+    "width": 720,
+    "height": 1280
+  },
+  "fps": 30.0,
+  "total_frames": 97,
+  "frames_sampled": 10,
+  "frames_with_hoop": 3,
+  "detection_rate": 0.3,
+  "spatial_reference": null,
+  "hoop_stable": false,
+  "frame_detections": [
+    {
+      "frame": 0,
+      "timestamp": 0.0,
+      "detection": null
+    },
+    {
+      "frame": 10,
+      "timestamp": 0.3333333333333333,
+      "detection": null
+    },
+    {
+      "frame": 20,
+      "timestamp": 0.6666666666666666,
+      "detection": null
+    },
+    {
+      "frame": 30,
+      "timestamp": 1.0,
+      "detection": null
+    },
+    {
+      "frame": 40,
+      "timestamp": 1.3333333333333333,
+      "detection": null
+    },
+    {
+      "frame": 50,
+      "timestamp": 1.6666666666666667,
+      "detection": null
+    },
+    {
+      "frame": 60,
+      "timestamp": 2.0,
+      "detection": null
+    },
+    {
+      "frame": 70,
+      "timestamp": 2.3333333333333335,
+      "detection": {
+        "center": [
+          87,
+          91
+        ],
+        "bbox": [
+          37,
+          0,
+          137,
+          70
+        ],
+        "radius_px": 25,
+        "confidence": 0.1569,
+        "method": "contour_backboard"
+      }
+    },
+    {
+      "frame": 80,
+      "timestamp": 2.6666666666666665,
+      "detection": {
+        "center": [
+          86,
+          91
+        ],
+        "bbox": [
+          36,
+          0,
+          137,
+          70
+        ],
+        "radius_px": 25,
+        "confidence": 0.164,
+        "method": "contour_backboard"
+      }
+    },
+    {
+      "frame": 90,
+      "timestamp": 3.0,
+      "detection": {
+        "center": [
+          34,
+          243
+        ],
+        "bbox": [
+          -33,
+          176,
+          101,
+          310
+        ],
+        "radius_px": 67,
+        "confidence": 0.6,
+        "method": "hough_circle"
+      }
+    }
+  ]
+}

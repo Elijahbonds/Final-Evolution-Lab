@@ -1,0 +1,53 @@
+{
+  "video_name": "10_full_court_game_crossover_eurostep_layups",
+  "source_path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+  "output_dir": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/10_full_court_game_crossover_eurostep_layups",
+  "stages": {
+    "segmentation": {
+      "status": "success",
+      "detection_rate": 0.9977616116396195,
+      "avg_confidence": 0.5,
+      "method": "OpenCV_MOG2_Fallback",
+      "frames_processed": 1787,
+      "duration_sec": 11.79
+    },
+    "masking": {
+      "status": "success",
+      "avg_mask_coverage": 0.15177743609300762,
+      "output_videos": {
+        "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/10_full_court_game_crossover_eurostep_layups/masked/10_full_court_game_crossover_eurostep_layups_masked.mp4"
+      },
+      "duration_sec": 15.05
+    },
+    "hoop_detection": {
+      "status": "success",
+      "hoop_detected": true,
+      "spatial_reference": {
+        "hoop_center_px": [
+          163,
+          388
+        ],
+        "hoop_radius_px": 53,
+        "pixels_per_inch": 5.89,
+        "pixels_per_foot": 70.67,
+        "estimated_hoop_height_px": 388,
+        "reference_height_feet": 10.0,
+        "confidence": 0.5865542154566745,
+        "is_calibrated": true
+      },
+      "detection_rate": 0.9776536312849162,
+      "duration_sec": 1.56
+    },
+    "smoothing": {
+      "status": "success",
+      "method": "kalman",
+      "jitter_original": 38.06808726607716,
+      "jitter_smoothed": 26.28089738450247,
+      "jitter_reduction": 0.3096344137068942,
+      "duration_sec": 0.08
+    }
+  },
+  "status": "success",
+  "start_time": "2026-04-01T23:24:40.813027",
+  "end_time": "2026-04-01T23:25:09.291544"
+}

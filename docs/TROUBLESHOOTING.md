@@ -171,3 +171,87 @@ git checkout <commit_hash>
 npm run build  # frontend
 ./scripts/start_services.sh
 ```
+
+
+
+---
+
+## CV Preprocessing
+
+### "ultralytics not installed" Warning
+The pipeline falls back to OpenCV MOG2 background subtraction. For best results:
+```bash
+pip install ultralytics
+# GPU acceleration (recommended):
+pip install torch torchvision
+```
+
+### Low Detection Rate (<70%)
+- Try lowering confidence threshold: `--confidence 0.25`
+- Video may have heavy occlusion or scene cuts
+- Consider using SAM: `--use-sam` (requires GPU + `segment-anything`)
+- Check if video has overlays/watermarks affecting detection
+
+### Identity Swap (Tracker Follows Wrong Person)
+- The IoU tracker may swap to another player when actors cross paths
+- Use SAM for pixel-precise masks: `--use-sam`
+- Check validation report for "identity_swap_risk" warnings
+- Manual review recommended for videos with >5 identity swap warnings
+
+### Hoop Not Detected
+- Hoop detection works best with outdoor/clear courts
+- Indoor footage with poor lighting may fail
+- Ensure video shows hoop in upper portion of frame
+- Try adjusting `--hoop-sample-rate 3` for more sampling
+
+### "No module named 'cv2'" Error
+```bash
+pip install opencv-python-headless
+```
+
+### Kalman Filter Producing Drift
+- Increase measurement noise: adjust `measurement_noise` parameter
+- Try `--method savgol` for non-predictive smoothing
+- Use `--method combined` for best of both
+
+### Out of Memory During Processing
+- Process videos one at a time: `--video <filename>`
+- Reduce video resolution before processing
+- Use `--no-preview` to skip preview video generation
+- On GPU: ensure CUDA memory is not consumed by other processes
+
+### Validation Quality Score Too Low
+- Review specific failed checks in the validation report
+- Common fixes:
+  - Lower confidence for better detection rate
+  - Use SAM for better segmentation
+  - Increase smoothing for jitter reduction
+  - Re-process problematic videos individually
+
+## AWS GPU Deployment
+
+### G5 Instance Quota Error
+```
+Error: You have requested more vCPU capacity than your current vCPU limit
+```
+Request quota increase in AWS Console → Service Quotas → EC2 → Running On-Demand G and VT instances.
+
+### SSH Connection Timeout
+- Security group may not have port 22 open
+- Instance may still be initializing (wait 5 minutes)
+- Check instance state: `python3 scripts/aws_deployment/provision_g5_instance.py --status`
+
+### NVIDIA Driver Not Loading
+```bash
+# Check driver status
+nvidia-smi
+# If not found, check setup log
+cat /var/log/fel-setup.log
+# May need reboot after driver install
+sudo reboot
+```
+
+### High AWS Costs
+- **Always terminate instances** when not in use
+- Use spot instances for 60-70% savings
+- Monitor with: `python3 scripts/aws_deployment/provision_g5_instance.py --status`

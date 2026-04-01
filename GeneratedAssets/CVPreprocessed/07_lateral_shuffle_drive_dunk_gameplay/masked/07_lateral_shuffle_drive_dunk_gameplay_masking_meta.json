@@ -1,0 +1,15 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/07_lateral_shuffle_drive_dunk_gameplay.mp4",
+  "video_name": "07_lateral_shuffle_drive_dunk_gameplay",
+  "total_frames": 988,
+  "frames_processed": 988,
+  "frames_with_mask": 988,
+  "avg_mask_coverage": 0.39789694133009057,
+  "modes_generated": [
+    "masked"
+  ],
+  "output_videos": {
+    "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/07_lateral_shuffle_drive_dunk_gameplay/masked/07_lateral_shuffle_drive_dunk_gameplay_masked.mp4"
+  },
+  "feather_radius": 3
+}

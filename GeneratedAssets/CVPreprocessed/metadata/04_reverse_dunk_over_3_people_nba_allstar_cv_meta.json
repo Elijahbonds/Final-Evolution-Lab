@@ -1,0 +1,53 @@
+{
+  "video_name": "04_reverse_dunk_over_3_people_nba_allstar",
+  "source_path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/04_reverse_dunk_over_3_people_nba_allstar.mp4",
+  "output_dir": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/04_reverse_dunk_over_3_people_nba_allstar",
+  "stages": {
+    "segmentation": {
+      "status": "success",
+      "detection_rate": 0.9901960784313726,
+      "avg_confidence": 0.5,
+      "method": "OpenCV_MOG2_Fallback",
+      "frames_processed": 408,
+      "duration_sec": 6.42
+    },
+    "masking": {
+      "status": "success",
+      "avg_mask_coverage": 0.49732368153424583,
+      "output_videos": {
+        "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/04_reverse_dunk_over_3_people_nba_allstar/masked/04_reverse_dunk_over_3_people_nba_allstar_masked.mp4"
+      },
+      "duration_sec": 10.89
+    },
+    "hoop_detection": {
+      "status": "success",
+      "hoop_detected": true,
+      "spatial_reference": {
+        "hoop_center_px": [
+          280,
+          479
+        ],
+        "hoop_radius_px": 114,
+        "pixels_per_inch": 12.67,
+        "pixels_per_foot": 152.0,
+        "estimated_hoop_height_px": 479,
+        "reference_height_feet": 10.0,
+        "confidence": 0.6799999999999999,
+        "is_calibrated": true
+      },
+      "detection_rate": 1.0,
+      "duration_sec": 1.15
+    },
+    "smoothing": {
+      "status": "success",
+      "method": "kalman",
+      "jitter_original": 16.261042865762445,
+      "jitter_smoothed": 12.16833115058921,
+      "jitter_reduction": 0.25168814503222425,
+      "duration_sec": 0.02
+    }
+  },
+  "status": "success",
+  "start_time": "2026-04-01T23:21:52.419821",
+  "end_time": "2026-04-01T23:22:10.888604"
+}

@@ -1,0 +1,15 @@
+{
+  "source_video": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/Instagram/basketball/09_slam_dunks_ball_tricks_session.mp4",
+  "video_name": "09_slam_dunks_ball_tricks_session",
+  "total_frames": 1534,
+  "frames_processed": 1534,
+  "frames_with_mask": 1534,
+  "avg_mask_coverage": 0.22294243388291335,
+  "modes_generated": [
+    "masked"
+  ],
+  "output_videos": {
+    "masked": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/CVPreprocessed/09_slam_dunks_ball_tricks_session/masked/09_slam_dunks_ball_tricks_session_masked.mp4"
+  },
+  "feather_radius": 3
+}

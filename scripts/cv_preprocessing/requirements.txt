@@ -1,0 +1,8 @@
+# CV Preprocessing Pipeline Dependencies
+ultralytics>=8.3.0       # YOLOv11 for person detection
+opencv-python>=4.8.0     # Video processing and computer vision
+numpy>=1.24.0            # Numerical computation
+scipy>=1.11.0            # Savitzky-Golay, signal processing
+# segment-anything       # SAM (optional, install separately for GPU)
+# torch>=2.0.0           # PyTorch (required for YOLO and SAM)
+# torchvision>=0.15.0    # PyTorch vision transforms
