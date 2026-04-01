@@ -8,23 +8,32 @@ This is a polyglot monorepo for **Final Evolution Lab**, a sports-tech / athleti
 
 | Sub-project | Path | Stack | Dev command |
 |---|---|---|---|
-| Main marketing/app site | `sites/final-evolution-main-site/` | React 18 + Vite 5 + TypeScript + Tailwind + Three.js + Supabase JS | `npm run dev` (port 5173) |
+| **New marketing site** (finalevolutiongroup.com) | `sites/finalevolutiongroup.com/` | React 18 + Vite 5 + TypeScript + Tailwind | `npm run dev` (port 5175) |
+| Main marketing/app site (legacy) | `sites/final-evolution-main-site/` | React 18 + Vite 5 + TypeScript + Tailwind + Three.js + Supabase JS | `npm run dev` (port 5173) |
 | Clinical Gate (medical disclaimer component) | `web/clinical-gate-react/` | React 18 + Vite 5 + TypeScript + Tailwind | `npm run dev` (port 5174) |
 | Static PWA web shell (gateway, shop, wallet, play) | `web/` | Vanilla HTML/CSS/JS (Tailwind CDN) | `npx serve web -l 8080` from repo root |
 | Supabase backend (DB + Edge Functions) | `supabase/` | PostgreSQL 17 + Deno Edge Functions | `supabase start` (requires Docker) |
 
 ### Running the web services
 
-1. **Install dependencies** — run `npm install` in both `sites/final-evolution-main-site/` and `web/clinical-gate-react/`. The root `package.json` has no dependencies.
-2. **Main site dev server**: `npm run dev` in `sites/final-evolution-main-site/` → http://localhost:5173
-3. **Clinical gate dev server**: `npm run dev` in `web/clinical-gate-react/` → http://localhost:5174
-4. **Static web shell**: `npx serve web -l 8080` from repo root → http://localhost:8080
+1. **Install dependencies** — run `npm install` in `sites/finalevolutiongroup.com/`, `sites/final-evolution-main-site/`, and `web/clinical-gate-react/`. The root `package.json` has no dependencies.
+2. **New marketing site**: `npm run dev` in `sites/finalevolutiongroup.com/` → http://localhost:5175
+3. **Legacy main site**: `npm run dev` in `sites/final-evolution-main-site/` → http://localhost:5173
+4. **Clinical gate dev server**: `npm run dev` in `web/clinical-gate-react/` → http://localhost:5174
+5. **Static web shell**: `npx serve web -l 8080` from repo root → http://localhost:8080
 
 ### Lint / Typecheck / Build
 
-- **Main site**: `npm run typecheck` (runs `tsc --noEmit`), `npm run build` (Vite production build)
-- **Clinical gate**: `npx tsc --noEmit` (no lint script configured), `npm run build`
-- No ESLint is configured for either React app.
+- **New marketing site**: `npm run typecheck` / `npm run build` in `sites/finalevolutiongroup.com/`
+- **Legacy main site**: `npm run typecheck` / `npm run build` in `sites/final-evolution-main-site/`
+- **Clinical gate**: `npx tsc --noEmit` / `npm run build` in `web/clinical-gate-react/`
+- No ESLint is configured for any React app.
+
+### Unreal Engine (not runnable in Cloud Agent VM)
+
+- 12 fully wired game modes via `EFELArenaMode` enum + per-mode session subsystems
+- Pixel Streaming enabled (`PIXEL_STREAMING_ENABLED=1`), WebServers infra under `Samples/PixelStreaming/WebServers/`
+- Exercise demo pipeline: `UFELExerciseDemoPipelineSubsystem` maps each mode to Academy module montages (mod1-mod12)
 
 ### Environment variables
 
