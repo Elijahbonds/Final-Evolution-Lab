@@ -1,5 +1,5 @@
 // Copyright (c) Final Evolution Lab.
-// Factory: merge Swift `GameModeId` defaults with Content/FEL/Config/ArenaSettings.json (no rules hard-coded in GameMode).
+// Factory: merge canonical mode-id defaults with Content/FEL/Config/ArenaSettings.json (no rules hard-coded in GameMode).
 
 #pragma once
 

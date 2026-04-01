@@ -21,7 +21,7 @@ class FINALEVOLUTIONLAB_API UFELArenaModeData : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
-	/** Must match this asset's logical mode (Swift active_mode / EFELArenaMode). */
+	/** Must match this asset's logical mode (readiness active_mode / EFELArenaMode). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FEL|Arena")
 	EFELArenaMode ArenaMode = EFELArenaMode::BasketballHeadToHead;
 

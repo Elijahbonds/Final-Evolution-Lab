@@ -101,7 +101,7 @@ void UFELOnboardingWidget::InitializeLabOnboarding()
 			"LabOnboardingBody",
 			"Welcome to the Lab.\n\n"
 			"• Use Get Ready → Play → Result like Arena (PROJECT_FLOWS).\n"
-			"• Dunk Contest uses the same neuro readiness export as Swift (PRQ, hang time, leakage).\n"
+			"• Dunk Contest uses the same neuro readiness export as the rest of the Lab (PRQ, hang time, leakage).\n"
 			"• Brain Brawl quizzes can boost PRQ during a match — check session_results.json after play.\n"
 			"• Watch Demo shows Bonds Bounce–scaled perfect form before you play."));
 	}

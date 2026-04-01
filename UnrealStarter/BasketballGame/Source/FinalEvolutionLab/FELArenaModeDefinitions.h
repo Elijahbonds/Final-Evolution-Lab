@@ -1,12 +1,15 @@
 // Copyright (c) Final Evolution Lab.
-// Arena modes — parity with Swift `GameModeId` / PROJECT_FLOWS.md (includes `market_browse` / Sovereign Shop).
+// Canonical Unreal arena modes — string ids in `FELArenaModeIds` match `readiness_snapshot.json` active_mode + ArenaSettings.json keys (includes `market_browse` / Sovereign Shop).
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "FELArenaModeDefinitions.generated.h"
 
-/** All operable Arena modes (Swift `GameModeId` / `GameMode.swift`). */
+/**
+ * All operable arena experiences shipped from Unreal (twelve sports/lab modes + Sovereign Shop browse).
+ * Use FELArenaModeToIdString / FELArenaModeFromIdString for JSON and config.
+ */
 UENUM(BlueprintType)
 enum class EFELArenaMode : uint8
 {
@@ -46,5 +49,7 @@ namespace FELArenaModeIds
 	inline const TCHAR* MarketBrowse = TEXT("market_browse");
 }
 
-FINALEVOLUTIONLAB_API EFELArenaMode FELArenaModeFromSwiftId(const FString& SwiftId);
-FINALEVOLUTIONLAB_API FString FELArenaModeToSwiftId(EFELArenaMode Mode);
+/** Parse canonical mode id string (e.g. basketball_h2h, brain_brawl) from JSON / profile. */
+FINALEVOLUTIONLAB_API EFELArenaMode FELArenaModeFromIdString(const FString& IdString);
+/** Serialize enum to canonical id for ArenaSettings.json, session export, and readiness snapshot. */
+FINALEVOLUTIONLAB_API FString FELArenaModeToIdString(EFELArenaMode Mode);

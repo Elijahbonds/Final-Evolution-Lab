@@ -253,7 +253,7 @@ struct FFELArenaRules
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Arena")
 	EFELArenaBallSpawnType BallSpawnType = EFELArenaBallSpawnType::SingleAtPrimary;
 
-	/** True for Swift Dunk Contest / Lab dunk parity (NeuroKineticLeakage + Unreal physics slice). */
+	/** True for Dunk Contest / Lab dunk (NeuroKineticLeakage + Unreal physics slice). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Arena")
 	bool bIsDunkContest = false;
 

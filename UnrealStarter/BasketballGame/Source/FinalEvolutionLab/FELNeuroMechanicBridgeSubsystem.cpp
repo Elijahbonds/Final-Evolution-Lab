@@ -137,7 +137,7 @@ bool UFELNeuroMechanicBridgeSubsystem::TryLoadSnapshotIntoCacheOnly(FString& Out
 
 void UFELNeuroMechanicBridgeSubsystem::GetCurrentArenaSettings(FFELArenaRules& OutRules) const
 {
-	EFELArenaMode M = FELArenaModeFromSwiftId(CachedSnapshot.ActiveArenaMode);
+	EFELArenaMode M = FELArenaModeFromIdString(CachedSnapshot.ActiveArenaMode);
 	if (M == EFELArenaMode::Unknown)
 	{
 		M = EFELArenaMode::BasketballHeadToHead;
@@ -338,7 +338,7 @@ void UFELNeuroMechanicBridgeSubsystem::ApplyReadinessToActors(UWorld* World, con
 		return;
 	}
 
-	EFELArenaMode Am = FELArenaModeFromSwiftId(Snapshot.ActiveArenaMode);
+	EFELArenaMode Am = FELArenaModeFromIdString(Snapshot.ActiveArenaMode);
 	if (Am == EFELArenaMode::Unknown)
 	{
 		Am = EFELArenaMode::BasketballHeadToHead;

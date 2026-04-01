@@ -43,7 +43,7 @@ public:
 	void PersistUserSettingsAndProfile();
 
 	UFUNCTION(BlueprintCallable, Category = "FEL|Retail")
-	FString GetPreferredArenaSwiftId() const;
+	FString GetPreferredArenaModeId() const;
 
 	UFUNCTION(BlueprintCallable, Category = "FEL|Retail")
 	void SetPreferredArenaFromMode(EFELArenaMode Mode);

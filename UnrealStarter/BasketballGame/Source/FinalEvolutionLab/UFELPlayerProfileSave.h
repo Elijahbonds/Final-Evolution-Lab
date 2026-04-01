@@ -24,9 +24,9 @@ public:
 	UPROPERTY(SaveGame, VisibleAnywhere, Category = "FEL|Profile")
 	int32 BestBucketHighScore = 0;
 
-	/** Swift `active_mode` id (see FELArenaModeIds). */
+	/** Canonical arena mode id string (see FELArenaModeIds / readiness active_mode). */
 	UPROPERTY(SaveGame, VisibleAnywhere, Category = "FEL|Profile")
-	FString PreferredArenaModeSwiftId = TEXT("basketball_h2h");
+	FString PreferredArenaModeId = TEXT("basketball_h2h");
 
 	/** Mirrors INSPIRATIONS / MODE_INSPIRATIONS — user-selected flavor line (optional). */
 	UPROPERTY(SaveGame, VisibleAnywhere, Category = "FEL|Profile")

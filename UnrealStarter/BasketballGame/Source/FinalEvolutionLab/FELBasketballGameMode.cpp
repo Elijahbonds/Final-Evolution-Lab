@@ -135,7 +135,7 @@ void AFELBasketballGameMode::RestartPlayer(AController* NewPlayer)
 void AFELBasketballGameMode::ConfigureArenaFromReadinessSnapshot(const FFELReadinessSnapshot& Snap)
 {
 	PendingArenaConfigureSnap = Snap;
-	CurrentMode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+	CurrentMode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 	if (CurrentMode == EFELArenaMode::Unknown)
 	{
 		CurrentMode = EFELArenaMode::BasketballHeadToHead;
@@ -431,7 +431,7 @@ bool AFELBasketballGameMode::ExportOpenPlaySessionToDisk(FString& OutError)
 void AFELBasketballGameMode::RefreshArenaConfigurationFromSnapshot(const FFELReadinessSnapshot& Snap)
 {
 	const EFELArenaMode PreviousMode = CurrentMode;
-	EFELArenaMode NewMode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+	EFELArenaMode NewMode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 	if (NewMode == EFELArenaMode::Unknown)
 	{
 		NewMode = EFELArenaMode::BasketballHeadToHead;
@@ -503,7 +503,7 @@ void AFELBasketballGameMode::StartPlay()
 	}
 	if (UFELGameInstance* FELGI = Cast<UFELGameInstance>(GetGameInstance()))
 	{
-		LoadedReadiness.ActiveArenaMode = FELGI->GetPreferredArenaSwiftId();
+		LoadedReadiness.ActiveArenaMode = FELGI->GetPreferredArenaModeId();
 	}
 
 	ConfigureArenaFromReadinessSnapshot(LoadedReadiness);
@@ -1165,7 +1165,7 @@ void AFELBasketballGameMode::SyncNeuroFieldsFromSnapshot(const FFELReadinessSnap
 
 FString AFELBasketballGameMode::GetArenaGameModeId() const
 {
-	return FELArenaModeToSwiftId(CurrentMode);
+	return FELArenaModeToIdString(CurrentMode);
 }
 
 void AFELBasketballGameMode::TriggerExerciseDemo()

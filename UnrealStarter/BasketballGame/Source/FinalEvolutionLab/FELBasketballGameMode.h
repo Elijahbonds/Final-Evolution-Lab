@@ -96,7 +96,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "FEL|Match")
 	FOnFELMatchComplete OnMatchComplete;
 
-	/** Swift `GameModeId.rawValue` for session export / HUD parity. */
+	/** Canonical arena mode id string for session export / HUD (matches readiness active_mode). */
 	UFUNCTION(BlueprintCallable, Category = "FEL")
 	FString GetArenaGameModeId() const;
 

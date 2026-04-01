@@ -9,8 +9,8 @@ namespace FELArenaDifficultyScaling
 {
 	/**
 	 * Sovereign Skins / shard gear — 1.0–1.05 multiplier on motion-warp pull and jump velocity (MyTeam economy).
-	 * Swift `FELGearBoostCalculator` / `gearJumpVelocityMultiplier` in `readiness_snapshot.json` should mirror these ids
-	 * when exporting; `AFELBasketballCharacter::ApplyReadiness` applies C++ `CalculateGearBoost` from jersey/shoe paths
+	 * `gearJumpVelocityMultiplier` in `readiness_snapshot.json` should mirror these ids when exporting;
+	 * `AFELBasketballCharacter::ApplyReadiness` applies C++ `CalculateGearBoost` from jersey/shoe paths
 	 * so JumpZ uses the same physical scale in the 3D arena.
 	 */
 	struct FGearBoostMultipliers
@@ -23,7 +23,7 @@ namespace FELArenaDifficultyScaling
 	inline FGearBoostMultipliers CalculateGearBoost(const FString& GearId)
 	{
 		FGearBoostMultipliers Out;
-		// Texture paths from Swift marketplace often include "Sovereign" / folder segments — apply jump scale for equipped jersey/shoes.
+		// Texture paths from the Sovereign marketplace often include "Sovereign" / folder segments — apply jump scale for equipped jersey/shoes.
 		if (GearId.Contains(TEXT("sovereign")) || GearId.Contains(TEXT("Sovereign")))
 		{
 			Out.MotionWarpMagnetismMult = 1.04f;
@@ -89,7 +89,7 @@ namespace FELArenaDifficultyScaling
 		return 1.f;
 	}
 
-	/** Creator Card “Stand” — extra jump / neural presentation (matches Swift `stoodCard*` export). */
+	/** Creator Card “Stand” — extra jump / neural presentation (matches `stoodCard*` readiness export). */
 	inline void StoodCardPhysicsFromId(const FString& CardId, float& OutJumpScale, float& OutNeuralAlpha)
 	{
 		OutJumpScale = 1.f;

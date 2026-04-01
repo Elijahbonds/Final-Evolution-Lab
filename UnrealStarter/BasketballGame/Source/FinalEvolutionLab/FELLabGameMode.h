@@ -22,7 +22,7 @@ public:
 
 	/**
 	 * Athlete profile PRQ (0–100). Same field populated from Supabase-backed readiness on device:
-	 * Swift / React writes `readiness_snapshot.json` (or live subsystem); Unreal ingests via UFELNeuroMechanicBridgeSubsystem.
+	 * External services or local files write `readiness_snapshot.json`; Unreal ingests via UFELNeuroMechanicBridgeSubsystem.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "FEL|PRQ")
 	void RefreshPRQInfluenceFromAthleteProfile(float PRQ0to100);

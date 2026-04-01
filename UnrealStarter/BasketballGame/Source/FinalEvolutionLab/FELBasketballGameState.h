@@ -72,7 +72,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FEL|StreetJam")
 	void SetStreetJamHud(float TrickMeter0to100, float ScoreMultiplier, int32 BucketCombo, int32 GatherChain, bool bGamebreakerReady);
 
-	/** PRQ + Swift GameModeId parity; refreshes HUD attribute labels. */
+	/** PRQ + arena mode id; refreshes HUD attribute labels. */
 	void SetReadinessContext(const FFELReadinessSnapshot& InSnap, const FString& InArenaGameModeId);
 
 	UFUNCTION(BlueprintCallable, Category = "FEL")

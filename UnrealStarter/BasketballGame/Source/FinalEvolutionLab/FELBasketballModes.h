@@ -1,5 +1,5 @@
 // Copyright (c) Final Evolution Lab.
-// Unreal basketball prototype rule slices (maps from 12 Swift Arena modes where applicable).
+// Unreal basketball prototype rule slices (basketball sub-modes; parent sport selection is EFELArenaMode).
 
 #pragma once
 

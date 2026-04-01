@@ -41,7 +41,7 @@ PublicDependencyModuleNames.AddRange(new string[] {
 | Class | Role |
 |--------|------|
 | **`AFELBasketballGameMode`** | **`EFELMatchPhase`** (Waiting → InProgress → MatchComplete), countdown, **`OnMatchComplete`**; **`ApplyModeSpecificBehaviors`** after countdown (Brain Brawl / Dunk); **`session_results.json`** + **`last_session_result.json`**. |
-| **`FELArenaModeDefinitions.h` / `.cpp`** | **`EFELArenaMode`** enum + **`FELArenaModeFromSwiftId`** (replaces standalone **`FELGameModeDefinitions.cpp`** — use **`FELArenaModeDefinitions.cpp`** in your `.Build.cs` / Xcode target). |
+| **`FELArenaModeDefinitions.h` / `.cpp`** | **`EFELArenaMode`** enum + **`FELArenaModeFromIdString` / `FELArenaModeToIdString`** (replaces standalone **`FELGameModeDefinitions.cpp`** — use **`FELArenaModeDefinitions.cpp`** in your `.Build.cs` / Xcode target). |
 | **`AFELBasketballCharacter`** | Third-person **Elijah**, spring arm + camera, **WASD / mouse / jump**; **`ApplyReadiness`**. |
 | **`AFELBasketballActor`** | Physics **HoopBus** ball; **`ApplyReadiness`**. |
 | **`AFELBasketballGameState`** | Buckets, timers, **`OnMatchEnded`** (GameMode writes rewards + **`session_results.json`**). |

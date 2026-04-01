@@ -7,11 +7,11 @@
 
 class UWorld;
 
-/** Load JSON snapshot aligned with Swift PerformanceMetrics (camelCase keys). See NEURO_MECHANIC_BRIDGE.md. */
+/** Load JSON readiness snapshot (camelCase keys; external tools + Unreal). See NEURO_MECHANIC_BRIDGE.md. */
 struct FELReadinessIO
 {
 	/**
-	 * Parse JSON string (Swift export / file contents). Keys: efficiencyScore, prqScore, signature_trait_id, readinessScore, verticalPotential, neuralDrive, popForce, verticalEstimateInches, hangTimeScale, kineticLeakageMultiplier, currentOutfit, active_mode.
+	 * Parse JSON string (file or host-pushed contents). Keys: efficiencyScore, prqScore, signature_trait_id, readinessScore, verticalPotential, neuralDrive, popForce, verticalEstimateInches, hangTimeScale, kineticLeakageMultiplier, currentOutfit, active_mode.
 	 * When `WorldForTravel` is non-null, triggers mandatory `OpenLevel` for the venue matching `active_mode` (MapTravel handshake) after the snapshot is fully parsed.
 	 * If `OutIssuedVenueTravel` is set, it receives whether `OpenLevel` was issued (callers should defer `ApplyReadinessToActors` until the new map loads).
 	 */
@@ -28,7 +28,7 @@ struct FELReadinessIO
 	static void ApplyNeuroFlowPostProcessFromSnapshot(UWorld* World, const FFELReadinessSnapshot& Snap);
 
 	/**
-	 * Tries, in order: Documents/FEL (iOS, Swift PRQManager), Saved/FEL, Content/FEL/Config.
+	 * Tries, in order: Documents/FEL (iOS packaged app), Saved/FEL, Content/FEL/Config.
 	 * See FELPlatformPaths::GetReadinessSnapshotCandidatePaths.
 	 */
 	static bool TryLoadSnapshot(FFELReadinessSnapshot& Out, FString* OutError = nullptr);

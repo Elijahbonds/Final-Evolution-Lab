@@ -296,7 +296,7 @@ namespace FELArenaRulesRegistryInternal
 
 	static void ApplyJsonOverridesToRulesImpl(EFELArenaMode Mode, FFELArenaRules& InOut)
 	{
-		const FString SwiftId = FELArenaModeToSwiftId(Mode);
+		const FString ModeId = FELArenaModeToIdString(Mode);
 		FString Json;
 		if (!FFileHelper::LoadFileToString(Json, *JsonPath()))
 		{
@@ -316,7 +316,7 @@ namespace FELArenaRulesRegistryInternal
 			return;
 		}
 
-		const TSharedPtr<FJsonObject> RuleObj = ModesObj->GetObjectField(SwiftId);
+		const TSharedPtr<FJsonObject> RuleObj = ModesObj->GetObjectField(ModeId);
 		if (!RuleObj.IsValid())
 		{
 			return;

@@ -10,9 +10,9 @@
 namespace FELSportMastery
 {
 	/** Computes 0–100 mastery and a stable metric id (e.g. accuracy, impact) for Swift `masteryMetric`. */
-	inline void ComputeMasteryScoreAndMetric(const FString& SwiftModeId, const FFELReadinessSnapshot& Snap, const int32 Score, double& OutMastery, FString& OutMetricId)
+	inline void ComputeMasteryScoreAndMetric(const FString& ModeIdString, const FFELReadinessSnapshot& Snap, const int32 Score, double& OutMastery, FString& OutMetricId)
 	{
-		const EFELArenaMode M = FELArenaModeFromSwiftId(SwiftModeId);
+		const EFELArenaMode M = FELArenaModeFromIdString(ModeIdString);
 		OutMastery = 0.0;
 		OutMetricId = TEXT("composite");
 

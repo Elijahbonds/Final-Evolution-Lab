@@ -30,9 +30,9 @@ Swift is **not** required for gameplay, film vault, or streaming UI when those l
 
 ### End-to-end integration (designed system)
 
-1. **Gameplay & shell:** One UE client — Arena (`FELBasketballGameMode`, modes catalog, HUD), readiness (`FELReadinessIO`, `UFELNeuroMechanicBridgeSubsystem`), Academy subsystems, session export — all in `Source/FinalEvolutionLab/`.  
-2. **Swift (optional bridge):** Writes `readiness_snapshot.json`; Unreal reads via existing I/O (see `PHASE3_UNREAL_MERGE_AND_BRIDGE.md`, `NEURO_MECHANIC_BRIDGE.md`). Deprecate in-match Swift Arena when UE ships on device.  
-3. **Ship:** Mac Development / iOS packaging from Unreal (`PACKAGE_AND_TEST.md`, `RUN_UNREAL_ON_IPHONE_XCODE.md`); **not** the separate Swift-only Xcode app for core Arena simulation.
+1. **Gameplay & shell:** One UE client — Arena (`FELBasketballGameMode`, modes catalog, HUD), readiness (`FELReadinessIO`, `UFELNeuroMechanicBridgeSubsystem`), Academy subsystems, session export — all in `Source/FinalEvolutionLab/`. **Arena modes** are canonical in `EFELArenaMode` + `FELArenaModeIds`; use `FELArenaModeFromIdString` / `FELArenaModeToIdString` for JSON (`active_mode`) and `ArenaSettings.json` — not a secondary stack’s naming.  
+2. **External readiness (optional):** Any host or pipeline may write `readiness_snapshot.json`; Unreal reads via existing I/O (see `PHASE3_UNREAL_MERGE_AND_BRIDGE.md`, `NEURO_MECHANIC_BRIDGE.md`). Legacy Swift-only Arena UI is not the ship path.  
+3. **Ship:** Mac Development / iOS packaging from Unreal (`PACKAGE_AND_TEST.md`, `RUN_UNREAL_ON_IPHONE_XCODE.md`); **not** a Swift-only Xcode app for core Arena simulation.
 
 ---
 

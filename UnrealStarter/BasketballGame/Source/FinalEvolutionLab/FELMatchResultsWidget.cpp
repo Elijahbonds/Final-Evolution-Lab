@@ -251,7 +251,7 @@ void UFELMatchResultsWidget::InitializeWithSummary(const FFELMatchResultSummary&
 	}
 	if (InspirationLine)
 	{
-		const EFELArenaMode Am = FELArenaModeFromSwiftId(Summary.GameModeId);
+		const EFELArenaMode Am = FELArenaModeFromIdString(Summary.GameModeId);
 		const FString Tag = FELGetArenaModeInspirationTag(Am);
 		InspirationLine->SetText(FText::FromString(Tag.IsEmpty() ? FString(TEXT("Inspiration — Final Evolution Lab")) : FString::Printf(TEXT("Inspiration: %s"), *Tag)));
 	}

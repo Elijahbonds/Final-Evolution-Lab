@@ -4374,7 +4374,7 @@ final class PRQManager {
     }
 
     /// Joint status from scan audit: MODERATE / LEAKING reduce effective verticality vs PRIMED (`optimal`).
-    /// Collapses legacy / marketing labels to canonical `GameModeId.rawValue` for `FELArenaModeFromSwiftId` (Unreal).
+    /// Collapses legacy / marketing labels to canonical `GameModeId.rawValue` for `FELArenaModeFromIdString` (Unreal).
     private static func normalizeActiveModeForUnreal(_ raw: String) -> String {
         let s = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         switch s {
@@ -7063,7 +7063,7 @@ bool FELReadinessIO::ParseSnapshotJsonString(const FString& JsonStr, FFELReadine
 	(void)Root->TryGetStringField(TEXT("currentOutfit"), Outfit);
 	Out.CurrentOutfit = Outfit.IsEmpty() ? TEXT("standard") : Outfit;
 
-	// Canonical Swift ids: `basketball_h2h`, `basketball_dunk` (aliases `dunk_contest` normalized in `FELArenaModeFromSwiftId`).
+	// Canonical mode ids: `basketball_h2h`, `basketball_dunk` (aliases `dunk_contest` normalized in `FELArenaModeFromIdString`).
 	FString ActiveMode = TEXT("basketball_h2h");
 	(void)Root->TryGetStringField(TEXT("active_mode"), ActiveMode);
 	Out.ActiveArenaMode = ActiveMode.IsEmpty() ? TEXT("basketball_h2h") : ActiveMode;
@@ -7216,7 +7216,7 @@ bool FELReadinessIO::TryMandatoryVenueTravelForActiveMode(UWorld* World, const F
 	{
 		return false;
 	}
-	const EFELArenaMode Mode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+	const EFELArenaMode Mode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 	FName TargetLevel;
 	const FString Current = UGameplayStatics::GetCurrentLevelName(World, true);
 
@@ -9463,7 +9463,7 @@ void AFELBasketballCharacter::ApplyLateralWalkFromNeuro()
 	Br->GetCachedSnapshot(Snap);
 	FFELArenaRules Rules;
 	Br->GetCurrentArenaSettings(Rules);
-	const EFELArenaMode Mode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+	const EFELArenaMode Mode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 	const float Mult = FELKineticLeakage::ApplyLateralCutWalkMultiplier(
 		static_cast<float>(Snap.NeuralDrive),
 		static_cast<float>(Snap.KineticLeakageMultiplier),
@@ -10605,7 +10605,7 @@ void AFELBasketballGameMode::RestartPlayer(AController* NewPlayer)
 
 void AFELBasketballGameMode::ConfigureArenaFromReadinessSnapshot(const FFELReadinessSnapshot& Snap)
 {
-	CurrentMode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+	CurrentMode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 	if (CurrentMode == EFELArenaMode::Unknown)
 	{
 		CurrentMode = EFELArenaMode::BasketballHeadToHead;
@@ -10785,7 +10785,7 @@ void AFELBasketballGameMode::OnDunkContestModeActivated_Implementation()
 void AFELBasketballGameMode::RefreshArenaConfigurationFromSnapshot(const FFELReadinessSnapshot& Snap)
 {
 	const EFELArenaMode PreviousMode = CurrentMode;
-	EFELArenaMode NewMode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+	EFELArenaMode NewMode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 	if (NewMode == EFELArenaMode::Unknown)
 	{
 		NewMode = EFELArenaMode::BasketballHeadToHead;
@@ -11253,7 +11253,7 @@ void AFELBasketballGameMode::SyncNeuroFieldsFromSnapshot(const FFELReadinessSnap
 
 FString AFELBasketballGameMode::GetArenaGameModeId() const
 {
-	return FELArenaModeToSwiftId(CurrentMode);
+	return FELArenaModeToIdString(CurrentMode);
 }
 
 void AFELBasketballGameMode::TriggerExerciseDemo()

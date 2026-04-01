@@ -2,7 +2,7 @@
 
 Use this when you want a **Mac Development build for internal QA**, a **folder/zip for testers**, or to continue to **iOS** packaging from Unreal.
 
-**Not the Swift app:** The iOS product in this repo is **`ios/FinalEvolutionLab.xcodeproj`** — see **`XCODE_CLEAN_AND_RUN.md`**. Unreal is a **separate** project (e.g. **FinalEvolutionLab** under *Documents*).
+**Canonical client:** Ship gameplay from **`FinalEvolutionLab.uproject`** (this folder). For **iOS**, package from Unreal and open the **generated** `.xcworkspace` — see **`RUN_UNREAL_ON_IPHONE_XCODE.md`**. The **`ios/FinalEvolutionLab`** tree is a **legacy shell** only; do not treat it as the primary game binary.
 
 ---
 
@@ -21,6 +21,10 @@ Use this when you want a **Mac Development build for internal QA**, a **folder/z
 | [9. Repo artifacts & FinalEvolutionLab defaults](#9-repo-artifacts--myprojec-defaults) | Files in this repo + what’s on disk |
 | [10. Short path (TL;DR)](#10-short-path-tldr) | Ordered steps |
 | [11. Cross-links](#11-cross-links) | Related docs |
+
+### Large builds / remote play
+
+If cooked builds or repo artifacts are too large to move around casually, use **Pixel Streaming** (Epic docs + samples under **`Samples/PixelStreaming/`** in this project) to **stream** the Unreal client to browsers or testers instead of copying multi‑GB folders every time.
 
 ---
 

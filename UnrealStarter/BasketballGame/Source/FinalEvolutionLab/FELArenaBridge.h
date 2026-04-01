@@ -7,7 +7,7 @@
 
 struct FELArenaBridge
 {
-	/** Shards curve for Unreal Arena lab (tunable); scales with PRQ and Swift modeWeight. */
+	/** Shards curve for Unreal Arena lab (tunable); scales with PRQ and mode weight from readiness. */
 	static int32 ComputeShardsEarned(int32 ScoreBuckets, double PRQ, const FString& GameModeId, bool bEconomyEnabled);
 
 	/** Small PRQ-linked bonus double for GameSessionResult. */

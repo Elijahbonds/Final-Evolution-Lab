@@ -107,11 +107,11 @@ void UFELGameInstance::ApplyProfileScalabilityToGameUserSettings()
 	FEL_SetScalabilityFromPreset(PlayerProfile->bPerformanceMode);
 }
 
-FString UFELGameInstance::GetPreferredArenaSwiftId() const
+FString UFELGameInstance::GetPreferredArenaModeId() const
 {
-	if (PlayerProfile && !PlayerProfile->PreferredArenaModeSwiftId.IsEmpty())
+	if (PlayerProfile && !PlayerProfile->PreferredArenaModeId.IsEmpty())
 	{
-		return PlayerProfile->PreferredArenaModeSwiftId;
+		return PlayerProfile->PreferredArenaModeId;
 	}
 	return TEXT("basketball_h2h");
 }
@@ -126,7 +126,7 @@ void UFELGameInstance::SetPreferredArenaFromMode(const EFELArenaMode Mode)
 	{
 		return;
 	}
-	PlayerProfile->PreferredArenaModeSwiftId = FELArenaModeToSwiftId(Mode);
+	PlayerProfile->PreferredArenaModeId = FELArenaModeToIdString(Mode);
 	PlayerProfile->SelectedInspirationTag = FELGetArenaModeInspirationTag(Mode);
 	SavePlayerProfile();
 }

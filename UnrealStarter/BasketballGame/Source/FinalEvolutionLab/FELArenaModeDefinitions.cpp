@@ -2,9 +2,9 @@
 
 #include "FELArenaModeDefinitions.h"
 
-EFELArenaMode FELArenaModeFromSwiftId(const FString& SwiftId)
+EFELArenaMode FELArenaModeFromIdString(const FString& IdString)
 {
-	const FString Id = SwiftId.TrimStartAndEnd().ToLower();
+	const FString Id = IdString.TrimStartAndEnd().ToLower();
 	if (Id == FELArenaModeIds::BasketballHeadToHead)
 	{
 		return EFELArenaMode::BasketballHeadToHead;
@@ -68,7 +68,7 @@ EFELArenaMode FELArenaModeFromSwiftId(const FString& SwiftId)
 	return EFELArenaMode::Unknown;
 }
 
-FString FELArenaModeToSwiftId(EFELArenaMode Mode)
+FString FELArenaModeToIdString(EFELArenaMode Mode)
 {
 	switch (Mode)
 	{

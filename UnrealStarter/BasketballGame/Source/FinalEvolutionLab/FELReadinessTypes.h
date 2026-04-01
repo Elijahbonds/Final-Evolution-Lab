@@ -74,7 +74,7 @@ struct FFELReadinessSnapshot
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL")
 	FString CurrentOutfit = TEXT("standard");
 
-	/** Swift `GameModeId.rawValue` — drives ArenaSettings + Unreal rules (e.g. `basketball_dunk`, `brain_brawl`). */
+	/** Canonical mode id — drives ArenaSettings + game rules (e.g. `basketball_dunk`, `brain_brawl`). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Arena")
 	FString ActiveArenaMode = TEXT("basketball_h2h");
 

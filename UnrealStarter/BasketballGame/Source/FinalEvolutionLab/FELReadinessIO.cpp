@@ -54,7 +54,7 @@ bool FELReadinessIO::ParseSnapshotJsonString(const FString& JsonStr, FFELReadine
 	(void)Root->TryGetStringField(TEXT("currentOutfit"), Outfit);
 	Out.CurrentOutfit = Outfit.IsEmpty() ? TEXT("standard") : Outfit;
 
-	// Canonical Swift ids: `basketball_h2h`, `basketball_dunk` (aliases `dunk_contest` normalized in `FELArenaModeFromSwiftId`).
+	// Canonical mode ids: `basketball_h2h`, `basketball_dunk` (aliases `dunk_contest` normalized in `FELArenaModeFromIdString`).
 	FString ActiveMode = TEXT("basketball_h2h");
 	(void)Root->TryGetStringField(TEXT("active_mode"), ActiveMode);
 	Out.ActiveArenaMode = ActiveMode.IsEmpty() ? TEXT("basketball_h2h") : ActiveMode;
@@ -257,7 +257,7 @@ bool FELReadinessIO::TryMandatoryVenueTravelForActiveMode(UWorld* World, const F
 	{
 		return false;
 	}
-	const EFELArenaMode Mode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+	const EFELArenaMode Mode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 	FName TargetLevel;
 	const FString Current = UGameplayStatics::GetCurrentLevelName(World, true);
 

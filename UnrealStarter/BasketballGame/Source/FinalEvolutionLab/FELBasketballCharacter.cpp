@@ -980,7 +980,7 @@ void AFELBasketballCharacter::ApplyNeuroArenaGameplay(const FFELReadinessSnapsho
 			CachedJumpZAfterNeuroPipeline = M->JumpZVelocity;
 		}
 
-		const EFELArenaMode CourtMode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+		const EFELArenaMode CourtMode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 		if (CourtMode == EFELArenaMode::Tennis || CourtMode == EFELArenaMode::Volleyball)
 		{
 			const float SwitchWalk = FELSwitchSportsGameplay::ComputeCourtWalkSpeedMultiplier(Snap, Rules.SportNeuro, nullptr);
@@ -1084,7 +1084,7 @@ void AFELBasketballCharacter::ApplyLateralWalkFromNeuro()
 	Br->GetCachedSnapshot(Snap);
 	FFELArenaRules Rules;
 	Br->GetCurrentArenaSettings(Rules);
-	const EFELArenaMode Mode = FELArenaModeFromSwiftId(Snap.ActiveArenaMode);
+	const EFELArenaMode Mode = FELArenaModeFromIdString(Snap.ActiveArenaMode);
 	const float Mult = FELKineticLeakage::ApplyLateralCutWalkMultiplier(
 		static_cast<float>(Snap.NeuralDrive),
 		static_cast<float>(Snap.KineticLeakageMultiplier),

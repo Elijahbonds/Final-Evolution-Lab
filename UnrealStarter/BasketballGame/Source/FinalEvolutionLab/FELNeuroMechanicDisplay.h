@@ -48,7 +48,7 @@ namespace FELNeuroMechanicDisplay
 		float Ws = 0.f;
 		ComputeEffectiveJumpAndWalk(S, Jz, Ws);
 		(void)Jz;
-		const EFELArenaMode Mode = FELArenaModeFromSwiftId(S.ActiveArenaMode);
+		const EFELArenaMode Mode = FELArenaModeFromIdString(S.ActiveArenaMode);
 		const FFELSportNeuroConstants& N = R.SportNeuro;
 
 		switch (Mode)

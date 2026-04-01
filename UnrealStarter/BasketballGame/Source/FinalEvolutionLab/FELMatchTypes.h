@@ -1,5 +1,5 @@
 // Copyright (c) Final Evolution Lab.
-// Match lifecycle + result payload (Swift GameSessionResult parity + Unreal neuro fields).
+// Match lifecycle + result payload (session_results.json schema + Unreal neuro fields).
 
 #pragma once
 
@@ -16,7 +16,7 @@ enum class EFELMatchPhase : uint8
 };
 
 /**
- * Arena handoff block for `session_results.json` → Swift Vault / Film Vault parity ("one ecosystem").
+ * Arena handoff block for `session_results.json` → Vault / Film Vault / analytics ("one ecosystem").
  * Serialized as JSON object `arena_result` (snake_case keys).
  */
 USTRUCT(BlueprintType)
