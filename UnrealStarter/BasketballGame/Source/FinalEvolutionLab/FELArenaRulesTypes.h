@@ -304,4 +304,20 @@ struct FFELArenaRules
 	/** When `EFELArenaMode::Karate` — which C++ / BP Karate loop to run (H2H storm vs endless agents). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Arena|Karate")
 	EFELKarateLabMode KarateLabMode = EFELKarateLabMode::HeadToHeadStorm;
+
+	/**
+	 * Cooked level package for OpenLevel when this mode is active (`readiness_snapshot` / menu).
+	 * Example: `/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach`
+	 * Set from `Content/FEL/Config/ArenaSettings.json` key `unrealOpenLevelPackage` per mode.
+	 * Empty = use built-in defaults in `FELArenaVenueTravel` (same paths as before this field existed).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Arena|Maps")
+	FString UnrealOpenLevelPackage;
+
+	/**
+	 * Substring matched against `GetCurrentLevelName` to skip redundant travel (optional).
+	 * If empty, inferred from the last path segment of `UnrealOpenLevelPackage` (e.g. VeniceBeach).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Arena|Maps")
+	FString UnrealVenuePresenceToken;
 };

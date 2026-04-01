@@ -13,14 +13,15 @@ Use this when you want a **Mac Development build for internal QA**, a **folder/z
 | [1. Preconditions](#1-preconditions) | Blockers before cook |
 | [2. Default map & game mode](#2-default-map--game-mode) | Maps & Modes + config snippets |
 | [3. Input](#3-input-mac--gamepad) | Legacy PlayerInput + FEL bindings |
-| [4. Readiness JSON](#4-readiness-json-optional-for-qa) | Snapshot + session export |
-| [5. Mac Development packaging](#5-mac-development-packaging) | Editor UI + **RunUAT** CLI |
-| [6. Tester checklist](#6-tester-checklist) | What QA should verify |
-| [7. iOS (Unreal)](#7-ios-unreal--testflight-path) | Pointers to run/package on device |
-| [8. Notarization (Mac)](#8-notarization-mac) | Short note for distribution |
-| [9. Repo artifacts & FinalEvolutionLab defaults](#9-repo-artifacts--myprojec-defaults) | Files in this repo + what’s on disk |
-| [10. Short path (TL;DR)](#10-short-path-tldr) | Ordered steps |
-| [11. Cross-links](#11-cross-links) | Related docs |
+| [4. Arena maps per mode](#4-arena-maps-per-mode-arenasettingsjson) | `unrealOpenLevelPackage` + MapsToCook |
+| [5. Readiness JSON](#5-readiness-json-optional-for-qa) | Snapshot + session export |
+| [6. Mac Development packaging](#6-mac-development-packaging) | Editor UI + **RunUAT** CLI |
+| [7. Tester checklist](#7-tester-checklist) | What QA should verify |
+| [8. iOS (Unreal)](#8-ios-unreal--testflight-path) | Pointers to run/package on device |
+| [9. Notarization (Mac)](#9-notarization-mac) | Short note for distribution |
+| [10. Repo artifacts & FinalEvolutionLab defaults](#10-repo-artifacts--myprojec-defaults) | Files in this repo + what’s on disk |
+| [11. Short path (TL;DR)](#11-short-path-tldr) | Ordered steps |
+| [12. Cross-links](#12-cross-links) | Related docs |
 
 ### Large builds / remote play
 
@@ -71,14 +72,20 @@ In **`Config/DefaultInput.ini`** keep:
 
 ---
 
-## 4. Readiness JSON (optional for QA)
+## 4. Arena maps per mode (`ArenaSettings.json`)
+
+Each mode under `modes` can set **`unrealOpenLevelPackage`** (full Unreal package path for `OpenLevel`, e.g. `/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach`). **`FELArenaVenueTravel`** reads this via `FELArenaRulesRegistry` before using C++ defaults. Optional **`unrealVenuePresenceToken`** overrides the substring used to detect “already on this venue” (otherwise inferred from the package path). Those maps must be listed under **`MapsToCook`** in `Config/DefaultGame.ini` (or equivalent packaging settings) so they ship in cooked builds.
+
+Basketball H2H / dunk / 3v3 currently share the Venice Beach package; split into separate `.umap` paths here when art provides distinct shells.
+
+## 5. Readiness JSON (optional for QA)
 
 - Copy **`example_readiness_snapshot.json`** → **`Saved/FEL/readiness_snapshot.json`** next to the **`.uproject`**, or **`Content/FEL/Config/readiness_snapshot.json`**. If missing, defaults apply (PRQ **75**).
 - After a match that **ends** with scoring on, check **`Saved/FEL/last_session_result.json`** (`GameSessionResult`-shaped). See **`QA_GAMEPLAY_AUDIT.md`** for modes that never end (no file).
 
 ---
 
-## 5. Mac Development packaging
+## 6. Mac Development packaging
 
 ### Option A — Editor
 
@@ -103,7 +110,7 @@ UnrealStarter/scripts/package_fel_mac.sh "/path/to/FinalEvolutionLab.uproject" "
 
 ---
 
-## 6. Tester checklist
+## 7. Tester checklist
 
 - [ ] App launches (no immediate crash).
 - [ ] Move / look / jump; ball spawns with physics.
@@ -113,7 +120,7 @@ UnrealStarter/scripts/package_fel_mac.sh "/path/to/FinalEvolutionLab.uproject" "
 
 ---
 
-## 7. iOS (Unreal / TestFlight path)
+## 8. iOS (Unreal / TestFlight path)
 
 Unreal **does not** install through **`ios/FinalEvolutionLab.xcodeproj`**. You **package iOS** from the Unreal Editor (or automation), then open the **generated iOS `.xcworkspace`**, sign, run or archive.
 
@@ -125,7 +132,7 @@ Read in order:
 
 ---
 
-## 8. Notarization (Mac)
+## 9. Notarization (Mac)
 
 **Internal QA:** a **Development** packaged folder is usually enough; Gatekeeper may still prompt — testers can right-click → Open the first time.
 
@@ -133,7 +140,7 @@ Read in order:
 
 ---
 
-## 9. Repo artifacts & FinalEvolutionLab defaults
+## 10. Repo artifacts & FinalEvolutionLab defaults
 
 **In this repo (`UnrealStarter/`):**
 
@@ -153,7 +160,7 @@ Read in order:
 
 ---
 
-## 10. Short path (TL;DR)
+## 11. Short path (TL;DR)
 
 1. Open **FinalEvolutionLab** in **UE 5.7**.
 2. Enable **Python Editor Script Plugin**, restart Editor.
@@ -164,7 +171,7 @@ Read in order:
 
 ---
 
-## 11. Cross-links
+## 12. Cross-links
 
 | Doc | Why |
 |-----|-----|

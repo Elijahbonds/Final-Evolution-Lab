@@ -1,5 +1,6 @@
 // Copyright (c) Final Evolution Lab.
-// Single source for arena mode → OpenLevel package name + "already on venue" heuristics (Phase 5 venue matrix).
+// Arena mode → OpenLevel package: `Content/FEL/Config/ArenaSettings.json` key `unrealOpenLevelPackage` per mode (see FFELArenaRules),
+// then built-in fallbacks in `ResolveOpenLevelName` if the JSON field is empty.
 
 #pragma once
 

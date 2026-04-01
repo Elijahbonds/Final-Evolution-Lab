@@ -374,6 +374,14 @@ namespace FELArenaRulesRegistryInternal
 		{
 			InOut.bStreetJamArcade = B;
 		}
+		if (RuleObj->TryGetStringField(TEXT("unrealOpenLevelPackage"), S))
+		{
+			InOut.UnrealOpenLevelPackage = S.TrimStartAndEnd();
+		}
+		if (RuleObj->TryGetStringField(TEXT("unrealVenuePresenceToken"), S))
+		{
+			InOut.UnrealVenuePresenceToken = S.TrimStartAndEnd();
+		}
 		if (Mode == EFELArenaMode::Karate)
 		{
 			FString KS;

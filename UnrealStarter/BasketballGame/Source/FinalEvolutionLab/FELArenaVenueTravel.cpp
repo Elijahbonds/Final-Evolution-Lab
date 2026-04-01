@@ -1,11 +1,38 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "FELArenaVenueTravel.h"
+#include "FELArenaRulesRegistry.h"
 #include "FELDigitalTwinVenuePaths.h"
 #include "UObject/SoftObjectPath.h"
 
+namespace
+{
+	FString FelInferVenueTokenFromPackage(const FString& Pkg)
+	{
+		FString Clean = Pkg.TrimStartAndEnd();
+		int32 Dot = INDEX_NONE;
+		if (Clean.FindLastChar(TEXT('.'), Dot))
+		{
+			Clean = Clean.Left(Dot);
+		}
+		int32 Slash = INDEX_NONE;
+		if (Clean.FindLastChar(TEXT('/'), Slash))
+		{
+			return Clean.Mid(Slash + 1);
+		}
+		return Clean;
+	}
+}
+
 bool FELArenaVenueTravel::ResolveOpenLevelName(const EFELArenaMode Mode, FName& OutLevelPackageName)
 {
+	const FFELArenaRules Rules = FELArenaRulesRegistry::GetMergedRules(Mode);
+	if (!Rules.UnrealOpenLevelPackage.IsEmpty())
+	{
+		OutLevelPackageName = FName(*Rules.UnrealOpenLevelPackage);
+		return true;
+	}
+
 	switch (Mode)
 	{
 	case EFELArenaMode::BasketballHeadToHead:
@@ -61,6 +88,15 @@ FSoftObjectPath FELArenaVenueTravel::GetDefaultVenueSoftPath(const EFELArenaMode
 
 bool FELArenaVenueTravel::ShouldSkipTravelBecauseAlreadyOnVenue(const EFELArenaMode Mode, const FString& Current)
 {
+	const FFELArenaRules Rules = FELArenaRulesRegistry::GetMergedRules(Mode);
+	if (!Rules.UnrealOpenLevelPackage.IsEmpty())
+	{
+		const FString Token = Rules.UnrealVenuePresenceToken.IsEmpty()
+			                          ? FelInferVenueTokenFromPackage(Rules.UnrealOpenLevelPackage)
+			                          : Rules.UnrealVenuePresenceToken;
+		return !Token.IsEmpty() && Current.Contains(Token);
+	}
+
 	switch (Mode)
 	{
 	case EFELArenaMode::BasketballHeadToHead:
