@@ -7,8 +7,52 @@
 namespace FELGeneratedAssets
 {
     // === Exercise Motion Capture Animations ===
+    static const TCHAR* ANIM_ANKLE_DORSIFLEXION = TEXT("/Game/FEL/Generated/deepmotion/ankle_dorsiflexion_mocap");
+    static const TCHAR* ANIM_ARM_CIRCLES_PROGRESSIVE = TEXT("/Game/FEL/Generated/deepmotion/arm_circles_progressive_mocap");
+    static const TCHAR* ANIM_BALANCE_BOARD = TEXT("/Game/FEL/Generated/deepmotion/balance_board_mocap");
+    static const TCHAR* ANIM_BOX_JUMP = TEXT("/Game/FEL/Generated/deepmotion/box_jump_mocap");
+    static const TCHAR* ANIM_BREATHING_BOX = TEXT("/Game/FEL/Generated/deepmotion/breathing_box_mocap");
+    static const TCHAR* ANIM_DEADLIFT_HIP_HINGE = TEXT("/Game/FEL/Generated/deepmotion/deadlift_hip_hinge_mocap");
+    static const TCHAR* ANIM_DUNK_APPROACH = TEXT("/Game/FEL/Generated/deepmotion/dunk_approach_mocap");
+    static const TCHAR* ANIM_DYNAMIC_LUNGE_WALK = TEXT("/Game/FEL/Generated/deepmotion/dynamic_lunge_walk_mocap");
+    static const TCHAR* ANIM_FOAM_ROLL_IT_BAND = TEXT("/Game/FEL/Generated/deepmotion/foam_roll_it_band_mocap");
+    static const TCHAR* ANIM_GOLF_SWING_DRILL = TEXT("/Game/FEL/Generated/deepmotion/golf_swing_drill_mocap");
+    static const TCHAR* ANIM_HIGH_KNEES = TEXT("/Game/FEL/Generated/deepmotion/high_knees_mocap");
+    static const TCHAR* ANIM_HIP_90_90 = TEXT("/Game/FEL/Generated/deepmotion/hip_90_90_mocap");
+    static const TCHAR* ANIM_KARATE_KATA_BASIC = TEXT("/Game/FEL/Generated/deepmotion/karate_kata_basic_mocap");
+    static const TCHAR* ANIM_KICK_FORM = TEXT("/Game/FEL/Generated/deepmotion/kick_form_mocap");
+    static const TCHAR* ANIM_LATERAL_SHUFFLE = TEXT("/Game/FEL/Generated/deepmotion/lateral_shuffle_mocap");
+    static const TCHAR* ANIM_PIGEON_STRETCH = TEXT("/Game/FEL/Generated/deepmotion/pigeon_stretch_mocap");
+    static const TCHAR* ANIM_PUSHUP_EXPLOSIVE = TEXT("/Game/FEL/Generated/deepmotion/pushup_explosive_mocap");
+    static const TCHAR* ANIM_SERVE_MOTION = TEXT("/Game/FEL/Generated/deepmotion/serve_motion_mocap");
+    static const TCHAR* ANIM_SHOULDER_DISLOCATE = TEXT("/Game/FEL/Generated/deepmotion/shoulder_dislocate_mocap");
+    static const TCHAR* ANIM_SQUAT_FORM = TEXT("/Game/FEL/Generated/deepmotion/squat_form_mocap");
+    static const TCHAR* ANIM_SURF_POPUP = TEXT("/Game/FEL/Generated/deepmotion/surf_popup_mocap");
+    static const TCHAR* ANIM_THORACIC_ROTATION = TEXT("/Game/FEL/Generated/deepmotion/thoracic_rotation_mocap");
+    static const TCHAR* ANIM_TUMBLING_ROUNDOFF = TEXT("/Game/FEL/Generated/deepmotion/tumbling_roundoff_mocap");
 
     // === Exercise Props (Meshy 3D) ===
+    static const TCHAR* PROP_BALANCE_BOARD = TEXT("/Game/FEL/Generated/meshy/balance_board_prop");
+    static const TCHAR* PROP_BOX_JUMP = TEXT("/Game/FEL/Generated/meshy/box_jump_prop");
+    static const TCHAR* PROP_DEADLIFT_HIP_HINGE = TEXT("/Game/FEL/Generated/meshy/deadlift_hip_hinge_prop");
+    static const TCHAR* PROP_FOAM_ROLL_IT_BAND = TEXT("/Game/FEL/Generated/meshy/foam_roll_it_band_prop");
+    static const TCHAR* PROP_GOLF_SWING_DRILL = TEXT("/Game/FEL/Generated/meshy/golf_swing_drill_prop");
+    static const TCHAR* PROP_KICK_FORM = TEXT("/Game/FEL/Generated/meshy/kick_form_prop");
+    static const TCHAR* PROP_SERVE_MOTION = TEXT("/Game/FEL/Generated/meshy/serve_motion_prop");
+    static const TCHAR* PROP_SHOULDER_DISLOCATE = TEXT("/Game/FEL/Generated/meshy/shoulder_dislocate_prop");
+    static const TCHAR* PROP_SQUAT_FORM = TEXT("/Game/FEL/Generated/meshy/squat_form_prop");
 
     // === Environment Assets (Luma + Meshy) ===
+    static const TCHAR* ENV_BOXING_RING = TEXT("/Game/FEL/Generated/meshy/env_boxing_ring_3d_model");
+    static const TCHAR* ENV_DOJO = TEXT("/Game/FEL/Generated/meshy/env_dojo_3d_model");
+    static const TCHAR* ENV_GOLF_COURSE = TEXT("/Game/FEL/Generated/meshy/env_golf_course_3d_model");
+    static const TCHAR* ENV_GYMNASTICS_ARENA = TEXT("/Game/FEL/Generated/meshy/env_gymnastics_arena_3d_model");
+    static const TCHAR* ENV_MARKETPLACE = TEXT("/Game/FEL/Generated/meshy/env_marketplace_3d_model");
+    static const TCHAR* ENV_SKATEPARK = TEXT("/Game/FEL/Generated/meshy/env_skatepark_3d_model");
+    static const TCHAR* ENV_SNOWBOARD_MOUNTAIN = TEXT("/Game/FEL/Generated/meshy/env_snowboard_mountain_3d_model");
+    static const TCHAR* ENV_SOCCER_STADIUM = TEXT("/Game/FEL/Generated/meshy/env_soccer_stadium_3d_model");
+    static const TCHAR* ENV_SURF_BEACH = TEXT("/Game/FEL/Generated/meshy/env_surf_beach_3d_model");
+    static const TCHAR* ENV_TENNIS_COURT = TEXT("/Game/FEL/Generated/meshy/env_tennis_court_3d_model");
+    static const TCHAR* ENV_TRAINING_GYM = TEXT("/Game/FEL/Generated/meshy/env_training_gym_3d_model");
+    static const TCHAR* ENV_VENICE_BASKETBALL = TEXT("/Game/FEL/Generated/meshy/env_venice_basketball_3d_model");
 }

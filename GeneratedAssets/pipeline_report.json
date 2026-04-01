@@ -1,0 +1,129 @@
+{
+  "phases": {
+    "verify": {
+      "animations": "2/2",
+      "props": "5/5",
+      "environments": "7/7",
+      "characters": "5/5"
+    },
+    "register_local": {
+      "animations": {
+        "dynamic_lunge_walk": "cached",
+        "arm_circles_progressive": "cached",
+        "high_knees": "cached",
+        "lateral_shuffle": "cached",
+        "squat_form": "cached",
+        "box_jump": "cached",
+        "pushup_explosive": "cached",
+        "deadlift_hip_hinge": "cached",
+        "hip_90_90": "cached",
+        "thoracic_rotation": "cached",
+        "ankle_dorsiflexion": "cached",
+        "shoulder_dislocate": "cached",
+        "dunk_approach": "cached",
+        "golf_swing_drill": "cached",
+        "kick_form": "cached",
+        "serve_motion": "cached",
+        "karate_kata_basic": "cached",
+        "surf_popup": "cached",
+        "balance_board": "cached",
+        "tumbling_roundoff": "cached",
+        "foam_roll_it_band": "cached",
+        "pigeon_stretch": "cached",
+        "breathing_box": "cached"
+      },
+      "props": {
+        "dynamic_lunge_walk": "not_needed",
+        "arm_circles_progressive": "not_needed",
+        "high_knees": "not_needed",
+        "lateral_shuffle": "not_needed",
+        "squat_form": "cached",
+        "box_jump": "cached",
+        "pushup_explosive": "not_needed",
+        "deadlift_hip_hinge": "cached",
+        "hip_90_90": "not_needed",
+        "thoracic_rotation": "not_needed",
+        "ankle_dorsiflexion": "not_needed",
+        "shoulder_dislocate": "cached",
+        "dunk_approach": "not_needed",
+        "golf_swing_drill": "cached",
+        "kick_form": "cached",
+        "serve_motion": "cached",
+        "karate_kata_basic": "not_needed",
+        "surf_popup": "not_needed",
+        "balance_board": "cached",
+        "tumbling_roundoff": "not_needed",
+        "foam_roll_it_band": "cached",
+        "pigeon_stretch": "not_needed",
+        "breathing_box": "not_needed"
+      },
+      "environments": {
+        "venice_basketball": "cached",
+        "soccer_stadium": "cached",
+        "golf_course": "cached",
+        "skatepark": "cached",
+        "tennis_court": "cached",
+        "boxing_ring": "cached",
+        "surf_beach": "cached",
+        "gymnastics_arena": "cached",
+        "dojo": "needs_generation",
+        "snowboard_mountain": "needs_generation",
+        "training_gym": "needs_generation",
+        "marketplace": "cached"
+      },
+      "characters": {
+        "elijah_bonds_running": "cached",
+        "elijah_bonds_walking": "cached",
+        "amir_smith": "cached",
+        "eric_nash": "cached",
+        "hoopbus": "cached"
+      }
+    },
+    "generate_missing": {
+      "props": {
+        "squat_form": "already_in_manifest",
+        "deadlift_hip_hinge": "already_in_manifest",
+        "box_jump": "already_in_manifest",
+        "balance_board": "already_in_manifest",
+        "foam_roll_it_band": "already_in_manifest",
+        "shoulder_dislocate": "already_in_manifest",
+        "golf_swing_drill": "already_in_manifest"
+      },
+      "environments": {
+        "golf_course": "already_in_manifest",
+        "skatepark": "already_in_manifest",
+        "tennis_court": "already_in_manifest",
+        "boxing_ring": "already_in_manifest",
+        "gymnastics_arena": "already_in_manifest",
+        "dojo": "generated",
+        "snowboard_mountain": "generated",
+        "training_gym": "generated"
+      }
+    },
+    "unreal_import": {
+      "import_script": "/home/ubuntu/rork-final-evolution-lab/UnrealStarter/BasketballGame/EditorPython/fel_import_ai_assets.py",
+      "exercise_catalog": "/home/ubuntu/rork-final-evolution-lab/UnrealStarter/BasketballGame/Content/FEL/Config/ExerciseCatalog.json",
+      "asset_header": "/home/ubuntu/rork-final-evolution-lab/UnrealStarter/BasketballGame/Source/FinalEvolutionLab/FELGeneratedAssetPaths.h"
+    },
+    "validation": {
+      "exercises": {
+        "total": 23,
+        "with_animation": 23,
+        "with_prop": 9,
+        "missing_animation": [],
+        "missing_prop": []
+      },
+      "venues": {
+        "total": 12,
+        "with_model": 12,
+        "missing": []
+      },
+      "game_modes": {
+        "total": 16,
+        "covered": 18,
+        "missing": []
+      },
+      "overall_pass": true
+    }
+  }
+}

@@ -127,7 +127,8 @@
             "gymnastics",
             "surfing",
             "snowboarding"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/squat_form_prop/019d4813-09db-7d0e-a138-b41a2ff32252"
         },
         {
           "id": "box_jump",
@@ -150,7 +151,8 @@
             "basketball_dunk",
             "volleyball",
             "gymnastics"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/box_jump_prop/019d481b-ef57-7f73-b4b9-965022ac9856"
         },
         {
           "id": "pushup_explosive",
@@ -197,7 +199,8 @@
             "baseball",
             "football",
             "basketball_dunk"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/deadlift_hip_hinge_prop/019d4818-dbd2-7118-bdc6-23dfa0d4beb9"
         }
       ]
     },
@@ -296,7 +299,8 @@
             "tennis",
             "baseball",
             "gymnastics"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/shoulder_dislocate_prop/019d4825-cf66-715d-813d-08e81a9ec1cb"
         }
       ]
     },
@@ -346,7 +350,8 @@
           "sportRelevance": [
             "golf",
             "baseball"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/golf_swing_drill_prop/019d4828-a810-707b-80e7-d74c46410bf1"
         },
         {
           "id": "kick_form",
@@ -368,7 +373,8 @@
           "sportRelevance": [
             "soccer",
             "football"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/kick_form_prop/Meshy_AI_Soccer_Ball_FIFA_st_0323202119_texture"
         },
         {
           "id": "serve_motion",
@@ -390,7 +396,8 @@
           "sportRelevance": [
             "tennis",
             "volleyball"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/serve_motion_prop/Meshy_AI_Tennis_Racket_Profe_0323202215_texture"
         },
         {
           "id": "karate_kata_basic",
@@ -457,7 +464,8 @@
             "skateboarding",
             "snowboarding",
             "gymnastics"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/balance_board_prop/019d481f-b577-7204-884c-fbdc5a242ec9"
         },
         {
           "id": "tumbling_roundoff",
@@ -507,7 +515,8 @@
             "soccer",
             "football",
             "tennis"
-          ]
+          ],
+          "propMesh": "/Game/FEL/Generated/meshy/foam_roll_it_band_prop/019d4822-664f-7272-9be9-224cceb16e42"
         },
         {
           "id": "pigeon_stretch",
