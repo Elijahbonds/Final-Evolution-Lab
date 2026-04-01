@@ -1,0 +1,1912 @@
+{
+  "manifest_version": "2.0",
+  "created": "2026-04-01T16:28:10.711616+00:00",
+  "project": "Final Evolution Lab",
+  "source_athlete": {
+    "name": "Elijah Bonds",
+    "instagram": "@elijahbonds",
+    "profile": "Basketball | Dunking Performance Coach - LA Native, 6'4\", Venice Basketball League player, World Champion 2017"
+  },
+  "processing_status": {
+    "deepmotion_status": "not_started",
+    "videos_total": 10,
+    "videos_processed": 0,
+    "animations_ready": 0,
+    "animations_pending": 54
+  },
+  "statistics": {
+    "total_custom_animations": 54,
+    "total_unique_movements": 47,
+    "total_ue5_catalogue_animations": 58,
+    "game_modes_with_custom": 16,
+    "game_modes_catalogue_only": 0
+  },
+  "custom_animations": [
+    {
+      "animation_id": "eb_01_dunk_session_multiple_dunks_reverse_alleyoop_vertical_jump_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/ColV24pDua0/",
+      "movement_type": "vertical_jump_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/vertical_jump_dunk",
+      "description": "Dunk session with friends (@eyesonheight, @saucetommy). Multiple dunk types including vertical jumps, one-handed dunks, two-handed front dunks, reverse dunks, and alley-oop dunks. First dunk session of the year.",
+      "duration_seconds": 45.95,
+      "motion_capture_notes": "Excellent for extracting multiple dunk animations. Clear full-body movements visible. Good for vertical leap and arm extension captures."
+    },
+    {
+      "animation_id": "eb_01_dunk_session_multiple_dunks_reverse_alleyoop_two_handed_reverse_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/ColV24pDua0/",
+      "movement_type": "two_handed_reverse_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/two_handed_reverse_dunk",
+      "description": "Dunk session with friends (@eyesonheight, @saucetommy). Multiple dunk types including vertical jumps, one-handed dunks, two-handed front dunks, reverse dunks, and alley-oop dunks. First dunk session of the year.",
+      "duration_seconds": 45.95,
+      "motion_capture_notes": "Excellent for extracting multiple dunk animations. Clear full-body movements visible. Good for vertical leap and arm extension captures."
+    },
+    {
+      "animation_id": "eb_01_dunk_session_multiple_dunks_reverse_alleyoop_one_handed_alleyoop_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/ColV24pDua0/",
+      "movement_type": "one_handed_alleyoop_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/one_handed_alleyoop_dunk",
+      "description": "Dunk session with friends (@eyesonheight, @saucetommy). Multiple dunk types including vertical jumps, one-handed dunks, two-handed front dunks, reverse dunks, and alley-oop dunks. First dunk session of the year.",
+      "duration_seconds": 45.95,
+      "motion_capture_notes": "Excellent for extracting multiple dunk animations. Clear full-body movements visible. Good for vertical leap and arm extension captures."
+    },
+    {
+      "animation_id": "eb_01_dunk_session_multiple_dunks_reverse_alleyoop_one_handed_front_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/ColV24pDua0/",
+      "movement_type": "one_handed_front_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/one_handed_front_dunk",
+      "description": "Dunk session with friends (@eyesonheight, @saucetommy). Multiple dunk types including vertical jumps, one-handed dunks, two-handed front dunks, reverse dunks, and alley-oop dunks. First dunk session of the year.",
+      "duration_seconds": 45.95,
+      "motion_capture_notes": "Excellent for extracting multiple dunk animations. Clear full-body movements visible. Good for vertical leap and arm extension captures."
+    },
+    {
+      "animation_id": "eb_01_dunk_session_multiple_dunks_reverse_alleyoop_two_handed_front_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/ColV24pDua0/",
+      "movement_type": "two_handed_front_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/two_handed_front_dunk",
+      "description": "Dunk session with friends (@eyesonheight, @saucetommy). Multiple dunk types including vertical jumps, one-handed dunks, two-handed front dunks, reverse dunks, and alley-oop dunks. First dunk session of the year.",
+      "duration_seconds": 45.95,
+      "motion_capture_notes": "Excellent for extracting multiple dunk animations. Clear full-body movements visible. Good for vertical leap and arm extension captures."
+    },
+    {
+      "animation_id": "eb_01_dunk_session_multiple_dunks_reverse_alleyoop_one_handed_reverse_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/ColV24pDua0/",
+      "movement_type": "one_handed_reverse_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/01_dunk_session_multiple_dunks_reverse_alleyoop.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/01_dunk_session_multiple_dunks_reverse_alleyoop/one_handed_reverse_dunk",
+      "description": "Dunk session with friends (@eyesonheight, @saucetommy). Multiple dunk types including vertical jumps, one-handed dunks, two-handed front dunks, reverse dunks, and alley-oop dunks. First dunk session of the year.",
+      "duration_seconds": 45.95,
+      "motion_capture_notes": "Excellent for extracting multiple dunk animations. Clear full-body movements visible. Good for vertical leap and arm extension captures."
+    },
+    {
+      "animation_id": "eb_02_running_jump_one_hand_dunk_running_approach",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/02_running_jump_one_hand_dunk.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CrmWZH9sjo2/",
+      "movement_type": "running_approach",
+      "movement_categories": [
+        "locomotion"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/02_running_jump_one_hand_dunk/02_running_jump_one_hand_dunk.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/02_running_jump_one_hand_dunk/02_running_jump_one_hand_dunk.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/02_running_jump_one_hand_dunk/running_approach",
+      "description": "Dynamic running jump leading to a powerful one-handed slam dunk. Shows precise coordination, powerful leg drive, and upper body control.",
+      "duration_seconds": 15.18,
+      "motion_capture_notes": "Clean single dunk sequence. Ideal for capturing running approach to dunk animation. Clear leg drive and arm extension."
+    },
+    {
+      "animation_id": "eb_02_running_jump_one_hand_dunk_explosive_jump",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/02_running_jump_one_hand_dunk.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CrmWZH9sjo2/",
+      "movement_type": "explosive_jump",
+      "movement_categories": [
+        "locomotion"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/02_running_jump_one_hand_dunk/02_running_jump_one_hand_dunk.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/02_running_jump_one_hand_dunk/02_running_jump_one_hand_dunk.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/02_running_jump_one_hand_dunk/explosive_jump",
+      "description": "Dynamic running jump leading to a powerful one-handed slam dunk. Shows precise coordination, powerful leg drive, and upper body control.",
+      "duration_seconds": 15.18,
+      "motion_capture_notes": "Clean single dunk sequence. Ideal for capturing running approach to dunk animation. Clear leg drive and arm extension."
+    },
+    {
+      "animation_id": "eb_02_running_jump_one_hand_dunk_one_handed_slam_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/02_running_jump_one_hand_dunk.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CrmWZH9sjo2/",
+      "movement_type": "one_handed_slam_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/02_running_jump_one_hand_dunk/02_running_jump_one_hand_dunk.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/02_running_jump_one_hand_dunk/02_running_jump_one_hand_dunk.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/02_running_jump_one_hand_dunk/one_handed_slam_dunk",
+      "description": "Dynamic running jump leading to a powerful one-handed slam dunk. Shows precise coordination, powerful leg drive, and upper body control.",
+      "duration_seconds": 15.18,
+      "motion_capture_notes": "Clean single dunk sequence. Ideal for capturing running approach to dunk animation. Clear leg drive and arm extension."
+    },
+    {
+      "animation_id": "eb_03_self_alleyoop_dunks_hoopbus_self_alleyoop",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/03_self_alleyoop_dunks_hoopbus.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C7Dlqvkrpek/",
+      "movement_type": "self_alleyoop",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/03_self_alleyoop_dunks_hoopbus.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/03_self_alleyoop_dunks_hoopbus.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/self_alleyoop",
+      "description": "Self alley-oop dunks performed at the Hoopbus. Multiple dunks from different angles around the mobile basketball hoop.",
+      "duration_seconds": 21.85,
+      "motion_capture_notes": "Self alley-oop is a unique movement - ball toss, jump, catch mid-air, and dunk. Great for special move animations."
+    },
+    {
+      "animation_id": "eb_03_self_alleyoop_dunks_hoopbus_running_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/03_self_alleyoop_dunks_hoopbus.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C7Dlqvkrpek/",
+      "movement_type": "running_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/03_self_alleyoop_dunks_hoopbus.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/03_self_alleyoop_dunks_hoopbus.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/running_dunk",
+      "description": "Self alley-oop dunks performed at the Hoopbus. Multiple dunks from different angles around the mobile basketball hoop.",
+      "duration_seconds": 21.85,
+      "motion_capture_notes": "Self alley-oop is a unique movement - ball toss, jump, catch mid-air, and dunk. Great for special move animations."
+    },
+    {
+      "animation_id": "eb_03_self_alleyoop_dunks_hoopbus_one_handed_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/03_self_alleyoop_dunks_hoopbus.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C7Dlqvkrpek/",
+      "movement_type": "one_handed_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/03_self_alleyoop_dunks_hoopbus.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/03_self_alleyoop_dunks_hoopbus.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/03_self_alleyoop_dunks_hoopbus/one_handed_dunk",
+      "description": "Self alley-oop dunks performed at the Hoopbus. Multiple dunks from different angles around the mobile basketball hoop.",
+      "duration_seconds": 21.85,
+      "motion_capture_notes": "Self alley-oop is a unique movement - ball toss, jump, catch mid-air, and dunk. Great for special move animations."
+    },
+    {
+      "animation_id": "eb_04_reverse_dunk_over_3_people_nba_allstar_dribble_approach",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/04_reverse_dunk_over_3_people_nba_allstar.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DUZDqGAEhF_/",
+      "movement_type": "dribble_approach",
+      "movement_categories": [
+        "acrobatic"
+      ],
+      "target_game_modes": [
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/dribble_approach",
+      "description": "NBA All-Star Slam Dunk contest entry. Elijah Bonds performs a reverse dunk jumping over 3 crouched people. Includes dribble approach, explosive jump, mid-air rotation, and reverse jam.",
+      "duration_seconds": 13.7,
+      "motion_capture_notes": "Premium dunk contest footage. The reverse dunk over people is an elite-level animation. Capture the full sequence: approach, jump, rotation, dunk, landing, celebration."
+    },
+    {
+      "animation_id": "eb_04_reverse_dunk_over_3_people_nba_allstar_explosive_vertical_jump",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/04_reverse_dunk_over_3_people_nba_allstar.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DUZDqGAEhF_/",
+      "movement_type": "explosive_vertical_jump",
+      "movement_categories": [
+        "locomotion"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/explosive_vertical_jump",
+      "description": "NBA All-Star Slam Dunk contest entry. Elijah Bonds performs a reverse dunk jumping over 3 crouched people. Includes dribble approach, explosive jump, mid-air rotation, and reverse jam.",
+      "duration_seconds": 13.7,
+      "motion_capture_notes": "Premium dunk contest footage. The reverse dunk over people is an elite-level animation. Capture the full sequence: approach, jump, rotation, dunk, landing, celebration."
+    },
+    {
+      "animation_id": "eb_04_reverse_dunk_over_3_people_nba_allstar_mid_air_body_rotation",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/04_reverse_dunk_over_3_people_nba_allstar.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DUZDqGAEhF_/",
+      "movement_type": "mid_air_body_rotation",
+      "movement_categories": [
+        "acrobatic"
+      ],
+      "target_game_modes": [
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/mid_air_body_rotation",
+      "description": "NBA All-Star Slam Dunk contest entry. Elijah Bonds performs a reverse dunk jumping over 3 crouched people. Includes dribble approach, explosive jump, mid-air rotation, and reverse jam.",
+      "duration_seconds": 13.7,
+      "motion_capture_notes": "Premium dunk contest footage. The reverse dunk over people is an elite-level animation. Capture the full sequence: approach, jump, rotation, dunk, landing, celebration."
+    },
+    {
+      "animation_id": "eb_04_reverse_dunk_over_3_people_nba_allstar_reverse_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/04_reverse_dunk_over_3_people_nba_allstar.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DUZDqGAEhF_/",
+      "movement_type": "reverse_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/reverse_dunk",
+      "description": "NBA All-Star Slam Dunk contest entry. Elijah Bonds performs a reverse dunk jumping over 3 crouched people. Includes dribble approach, explosive jump, mid-air rotation, and reverse jam.",
+      "duration_seconds": 13.7,
+      "motion_capture_notes": "Premium dunk contest footage. The reverse dunk over people is an elite-level animation. Capture the full sequence: approach, jump, rotation, dunk, landing, celebration."
+    },
+    {
+      "animation_id": "eb_04_reverse_dunk_over_3_people_nba_allstar_celebration_chest_bump",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/04_reverse_dunk_over_3_people_nba_allstar.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DUZDqGAEhF_/",
+      "movement_type": "celebration_chest_bump",
+      "movement_categories": [
+        "celebration"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/04_reverse_dunk_over_3_people_nba_allstar.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/04_reverse_dunk_over_3_people_nba_allstar/celebration_chest_bump",
+      "description": "NBA All-Star Slam Dunk contest entry. Elijah Bonds performs a reverse dunk jumping over 3 crouched people. Includes dribble approach, explosive jump, mid-air rotation, and reverse jam.",
+      "duration_seconds": 13.7,
+      "motion_capture_notes": "Premium dunk contest footage. The reverse dunk over people is an elite-level animation. Capture the full sequence: approach, jump, rotation, dunk, landing, celebration."
+    },
+    {
+      "animation_id": "eb_05_dunk_compilation_multiple_players_running_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/05_dunk_compilation_multiple_players.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DOwsShyjmj7/",
+      "movement_type": "running_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/05_dunk_compilation_multiple_players/05_dunk_compilation_multiple_players.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/05_dunk_compilation_multiple_players/05_dunk_compilation_multiple_players.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/05_dunk_compilation_multiple_players/running_dunk",
+      "description": "Quick dunk compilation showing multiple players performing dunks. Short clips of dunk attempts and successful dunks.",
+      "duration_seconds": 3.39,
+      "motion_capture_notes": "Very short clip. May be useful for quick dunk animation references but limited duration."
+    },
+    {
+      "animation_id": "eb_05_dunk_compilation_multiple_players_standing_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/05_dunk_compilation_multiple_players.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DOwsShyjmj7/",
+      "movement_type": "standing_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/05_dunk_compilation_multiple_players/05_dunk_compilation_multiple_players.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/05_dunk_compilation_multiple_players/05_dunk_compilation_multiple_players.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/05_dunk_compilation_multiple_players/standing_dunk",
+      "description": "Quick dunk compilation showing multiple players performing dunks. Short clips of dunk attempts and successful dunks.",
+      "duration_seconds": 3.39,
+      "motion_capture_notes": "Very short clip. May be useful for quick dunk animation references but limited duration."
+    },
+    {
+      "animation_id": "eb_05_dunk_compilation_multiple_players_dunk_attempt",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/05_dunk_compilation_multiple_players.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DOwsShyjmj7/",
+      "movement_type": "dunk_attempt",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/05_dunk_compilation_multiple_players/05_dunk_compilation_multiple_players.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/05_dunk_compilation_multiple_players/05_dunk_compilation_multiple_players.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/05_dunk_compilation_multiple_players/dunk_attempt",
+      "description": "Quick dunk compilation showing multiple players performing dunks. Short clips of dunk attempts and successful dunks.",
+      "duration_seconds": 3.39,
+      "motion_capture_notes": "Very short clip. May be useful for quick dunk animation references but limited duration."
+    },
+    {
+      "animation_id": "eb_06_dribble_drive_windmill_dunk_practice_dribbling",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C3f5t6WPJNj/",
+      "movement_type": "dribbling",
+      "movement_categories": [
+        "ball_handling"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/dribbling",
+      "description": "Basketball practice session showing dribbling, jump shot, driving to basket, two-handed dunk, reverse dunk, behind-the-back pass, and a highlight windmill dunk.",
+      "duration_seconds": 8.82,
+      "motion_capture_notes": "Windmill dunk is a premium animation. Also good for basic basketball fundamentals: dribble, shoot, pass sequences."
+    },
+    {
+      "animation_id": "eb_06_dribble_drive_windmill_dunk_practice_jump_shot",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C3f5t6WPJNj/",
+      "movement_type": "jump_shot",
+      "movement_categories": [
+        "shooting"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/jump_shot",
+      "description": "Basketball practice session showing dribbling, jump shot, driving to basket, two-handed dunk, reverse dunk, behind-the-back pass, and a highlight windmill dunk.",
+      "duration_seconds": 8.82,
+      "motion_capture_notes": "Windmill dunk is a premium animation. Also good for basic basketball fundamentals: dribble, shoot, pass sequences."
+    },
+    {
+      "animation_id": "eb_06_dribble_drive_windmill_dunk_practice_drive_to_basket",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C3f5t6WPJNj/",
+      "movement_type": "drive_to_basket",
+      "movement_categories": [
+        "driving"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/drive_to_basket",
+      "description": "Basketball practice session showing dribbling, jump shot, driving to basket, two-handed dunk, reverse dunk, behind-the-back pass, and a highlight windmill dunk.",
+      "duration_seconds": 8.82,
+      "motion_capture_notes": "Windmill dunk is a premium animation. Also good for basic basketball fundamentals: dribble, shoot, pass sequences."
+    },
+    {
+      "animation_id": "eb_06_dribble_drive_windmill_dunk_practice_two_handed_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C3f5t6WPJNj/",
+      "movement_type": "two_handed_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/two_handed_dunk",
+      "description": "Basketball practice session showing dribbling, jump shot, driving to basket, two-handed dunk, reverse dunk, behind-the-back pass, and a highlight windmill dunk.",
+      "duration_seconds": 8.82,
+      "motion_capture_notes": "Windmill dunk is a premium animation. Also good for basic basketball fundamentals: dribble, shoot, pass sequences."
+    },
+    {
+      "animation_id": "eb_06_dribble_drive_windmill_dunk_practice_reverse_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C3f5t6WPJNj/",
+      "movement_type": "reverse_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/reverse_dunk",
+      "description": "Basketball practice session showing dribbling, jump shot, driving to basket, two-handed dunk, reverse dunk, behind-the-back pass, and a highlight windmill dunk.",
+      "duration_seconds": 8.82,
+      "motion_capture_notes": "Windmill dunk is a premium animation. Also good for basic basketball fundamentals: dribble, shoot, pass sequences."
+    },
+    {
+      "animation_id": "eb_06_dribble_drive_windmill_dunk_practice_behind_the_back_pass",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C3f5t6WPJNj/",
+      "movement_type": "behind_the_back_pass",
+      "movement_categories": [
+        "passing"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "football",
+        "soccer",
+        "streetball",
+        "volleyball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/behind_the_back_pass",
+      "description": "Basketball practice session showing dribbling, jump shot, driving to basket, two-handed dunk, reverse dunk, behind-the-back pass, and a highlight windmill dunk.",
+      "duration_seconds": 8.82,
+      "motion_capture_notes": "Windmill dunk is a premium animation. Also good for basic basketball fundamentals: dribble, shoot, pass sequences."
+    },
+    {
+      "animation_id": "eb_06_dribble_drive_windmill_dunk_practice_windmill_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C3f5t6WPJNj/",
+      "movement_type": "windmill_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/06_dribble_drive_windmill_dunk_practice.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/06_dribble_drive_windmill_dunk_practice/windmill_dunk",
+      "description": "Basketball practice session showing dribbling, jump shot, driving to basket, two-handed dunk, reverse dunk, behind-the-back pass, and a highlight windmill dunk.",
+      "duration_seconds": 8.82,
+      "motion_capture_notes": "Windmill dunk is a premium animation. Also good for basic basketball fundamentals: dribble, shoot, pass sequences."
+    },
+    {
+      "animation_id": "eb_07_lateral_shuffle_drive_dunk_gameplay_lateral_shuffle_dribble",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/07_lateral_shuffle_drive_dunk_gameplay.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CmhHib2DrIk/",
+      "movement_type": "lateral_shuffle_dribble",
+      "movement_categories": [
+        "ball_handling"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/lateral_shuffle_dribble",
+      "description": "Gameplay footage showing lateral shuffles while dribbling, driving to the basket, multiple dunks, layups, and running to the basket. Features both offensive and defensive movements.",
+      "duration_seconds": 33.04,
+      "motion_capture_notes": "Great for gameplay animations - lateral movement, drives, and in-game dunks. More realistic game context than practice dunks."
+    },
+    {
+      "animation_id": "eb_07_lateral_shuffle_drive_dunk_gameplay_drive_to_basket",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/07_lateral_shuffle_drive_dunk_gameplay.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CmhHib2DrIk/",
+      "movement_type": "drive_to_basket",
+      "movement_categories": [
+        "driving"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/drive_to_basket",
+      "description": "Gameplay footage showing lateral shuffles while dribbling, driving to the basket, multiple dunks, layups, and running to the basket. Features both offensive and defensive movements.",
+      "duration_seconds": 33.04,
+      "motion_capture_notes": "Great for gameplay animations - lateral movement, drives, and in-game dunks. More realistic game context than practice dunks."
+    },
+    {
+      "animation_id": "eb_07_lateral_shuffle_drive_dunk_gameplay_slam_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/07_lateral_shuffle_drive_dunk_gameplay.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CmhHib2DrIk/",
+      "movement_type": "slam_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/slam_dunk",
+      "description": "Gameplay footage showing lateral shuffles while dribbling, driving to the basket, multiple dunks, layups, and running to the basket. Features both offensive and defensive movements.",
+      "duration_seconds": 33.04,
+      "motion_capture_notes": "Great for gameplay animations - lateral movement, drives, and in-game dunks. More realistic game context than practice dunks."
+    },
+    {
+      "animation_id": "eb_07_lateral_shuffle_drive_dunk_gameplay_layup",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/07_lateral_shuffle_drive_dunk_gameplay.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CmhHib2DrIk/",
+      "movement_type": "layup",
+      "movement_categories": [
+        "shooting"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/layup",
+      "description": "Gameplay footage showing lateral shuffles while dribbling, driving to the basket, multiple dunks, layups, and running to the basket. Features both offensive and defensive movements.",
+      "duration_seconds": 33.04,
+      "motion_capture_notes": "Great for gameplay animations - lateral movement, drives, and in-game dunks. More realistic game context than practice dunks."
+    },
+    {
+      "animation_id": "eb_07_lateral_shuffle_drive_dunk_gameplay_running_to_basket",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/07_lateral_shuffle_drive_dunk_gameplay.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CmhHib2DrIk/",
+      "movement_type": "running_to_basket",
+      "movement_categories": [
+        "locomotion"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/running_to_basket",
+      "description": "Gameplay footage showing lateral shuffles while dribbling, driving to the basket, multiple dunks, layups, and running to the basket. Features both offensive and defensive movements.",
+      "duration_seconds": 33.04,
+      "motion_capture_notes": "Great for gameplay animations - lateral movement, drives, and in-game dunks. More realistic game context than practice dunks."
+    },
+    {
+      "animation_id": "eb_07_lateral_shuffle_drive_dunk_gameplay_defensive_stance",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/07_lateral_shuffle_drive_dunk_gameplay.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/CmhHib2DrIk/",
+      "movement_type": "defensive_stance",
+      "movement_categories": [
+        "defense"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "martial_arts",
+        "soccer",
+        "streetball",
+        "tennis",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/07_lateral_shuffle_drive_dunk_gameplay.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/07_lateral_shuffle_drive_dunk_gameplay/defensive_stance",
+      "description": "Gameplay footage showing lateral shuffles while dribbling, driving to the basket, multiple dunks, layups, and running to the basket. Features both offensive and defensive movements.",
+      "duration_seconds": 33.04,
+      "motion_capture_notes": "Great for gameplay animations - lateral movement, drives, and in-game dunks. More realistic game context than practice dunks."
+    },
+    {
+      "animation_id": "eb_08_casual_game_dribbling_shooting_dunking_dribbling",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/08_casual_game_dribbling_shooting_dunking.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C1gm499uQgo/",
+      "movement_type": "dribbling",
+      "movement_categories": [
+        "ball_handling"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/dribbling",
+      "description": "Casual basketball game footage featuring dribbling, passing, running, jumping, shooting, and dunking. Multiple players on court with fundamental basketball actions.",
+      "duration_seconds": 31.86,
+      "motion_capture_notes": "Good for general basketball gameplay animations. Multiple player interactions visible. Useful for team-based movement captures."
+    },
+    {
+      "animation_id": "eb_08_casual_game_dribbling_shooting_dunking_passing",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/08_casual_game_dribbling_shooting_dunking.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C1gm499uQgo/",
+      "movement_type": "passing",
+      "movement_categories": [
+        "passing"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "football",
+        "soccer",
+        "streetball",
+        "volleyball"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/passing",
+      "description": "Casual basketball game footage featuring dribbling, passing, running, jumping, shooting, and dunking. Multiple players on court with fundamental basketball actions.",
+      "duration_seconds": 31.86,
+      "motion_capture_notes": "Good for general basketball gameplay animations. Multiple player interactions visible. Useful for team-based movement captures."
+    },
+    {
+      "animation_id": "eb_08_casual_game_dribbling_shooting_dunking_running",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/08_casual_game_dribbling_shooting_dunking.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C1gm499uQgo/",
+      "movement_type": "running",
+      "movement_categories": [
+        "locomotion"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/running",
+      "description": "Casual basketball game footage featuring dribbling, passing, running, jumping, shooting, and dunking. Multiple players on court with fundamental basketball actions.",
+      "duration_seconds": 31.86,
+      "motion_capture_notes": "Good for general basketball gameplay animations. Multiple player interactions visible. Useful for team-based movement captures."
+    },
+    {
+      "animation_id": "eb_08_casual_game_dribbling_shooting_dunking_jumping",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/08_casual_game_dribbling_shooting_dunking.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C1gm499uQgo/",
+      "movement_type": "jumping",
+      "movement_categories": [
+        "locomotion"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/jumping",
+      "description": "Casual basketball game footage featuring dribbling, passing, running, jumping, shooting, and dunking. Multiple players on court with fundamental basketball actions.",
+      "duration_seconds": 31.86,
+      "motion_capture_notes": "Good for general basketball gameplay animations. Multiple player interactions visible. Useful for team-based movement captures."
+    },
+    {
+      "animation_id": "eb_08_casual_game_dribbling_shooting_dunking_shooting",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/08_casual_game_dribbling_shooting_dunking.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C1gm499uQgo/",
+      "movement_type": "shooting",
+      "movement_categories": [
+        "shooting"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/shooting",
+      "description": "Casual basketball game footage featuring dribbling, passing, running, jumping, shooting, and dunking. Multiple players on court with fundamental basketball actions.",
+      "duration_seconds": 31.86,
+      "motion_capture_notes": "Good for general basketball gameplay animations. Multiple player interactions visible. Useful for team-based movement captures."
+    },
+    {
+      "animation_id": "eb_08_casual_game_dribbling_shooting_dunking_dunking",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/08_casual_game_dribbling_shooting_dunking.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C1gm499uQgo/",
+      "movement_type": "dunking",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "medium",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/08_casual_game_dribbling_shooting_dunking.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/08_casual_game_dribbling_shooting_dunking/dunking",
+      "description": "Casual basketball game footage featuring dribbling, passing, running, jumping, shooting, and dunking. Multiple players on court with fundamental basketball actions.",
+      "duration_seconds": 31.86,
+      "motion_capture_notes": "Good for general basketball gameplay animations. Multiple player interactions visible. Useful for team-based movement captures."
+    },
+    {
+      "animation_id": "eb_09_slam_dunks_ball_tricks_session_slam_dunk_one_handed",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/09_slam_dunks_ball_tricks_session.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DKeAqJTuWaz/",
+      "movement_type": "slam_dunk_one_handed",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/09_slam_dunks_ball_tricks_session.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/09_slam_dunks_ball_tricks_session.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/slam_dunk_one_handed",
+      "description": "Extended session featuring multiple slam dunks (one-handed, two-handed), basketball tricks with ground bounces, and various dunk styles. Longest individual video.",
+      "duration_seconds": 51.27,
+      "motion_capture_notes": "Longest video with most content. Multiple dunk variations and ball handling tricks. Good for extracting diverse animation clips."
+    },
+    {
+      "animation_id": "eb_09_slam_dunks_ball_tricks_session_slam_dunk_two_handed",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/09_slam_dunks_ball_tricks_session.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DKeAqJTuWaz/",
+      "movement_type": "slam_dunk_two_handed",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/09_slam_dunks_ball_tricks_session.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/09_slam_dunks_ball_tricks_session.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/slam_dunk_two_handed",
+      "description": "Extended session featuring multiple slam dunks (one-handed, two-handed), basketball tricks with ground bounces, and various dunk styles. Longest individual video.",
+      "duration_seconds": 51.27,
+      "motion_capture_notes": "Longest video with most content. Multiple dunk variations and ball handling tricks. Good for extracting diverse animation clips."
+    },
+    {
+      "animation_id": "eb_09_slam_dunks_ball_tricks_session_ball_tricks_ground_bounce",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/09_slam_dunks_ball_tricks_session.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DKeAqJTuWaz/",
+      "movement_type": "ball_tricks_ground_bounce",
+      "movement_categories": [
+        "ball_handling"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/09_slam_dunks_ball_tricks_session.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/09_slam_dunks_ball_tricks_session.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/ball_tricks_ground_bounce",
+      "description": "Extended session featuring multiple slam dunks (one-handed, two-handed), basketball tricks with ground bounces, and various dunk styles. Longest individual video.",
+      "duration_seconds": 51.27,
+      "motion_capture_notes": "Longest video with most content. Multiple dunk variations and ball handling tricks. Good for extracting diverse animation clips."
+    },
+    {
+      "animation_id": "eb_09_slam_dunks_ball_tricks_session_running_approach_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/09_slam_dunks_ball_tricks_session.mp4",
+      "source_video_url": "https://www.instagram.com/reel/DKeAqJTuWaz/",
+      "movement_type": "running_approach_dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "high",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/09_slam_dunks_ball_tricks_session.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/09_slam_dunks_ball_tricks_session.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/09_slam_dunks_ball_tricks_session/running_approach_dunk",
+      "description": "Extended session featuring multiple slam dunks (one-handed, two-handed), basketball tricks with ground bounces, and various dunk styles. Longest individual video.",
+      "duration_seconds": 51.27,
+      "motion_capture_notes": "Longest video with most content. Multiple dunk variations and ball handling tricks. Good for extracting diverse animation clips."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_behind_the_back_dribble",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "behind_the_back_dribble",
+      "movement_categories": [
+        "ball_handling"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/behind_the_back_dribble",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_crossover_dribble",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "crossover_dribble",
+      "movement_categories": [
+        "ball_handling"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/crossover_dribble",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_aggressive_drive",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "aggressive_drive",
+      "movement_categories": [
+        "driving"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/aggressive_drive",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_euro_step",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "euro_step",
+      "movement_categories": [
+        "driving"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/euro_step",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_layup",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "layup",
+      "movement_categories": [
+        "shooting"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/layup",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_dunk",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "dunk",
+      "movement_categories": [
+        "dunking"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "slam_dunk_contest",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/dunk",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_mid_range_shot",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "mid_range_shot",
+      "movement_categories": [
+        "shooting"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/mid_range_shot",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_jump_shot",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "jump_shot",
+      "movement_categories": [
+        "shooting"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "streetball"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/jump_shot",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_defensive_stance",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "defensive_stance",
+      "movement_categories": [
+        "defense"
+      ],
+      "target_game_modes": [
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "martial_arts",
+        "soccer",
+        "streetball",
+        "tennis",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/defensive_stance",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_sprinting",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "sprinting",
+      "movement_categories": [
+        "locomotion"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/sprinting",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    },
+    {
+      "animation_id": "eb_10_full_court_game_crossover_eurostep_layups_quick_direction_change",
+      "source": "elijah_bonds_mocap",
+      "source_video": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "source_video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "movement_type": "quick_direction_change",
+      "movement_categories": [
+        "locomotion"
+      ],
+      "target_game_modes": [
+        "baseball",
+        "basketball_3v3",
+        "basketball_5v5",
+        "boxing",
+        "football",
+        "gymnastics",
+        "martial_arts",
+        "skateboarding",
+        "slam_dunk_contest",
+        "soccer",
+        "streetball",
+        "swimming",
+        "tennis",
+        "track_and_field",
+        "volleyball",
+        "wrestling"
+      ],
+      "priority": "critical",
+      "animation_files": {
+        "fbx": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.fbx (pending)",
+        "bvh": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/10_full_court_game_crossover_eurostep_layups.bvh (pending)"
+      },
+      "files_exist": false,
+      "ue5_import_path": "/Game/FEL/Animations/ElijahBonds/10_full_court_game_crossover_eurostep_layups/quick_direction_change",
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "duration_seconds": 59.7,
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    }
+  ],
+  "game_mode_coverage": {
+    "fully_covered_by_custom": [
+      "basketball_5v5",
+      "basketball_3v3",
+      "slam_dunk_contest",
+      "streetball",
+      "soccer",
+      "football",
+      "tennis",
+      "boxing",
+      "martial_arts",
+      "volleyball",
+      "gymnastics",
+      "skateboarding",
+      "wrestling"
+    ],
+    "partially_covered": [
+      "track_and_field",
+      "swimming",
+      "baseball"
+    ],
+    "needs_full_catalogue": []
+  },
+  "gap_analysis": {
+    "basketball_5v5": {
+      "needed_types": [
+        "idle",
+        "run",
+        "sprint",
+        "jump",
+        "dribble",
+        "shoot",
+        "dunk",
+        "pass",
+        "defend",
+        "layup"
+      ],
+      "covered_by_custom": [
+        "dunk",
+        "layup"
+      ],
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "sprint",
+        "jump",
+        "dribble",
+        "shoot",
+        "pass",
+        "defend"
+      ],
+      "coverage_percentage": 20.0
+    },
+    "basketball_3v3": {
+      "needed_types": [
+        "idle",
+        "run",
+        "sprint",
+        "jump",
+        "dribble",
+        "shoot",
+        "dunk",
+        "pass",
+        "defend"
+      ],
+      "covered_by_custom": [
+        "dunk"
+      ],
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "sprint",
+        "jump",
+        "dribble",
+        "shoot",
+        "pass",
+        "defend"
+      ],
+      "coverage_percentage": 11.1
+    },
+    "slam_dunk_contest": {
+      "needed_types": [
+        "run",
+        "jump",
+        "dunk_variations",
+        "celebration",
+        "acrobatic"
+      ],
+      "covered_by_custom": [
+        "celebration",
+        "acrobatic"
+      ],
+      "missing_needs_catalogue": [
+        "run",
+        "jump",
+        "dunk_variations"
+      ],
+      "coverage_percentage": 40.0
+    },
+    "streetball": {
+      "needed_types": [
+        "idle",
+        "run",
+        "dribble",
+        "shoot",
+        "dunk",
+        "pass",
+        "tricks"
+      ],
+      "covered_by_custom": [
+        "dunk"
+      ],
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "dribble",
+        "shoot",
+        "pass",
+        "tricks"
+      ],
+      "coverage_percentage": 14.3
+    },
+    "soccer": {
+      "needed_types": [
+        "idle",
+        "run",
+        "sprint",
+        "kick",
+        "header",
+        "dribble",
+        "pass",
+        "defend",
+        "save"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "sprint",
+        "kick",
+        "header",
+        "dribble",
+        "pass",
+        "defend",
+        "save"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "football": {
+      "needed_types": [
+        "idle",
+        "run",
+        "sprint",
+        "throw",
+        "catch",
+        "tackle",
+        "hike",
+        "defend"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "sprint",
+        "throw",
+        "catch",
+        "tackle",
+        "hike",
+        "defend"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "track_and_field": {
+      "needed_types": [
+        "sprint_start",
+        "sprint",
+        "hurdle",
+        "high_jump",
+        "long_jump",
+        "javelin"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "sprint_start",
+        "sprint",
+        "hurdle",
+        "high_jump",
+        "long_jump",
+        "javelin"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "swimming": {
+      "needed_types": [
+        "freestyle",
+        "backstroke",
+        "butterfly",
+        "dive",
+        "turn"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "freestyle",
+        "backstroke",
+        "butterfly",
+        "dive",
+        "turn"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "tennis": {
+      "needed_types": [
+        "idle",
+        "run",
+        "forehand",
+        "backhand",
+        "serve",
+        "volley",
+        "defend"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "forehand",
+        "backhand",
+        "serve",
+        "volley",
+        "defend"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "boxing": {
+      "needed_types": [
+        "idle",
+        "jab",
+        "cross",
+        "hook",
+        "uppercut",
+        "block",
+        "dodge",
+        "defend"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "idle",
+        "jab",
+        "cross",
+        "hook",
+        "uppercut",
+        "block",
+        "dodge",
+        "defend"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "martial_arts": {
+      "needed_types": [
+        "idle",
+        "kick",
+        "punch",
+        "block",
+        "kata",
+        "defend"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "idle",
+        "kick",
+        "punch",
+        "block",
+        "kata",
+        "defend"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "volleyball": {
+      "needed_types": [
+        "idle",
+        "run",
+        "jump",
+        "serve",
+        "spike",
+        "set",
+        "dig"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "jump",
+        "serve",
+        "spike",
+        "set",
+        "dig"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "baseball": {
+      "needed_types": [
+        "idle",
+        "run",
+        "pitch",
+        "bat_swing",
+        "catch",
+        "slide"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "pitch",
+        "bat_swing",
+        "catch",
+        "slide"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "gymnastics": {
+      "needed_types": [
+        "flip",
+        "handstand",
+        "cartwheel",
+        "vault",
+        "acrobatic"
+      ],
+      "covered_by_custom": [
+        "acrobatic"
+      ],
+      "missing_needs_catalogue": [
+        "flip",
+        "handstand",
+        "cartwheel",
+        "vault"
+      ],
+      "coverage_percentage": 20.0
+    },
+    "skateboarding": {
+      "needed_types": [
+        "ollie",
+        "kickflip",
+        "grind",
+        "push"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "ollie",
+        "kickflip",
+        "grind",
+        "push"
+      ],
+      "coverage_percentage": 0.0
+    },
+    "wrestling": {
+      "needed_types": [
+        "idle",
+        "grapple",
+        "takedown",
+        "pin",
+        "escape",
+        "defend"
+      ],
+      "covered_by_custom": [],
+      "missing_needs_catalogue": [
+        "idle",
+        "grapple",
+        "takedown",
+        "pin",
+        "escape",
+        "defend"
+      ],
+      "coverage_percentage": 0.0
+    }
+  }
+}

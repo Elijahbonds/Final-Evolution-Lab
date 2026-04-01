@@ -1,0 +1,392 @@
+{
+  "report_version": "1.0",
+  "generated": "2026-04-01T16:28:05.641132+00:00",
+  "summary": {
+    "total_game_modes": 16,
+    "custom_animations_total": 54,
+    "unique_movements_captured": 47,
+    "ue5_catalogue_total": 58,
+    "deepmotion_processing_status": "not_started"
+  },
+  "elijah_bonds_coverage": {
+    "movements_covered": [
+      "aggressive_drive",
+      "ball_tricks_ground_bounce",
+      "behind_the_back_dribble",
+      "behind_the_back_pass",
+      "celebration_chest_bump",
+      "crossover_dribble",
+      "defensive_stance",
+      "dribble_approach",
+      "dribbling",
+      "drive_to_basket",
+      "dunk",
+      "dunk_attempt",
+      "dunking",
+      "euro_step",
+      "explosive_jump",
+      "explosive_vertical_jump",
+      "jump_shot",
+      "jumping",
+      "lateral_shuffle_dribble",
+      "layup",
+      "mid_air_body_rotation",
+      "mid_range_shot",
+      "one_handed_alleyoop_dunk",
+      "one_handed_dunk",
+      "one_handed_front_dunk",
+      "one_handed_reverse_dunk",
+      "one_handed_slam_dunk",
+      "passing",
+      "quick_direction_change",
+      "reverse_dunk",
+      "running",
+      "running_approach",
+      "running_approach_dunk",
+      "running_dunk",
+      "running_to_basket",
+      "self_alleyoop",
+      "shooting",
+      "slam_dunk",
+      "slam_dunk_one_handed",
+      "slam_dunk_two_handed",
+      "sprinting",
+      "standing_dunk",
+      "two_handed_dunk",
+      "two_handed_front_dunk",
+      "two_handed_reverse_dunk",
+      "vertical_jump_dunk",
+      "windmill_dunk"
+    ],
+    "movement_categories": {
+      "dunking": [
+        "vertical_jump_dunk",
+        "two_handed_reverse_dunk",
+        "one_handed_alleyoop_dunk",
+        "one_handed_front_dunk",
+        "two_handed_front_dunk",
+        "one_handed_reverse_dunk",
+        "one_handed_slam_dunk",
+        "self_alleyoop",
+        "running_dunk",
+        "one_handed_dunk",
+        "reverse_dunk",
+        "standing_dunk",
+        "dunk_attempt",
+        "two_handed_dunk",
+        "windmill_dunk",
+        "slam_dunk",
+        "dunking",
+        "slam_dunk_one_handed",
+        "slam_dunk_two_handed",
+        "running_approach_dunk",
+        "dunk"
+      ],
+      "locomotion": [
+        "running_approach",
+        "explosive_jump",
+        "explosive_vertical_jump",
+        "running_to_basket",
+        "running",
+        "jumping",
+        "sprinting",
+        "quick_direction_change"
+      ],
+      "acrobatic": [
+        "dribble_approach",
+        "mid_air_body_rotation"
+      ],
+      "celebration": [
+        "celebration_chest_bump"
+      ],
+      "ball_handling": [
+        "dribbling",
+        "lateral_shuffle_dribble",
+        "ball_tricks_ground_bounce",
+        "behind_the_back_dribble",
+        "crossover_dribble"
+      ],
+      "shooting": [
+        "jump_shot",
+        "layup",
+        "shooting",
+        "mid_range_shot"
+      ],
+      "driving": [
+        "drive_to_basket",
+        "aggressive_drive",
+        "euro_step"
+      ],
+      "passing": [
+        "behind_the_back_pass",
+        "passing"
+      ],
+      "defense": [
+        "defensive_stance"
+      ]
+    }
+  },
+  "per_game_mode": {
+    "basketball_5v5": {
+      "custom_animations": 52,
+      "catalogue_animations": 6,
+      "coverage_percentage": 20.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "sprint",
+        "jump",
+        "dribble",
+        "shoot",
+        "pass",
+        "defend"
+      ],
+      "animation_source": "custom"
+    },
+    "basketball_3v3": {
+      "custom_animations": 52,
+      "catalogue_animations": 6,
+      "coverage_percentage": 11.1,
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "sprint",
+        "jump",
+        "dribble",
+        "shoot",
+        "pass",
+        "defend"
+      ],
+      "animation_source": "custom"
+    },
+    "slam_dunk_contest": {
+      "custom_animations": 34,
+      "catalogue_animations": 6,
+      "coverage_percentage": 40.0,
+      "missing_needs_catalogue": [
+        "run",
+        "jump",
+        "dunk_variations"
+      ],
+      "animation_source": "custom"
+    },
+    "streetball": {
+      "custom_animations": 52,
+      "catalogue_animations": 6,
+      "coverage_percentage": 14.3,
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "dribble",
+        "shoot",
+        "pass",
+        "tricks"
+      ],
+      "animation_source": "custom"
+    },
+    "soccer": {
+      "custom_animations": 13,
+      "catalogue_animations": 10,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "sprint",
+        "kick",
+        "header",
+        "dribble",
+        "pass",
+        "defend",
+        "save"
+      ],
+      "animation_source": "custom"
+    },
+    "football": {
+      "custom_animations": 13,
+      "catalogue_animations": 10,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "sprint",
+        "throw",
+        "catch",
+        "tackle",
+        "hike",
+        "defend"
+      ],
+      "animation_source": "custom"
+    },
+    "track_and_field": {
+      "custom_animations": 9,
+      "catalogue_animations": 11,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "sprint_start",
+        "sprint",
+        "hurdle",
+        "high_jump",
+        "long_jump",
+        "javelin"
+      ],
+      "animation_source": "custom"
+    },
+    "swimming": {
+      "custom_animations": 9,
+      "catalogue_animations": 11,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "freestyle",
+        "backstroke",
+        "butterfly",
+        "dive",
+        "turn"
+      ],
+      "animation_source": "custom"
+    },
+    "tennis": {
+      "custom_animations": 11,
+      "catalogue_animations": 10,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "forehand",
+        "backhand",
+        "serve",
+        "volley",
+        "defend"
+      ],
+      "animation_source": "custom"
+    },
+    "boxing": {
+      "custom_animations": 11,
+      "catalogue_animations": 12,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "jab",
+        "cross",
+        "hook",
+        "uppercut",
+        "block",
+        "dodge",
+        "defend"
+      ],
+      "animation_source": "custom"
+    },
+    "martial_arts": {
+      "custom_animations": 13,
+      "catalogue_animations": 10,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "kick",
+        "punch",
+        "block",
+        "kata",
+        "defend"
+      ],
+      "animation_source": "custom"
+    },
+    "volleyball": {
+      "custom_animations": 13,
+      "catalogue_animations": 10,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "jump",
+        "serve",
+        "spike",
+        "set",
+        "dig"
+      ],
+      "animation_source": "custom"
+    },
+    "baseball": {
+      "custom_animations": 9,
+      "catalogue_animations": 10,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "run",
+        "pitch",
+        "bat_swing",
+        "catch",
+        "slide"
+      ],
+      "animation_source": "custom"
+    },
+    "gymnastics": {
+      "custom_animations": 11,
+      "catalogue_animations": 10,
+      "coverage_percentage": 20.0,
+      "missing_needs_catalogue": [
+        "flip",
+        "handstand",
+        "cartwheel",
+        "vault"
+      ],
+      "animation_source": "custom"
+    },
+    "skateboarding": {
+      "custom_animations": 11,
+      "catalogue_animations": 10,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "ollie",
+        "kickflip",
+        "grind",
+        "push"
+      ],
+      "animation_source": "custom"
+    },
+    "wrestling": {
+      "custom_animations": 11,
+      "catalogue_animations": 10,
+      "coverage_percentage": 0.0,
+      "missing_needs_catalogue": [
+        "idle",
+        "grapple",
+        "takedown",
+        "pin",
+        "escape",
+        "defend"
+      ],
+      "animation_source": "custom"
+    }
+  },
+  "action_items": [
+    {
+      "priority": "critical",
+      "action": "Configure DeepMotion API credentials and process videos",
+      "details": "Set DEEPMOTION_CLIENT_ID and DEEPMOTION_CLIENT_SECRET in .env, then run: python scripts/process_elijahbonds_animations.py"
+    },
+    {
+      "priority": "high",
+      "action": "Import processed FBX animations into UE5",
+      "details": "Run fel_import_elijahbonds_animations.py in Unreal Editor after DeepMotion processing"
+    },
+    {
+      "priority": "high",
+      "action": "Acquire UE5 Marketplace animation packs for non-basketball sports",
+      "details": "Swimming, tennis, boxing, martial arts, football, soccer, etc. need sport-specific packs"
+    },
+    {
+      "priority": "medium",
+      "action": "Create Animation Montages for each imported animation",
+      "details": "Set up montages with proper sections, blend in/out, and notify events"
+    },
+    {
+      "priority": "medium",
+      "action": "Set up IK Retargeting for animations from different skeletons",
+      "details": "Use UE5 IK Retargeter to map DeepMotion skeleton to FEL character skeleton"
+    },
+    {
+      "priority": "low",
+      "action": "Create transition animations between movement states",
+      "details": "Blend spaces and state machines for smooth animation transitions"
+    }
+  ]
+}

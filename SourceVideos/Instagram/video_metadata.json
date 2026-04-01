@@ -1,0 +1,281 @@
+{
+  "source_profile": "@elijahbonds",
+  "profile_description": "Basketball | Dunking Performance Coach - LA Native, 6'4\", Venice Basketball League player, World Champion 2017",
+  "download_date": "2026-04-01",
+  "total_videos": 10,
+  "videos": [
+    {
+      "filename": "basketball/01_dunk_session_multiple_dunks_reverse_alleyoop.mp4",
+      "instagram_id": "ColV24pDua0",
+      "video_url": "https://www.instagram.com/elijahbonds/reel/ColV24pDua0/",
+      "post_date": "2023-02-13",
+      "duration_seconds": 45.95,
+      "file_size_mb": 6.94,
+      "description": "Dunk session with friends (@eyesonheight, @saucetommy). Multiple dunk types including vertical jumps, one-handed dunks, two-handed front dunks, reverse dunks, and alley-oop dunks. First dunk session of the year.",
+      "movements": [
+        "vertical_jump_dunk",
+        "two_handed_reverse_dunk",
+        "one_handed_alleyoop_dunk",
+        "one_handed_front_dunk",
+        "two_handed_front_dunk",
+        "one_handed_reverse_dunk"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "high",
+      "motion_capture_notes": "Excellent for extracting multiple dunk animations. Clear full-body movements visible. Good for vertical leap and arm extension captures."
+    },
+    {
+      "filename": "basketball/02_running_jump_one_hand_dunk.mp4",
+      "instagram_id": "CrmWZH9sjo2",
+      "video_url": "https://www.instagram.com/elijahbonds/reel/CrmWZH9sjo2/",
+      "post_date": "2023-04-29",
+      "duration_seconds": 15.18,
+      "file_size_mb": 5.67,
+      "description": "Dynamic running jump leading to a powerful one-handed slam dunk. Shows precise coordination, powerful leg drive, and upper body control.",
+      "movements": [
+        "running_approach",
+        "explosive_jump",
+        "one_handed_slam_dunk"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "high",
+      "motion_capture_notes": "Clean single dunk sequence. Ideal for capturing running approach to dunk animation. Clear leg drive and arm extension."
+    },
+    {
+      "filename": "basketball/03_self_alleyoop_dunks_hoopbus.mp4",
+      "instagram_id": "C7Dlqvkrpek",
+      "video_url": "https://www.instagram.com/elijahbonds/reel/C7Dlqvkrpek/",
+      "post_date": "2024-05-17",
+      "duration_seconds": 21.85,
+      "file_size_mb": 2.81,
+      "description": "Self alley-oop dunks performed at the Hoopbus. Multiple dunks from different angles around the mobile basketball hoop.",
+      "movements": [
+        "self_alleyoop",
+        "running_dunk",
+        "one_handed_dunk"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "high",
+      "motion_capture_notes": "Self alley-oop is a unique movement - ball toss, jump, catch mid-air, and dunk. Great for special move animations."
+    },
+    {
+      "filename": "basketball/04_reverse_dunk_over_3_people_nba_allstar.mp4",
+      "instagram_id": "DUZDqGAEhF_",
+      "video_url": "https://www.instagram.com/reel/DUZDqGAEhF_/",
+      "post_date": "2026-02-05",
+      "duration_seconds": 13.70,
+      "file_size_mb": 0.95,
+      "description": "NBA All-Star Slam Dunk contest entry. Elijah Bonds performs a reverse dunk jumping over 3 crouched people. Includes dribble approach, explosive jump, mid-air rotation, and reverse jam.",
+      "movements": [
+        "dribble_approach",
+        "explosive_vertical_jump",
+        "mid_air_body_rotation",
+        "reverse_dunk",
+        "celebration_chest_bump"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "critical",
+      "motion_capture_notes": "Premium dunk contest footage. The reverse dunk over people is an elite-level animation. Capture the full sequence: approach, jump, rotation, dunk, landing, celebration."
+    },
+    {
+      "filename": "basketball/05_dunk_compilation_multiple_players.mp4",
+      "instagram_id": "DOwsShyjmj7",
+      "video_url": "https://www.instagram.com/reel/DOwsShyjmj7/",
+      "post_date": "2025-09-18",
+      "duration_seconds": 3.39,
+      "file_size_mb": 0.39,
+      "description": "Quick dunk compilation showing multiple players performing dunks. Short clips of dunk attempts and successful dunks.",
+      "movements": [
+        "running_dunk",
+        "standing_dunk",
+        "dunk_attempt"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "medium",
+      "motion_capture_notes": "Very short clip. May be useful for quick dunk animation references but limited duration."
+    },
+    {
+      "filename": "basketball/06_dribble_drive_windmill_dunk_practice.mp4",
+      "instagram_id": "C3f5t6WPJNj",
+      "video_url": "https://www.instagram.com/elijahbonds/reel/C3f5t6WPJNj/",
+      "post_date": "2024-02-18",
+      "duration_seconds": 8.82,
+      "file_size_mb": 0.68,
+      "description": "Basketball practice session showing dribbling, jump shot, driving to basket, two-handed dunk, reverse dunk, behind-the-back pass, and a highlight windmill dunk.",
+      "movements": [
+        "dribbling",
+        "jump_shot",
+        "drive_to_basket",
+        "two_handed_dunk",
+        "reverse_dunk",
+        "behind_the_back_pass",
+        "windmill_dunk"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "high",
+      "motion_capture_notes": "Windmill dunk is a premium animation. Also good for basic basketball fundamentals: dribble, shoot, pass sequences."
+    },
+    {
+      "filename": "basketball/07_lateral_shuffle_drive_dunk_gameplay.mp4",
+      "instagram_id": "CmhHib2DrIk",
+      "video_url": "https://www.instagram.com/elijahbonds/reel/CmhHib2DrIk/",
+      "post_date": "2022-12-23",
+      "duration_seconds": 33.04,
+      "file_size_mb": 6.28,
+      "description": "Gameplay footage showing lateral shuffles while dribbling, driving to the basket, multiple dunks, layups, and running to the basket. Features both offensive and defensive movements.",
+      "movements": [
+        "lateral_shuffle_dribble",
+        "drive_to_basket",
+        "slam_dunk",
+        "layup",
+        "running_to_basket",
+        "defensive_stance"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "high",
+      "motion_capture_notes": "Great for gameplay animations - lateral movement, drives, and in-game dunks. More realistic game context than practice dunks."
+    },
+    {
+      "filename": "basketball/08_casual_game_dribbling_shooting_dunking.mp4",
+      "instagram_id": "C1gm499uQgo",
+      "video_url": "https://www.instagram.com/elijahbonds/reel/C1gm499uQgo/",
+      "post_date": "2023-12-31",
+      "duration_seconds": 31.86,
+      "file_size_mb": 2.93,
+      "description": "Casual basketball game footage featuring dribbling, passing, running, jumping, shooting, and dunking. Multiple players on court with fundamental basketball actions.",
+      "movements": [
+        "dribbling",
+        "passing",
+        "running",
+        "jumping",
+        "shooting",
+        "dunking"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "medium",
+      "motion_capture_notes": "Good for general basketball gameplay animations. Multiple player interactions visible. Useful for team-based movement captures."
+    },
+    {
+      "filename": "basketball/09_slam_dunks_ball_tricks_session.mp4",
+      "instagram_id": "DKeAqJTuWaz",
+      "video_url": "https://www.instagram.com/reel/DKeAqJTuWaz/",
+      "post_date": "2025-06-04",
+      "duration_seconds": 51.27,
+      "file_size_mb": 15.26,
+      "description": "Extended session featuring multiple slam dunks (one-handed, two-handed), basketball tricks with ground bounces, and various dunk styles. Longest individual video.",
+      "movements": [
+        "slam_dunk_one_handed",
+        "slam_dunk_two_handed",
+        "ball_tricks_ground_bounce",
+        "running_approach_dunk"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "high",
+      "motion_capture_notes": "Longest video with most content. Multiple dunk variations and ball handling tricks. Good for extracting diverse animation clips."
+    },
+    {
+      "filename": "basketball/10_full_court_game_crossover_eurostep_layups.mp4",
+      "instagram_id": "C6IbjPfra51",
+      "video_url": "https://www.instagram.com/elijahbonds/reel/C6IbjPfra51/",
+      "post_date": "2024-04-24",
+      "duration_seconds": 59.70,
+      "file_size_mb": 9.63,
+      "description": "Desert Tour with The Hoop Bus - full 2v3 and 3v3 game footage. Features behind-the-back dribbles, crossover dribbles, aggressive drives, euro steps, layups, dunks, mid-range shots, jump shots, defensive stances, sprinting, and quick directional changes.",
+      "movements": [
+        "behind_the_back_dribble",
+        "crossover_dribble",
+        "aggressive_drive",
+        "euro_step",
+        "layup",
+        "dunk",
+        "mid_range_shot",
+        "jump_shot",
+        "defensive_stance",
+        "sprinting",
+        "quick_direction_change"
+      ],
+      "suggested_game_modes": ["basketball"],
+      "deepmotion_priority": "critical",
+      "motion_capture_notes": "Most comprehensive gameplay footage. Contains the widest variety of basketball movements. Essential for capturing realistic game animations including offense, defense, and transitions."
+    }
+  ],
+  "game_mode_mapping": {
+    "basketball": {
+      "videos_count": 10,
+      "unique_movements": [
+        "vertical_jump_dunk",
+        "reverse_dunk",
+        "one_handed_dunk",
+        "two_handed_dunk",
+        "alleyoop_dunk",
+        "windmill_dunk",
+        "self_alleyoop",
+        "slam_dunk",
+        "layup",
+        "jump_shot",
+        "mid_range_shot",
+        "dribbling",
+        "crossover_dribble",
+        "behind_the_back_dribble",
+        "euro_step",
+        "drive_to_basket",
+        "lateral_shuffle",
+        "defensive_stance",
+        "passing",
+        "behind_the_back_pass",
+        "sprinting",
+        "running",
+        "jumping",
+        "quick_direction_change",
+        "ball_tricks",
+        "celebration"
+      ],
+      "applicable_game_modes_in_final_evolution": [
+        "basketball_5v5",
+        "basketball_3v3",
+        "slam_dunk_contest",
+        "streetball"
+      ]
+    },
+    "track_and_field": {
+      "videos_count": 0,
+      "note": "Running and jumping movements from basketball videos can be repurposed for track & field sprinting and high jump animations",
+      "reusable_from_basketball": [
+        "sprinting",
+        "explosive_vertical_jump",
+        "running_approach"
+      ]
+    },
+    "general_athletic": {
+      "videos_count": 0,
+      "note": "Lateral shuffles, quick direction changes, and agility movements can be repurposed for football, soccer, and other sports",
+      "reusable_from_basketball": [
+        "lateral_shuffle",
+        "quick_direction_change",
+        "defensive_stance",
+        "celebration_chest_bump"
+      ]
+    }
+  },
+  "deepmotion_processing_guide": {
+    "recommended_order": [
+      "04_reverse_dunk_over_3_people_nba_allstar.mp4 - Critical: Elite dunk animation",
+      "10_full_court_game_crossover_eurostep_layups.mp4 - Critical: Most diverse movements",
+      "01_dunk_session_multiple_dunks_reverse_alleyoop.mp4 - High: Multiple dunk types",
+      "06_dribble_drive_windmill_dunk_practice.mp4 - High: Windmill dunk + fundamentals",
+      "07_lateral_shuffle_drive_dunk_gameplay.mp4 - High: Game context movements",
+      "02_running_jump_one_hand_dunk.mp4 - High: Clean single dunk capture",
+      "03_self_alleyoop_dunks_hoopbus.mp4 - High: Unique self alley-oop",
+      "09_slam_dunks_ball_tricks_session.mp4 - High: Extended diverse content",
+      "08_casual_game_dribbling_shooting_dunking.mp4 - Medium: General gameplay",
+      "05_dunk_compilation_multiple_players.mp4 - Medium: Short reference clips"
+    ],
+    "tips": [
+      "Trim videos to isolate individual movements before uploading to DeepMotion",
+      "For best results, select clips where the full body is visible and unobstructed",
+      "Side-angle shots work best for DeepMotion's 2D-to-3D motion capture",
+      "Process dunks separately from dribbling/shooting for cleaner animations",
+      "Use the celebration movements for victory/scoring animations in-game"
+    ]
+  }
+}
