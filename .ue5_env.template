@@ -1,0 +1,18 @@
+# UE5 Environment Configuration for Final Evolution Lab
+# Copy to .ue5_env and update paths for your system
+# Usage: source .ue5_env
+
+# Linux
+# export UE_ROOT="/opt/UnrealEngine"
+# export UE_EDITOR="${UE_ROOT}/Engine/Binaries/Linux/UnrealEditor"
+# export UE_CMD="${UE_ROOT}/Engine/Binaries/Linux/UnrealEditor-Cmd"
+
+# macOS
+# export UE_ROOT="/Users/Shared/Epic Games/UE_5.4"
+# export UE_EDITOR="${UE_ROOT}/Engine/Binaries/Mac/UnrealEditor"
+# export UE_CMD="${UE_ROOT}/Engine/Binaries/Mac/UnrealEditor-Cmd"
+
+# Common
+# export RUN_UAT="${UE_ROOT}/Engine/Build/BatchFiles/RunUAT.sh"
+# export FEL_PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
+# export PATH="${UE_ROOT}/Engine/Binaries/$(uname -s):${PATH}"

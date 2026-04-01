@@ -33,3 +33,10 @@ GeneratedAssets/asset_manifest.json
 .env
 *.env.local
 __pycache__/
+
+# UE5 environment (local paths)
+.ue5_env
+
+# Build outputs
+Builds/
+logs/

@@ -41,7 +41,7 @@ class PixelStreamingService: ObservableObject {
     // MARK: - Connection
     
     /// Connect to the Pixel Streaming signalling server
-    func connect(serverURL: String = "ws://localhost:8888") {
+    func connect(serverURL: String = Config.STREAMING_SERVER_URL) {
         guard let url = URL(string: serverURL) else {
             connectionState = .error
             return
