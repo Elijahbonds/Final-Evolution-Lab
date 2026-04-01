@@ -1,0 +1,103 @@
+# Final Evolution Lab — Pixel Streaming Stack
+# Usage: docker-compose up --build
+
+version: '3.8'
+
+services:
+  # ─── Signalling Server (WebSocket relay) ───
+  signalling:
+    build:
+      context: ./signalling
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8888"    # WebSocket for browsers
+      - "8889:8889"    # Streamer connections from UE
+    environment:
+      - FEL_LOG_LEVEL=info
+      - STREAMER_PORT=8889
+      - PLAYER_PORT=8888
+      - SFU_PORT=8890
+    restart: unless-stopped
+    networks:
+      - fel-streaming
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8888/healthz', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ─── TURN/STUN Server (NAT traversal) ───
+  coturn:
+    image: coturn/coturn:latest
+    ports:
+      - "3478:3478"      # STUN/TURN
+      - "3478:3478/udp"
+      - "49152-49200:49152-49200/udp"  # Media relay range
+    environment:
+      - TURN_REALM=fel.evolution.lab
+      - TURN_USER=fel:fel_streaming_2026
+    command: >
+      turnserver
+      --listening-port=3478
+      --realm=fel.evolution.lab
+      --user=fel:fel_streaming_2026
+      --lt-cred-mech
+      --fingerprint
+      --no-tls
+      --no-dtls
+      --min-port=49152
+      --max-port=49200
+      --log-file=stdout
+      --verbose
+    restart: unless-stopped
+    networks:
+      - fel-streaming
+
+  # ─── Web Frontend (React mode launcher + streaming player) ───
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - signalling
+    environment:
+      - SIGNALLING_URL=ws://signalling:8888
+      - TURN_SERVER=turn:coturn:3478
+    restart: unless-stopped
+    networks:
+      - fel-streaming
+
+  # ─── UE5 Game Server (Pixel Streaming headless) ───
+  # NOTE: Requires pre-built Linux server package from UE5.7.
+  # Build with: UnrealEditor -run=cook -targetplatform=Linux -server -map=... -PixelStreamingIP=signalling -PixelStreamingPort=8889
+  ue-server:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.ue-server
+    depends_on:
+      - signalling
+      - coturn
+    environment:
+      - PIXEL_STREAMING_IP=signalling
+      - PIXEL_STREAMING_PORT=8889
+      - RES_X=1920
+      - RES_Y=1080
+      - FPS=60
+    volumes:
+      - ./config:/app/config:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - fel-streaming
+
+networks:
+  fel-streaming:
+    driver: bridge

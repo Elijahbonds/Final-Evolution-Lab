@@ -1,0 +1,358 @@
+{
+  "version": "1.0.0",
+  "description": "3D Animated Exercise Catalog — FEL Academy / Training",
+  "categories": [
+    {
+      "id": "warmup",
+      "name": "Warm-Up & Activation",
+      "exercises": [
+        {
+          "id": "dynamic_lunge_walk",
+          "name": "Dynamic Lunge Walk",
+          "description": "Walking lunges with torso rotation for hip flexor activation and thoracic mobility.",
+          "targetMuscles": ["hip_flexors", "glutes", "thoracic_spine"],
+          "duration_seconds": 60,
+          "reps": 10,
+          "sets": 2,
+          "difficulty": 0.3,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_DynamicLungeWalk",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "hip_mobility",
+          "sportRelevance": ["basketball_h2h", "soccer", "football", "tennis"]
+        },
+        {
+          "id": "arm_circles_progressive",
+          "name": "Progressive Arm Circles",
+          "description": "Small to large arm circles activating rotator cuff and deltoid chain.",
+          "targetMuscles": ["deltoids", "rotator_cuff", "trapezius"],
+          "duration_seconds": 45,
+          "reps": 20,
+          "sets": 2,
+          "difficulty": 0.1,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_ArmCircles",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "shoulder_stability",
+          "sportRelevance": ["volleyball", "tennis", "baseball", "gymnastics"]
+        },
+        {
+          "id": "high_knees",
+          "name": "High Knees",
+          "description": "Running in place with exaggerated knee drive for hip flexor activation and cardio.",
+          "targetMuscles": ["hip_flexors", "quadriceps", "calves"],
+          "duration_seconds": 30,
+          "reps": 0,
+          "sets": 3,
+          "difficulty": 0.4,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_HighKnees",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "cardio_readiness",
+          "sportRelevance": ["basketball_h2h", "soccer", "football", "karate_h2h"]
+        },
+        {
+          "id": "lateral_shuffle",
+          "name": "Lateral Shuffle",
+          "description": "Side-to-side shuffling for lateral agility and ankle stability.",
+          "targetMuscles": ["hip_abductors", "ankles", "glutes"],
+          "duration_seconds": 30,
+          "reps": 0,
+          "sets": 3,
+          "difficulty": 0.3,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_LateralShuffle",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "lateral_agility",
+          "sportRelevance": ["tennis", "volleyball", "basketball_3v3", "soccer"]
+        }
+      ]
+    },
+    {
+      "id": "strength",
+      "name": "Strength & Power",
+      "exercises": [
+        {
+          "id": "squat_form",
+          "name": "Perfect Form Squat",
+          "description": "Full-depth bodyweight squat with emphasis on knee tracking, hip hinge, and spinal alignment.",
+          "targetMuscles": ["quadriceps", "glutes", "hamstrings", "core"],
+          "duration_seconds": 0,
+          "reps": 12,
+          "sets": 3,
+          "difficulty": 0.4,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_SquatForm",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "lower_body_strength",
+          "sportRelevance": ["basketball_dunk", "volleyball", "gymnastics", "surfing", "snowboarding"]
+        },
+        {
+          "id": "box_jump",
+          "name": "Box Jump",
+          "description": "Explosive vertical jump onto platform with soft landing. PRQ scales jump height target.",
+          "targetMuscles": ["quadriceps", "glutes", "calves", "core"],
+          "duration_seconds": 0,
+          "reps": 8,
+          "sets": 3,
+          "difficulty": 0.6,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_BoxJump",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "vertical_power",
+          "sportRelevance": ["basketball_dunk", "volleyball", "gymnastics"]
+        },
+        {
+          "id": "pushup_explosive",
+          "name": "Explosive Push-Up",
+          "description": "Push-ups with explosive upward phase for upper body power.",
+          "targetMuscles": ["chest", "triceps", "shoulders", "core"],
+          "duration_seconds": 0,
+          "reps": 10,
+          "sets": 3,
+          "difficulty": 0.5,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_ExplosivePushUp",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "upper_body_power",
+          "sportRelevance": ["karate_h2h", "basketball_h2h", "football", "gymnastics"]
+        },
+        {
+          "id": "deadlift_hip_hinge",
+          "name": "Hip Hinge / Deadlift Pattern",
+          "description": "Bodyweight hip hinge pattern teaching posterior chain engagement.",
+          "targetMuscles": ["hamstrings", "glutes", "erector_spinae"],
+          "duration_seconds": 0,
+          "reps": 10,
+          "sets": 3,
+          "difficulty": 0.4,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_HipHinge",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "posterior_chain",
+          "sportRelevance": ["golf", "baseball", "football", "basketball_dunk"]
+        }
+      ]
+    },
+    {
+      "id": "mobility",
+      "name": "Mobility & Flexibility",
+      "exercises": [
+        {
+          "id": "hip_90_90",
+          "name": "90/90 Hip Rotation",
+          "description": "Seated hip internal/external rotation for hip capsule mobility.",
+          "targetMuscles": ["hip_rotators", "glutes", "adductors"],
+          "duration_seconds": 60,
+          "reps": 8,
+          "sets": 2,
+          "difficulty": 0.3,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_Hip9090",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "hip_mobility",
+          "sportRelevance": ["soccer", "karate_h2h", "gymnastics", "golf"]
+        },
+        {
+          "id": "thoracic_rotation",
+          "name": "Thoracic Spine Rotation",
+          "description": "Open book rotation for thoracic mobility. Key SFMA screen component.",
+          "targetMuscles": ["thoracic_spine", "obliques", "rhomboids"],
+          "duration_seconds": 45,
+          "reps": 8,
+          "sets": 2,
+          "difficulty": 0.2,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_ThoracicRotation",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "thoracic_mobility",
+          "sportRelevance": ["golf", "tennis", "baseball", "volleyball"]
+        },
+        {
+          "id": "ankle_dorsiflexion",
+          "name": "Ankle Dorsiflexion Drill",
+          "description": "Wall-assisted ankle mobility for squat depth and landing mechanics.",
+          "targetMuscles": ["calves", "tibialis_anterior", "ankle_joint"],
+          "duration_seconds": 45,
+          "reps": 10,
+          "sets": 2,
+          "difficulty": 0.2,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_AnkleDorsiflexion",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "ankle_mobility",
+          "sportRelevance": ["basketball_dunk", "volleyball", "skateboarding", "snowboarding", "surfing"]
+        },
+        {
+          "id": "shoulder_dislocate",
+          "name": "Shoulder Pass-Through",
+          "description": "Band or stick pass-through for shoulder capsule range of motion.",
+          "targetMuscles": ["shoulders", "rotator_cuff", "thoracic_spine"],
+          "duration_seconds": 30,
+          "reps": 12,
+          "sets": 2,
+          "difficulty": 0.2,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_ShoulderPassThrough",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "shoulder_mobility",
+          "sportRelevance": ["volleyball", "tennis", "baseball", "gymnastics"]
+        }
+      ]
+    },
+    {
+      "id": "sport_specific",
+      "name": "Sport-Specific Drills",
+      "exercises": [
+        {
+          "id": "dunk_approach",
+          "name": "Dunk Approach Pattern",
+          "description": "Sprint → gather step → vertical leap. Bonds Bounce approach timing drill.",
+          "targetMuscles": ["hip_flexors", "glutes", "calves", "core"],
+          "duration_seconds": 0,
+          "reps": 6,
+          "sets": 3,
+          "difficulty": 0.7,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_DunkApproach",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "dunk_mechanics",
+          "sportRelevance": ["basketball_dunk", "basketball_h2h"]
+        },
+        {
+          "id": "golf_swing_drill",
+          "name": "Golf Swing Plane Drill",
+          "description": "Slow-motion swing with focus on plane, hip rotation, and wrist release.",
+          "targetMuscles": ["obliques", "hip_rotators", "forearms", "core"],
+          "duration_seconds": 0,
+          "reps": 10,
+          "sets": 3,
+          "difficulty": 0.5,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_GolfSwingDrill",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "swing_plane",
+          "sportRelevance": ["golf", "baseball"]
+        },
+        {
+          "id": "kick_form",
+          "name": "Soccer Kick Form",
+          "description": "Plant foot positioning, hip rotation, and follow-through for penalty kicks.",
+          "targetMuscles": ["hip_flexors", "quadriceps", "core", "ankles"],
+          "duration_seconds": 0,
+          "reps": 8,
+          "sets": 3,
+          "difficulty": 0.5,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_KickForm",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "kick_accuracy",
+          "sportRelevance": ["soccer", "football"]
+        },
+        {
+          "id": "serve_motion",
+          "name": "Tennis Serve Motion",
+          "description": "Full kinetic chain serve: trophy position → racquet drop → contact → follow-through.",
+          "targetMuscles": ["shoulders", "core", "hip_rotators", "calves"],
+          "duration_seconds": 0,
+          "reps": 8,
+          "sets": 3,
+          "difficulty": 0.6,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_ServeMotion",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "serve_mechanics",
+          "sportRelevance": ["tennis", "volleyball"]
+        },
+        {
+          "id": "karate_kata_basic",
+          "name": "Basic Kata Sequence",
+          "description": "Foundational kata: strikes, blocks, and stances with breath control.",
+          "targetMuscles": ["core", "hip_rotators", "shoulders", "quadriceps"],
+          "duration_seconds": 90,
+          "reps": 1,
+          "sets": 3,
+          "difficulty": 0.5,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_KataBasic",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "strike_precision",
+          "sportRelevance": ["karate_h2h", "karate_endless"]
+        },
+        {
+          "id": "surf_popup",
+          "name": "Surf Pop-Up Drill",
+          "description": "Prone to standing pop-up motion for surfing takeoff speed and balance.",
+          "targetMuscles": ["core", "shoulders", "hip_flexors", "ankles"],
+          "duration_seconds": 0,
+          "reps": 10,
+          "sets": 3,
+          "difficulty": 0.4,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_SurfPopUp",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "popup_speed",
+          "sportRelevance": ["surfing", "skateboarding"]
+        },
+        {
+          "id": "balance_board",
+          "name": "Balance Board Training",
+          "description": "Single-leg balance holds with eyes open/closed for proprioceptive training.",
+          "targetMuscles": ["ankles", "core", "hip_stabilizers"],
+          "duration_seconds": 30,
+          "reps": 0,
+          "sets": 4,
+          "difficulty": 0.4,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_BalanceBoard",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "balance_proprioception",
+          "sportRelevance": ["surfing", "skateboarding", "snowboarding", "gymnastics"]
+        },
+        {
+          "id": "tumbling_roundoff",
+          "name": "Gymnastics Roundoff",
+          "description": "Roundoff entry for tumbling passes. Focus on hand placement and body line.",
+          "targetMuscles": ["shoulders", "core", "wrists", "hip_flexors"],
+          "duration_seconds": 0,
+          "reps": 6,
+          "sets": 3,
+          "difficulty": 0.7,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_Roundoff",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "tumbling_form",
+          "sportRelevance": ["gymnastics"]
+        }
+      ]
+    },
+    {
+      "id": "recovery",
+      "name": "Recovery & Cooldown",
+      "exercises": [
+        {
+          "id": "foam_roll_it_band",
+          "name": "IT Band Foam Roll",
+          "description": "Lateral thigh foam rolling for IT band tension release.",
+          "targetMuscles": ["it_band", "vastus_lateralis", "tensor_fasciae_latae"],
+          "duration_seconds": 60,
+          "reps": 0,
+          "sets": 2,
+          "difficulty": 0.2,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_FoamRollITBand",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "fascial_release",
+          "sportRelevance": ["basketball_h2h", "soccer", "football", "tennis"]
+        },
+        {
+          "id": "pigeon_stretch",
+          "name": "Pigeon Stretch",
+          "description": "Deep hip opener targeting piriformis and glute medius.",
+          "targetMuscles": ["piriformis", "glute_medius", "hip_external_rotators"],
+          "duration_seconds": 45,
+          "reps": 0,
+          "sets": 2,
+          "difficulty": 0.3,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_PigeonStretch",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "hip_recovery",
+          "sportRelevance": ["basketball_dunk", "soccer", "karate_h2h", "gymnastics"]
+        },
+        {
+          "id": "breathing_box",
+          "name": "Box Breathing",
+          "description": "4-4-4-4 box breathing for parasympathetic activation and recovery.",
+          "targetMuscles": ["diaphragm", "intercostals"],
+          "duration_seconds": 120,
+          "reps": 0,
+          "sets": 1,
+          "difficulty": 0.1,
+          "animMontage": "/Game/FEL/Animations/Exercises/AM_BoxBreathing",
+          "demonstratorMesh": "/Game/FEL/Models/Avatar/SK_FEL_Demonstrator",
+          "prqBenefit": "parasympathetic_recovery",
+          "sportRelevance": ["brain_brawl", "golf", "gymnastics", "karate_h2h"]
+        }
+      ]
+    }
+  ]
+}

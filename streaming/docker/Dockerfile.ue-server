@@ -1,0 +1,60 @@
+# FEL Unreal Engine 5.7 Pixel Streaming Server
+#
+# Prerequisites:
+#   1. Build the Linux Shipping server from UE Editor:
+#      UnrealEditor FinalEvolutionLab.uproject -run=cook -targetplatform=Linux -server
+#   2. Package with Pixel Streaming:
+#      UnrealEditor FinalEvolutionLab.uproject -run=package -targetplatform=Linux \
+#        -server -PixelStreamingEnabled
+#   3. Copy the packaged build into ./build/ before building this image.
+#
+# Usage:
+#   docker build -t fel-ue-server -f Dockerfile.ue-server .
+#   docker run --gpus 1 -e PIXEL_STREAMING_IP=host.docker.internal -e PIXEL_STREAMING_PORT=8889 fel-ue-server
+
+FROM nvidia/vulkan:1.3-470
+
+LABEL maintainer="Final Evolution Lab"
+LABEL description="FEL UE5.7 Pixel Streaming headless server (16 game modes)"
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libc6 \
+    libstdc++6 \
+    libx11-6 \
+    libxcursor1 \
+    libxrandr2 \
+    libxi6 \
+    libgl1 \
+    libglu1-mesa \
+    xdg-user-dirs \
+    pulseaudio \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the packaged UE5 build
+COPY build/ /app/
+
+# Copy FEL configuration
+COPY config/ /app/config/
+
+# Make the server executable
+RUN chmod +x /app/FinalEvolutionLab/Binaries/Linux/FinalEvolutionLabServer || true
+
+# Expose Pixel Streaming ports
+EXPOSE 8889
+
+# Entry point — launch with Pixel Streaming
+ENTRYPOINT ["/app/FinalEvolutionLab/Binaries/Linux/FinalEvolutionLabServer"]
+CMD ["-RenderOffScreen", \
+     "-Windowed", \
+     "-ForceRes", \
+     "-ResX=${RES_X:-1920}", \
+     "-ResY=${RES_Y:-1080}", \
+     "-PixelStreamingIP=${PIXEL_STREAMING_IP:-signalling}", \
+     "-PixelStreamingPort=${PIXEL_STREAMING_PORT:-8889}", \
+     "-AudioMixer", \
+     "-NullRHI", \
+     "-log", \
+     "-unattended"]

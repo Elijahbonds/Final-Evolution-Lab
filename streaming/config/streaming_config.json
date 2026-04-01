@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0",
+  "project": "FinalEvolutionLab",
+  "description": "Pixel Streaming configuration for 16 FEL game modes",
+  "pixelStreaming": {
+    "signallingServerUrl": "ws://localhost:8888",
+    "streamerPort": 8889,
+    "playerPort": 8888,
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "framerate": 60,
+    "bitrate": {
+      "min": 5000000,
+      "max": 20000000,
+      "start": 10000000
+    },
+    "webRTC": {
+      "iceServers": [
+        {
+          "urls": ["stun:stun.l.google.com:19302"]
+        },
+        {
+          "urls": ["turn:localhost:3478"],
+          "username": "fel",
+          "credential": "fel_streaming_2026"
+        }
+      ],
+      "degradationPreference": "maintain-framerate"
+    }
+  },
+  "dataChannel": {
+    "enabled": true,
+    "ordered": true,
+    "maxRetransmits": 3,
+    "protocol": "fel-arena-v1",
+    "commands": [
+      "launch_mode",
+      "exit_mode",
+      "get_modes",
+      "exercise_demo",
+      "get_status",
+      "set_prq",
+      "toggle_hud"
+    ]
+  },
+  "modes": {
+    "basketball_h2h": { "displayName": "Street \u00b7 1v1", "venue": "VeniceBeach", "category": "basketball" },
+    "basketball_dunk": { "displayName": "Dunk Contest", "venue": "VeniceBeach", "category": "basketball" },
+    "basketball_3v3": { "displayName": "Street \u00b7 3v3", "venue": "VeniceBeach", "category": "basketball" },
+    "karate_h2h": { "displayName": "Karate \u00b7 1v1", "venue": "Dojo", "category": "combat" },
+    "karate_endless": { "displayName": "Karate \u00b7 Endless", "venue": "Dojo", "category": "combat" },
+    "baseball": { "displayName": "Baseball \u00b7 Ballpark", "venue": "BaseballPark", "category": "field" },
+    "football": { "displayName": "Football \u00b7 Kick Return", "venue": "Gridiron", "category": "field" },
+    "soccer": { "displayName": "Soccer \u00b7 Stadium", "venue": "SoccerStadium", "category": "field" },
+    "golf": { "displayName": "Golf \u00b7 Links", "venue": "Links", "category": "precision" },
+    "tennis": { "displayName": "Tennis \u00b7 Court", "venue": "TennisCourt", "category": "court" },
+    "volleyball": { "displayName": "Volleyball \u00b7 Sand", "venue": "SandCourt", "category": "court" },
+    "gymnastics": { "displayName": "Gymnastics \u00b7 Floor", "venue": "TrainingFloor", "category": "performance" },
+    "brain_brawl": { "displayName": "Academy \u00b7 Brain Brawl", "venue": "NeuroArena", "category": "academy" },
+    "surfing": { "displayName": "Surf \u00b7 Line", "venue": "VeniceBeach", "category": "board" },
+    "skateboarding": { "displayName": "Skate \u00b7 Park", "venue": "Dojo", "category": "board" },
+    "snowboarding": { "displayName": "Snow \u00b7 Line", "venue": "TrainingFloor", "category": "board" },
+    "market_browse": { "displayName": "Sovereign Shop", "venue": "LumaVeniceShop", "category": "shop" }
+  }
+}
