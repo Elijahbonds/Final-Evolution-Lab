@@ -1,0 +1,272 @@
+{
+  "generated_at": "2026-04-01T23:41:30.388792+00:00",
+  "total_environments": 12,
+  "ready": 0,
+  "failed": 0,
+  "by_style": {
+    "cyberpunk": [
+      "retro_tokyo_night",
+      "cyberpunk_gym",
+      "neon_arcade"
+    ],
+    "tropical": [
+      "venice_beach_sunset",
+      "beach_tropical"
+    ],
+    "retro": [
+      "classic_nba_arena"
+    ],
+    "industrial": [
+      "underground_bunker",
+      "warehouse_industrial"
+    ],
+    "cinematic": [
+      "rooftop_cityscape",
+      "winter_outdoor",
+      "stadium_night_game"
+    ],
+    "zen": [
+      "zen_dojo"
+    ]
+  },
+  "by_backend": {
+    "dry_run": [
+      "retro_tokyo_night",
+      "venice_beach_sunset",
+      "cyberpunk_gym",
+      "classic_nba_arena",
+      "underground_bunker",
+      "rooftop_cityscape",
+      "winter_outdoor",
+      "beach_tropical",
+      "warehouse_industrial",
+      "neon_arcade",
+      "zen_dojo",
+      "stadium_night_game"
+    ]
+  },
+  "performance": {
+    "avg_generation_time": 0,
+    "avg_file_size_mb": 0,
+    "total_storage_mb": 0
+  },
+  "environments": [
+    {
+      "id": "retro_tokyo_night",
+      "status": "dry_run",
+      "style": "cyberpunk",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "neon",
+        "retro",
+        "night",
+        "urban",
+        "street",
+        "basketball",
+        "cinematic",
+        "gritty",
+        "nba",
+        "graffiti"
+      ]
+    },
+    {
+      "id": "venice_beach_sunset",
+      "status": "dry_run",
+      "style": "tropical",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "sunset",
+        "beach",
+        "basketball",
+        "cinematic",
+        "graffiti"
+      ]
+    },
+    {
+      "id": "cyberpunk_gym",
+      "status": "dry_run",
+      "style": "cyberpunk",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "neon",
+        "cyberpunk",
+        "gym",
+        "holographic"
+      ]
+    },
+    {
+      "id": "classic_nba_arena",
+      "status": "dry_run",
+      "style": "retro",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "retro",
+        "stadium",
+        "basketball",
+        "nba"
+      ]
+    },
+    {
+      "id": "underground_bunker",
+      "status": "dry_run",
+      "style": "industrial",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "industrial",
+        "gritty",
+        "graffiti"
+      ]
+    },
+    {
+      "id": "rooftop_cityscape",
+      "status": "dry_run",
+      "style": "cinematic",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "rooftop",
+        "basketball"
+      ]
+    },
+    {
+      "id": "winter_outdoor",
+      "status": "dry_run",
+      "style": "cinematic",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "outdoor",
+        "street",
+        "winter",
+        "basketball",
+        "cinematic"
+      ]
+    },
+    {
+      "id": "beach_tropical",
+      "status": "dry_run",
+      "style": "tropical",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "beach",
+        "tropical",
+        "basketball"
+      ]
+    },
+    {
+      "id": "warehouse_industrial",
+      "status": "dry_run",
+      "style": "industrial",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "urban",
+        "industrial",
+        "gym",
+        "boxing",
+        "warehouse"
+      ]
+    },
+    {
+      "id": "neon_arcade",
+      "status": "dry_run",
+      "style": "cyberpunk",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "neon",
+        "retro",
+        "arcade"
+      ]
+    },
+    {
+      "id": "zen_dojo",
+      "status": "dry_run",
+      "style": "zen",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "zen",
+        "dojo"
+      ]
+    },
+    {
+      "id": "stadium_night_game",
+      "status": "dry_run",
+      "style": "cinematic",
+      "backend": "dry_run",
+      "generation_time": 0.0,
+      "file_size_mb": 0.0,
+      "has_equirect": false,
+      "has_cubemap": false,
+      "has_video_texture": false,
+      "has_parallax_layers": false,
+      "tags": [
+        "night",
+        "stadium",
+        "soccer"
+      ]
+    }
+  ]
+}

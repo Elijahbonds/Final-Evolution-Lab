@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Final Evolution Lab - AI-Generated Training Environments. The court evolves with your performance." />
+  <meta name="theme-color" content="#000000" />
+  <title>Generative Environments — Final Evolution Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            fel: { black: "#000000", cyan: "#5ce1e6", blue: "#1e90ff", magenta: "#e040fb" },
+          },
+          fontFamily: {
+            sans: ['"SF Pro Display"', "system-ui", "-apple-system", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    .text-glow-cyan { text-shadow: 0 0 40px rgba(92,225,230,0.35); }
+    .card-glow:hover { box-shadow: 0 0 30px rgba(92,225,230,0.2); }
+    .gradient-border {
+      border-image: linear-gradient(135deg, #5ce1e6, #e040fb) 1;
+    }
+    @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    .float-anim { animation: float 6s ease-in-out infinite; }
+    @keyframes pulse-glow { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+    .env-card { transition: all 0.3s ease; transform: perspective(1000px) rotateX(0) rotateY(0); }
+    .env-card:hover { transform: perspective(1000px) rotateX(2deg) scale(1.02); }
+  </style>
+</head>
+<body class="bg-black text-white font-sans min-h-screen">
+
+  <!-- Hero Section -->
+  <section class="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-black via-gray-900/50 to-black"></div>
+    <div class="absolute inset-0 opacity-20">
+      <div class="absolute top-20 left-1/4 w-96 h-96 bg-fel-cyan/10 rounded-full blur-3xl float-anim"></div>
+      <div class="absolute bottom-20 right-1/4 w-96 h-96 bg-fel-magenta/10 rounded-full blur-3xl float-anim" style="animation-delay: 3s;"></div>
+    </div>
+    <div class="relative z-10 text-center px-6 max-w-5xl">
+      <p class="text-fel-cyan/80 text-sm tracking-[0.3em] uppercase mb-4">Generative World Model</p>
+      <h1 class="text-5xl md:text-7xl font-bold mb-6">
+        <span class="text-glow-cyan">AI-Native</span> Training Lab
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
+        Where the court <span class="text-fel-cyan">evolves</span> with your performance.
+      </p>
+      <p class="text-gray-500 text-lg mb-10 max-w-2xl mx-auto">
+        Powered by Gaia-style generative world models. Text prompt → 360° environment → 
+        Dynamic skybox in UE5. Every training session, a new world.
+      </p>
+      <div class="flex flex-wrap gap-4 justify-center">
+        <a href="#gallery" class="bg-fel-cyan text-black font-semibold px-8 py-3 rounded-lg hover:bg-fel-cyan/80 transition">
+          Explore Environments
+        </a>
+        <a href="#tech" class="border border-fel-cyan/30 text-fel-cyan px-8 py-3 rounded-lg hover:bg-fel-cyan/10 transition">
+          How It Works
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section id="tech" class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-3xl md:text-4xl font-bold text-center mb-16">How It <span class="text-fel-cyan">Works</span></h2>
+      <div class="grid md:grid-cols-4 gap-8">
+        <div class="text-center p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+          <div class="text-4xl mb-4">💬</div>
+          <h3 class="text-lg font-semibold text-fel-cyan mb-2">Text Prompt</h3>
+          <p class="text-gray-400 text-sm">Describe your dream training environment in natural language</p>
+        </div>
+        <div class="text-center p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+          <div class="text-4xl mb-4">🧠</div>
+          <h3 class="text-lg font-semibold text-fel-cyan mb-2">AI Generation</h3>
+          <p class="text-gray-400 text-sm">Generative world models create 360° visual environments</p>
+        </div>
+        <div class="text-center p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+          <div class="text-4xl mb-4">🎮</div>
+          <h3 class="text-lg font-semibold text-fel-cyan mb-2">UE5 Integration</h3>
+          <p class="text-gray-400 text-sm">Dynamic skybox and 2.5D backdrop in Unreal Engine 5</p>
+        </div>
+        <div class="text-center p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+          <div class="text-4xl mb-4">⚡</div>
+          <h3 class="text-lg font-semibold text-fel-cyan mb-2">60fps Streaming</h3>
+          <p class="text-gray-400 text-sm">Pixel Streaming at 60fps on AWS G5 to any device</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Environment Gallery -->
+  <section id="gallery" class="py-24 px-6 bg-gray-950">
+    <div class="max-w-7xl mx-auto">
+      <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Environment <span class="text-fel-cyan">Gallery</span></h2>
+      <p class="text-gray-500 text-center mb-16 max-w-2xl mx-auto">
+        12 curated environments spanning retro courts, cyberpunk gyms, and serene dojos. 
+        Each generated from a single text prompt.
+      </p>
+
+      <!-- Filter Tags -->
+      <div class="flex flex-wrap gap-3 justify-center mb-12">
+        <button class="filter-btn active px-4 py-2 rounded-full text-sm border border-fel-cyan/30 bg-fel-cyan/10 text-fel-cyan" data-filter="all">All</button>
+        <button class="filter-btn px-4 py-2 rounded-full text-sm border border-gray-700 text-gray-400 hover:text-fel-cyan hover:border-fel-cyan/30" data-filter="retro">Retro</button>
+        <button class="filter-btn px-4 py-2 rounded-full text-sm border border-gray-700 text-gray-400 hover:text-fel-cyan hover:border-fel-cyan/30" data-filter="cyberpunk">Cyberpunk</button>
+        <button class="filter-btn px-4 py-2 rounded-full text-sm border border-gray-700 text-gray-400 hover:text-fel-cyan hover:border-fel-cyan/30" data-filter="outdoor">Outdoor</button>
+        <button class="filter-btn px-4 py-2 rounded-full text-sm border border-gray-700 text-gray-400 hover:text-fel-cyan hover:border-fel-cyan/30" data-filter="indoor">Indoor</button>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8" id="env-grid">
+        <!-- Environment cards generated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Custom Prompt CTA -->
+  <section class="py-24 px-6">
+    <div class="max-w-4xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">Create Your <span class="text-fel-cyan">Own</span> World</h2>
+      <p class="text-gray-400 text-lg mb-10">
+        Type any environment description and watch AI bring it to life.
+      </p>
+      <div class="max-w-2xl mx-auto">
+        <div class="relative">
+          <input type="text" id="prompt-input" placeholder='"Retro 2006-style street court in Tokyo at night with neon puddles"'
+            class="w-full bg-gray-900 border border-gray-700 rounded-xl px-6 py-4 pr-24 text-white placeholder-gray-600 focus:outline-none focus:border-fel-cyan/50"
+          />
+          <button id="generate-btn" class="absolute right-2 top-2 bg-fel-cyan text-black font-semibold px-6 py-2 rounded-lg hover:bg-fel-cyan/80 transition">
+            Generate
+          </button>
+        </div>
+        <p class="text-gray-600 text-sm mt-3">Environments generate in ~30 seconds via Pixel Streaming</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Specs -->
+  <section class="py-24 px-6 bg-gray-950">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-16">Technical <span class="text-fel-cyan">Specs</span></h2>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+          <h3 class="text-lg font-semibold text-fel-cyan mb-4">Generation Pipeline</h3>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li>→ Multi-backend: Luma Ray2, Runway Gen-3, Stability AI</li>
+            <li>→ NVIDIA Gaia integration (pending public API)</li>
+            <li>→ 360° equirectangular + cubemap conversion</li>
+            <li>→ HDR skybox for real-time lighting</li>
+            <li>→ Parallax 2.5D layers for depth illusion</li>
+            <li>→ Video texture for animated environments</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+          <h3 class="text-lg font-semibold text-fel-cyan mb-4">Performance</h3>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li>→ 60fps on AWS G5 (NVIDIA A10G)</li>
+            <li>→ ~1.5ms GPU cost per frame (2.5D backdrop)</li>
+            <li>→ Adaptive quality: Ultra → Mobile Low</li>
+            <li>→ Runtime environment swapping with crossfade</li>
+            <li>→ Async preloading for seamless transitions</li>
+            <li>→ iOS-optimized ASTC compression</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+          <h3 class="text-lg font-semibold text-fel-cyan mb-4">UE5 Architecture</h3>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li>→ UFELDynamicEnvironmentSubsystem C++ class</li>
+            <li>→ Blueprint nodes: Load, Swap, Preload</li>
+            <li>→ Dynamic Material Instances for skybox</li>
+            <li>→ Post-Process Volumes per aesthetic style</li>
+            <li>→ Physics/animation separate from visuals</li>
+            <li>→ Environment manifest JSON for asset tracking</li>
+          </ul>
+        </div>
+        <div class="p-6 rounded-xl bg-gray-900/50 border border-gray-800">
+          <h3 class="text-lg font-semibold text-fel-cyan mb-4">12 Curated Environments</h3>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li>→ Retro Tokyo Night (NBA Street 2006 aesthetic)</li>
+            <li>→ Venice Beach Sunset</li>
+            <li>→ Cyberpunk Gym with holographic displays</li>
+            <li>→ Classic 90s NBA Arena</li>
+            <li>→ Neon Arcade (Tron/synthwave)</li>
+            <li>→ Zen Dojo, Rooftop Cityscape, + 5 more</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12 px-6 border-t border-gray-900">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="text-gray-600 text-sm">© 2026 Final Evolution Group. AI-native training environments.</p>
+      <div class="flex gap-6">
+        <a href="/" class="text-gray-500 hover:text-fel-cyan text-sm">Home</a>
+        <a href="/play" class="text-gray-500 hover:text-fel-cyan text-sm">Play</a>
+        <a href="/shop" class="text-gray-500 hover:text-fel-cyan text-sm">Shop</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Environment data
+    const environments = [
+      { id: 'retro_tokyo_night', name: 'Retro Tokyo Night', style: 'cyberpunk', tags: ['retro', 'neon', 'night', 'urban'], prompt: 'Retro 2006 NBA Street style basketball court in Tokyo at night, neon puddles reflecting street lights, graffiti walls, urban gritty aesthetic', gradient: 'from-purple-900 to-blue-900' },
+      { id: 'venice_beach_sunset', name: 'Venice Beach Sunset', style: 'tropical', tags: ['outdoor', 'beach'], prompt: 'Venice Beach basketball court at golden hour sunset, palm trees silhouetted against orange sky, graffiti walls', gradient: 'from-orange-900 to-red-900' },
+      { id: 'cyberpunk_gym', name: 'Cyberpunk Gym', style: 'cyberpunk', tags: ['cyberpunk', 'indoor', 'neon'], prompt: 'Futuristic cyberpunk training gym interior, neon lights in cyan and magenta, holographic displays', gradient: 'from-cyan-900 to-purple-900' },
+      { id: 'classic_nba_arena', name: 'Classic NBA Arena', style: 'retro', tags: ['retro', 'indoor', 'stadium'], prompt: 'Classic 1990s NBA basketball arena, wooden court with team logos, packed stadium crowd', gradient: 'from-amber-900 to-orange-900' },
+      { id: 'underground_bunker', name: 'Underground Bunker', style: 'industrial', tags: ['indoor', 'industrial'], prompt: 'Underground concrete training bunker, industrial lighting, heavy bags', gradient: 'from-gray-800 to-gray-900' },
+      { id: 'rooftop_cityscape', name: 'Rooftop Cityscape', style: 'cinematic', tags: ['outdoor', 'urban'], prompt: 'Rooftop basketball court above a megacity skyline at dusk', gradient: 'from-blue-900 to-indigo-900' },
+      { id: 'winter_outdoor', name: 'Winter Court', style: 'cinematic', tags: ['outdoor'], prompt: 'Outdoor basketball court in winter, light snow falling', gradient: 'from-sky-900 to-gray-800' },
+      { id: 'beach_tropical', name: 'Tropical Beach', style: 'tropical', tags: ['outdoor', 'beach'], prompt: 'Tropical beach volleyball court on white sand, crystal clear water', gradient: 'from-teal-900 to-emerald-900' },
+      { id: 'warehouse_industrial', name: 'Warehouse Gym', style: 'industrial', tags: ['indoor', 'industrial'], prompt: 'Converted warehouse gym, exposed brick, industrial steel beams', gradient: 'from-stone-800 to-amber-900' },
+      { id: 'neon_arcade', name: 'Neon Arcade', style: 'synthwave', tags: ['retro', 'cyberpunk', 'neon'], prompt: 'Retro 80s neon arcade aesthetic, glowing grid floor like Tron', gradient: 'from-fuchsia-900 to-violet-900' },
+      { id: 'zen_dojo', name: 'Zen Dojo', style: 'zen', tags: ['indoor'], prompt: 'Traditional Japanese zen dojo, tatami mats, wooden beams', gradient: 'from-yellow-900/50 to-stone-900' },
+      { id: 'stadium_night_game', name: 'Stadium Night Game', style: 'cinematic', tags: ['outdoor', 'stadium'], prompt: 'Professional soccer stadium during a night game, bright floodlights', gradient: 'from-green-900 to-emerald-900' },
+    ];
+
+    function renderGrid(filter = 'all') {
+      const grid = document.getElementById('env-grid');
+      const filtered = filter === 'all' ? environments :
+        environments.filter(e => e.tags.includes(filter) || e.style === filter);
+      grid.innerHTML = filtered.map(env => `
+        <div class="env-card card-glow rounded-xl overflow-hidden border border-gray-800 bg-gray-900/50 cursor-pointer" data-id="${env.id}">
+          <div class="h-48 bg-gradient-to-br ${env.gradient} flex items-center justify-center relative">
+            <span class="text-6xl opacity-50">🌍</span>
+            <div class="absolute bottom-3 right-3 bg-black/60 px-3 py-1 rounded-full text-xs text-fel-cyan">${env.style}</div>
+          </div>
+          <div class="p-5">
+            <h3 class="font-semibold text-lg mb-2">${env.name}</h3>
+            <p class="text-gray-500 text-sm line-clamp-2">${env.prompt}</p>
+            <div class="flex gap-2 mt-3 flex-wrap">
+              ${env.tags.map(t => `<span class="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-400">${t}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => {
+          b.classList.remove('active', 'bg-fel-cyan/10', 'text-fel-cyan', 'border-fel-cyan/30');
+          b.classList.add('text-gray-400', 'border-gray-700');
+        });
+        btn.classList.add('active', 'bg-fel-cyan/10', 'text-fel-cyan', 'border-fel-cyan/30');
+        btn.classList.remove('text-gray-400', 'border-gray-700');
+        renderGrid(btn.dataset.filter);
+      });
+    });
+
+    // Generate button
+    document.getElementById('generate-btn').addEventListener('click', () => {
+      const input = document.getElementById('prompt-input');
+      if (input.value.trim()) {
+        alert(`Environment generation queued:\n\n"${input.value}"\n\nThis would be sent to the Generative World Model API.\nConnect API keys to enable live generation.`);
+      }
+    });
+
+    renderGrid();
+  </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# Requirements for Generative Environment Pipeline
+python-dotenv>=1.0.0
+# ffmpeg and imagemagick are system dependencies:
+#   sudo apt install ffmpeg imagemagick

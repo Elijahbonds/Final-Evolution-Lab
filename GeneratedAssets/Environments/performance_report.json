@@ -1,0 +1,420 @@
+{
+  "generated_at": ".",
+  "environments_tested": 12,
+  "platforms_tested": [
+    "aws_g5",
+    "ios_high",
+    "ios_low",
+    "android_high",
+    "desktop"
+  ],
+  "results": {
+    "aws_g5": [
+      {
+        "environment": "retro_tokyo_night",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "venice_beach_sunset",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "cyberpunk_gym",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "classic_nba_arena",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "underground_bunker",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "rooftop_cityscape",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "winter_outdoor",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "beach_tropical",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "warehouse_industrial",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "neon_arcade",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "zen_dojo",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "stadium_night_game",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      }
+    ],
+    "ios_high": [
+      {
+        "environment": "retro_tokyo_night",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "venice_beach_sunset",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "cyberpunk_gym",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "classic_nba_arena",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "underground_bunker",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "rooftop_cityscape",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "winter_outdoor",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "beach_tropical",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "warehouse_industrial",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "neon_arcade",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "zen_dojo",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "stadium_night_game",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      }
+    ],
+    "ios_low": [
+      {
+        "environment": "retro_tokyo_night",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "venice_beach_sunset",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "cyberpunk_gym",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "classic_nba_arena",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "underground_bunker",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "rooftop_cityscape",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "winter_outdoor",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "beach_tropical",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "warehouse_industrial",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "neon_arcade",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "zen_dojo",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "stadium_night_game",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      }
+    ],
+    "android_high": [
+      {
+        "environment": "retro_tokyo_night",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "venice_beach_sunset",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "cyberpunk_gym",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "classic_nba_arena",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "underground_bunker",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "rooftop_cityscape",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "winter_outdoor",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "beach_tropical",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "warehouse_industrial",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "neon_arcade",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "zen_dojo",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "stadium_night_game",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      }
+    ],
+    "desktop": [
+      {
+        "environment": "retro_tokyo_night",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "venice_beach_sunset",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "cyberpunk_gym",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "classic_nba_arena",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "underground_bunker",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "rooftop_cityscape",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "winter_outdoor",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "beach_tropical",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "warehouse_industrial",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "neon_arcade",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "zen_dojo",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      },
+      {
+        "environment": "stadium_night_game",
+        "gpu_ms": 0,
+        "memory_mb": 0,
+        "within_budget": true
+      }
+    ]
+  },
+  "summary": {
+    "aws_g5": {
+      "avg_gpu_ms": 0.0,
+      "avg_memory_mb": 0.0,
+      "all_within_budget": true,
+      "target_fps": 60,
+      "frame_budget_ms": 16.67
+    },
+    "ios_high": {
+      "avg_gpu_ms": 0.0,
+      "avg_memory_mb": 0.0,
+      "all_within_budget": true,
+      "target_fps": 60,
+      "frame_budget_ms": 16.67
+    },
+    "ios_low": {
+      "avg_gpu_ms": 0.0,
+      "avg_memory_mb": 0.0,
+      "all_within_budget": true,
+      "target_fps": 60,
+      "frame_budget_ms": 16.67
+    },
+    "android_high": {
+      "avg_gpu_ms": 0.0,
+      "avg_memory_mb": 0.0,
+      "all_within_budget": true,
+      "target_fps": 60,
+      "frame_budget_ms": 16.67
+    },
+    "desktop": {
+      "avg_gpu_ms": 0.0,
+      "avg_memory_mb": 0.0,
+      "all_within_budget": true,
+      "target_fps": 60,
+      "frame_budget_ms": 16.67
+    }
+  }
+}
