@@ -18,3 +18,18 @@ web/clinical-gate-react/dist/
 # Xcode user state (machine-local)
 **/xcuserdata/
 *.xcuserstate
+
+
+
+# AI Asset Pipeline — generated assets (large binary files)
+GeneratedAssets/deepmotion/
+GeneratedAssets/meshy/
+GeneratedAssets/luma/
+GeneratedAssets/.cache/
+GeneratedAssets/asset_manifest.json
+!GeneratedAssets/.gitkeep
+
+# API keys
+.env
+*.env.local
+__pycache__/

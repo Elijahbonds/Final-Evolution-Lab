@@ -1,0 +1,11 @@
+# AI Asset Pipeline dependencies
+# pip install -r scripts/ai_asset_pipeline/requirements.txt
+
+# DeepMotion SDK (for motion capture)
+dm-animate3d-api>=1.0.1
+
+# Optional: .env file support
+python-dotenv>=1.0.0
+
+# HTTP requests (stdlib urllib used; requests optional for convenience)
+# requests>=2.31.0
