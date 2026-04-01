@@ -1023,7 +1023,7 @@ File: `UnrealStarter/BasketballGame/PACKAGE_AND_TEST.md (§1–6, §9–11)`
 
 Use this when you want a **Mac Development build for internal QA**, a **folder/zip for testers**, or to continue to **iOS** packaging from Unreal.
 
-**Not the Swift app:** The iOS product in this repo is **`FinalEvolutionLabUnreal.xcodeproj`** — see **`XCODE_CLEAN_AND_RUN.md`**. Unreal is a **separate** project (e.g. **FinalEvolutionLab** under *Documents*).
+**Not the Swift app:** The iOS product in this repo is **`ios/FinalEvolutionLab.xcodeproj`** — see **`XCODE_CLEAN_AND_RUN.md`**. Unreal is a **separate** project (e.g. **FinalEvolutionLab** under *Documents*).
 
 ---
 
@@ -1132,7 +1132,7 @@ UnrealStarter/scripts/package_fel_mac.sh "/path/to/FinalEvolutionLab.uproject" "
 
 ## 7. iOS (Unreal / TestFlight path)
 
-Unreal **does not** install through **`FinalEvolutionLabUnreal.xcodeproj`**. You **package iOS** from the Unreal Editor (or automation), then open the **generated iOS `.xcworkspace`**, sign, run or archive.
+Unreal **does not** install through **`ios/FinalEvolutionLab.xcodeproj`**. You **package iOS** from the Unreal Editor (or automation), then open the **generated iOS `.xcworkspace`**, sign, run or archive.
 
 Read in order:
 

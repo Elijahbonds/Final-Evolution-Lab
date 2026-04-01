@@ -6,7 +6,7 @@ Paste into **OpenClaw** (or Cursor) with the repo root as workspace. This does *
 
 ## Context
 
-- Repository: **Final Evolution Lab** — iOS shell target **`FinalEvolutionLabUnreal`** (display name **Final Evolution Lab - Unreal**), Xcode project **`FinalEvolutionLabUnreal.xcodeproj`**.
+- Repository: **Final Evolution Lab** — iOS shell target **`FinalEvolutionLab`**, Xcode project **`ios/FinalEvolutionLab.xcodeproj`**.
 - Canonical gameplay: **Unreal Engine** — see **`UNREAL_ONLY.md`**, **`UnrealStarter/README.md`**, **`UnrealStarter/BasketballGame/`**, **`FEL_UE52_LevelSetup.md`**.
 - Swift app **does not** embed Unreal like UnityFramework; UE ships as Epic’s **iOS** build or via Pixel Streaming / URL scheme. **`UnrealRuntimePlaceholderView`** in the app explains this.
 

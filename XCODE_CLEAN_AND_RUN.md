@@ -2,8 +2,8 @@
 
 This project is **Final Evolution Lab** — a **Swift/SwiftUI iOS app** with **RealityKit** 3D for the Lab dunk court and **SwiftUI Arena** modes (themed canvases + PRQ-driven commit). It is **not** an Unreal-in-Xcode project; `UnrealStarter/` is reference only. For what is playable on device, controller support, and Unity vs Unreal, see **IOS_PLAY_TEST_READINESS.md**. For flows, see **PROJECT_FLOWS.md**.
 
-- **Project:** `final-evolution-lab/FinalEvolutionLabUnreal.xcodeproj` (your clone folder name may differ)
-- **Scheme:** **FinalEvolutionLabUnreal** (display name on device: **Final Evolution Lab - Unreal**)
+- **Project:** `final-evolution-lab/ios/FinalEvolutionLab.xcodeproj` (your clone folder name may differ)
+- **Scheme:** **FinalEvolutionLab** (display name on device: **Final Evolution Lab - Unreal**)
 - **Target:** The app uses a **PBXFileSystemSynchronizedRootGroup** for the **`Source/`** folder, so all Swift files under that directory are included in the target.
 
 ---
@@ -14,7 +14,7 @@ This project is **Final Evolution Lab** — a **Swift/SwiftUI iOS app** with **R
 1. **Product → Clean Build Folder** (⇧⌘K)
 2. **Quit Xcode** (⌘Q)
 3. **Delete DerivedData** for this project: remove the folder starting with `FinalEvolutionLab-` in `~/Library/Developer/Xcode/DerivedData`
-4. **Reopen** the project (`FinalEvolutionLabUnreal.xcodeproj`)
+4. **Reopen** the project (`ios/FinalEvolutionLab.xcodeproj`)
 5. **Product → Build** (⌘B)
 6. **Product → Run** (⌘R)
 
@@ -24,9 +24,9 @@ If Xcode is still showing an old build with no recent changes (no RFD/GRF educat
 
 ## 1. Confirm you have the right project open
 
-- **File path:** `final-evolution-lab/FinalEvolutionLabUnreal.xcodeproj` (your clone folder name may differ)
-- **Scheme:** **FinalEvolutionLabUnreal** (selected in the Xcode toolbar next to the Run button)
-- **Target:** FinalEvolutionLabUnreal (the app), not the test targets
+- **File path:** `final-evolution-lab/ios/FinalEvolutionLab.xcodeproj` (your clone folder name may differ)
+- **Scheme:** **FinalEvolutionLab** (selected in the Xcode toolbar next to the Run button)
+- **Target:** FinalEvolutionLab (the app), not the test targets
 
 ---
 
@@ -45,17 +45,17 @@ If Xcode is still showing an old build with no recent changes (no RFD/GRF educat
 3. **Delete this project’s DerivedData** (so the next build is from scratch):
 
    ```bash
-   rm -rf ~/Library/Developer/Xcode/DerivedData/FinalEvolutionLabUnreal-*
+   rm -rf ~/Library/Developer/Xcode/DerivedData/FinalEvolutionLab-*
    ```
 
    Or in Finder: **Go → Go to Folder** (⌘⇧G), paste:
    `~/Library/Developer/Xcode/DerivedData`
-   then delete any folder whose name starts with **FinalEvolutionLabUnreal-** .
+   then delete any folder whose name starts with **FinalEvolutionLab-** .
 
 ### Back in Xcode
 
 4. **Reopen the project**  
-   Open `FinalEvolutionLabUnreal.xcodeproj` (double‑click or from File → Open).
+   Open `ios/FinalEvolutionLab.xcodeproj` (double‑click or from File → Open).
 
 5. **Build**  
    **Product → Build** (⌘B). Wait until it finishes.
@@ -80,14 +80,14 @@ If you still see the old UI, repeat step 2 (clean, quit, delete DerivedData, reo
 
 ## 4. Swift app vs Unreal (and how they meet)
 
-- **This Xcode target (`FinalEvolutionLabUnreal`):** Swift/SwiftUI Arena + Lab flows; optional **Unity** embed via `UnityFramework`; 3D dunk path uses **RealityKit** where wired. It does **not** compile the C++ under `UnrealStarter/` — that tree is a **drop-in module** for your Unreal game project.
+- **This Xcode target (`FinalEvolutionLab`):** Swift/SwiftUI Arena + Lab flows; optional **Unity** embed via `UnityFramework`; 3D dunk path uses **RealityKit** where wired. It does **not** compile the C++ under `UnrealStarter/` — that tree is a **drop-in module** for your Unreal game project.
 - **Unreal (`UnrealStarter/BasketballGame/`):** Copy headers/sources into your UE module (see `MyProjec.Build.cs.snippet` for **Json** dependencies). Add **`FELKineticLeakage.cpp/.h`** to the same module as `FELBasketballCharacter`.
 
 ### 4a. Cooking Unreal content (editor)
 
 1. Open your **Unreal 5.2+** project that contains the FEL basketball map/pawn.
 2. **File → Cook Content for** your target platform (iOS for device tests).
-3. Output goes under your project’s **Saved/Cooked** (and staged build tree). For a **standalone iOS Unreal app**, use **Platforms → iOS** packaging from Unreal or automation per Epic docs — this produces its own `.ipa` / Xcode project from UE, **separate** from `FinalEvolutionLabUnreal.xcodeproj`.
+3. Output goes under your project’s **Saved/Cooked** (and staged build tree). For a **standalone iOS Unreal app**, use **Platforms → iOS** packaging from Unreal or automation per Epic docs — this produces its own `.ipa` / Xcode project from UE, **separate** from `ios/FinalEvolutionLab.xcodeproj`.
 
 ### 4b. Linking Unreal with Swift (realistic options)
 
@@ -113,5 +113,5 @@ If you still see the old UI, repeat step 2 (clean, quit, delete DerivedData, reo
 You can paste the following so Xcode AI has context:
 
 ```
-This is the Final Evolution Lab iOS app (Swift/SwiftUI + SceneKit). The project path is final-evolution-lab/FinalEvolutionLabUnreal.xcodeproj and the scheme is FinalEvolutionLabUnreal. I need to run the latest build. Please remind me to: (1) Product → Clean Build Folder, (2) quit Xcode, (3) delete DerivedData for this project (folder starting with FinalEvolutionLabUnreal- in ~/Library/Developer/Xcode/DerivedData), (4) reopen the project, (5) Product → Build, (6) Product → Run. The app uses a PBXFileSystemSynchronizedRootGroup for the **Source** folder so all Swift files under **Source/** are included in the target. For cloud deploy checks, see **Config/FEL_CLOUD_DEPLOY_CHECKLIST.txt**.
+This is the Final Evolution Lab iOS app (Swift/SwiftUI + SceneKit). The project path is final-evolution-lab/ios/FinalEvolutionLab.xcodeproj and the scheme is FinalEvolutionLab. I need to run the latest build. Please remind me to: (1) Product → Clean Build Folder, (2) quit Xcode, (3) delete DerivedData for this project (folder starting with FinalEvolutionLab- in ~/Library/Developer/Xcode/DerivedData), (4) reopen the project, (5) Product → Build, (6) Product → Run. The app uses a PBXFileSystemSynchronizedRootGroup for the **Source** folder so all Swift files under **Source/** are included in the target. For cloud deploy checks, see **Config/FEL_CLOUD_DEPLOY_CHECKLIST.txt**.
 ```

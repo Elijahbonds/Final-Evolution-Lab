@@ -9,8 +9,8 @@ node_modules
 build/
 web/clinical-gate-react/dist/
 
-# Leftover duplicate Xcode tree (canonical Swift app lives under ios/)
-FinalEvolutionLabUnreal.xcodeproj/
+# Legacy: FinalEvolutionLabUnreal.xcodeproj was removed; canonical app is ios/FinalEvolutionLab.xcodeproj
+# FinalEvolutionLabUnreal.xcodeproj/
 
 # macOS
 .DS_Store

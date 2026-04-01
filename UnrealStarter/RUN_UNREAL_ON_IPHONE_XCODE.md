@@ -53,7 +53,7 @@ Common locations:
 
 ## 4. Swift app in *this* repo (not Unreal)
 
-**Final Evolution Lab:** **`FinalEvolutionLabUnreal.xcodeproj`** → iPhone → **⌘R**. See **`XCODE_CLEAN_AND_RUN.md`**.
+**Final Evolution Lab:** **`ios/FinalEvolutionLab.xcodeproj`** → iPhone → **⌘R**. See **`XCODE_CLEAN_AND_RUN.md`**.
 
 ---
 
@@ -63,7 +63,7 @@ Common locations:
 |------|----------------|
 | **Unreal on iPhone** | iOS **`.xcworkspace`** from Unreal’s staged build |
 | **Unreal Mac C++** | **`MyProjec.xcworkspace`** |
-| **Swift FEL app** | **`FinalEvolutionLabUnreal.xcodeproj`** |
+| **Swift FEL app** | **`ios/FinalEvolutionLab.xcodeproj`** |
 
 ---
 

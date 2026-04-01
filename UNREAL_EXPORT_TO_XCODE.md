@@ -65,7 +65,7 @@ If you have (or create) an Unreal project and want to run it in the Editor, then
 
 ## 4. Relation to this repo (Final Evolution Lab)
 
-- **This repo:** iOS app **Final Evolution Lab** — Swift/SwiftUI, RealityKit dunk court, Arena UI. Build and run via **FinalEvolutionLabUnreal.xcodeproj** (see **XCODE_CLEAN_AND_RUN.md**).
+- **This repo:** iOS app **Final Evolution Lab** — Swift/SwiftUI, RealityKit dunk court, Arena UI. Build and run via **ios/FinalEvolutionLab.xcodeproj** (see **XCODE_CLEAN_AND_RUN.md**).
 - **Unreal:** Use **`UnrealStarter/BasketballGame/FinalEvolutionLab.uproject`** in this repo. Use the steps above to build in Editor and export to Xcode for iOS testing. Additional drop-in snippets (if any) are listed in **UnrealStarter/README.md**.
 
 ---

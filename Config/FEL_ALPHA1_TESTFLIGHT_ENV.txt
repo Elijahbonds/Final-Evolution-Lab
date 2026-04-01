@@ -5,7 +5,7 @@ The app does not embed the Supabase URL in Swift source. It resolves at runtime 
 
   1) Xcode Scheme → Run / Archive → Environment Variables (highest priority for local runs), or
   2) Build settings that expand into Info.plist: FEL_SUPABASE_URL and FEL_SUPABASE_ANON_KEY
-     (see FinalEvolutionLabUnreal.xcodeproj → INFOPLIST_KEY_FEL_SUPABASE_*).
+     (see ios/FinalEvolutionLab.xcodeproj → INFOPLIST_KEY_FEL_SUPABASE_*).
 
 For TestFlight / external testers, set these to your **production** Supabase project:
 

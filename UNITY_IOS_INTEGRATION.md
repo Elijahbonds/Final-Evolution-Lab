@@ -42,7 +42,7 @@
 
 | Source | Value |
 |--------|--------|
-| Xcode app target | `PRODUCT_BUNDLE_IDENTIFIER` in `FinalEvolutionLabUnreal.xcodeproj` (`FinalEvoAPP`) |
+| Xcode app target | `PRODUCT_BUNDLE_IDENTIFIER` in `ios/FinalEvolutionLab.xcodeproj` (`app.rork.final-evolution-lab`) |
 | Repo canonical | `Config/FEL_IOS_BUNDLE_ID.txt` |
 | Unity | **FEL → Sync iOS Bundle Identifier with host app** (`FELBundleIdSync.cs`) reads `FEL_IOS_BUNDLE_ID.txt` from common paths or falls back to `FinalEvoAPP` |
 
