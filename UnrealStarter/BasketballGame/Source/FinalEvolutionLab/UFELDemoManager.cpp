@@ -7,6 +7,7 @@
 #include "UFELArenaModeData.h"
 #include "FELMatchTypes.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -24,7 +25,7 @@ AFELBasketballGameMode* UFELDemoManager::GetFELGameMode() const
 	return Cast<AFELBasketballGameMode>(GetOwner());
 }
 
-void UFELDemoManager::TriggerExerciseDemo()
+void UFELDemoManager::TriggerExerciseDemo(UAnimMontage* OptionalDemonstrationMontage)
 {
 	AFELBasketballGameMode* GM = GetFELGameMode();
 	if (!GM || GM->MatchPhase != EFELMatchPhase::WaitingToStart)
@@ -96,6 +97,10 @@ void UFELDemoManager::TriggerExerciseDemo()
 	const float Leak = GM->GetNeuroKineticLeakageMultiplierFloat();
 	Demo->ConfigureDemonstrator(Mesh, AnimClass, 1.f);
 	Demo->ApplyDemonstrationPlayRateFromNeuro(PRQ, Leak);
+	if (OptionalDemonstrationMontage)
+	{
+		Demo->PlayDemonstrationMontage(OptionalDemonstrationMontage);
+	}
 	ActiveDemonstrator = Demo;
 	PC->SetViewTargetWithBlend(Demo, ExerciseDemoCameraBlendInSeconds, EViewTargetBlendFunction::VTBlend_Cubic);
 

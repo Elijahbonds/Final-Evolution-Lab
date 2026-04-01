@@ -39,6 +39,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogFEL, Log, All);
 #endif
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Engine/SkeletalMesh.h"
 #include "MotionWarpingComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -1244,12 +1247,18 @@ void AFELBasketballCharacter::ApplyJumpTakeoffAnimWarp(const EFELJumpTimingBand 
 	if (Seq)
 	{
 		MontageToPlay = UAnimMontage::CreateSlotAnimationAsDynamicMontage(
-			Seq,
+			Cast<UAnimSequenceBase>(Seq),
 			FName(TEXT("DefaultSlot")),
 			0.25f,
 			0.25f,
 			1.f,
 			1);
+#if !UE_BUILD_SHIPPING
+		if (!MontageToPlay)
+		{
+			UE_LOG(LogFEL, Verbose, TEXT("ApplyJumpTakeoffAnimWarp: CreateSlotAnimationAsDynamicMontage failed (sequence/skeleton vs mesh)."));
+		}
+#endif
 	}
 
 	if (MontageToPlay)

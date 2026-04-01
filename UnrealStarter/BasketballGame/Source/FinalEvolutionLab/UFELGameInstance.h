@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "FELArenaModeDefinitions.h"
+#include "FELClinicalUIPolicy.h"
 #include "UFELGameInstance.generated.h"
 
 class AFELBasketballGameMode;
@@ -80,6 +81,9 @@ public:
 	/** Called after UFELPlatformManager applies platform defaults so Performance profile can override Epic. */
 	void ApplyProfileScalabilityToGameUserSettings();
 
+	/** Optional `Content/FEL/Config/FEL_ClinicalUIPolicy.json` (defaults if missing). */
+	const FFELClinicalUIPolicy& GetClinicalUIPolicy() const { return ClinicalUIPolicy; }
+
 protected:
 	void LoadPlayerProfile();
 
@@ -93,4 +97,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "FEL|Retail")
 	bool bEnableRetailStartupInPIE = true;
+
+	FFELClinicalUIPolicy ClinicalUIPolicy;
 };

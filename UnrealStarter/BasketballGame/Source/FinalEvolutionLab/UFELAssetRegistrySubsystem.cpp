@@ -1,6 +1,7 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "UFELAssetRegistrySubsystem.h"
+#include "FinalEvolutionLab.h"
 #include "FELArenaVenueTravel.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/AssetManager.h"
@@ -59,6 +60,9 @@ void UFELAssetRegistrySubsystem::SeedDefaultMapsIfEmpty()
 			EFELArenaMode::Gymnastics,
 			EFELArenaMode::BrainBrawl,
 			EFELArenaMode::MarketBrowse,
+			EFELArenaMode::Surfing,
+			EFELArenaMode::Skateboarding,
+			EFELArenaMode::Snowboarding,
 		};
 		for (EFELArenaMode M : kModes)
 		{
@@ -70,7 +74,7 @@ void UFELAssetRegistrySubsystem::SeedDefaultMapsIfEmpty()
 
 	if (AcademyModuleDemonstrationMontage.Num() == 0)
 	{
-		for (int32 i = 1; i <= 12; ++i)
+		for (int32 i = 1; i <= 15; ++i)
 		{
 			const FString Key = FString::Printf(TEXT("mod%d"), i);
 			TSoftObjectPtr<UAnimMontage> Montage;
@@ -212,11 +216,22 @@ UAnimMontage* UFELAssetRegistrySubsystem::ResolveModuleDemonstrationMontage(cons
 	const TSoftObjectPtr<UAnimMontage>* Found = AcademyModuleDemonstrationMontage.Find(ModuleKey);
 	if (!Found || Found->IsNull())
 	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogFinalEvolutionLab, Verbose, TEXT("ResolveModuleDemonstrationMontage: no soft reference for module key '%s'."), *ModuleKey);
+#endif
 		return nullptr;
 	}
 	if (bLoadSynchronously)
 	{
-		return Found->LoadSynchronous();
+		UAnimMontage* const Loaded = Found->LoadSynchronous();
+#if !UE_BUILD_SHIPPING
+		if (!Loaded)
+		{
+			UE_LOG(LogFinalEvolutionLab, Verbose, TEXT("ResolveModuleDemonstrationMontage: LoadSynchronous failed for '%s' (path=%s). Cook/import DeepMotion montage or clear the map entry."),
+				*ModuleKey, *Found->ToSoftObjectPath().ToString());
+		}
+#endif
+		return Loaded;
 	}
 	return Found->Get();
 }

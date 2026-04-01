@@ -6,6 +6,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/WorldInitializationValues.h"
 #include "Engine/World.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UFELPlatformManager.generated.h"

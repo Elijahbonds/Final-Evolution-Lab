@@ -80,7 +80,7 @@ struct FFELReadinessSnapshot
 
 	/**
 	 * Karate lab variant when `active_mode` resolves to `karate` (or aliases `karate_h2h`, `karate_endless`).
-	 * Also set from JSON key `karateLabMode`: `h2h` | `head_to_head` | `endless` | `agents`.
+	 * Also set from JSON key `karateLabMode`: `h2h` | `head_to_head` | `endless` | `agents` | `matrix_revolutions` | `revolutions_siege`.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Arena|Karate")
 	EFELKarateLabMode KarateLabVariant = EFELKarateLabMode::HeadToHeadStorm;

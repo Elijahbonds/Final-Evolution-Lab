@@ -1,6 +1,7 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "FELSessionExport.h"
+#include "Engine/World.h"
 #include "FELArenaBridge.h"
 #include "FELBasketballGameState.h"
 #include "FELPlatformPaths.h"
@@ -10,6 +11,7 @@
 #include "Misc/Paths.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#include "Policies/CondensedJsonPrintPolicy.h"
 
 static double SwiftReferenceDateSeconds()
 {

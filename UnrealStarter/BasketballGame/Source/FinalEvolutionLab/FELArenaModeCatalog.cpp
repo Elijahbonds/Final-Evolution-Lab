@@ -32,6 +32,10 @@ FSoftObjectPath FELArenaModeCatalog::GetDefaultSoftPathForMode(const EFELArenaMo
 		return FSoftObjectPath(TEXT("/Game/FEL/Data/DA_ArenaMode_BrainBrawl.DA_ArenaMode_BrainBrawl"));
 	case EFELArenaMode::MarketBrowse:
 		return FSoftObjectPath(TEXT("/Game/FEL/Data/DA_ArenaMode_BasketballH2H.DA_ArenaMode_BasketballH2H"));
+	case EFELArenaMode::Surfing:
+	case EFELArenaMode::Skateboarding:
+	case EFELArenaMode::Snowboarding:
+		return FSoftObjectPath(TEXT("/Game/FEL/Data/DA_ArenaMode_BasketballH2H.DA_ArenaMode_BasketballH2H"));
 	default:
 		return FSoftObjectPath(TEXT("/Game/FEL/Data/DA_ArenaMode_BasketballH2H.DA_ArenaMode_BasketballH2H"));
 	}

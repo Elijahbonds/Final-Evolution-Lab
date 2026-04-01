@@ -70,6 +70,13 @@ bool FELArenaVenueTravel::ResolveOpenLevelName(const EFELArenaMode Mode, FName& 
 	case EFELArenaMode::MarketBrowse:
 		OutLevelPackageName = FName(FELDigitalTwinVenuePaths::LumaVeniceShop);
 		return true;
+	case EFELArenaMode::Surfing:
+	case EFELArenaMode::Skateboarding:
+		OutLevelPackageName = FName(FELDigitalTwinVenuePaths::VeniceBeachArena);
+		return true;
+	case EFELArenaMode::Snowboarding:
+		OutLevelPackageName = FName(FELArenaVenueLevelPaths::TrainingFloor);
+		return true;
 	case EFELArenaMode::Unknown:
 	default:
 		return false;
@@ -124,6 +131,11 @@ bool FELArenaVenueTravel::ShouldSkipTravelBecauseAlreadyOnVenue(const EFELArenaM
 		return Current.Contains(TEXT("NeuroArena"));
 	case EFELArenaMode::MarketBrowse:
 		return Current.Contains(TEXT("SovereignShop")) || Current.Contains(TEXT("L_SovereignShop_Luma")) || Current.Contains(TEXT("Luma_Venice_Shop"));
+	case EFELArenaMode::Surfing:
+	case EFELArenaMode::Skateboarding:
+		return Current.Contains(TEXT("VeniceBeach")) || Current.Contains(TEXT("VeniceLuma"));
+	case EFELArenaMode::Snowboarding:
+		return Current.Contains(TEXT("TrainingFloor"));
 	default:
 		return false;
 	}
@@ -157,6 +169,12 @@ FString FELArenaVenueTravel::GetVenueMatrixLabel(const EFELArenaMode Mode)
 		return TEXT("NeuroArena");
 	case EFELArenaMode::MarketBrowse:
 		return TEXT("LumaVeniceShop");
+	case EFELArenaMode::Surfing:
+		return TEXT("VeniceBeach (surf)");
+	case EFELArenaMode::Skateboarding:
+		return TEXT("VeniceBeach (skate)");
+	case EFELArenaMode::Snowboarding:
+		return TEXT("TrainingFloor (snow)");
 	default:
 		return TEXT("(no venue travel)");
 	}

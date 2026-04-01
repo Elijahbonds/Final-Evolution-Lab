@@ -1,7 +1,11 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "FELExerciseDemonstrator.h"
+#include "FinalEvolutionLab.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 
@@ -46,6 +50,54 @@ void AFELExerciseDemonstrator::ConfigureDemonstrator(
 	{
 		FTimerHandle H;
 		GetWorldTimerManager().SetTimer(H, ApplyRate, 0.05f, false);
+	}
+}
+
+void AFELExerciseDemonstrator::PlayDemonstrationMontage(UAnimMontage* Montage)
+{
+	if (!Montage || !MeshComponent)
+	{
+		return;
+	}
+	const auto TryPlay = [this, Montage]()
+	{
+		if (UAnimInstance* const AI = MeshComponent->GetAnimInstance())
+		{
+			const float Len = AI->Montage_Play(Montage);
+#if !UE_BUILD_SHIPPING
+			if (Len <= 0.f)
+			{
+				UE_LOG(LogFinalEvolutionLab, Warning,
+					TEXT("PlayDemonstrationMontage: Montage_Play returned 0 for '%s' (slot/skeleton mismatch vs AnimBP)."),
+					*GetNameSafe(Montage));
+			}
+#endif
+			return true;
+		}
+		return false;
+	};
+	if (TryPlay())
+	{
+		return;
+	}
+	if (UWorld* const W = GetWorld())
+	{
+		FTimerHandle H;
+		W->GetTimerManager().SetTimer(
+			H,
+			[this, Montage, TryPlay]()
+			{
+				if (!TryPlay())
+				{
+#if !UE_BUILD_SHIPPING
+					UE_LOG(LogFinalEvolutionLab, Warning,
+						TEXT("PlayDemonstrationMontage: AnimInstance still null on '%s' after defer (mesh/AnimBP)."),
+						MeshComponent ? *GetNameSafe(MeshComponent) : TEXT("Mesh"));
+#endif
+				}
+			},
+			0.05f,
+			false);
 	}
 }
 

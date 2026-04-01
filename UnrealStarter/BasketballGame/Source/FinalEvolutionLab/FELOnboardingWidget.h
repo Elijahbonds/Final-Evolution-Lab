@@ -18,6 +18,10 @@ class FINALEVOLUTIONLAB_API UFELOnboardingWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	/** Optional plain-text body from `FEL_ClinicalUIPolicy.json` (call before `InitializeLabOnboarding`). */
+	UFUNCTION(BlueprintCallable, Category = "FEL|Onboarding")
+	void SetLabOnboardingBodyOverride(const FString& PlainText);
+
 	/** Build UI + bind dismiss; call after CreateWidget. */
 	UFUNCTION(BlueprintCallable, Category = "FEL|Onboarding")
 	void InitializeLabOnboarding();
@@ -45,4 +49,6 @@ private:
 
 	UFUNCTION()
 	void OnWatchDemoClicked();
+
+	FString LabBodyPolicyOverride;
 };

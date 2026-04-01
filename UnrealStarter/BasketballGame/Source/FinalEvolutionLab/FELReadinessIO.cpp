@@ -2,6 +2,7 @@
 
 #include "FELReadinessIO.h"
 #include "FELArenaModeDefinitions.h"
+#include "FELKarateLabModes.h"
 #include "FELArenaVenueTravel.h"
 #include "FELPlatformPaths.h"
 #include "Misc/FileHelper.h"
@@ -63,7 +64,13 @@ bool FELReadinessIO::ParseSnapshotJsonString(const FString& JsonStr, FFELReadine
 	if (Root->TryGetStringField(TEXT("karateLabMode"), KarateLabStr))
 	{
 		const FString L = KarateLabStr.TrimStartAndEnd().ToLower();
-		if (L == TEXT("endless") || L == TEXT("agents") || L == TEXT("matrix") || L == TEXT("karate_endless"))
+		if (L == TEXT("matrix_revolutions") || L == TEXT("revolutions_siege") || L == TEXT("revolutions")
+			|| L == TEXT("smith_waves") || L == TEXT("matrix_siege") || L == TEXT("dock_siege"))
+		{
+			Out.KarateLabVariant = EFELKarateLabMode::MatrixRevolutionsSiege;
+			Out.bKarateLabVariantFromHost = true;
+		}
+		else if (L == TEXT("endless") || L == TEXT("agents") || L == TEXT("matrix") || L == TEXT("matrix_endless") || L == TEXT("karate_endless"))
 		{
 			Out.KarateLabVariant = EFELKarateLabMode::EndlessAgentWaves;
 			Out.bKarateLabVariantFromHost = true;
@@ -76,7 +83,12 @@ bool FELReadinessIO::ParseSnapshotJsonString(const FString& JsonStr, FFELReadine
 	}
 	{
 		const FString Am = Out.ActiveArenaMode.TrimStartAndEnd().ToLower();
-		if (Am == TEXT("karate_endless") || Am == TEXT("karate_agents") || Am == TEXT("karate_matrix"))
+		if (Am == TEXT("karate_matrix_revolutions") || Am == TEXT("karate_revolutions_siege") || Am == TEXT("karate_revolutions"))
+		{
+			Out.KarateLabVariant = EFELKarateLabMode::MatrixRevolutionsSiege;
+			Out.bKarateLabVariantFromHost = true;
+		}
+		else if (Am == TEXT("karate_endless") || Am == TEXT("karate_agents") || Am == TEXT("karate_matrix"))
 		{
 			Out.KarateLabVariant = EFELKarateLabMode::EndlessAgentWaves;
 			Out.bKarateLabVariantFromHost = true;
@@ -346,7 +358,7 @@ bool FELReadinessIO::TryLoadSnapshot(FFELReadinessSnapshot& Out, FString* OutErr
 
 	if (OutError)
 	{
-		*OutError = TEXT("No readiness_snapshot.json (checked Documents/FEL, Saved/FEL, Content/FEL/Config)");
+		*OutError = TEXT("No readiness_snapshot.json (checked FEL data dir and Content/FEL/Config)");
 	}
 	return false;
 }

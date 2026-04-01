@@ -24,7 +24,7 @@ Swift is **not** required for gameplay, film vault, or streaming UI when those l
 | Path | Role |
 |------|------|
 | **`UnrealStarter/BasketballGame/FinalEvolutionLab.uproject`** | **Canonical in-repo Unreal project.** Module: `Source/FinalEvolutionLab/` (all FEL C++), `Config/` defaults merged from `CONFIG_*` snippets, `Content/` for maps & assets. Open this in UE 5.7, **Generate Xcode Project** (Mac) or **Refresh Visual Studio** / Rider, then build **FinalEvolutionLabEditor**. |
-| **`UnrealStarter/`** (other) | Editor Python (`EditorPython/`), packaging script (`scripts/package_fel_mac.sh`), import docs (`IMPORT_CHECKLIST.md`, `FEL_UE52_LevelSetup.md`). |
+| **`UnrealStarter/`** (other) | Editor Python (`EditorPython/`), packaging (`scripts/package_fel_mac.sh`), **Phase 9 compile matrix** (`scripts/verify_fel_build_matrix.sh` — Editor + Mac game UBT; optional iOS via `check_fel_ios_engine.sh`, skippable with `VERIFY_FEL_SKIP_IOS=1`), **Phase 10 engineering sign-off** (`scripts/verify_fel_phase10_signoff.sh` — static file + symbol checks for Phases 1–9; add `--compile` on macOS to chain the matrix), import docs (`IMPORT_CHECKLIST.md`, `FEL_UE52_LevelSetup.md`). **Go-live** (DMG + Netlify) is separate — see `Content/FEL/Venues/GOLD_MASTER_MAC_PACKAGING.txt` Phase 10 and repo-root `scripts/verify_gold_master_distribution.sh`. |
 | **`FinalEvolutionLab/`** (Xcode tree at repo root) | **Legacy iOS shell** — not the shipping gameplay client; see **Swift codebase status** below. |
 | **Root markdown** (`PITCH_DECK.md`, `VISION_ALIGNMENT.md`, etc.) | Product + planning; implementation lands in **Unreal**. |
 

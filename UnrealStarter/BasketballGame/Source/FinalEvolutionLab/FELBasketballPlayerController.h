@@ -12,8 +12,10 @@
 #include "FELBasketballPlayerController.generated.h"
 
 class UInputAction;
+class UInputMappingContext;
 class UFELNeuroDebugHUDWidget;
 class AFELBasketballCharacter;
+struct FFELArenaRules;
 
 UCLASS()
 class FINALEVOLUTIONLAB_API AFELBasketballPlayerController : public APlayerController
@@ -28,11 +30,11 @@ public:
 	void PlayBondsBounceHaptics(EFELJumpTimingBand Band, float TimingLeakFactor);
 
 	/**
-	 * Swap Enhanced Input mapping contexts per ActiveMode (assign IMC assets in editor / Data Asset).
-	 * Default: no-op until UInputMappingContext soft refs are wired.
+	 * Swap Enhanced Input mapping contexts per active mode: optional `FFELArenaRules::ModeInputMappingContexts`
+	 * from merged `UFELArenaModeData` (pass `&CurrentArenaRules` from `AFELBasketballGameMode`).
+	 * Not exposed to Blueprint (struct pointer); call from C++ game mode or a BP library that passes rules.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "FEL|Input")
-	void ApplyArenaInputForMode(EFELArenaMode Mode);
+	void ApplyArenaInputForMode(EFELArenaMode Mode, const FFELArenaRules* OptionalMergedRules = nullptr);
 
 	EFELArenaMode GetCachedAppliedArenaMode() const { return CachedAppliedArenaMode; }
 
@@ -81,9 +83,7 @@ protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void SetupInputComponent() override;
 	virtual void PlayerTick(float DeltaTime) override;
-#if PLATFORM_IOS || PLATFORM_ANDROID
-	virtual void InputTouch(uint32 Handle, ETouchType::Type Type, FVector2D Location) override;
-#endif
+	/** UE 5.7+: `APlayerController::InputTouch` is final with a different signature — touch is handled in `PlayerTick` via `ProcessTouchDrive`. */
 
 	/** iOS/Android: screen-space stick, sprint hold, gather pad (second finger), look drag on right half. */
 	void ProcessTouchDrive(float DeltaSeconds);
@@ -179,8 +179,8 @@ protected:
 	void OnHandshakeSprintReleased();
 	void OnHandshakeRightStickY(float Value);
 
-	/** Pixel Streaming (Web): wheel / alternate pointer path → same signature window as `IA_SignatureVerticalSwipe`. */
-	void OnPixelStreamingSignatureSwipe();
+	/** Pixel Streaming (Web): wheel axis → same signature window as `IA_SignatureVerticalSwipe` (positive = scroll up). */
+	void OnPixelStreamingSignatureSwipeAxis(float Value);
 
 	/** Mac keyboard sprint — merged in `PlayerTick` with `EnhancedInputSprint01` via `ApplyTouchDriveInput`. */
 	float HandshakeKeyboardSprint01 = 0.f;
@@ -190,6 +190,12 @@ protected:
 
 	/** Last mode from `ApplyArenaInputForMode` (used when `GetAuthGameMode` is null, e.g. network client). */
 	EFELArenaMode CachedAppliedArenaMode = EFELArenaMode::BasketballHeadToHead;
+
+	/** Contexts added by the last `ApplyArenaInputForMode` (removed before applying the next mode). */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UInputMappingContext>> AppliedArenaModeMappingContexts;
+
+	void RemoveAppliedArenaModeMappingContexts();
 
 	UFUNCTION(Server, Reliable)
 	void ServerFELBaseballSwing();

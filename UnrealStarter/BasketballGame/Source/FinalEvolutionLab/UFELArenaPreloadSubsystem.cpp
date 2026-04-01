@@ -22,6 +22,9 @@ void UFELArenaPreloadSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		EFELArenaMode::Gymnastics,
 		EFELArenaMode::BrainBrawl,
 		EFELArenaMode::MarketBrowse,
+		EFELArenaMode::Surfing,
+		EFELArenaMode::Skateboarding,
+		EFELArenaMode::Snowboarding,
 	};
 
 	TArray<FSoftObjectPath> Paths;

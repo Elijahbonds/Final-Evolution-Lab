@@ -1,6 +1,7 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "FELNeuroMechanicBridgeSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "FELReadinessIO.h"
 #include "FELArenaRulesRegistry.h"
 #include "FELBasketballGameMode.h"

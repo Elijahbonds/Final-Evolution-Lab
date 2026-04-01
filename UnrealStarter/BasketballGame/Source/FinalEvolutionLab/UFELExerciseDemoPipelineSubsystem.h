@@ -1,6 +1,6 @@
 // Copyright (c) Final Evolution Lab.
-// Per-arena-mode exercise demonstration pipeline: resolves the correct Academy module montage for each
-// of the 12 game modes and triggers the exercise demonstrator ghost with 3D animated Perfect Form.
+// Per-arena-mode exercise demonstration pipeline: resolves Academy module montage (catalog override or mod1–mod15)
+// and triggers the exercise demonstrator ghost with 3D Perfect Form montage playback.
 
 #pragma once
 

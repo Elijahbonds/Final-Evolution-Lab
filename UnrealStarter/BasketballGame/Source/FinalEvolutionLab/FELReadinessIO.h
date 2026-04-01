@@ -28,7 +28,7 @@ struct FELReadinessIO
 	static void ApplyNeuroFlowPostProcessFromSnapshot(UWorld* World, const FFELReadinessSnapshot& Snap);
 
 	/**
-	 * Tries, in order: Documents/FEL (iOS packaged app), Saved/FEL, Content/FEL/Config.
+	 * Tries, in order: `GetFELDataDirectory()/readiness_snapshot.json`, then `Content/FEL/Config/readiness_snapshot.json`.
 	 * See FELPlatformPaths::GetReadinessSnapshotCandidatePaths.
 	 */
 	static bool TryLoadSnapshot(FFELReadinessSnapshot& Out, FString* OutError = nullptr);

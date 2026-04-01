@@ -1,9 +1,12 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "UFELExerciseDemoPipelineSubsystem.h"
+#include "FinalEvolutionLab.h"
+#include "UFELAcademyMocapCatalogSubsystem.h"
 #include "UFELAssetRegistrySubsystem.h"
 #include "UFELDemoManager.h"
 #include "Animation/AnimMontage.h"
+#include "Engine/GameInstance.h"
 
 void UFELExerciseDemoPipelineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -38,10 +41,20 @@ void UFELExerciseDemoPipelineSubsystem::SeedModeToModuleMapping()
 	ModeToExerciseName.Add(EFELArenaMode::Volleyball, TEXT("Spike Approach — Penultimate Step Timing"));
 	ModeToExerciseName.Add(EFELArenaMode::Gymnastics, TEXT("Floor Routine Entry — Tumbling Run Sequence"));
 	ModeToExerciseName.Add(EFELArenaMode::BrainBrawl, TEXT("Cloud Cortex — Neuro Academy Integration"));
+	ModeToModuleKey.Add(EFELArenaMode::Surfing, TEXT("mod13"));
+	ModeToModuleKey.Add(EFELArenaMode::Skateboarding, TEXT("mod14"));
+	ModeToModuleKey.Add(EFELArenaMode::Snowboarding, TEXT("mod15"));
+	ModeToExerciseName.Add(EFELArenaMode::Surfing, TEXT("Line Balance — Swell Mitigation Stance"));
+	ModeToExerciseName.Add(EFELArenaMode::Skateboarding, TEXT("Line Stability — Approach Plate Load"));
+	ModeToExerciseName.Add(EFELArenaMode::Snowboarding, TEXT("Edge Grip — Carve Tension Sequence"));
 }
 
 FString UFELExerciseDemoPipelineSubsystem::GetModuleKeyForArenaMode(const EFELArenaMode Mode) const
 {
+	if (Mode == EFELArenaMode::MarketBrowse || Mode == EFELArenaMode::Unknown)
+	{
+		return FString();
+	}
 	if (const FString* Key = ModeToModuleKey.Find(Mode))
 	{
 		return *Key;
@@ -61,6 +74,10 @@ FString UFELExerciseDemoPipelineSubsystem::GetExerciseNameForArenaMode(const EFE
 void UFELExerciseDemoPipelineSubsystem::PreloadExerciseDemoForMode(const EFELArenaMode Mode)
 {
 	const FString ModuleKey = GetModuleKeyForArenaMode(Mode);
+	if (ModuleKey.IsEmpty())
+	{
+		return;
+	}
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		if (UFELAssetRegistrySubsystem* Registry = GI->GetSubsystem<UFELAssetRegistrySubsystem>())
@@ -93,6 +110,10 @@ void UFELExerciseDemoPipelineSubsystem::OnMontageLoaded(const EFELArenaMode Mode
 UAnimMontage* UFELExerciseDemoPipelineSubsystem::GetCachedMontageForMode(const EFELArenaMode Mode)
 {
 	const FString ModuleKey = GetModuleKeyForArenaMode(Mode);
+	if (ModuleKey.IsEmpty())
+	{
+		return nullptr;
+	}
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		if (UFELAssetRegistrySubsystem* Registry = GI->GetSubsystem<UFELAssetRegistrySubsystem>())
@@ -108,11 +129,45 @@ void UFELExerciseDemoPipelineSubsystem::TriggerExerciseDemoForMode(
 	UFELDemoManager* DemoManager,
 	const float PRQ0to100)
 {
+	(void)PRQ0to100;
 	if (!DemoManager)
 	{
 		return;
 	}
 
+	UAnimMontage* DemoMontage = nullptr;
+	if (UGameInstance* const GI = GetGameInstance())
+	{
+		if (UFELAcademyMocapCatalogSubsystem* const Cat = GI->GetSubsystem<UFELAcademyMocapCatalogSubsystem>())
+		{
+			DemoMontage = Cat->ResolvePerfectFormMontage(Mode, true);
+		}
+		if (!DemoMontage)
+		{
+			const FString ModuleKey = GetModuleKeyForArenaMode(Mode);
+			if (!ModuleKey.IsEmpty())
+			{
+				if (UFELAssetRegistrySubsystem* const Reg = GI->GetSubsystem<UFELAssetRegistrySubsystem>())
+				{
+					DemoMontage = Reg->ResolveModuleDemonstrationMontage(ModuleKey, true);
+				}
+			}
+		}
+	}
+
+#if !UE_BUILD_SHIPPING
+	if (!DemoMontage && Mode != EFELArenaMode::MarketBrowse && Mode != EFELArenaMode::Unknown)
+	{
+		const FString Mk = GetModuleKeyForArenaMode(Mode);
+		if (!Mk.IsEmpty())
+		{
+			UE_LOG(LogFinalEvolutionLab, Verbose,
+				TEXT("TriggerExerciseDemoForMode: no montage resolved for arena mode (module key '%s'). Assign PerfectForm montage or cook /Game/FEL/DeepMotion/Demo_* assets."),
+				*Mk);
+		}
+	}
+#endif
+
 	PreloadExerciseDemoForMode(Mode);
-	DemoManager->TriggerExerciseDemo();
+	DemoManager->TriggerExerciseDemo(DemoMontage);
 }

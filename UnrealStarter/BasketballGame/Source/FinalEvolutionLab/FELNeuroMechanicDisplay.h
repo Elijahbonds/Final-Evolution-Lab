@@ -97,21 +97,35 @@ namespace FELNeuroMechanicDisplay
 			if (R.KarateLabMode == EFELKarateLabMode::EndlessAgentWaves)
 			{
 				OutLabel = TEXT("Karate · wave drill");
-				OutValue = FString::Printf(
-					TEXT("readiness Str×%.2f Spd×%.2f Perf×%.2f"),
-					KB.StrengthMultiplier,
-					KB.SpeedMultiplier,
-					KB.PerformanceMultiplier);
+			}
+			else if (R.KarateLabMode == EFELKarateLabMode::MatrixRevolutionsSiege)
+			{
+				OutLabel = TEXT("Karate · Matrix siege");
 			}
 			else
 			{
 				OutLabel = TEXT("Karate · duel");
-				OutValue = FString::Printf(
-					TEXT("readiness Str×%.2f Spd×%.2f Perf×%.2f"),
-					KB.StrengthMultiplier,
-					KB.SpeedMultiplier,
-					KB.PerformanceMultiplier);
 			}
+			OutValue = FString::Printf(
+				TEXT("readiness Str×%.2f Spd×%.2f Perf×%.2f"),
+				KB.StrengthMultiplier,
+				KB.SpeedMultiplier,
+				KB.PerformanceMultiplier);
+			break;
+		}
+		case EFELArenaMode::Surfing:
+		case EFELArenaMode::Skateboarding:
+		case EFELArenaMode::Snowboarding:
+		{
+			const float P = FMath::Clamp(static_cast<float>(S.PRQScore), 0.f, 100.f);
+			const float P01 = P * 0.01f;
+			OutLabel = Mode == EFELArenaMode::Surfing ? TEXT("Surf · line PRQ")
+				: Mode == EFELArenaMode::Skateboarding ? TEXT("Skate · line PRQ") : TEXT("Snow · line PRQ");
+			OutValue = FString::Printf(
+				TEXT("line/s +%.2f · trick fill +%.2f · balance mitig %.0f%%"),
+				P01 * N.BoardSportPRQLineCoef,
+				P01 * N.BoardSportPRQTrickCoef,
+				P01 * N.BoardSportPRQBalanceMitigation);
 			break;
 		}
 		case EFELArenaMode::Volleyball:

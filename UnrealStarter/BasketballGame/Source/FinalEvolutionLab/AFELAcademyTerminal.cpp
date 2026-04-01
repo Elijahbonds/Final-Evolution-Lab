@@ -5,6 +5,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
@@ -68,7 +69,7 @@ void AFELAcademyTerminal::OnProximityBegin(UPrimitiveComponent* OverlappedCompon
 {
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
 	{
-		if (OtherActor == PC->GetPawn())
+		if (OtherActor == PC->GetPawn().Get())
 		{
 			bPlayerInRange = true;
 			SetInteractionPromptVisible(true);
@@ -81,7 +82,7 @@ void AFELAcademyTerminal::OnProximityEnd(UPrimitiveComponent* OverlappedComponen
 {
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
 	{
-		if (OtherActor == PC->GetPawn())
+		if (OtherActor == PC->GetPawn().Get())
 		{
 			bPlayerInRange = false;
 			SetInteractionPromptVisible(false);

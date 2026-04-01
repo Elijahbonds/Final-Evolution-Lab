@@ -1,5 +1,5 @@
 // Copyright (c) Final Evolution Lab.
-// Future: upload/download `readiness_snapshot.json` from Documents/FEL to Firestore or S3 for cross-device Digital Twin persistence.
+// Future: upload/download `readiness_snapshot.json` from `FELPlatformPaths::GetFELDataDirectory()` to Firestore or S3.
 
 #pragma once
 
@@ -16,11 +16,11 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	/** Read local `Documents/FEL/readiness_snapshot.json` (iOS) and enqueue secure cloud upload (stub). */
+	/** Read local `…/FEL/readiness_snapshot.json` and enqueue secure cloud upload (stub until backend is wired). */
 	UFUNCTION(BlueprintCallable, Category = "FEL|CloudSync")
 	void RequestUploadReadinessSnapshotFromDisk();
 
-	/** Pull remote twin JSON into `Documents/FEL/readiness_snapshot.json` (stub). */
+	/** Pull remote twin JSON into the same FEL data path (stub until backend is wired). */
 	UFUNCTION(BlueprintCallable, Category = "FEL|CloudSync")
 	void RequestDownloadReadinessSnapshotToDisk();
 

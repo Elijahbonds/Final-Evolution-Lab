@@ -32,6 +32,12 @@ FString FELArenaModeUX::GetObjectiveSubtitle(const EFELArenaMode Mode)
 		return TEXT("Academy quiz duel — answer each prompt; the round ends when the quiz timer reaches zero.");
 	case EFELArenaMode::MarketBrowse:
 		return TEXT("Sovereign Shop — explore the floor; interact with highlighted gear and captures.");
+	case EFELArenaMode::Surfing:
+		return TEXT("Surf line — PRQ widens balance windows and swell mitigation; hold your line score.");
+	case EFELArenaMode::Skateboarding:
+		return TEXT("Skate line — PRQ stabilizes trick fill and speed feel; chain balance into score.");
+	case EFELArenaMode::Snowboarding:
+		return TEXT("Snow line — PRQ adds edge grip and line tension; avoid wipeouts that trim the run.");
 	default:
 		return TEXT("Follow the on-screen score, timer, and prompts.");
 	}
@@ -54,6 +60,9 @@ FString FELArenaModeUX::GetScoreTerm(const EFELArenaMode Mode)
 	case EFELArenaMode::Volleyball:
 	case EFELArenaMode::Gymnastics:
 	case EFELArenaMode::Karate:
+	case EFELArenaMode::Surfing:
+	case EFELArenaMode::Skateboarding:
+	case EFELArenaMode::Snowboarding:
 		return TEXT("Points");
 	case EFELArenaMode::BrainBrawl:
 		return TEXT("Quiz");
@@ -76,6 +85,12 @@ FString FELArenaModeUX::GetControlFooterHint(const EFELArenaMode Mode)
 #endif
 	case EFELArenaMode::MarketBrowse:
 		return TEXT("Move + look to navigate  |  Tap / trace shop hotspots");
+	case EFELArenaMode::Surfing:
+		return TEXT("WASD move  |  Mouse look  |  Line + balance use PRQ (see HUD)");
+	case EFELArenaMode::Skateboarding:
+		return TEXT("WASD move  |  Mouse look  |  Trick line + balance — PRQ widens windows");
+	case EFELArenaMode::Snowboarding:
+		return TEXT("WASD move  |  Mouse look  |  Carve line on TrainingFloor — avoid wipeouts");
 	case EFELArenaMode::Baseball:
 		return TEXT("Jump / Space / tap / shoot — swing  |  WASD move  |  Mouse look");
 	default:

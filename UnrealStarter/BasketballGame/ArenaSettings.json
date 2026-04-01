@@ -119,6 +119,45 @@
       "bScoringEnabled": false,
       "bNeuroKineticLeakageForDunkParity": true
     },
+    "surfing": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Surf · Line",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 180,
+      "bScoringEnabled": true,
+      "physicsWalkScale": 1.06,
+      "physicsJumpScale": 1.04
+    },
+    "skateboarding": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Skate · Line",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 180,
+      "bScoringEnabled": true,
+      "physicsWalkScale": 1.05,
+      "physicsJumpScale": 1.06
+    },
+    "snowboarding": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/TrainingFloor/TrainingFloor.TrainingFloor",
+      "modeDisplayName": "Snow · Line",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 180,
+      "bScoringEnabled": true,
+      "physicsWalkScale": 1.04,
+      "physicsJumpScale": 1.05
+    },
     "market_browse": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop.Luma_Venice_Shop",
       "modeDisplayName": "Sovereign Shop",

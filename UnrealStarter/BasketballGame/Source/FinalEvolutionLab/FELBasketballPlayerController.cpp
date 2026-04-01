@@ -1,6 +1,8 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "FELBasketballPlayerController.h"
+#include "FELArenaRulesTypes.h"
+#include "Framework/Application/SlateApplication.h"
 #include "FELBasketballCharacter.h"
 #include "FELConsoleHapticBridge.h"
 #include "FELBasketballGameMode.h"
@@ -18,6 +20,7 @@
 #include "UFELInputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
 #include "InputAction.h"
 #include "InputActionValue.h"
 #include "Engine/GameInstance.h"
@@ -255,8 +258,31 @@ void AFELBasketballPlayerController::OnDelayedRenderingFlush()
 	}
 }
 
+void AFELBasketballPlayerController::RemoveAppliedArenaModeMappingContexts()
+{
+	if (AppliedArenaModeMappingContexts.Num() == 0)
+	{
+		return;
+	}
+	if (ULocalPlayer* const LP = GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* const Subsys = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			for (UInputMappingContext* const Ctx : AppliedArenaModeMappingContexts)
+			{
+				if (Ctx)
+				{
+					Subsys->RemoveMappingContext(Ctx);
+				}
+			}
+		}
+	}
+	AppliedArenaModeMappingContexts.Reset();
+}
+
 void AFELBasketballPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	RemoveAppliedArenaModeMappingContexts();
 	SaveGearState();
 	if (UWorld* W = GetWorld())
 	{
@@ -402,7 +428,7 @@ void AFELBasketballPlayerController::PlayerTick(float DeltaTime)
 #if PLATFORM_IOS || PLATFORM_ANDROID
 	if (PlayerInput)
 	{
-		const bool bPad = PlayerInput->GetJoystickCount() > 0;
+		const bool bPad = FSlateApplication::Get().IsGamepadAttached();
 		if (bPad != bGamepadMobileSignatureOverride)
 		{
 			SwitchInputMode();
@@ -452,17 +478,6 @@ void AFELBasketballPlayerController::PlayerTick(float DeltaTime)
 	}
 #endif
 }
-#if FEL_TOUCH_DRIVE
-void AFELBasketballPlayerController::InputTouch(const uint32 Handle, const ETouchType::Type Type, const FVector2D Location)
-{
-	Super::InputTouch(Handle, Type, Location);
-	// Drive runs in PlayerTick after Enhanced Input so IMC gestures merge with touch sampling in one pass.
-	(void)Handle;
-	(void)Type;
-	(void)Location;
-}
-#endif
-
 void AFELBasketballPlayerController::OnIASprintLongPress(const FInputActionValue& Value)
 {
 	if (Value.GetValueType() == EInputActionValueType::Boolean)
@@ -956,7 +971,7 @@ void AFELBasketballPlayerController::InputModeHandshake()
 #if PIXEL_STREAMING_ENABLED
 		// Web / Pixel Streaming: wheel as swipe proxy → same signature path as `IA_SignatureVerticalSwipe`.
 		// For full parity, add Pixel Streaming plugin `PixelStreamingInput` on this PC / BP subclass and map to the same IA in IMC.
-		InputComponent->BindKey(EKeys::MouseWheelUp, IE_Pressed, this, &AFELBasketballPlayerController::OnPixelStreamingSignatureSwipe);
+		InputComponent->BindAxisKey(EKeys::MouseWheelAxis, this, &AFELBasketballPlayerController::OnPixelStreamingSignatureSwipeAxis);
 #endif
 	}
 #endif
@@ -1008,8 +1023,12 @@ void AFELBasketballPlayerController::OnHandshakeRightStickY(const float Value)
 	}
 }
 
-void AFELBasketballPlayerController::OnPixelStreamingSignatureSwipe()
+void AFELBasketballPlayerController::OnPixelStreamingSignatureSwipeAxis(const float Value)
 {
+	if (Value <= 0.f)
+	{
+		return;
+	}
 	if (SignatureGestureDebounce > 0.f)
 	{
 		return;
@@ -1021,17 +1040,32 @@ void AFELBasketballPlayerController::OnPixelStreamingSignatureSwipe()
 	}
 }
 
-void AFELBasketballPlayerController::ApplyArenaInputForMode(const EFELArenaMode Mode)
+void AFELBasketballPlayerController::ApplyArenaInputForMode(const EFELArenaMode Mode, const FFELArenaRules* OptionalMergedRules)
 {
 	CachedAppliedArenaMode = Mode;
-	if (ULocalPlayer* LP = GetLocalPlayer())
+	RemoveAppliedArenaModeMappingContexts();
+
+	if (OptionalMergedRules && OptionalMergedRules->ModeInputMappingContexts.Num() > 0 && IsLocalPlayerController())
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsys = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		if (ULocalPlayer* const LP = GetLocalPlayer())
 		{
-			// Optional: per-mode IMC swap from UFELArenaModeData — `MobileTouchMappingContext` is registered in BeginPlay on mobile.
-			(void)Subsys;
+			if (UEnhancedInputLocalPlayerSubsystem* const Subsys = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				int32 P = OptionalMergedRules->ModeInputMappingPriorityBase;
+				for (UInputMappingContext* const Ctx : OptionalMergedRules->ModeInputMappingContexts)
+				{
+					if (Ctx)
+					{
+						Subsys->AddMappingContext(Ctx, P);
+						AppliedArenaModeMappingContexts.Add(Ctx);
+						++P;
+					}
+				}
+			}
 		}
 	}
+
+	SwitchInputMode();
 }
 
 bool AFELBasketballPlayerController::TryHandleBaseballJumpAsSwing()
@@ -1104,7 +1138,7 @@ void AFELBasketballPlayerController::ServerFELBaseballSwing_Implementation()
 void AFELBasketballPlayerController::SwitchInputMode()
 {
 #if PLATFORM_IOS || PLATFORM_ANDROID
-	bGamepadMobileSignatureOverride = PlayerInput && PlayerInput->GetJoystickCount() > 0;
+	bGamepadMobileSignatureOverride = PlayerInput && FSlateApplication::Get().IsGamepadAttached();
 #else
 	bGamepadMobileSignatureOverride = false;
 #endif

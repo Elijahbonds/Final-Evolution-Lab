@@ -21,6 +21,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFELKarateEndlessWaveAdvanced, int32
 /**
  * HeadToHeadStorm: you vs one opponent — both accrue Cyclone Energy; bursts trade damage on integrity/health.
  * EndlessAgentWaves: wave integrity pool + rising squall; clearing a wave heals slightly and increments wave index forever.
+ * MatrixRevolutionsSiege: stronger per-wave scaling + horde multiplier; surge channel extra mitigates infection squall; slightly lower wave-clear heal.
  */
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class FINALEVOLUTIONLAB_API UFELKarateArenaModeComponent : public UActorComponent

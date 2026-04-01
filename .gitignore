@@ -14,3 +14,7 @@ web/clinical-gate-react/dist/
 
 # macOS
 .DS_Store
+
+# Xcode user state (machine-local)
+**/xcuserdata/
+*.xcuserstate

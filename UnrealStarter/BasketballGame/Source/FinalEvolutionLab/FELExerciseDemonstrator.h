@@ -10,6 +10,7 @@
 
 class USkeletalMesh;
 class UAnimInstance;
+class UAnimMontage;
 
 UCLASS()
 class FINALEVOLUTIONLAB_API AFELExerciseDemonstrator : public AActor
@@ -26,6 +27,10 @@ public:
 	/** Bonds Bounce: low PRQ → slower "common leaks"; high PRQ → elite tempo (with optional kinetic leakage damp). */
 	UFUNCTION(BlueprintCallable, Category = "FEL|Demonstration")
 	void ApplyDemonstrationPlayRateFromNeuro(float PRQ0to100, float KineticLeakageMultiplier01);
+
+	/** DeepMotion / Academy montage on the default slot (defers if AnimInstance not ready yet). */
+	UFUNCTION(BlueprintCallable, Category = "FEL|Demonstration")
+	void PlayDemonstrationMontage(UAnimMontage* Montage);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FEL|Demonstration")
 	USkeletalMeshComponent* MeshComponent = nullptr;

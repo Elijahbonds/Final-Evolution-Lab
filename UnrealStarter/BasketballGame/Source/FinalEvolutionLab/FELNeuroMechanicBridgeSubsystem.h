@@ -4,6 +4,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/WorldInitializationValues.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "FELArenaRulesTypes.h"
 #include "FELGameModeDefinitions.h"

@@ -105,6 +105,16 @@ namespace FELArenaRulesRegistryInternal
 			break;
 		case EFELArenaMode::MarketBrowse:
 			break;
+		case EFELArenaMode::Surfing:
+		case EFELArenaMode::Skateboarding:
+		case EFELArenaMode::Snowboarding:
+			C.BoardSportBaseLineScorePerSecond = 1.42f;
+			C.BoardSportPRQLineCoef = 0.44f;
+			C.BoardSportTrickGaugeFillPerSecond = 0.2f;
+			C.BoardSportPRQTrickCoef = 0.38f;
+			C.BoardSportBalanceLeakPerSecond = 0.11f;
+			C.BoardSportPRQBalanceMitigation = 0.58f;
+			break;
 		default:
 			break;
 		}
@@ -277,6 +287,42 @@ namespace FELArenaRulesRegistryInternal
 			R.TargetScore = 5;
 			R.TimeLimitSeconds = 240.f;
 			break;
+		case EFELArenaMode::Surfing:
+			R.ModeDisplayName = TEXT("Surf · Line");
+			R.BallSpawnType = EFELArenaBallSpawnType::None;
+			R.bIsDunkContest = false;
+			R.UnrealBasketballSlice = EFELBasketballPlayMode::Practice;
+			R.BallCount = 0;
+			R.TargetScore = 0;
+			R.bScoringEnabled = true;
+			R.TimeLimitSeconds = 180.f;
+			R.PhysicsWalkScale = 1.06f;
+			R.PhysicsJumpScale = 1.04f;
+			break;
+		case EFELArenaMode::Skateboarding:
+			R.ModeDisplayName = TEXT("Skate · Line");
+			R.BallSpawnType = EFELArenaBallSpawnType::None;
+			R.bIsDunkContest = false;
+			R.UnrealBasketballSlice = EFELBasketballPlayMode::Practice;
+			R.BallCount = 0;
+			R.TargetScore = 0;
+			R.bScoringEnabled = true;
+			R.TimeLimitSeconds = 180.f;
+			R.PhysicsWalkScale = 1.05f;
+			R.PhysicsJumpScale = 1.06f;
+			break;
+		case EFELArenaMode::Snowboarding:
+			R.ModeDisplayName = TEXT("Snow · Line");
+			R.BallSpawnType = EFELArenaBallSpawnType::None;
+			R.bIsDunkContest = false;
+			R.UnrealBasketballSlice = EFELBasketballPlayMode::Practice;
+			R.BallCount = 0;
+			R.TargetScore = 0;
+			R.bScoringEnabled = true;
+			R.TimeLimitSeconds = 180.f;
+			R.PhysicsWalkScale = 1.04f;
+			R.PhysicsJumpScale = 1.05f;
+			break;
 		default:
 			R.ModeDisplayName = TEXT("Practice");
 			R.BallSpawnType = EFELArenaBallSpawnType::SingleAtPrimary;
@@ -388,7 +434,12 @@ namespace FELArenaRulesRegistryInternal
 			if (RuleObj->TryGetStringField(TEXT("karateLabMode"), KS))
 			{
 				const FString L = KS.TrimStartAndEnd().ToLower();
-				if (L == TEXT("endless") || L == TEXT("agents") || L == TEXT("matrix"))
+				if (L == TEXT("matrix_revolutions") || L == TEXT("revolutions_siege") || L == TEXT("revolutions")
+					|| L == TEXT("smith_waves") || L == TEXT("matrix_siege") || L == TEXT("dock_siege"))
+				{
+					InOut.KarateLabMode = EFELKarateLabMode::MatrixRevolutionsSiege;
+				}
+				else if (L == TEXT("endless") || L == TEXT("agents") || L == TEXT("matrix") || L == TEXT("matrix_endless"))
 				{
 					InOut.KarateLabMode = EFELKarateLabMode::EndlessAgentWaves;
 				}
@@ -455,6 +506,13 @@ namespace FELArenaRulesRegistryInternal
 		SN.KickReturnTackleDurabilityMult = FMath::Clamp(SN.KickReturnTackleDurabilityMult, 0.5f, 1.f);
 		SN.KickReturnTdDurabilityRecover = FMath::Clamp(SN.KickReturnTdDurabilityRecover, 0.f, 0.45f);
 		SN.KickReturnGhostOpponentPRQ = FMath::Clamp(SN.KickReturnGhostOpponentPRQ, 40.f, 98.f);
+		SN.BoardSportBaseLineScorePerSecond = FMath::Clamp(SN.BoardSportBaseLineScorePerSecond, 0.2f, 8.f);
+		SN.BoardSportPRQLineCoef = FMath::Clamp(SN.BoardSportPRQLineCoef, 0.f, 2.f);
+		SN.BoardSportTrickGaugeFillPerSecond = FMath::Clamp(SN.BoardSportTrickGaugeFillPerSecond, 0.02f, 0.55f);
+		SN.BoardSportPRQTrickCoef = FMath::Clamp(SN.BoardSportPRQTrickCoef, 0.f, 1.2f);
+		SN.BoardSportBalanceLeakPerSecond = FMath::Clamp(SN.BoardSportBalanceLeakPerSecond, 0.02f, 0.45f);
+		SN.BoardSportPRQBalanceMitigation = FMath::Clamp(SN.BoardSportPRQBalanceMitigation, 0.f, 1.2f);
+		SN.BoardSportWipeoutBalanceLoss = FMath::Clamp(SN.BoardSportWipeoutBalanceLoss, 0.f, 1.f);
 
 		if (R.bIsDunkContest)
 		{

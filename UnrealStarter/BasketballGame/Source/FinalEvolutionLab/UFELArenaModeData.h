@@ -29,7 +29,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FEL|Arena")
 	FString DeveloperNote;
 
-	/** Full rules + SportNeuro (includes demonstrator mesh/AnimBP soft refs). */
+	/** Full rules + SportNeuro (includes demonstrator mesh/AnimBP soft refs + optional per-mode Enhanced Input IMCs). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FEL|Arena")
 	FFELArenaRules ArenaRules;
 

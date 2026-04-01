@@ -1,5 +1,7 @@
 // Copyright (c) Final Evolution Lab.
-// Writable FEL root: iOS Documents/FEL (Swift PRQManager parity); desktop uses Saved/FEL.
+// Writable FEL root: UE sandbox `ProjectSavedDir()/FEL` on all platforms (iOS/macOS/desktop).
+// On iOS the engine maps ProjectSavedDir into the app container — same APIs as desktop; use this for
+// session_results.json, progression_session.json, readiness_snapshot.json, and lab_onboarding_completed.flag.
 
 #pragma once
 
@@ -7,10 +9,10 @@
 
 struct FELPlatformPaths
 {
-	/** Primary data dir: iOS = Documents/FEL; other = ProjectSavedDir()/FEL. */
+	/** Primary data dir: `ProjectSavedDir()/FEL` (created on demand). Session + progression + readiness JSON live here. */
 	static FString GetFELDataDirectory();
 
-	/** readiness_snapshot.json search (first hit wins): Documents/FEL, Saved/FEL, Content/FEL/Config. */
+	/** readiness_snapshot.json search (first hit wins): FEL data dir, then `Content/FEL/Config` (design-time default). */
 	static void GetReadinessSnapshotCandidatePaths(TArray<FString>& OutOrderedPaths);
 
 	static FString GetSessionResultsJsonPath() { return GetFELDataDirectory() / TEXT("session_results.json"); }

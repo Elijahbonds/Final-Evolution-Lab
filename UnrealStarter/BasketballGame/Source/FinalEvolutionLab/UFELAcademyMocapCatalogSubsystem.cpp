@@ -1,7 +1,9 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "UFELAcademyMocapCatalogSubsystem.h"
+#include "FinalEvolutionLab.h"
 #include "UFELAssetRegistrySubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Math/UnrealMathUtility.h"
 
@@ -27,7 +29,14 @@ UAnimMontage* UFELAcademyMocapCatalogSubsystem::ResolveSoftMontageRef(
 	}
 	if (bLoadSynchronously)
 	{
-		return Ref.LoadSynchronous();
+		UAnimMontage* const Loaded = Ref.LoadSynchronous();
+#if !UE_BUILD_SHIPPING
+		if (!Loaded)
+		{
+			UE_LOG(LogFinalEvolutionLab, Verbose, TEXT("ResolveSoftMontageRef: LoadSynchronous failed (path=%s)."), *Ref.ToSoftObjectPath().ToString());
+		}
+#endif
+		return Loaded;
 	}
 	return Ref.Get();
 }

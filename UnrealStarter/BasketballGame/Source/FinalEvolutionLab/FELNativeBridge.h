@@ -1,6 +1,11 @@
 // Copyright (c) Final Evolution Lab.
-// Unreal → Swift host shell (NSNotification on iOS; no-op / log on other platforms).
-// Pairs with FinalEvolutionLab FELBridgeNotifications + FELUnrealSessionImporter.
+// Unreal → host shell (iOS Swift via NSNotification patterns; desktop no-ops in stubs).
+//
+// Packaging: `FELNativeBridge.cpp` defines extern "C" `FEL_IOS_*` symbols for all targets so the game links
+// without the legacy Swift shell. To route to Swift/ObjC, link a static library or host app that replaces
+// these symbols, or refactor to weak symbols — do not duplicate definitions.
+//
+// Pairs with FinalEvolutionLab FELBridgeNotifications + FELUnrealSessionImporter (host repo).
 
 #pragma once
 

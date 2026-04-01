@@ -17,7 +17,8 @@ EFELArenaMode FELArenaModeFromIdString(const FString& IdString)
 	{
 		return EFELArenaMode::Basketball3v3;
 	}
-	if (Id == TEXT("karate_endless") || Id == TEXT("karate_agents") || Id == TEXT("karate_matrix"))
+	if (Id == TEXT("karate_endless") || Id == TEXT("karate_agents") || Id == TEXT("karate_matrix")
+		|| Id == TEXT("karate_matrix_revolutions") || Id == TEXT("karate_revolutions_siege") || Id == TEXT("karate_revolutions"))
 	{
 		return EFELArenaMode::Karate;
 	}
@@ -65,6 +66,18 @@ EFELArenaMode FELArenaModeFromIdString(const FString& IdString)
 	{
 		return EFELArenaMode::MarketBrowse;
 	}
+	if (Id == FELArenaModeIds::Surfing || Id == TEXT("surf"))
+	{
+		return EFELArenaMode::Surfing;
+	}
+	if (Id == FELArenaModeIds::Skateboarding || Id == TEXT("skate"))
+	{
+		return EFELArenaMode::Skateboarding;
+	}
+	if (Id == FELArenaModeIds::Snowboarding || Id == TEXT("snow") || Id == TEXT("snowboard"))
+	{
+		return EFELArenaMode::Snowboarding;
+	}
 	return EFELArenaMode::Unknown;
 }
 
@@ -98,6 +111,12 @@ FString FELArenaModeToIdString(EFELArenaMode Mode)
 		return FELArenaModeIds::BrainBrawl;
 	case EFELArenaMode::MarketBrowse:
 		return FELArenaModeIds::MarketBrowse;
+	case EFELArenaMode::Surfing:
+		return FELArenaModeIds::Surfing;
+	case EFELArenaMode::Skateboarding:
+		return FELArenaModeIds::Skateboarding;
+	case EFELArenaMode::Snowboarding:
+		return FELArenaModeIds::Snowboarding;
 	default:
 		return FELArenaModeIds::BasketballHeadToHead;
 	}

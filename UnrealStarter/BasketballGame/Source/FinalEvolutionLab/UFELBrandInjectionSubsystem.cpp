@@ -3,6 +3,7 @@
 #include "UFELBrandInjectionSubsystem.h"
 #include "AFELVaultHologramTerminalActor.h"
 #include "FELNeuroMechanicBridgeSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Components/MeshComponent.h"
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"

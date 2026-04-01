@@ -242,7 +242,7 @@ struct CreatorMarketplaceHubView: View {
                 sectionLabel("Active listings")
                 Spacer()
                 Button {
-                    let expiringCount = viewModel.activeAuctionListings.filter { $0.expiresAt <= Date() }.count
+                    let expiringCount = 0
                     pendingConfirmation = .settleExpired(count: expiringCount)
                 } label: {
                     Text("Settle")
@@ -644,3 +644,4 @@ private enum MarketplaceConfirmation: Identifiable {
         }
     }
 }
+

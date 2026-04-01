@@ -74,10 +74,18 @@ void UFELRetailStartupWidget::ShowSplashPhase()
 {
 	if (BodyText)
 	{
-		BodyText->SetText(NSLOCTEXT(
+		FText Base = NSLOCTEXT(
 			"FEL",
 			"RetailSplash",
-			"FINAL EVOLUTION LAB\n\nNeuro-mechanic sports arena"));
+			"FINAL EVOLUTION LAB\n\nNeuro-mechanic sports arena");
+		FString Splash = Base.ToString();
+		if (OwnerGI && OwnerGI->GetClinicalUIPolicy().bShowRetailClinicalCopy
+			&& !OwnerGI->GetClinicalUIPolicy().RetailSplashClinicalExtra.IsEmpty())
+		{
+			Splash += TEXT("\n\n");
+			Splash += OwnerGI->GetClinicalUIPolicy().RetailSplashClinicalExtra;
+		}
+		BodyText->SetText(FText::FromString(Splash));
 	}
 	if (UWorld* W = GetWorld())
 	{
@@ -94,7 +102,19 @@ void UFELRetailStartupWidget::ShowMenuPhase()
 {
 	if (BodyText)
 	{
-		BodyText->SetText(NSLOCTEXT("FEL", "RetailMenuTitle", "Main Menu"));
+		FText Base = NSLOCTEXT(
+			"FEL",
+			"RetailMenuTitle",
+			"Main Menu\n\nFull 3D venues ship in the cook (see DefaultGame.ini MapsToCook). "
+			"Readiness + ArenaSettings drive OpenLevel; Bio-Sync warms meshes and venue bundles async.");
+		FString Menu = Base.ToString();
+		if (OwnerGI && OwnerGI->GetClinicalUIPolicy().bShowRetailClinicalCopy
+			&& !OwnerGI->GetClinicalUIPolicy().RetailMenuClinicalFootnote.IsEmpty())
+		{
+			Menu += TEXT("\n\n");
+			Menu += OwnerGI->GetClinicalUIPolicy().RetailMenuClinicalFootnote;
+		}
+		BodyText->SetText(FText::FromString(Menu));
 	}
 	if (MenuBox)
 	{

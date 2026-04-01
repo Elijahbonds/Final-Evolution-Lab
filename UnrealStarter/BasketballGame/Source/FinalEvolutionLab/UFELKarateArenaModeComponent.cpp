@@ -115,7 +115,8 @@ bool UFELKarateArenaModeComponent::TryPlayerTempestBurst(const float EnergyCost,
 		WaveIntegrityPool = FMath::Max(0.f, WaveIntegrityPool - OutDamageToTarget);
 		if (WaveIntegrityPool <= KINDA_SMALL_NUMBER)
 		{
-			const float Heal = PlayerMaxHealth * 0.085f * PRQBoost.PerformanceMultiplier;
+			const float HealFrac = (ActiveMode == EFELKarateLabMode::MatrixRevolutionsSiege) ? 0.065f : 0.085f;
+			const float Heal = PlayerMaxHealth * HealFrac * PRQBoost.PerformanceMultiplier;
 			PlayerHealth = FMath::Min(PlayerMaxHealth, PlayerHealth + Heal);
 			EndlessWaveIndex += 1;
 			EndlessWaveMaxForNorm = EndlessWaveBaseIntegrity * FMath::Pow(1.1f, static_cast<float>(EndlessWaveIndex - 1));
@@ -222,9 +223,18 @@ void UFELKarateArenaModeComponent::TickEndless(const float DeltaTime)
 	const float PRQ = static_cast<float>(FMath::Clamp(CachedSnap.PRQScore, 0.0, 100.0));
 	const float N = static_cast<float>(FMath::Clamp(CachedSnap.NeuralDrive, 0.0, 100.0));
 	const float K = static_cast<float>(FMath::Clamp(CachedSnap.KineticLeakageMultiplier, 0.45, 1.0));
-	const float WaveScale = 1.f + static_cast<float>(EndlessWaveIndex - 1) * 0.065f;
-	const float Mitigate = FMath::Clamp(1.08f - PRQ * 0.0038f, 0.58f, 1.08f) * PRQBoost.PerformanceMultiplier;
-	const float Squall = BaseSquallDamagePerSecond * Mitigate * WaveScale * FMath::Lerp(1.1f, 0.88f, K);
+	const bool bMatrixSiege = (ActiveMode == EFELKarateLabMode::MatrixRevolutionsSiege);
+	const float WaveT = static_cast<float>(EndlessWaveIndex - 1);
+	const float WaveScale = 1.f + WaveT * (bMatrixSiege ? 0.095f : 0.065f);
+	float Mitigate = FMath::Clamp(1.08f - PRQ * 0.0038f, 0.58f, 1.08f) * PRQBoost.PerformanceMultiplier;
+	if (bMatrixSiege && bPlayerSurge)
+	{
+		Mitigate *= 0.76f;
+	}
+	const float SiegeHordeMul = bMatrixSiege ? (1.f + WaveT * 0.038f) : 1.f;
+	const float SquallMul = bMatrixSiege ? 1.14f : 1.f;
+	const float Squall = BaseSquallDamagePerSecond * Mitigate * WaveScale * SiegeHordeMul * SquallMul
+		* FMath::Lerp(1.1f, 0.88f, K);
 	PlayerHealth = FMath::Max(0.f, PlayerHealth - Squall * DeltaTime);
 	float Regen = FELDojoNeuralTempest::ComputeEnergyRegenPerSecond(PRQ, N, K, CachedEnergyComposite);
 	if (bPlayerSurge)

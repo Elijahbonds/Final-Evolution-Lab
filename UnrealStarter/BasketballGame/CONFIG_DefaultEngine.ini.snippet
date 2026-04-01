@@ -1,10 +1,13 @@
 ; Merge into Config/DefaultEngine.ini for FEL basketball.
-; OpenWorld defaults → project always opens even before Content maps exist.
-; Do NOT uncomment L_FEL_Playtest until fel_quick_playtest_level.py has created that asset.
+; Default: Venice Beach 3D venue when Content maps exist (see DefaultGame.ini MapsToCook).
+; Use OpenWorld (commented above) only if no FEL venues are imported yet.
 
 [/Script/EngineSettings.GameMapsSettings]
-GameDefaultMap=/Engine/Maps/Templates/OpenWorld
-EditorStartupMap=/Engine/Maps/Templates/OpenWorld
+; Prefer Venice Beach when Content exists (matches DefaultGame.ini MapsToCook + packaging).
+GameDefaultMap=/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach
+EditorStartupMap=/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach
+; GameDefaultMap=/Engine/Maps/Templates/OpenWorld
+; EditorStartupMap=/Engine/Maps/Templates/OpenWorld
 ; After quick playtest map exists:
 ; GameDefaultMap=/Game/FEL/Maps/L_FEL_Playtest.L_FEL_Playtest
 ; EditorStartupMap=/Game/FEL/Maps/L_FEL_Playtest.L_FEL_Playtest

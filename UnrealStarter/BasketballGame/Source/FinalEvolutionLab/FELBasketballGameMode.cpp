@@ -24,6 +24,7 @@
 #include "FELNativeBridge.h"
 #include "FELMatchResultsWidget.h"
 #include "UFELArenaModeData.h"
+#include "UFELExerciseDemoPipelineSubsystem.h"
 #include "UFELAssetRegistrySubsystem.h"
 #include "FinalEvolutionLab.h"
 #include "Blueprint/UserWidget.h"
@@ -39,6 +40,7 @@
 #include "UFELVolleyballSessionSubsystem.h"
 #include "UFELGymnasticsSessionSubsystem.h"
 #include "UFELSoccerSessionSubsystem.h"
+#include "UFELBoardSportSessionSubsystem.h"
 #include "UFELKarateArenaModeComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
@@ -240,7 +242,7 @@ void AFELBasketballGameMode::OnArenaModeDataLoaded()
 		{
 			if (AFELBasketballPlayerController* BPC = Cast<AFELBasketballPlayerController>(PC))
 			{
-				BPC->ApplyArenaInputForMode(CurrentMode);
+				BPC->ApplyArenaInputForMode(CurrentMode, &CurrentArenaRules);
 			}
 		}
 	}
@@ -567,7 +569,7 @@ void AFELBasketballGameMode::StartPlay()
 	{
 		if (AFELBasketballPlayerController* BPC = Cast<AFELBasketballPlayerController>(PC))
 		{
-			BPC->ApplyArenaInputForMode(CurrentMode);
+			BPC->ApplyArenaInputForMode(CurrentMode, &CurrentArenaRules);
 		}
 	}
 	if (UFELGameInstance* FELGI = Cast<UFELGameInstance>(GetGameInstance()))
@@ -738,6 +740,21 @@ void AFELBasketballGameMode::Tick(float DeltaSeconds)
 		}
 	}
 
+	if (CurrentMode == EFELArenaMode::Surfing || CurrentMode == EFELArenaMode::Skateboarding
+		|| CurrentMode == EFELArenaMode::Snowboarding)
+	{
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UFELBoardSportSessionSubsystem* Bs = GI->GetSubsystem<UFELBoardSportSessionSubsystem>())
+			{
+				if (AFELBasketballGameState* GS = GetGameState<AFELBasketballGameState>())
+				{
+					Bs->ProgressSession(this, GS, DeltaSeconds);
+				}
+			}
+		}
+	}
+
 	if (MatchPhase == EFELMatchPhase::InProgress)
 	{
 		if (AFELBasketballGameState* GS = GetGameState<AFELBasketballGameState>())
@@ -776,7 +793,15 @@ void AFELBasketballGameMode::MaybeStartMatchFlow()
 	{
 		return;
 	}
-	if (!FELPlatformPaths::HasCompletedLabOnboarding())
+	bool bWantLabOnboarding = !FELPlatformPaths::HasCompletedLabOnboarding();
+	if (UFELGameInstance* const FGI = Cast<UFELGameInstance>(GetGameInstance()))
+	{
+		if (!FGI->GetClinicalUIPolicy().bShowLabOnboardingFirstRun)
+		{
+			bWantLabOnboarding = false;
+		}
+	}
+	if (bWantLabOnboarding)
 	{
 		const TSubclassOf<UFELOnboardingWidget> Cls = LabOnboardingWidgetClass
 			? LabOnboardingWidgetClass
@@ -786,6 +811,14 @@ void AFELBasketballGameMode::MaybeStartMatchFlow()
 			UFELOnboardingWidget* W = CreateWidget<UFELOnboardingWidget>(PC, Cls);
 			if (W)
 			{
+				if (UFELGameInstance* const FGI = Cast<UFELGameInstance>(GetGameInstance()))
+				{
+					const FString& OverrideBody = FGI->GetClinicalUIPolicy().LabOnboardingBodyOverride;
+					if (!OverrideBody.IsEmpty())
+					{
+						W->SetLabOnboardingBodyOverride(OverrideBody);
+					}
+				}
 				W->InitializeLabOnboarding();
 				W->OnDismissed.AddDynamic(this, &AFELBasketballGameMode::OnLabOnboardingDismissed);
 				W->AddToViewport(200);
@@ -1125,6 +1158,12 @@ void AFELBasketballGameMode::ApplyModeToGameState()
 		{
 			Ss->ResetForMatch(CurrentMode == EFELArenaMode::Soccer);
 		}
+		if (UFELBoardSportSessionSubsystem* Bs = GI->GetSubsystem<UFELBoardSportSessionSubsystem>())
+		{
+			Bs->ResetForMatch(
+				CurrentMode == EFELArenaMode::Surfing || CurrentMode == EFELArenaMode::Skateboarding
+				|| CurrentMode == EFELArenaMode::Snowboarding);
+		}
 	}
 }
 
@@ -1170,10 +1209,16 @@ FString AFELBasketballGameMode::GetArenaGameModeId() const
 
 void AFELBasketballGameMode::TriggerExerciseDemo()
 {
-	if (DemoManager)
+	if (!DemoManager || !GetGameInstance())
 	{
-		DemoManager->TriggerExerciseDemo();
+		return;
 	}
+	if (UFELExerciseDemoPipelineSubsystem* const Pipe = GetGameInstance()->GetSubsystem<UFELExerciseDemoPipelineSubsystem>())
+	{
+		Pipe->TriggerExerciseDemoForMode(CurrentMode, DemoManager, GetNeuroPRQScoreFloat());
+		return;
+	}
+	DemoManager->TriggerExerciseDemo();
 }
 
 void AFELBasketballGameMode::EndExerciseDemoIfActive()

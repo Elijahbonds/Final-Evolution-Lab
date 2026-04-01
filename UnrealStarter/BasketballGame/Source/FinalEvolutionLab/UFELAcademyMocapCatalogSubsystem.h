@@ -1,5 +1,5 @@
 // Copyright (c) Final Evolution Lab.
-// Maps Vertical Velocity Academy module keys (mod1…mod12) to demonstration montages from DeepMotion export.
+// Maps Vertical Velocity Academy module keys (mod1…mod15 registry) to demonstration montages from DeepMotion export.
 
 #pragma once
 
@@ -19,7 +19,7 @@ class FINALEVOLUTIONLAB_API UFELAcademyMocapCatalogSubsystem : public UGameInsta
 
 public:
 	UFELAcademyMocapCatalogSubsystem();
-	/** Academy module montages (mod1…mod12) live on `UFELAssetRegistrySubsystem` for async warm-up + purge. */
+	/** Academy module montages (mod1…mod15) live on `UFELAssetRegistrySubsystem` for async warm-up + purge. */
 
 	/** DeepMotion "Perfect Form" clips — Dunk / Strike / Kick keyed by arena mode (assign in editor). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Academy|Mocap|PerfectForm")

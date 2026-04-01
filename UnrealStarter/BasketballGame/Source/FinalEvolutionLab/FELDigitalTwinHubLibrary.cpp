@@ -1,6 +1,7 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "FELDigitalTwinHubLibrary.h"
+#include "Engine/Engine.h"
 #include "FELBasketballCharacter.h"
 #include "FELReadinessTypes.h"
 #include "UFELAcademyMocapCatalogSubsystem.h"

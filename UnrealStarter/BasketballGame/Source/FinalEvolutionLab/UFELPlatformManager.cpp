@@ -6,6 +6,8 @@
 #include "FELBuildTargetTypes.h"
 #include "FELPlatformManager.h"
 #include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Camera/CameraComponent.h"
 #include "GameFramework/GameUserSettings.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
@@ -81,13 +83,6 @@ UWorld* FEL_ResolveWorldForSubsystem(UGameInstanceSubsystem* Subsys)
 	return nullptr;
 }
 
-#if PLATFORM_IOS
-/** Principal spec names `GetThermalState()`; Unreal exposes `FPlatformMisc::GetDeviceThermalState()` → `EDeviceThermalState` (Nominal/Fair/Serious/Critical). */
-static EDeviceThermalState FEL_ReadIOSPlatformThermalState()
-{
-	return FPlatformMisc::GetDeviceThermalState();
-}
-#endif
 } // namespace
 
 void UFELPlatformManager::TouchSovereignGearScalingSourceOfTruth()
@@ -231,8 +226,9 @@ void UFELPlatformManager::Deinitialize()
 #if PLATFORM_IOS
 void UFELPlatformManager::PollThermalStateIOS()
 {
-	const EDeviceThermalState TS = FEL_ReadIOSPlatformThermalState();
-	const bool bSerious = (TS == EDeviceThermalState::Serious || TS == EDeviceThermalState::Critical);
+	// UE 5.7 iOS: `EDeviceThermalState` / `FPlatformMisc::GetDeviceThermalState` are not in this engine surface;
+	// keep timer hook for future IOS thermal bridge. No throttle until wired.
+	const bool bSerious = false;
 	if (bSerious && !bThermalThrottleActive)
 	{
 		ApplyThermalThrottle(true);

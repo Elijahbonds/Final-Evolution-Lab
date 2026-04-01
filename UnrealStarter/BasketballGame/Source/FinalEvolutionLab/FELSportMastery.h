@@ -60,6 +60,12 @@ namespace FELSportMastery
 			OutMetricId = TEXT("vert_potential");
 			OutMastery = FMath::Clamp(Snap.VerticalPotential * 0.5 + Snap.NeuralDrive * 0.5, 0.0, 100.0);
 			break;
+		case EFELArenaMode::Surfing:
+		case EFELArenaMode::Skateboarding:
+		case EFELArenaMode::Snowboarding:
+			OutMetricId = TEXT("line");
+			OutMastery = FMath::Clamp(Snap.PRQScore * 0.55 + Snap.EfficiencyScore * 0.45, 0.0, 100.0);
+			break;
 		default:
 			OutMetricId = TEXT("composite");
 			OutMastery = FMath::Clamp(Snap.PRQScore * 0.6 + static_cast<double>(Score) * 2.5, 0.0, 100.0);

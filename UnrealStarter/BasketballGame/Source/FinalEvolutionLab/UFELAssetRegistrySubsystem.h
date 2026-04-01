@@ -1,5 +1,6 @@
 // Copyright (c) Final Evolution Lab.
 // Global 3D registry: venue levels, Academy mocap montages, Digital Twin mesh — async warm-up + purge for Gold Master memory budget.
+// Packaged runtime uses cooked montages only; Live Link / mocap capture is editor-side (see Animation/LiveLink plugins + content pipeline).
 
 #pragma once
 
@@ -20,7 +21,7 @@ class USkeletalMesh;
 /**
  * Central registry for soft paths + async warm-up handles.
  * Venues: one UWorld per EFELArenaMode (assign real maps in editor via subsystem defaults or project config).
- * Academy: mod1…mod12 → DeepMotion-exported montages.
+ * Academy: mod1…mod15 → DeepMotion-exported montages (12 sports + Brain Brawl + surf / skate / snow board lines).
  */
 UCLASS()
 class FINALEVOLUTIONLAB_API UFELAssetRegistrySubsystem : public UGameInstanceSubsystem
@@ -35,7 +36,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FEL|Registry|Venues")
 	TMap<EFELArenaMode, TSoftObjectPtr<UWorld>> VenueWorldByArenaMode;
 
-	/** Vertical Velocity Academy module keys (mod1…mod12) → demonstration montages under /Game/FEL/DeepMotion/… */
+	/** Vertical Velocity Academy module keys (mod1…mod15) → demonstration montages under /Game/FEL/DeepMotion/… */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FEL|Registry|Academy")
 	TMap<FString, TSoftObjectPtr<UAnimMontage>> AcademyModuleDemonstrationMontage;
 

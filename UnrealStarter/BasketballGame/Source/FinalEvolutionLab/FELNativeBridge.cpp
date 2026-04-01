@@ -4,20 +4,8 @@
 #include "FELMatchTypes.h"
 #include "HAL/Platform.h"
 
-#if PLATFORM_IOS
-extern "C" void FEL_IOS_PostSessionReady(const char* PathUtf8);
-extern "C" void FEL_IOS_PostExitToDashboard();
-extern "C" void FEL_IOS_PostShareEvolution();
-extern "C" void FEL_IOS_PostUINotificationFeedback(int32 Kind);
-extern "C" void FEL_IOS_PostAvatarSnapshotPng(const void* Bytes, int32 Len);
-extern "C" void FEL_IOS_PostNeuroFlowMp4Path(const char* PathUtf8);
-extern "C" void FEL_IOS_PostShardMarketplaceHotspot(const char* HotspotUtf8, const char* CaptureUtf8);
-extern "C" void FEL_IOS_PostLevelLoaded(const char* MapUtf8);
-extern "C" void FEL_IOS_PostCoachPerformanceJSON(const char* JsonUtf8);
-extern "C" void FEL_IOS_PostUniversalSyncExport(const char* Base64Utf8);
-extern "C" void FEL_IOS_PostHeroMomentExportReady(float EstimatedApexInches);
-extern "C" void FEL_IOS_PostPenultimateStrideRhythm(int32 Phase);
-#else
+// Stubs are always linked so Unreal iOS Development builds succeed without the legacy Swift shell.
+// If you host native implementations in a separate static library, remove or weak-link these.
 extern "C" void FEL_IOS_PostSessionReady(const char* PathUtf8)
 {
 	(void)PathUtf8;
@@ -71,7 +59,6 @@ extern "C" void FEL_IOS_PostPenultimateStrideRhythm(int32 Phase)
 {
 	(void)Phase;
 }
-#endif
 
 void FELNativeBridge::NotifySessionResultsReady(const FString& AbsolutePathToSessionResultsJson)
 {

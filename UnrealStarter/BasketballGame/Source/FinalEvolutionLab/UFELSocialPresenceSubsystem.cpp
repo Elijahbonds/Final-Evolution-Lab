@@ -1,6 +1,7 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "UFELSocialPresenceSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "AFELSocialGhostActor.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"

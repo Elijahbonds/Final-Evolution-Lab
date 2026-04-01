@@ -21,14 +21,15 @@ void UFELCloudSyncSubsystem::RequestUploadReadinessSnapshotFromDisk()
 	{
 		return;
 	}
-	bPendingCloudSync = true;
-	// TODO: Read file bytes → HTTPS POST to signed S3 or Firestore REST with athlete-scoped token.
-	// TODO: On success, clear bPendingCloudSync and optionally write `last_cloud_sync_timestamp` beside JSON.
+	// No HTTPS backend in this module — do not leave `bPendingCloudSync` stuck true.
+	// When wiring: set true → async POST → clear on success/failure; optionally write `last_cloud_sync_timestamp` beside JSON.
+	bPendingCloudSync = false;
 }
 
 void UFELCloudSyncSubsystem::RequestDownloadReadinessSnapshotToDisk()
 {
-	bPendingCloudSync = true;
-	// TODO: GET from cloud → write to FELPlatformPaths::GetFELDataDirectory()/readiness_snapshot.json
-	// TODO: Notify `FELNeuroMechanicBridgeSubsystem` / `UFELAvatarSubsystem` to reload ApplyReadiness.
+	// Same: no remote GET until backend is integrated; callers must not block on HasPendingCloudSync().
+	bPendingCloudSync = false;
+	// When wiring: GET → write `FELPlatformPaths::GetFELDataDirectory()/readiness_snapshot.json` → notify
+	// `UFELNeuroMechanicBridgeSubsystem` / `UFELAvatarSubsystem` to reload readiness.
 }

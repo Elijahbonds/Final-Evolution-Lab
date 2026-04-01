@@ -5,7 +5,6 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
-#if !PLATFORM_IOS
 FString FELPlatformPaths::GetFELDataDirectory()
 {
 	const FString Dir = FPaths::ProjectSavedDir() / TEXT("FEL");
@@ -16,13 +15,11 @@ FString FELPlatformPaths::GetFELDataDirectory()
 	}
 	return Dir;
 }
-#endif
 
 void FELPlatformPaths::GetReadinessSnapshotCandidatePaths(TArray<FString>& OutOrderedPaths)
 {
 	OutOrderedPaths.Reset();
 	OutOrderedPaths.Add(GetFELDataDirectory() / TEXT("readiness_snapshot.json"));
-	OutOrderedPaths.Add(FPaths::ProjectSavedDir() / TEXT("FEL/readiness_snapshot.json"));
 	OutOrderedPaths.Add(FPaths::ProjectContentDir() / TEXT("FEL/Config/readiness_snapshot.json"));
 }
 

@@ -11,6 +11,7 @@
 
 class AFELBasketballGameMode;
 class UUserWidget;
+class UAnimMontage;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class FINALEVOLUTIONLAB_API UFELDemoManager : public UActorComponent
@@ -36,8 +37,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "FEL|Demonstration")
 	TSubclassOf<UUserWidget> PerfectFormChecklistWidgetClass;
 
+	/** Optional montage from `UFELExerciseDemoPipelineSubsystem` / `UFELAcademyMocapCatalogSubsystem` (default: idle AnimBP only). */
 	UFUNCTION(BlueprintCallable, Category = "FEL|Demonstration")
-	void TriggerExerciseDemo();
+	void TriggerExerciseDemo(UAnimMontage* OptionalDemonstrationMontage = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category = "FEL|Demonstration")
 	void EndExerciseDemoIfActive();

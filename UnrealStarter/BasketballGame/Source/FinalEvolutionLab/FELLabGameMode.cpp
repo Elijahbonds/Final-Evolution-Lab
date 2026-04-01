@@ -78,5 +78,18 @@ void AFELLabGameMode::TickLaboratoryArenaModes(
 	case EFELArenaMode::Unknown:
 	default:
 		break;
+	case EFELArenaMode::Surfing:
+	case EFELArenaMode::Skateboarding:
+	case EFELArenaMode::Snowboarding:
+		if (PrimaryAthlete)
+		{
+			if (UCharacterMovementComponent* M = PrimaryAthlete->GetCharacterMovement())
+			{
+				const float P01 = FMath::Clamp(PRQ * 0.01f, 0.f, 1.f);
+				const float Base = FMath::Max(1.f, PrimaryAthlete->FELGetNeuroBaselineWalkSpeed());
+				M->MaxWalkSpeed = Base * FMath::Lerp(0.96f, 1.14f, P01);
+			}
+		}
+		break;
 	}
 }

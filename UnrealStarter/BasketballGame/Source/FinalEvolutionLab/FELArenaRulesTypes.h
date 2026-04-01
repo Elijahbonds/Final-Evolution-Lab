@@ -4,6 +4,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputMappingContext.h"
 #include "UObject/SoftObjectPtr.h"
 #include "FELBasketballModes.h"
 #include "FELJumpTimingTypes.h"
@@ -194,6 +195,28 @@ struct FFELSportNeuroConstants
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|SportNeuro|KickReturn", meta = (ClampMin = "0", ClampMax = "100"))
 	float KickReturnGhostOpponentPRQ = 72.f;
 
+	// --- Board sports (surf / skate / snow) — line score, PRQ widens balance + trick windows ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|SportNeuro|BoardSport", meta = (ClampMin = "0"))
+	float BoardSportBaseLineScorePerSecond = 1.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|SportNeuro|BoardSport", meta = (ClampMin = "0"))
+	float BoardSportPRQLineCoef = 0.42f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|SportNeuro|BoardSport", meta = (ClampMin = "0"))
+	float BoardSportTrickGaugeFillPerSecond = 0.18f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|SportNeuro|BoardSport", meta = (ClampMin = "0"))
+	float BoardSportPRQTrickCoef = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|SportNeuro|BoardSport", meta = (ClampMin = "0"))
+	float BoardSportBalanceLeakPerSecond = 0.12f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|SportNeuro|BoardSport", meta = (ClampMin = "0"))
+	float BoardSportPRQBalanceMitigation = 0.55f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|SportNeuro|BoardSport", meta = (ClampMin = "0", ClampMax = "1"))
+	float BoardSportWipeoutBalanceLoss = 0.35f;
+
 	/**
 	 * Production avatar for exercise demonstration (Meshy/Hyperhuman → import under /Game/Models/Avatar/).
 	 * Assign per-mode overrides in ArenaSettings.json or the registry factory.
@@ -320,4 +343,15 @@ struct FFELArenaRules
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Arena|Maps")
 	FString UnrealVenuePresenceToken;
+
+	/**
+	 * Optional Enhanced Input mapping contexts while this mode is active (removed when switching modes or on controller EndPlay).
+	 * Stacks with `AFELBasketballPlayerController::MobileTouchMappingContext` (priority 100). Use priorities below 100 if mobile IMC should win conflicts.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Input")
+	TArray<TObjectPtr<UInputMappingContext>> ModeInputMappingContexts;
+
+	/** `AddMappingContext` priority for the first entry; further entries use Base+1, Base+2, … */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FEL|Input", meta = (ClampMin = "0"))
+	int32 ModeInputMappingPriorityBase = 90;
 };

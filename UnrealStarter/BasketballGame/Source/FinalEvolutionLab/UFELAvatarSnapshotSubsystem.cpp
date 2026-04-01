@@ -1,6 +1,7 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "UFELAvatarSnapshotSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "AFELAvatarSnapshotRig.h"
 #include "FELBasketballCharacter.h"
 #include "FELNativeBridge.h"

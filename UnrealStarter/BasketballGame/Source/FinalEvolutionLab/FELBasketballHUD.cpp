@@ -8,6 +8,8 @@
 #include "FELBasketballGameState.h"
 #include "UFELKickReturnSessionSubsystem.h"
 #include "UFELBaseballBattingSubsystem.h"
+#include "UFELSoccerSessionSubsystem.h"
+#include "UFELBoardSportSessionSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "FinalEvolutionLab.h"
 #include "Blueprint/UserWidget.h"
@@ -120,6 +122,37 @@ void AFELBasketballHUD::DrawHUD()
 					if (!BLine.IsEmpty())
 					{
 						DrawText(BLine, FLinearColor(0.45f, 0.95f, 1.f, 1.f), 48.f, Y, Font, 1.04f, false);
+						Y += LineStep;
+					}
+				}
+			}
+		}
+		if (AuthGM->CurrentMode == EFELArenaMode::Soccer)
+		{
+			if (UGameInstance* GI = GetWorld()->GetGameInstance())
+			{
+				if (const UFELSoccerSessionSubsystem* Ss = GI->GetSubsystem<UFELSoccerSessionSubsystem>())
+				{
+					const FString SLine = Ss->BuildHudLine();
+					if (!SLine.IsEmpty())
+					{
+						DrawText(SLine, FLinearColor(0.35f, 1.f, 0.55f, 1.f), 48.f, Y, Font, 1.02f, false);
+						Y += LineStep;
+					}
+				}
+			}
+		}
+		if (AuthGM->CurrentMode == EFELArenaMode::Surfing || AuthGM->CurrentMode == EFELArenaMode::Skateboarding
+			|| AuthGM->CurrentMode == EFELArenaMode::Snowboarding)
+		{
+			if (UGameInstance* GI = GetWorld()->GetGameInstance())
+			{
+				if (const UFELBoardSportSessionSubsystem* Bs = GI->GetSubsystem<UFELBoardSportSessionSubsystem>())
+				{
+					const FString BLine = Bs->BuildHudLine();
+					if (!BLine.IsEmpty())
+					{
+						DrawText(BLine, FLinearColor(0.55f, 0.85f, 1.f, 1.f), 48.f, Y, Font, 1.02f, false);
 						Y += LineStep;
 					}
 				}

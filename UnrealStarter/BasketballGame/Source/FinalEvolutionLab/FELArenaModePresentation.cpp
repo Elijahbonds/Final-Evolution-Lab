@@ -29,6 +29,12 @@ FString FELGetArenaModeInspirationTag(const EFELArenaMode Mode)
 		return TEXT("Academy quiz · timed rounds and interest paths");
 	case EFELArenaMode::MarketBrowse:
 		return TEXT("Luma Venice — Sovereign Gear");
+	case EFELArenaMode::Surfing:
+		return TEXT("Venice swell — surf line and balance");
+	case EFELArenaMode::Skateboarding:
+		return TEXT("Street line — skate flow and tricks");
+	case EFELArenaMode::Snowboarding:
+		return TEXT("Training floor — snow carve line");
 	default:
 		return FString();
 	}

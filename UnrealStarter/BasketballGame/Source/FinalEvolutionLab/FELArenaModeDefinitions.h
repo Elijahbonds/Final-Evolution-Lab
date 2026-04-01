@@ -27,6 +27,12 @@ enum class EFELArenaMode : uint8
 	BrainBrawl UMETA(DisplayName = "Brain Brawl"),
 	/** Sovereign Gear — Luma photogrammetry shop (`market_browse`). */
 	MarketBrowse UMETA(DisplayName = "Sovereign Shop (market browse)"),
+	/** Surf line / rail — PRQ scales balance and swell mitigation. */
+	Surfing UMETA(DisplayName = "Surfing"),
+	/** Street / park line — PRQ scales trick stability and speed cap. */
+	Skateboarding UMETA(DisplayName = "Skateboarding"),
+	/** Snow carve / slope — PRQ scales edge grip and line tension. */
+	Snowboarding UMETA(DisplayName = "Snowboarding"),
 	Unknown UMETA(Hidden),
 };
 
@@ -47,6 +53,9 @@ namespace FELArenaModeIds
 	inline const TCHAR* Gymnastics = TEXT("gymnastics");
 	inline const TCHAR* BrainBrawl = TEXT("brain_brawl");
 	inline const TCHAR* MarketBrowse = TEXT("market_browse");
+	inline const TCHAR* Surfing = TEXT("surfing");
+	inline const TCHAR* Skateboarding = TEXT("skateboarding");
+	inline const TCHAR* Snowboarding = TEXT("snowboarding");
 }
 
 /** Parse canonical mode id string (e.g. basketball_h2h, brain_brawl) from JSON / profile. */

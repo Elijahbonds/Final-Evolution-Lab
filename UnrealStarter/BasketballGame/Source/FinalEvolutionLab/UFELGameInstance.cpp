@@ -1,6 +1,8 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "UFELGameInstance.h"
+#include "FELClinicalUIPolicy.h"
+#include "Engine/Engine.h"
 #include "FELArenaModeDefinitions.h"
 #include "FELArenaModePresentation.h"
 #include "FELBasketballGameMode.h"
@@ -47,6 +49,16 @@ void UFELGameInstance::Init()
 {
 	Super::Init();
 	LoadPlayerProfile();
+	FString PolicyErr;
+	if (!FELClinicalUIPolicyLoader::TryLoadFromContent(ClinicalUIPolicy, &PolicyErr))
+	{
+#if !UE_BUILD_SHIPPING
+		if (!PolicyErr.IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("FEL Clinical UI policy: %s"), *PolicyErr);
+		}
+#endif
+	}
 }
 
 void UFELGameInstance::Shutdown()

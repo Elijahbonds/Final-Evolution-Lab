@@ -1,6 +1,7 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "UFELAthleteHubWidget.h"
+#include "Engine/GameInstance.h"
 #include "FELBasketballCharacter.h"
 #include "FELNeuroMechanicBridgeSubsystem.h"
 #include "FELReadinessTypes.h"
