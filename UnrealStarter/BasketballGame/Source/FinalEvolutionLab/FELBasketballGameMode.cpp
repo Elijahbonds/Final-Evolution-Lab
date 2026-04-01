@@ -34,6 +34,12 @@
 #include "UFELKickReturnSessionSubsystem.h"
 #include "UFELBaseballBattingSubsystem.h"
 #include "FELSoccerStadiumPresentation.h"
+#include "UFELGolfSessionSubsystem.h"
+#include "UFELTennisSessionSubsystem.h"
+#include "UFELVolleyballSessionSubsystem.h"
+#include "UFELGymnasticsSessionSubsystem.h"
+#include "UFELSoccerSessionSubsystem.h"
+#include "UFELKarateArenaModeComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpectatorPawn.h"
@@ -283,6 +289,23 @@ void AFELBasketballGameMode::ApplyModeSpecificBehaviors(const EFELArenaMode Prev
 	case EFELArenaMode::BasketballDunkContest:
 		OnDunkContestModeActivated();
 		break;
+	case EFELArenaMode::Karate:
+		{
+			if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+			{
+				if (APawn* P = PC->GetPawn())
+				{
+					UFELKarateArenaModeComponent* KarateComp = P->FindComponentByClass<UFELKarateArenaModeComponent>();
+					if (!KarateComp)
+					{
+						KarateComp = NewObject<UFELKarateArenaModeComponent>(P);
+						KarateComp->RegisterComponent();
+					}
+					KarateComp->InitializeKarateFromArenaRules(LoadedReadiness, CurrentArenaRules, nullptr);
+				}
+			}
+		}
+		break;
 	default:
 		break;
 	}
@@ -368,7 +391,13 @@ void AFELBasketballGameMode::NotifyBrainBrawlAcademyDuelComplete()
 
 void AFELBasketballGameMode::OnDunkContestModeActivated_Implementation()
 {
-	// Dunk contest: `FFELArenaRules::bIsDunkContest` + `UFELDunkContestSessionSubsystem` (THPS-style meter, PRQ/Creator Card, bucket mult).
+	if (UGameInstance* GI = GetGameInstance())
+	{
+		if (UFELDunkContestSessionSubsystem* DunkSub = GI->GetSubsystem<UFELDunkContestSessionSubsystem>())
+		{
+			DunkSub->ResetForMatch(true);
+		}
+	}
 }
 
 void AFELBasketballGameMode::WarmUp3DAssets()
@@ -634,6 +663,76 @@ void AFELBasketballGameMode::Tick(float DeltaSeconds)
 				if (AFELBasketballGameState* GS = GetGameState<AFELBasketballGameState>())
 				{
 					Bb->ProgressSession(this, GS, DeltaSeconds);
+				}
+			}
+		}
+	}
+
+	if (CurrentMode == EFELArenaMode::Golf)
+	{
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UFELGolfSessionSubsystem* Gs = GI->GetSubsystem<UFELGolfSessionSubsystem>())
+			{
+				if (AFELBasketballGameState* GS = GetGameState<AFELBasketballGameState>())
+				{
+					Gs->ProgressSession(this, GS, DeltaSeconds);
+				}
+			}
+		}
+	}
+
+	if (CurrentMode == EFELArenaMode::Tennis)
+	{
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UFELTennisSessionSubsystem* Ts = GI->GetSubsystem<UFELTennisSessionSubsystem>())
+			{
+				if (AFELBasketballGameState* GS = GetGameState<AFELBasketballGameState>())
+				{
+					Ts->ProgressSession(this, GS, DeltaSeconds);
+				}
+			}
+		}
+	}
+
+	if (CurrentMode == EFELArenaMode::Volleyball)
+	{
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UFELVolleyballSessionSubsystem* Vs = GI->GetSubsystem<UFELVolleyballSessionSubsystem>())
+			{
+				if (AFELBasketballGameState* GS = GetGameState<AFELBasketballGameState>())
+				{
+					Vs->ProgressSession(this, GS, DeltaSeconds);
+				}
+			}
+		}
+	}
+
+	if (CurrentMode == EFELArenaMode::Gymnastics)
+	{
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UFELGymnasticsSessionSubsystem* Gy = GI->GetSubsystem<UFELGymnasticsSessionSubsystem>())
+			{
+				if (AFELBasketballGameState* GS = GetGameState<AFELBasketballGameState>())
+				{
+					Gy->ProgressSession(this, GS, DeltaSeconds);
+				}
+			}
+		}
+	}
+
+	if (CurrentMode == EFELArenaMode::Soccer)
+	{
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UFELSoccerSessionSubsystem* Ss = GI->GetSubsystem<UFELSoccerSessionSubsystem>())
+			{
+				if (AFELBasketballGameState* GS = GetGameState<AFELBasketballGameState>())
+				{
+					Ss->ProgressSession(this, GS, DeltaSeconds);
 				}
 			}
 		}
@@ -1005,6 +1104,26 @@ void AFELBasketballGameMode::ApplyModeToGameState()
 		if (UFELBaseballBattingSubsystem* Bb = GI->GetSubsystem<UFELBaseballBattingSubsystem>())
 		{
 			Bb->ResetForMatch(CurrentMode == EFELArenaMode::Baseball);
+		}
+		if (UFELGolfSessionSubsystem* Gs = GI->GetSubsystem<UFELGolfSessionSubsystem>())
+		{
+			Gs->ResetForMatch(CurrentMode == EFELArenaMode::Golf);
+		}
+		if (UFELTennisSessionSubsystem* Ts = GI->GetSubsystem<UFELTennisSessionSubsystem>())
+		{
+			Ts->ResetForMatch(CurrentMode == EFELArenaMode::Tennis);
+		}
+		if (UFELVolleyballSessionSubsystem* Vs = GI->GetSubsystem<UFELVolleyballSessionSubsystem>())
+		{
+			Vs->ResetForMatch(CurrentMode == EFELArenaMode::Volleyball);
+		}
+		if (UFELGymnasticsSessionSubsystem* Gy = GI->GetSubsystem<UFELGymnasticsSessionSubsystem>())
+		{
+			Gy->ResetForMatch(CurrentMode == EFELArenaMode::Gymnastics);
+		}
+		if (UFELSoccerSessionSubsystem* Ss = GI->GetSubsystem<UFELSoccerSessionSubsystem>())
+		{
+			Ss->ResetForMatch(CurrentMode == EFELArenaMode::Soccer);
 		}
 	}
 }

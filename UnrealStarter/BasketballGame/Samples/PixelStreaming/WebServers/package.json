@@ -1,0 +1,15 @@
+{
+    "name": "@epicgames-ps/pixel-streaming-webservers",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Pixel Streaming WebServers workspace — Final Evolution Lab",
+    "scripts": {
+        "build:common:cjs": "cd Common && npm run build:cjs",
+        "build:common:esm": "cd Common && npm run build:esm",
+        "build:signalling:cjs": "cd Signalling && npm run build:cjs",
+        "build:signalling:esm": "cd Signalling && npm run build:esm",
+        "build:wilbur": "cd SignallingWebServer && npm run build",
+        "build:all:cjs": "npm run build:common:cjs && npm run build:signalling:cjs && npm run build:wilbur",
+        "build:all": "npm run build:common:cjs && npm run build:common:esm && npm run build:signalling:cjs && npm run build:signalling:esm && npm run build:wilbur"
+    }
+}

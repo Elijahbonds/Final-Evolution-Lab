@@ -669,7 +669,7 @@
         style="display:none"
       ></iframe>
       <div id="fel-runtime-placeholder" class="fel-runtime-placeholder">
-        Set <code>window.FEL_RUNTIME_URL</code> in <code>fel-public-config.js</code> (copy from <code>fel-public-config.example.js</code>) to embed your Unity WebGL build, Unreal Pixel Streaming page, or WASM client. This PWA shell keeps the Sovereign gateway and install flow; the iframe loads your notarized web runtime when the URL is hosted with compatible CORS.
+        Set <code>window.FEL_RUNTIME_URL</code> in <code>fel-public-config.js</code> to connect to the Pixel Streaming signalling server (<code>http://&lt;host&gt;:80</code> — Wilbur serves the player frontend). Launch the Unreal game with <code>-PixelStreamingURL="ws://&lt;host&gt;:8888"</code> to stream all 12 arena modes to this browser shell. The iframe loads the Pixel Streaming player when the URL is configured.
       </div>
     </section>
 

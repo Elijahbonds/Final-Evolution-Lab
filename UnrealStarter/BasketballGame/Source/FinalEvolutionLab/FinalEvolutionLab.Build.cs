@@ -54,7 +54,7 @@ public class FinalEvolutionLab : ModuleRules
 			PublicDefinitions.Add("FEL_IOS_METAL_RHI=1");
 		}
 
-		// Universal Launch / Pixel Streaming (Web): set to 1 when building with Pixel Streaming plugin + sender target.
-		PublicDefinitions.Add("PIXEL_STREAMING_ENABLED=0");
+		// Universal Launch / Pixel Streaming (Web): enabled for streaming game modes to browser clients via Wilbur signalling.
+		PublicDefinitions.Add("PIXEL_STREAMING_ENABLED=1");
 	}
 }

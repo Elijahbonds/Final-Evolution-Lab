@@ -43,8 +43,40 @@ void AFELLabGameMode::TickLaboratoryArenaModes(
 			}
 		}
 		break;
+	case EFELArenaMode::Soccer:
+		if (PrimaryAthlete)
+		{
+			if (UCharacterMovementComponent* M = PrimaryAthlete->GetCharacterMovement())
+			{
+				const float P01 = FMath::Clamp(PRQ * 0.01f, 0.f, 1.f);
+				const float Base = FMath::Max(1.f, PrimaryAthlete->FELGetNeuroBaselineWalkSpeed());
+				M->MaxWalkSpeed = Base * FMath::Lerp(0.95f, 1.12f, P01);
+			}
+		}
+		break;
+	case EFELArenaMode::Tennis:
+	case EFELArenaMode::Volleyball:
+		if (PrimaryAthlete)
+		{
+			if (UCharacterMovementComponent* M = PrimaryAthlete->GetCharacterMovement())
+			{
+				const float P01 = FMath::Clamp(PRQ * 0.01f, 0.f, 1.f);
+				const float Base = FMath::Max(1.f, PrimaryAthlete->FELGetNeuroBaselineWalkSpeed());
+				M->MaxWalkSpeed = Base * FMath::Lerp(0.92f, 1.08f, P01);
+			}
+		}
+		break;
+	case EFELArenaMode::Golf:
+	case EFELArenaMode::Baseball:
+	case EFELArenaMode::Gymnastics:
+	case EFELArenaMode::Karate:
+	case EFELArenaMode::BasketballHeadToHead:
+	case EFELArenaMode::BasketballDunkContest:
+	case EFELArenaMode::Basketball3v3:
+	case EFELArenaMode::BrainBrawl:
+	case EFELArenaMode::MarketBrowse:
+	case EFELArenaMode::Unknown:
 	default:
 		break;
 	}
-	(void)ActiveMode;
 }
