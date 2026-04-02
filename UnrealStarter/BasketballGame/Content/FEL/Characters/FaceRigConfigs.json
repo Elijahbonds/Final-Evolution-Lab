@@ -1,0 +1,223 @@
+{
+  "version": "1.0.0",
+  "description": "Face rig configurations for all FEL characters",
+  "face_rigs": {
+    "player": {
+      "character_type": "Player",
+      "display_name": "Player Character",
+      "active_blend_shapes": 52,
+      "morph_target_prefix": "ARKit_",
+      "supports_live_link": true,
+      "signature_expressions": ["Determined", "Happy", "Celebrating", "Pain"],
+      "blend_shape_multipliers": {
+        "MouthSmileLeft": 1.0,
+        "MouthSmileRight": 1.0,
+        "BrowDownLeft": 1.0,
+        "BrowDownRight": 1.0,
+        "JawOpen": 1.0
+      },
+      "lod_settings": {
+        "lod0_distance": 0,
+        "lod1_distance": 1500,
+        "lod2_distance": 3000,
+        "disable_distance": 5000
+      },
+      "skeleton_path": "/Game/FEL/Characters/Player/SK_PlayerFace",
+      "anim_blueprint_path": "/Game/FEL/Characters/Player/ABP_PlayerFace"
+    },
+    "elijah_bonds": {
+      "character_type": "ElijahBonds",
+      "display_name": "Elijah Bonds",
+      "active_blend_shapes": 52,
+      "morph_target_prefix": "ARKit_",
+      "supports_live_link": true,
+      "signature_expressions": ["Celebrating", "Determined", "TrashTalk", "Happy"],
+      "description": "High-energy basketball player with signature celebrations",
+      "blend_shape_multipliers": {
+        "MouthSmileLeft": 1.2,
+        "MouthSmileRight": 1.2,
+        "BrowOuterUpLeft": 1.1,
+        "BrowOuterUpRight": 1.1,
+        "EyeWideLeft": 1.1,
+        "EyeWideRight": 1.1,
+        "JawOpen": 1.0
+      },
+      "custom_curve_overrides": {
+        "CelebrationIntensity": 1.3,
+        "TrashTalkSmirk": 1.2
+      },
+      "reference_videos": [
+        "Venice_Beach_Court_magic_reveal.mp4",
+        "Venice_Ball_Shop_magic_reveal.mp4",
+        "Venice_Beach_Black_Top_magic_reveal.mp4",
+        "Hoopbus_magic_reveal.mp4"
+      ],
+      "skeleton_path": "/Game/FEL/Characters/Elijah/SK_ElijahFace",
+      "anim_blueprint_path": "/Game/FEL/Characters/Elijah/ABP_ElijahFace"
+    },
+    "amir_smith": {
+      "character_type": "AmirSmith",
+      "display_name": "Amir Smith",
+      "active_blend_shapes": 52,
+      "morph_target_prefix": "ARKit_",
+      "supports_live_link": true,
+      "signature_expressions": ["Determined", "Angry", "Pain", "Celebrating"],
+      "description": "Professional athlete with intense competitive expressions",
+      "blend_shape_multipliers": {
+        "BrowDownLeft": 1.2,
+        "BrowDownRight": 1.2,
+        "EyeSquintLeft": 1.1,
+        "EyeSquintRight": 1.1,
+        "NoseSneerLeft": 1.0,
+        "NoseSneerRight": 1.0,
+        "JawForward": 1.1
+      },
+      "custom_curve_overrides": {
+        "IntenseFocus": 1.3,
+        "CompetitiveEdge": 1.2
+      },
+      "meshy_model_ref": "amir_smith_3d_model",
+      "skeleton_path": "/Game/FEL/Characters/Amir/SK_AmirFace",
+      "anim_blueprint_path": "/Game/FEL/Characters/Amir/ABP_AmirFace"
+    },
+    "eric_nash": {
+      "character_type": "EricNash",
+      "display_name": "Eric Nash",
+      "active_blend_shapes": 52,
+      "morph_target_prefix": "ARKit_",
+      "supports_live_link": true,
+      "signature_expressions": ["Happy", "Determined", "Surprised", "Recovery"],
+      "description": "Coach character with teaching and encouraging expressions",
+      "blend_shape_multipliers": {
+        "MouthSmileLeft": 1.1,
+        "MouthSmileRight": 1.1,
+        "BrowInnerUp": 1.2,
+        "BrowOuterUpLeft": 1.1,
+        "BrowOuterUpRight": 1.1,
+        "EyeWideLeft": 1.0,
+        "EyeWideRight": 1.0
+      },
+      "custom_curve_overrides": {
+        "EncouragingNod": 1.2,
+        "TeachingFocus": 1.1
+      },
+      "skeleton_path": "/Game/FEL/Characters/Eric/SK_EricFace",
+      "anim_blueprint_path": "/Game/FEL/Characters/Eric/ABP_EricFace"
+    },
+    "npc_type_a": {
+      "character_type": "NPC_TypeA",
+      "display_name": "NPC Athletic",
+      "active_blend_shapes": 32,
+      "morph_target_prefix": "ARKit_",
+      "supports_live_link": false,
+      "signature_expressions": ["Determined", "Happy", "Angry"],
+      "description": "Athletic NPCs - opponents and training partners",
+      "lod_settings": {
+        "lod0_distance": 0,
+        "lod1_distance": 800,
+        "lod2_distance": 1500,
+        "disable_distance": 3000
+      },
+      "skeleton_path": "/Game/FEL/Characters/NPCs/SK_NPCAthletic",
+      "anim_blueprint_path": "/Game/FEL/Characters/NPCs/ABP_NPCFace"
+    },
+    "npc_type_b": {
+      "character_type": "NPC_TypeB",
+      "display_name": "NPC Crowd",
+      "active_blend_shapes": 16,
+      "morph_target_prefix": "ARKit_",
+      "supports_live_link": false,
+      "signature_expressions": ["Happy", "Celebrating", "Surprised"],
+      "description": "Crowd NPCs with simplified expressions",
+      "lod_settings": {
+        "lod0_distance": 0,
+        "lod1_distance": 500,
+        "lod2_distance": 1000,
+        "disable_distance": 2000
+      },
+      "skeleton_path": "/Game/FEL/Characters/NPCs/SK_NPCCrowd",
+      "anim_blueprint_path": "/Game/FEL/Characters/NPCs/ABP_NPCCrowdFace"
+    },
+    "npc_type_c": {
+      "character_type": "NPC_TypeC",
+      "display_name": "NPC Coach",
+      "active_blend_shapes": 32,
+      "morph_target_prefix": "ARKit_",
+      "supports_live_link": false,
+      "signature_expressions": ["Happy", "Determined", "Angry"],
+      "description": "Coach/referee NPCs with moderate expression range",
+      "skeleton_path": "/Game/FEL/Characters/NPCs/SK_NPCCoach",
+      "anim_blueprint_path": "/Game/FEL/Characters/NPCs/ABP_NPCCoachFace"
+    }
+  },
+  "arkit_blend_shapes": [
+    "EyeBlinkLeft", "EyeLookDownLeft", "EyeLookInLeft", "EyeLookOutLeft",
+    "EyeLookUpLeft", "EyeSquintLeft", "EyeWideLeft",
+    "EyeBlinkRight", "EyeLookDownRight", "EyeLookInRight", "EyeLookOutRight",
+    "EyeLookUpRight", "EyeSquintRight", "EyeWideRight",
+    "JawForward", "JawLeft", "JawRight", "JawOpen",
+    "MouthClose", "MouthFunnel", "MouthPucker",
+    "MouthLeft", "MouthRight",
+    "MouthSmileLeft", "MouthSmileRight",
+    "MouthFrownLeft", "MouthFrownRight",
+    "MouthDimpleLeft", "MouthDimpleRight",
+    "MouthStretchLeft", "MouthStretchRight",
+    "MouthRollLower", "MouthRollUpper",
+    "MouthShrugLower", "MouthShrugUpper",
+    "MouthPressLeft", "MouthPressRight",
+    "MouthLowerDownLeft", "MouthLowerDownRight",
+    "MouthUpperUpLeft", "MouthUpperUpRight",
+    "BrowDownLeft", "BrowDownRight",
+    "BrowInnerUp", "BrowOuterUpLeft", "BrowOuterUpRight",
+    "CheekPuff", "CheekSquintLeft", "CheekSquintRight",
+    "NoseSneerLeft", "NoseSneerRight",
+    "TongueOut"
+  ],
+  "expression_presets": {
+    "neutral": {},
+    "happy": {
+      "MouthSmileLeft": 0.8, "MouthSmileRight": 0.8,
+      "CheekSquintLeft": 0.4, "CheekSquintRight": 0.4,
+      "EyeSquintLeft": 0.2, "EyeSquintRight": 0.2
+    },
+    "determined": {
+      "BrowDownLeft": 0.5, "BrowDownRight": 0.5,
+      "EyeSquintLeft": 0.3, "EyeSquintRight": 0.3,
+      "JawForward": 0.2, "MouthPressLeft": 0.3, "MouthPressRight": 0.3
+    },
+    "tired": {
+      "EyeBlinkLeft": 0.4, "EyeBlinkRight": 0.4,
+      "MouthFrownLeft": 0.3, "MouthFrownRight": 0.3,
+      "JawOpen": 0.3, "BrowInnerUp": 0.4
+    },
+    "celebrating": {
+      "MouthSmileLeft": 1.0, "MouthSmileRight": 1.0,
+      "JawOpen": 0.6, "EyeWideLeft": 0.4, "EyeWideRight": 0.4,
+      "BrowOuterUpLeft": 0.5, "BrowOuterUpRight": 0.5, "BrowInnerUp": 0.6
+    },
+    "disappointed": {
+      "MouthFrownLeft": 0.6, "MouthFrownRight": 0.6,
+      "BrowInnerUp": 0.5, "EyeLookDownLeft": 0.3, "EyeLookDownRight": 0.3
+    },
+    "angry": {
+      "BrowDownLeft": 0.8, "BrowDownRight": 0.8,
+      "EyeSquintLeft": 0.5, "EyeSquintRight": 0.5,
+      "NoseSneerLeft": 0.6, "NoseSneerRight": 0.6,
+      "JawForward": 0.3
+    },
+    "surprised": {
+      "EyeWideLeft": 0.8, "EyeWideRight": 0.8,
+      "BrowInnerUp": 0.8, "BrowOuterUpLeft": 0.7, "BrowOuterUpRight": 0.7,
+      "JawOpen": 0.5
+    },
+    "pain": {
+      "BrowDownLeft": 0.6, "BrowDownRight": 0.6,
+      "BrowInnerUp": 0.7, "EyeSquintLeft": 0.7, "EyeSquintRight": 0.7,
+      "NoseSneerLeft": 0.5, "NoseSneerRight": 0.5
+    },
+    "trash_talk": {
+      "MouthSmileLeft": 0.7, "MouthSmileRight": 0.2,
+      "BrowDownLeft": 0.3, "EyeSquintLeft": 0.2, "NoseSneerLeft": 0.3
+    }
+  }
+}

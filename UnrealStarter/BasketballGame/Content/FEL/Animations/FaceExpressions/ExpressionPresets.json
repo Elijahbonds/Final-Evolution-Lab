@@ -1,0 +1,133 @@
+{
+  "version": "1.0.0",
+  "description": "Expression preset definitions for fallback and NPC facial animations",
+  "presets": {
+    "neutral": {
+      "blend_shapes": {},
+      "default_blend_time": 0.3,
+      "use_cases": ["idle", "default", "reset"]
+    },
+    "happy": {
+      "blend_shapes": {
+        "MouthSmileLeft": 0.8, "MouthSmileRight": 0.8,
+        "CheekSquintLeft": 0.4, "CheekSquintRight": 0.4,
+        "EyeSquintLeft": 0.2, "EyeSquintRight": 0.2,
+        "BrowInnerUp": 0.1
+      },
+      "default_blend_time": 0.25,
+      "use_cases": ["scoring", "winning", "positive_feedback"]
+    },
+    "determined": {
+      "blend_shapes": {
+        "BrowDownLeft": 0.5, "BrowDownRight": 0.5,
+        "EyeSquintLeft": 0.3, "EyeSquintRight": 0.3,
+        "JawForward": 0.2,
+        "MouthPressLeft": 0.3, "MouthPressRight": 0.3
+      },
+      "default_blend_time": 0.3,
+      "use_cases": ["gameplay_active", "exercise_start", "focus"]
+    },
+    "tired": {
+      "blend_shapes": {
+        "EyeBlinkLeft": 0.4, "EyeBlinkRight": 0.4,
+        "MouthFrownLeft": 0.3, "MouthFrownRight": 0.3,
+        "JawOpen": 0.3, "BrowInnerUp": 0.4,
+        "MouthShrugLower": 0.2
+      },
+      "default_blend_time": 0.5,
+      "use_cases": ["fatigue", "post_exercise", "overtime"]
+    },
+    "celebrating": {
+      "blend_shapes": {
+        "MouthSmileLeft": 1.0, "MouthSmileRight": 1.0,
+        "JawOpen": 0.6, "EyeWideLeft": 0.4, "EyeWideRight": 0.4,
+        "BrowOuterUpLeft": 0.5, "BrowOuterUpRight": 0.5,
+        "BrowInnerUp": 0.6,
+        "CheekSquintLeft": 0.5, "CheekSquintRight": 0.5
+      },
+      "default_blend_time": 0.15,
+      "use_cases": ["score_basket", "win_game", "achievement", "knockout"]
+    },
+    "disappointed": {
+      "blend_shapes": {
+        "MouthFrownLeft": 0.6, "MouthFrownRight": 0.6,
+        "BrowInnerUp": 0.5, "BrowDownLeft": 0.2, "BrowDownRight": 0.2,
+        "EyeLookDownLeft": 0.3, "EyeLookDownRight": 0.3,
+        "MouthShrugLower": 0.3
+      },
+      "default_blend_time": 0.3,
+      "use_cases": ["miss_shot", "lose_game", "fail_exercise"]
+    },
+    "angry": {
+      "blend_shapes": {
+        "BrowDownLeft": 0.8, "BrowDownRight": 0.8,
+        "EyeSquintLeft": 0.5, "EyeSquintRight": 0.5,
+        "NoseSneerLeft": 0.6, "NoseSneerRight": 0.6,
+        "MouthFrownLeft": 0.4, "MouthFrownRight": 0.4,
+        "JawForward": 0.3
+      },
+      "default_blend_time": 0.1,
+      "use_cases": ["get_blocked", "foul", "boxing_mma"]
+    },
+    "surprised": {
+      "blend_shapes": {
+        "EyeWideLeft": 0.8, "EyeWideRight": 0.8,
+        "BrowInnerUp": 0.8, "BrowOuterUpLeft": 0.7, "BrowOuterUpRight": 0.7,
+        "JawOpen": 0.5, "MouthFunnel": 0.3
+      },
+      "default_blend_time": 0.05,
+      "use_cases": ["steal", "unexpected_play", "cutscene_reaction"]
+    },
+    "pain": {
+      "blend_shapes": {
+        "BrowDownLeft": 0.6, "BrowDownRight": 0.6,
+        "BrowInnerUp": 0.7,
+        "EyeSquintLeft": 0.7, "EyeSquintRight": 0.7,
+        "NoseSneerLeft": 0.5, "NoseSneerRight": 0.5,
+        "MouthStretchLeft": 0.4, "MouthStretchRight": 0.4,
+        "JawOpen": 0.2
+      },
+      "default_blend_time": 0.1,
+      "use_cases": ["max_effort", "track_field", "swimming_sprint"]
+    },
+    "trash_talk": {
+      "blend_shapes": {
+        "MouthSmileLeft": 0.7, "MouthSmileRight": 0.2,
+        "BrowDownLeft": 0.3, "EyeSquintLeft": 0.2,
+        "NoseSneerLeft": 0.3, "CheekSquintLeft": 0.3
+      },
+      "default_blend_time": 0.2,
+      "use_cases": ["taunt", "pre_game", "after_scoring"]
+    },
+    "recovery": {
+      "blend_shapes": {
+        "JawOpen": 0.4,
+        "MouthSmileLeft": 0.3, "MouthSmileRight": 0.3,
+        "BrowInnerUp": 0.2,
+        "EyeBlinkLeft": 0.2, "EyeBlinkRight": 0.2
+      },
+      "default_blend_time": 0.4,
+      "use_cases": ["post_exercise", "rest_period", "cooldown"]
+    }
+  },
+  "gameplay_trigger_map": {
+    "ScoreBasket": { "expression": "celebrating", "duration": 3.0, "priority": 5 },
+    "MissShot": { "expression": "disappointed", "duration": 2.0, "priority": 3 },
+    "GetBlocked": { "expression": "angry", "duration": 1.5, "priority": 4 },
+    "BlockOpponent": { "expression": "celebrating", "duration": 2.0, "priority": 4 },
+    "Steal": { "expression": "happy", "duration": 1.5, "priority": 3 },
+    "GetStolen": { "expression": "surprised", "duration": 1.0, "priority": 3 },
+    "WinGame": { "expression": "celebrating", "duration": 5.0, "priority": 10 },
+    "LoseGame": { "expression": "disappointed", "duration": 4.0, "priority": 10 },
+    "CompleteWorkout": { "expression": "recovery", "duration": 3.0, "priority": 6 },
+    "FailExercise": { "expression": "disappointed", "duration": 2.0, "priority": 5 },
+    "StartExercise": { "expression": "determined", "duration": 2.0, "priority": 2 },
+    "MaxEffort": { "expression": "pain", "duration": 1.5, "priority": 7 },
+    "Recovery": { "expression": "recovery", "duration": 3.0, "priority": 2 },
+    "Taunt": { "expression": "trash_talk", "duration": 2.5, "priority": 4 },
+    "ScoreGoal": { "expression": "celebrating", "duration": 4.0, "priority": 6 },
+    "KnockOut": { "expression": "celebrating", "duration": 5.0, "priority": 9 },
+    "PerfectLanding": { "expression": "happy", "duration": 2.0, "priority": 5 },
+    "FoulCommitted": { "expression": "angry", "duration": 2.0, "priority": 4 }
+  }
+}

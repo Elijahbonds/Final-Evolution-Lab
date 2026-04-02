@@ -11,50 +11,56 @@ using UnrealBuildTool;
 
 public class FinalEvolutionLab : ModuleRules
 {
-	public FinalEvolutionLab(ReadOnlyTargetRules Target) : base(Target)
-	{
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        public FinalEvolutionLab(ReadOnlyTargetRules Target) : base(Target)
+        {
+                PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// Mac/iOS installed-engine builds: PLATFORM_PS5 is undefined; UE enables -Wundef on third-party code.
-		if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)
-		{
-			PublicDefinitions.Add("PLATFORM_PS5=0");
-		}
+                // Mac/iOS installed-engine builds: PLATFORM_PS5 is undefined; UE enables -Wundef on third-party code.
+                if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)
+                {
+                        PublicDefinitions.Add("PLATFORM_PS5=0");
+                }
 
-		PublicDependencyModuleNames.AddRange(new string[]
-		{
-			"Core",
-			"CoreUObject",
-			"Engine",
-			"InputCore",
-			"EnhancedInput",
-			"PhysicsCore",
-			"Json",
-			"JsonUtilities",
-			"HTTP",
-			"UMG",
-			"Slate",
-			"SlateCore",
-			"Niagara",
-			"RenderCore",
-			"RHI",
-			"MotionWarping",
-			"AssetRegistry"
-		});
+                PublicDependencyModuleNames.AddRange(new string[]
+                {
+                        "Core",
+                        "CoreUObject",
+                        "Engine",
+                        "InputCore",
+                        "EnhancedInput",
+                        "PhysicsCore",
+                        "Json",
+                        "JsonUtilities",
+                        "HTTP",
+                        "UMG",
+                        "Slate",
+                        "SlateCore",
+                        "Niagara",
+                        "RenderCore",
+                        "RHI",
+                        "MotionWarping",
+                        "AssetRegistry",
+                        "LiveLink",
+                        "LiveLinkInterface",
+                        "LiveLinkComponents",
+                        "LiveLinkAnimationCore",
+                        "AnimGraphRuntime",
+                        "AnimationCore"
+                });
 
-		// Gold Master: optional project-specific flag when packaging Shipping (do not redefine UE_BUILD_SHIPPING).
-		if (Target.Configuration == UnrealTargetConfiguration.Shipping)
-		{
-			PublicDefinitions.Add("FEL_PACKAGE_SHIPPING=1");
-		}
+                // Gold Master: optional project-specific flag when packaging Shipping (do not redefine UE_BUILD_SHIPPING).
+                if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+                {
+                        PublicDefinitions.Add("FEL_PACKAGE_SHIPPING=1");
+                }
 
-		// iOS uses Metal by default; tag module for Metal-backed Niagara / post-process parity in audits.
-		if (Target.Platform == UnrealTargetPlatform.IOS)
-		{
-			PublicDefinitions.Add("FEL_IOS_METAL_RHI=1");
-		}
+                // iOS uses Metal by default; tag module for Metal-backed Niagara / post-process parity in audits.
+                if (Target.Platform == UnrealTargetPlatform.IOS)
+                {
+                        PublicDefinitions.Add("FEL_IOS_METAL_RHI=1");
+                }
 
-		// Universal Launch / Pixel Streaming (Web): enabled for streaming game modes to browser clients via Wilbur signalling.
-		PublicDefinitions.Add("PIXEL_STREAMING_ENABLED=1");
-	}
+                // Universal Launch / Pixel Streaming (Web): enabled for streaming game modes to browser clients via Wilbur signalling.
+                PublicDefinitions.Add("PIXEL_STREAMING_ENABLED=1");
+        }
 }
