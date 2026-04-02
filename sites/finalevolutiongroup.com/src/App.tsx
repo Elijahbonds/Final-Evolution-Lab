@@ -1,6 +1,8 @@
 import Nav from "./components/Nav";
 import Hero from "./components/Hero";
 import GameModes from "./components/GameModes";
+import DownloadSection from "./components/DownloadSection";
+import VideoShowcase from "./components/VideoShowcase";
 import PRQSection from "./components/PRQSection";
 import AcademySection from "./components/AcademySection";
 import StreamingSection from "./components/StreamingSection";
@@ -14,6 +16,8 @@ export default function App() {
       <Nav />
       <Hero />
       <GameModes />
+      <DownloadSection />
+      <VideoShowcase />
       <PRQSection />
       <AcademySection />
       <StreamingSection />

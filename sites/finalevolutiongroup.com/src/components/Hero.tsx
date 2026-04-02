@@ -43,19 +43,19 @@ export default function Hero() {
             Explore Arena
           </a>
           <a
-            href="#install"
+            href="#download"
             className="inline-flex min-h-[52px] min-w-[200px] items-center justify-center rounded-full border-2 border-fel-cyan/50 bg-transparent px-10 text-base font-bold uppercase tracking-wide text-fel-cyan transition hover:border-fel-cyan hover:bg-fel-cyan/10"
           >
-            Install the Lab
+            Download Now
           </a>
         </div>
 
         {/* Stats strip */}
         <div className="mt-16 grid w-full max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { value: "12", label: "Game Modes" },
+            { value: "17", label: "Game Modes" },
             { value: "60Hz", label: "Frame Target" },
-            { value: "12", label: "Academy Modules" },
+            { value: "9,356", label: "AI Assets" },
             { value: "∞", label: "Pixel Streaming" },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm">
