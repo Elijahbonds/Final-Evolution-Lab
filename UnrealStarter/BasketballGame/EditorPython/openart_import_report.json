@@ -1,0 +1,41 @@
+{
+  "total_assets": 504,
+  "by_category": {
+    "textures": 60,
+    "props": 144,
+    "materials": 180,
+    "atmosphere": 36,
+    "skybox": 36,
+    "details": 48
+  },
+  "by_environment": {
+    "retro_tokyo_night": 42,
+    "venice_beach_sunset": 42,
+    "cyberpunk_gym": 42,
+    "classic_nba_arena": 42,
+    "underground_bunker": 42,
+    "rooftop_cityscape": 42,
+    "winter_outdoor": 42,
+    "beach_tropical": 42,
+    "warehouse_industrial": 42,
+    "neon_arcade": 42,
+    "zen_dojo": 42,
+    "stadium_night_game": 42
+  },
+  "environments": [
+    "retro_tokyo_night",
+    "venice_beach_sunset",
+    "cyberpunk_gym",
+    "classic_nba_arena",
+    "underground_bunker",
+    "rooftop_cityscape",
+    "winter_outdoor",
+    "beach_tropical",
+    "warehouse_industrial",
+    "neon_arcade",
+    "zen_dojo",
+    "stadium_night_game"
+  ],
+  "ue_base_path": "/Game/FEL/Environments/OpenArt",
+  "manifest_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/openart_asset_manifest.json"
+}

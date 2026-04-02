@@ -74,8 +74,22 @@ else
   log "  ⚠ Script not found: ${IMPORT_SCRIPT_3}"
 fi
 
-# Step 4: Verify all assets
-log "Step 4: Verifying asset imports..."
+# Step 4: Import OpenArt enhanced environment assets
+log "Step 4: Importing OpenArt enhanced environment assets (504 files)..."
+IMPORT_SCRIPT_4="${EDITOR_PYTHON_DIR}/fel_import_openart_assets.py"
+if [[ -f "$IMPORT_SCRIPT_4" ]]; then
+  "${UE_CMD}" "${PROJECT}" \
+    -run=pythonscript \
+    -script="${IMPORT_SCRIPT_4}" \
+    -nosplash -unattended -nopause \
+    2>&1 | tee "${ROOT}/logs/import_openart_assets.log"
+  log "  OpenArt enhanced assets imported ✓"
+else
+  log "  ⚠ Script not found: ${IMPORT_SCRIPT_4}"
+fi
+
+# Step 5: Verify all assets
+log "Step 5: Verifying asset imports..."
 VERIFY_SCRIPT="${EDITOR_PYTHON_DIR}/fel_verify_assets.py"
 if [[ -f "$VERIFY_SCRIPT" ]]; then
   "${UE_CMD}" "${PROJECT}" \

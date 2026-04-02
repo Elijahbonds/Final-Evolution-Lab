@@ -1,0 +1,4197 @@
+{
+  "version": "1.0",
+  "environments": {
+    "retro_tokyo_night": {
+      "props": {
+        "neon_sign_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/neon_sign_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2083264510,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Tokyo neon street sign Japanese kanji, glowing cyan and pink, retro 2006 urban style"
+        },
+        "vending_machine_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/vending_machine_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3402319205,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese vending machine glowing in dark alley, retro Tokyo night aesthetic"
+        },
+        "street_lamp_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/street_lamp_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2850300486,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese style street lamp with warm glow, Tokyo night atmosphere"
+        },
+        "trash_can_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/trash_can_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3653635626,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Urban metal trash can wet from rain, Tokyo street at night"
+        },
+        "bench_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/bench_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1385500972,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Urban park bench near basketball court, Tokyo night scene"
+        },
+        "power_lines_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/power_lines_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1036563555,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Electric power line pole with cables, Tokyo urban skyline"
+        },
+        "manhole_cover_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/manhole_cover_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 3456089913,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Decorative Japanese manhole cover, wet pavement, neon reflections"
+        },
+        "bike_rack_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/bike_rack_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 4192030128,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Metal bicycle rack near street court, Tokyo urban scene"
+        },
+        "phone_booth_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/phone_booth_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 434624224,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese red phone booth glowing at night, retro Tokyo"
+        },
+        "graffiti_wall_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/graffiti_wall_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 793080680,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese street art graffiti on concrete wall, neon-lit, urban basketball culture"
+        },
+        "ramen_cart_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/ramen_cart_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1136779433,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Mobile ramen food cart with paper lanterns, Tokyo street food vendor night"
+        },
+        "shrine_gate_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/props/shrine_gate_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3956992314,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Small torii gate shrine entrance near street court, Tokyo night neon glow"
+        }
+      },
+      "textures": {
+        "wet_asphalt": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/textures/wet_asphalt.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 952447189,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wet asphalt road surface at night, neon reflections, Tokyo street, tileable seamless"
+        },
+        "concrete_wall": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/textures/concrete_wall.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 949234155,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Urban concrete wall with Japanese graffiti and poster remnants, Tokyo night, tileable"
+        },
+        "brick_alley": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/textures/brick_alley.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 3621684665,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Dark brick alley wall, wet from rain, neon light bleeding, tileable seamless texture"
+        },
+        "metal_shutter": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/textures/metal_shutter.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2094903088,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Corrugated metal shutter door, rust and graffiti, Tokyo backstreet, tileable"
+        },
+        "tile_floor": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/textures/tile_floor.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2557686496,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese ceramic tile floor, wet surface, indoor court, tileable seamless"
+        }
+      },
+      "materials": {
+        "neon_concrete": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/materials/neon_concrete",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Concrete with neon light reflections, Tokyo night urban surface"
+        },
+        "wet_metal": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/materials/wet_metal",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Wet brushed metal surface, dark urban aesthetic, rain droplets"
+        },
+        "graffiti_brick": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/materials/graffiti_brick",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Brick wall with layers of graffiti and wheat-paste posters, Tokyo urban"
+        }
+      },
+      "atmosphere": {
+        "neon_fog": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/atmosphere/neon_fog.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1788712661,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Neon-tinted fog and mist, cyan and magenta atmospheric haze, Tokyo night"
+        },
+        "rain_particles": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/atmosphere/rain_particles.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3095676424,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Rain particles falling through neon light, Tokyo night rain effect"
+        },
+        "light_rays_neon": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/atmosphere/light_rays_neon.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2599984183,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Volumetric light rays from neon signs, god rays through fog, Tokyo night"
+        }
+      },
+      "skybox": {
+        "tokyo_night_clear": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/skybox/tokyo_night_clear.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2772224607,
+          "width": 2048,
+          "height": 1024,
+          "prompt": "Tokyo night skyline panoramic, neon signs, skyscrapers, starless city sky"
+        },
+        "tokyo_night_rain": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/skybox/tokyo_night_rain.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2463247814,
+          "width": 2048,
+          "height": 1024,
+          "prompt": "Tokyo rainy night panoramic sky, dark clouds, wet neon reflections upward"
+        },
+        "tokyo_night_haze": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/skybox/tokyo_night_haze.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1824141649,
+          "width": 2048,
+          "height": 1024,
+          "prompt": "Tokyo night hazy skyline, light pollution glow, moody urban panoramic"
+        }
+      },
+      "details": {
+        "kanji_stencil": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/details/kanji_stencil.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 1043658708,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese kanji street art stencil on wall, neon paint splatter"
+        },
+        "poster_torn": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/details/poster_torn.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2797303940,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Torn anime poster on wall, Tokyo nightlife advertisement remnants"
+        },
+        "puddle_reflection": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/details/puddle_reflection.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 283880739,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Neon puddle reflection on wet ground, abstract color pattern"
+        },
+        "crack_pattern": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/retro_tokyo_night/openart/details/crack_pattern.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2799269406,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Concrete crack pattern on ground, urban decay, wet surface"
+        }
+      }
+    },
+    "venice_beach_sunset": {
+      "props": {
+        "palm_tree_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/palm_tree_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 3311095717,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Venice Beach tall palm tree silhouette against sunset sky"
+        },
+        "palm_tree_02": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/palm_tree_02.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1497224324,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "California palm tree with coconuts, golden hour light"
+        },
+        "lifeguard_tower": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/lifeguard_tower.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 3871007482,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Venice Beach lifeguard tower, classic California coastal, sunset colors"
+        },
+        "skateboard_ramp": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/skateboard_ramp.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2246764518,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Concrete skateboard half-pipe ramp, Venice Beach skatepark"
+        },
+        "basketball_hoop_outdoor": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/basketball_hoop_outdoor.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2679425005,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Outdoor chain-net basketball hoop on beach court, sunset glow"
+        },
+        "graffiti_wall_venice": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/graffiti_wall_venice.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 576174418,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Venice Beach art wall with colorful murals and graffiti"
+        },
+        "beach_speaker": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/beach_speaker.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 943611184,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Portable speaker playing music at beach court, California vibes"
+        },
+        "surfboard_rack": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/surfboard_rack.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2010566099,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Surfboard rack with boards leaning, Venice Beach scene"
+        },
+        "bike_path_sign": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/bike_path_sign.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 894721873,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Venice Beach bike path sign, California coastal directional sign"
+        },
+        "muscle_beach_sign": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/muscle_beach_sign.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 3970971378,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Muscle Beach outdoor gym sign, Venice Beach iconic landmark"
+        },
+        "beach_bench": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/beach_bench.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1489392487,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wooden bench on Venice Beach boardwalk, sunset golden light"
+        },
+        "taco_truck": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/props/taco_truck.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1810521630,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Colorful taco food truck near beach court, Venice Beach California"
+        }
+      },
+      "textures": {
+        "beach_sand": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/textures/beach_sand.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 3981538876,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "California beach sand texture, warm golden sunset light, tileable seamless"
+        },
+        "concrete_court": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/textures/concrete_court.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 3754221484,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Outdoor basketball concrete court surface, Venice Beach, painted lines, tileable"
+        },
+        "boardwalk_wood": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/textures/boardwalk_wood.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1348262688,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Venice Beach wooden boardwalk planks, weathered sun-bleached wood, tileable"
+        },
+        "stucco_wall": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/textures/stucco_wall.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1227228876,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "California stucco wall surface, warm sunset tones, tileable seamless"
+        },
+        "asphalt_path": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/textures/asphalt_path.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1248000777,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Venice Beach bike path asphalt, warm tones, tileable seamless texture"
+        }
+      },
+      "materials": {
+        "sun_bleached_wood": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/materials/sun_bleached_wood",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Sun-bleached weathered wood, California coastal, warm golden tones"
+        },
+        "beach_concrete": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/materials/beach_concrete",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Beach concrete court surface, sandy texture, warm California light"
+        },
+        "rusty_chain_link": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/materials/rusty_chain_link",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Rusty chain-link fence, Venice Beach outdoor court, sunset patina"
+        }
+      },
+      "atmosphere": {
+        "golden_haze": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/atmosphere/golden_haze.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2319218962,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Golden hour atmospheric haze, warm sunset fog, California beach"
+        },
+        "dust_particles": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/atmosphere/dust_particles.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2876983874,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Dust particles floating in golden sunset light, beach atmosphere"
+        },
+        "sunset_rays": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/atmosphere/sunset_rays.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2227050258,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Sunset god rays through palm trees, golden light beams, Venice Beach"
+        }
+      },
+      "skybox": {
+        "venice_sunset_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/skybox/venice_sunset_01.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2456048473,
+          "width": 2048,
+          "height": 1024,
+          "prompt": "Venice Beach sunset panoramic sky, orange pink purple gradient, ocean horizon"
+        },
+        "venice_golden_hour": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/skybox/venice_golden_hour.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 4136991855,
+          "width": 2048,
+          "height": 1024,
+          "prompt": "California golden hour panoramic, dramatic clouds lit from below, warm"
+        },
+        "venice_dusk": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/skybox/venice_dusk.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1050551592,
+          "width": 2048,
+          "height": 1024,
+          "prompt": "Venice Beach dusk sky panoramic, deep purple and blue, first stars appearing"
+        }
+      },
+      "details": {
+        "surf_sticker": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/details/surf_sticker.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 578418339,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Surf brand sticker collection on wall, Venice Beach culture"
+        },
+        "sand_footprints": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/details/sand_footprints.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1646784551,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Footprints in beach sand, basketball shoe treads, warm sand"
+        },
+        "court_line_paint": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/details/court_line_paint.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1078828482,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Worn painted court lines on concrete, sun-faded colors"
+        },
+        "shell_scatter": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/venice_beach_sunset/openart/details/shell_scatter.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1447939495,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Scattered seashells on sand near court edge, beach details"
+        }
+      }
+    },
+    "cyberpunk_gym": {
+      "props": {
+        "hologram_display": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/hologram_display.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3121684083,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Holographic stat display floating in air, cyberpunk gym, cyan glow"
+        },
+        "neon_tube_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/neon_tube_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2227204082,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Vertical neon tube light, cyan and magenta, cyberpunk gym wall"
+        },
+        "weight_rack_cyber": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/weight_rack_cyber.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2601320322,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Futuristic chrome weight rack with glowing indicators, cyberpunk gym"
+        },
+        "punching_bag_led": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/punching_bag_led.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1204056042,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Heavy punching bag with LED impact sensors, cyberpunk training gym"
+        },
+        "energy_drink_vending": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/energy_drink_vending.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3883126141,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Futuristic energy drink vending machine, neon cyberpunk aesthetic"
+        },
+        "training_pod": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/training_pod.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2679425662,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Cyberpunk training pod capsule, glass and chrome, holographic readouts"
+        },
+        "drone_camera": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/drone_camera.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1030484556,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Small hovering camera drone, filming training session, cyberpunk gym"
+        },
+        "locker_bank": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/locker_bank.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 401782601,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Futuristic locker bank with biometric scanners, cyberpunk gym"
+        },
+        "floor_light_strip": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/floor_light_strip.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2279205438,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "LED floor light strip, glowing cyan line on dark floor, cyberpunk"
+        },
+        "score_screen": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/score_screen.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 928981811,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Large LED scoreboard screen showing stats, cyberpunk gym, neon graphics"
+        },
+        "power_cable_bundle": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/power_cable_bundle.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 294143014,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Thick power cable bundle running along ceiling, industrial cyberpunk"
+        },
+        "cyber_bench_press": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/props/cyber_bench_press.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1448749750,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Futuristic bench press with holographic weight counter, cyberpunk gym"
+        }
+      },
+      "textures": {
+        "hex_floor": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/textures/hex_floor.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2876919707,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Hexagonal tile floor pattern, dark with glowing cyan edges, cyberpunk gym, tileable"
+        },
+        "carbon_fiber": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/textures/carbon_fiber.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1286460700,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Carbon fiber panel surface, dark weave with subtle sheen, tileable seamless"
+        },
+        "brushed_chrome": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/textures/brushed_chrome.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 3818953562,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Brushed chrome metal surface with neon reflections, tileable seamless"
+        },
+        "circuit_wall": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/textures/circuit_wall.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2092022555,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Circuit board pattern wall panel, cyberpunk aesthetic, glowing traces, tileable"
+        },
+        "rubber_floor": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/textures/rubber_floor.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3245805209,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Black rubber gym floor with subtle texture, tileable seamless"
+        }
+      },
+      "materials": {
+        "neon_chrome": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/materials/neon_chrome",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Chrome surface reflecting neon lights, cyberpunk gym metal"
+        },
+        "dark_composite": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/materials/dark_composite",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Dark composite material, carbon fiber and rubber, futuristic gym surface"
+        },
+        "led_panel": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/materials/led_panel",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "LED panel glass surface, faintly glowing, cyberpunk tech aesthetic"
+        }
+      },
+      "atmosphere": {
+        "cyber_haze": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/atmosphere/cyber_haze.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 231683316,
+          "width": 512,
+          "height": 512,
+          "prompt": "Cyan and magenta atmospheric haze, cyberpunk gym ambient fog"
+        },
+        "hologram_particles": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/atmosphere/hologram_particles.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 490556528,
+          "width": 512,
+          "height": 512,
+          "prompt": "Holographic data particles floating in air, cyberpunk gym VFX"
+        },
+        "neon_light_bloom": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/atmosphere/neon_light_bloom.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1305481117,
+          "width": 512,
+          "height": 512,
+          "prompt": "Neon light bloom and lens flare, cyberpunk gym atmosphere"
+        }
+      },
+      "skybox": {
+        "cyber_city_night": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/skybox/cyber_city_night.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2906973725,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Cyberpunk city through rain-streaked windows, neon towers, flying cars panoramic"
+        },
+        "cyber_interior": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/skybox/cyber_interior.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 325335323,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Cyberpunk gym interior ceiling view, exposed pipes, neon lights, dark panoramic"
+        },
+        "cyber_storm": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/skybox/cyber_storm.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3443757643,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Cyberpunk rainstorm outside windows, lightning over neon city panoramic"
+        }
+      },
+      "details": {
+        "tech_graffiti": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/details/tech_graffiti.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3149182444,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Digital graffiti tag on wall, glitch art style, cyberpunk"
+        },
+        "warning_label": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/details/warning_label.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1173874152,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Futuristic warning label decal, hazard symbols, cyberpunk"
+        },
+        "qr_code_sticker": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/details/qr_code_sticker.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 756061117,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Holographic QR code sticker on equipment, cyberpunk gym"
+        },
+        "impact_crack": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/cyberpunk_gym/openart/details/impact_crack.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2684843817,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Impact crack on reinforced glass, spider web pattern, cyberpunk"
+        }
+      }
+    },
+    "classic_nba_arena": {
+      "props": {
+        "jumbotron": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/jumbotron.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1448167642,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Classic NBA arena jumbotron overhead scoreboard, 1990s retro style"
+        },
+        "courtside_seat": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/courtside_seat.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3108622189,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Padded courtside folding chair, classic NBA arena, red cushion"
+        },
+        "scorers_table": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/scorers_table.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 1285869426,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Official scorer's table with microphone and stat sheets, NBA arena"
+        },
+        "basketball_rack": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/basketball_rack.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 2387181357,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Ball rack with basketballs, NBA warmup equipment, arena sideline"
+        },
+        "banner_championship": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/banner_championship.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 2210737893,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Championship banner hanging from rafters, classic NBA arena"
+        },
+        "camera_platform": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/camera_platform.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 1933842462,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Television camera on platform, NBA arena broadcast position"
+        },
+        "team_bench": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/team_bench.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 336691946,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "NBA team bench with chairs and equipment, courtside"
+        },
+        "water_cooler": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/water_cooler.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 1219781238,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Gatorade water cooler station, NBA sideline, classic arena"
+        },
+        "shot_clock": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/shot_clock.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 2367349876,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Shot clock display mounted on backboard support, NBA arena"
+        },
+        "press_row_desk": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/press_row_desk.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 1794503374,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Press row desk with laptops and notebooks, NBA arena media"
+        },
+        "basket_stanchion": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/basket_stanchion.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3881402724,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "NBA regulation basketball stanchion and backboard, padded base"
+        },
+        "arena_speaker": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/props/arena_speaker.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 2580811473,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Large arena speaker cluster hanging from ceiling, PA system"
+        }
+      },
+      "textures": {
+        "hardwood_court": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/textures/hardwood_court.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 203642104,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "NBA hardwood maple court floor with grain, polished, tileable seamless"
+        },
+        "painted_lane": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/textures/painted_lane.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 2698161290,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Painted free-throw lane on hardwood, classic NBA colors, tileable"
+        },
+        "arena_seat_fabric": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/textures/arena_seat_fabric.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3722277829,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Arena stadium seat upholstery fabric, red cushion, tileable seamless"
+        },
+        "concrete_concourse": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/textures/concrete_concourse.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3683103788,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Arena concrete concourse floor, polished, tileable seamless"
+        },
+        "padded_wall": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/textures/padded_wall.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3934776341,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Arena padded wall behind basket, sponsor logos, tileable"
+        }
+      },
+      "materials": {
+        "polished_hardwood": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/materials/polished_hardwood",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Polished maple hardwood surface, classic NBA court, warm wood tones"
+        },
+        "arena_metal": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/materials/arena_metal",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Painted metal arena infrastructure, scoreboard support beams"
+        },
+        "leather_ball": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/materials/leather_ball",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Basketball leather surface, orange pebbled texture, Spalding style"
+        }
+      },
+      "atmosphere": {
+        "spotlight_haze": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/atmosphere/spotlight_haze.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3636240971,
+          "width": 512,
+          "height": 512,
+          "prompt": "Arena spotlight haze and atmosphere, dramatic overhead lighting"
+        },
+        "crowd_dust": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/atmosphere/crowd_dust.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 2567448057,
+          "width": 512,
+          "height": 512,
+          "prompt": "Dust particles visible in spotlight beams, arena atmosphere"
+        },
+        "spotlight_beams": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/atmosphere/spotlight_beams.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3216615043,
+          "width": 512,
+          "height": 512,
+          "prompt": "Dramatic spotlight beams from arena ceiling, light rays through haze"
+        }
+      },
+      "skybox": {
+        "arena_ceiling": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/skybox/arena_ceiling.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 946174842,
+          "width": 1024,
+          "height": 512,
+          "prompt": "NBA arena ceiling view panoramic, rafters, banners, jumbotron, spotlights"
+        },
+        "arena_crowd": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/skybox/arena_crowd.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 2700849674,
+          "width": 1024,
+          "height": 512,
+          "prompt": "NBA arena crowd panoramic, packed stadium, signs and banners, electric atmosphere"
+        },
+        "arena_dark": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/skybox/arena_dark.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3003031458,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Dark arena before game, only spotlights on court, moody panoramic"
+        }
+      },
+      "details": {
+        "sponsor_decal": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/details/sponsor_decal.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 1908925394,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Arena court sponsor logo decal, flat on hardwood floor"
+        },
+        "shoe_scuff": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/details/shoe_scuff.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3596356026,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Basketball shoe scuff marks on hardwood, black rubber marks"
+        },
+        "tape_line": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/details/tape_line.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2440981390,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Athletic tape on floor marking positions, coaching detail"
+        },
+        "sweat_stain": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/classic_nba_arena/openart/details/sweat_stain.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 718564173,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Sweat drip stain on hardwood court, game intensity detail"
+        }
+      }
+    },
+    "underground_bunker": {
+      "props": {
+        "heavy_bag": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/heavy_bag.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 701308272,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Heavy punching bag hanging from ceiling chain, underground bunker gym"
+        },
+        "speed_bag": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/speed_bag.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 2587525709,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Speed bag on wall mount, underground training bunker, concrete walls"
+        },
+        "ammo_crate": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/ammo_crate.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1306222464,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Military ammo crate used as equipment box, stenciled markings"
+        },
+        "floodlight": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/floodlight.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 2772290027,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Industrial floodlight on tripod, harsh white light, bunker training"
+        },
+        "pull_up_bar": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/pull_up_bar.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1706105073,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wall-mounted pull-up bar, welded steel, underground bunker gym"
+        },
+        "tire_stack": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/tire_stack.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 657371163,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Stack of training tires for flipping exercises, bunker gym"
+        },
+        "chalk_bucket": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/chalk_bucket.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1366525024,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Chalk bucket for grip training, powder dust in air, bunker gym"
+        },
+        "military_locker": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/military_locker.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 631542001,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Green military locker row, dented and worn, underground bunker"
+        },
+        "ventilation_fan": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/ventilation_fan.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 3443230641,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Industrial ventilation fan in wall duct, bunker air system"
+        },
+        "motivational_sign": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/motivational_sign.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1520795311,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Stenciled motivational military sign on concrete wall, bunker gym"
+        },
+        "battle_ropes": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/battle_ropes.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3547520945,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Battle ropes anchored to wall, training equipment, bunker gym"
+        },
+        "water_pipe": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/props/water_pipe.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 1928721661,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Exposed water pipe along ceiling, industrial, dripping condensation"
+        }
+      },
+      "textures": {
+        "raw_concrete": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/textures/raw_concrete.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 2000979448,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Raw poured concrete wall surface, bunker aesthetic, stains, tileable seamless"
+        },
+        "military_floor": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/textures/military_floor.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 2591401051,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Military bunker floor, concrete with painted markings, tileable"
+        },
+        "rusted_metal": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/textures/rusted_metal.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 1565334456,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Rusted corrugated metal wall panel, underground bunker, tileable seamless"
+        },
+        "cinder_block": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/textures/cinder_block.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 3346757228,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Unpainted cinder block wall, bunker construction, tileable seamless"
+        },
+        "rubber_mat": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/textures/rubber_mat.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3214805535,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Black rubber training mat, interlocking tiles, gym floor, tileable"
+        }
+      },
+      "materials": {
+        "bunker_concrete": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/materials/bunker_concrete",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Rough poured concrete, military bunker construction, cold grey"
+        },
+        "oxidized_steel": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/materials/oxidized_steel",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Oxidized steel surface, rust patina, underground bunker pipes"
+        },
+        "worn_rubber": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/materials/worn_rubber",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Worn rubber gym mat surface, scuff marks and chalk dust"
+        }
+      },
+      "atmosphere": {
+        "chalk_dust": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/atmosphere/chalk_dust.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 272819123,
+          "width": 512,
+          "height": 512,
+          "prompt": "Chalk dust particles floating in harsh light, bunker gym atmosphere"
+        },
+        "condensation_fog": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/atmosphere/condensation_fog.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 3338114554,
+          "width": 512,
+          "height": 512,
+          "prompt": "Cold condensation fog near ceiling, underground bunker moisture"
+        },
+        "harsh_spotlight": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/atmosphere/harsh_spotlight.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 2096709304,
+          "width": 512,
+          "height": 512,
+          "prompt": "Harsh industrial spotlight beams cutting through dusty air, bunker"
+        }
+      },
+      "skybox": {
+        "bunker_ceiling": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/skybox/bunker_ceiling.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 229584663,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Underground bunker concrete ceiling, exposed pipes, ventilation ducts, harsh lights panoramic"
+        },
+        "bunker_dark": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/skybox/bunker_dark.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 3994138292,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Dark underground bunker panoramic, dim emergency lighting, concrete everywhere"
+        },
+        "bunker_lit": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/skybox/bunker_lit.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 3746173157,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Brightly lit bunker interior panoramic, industrial floodlights, military aesthetic"
+        }
+      },
+      "details": {
+        "stencil_marking": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/details/stencil_marking.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 208048741,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Military stencil marking on concrete wall, numbers and letters"
+        },
+        "water_stain": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/details/water_stain.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 2993502265,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Water damage stain on concrete ceiling, mineral deposits, bunker"
+        },
+        "chalk_handprint": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/details/chalk_handprint.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2780678094,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Chalk handprint on wall, fighter's ritual, training culture"
+        },
+        "rust_drip": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/underground_bunker/openart/details/rust_drip.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "underground_bunker",
+          "seed": 3497580951,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Rust drip stain running down wall from pipe, bunker detail"
+        }
+      }
+    },
+    "rooftop_cityscape": {
+      "props": {
+        "chain_link_fence": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/chain_link_fence.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 2083112142,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Chain-link fence around rooftop court, city skyline visible through"
+        },
+        "rooftop_light": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/rooftop_light.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 505172934,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Rooftop pole light illuminating court, city dusk backdrop"
+        },
+        "ac_unit": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/ac_unit.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 678412570,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Rooftop HVAC air conditioning unit, industrial building equipment"
+        },
+        "water_tower": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/water_tower.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 2846607389,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wooden water tower on adjacent rooftop, New York style"
+        },
+        "satellite_dish": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/satellite_dish.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 1719532229,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Satellite dish on rooftop edge, urban telecommunications"
+        },
+        "fire_escape": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/fire_escape.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 2847142454,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Metal fire escape stairway on building side, urban rooftop"
+        },
+        "ventilation_duct": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/ventilation_duct.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 1576690595,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Large ventilation duct exhaust on rooftop, metal construction"
+        },
+        "folding_table": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/folding_table.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 2165228979,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Folding table with water bottles and towels, rooftop court sideline"
+        },
+        "portable_hoop": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/portable_hoop.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 1679319812,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Portable basketball hoop system on rooftop, city backdrop"
+        },
+        "graffiti_rooftop": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/graffiti_rooftop.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 1382965757,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Rooftop graffiti mural on wall, urban art with city skyline theme"
+        },
+        "pigeon_coop": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/pigeon_coop.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 1507791988,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Rooftop pigeon coop wire cage, urban culture detail"
+        },
+        "radio_antenna": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/props/radio_antenna.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 145265080,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Radio antenna mast on rooftop, blinking red warning light"
+        }
+      },
+      "textures": {
+        "tar_roof": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/textures/tar_roof.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 495207087,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Black tar rooftop surface, patches and seams, tileable seamless"
+        },
+        "painted_court_roof": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/textures/painted_court_roof.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 422038138,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Painted basketball court on rooftop, concrete surface, tileable"
+        },
+        "brick_parapet": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/textures/brick_parapet.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 2942245976,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Brick building parapet wall, urban rooftop, tileable seamless"
+        },
+        "metal_grating": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/textures/metal_grating.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 596174236,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Metal grating walkway surface, rooftop access, tileable seamless"
+        },
+        "gravel_roof": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/textures/gravel_roof.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 817680933,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Gravel rooftop surface, small stones, building membrane visible, tileable"
+        }
+      },
+      "materials": {
+        "weathered_tar": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/materials/weathered_tar",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Weathered rooftop tar surface, cracked and patched, urban"
+        },
+        "galvanized_steel": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/materials/galvanized_steel",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Galvanized steel surface, air conditioning ducts, rooftop equipment"
+        },
+        "faded_paint": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/materials/faded_paint",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Faded painted concrete, rooftop court markings, sun-worn"
+        }
+      },
+      "atmosphere": {
+        "city_haze": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/atmosphere/city_haze.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 3187151749,
+          "width": 512,
+          "height": 512,
+          "prompt": "Urban city haze at dusk, smog and warm light, rooftop atmosphere"
+        },
+        "wind_dust": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/atmosphere/wind_dust.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 2189331712,
+          "width": 512,
+          "height": 512,
+          "prompt": "Wind-blown dust and particles on rooftop, city environment"
+        },
+        "sunset_rays_city": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/atmosphere/sunset_rays_city.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 3353990441,
+          "width": 512,
+          "height": 512,
+          "prompt": "Sunset light rays between buildings, urban god rays, rooftop view"
+        }
+      },
+      "skybox": {
+        "city_dusk": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/skybox/city_dusk.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 2608554244,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Megacity skyline at dusk panoramic, lit windows, dramatic clouds, orange and blue"
+        },
+        "city_night": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/skybox/city_night.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1995287580,
+          "width": 1024,
+          "height": 512,
+          "prompt": "City night skyline panoramic from rooftop, millions of lights, dark sky"
+        },
+        "city_golden": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/skybox/city_golden.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 1120470984,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Golden hour city skyline panoramic, warm light on buildings, long shadows"
+        }
+      },
+      "details": {
+        "pigeon_droppings": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/details/pigeon_droppings.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 807515217,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Bird droppings stain on rooftop surface, urban detail"
+        },
+        "roof_patch": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/details/roof_patch.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 3899973315,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Tar patch repair on rooftop, different colored surface patch"
+        },
+        "cigarette_butts": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/details/cigarette_butts.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 3785223337,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Scattered cigarette butts in corner of rooftop, urban grit"
+        },
+        "tag_spraypaint": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/rooftop_cityscape/openart/details/tag_spraypaint.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "rooftop_cityscape",
+          "seed": 519872783,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Quick spraypaint tag on rooftop wall, urban graffiti marker"
+        }
+      }
+    },
+    "winter_outdoor": {
+      "props": {
+        "bare_tree_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/bare_tree_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 4273151032,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Bare winter tree with snow on branches, outdoor court scene"
+        },
+        "bare_tree_02": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/bare_tree_02.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 3839931899,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Leafless oak tree silhouette, winter evening, frost"
+        },
+        "street_lamp_warm": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/street_lamp_warm.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2099729908,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Street lamp with warm yellow glow, snow falling, winter night"
+        },
+        "snow_bench": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/snow_bench.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 330599956,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Park bench covered in snow, near outdoor basketball court"
+        },
+        "chain_hoop_frozen": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/chain_hoop_frozen.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 3575874458,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Basketball hoop with frozen chain net, ice and frost"
+        },
+        "fire_barrel": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/fire_barrel.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 1870030756,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Metal barrel fire for warmth, flames and embers, winter outdoor court"
+        },
+        "snow_pile": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/snow_pile.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 3334584228,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Snow pile shoveled to side of court, winter scene"
+        },
+        "park_fence": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/park_fence.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 2470735474,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Black iron park fence with snow on top rail, winter scene"
+        },
+        "hot_chocolate_cart": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/hot_chocolate_cart.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 990668403,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Hot chocolate vendor cart with steam, winter park setting"
+        },
+        "snow_shovel": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/snow_shovel.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 3676518096,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Snow shovel leaning against court fence, winter maintenance"
+        },
+        "ice_formation": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/ice_formation.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 1620823172,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Icicle formation hanging from backboard frame, winter frost"
+        },
+        "evergreen_tree": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/props/evergreen_tree.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 3325534960,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Snow-covered evergreen pine tree, winter landscape backdrop"
+        }
+      },
+      "textures": {
+        "snow_ground": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/textures/snow_ground.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 2443075863,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Fresh snow on ground surface, footprints and tracks, tileable seamless"
+        },
+        "icy_concrete": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/textures/icy_concrete.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 2773706049,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Icy frozen concrete court surface, frost patterns, tileable seamless"
+        },
+        "frozen_asphalt": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/textures/frozen_asphalt.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 2643256491,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Frozen asphalt with black ice patches, winter road, tileable"
+        },
+        "snow_brick": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/textures/snow_brick.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 185070977,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Brick wall with snow dusting, frost in mortar lines, tileable seamless"
+        },
+        "slush_puddle": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/textures/slush_puddle.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 312802811,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Melting slush and dirty snow puddle texture, winter urban, tileable"
+        }
+      },
+      "materials": {
+        "frost_metal": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/materials/frost_metal",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Frosted metal surface, ice crystals and condensation, winter cold"
+        },
+        "wet_frozen_concrete": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/materials/wet_frozen_concrete",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Wet frozen concrete, black ice sheen, winter court surface"
+        },
+        "snow_crust": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/materials/snow_crust",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Crusted snow surface, partially frozen, ice crystals visible"
+        }
+      },
+      "atmosphere": {
+        "snowfall": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/atmosphere/snowfall.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 2397841675,
+          "width": 512,
+          "height": 512,
+          "prompt": "Snow particles falling gently, winter atmosphere, soft white flakes"
+        },
+        "breath_fog": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/atmosphere/breath_fog.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 2713168428,
+          "width": 512,
+          "height": 512,
+          "prompt": "Cold breath fog mist, visible exhalation in winter air"
+        },
+        "warm_glow": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/atmosphere/warm_glow.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 1415879595,
+          "width": 512,
+          "height": 512,
+          "prompt": "Warm street lamp glow through falling snow, winter atmosphere light"
+        }
+      },
+      "skybox": {
+        "winter_overcast": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/skybox/winter_overcast.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 2188429641,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Overcast winter sky panoramic, heavy grey clouds, muted light, cold atmosphere"
+        },
+        "winter_clear": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/skybox/winter_clear.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 1527386940,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Clear winter evening sky panoramic, deep blue, early stars, cold crisp"
+        },
+        "winter_storm": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/skybox/winter_storm.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 3026404833,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Winter snowstorm sky panoramic, heavy snow, low visibility, blizzard approaching"
+        }
+      },
+      "details": {
+        "frost_pattern": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/details/frost_pattern.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 3048498771,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Frost crystal pattern on glass surface, winter ice decoration"
+        },
+        "tire_tracks_snow": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/details/tire_tracks_snow.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 2756921421,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Tire tracks in snow leading to court, winter detail"
+        },
+        "boot_prints": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/details/boot_prints.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 93715394,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Boot footprints in fresh snow, walking to basketball court"
+        },
+        "icicle_drip": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/winter_outdoor/openart/details/icicle_drip.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "winter_outdoor",
+          "seed": 71853912,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Icicle dripping and melting, winter thaw detail"
+        }
+      }
+    },
+    "beach_tropical": {
+      "props": {
+        "coconut_palm": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/coconut_palm.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 3324044122,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Tropical coconut palm tree, bright sunny day, beach paradise"
+        },
+        "banana_plant": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/banana_plant.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 4007467489,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Tropical banana plant, large green leaves, beach landscape"
+        },
+        "beach_umbrella": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/beach_umbrella.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2299045910,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Colorful beach umbrella tilted in sand, tropical paradise"
+        },
+        "volleyball_net": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/volleyball_net.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 3946363891,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Beach volleyball net set up on white sand, tropical beach"
+        },
+        "tiki_torch": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/tiki_torch.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 4154244575,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Bamboo tiki torch with flame, tropical beach atmosphere"
+        },
+        "surfboard_01": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/surfboard_01.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1550447513,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Surfboard stuck in sand, tropical beach sport equipment"
+        },
+        "beach_chair": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/beach_chair.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1207751457,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wooden beach lounge chair on white sand, tropical paradise"
+        },
+        "cooler_box": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/cooler_box.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1805745594,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Beach cooler box with drinks, ice visible, tropical setting"
+        },
+        "hammock": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/hammock.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 362078165,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Hammock strung between palm trees, tropical beach relaxation"
+        },
+        "boat_beached": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/boat_beached.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1854364433,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Small wooden boat beached on sand, tropical island scene"
+        },
+        "coral_decoration": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/coral_decoration.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1143384851,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Coral and seashell decoration pile, tropical beach aesthetic"
+        },
+        "bamboo_fence": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/props/bamboo_fence.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 4099848539,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Bamboo fence border around beach court, tropical construction"
+        }
+      },
+      "textures": {
+        "white_sand": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/textures/white_sand.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 92570983,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "White tropical beach sand, fine grain, bright sunlight, tileable seamless"
+        },
+        "wet_sand": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/textures/wet_sand.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 638449490,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wet sand near ocean waterline, tropical beach, tileable seamless"
+        },
+        "palm_bark": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/textures/palm_bark.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "beach_tropical",
+          "seed": 62778401,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Palm tree bark texture, tropical wood, rough surface, tileable"
+        },
+        "bamboo_mat": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/textures/bamboo_mat.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "beach_tropical",
+          "seed": 1851960531,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Woven bamboo mat surface, tropical island construction, tileable seamless"
+        },
+        "coral_stone": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/textures/coral_stone.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "beach_tropical",
+          "seed": 3053392411,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Coral stone surface, tropical island rock, natural pattern, tileable"
+        }
+      },
+      "materials": {
+        "tropical_wood": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/materials/tropical_wood",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Tropical driftwood surface, sun-bleached, salt-weathered, beach"
+        },
+        "wet_sand_material": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/materials/wet_sand_material",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Wet tropical sand, reflective water film, beach shore"
+        },
+        "woven_palm": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/materials/woven_palm",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Woven palm frond material, tropical island construction, natural"
+        }
+      },
+      "atmosphere": {
+        "ocean_mist": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/atmosphere/ocean_mist.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2550353106,
+          "width": 512,
+          "height": 512,
+          "prompt": "Ocean spray mist, salty sea air, tropical beach atmosphere"
+        },
+        "sun_sparkle": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/atmosphere/sun_sparkle.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "beach_tropical",
+          "seed": 1918379329,
+          "width": 512,
+          "height": 512,
+          "prompt": "Sunlight sparkle particles on water, tropical ocean surface light"
+        },
+        "tropical_rays": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/atmosphere/tropical_rays.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "beach_tropical",
+          "seed": 4011881856,
+          "width": 512,
+          "height": 512,
+          "prompt": "Tropical sun rays through palm fronds, dappled light beams"
+        }
+      },
+      "skybox": {
+        "tropical_sunny": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/skybox/tropical_sunny.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "beach_tropical",
+          "seed": 721161652,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Tropical paradise sky panoramic, bright blue, fluffy white clouds, turquoise ocean"
+        },
+        "tropical_sunset": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/skybox/tropical_sunset.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2566621028,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Tropical sunset sky panoramic, vibrant orange and pink, palm silhouettes"
+        },
+        "tropical_storm": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/skybox/tropical_storm.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "beach_tropical",
+          "seed": 1804962969,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Tropical storm approaching panoramic, dramatic dark clouds, turquoise sea contrast"
+        }
+      },
+      "details": {
+        "shell_scatter": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/details/shell_scatter.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 559049389,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Seashell scatter on beach sand, various shells and coral pieces"
+        },
+        "wave_foam": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/details/wave_foam.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1334516461,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Ocean wave foam pattern on sand, white water residue, beach"
+        },
+        "crab_tracks": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/details/crab_tracks.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 4166743991,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Small crab tracks in wet sand, tropical beach nature detail"
+        },
+        "coconut_fallen": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/beach_tropical/openart/details/coconut_fallen.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 2648753318,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Fallen coconut on beach sand, split open, tropical detail"
+        }
+      }
+    },
+    "warehouse_industrial": {
+      "props": {
+        "steel_beam": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/steel_beam.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 45082657,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Exposed I-beam steel beam, warehouse ceiling structure, industrial"
+        },
+        "cage_light": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/cage_light.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 543670937,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Hanging cage light industrial fixture, warm bulb, warehouse"
+        },
+        "pallet_stack": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/pallet_stack.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 1185624917,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wooden pallet stack against wall, warehouse storage, industrial"
+        },
+        "boxing_ring": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/boxing_ring.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1209674634,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Boxing ring in warehouse corner, ropes and turnbuckles, gym"
+        },
+        "forklift": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/forklift.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 1511695228,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Parked forklift in warehouse, yellow industrial vehicle"
+        },
+        "loading_dock": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/loading_dock.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 2216553010,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Warehouse loading dock roller door, partially open, industrial"
+        },
+        "chain_hoist": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/chain_hoist.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 1181957765,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Chain hoist hanging from ceiling beam, industrial warehouse tool"
+        },
+        "oil_drum": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/oil_drum.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 788469687,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Oil drum in warehouse corner, industrial storage, slight rust"
+        },
+        "concrete_pillar": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/concrete_pillar.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 933832804,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Thick concrete support pillar, warehouse structure, industrial"
+        },
+        "metal_shelf": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/metal_shelf.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 4047817054,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Industrial metal shelving unit, warehouse storage, heavy duty"
+        },
+        "spray_booth": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/spray_booth.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 3084801895,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Industrial spray paint booth area, protective sheets, warehouse art"
+        },
+        "fire_extinguisher": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/props/fire_extinguisher.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 3236909025,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Red fire extinguisher mounted on wall, industrial safety equipment"
+        }
+      },
+      "textures": {
+        "exposed_brick": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/textures/exposed_brick.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 3885865207,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Exposed red brick wall, warehouse interior, old mortar, tileable seamless"
+        },
+        "concrete_floor_painted": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/textures/concrete_floor_painted.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 2660816425,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Painted concrete warehouse floor, court lines, scuff marks, tileable"
+        },
+        "corrugated_metal": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/textures/corrugated_metal.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 2652439062,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Corrugated metal wall panel, warehouse exterior, slight rust, tileable"
+        },
+        "rough_concrete": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/textures/rough_concrete.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 2744017386,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Rough poured concrete wall, warehouse construction, tileable seamless"
+        },
+        "wood_plank_floor": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/textures/wood_plank_floor.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 3975452689,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Old wood plank floor, warehouse conversion, worn and aged, tileable"
+        }
+      },
+      "materials": {
+        "aged_brick": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/materials/aged_brick",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Aged red brick surface, 100 year old warehouse, mortar crumbling"
+        },
+        "industrial_concrete": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/materials/industrial_concrete",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Industrial poured concrete, warehouse floor, oil stains and wear"
+        },
+        "painted_steel": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/materials/painted_steel",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Painted steel beam surface, chipping industrial paint, warehouse"
+        }
+      },
+      "atmosphere": {
+        "warehouse_haze": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/atmosphere/warehouse_haze.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 2657413440,
+          "width": 512,
+          "height": 512,
+          "prompt": "Warehouse dust haze, particles in warm cage light, industrial atmosphere"
+        },
+        "smoke_wisps": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/atmosphere/smoke_wisps.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 571874195,
+          "width": 512,
+          "height": 512,
+          "prompt": "Smoke wisps from welding or cigarettes, warehouse gym atmosphere"
+        },
+        "light_shafts": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/atmosphere/light_shafts.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 2579829811,
+          "width": 512,
+          "height": 512,
+          "prompt": "Light shafts through warehouse skylights, dust motes visible, industrial"
+        }
+      },
+      "skybox": {
+        "warehouse_ceiling": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/skybox/warehouse_ceiling.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 3137968261,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Warehouse ceiling panoramic, exposed steel trusses, skylights, cage lights"
+        },
+        "warehouse_windows": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/skybox/warehouse_windows.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 2934055440,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Warehouse with high windows, grey overcast sky visible, industrial interior panoramic"
+        },
+        "warehouse_dark": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/skybox/warehouse_dark.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 3365917884,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Dark warehouse interior panoramic, only pool of light on court area"
+        }
+      },
+      "details": {
+        "oil_stain": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/details/oil_stain.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 550506920,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Old oil stain on concrete floor, industrial warehouse detail"
+        },
+        "paint_drip": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/details/paint_drip.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 4122813773,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Spray paint drip on brick wall, warehouse art detail"
+        },
+        "chalk_tally": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/details/chalk_tally.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3024964440,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Chalk tally marks on wall, keeping score, warehouse gym culture"
+        },
+        "boot_scuff": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/warehouse_industrial/openart/details/boot_scuff.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "warehouse_industrial",
+          "seed": 1760935505,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Heavy boot scuff marks on concrete, warehouse worker detail"
+        }
+      }
+    },
+    "neon_arcade": {
+      "props": {
+        "arcade_cabinet": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/arcade_cabinet.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 1868434573,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Classic arcade cabinet machine, glowing screen, synthwave neon aesthetic"
+        },
+        "neon_grid_panel": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/neon_grid_panel.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 1707426568,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Neon grid floor panel segment, Tron-like, glowing purple and cyan lines"
+        },
+        "pixel_scoreboard": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/pixel_scoreboard.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 381480108,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Giant pixel art scoreboard, retro 8-bit graphics, neon colors"
+        },
+        "claw_machine": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/claw_machine.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 2091601221,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Neon claw machine with glowing prizes, arcade aesthetic"
+        },
+        "pinball_machine": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/pinball_machine.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "classic_nba_arena",
+          "seed": 3392300514,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Pinball machine with neon bumpers, synthwave arcade setting"
+        },
+        "jukebox": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/jukebox.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1508795707,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Retro neon jukebox, glowing bubbles, synthwave music aesthetic"
+        },
+        "neon_palm": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/neon_palm.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 3065559951,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Neon palm tree light sculpture, vaporwave aesthetic prop"
+        },
+        "token_dispenser": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/token_dispenser.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 325471713,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Arcade token change machine, neon lit, retro gaming aesthetic"
+        },
+        "racing_seat": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/racing_seat.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 2908284483,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Arcade racing game seat setup, neon screen glow, synthwave"
+        },
+        "basketball_arcade": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/basketball_arcade.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 2401006360,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Arcade basketball shooting game, neon backboard, point counter"
+        },
+        "disco_ball": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/disco_ball.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 3759995431,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Disco ball hanging from ceiling, reflecting neon colors, arcade"
+        },
+        "led_wall_panel": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/props/led_wall_panel.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 3175666611,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Large LED panel wall display, abstract synthwave graphics, neon"
+        }
+      },
+      "textures": {
+        "neon_grid_floor": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/textures/neon_grid_floor.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 1755121281,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Neon grid floor, glowing lines on black, Tron aesthetic, tileable seamless"
+        },
+        "pixel_tile": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/textures/pixel_tile.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 487621335,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Pixel art mosaic tile surface, retro 8-bit pattern, neon colors, tileable"
+        },
+        "chrome_panel": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/textures/chrome_panel.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 475234276,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Reflective chrome panel with neon color reflections, tileable seamless"
+        },
+        "rubber_arcade_floor": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/textures/rubber_arcade_floor.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 3508244918,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Black rubber arcade floor with neon speckles, tileable seamless"
+        },
+        "led_strip_wall": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/textures/led_strip_wall.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 822301307,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wall with LED strip lighting grooves, neon arcade, tileable"
+        }
+      },
+      "materials": {
+        "neon_glass": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/materials/neon_glass",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Neon-lit glass surface, pink and cyan reflections, arcade aesthetic"
+        },
+        "glowing_grid": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/materials/glowing_grid",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Glowing grid line surface, Tron floor material, electric blue"
+        },
+        "retro_chrome": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/materials/retro_chrome",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Retro polished chrome, reflecting neon lights, synthwave aesthetic"
+        }
+      },
+      "atmosphere": {
+        "neon_haze": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/atmosphere/neon_haze.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 1908446437,
+          "width": 512,
+          "height": 512,
+          "prompt": "Neon-tinted atmospheric haze, purple and cyan fog, arcade ambiance"
+        },
+        "sparkle_particles": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/atmosphere/sparkle_particles.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 2556176285,
+          "width": 512,
+          "height": 512,
+          "prompt": "Sparkle particles floating in neon light, magical arcade atmosphere"
+        },
+        "laser_beams": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/atmosphere/laser_beams.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 874674125,
+          "width": 512,
+          "height": 512,
+          "prompt": "Laser beam light show, crossing neon rays, arcade spectacle"
+        }
+      },
+      "skybox": {
+        "synthwave_sky": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/skybox/synthwave_sky.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 2947997651,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Synthwave sunset panoramic, purple grid landscape, retro sun, vaporwave"
+        },
+        "arcade_ceiling": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/skybox/arcade_ceiling.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 1930607764,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Arcade ceiling panoramic, black ceiling with neon tube patterns, disco ball"
+        },
+        "digital_void": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/skybox/digital_void.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 2959899839,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Digital void space panoramic, floating neon geometric shapes, vaporwave"
+        }
+      },
+      "details": {
+        "pixel_sticker": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/details/pixel_sticker.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3081982700,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Pixel art sticker on arcade cabinet, retro gaming character"
+        },
+        "neon_crack": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/details/neon_crack.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 3480824747,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Cracked neon tube on wall, sparking, broken arcade decoration"
+        },
+        "high_score_list": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/details/high_score_list.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 586711407,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Arcade high score list engraved on wall, retro pixel font"
+        },
+        "gum_wad": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/neon_arcade/openart/details/gum_wad.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "neon_arcade",
+          "seed": 2926739250,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Gum stuck under arcade cabinet edge, neon-lit detail"
+        }
+      }
+    },
+    "zen_dojo": {
+      "props": {
+        "bonsai_tree": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/bonsai_tree.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 3241090524,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Traditional Japanese bonsai tree on wooden stand, zen dojo decoration"
+        },
+        "paper_screen": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/paper_screen.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 2959934124,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese shoji paper screen door, warm backlight, zen dojo"
+        },
+        "wooden_rack": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/wooden_rack.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 69121191,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Wooden weapon rack with bokken and jo staff, zen dojo training hall"
+        },
+        "stone_lantern": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/stone_lantern.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 91918519,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese stone garden lantern, moss covered, zen aesthetic"
+        },
+        "meditation_cushion": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/meditation_cushion.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 919701341,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Zafu meditation cushion on tatami, zen dojo corner"
+        },
+        "calligraphy_scroll": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/calligraphy_scroll.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 3479925411,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Hanging calligraphy scroll on wall, Japanese brush art, zen dojo"
+        },
+        "incense_holder": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/incense_holder.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 2604049199,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Bronze incense holder with smoke rising, zen dojo spiritual"
+        },
+        "bamboo_fountain": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/bamboo_fountain.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 80332092,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Bamboo water fountain, shishi-odoshi, zen garden sound"
+        },
+        "tokonoma_alcove": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/tokonoma_alcove.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 348901065,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Tokonoma display alcove with ikebana flower arrangement, zen dojo"
+        },
+        "wooden_geta": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/wooden_geta.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 1734146709,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Row of wooden geta sandals at dojo entrance, Japanese tradition"
+        },
+        "tea_set": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/tea_set.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2405438130,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese tea ceremony set on low table, ceramic cups, matcha"
+        },
+        "round_window": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/props/round_window.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 2720722983,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Circular moon window in dojo wall, garden view, zen architecture"
+        }
+      },
+      "textures": {
+        "tatami_mat": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/textures/tatami_mat.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 1767109369,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese tatami mat straw weave, traditional dojo floor, tileable seamless"
+        },
+        "wood_beam": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/textures/wood_beam.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 293284542,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Dark wooden beam surface, aged Japanese architecture, tileable seamless"
+        },
+        "paper_wall": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/textures/paper_wall.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3279828873,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese washi paper wall panel, warm translucent, tileable seamless"
+        },
+        "stone_garden": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/textures/stone_garden.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 2613739707,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Raked zen rock garden sand pattern, concentric circles, tileable"
+        },
+        "bamboo_surface": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/textures/bamboo_surface.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 1054145207,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Bamboo surface, split bamboo panels, zen dojo wall, tileable seamless"
+        }
+      },
+      "materials": {
+        "aged_wood": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/materials/aged_wood",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Aged Japanese cedar wood, warm dark patina, dojo architecture"
+        },
+        "washi_paper": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/materials/washi_paper",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Washi paper surface, soft texture, warm backlit translucency, zen"
+        },
+        "garden_stone": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/materials/garden_stone",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Smooth river stone surface, zen garden element, natural"
+        }
+      },
+      "atmosphere": {
+        "incense_smoke": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/atmosphere/incense_smoke.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 2457052683,
+          "width": 512,
+          "height": 512,
+          "prompt": "Incense smoke wisps rising gently, zen dojo serene atmosphere"
+        },
+        "dust_motes_light": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/atmosphere/dust_motes_light.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 3935929973,
+          "width": 512,
+          "height": 512,
+          "prompt": "Dust motes in warm shaft of sunlight, zen dojo peaceful"
+        },
+        "warm_glow": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/atmosphere/warm_glow.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 11729458,
+          "width": 512,
+          "height": 512,
+          "prompt": "Warm paper lantern glow atmosphere, soft zen dojo ambient light"
+        }
+      },
+      "skybox": {
+        "zen_garden_view": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/skybox/zen_garden_view.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 1083101844,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Japanese zen garden panoramic, cherry blossoms, stone lanterns, serene"
+        },
+        "dojo_interior": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/skybox/dojo_interior.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 672937233,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Traditional dojo interior ceiling panoramic, dark wooden beams, paper screens, warm"
+        },
+        "zen_sunset": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/skybox/zen_sunset.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "venice_beach_sunset",
+          "seed": 1890852648,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Japanese garden sunset panoramic, golden light through maple trees, peaceful"
+        }
+      },
+      "details": {
+        "calligraphy_mark": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/details/calligraphy_mark.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1969754431,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Japanese calligraphy brush mark on paper, single kanji character"
+        },
+        "tea_stain": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/details/tea_stain.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 3328118509,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Matcha tea stain ring on wooden surface, zen dojo tea ceremony"
+        },
+        "scratch_bamboo": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/details/scratch_bamboo.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 2446033542,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Scratch marks on bamboo floor, training session wear, dojo"
+        },
+        "flower_petal": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/zen_dojo/openart/details/flower_petal.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "zen_dojo",
+          "seed": 4066036477,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Scattered cherry blossom petals on tatami, zen dojo spring detail"
+        }
+      }
+    },
+    "stadium_night_game": {
+      "props": {
+        "floodlight_tower": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/floodlight_tower.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1423737520,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Stadium floodlight tower, bright halogen lights, night game"
+        },
+        "goal_post": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/goal_post.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3695867044,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Soccer goal with net, professional stadium, night floodlights"
+        },
+        "corner_flag": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/corner_flag.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 723296093,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Soccer corner flag, stadium corner, night game atmosphere"
+        },
+        "coach_bench": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/coach_bench.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3930271862,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Team technical area bench, stadium sideline, night game"
+        },
+        "camera_crane": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/camera_crane.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 1409704656,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Television broadcast camera crane, stadium coverage, night game"
+        },
+        "electronic_board": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/electronic_board.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 2790913292,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Electronic substitution board, stadium sideline, LED numbers"
+        },
+        "barrier_fence": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/barrier_fence.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 207663560,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Stadium advertising barrier fence, sponsor boards, night game"
+        },
+        "ball_boy_chair": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/ball_boy_chair.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3499223522,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Ball boy high chair, stadium sideline, night game"
+        },
+        "var_screen": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/var_screen.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 1449077771,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "VAR review screen on sideline, electronic display, stadium"
+        },
+        "stretcher": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/stretcher.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 904287414,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Medical stretcher on sideline, stadium medical team, night game"
+        },
+        "pyro_firework": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/pyro_firework.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 2535921851,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Stadium firework launcher, pre-game pyrotechnics display"
+        },
+        "tunnel_entrance": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/props/tunnel_entrance.png",
+          "asset_type": "prop",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 839967298,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Player tunnel entrance, stadium architecture, night game lights"
+        }
+      },
+      "textures": {
+        "grass_pitch": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/textures/grass_pitch.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 3062423568,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Pristine green grass football pitch, mowed stripes, tileable seamless"
+        },
+        "running_track": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/textures/running_track.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2381379123,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Red running track surface around pitch, rubber athletics, tileable"
+        },
+        "concrete_terrace": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/textures/concrete_terrace.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 4074471588,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Stadium concrete terrace seating surface, tileable seamless"
+        },
+        "painted_grass": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/textures/painted_grass.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2679665044,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "White painted lines on green grass, football pitch markings, tileable"
+        },
+        "astroturf": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/textures/astroturf.png",
+          "asset_type": "texture",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 1314990902,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Artificial astroturf surface, green synthetic grass, tileable seamless"
+        }
+      },
+      "materials": {
+        "match_grass": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/materials/match_grass",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Professional match-day grass surface, pristine green, stadium quality"
+        },
+        "stadium_concrete": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/materials/stadium_concrete",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Stadium concrete structure surface, modern arena construction"
+        },
+        "sponsor_vinyl": {
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/materials/sponsor_vinyl",
+          "maps": [
+            "albedo",
+            "normal",
+            "roughness",
+            "metallic",
+            "ao"
+          ],
+          "status": "completed",
+          "prompt": "Vinyl advertising board material, glossy printed sponsor surface"
+        }
+      },
+      "atmosphere": {
+        "floodlight_haze": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/atmosphere/floodlight_haze.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 3982905155,
+          "width": 512,
+          "height": 512,
+          "prompt": "Stadium floodlight atmospheric haze, bright lights through mist"
+        },
+        "crowd_smoke": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/atmosphere/crowd_smoke.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 301273214,
+          "width": 512,
+          "height": 512,
+          "prompt": "Crowd flare smoke drifting across pitch, red and green, stadium atmosphere"
+        },
+        "halftime_fireworks": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/atmosphere/halftime_fireworks.png",
+          "asset_type": "atmosphere",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 1609013599,
+          "width": 512,
+          "height": 512,
+          "prompt": "Firework sparks and smoke, stadium celebration atmosphere"
+        }
+      },
+      "skybox": {
+        "stadium_night": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/skybox/stadium_night.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 3741042042,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Stadium night sky panoramic, floodlights pointing up, dark sky, light pollution"
+        },
+        "stadium_packed": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/skybox/stadium_packed.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 312080836,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Packed stadium panoramic, full crowd, banners, night game electric atmosphere"
+        },
+        "stadium_fireworks": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/skybox/stadium_fireworks.png",
+          "asset_type": "skybox",
+          "source": "procedural",
+          "environment": "retro_tokyo_night",
+          "seed": 660679115,
+          "width": 1024,
+          "height": 512,
+          "prompt": "Stadium with fireworks panoramic, celebration night, explosive colours"
+        }
+      },
+      "details": {
+        "pitch_divot": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/details/pitch_divot.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 561784600,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Grass divot from football boot stud, torn turf, pitch detail"
+        },
+        "boot_mud": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/details/boot_mud.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 3089116728,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Muddy boot print on pitch, rain game detail"
+        },
+        "confetti_scatter": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/details/confetti_scatter.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "stadium_night_game",
+          "seed": 2028759586,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Confetti scattered on pitch, celebration aftermath, stadium"
+        },
+        "sponsor_logo": {
+          "status": "completed",
+          "file_path": "/home/ubuntu/rork-final-evolution-lab/GeneratedAssets/Environments/stadium_night_game/openart/details/sponsor_logo.png",
+          "asset_type": "detail",
+          "source": "procedural",
+          "environment": "cyberpunk_gym",
+          "seed": 2168267893,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "Worn sponsor logo painted on grass, fading pitch markings"
+        }
+      }
+    }
+  },
+  "stats": {
+    "total": 360,
+    "by_environment": {
+      "retro_tokyo_night": 30,
+      "venice_beach_sunset": 30,
+      "cyberpunk_gym": 30,
+      "classic_nba_arena": 30,
+      "underground_bunker": 30,
+      "rooftop_cityscape": 30,
+      "winter_outdoor": 30,
+      "beach_tropical": 30,
+      "warehouse_industrial": 30,
+      "neon_arcade": 30,
+      "zen_dojo": 30,
+      "stadium_night_game": 30
+    },
+    "by_category": {
+      "props": 144,
+      "textures": 60,
+      "materials": 36,
+      "atmosphere": 36,
+      "skybox": 36,
+      "details": 48
+    },
+    "generation_time_seconds": 457.09,
+    "quality_preset": "medium",
+    "api_used": "procedural"
+  }
+}

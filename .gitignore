@@ -47,3 +47,13 @@ GeneratedAssets/CVPreprocessed/*/masked/*.mp4
 GeneratedAssets/CVPreprocessed/*/hoop/annotated/
 GeneratedAssets/CVPreprocessed/*/smoothed/
 logs/
+
+
+# OpenArt Generated Assets (large binary files)
+# Keep manifest but exclude actual PNG files
+GeneratedAssets/Environments/*/openart/props/*.png
+GeneratedAssets/Environments/*/openart/textures/*.png
+GeneratedAssets/Environments/*/openart/materials/*/*.png
+GeneratedAssets/Environments/*/openart/atmosphere/*.png
+GeneratedAssets/Environments/*/openart/skybox/*.png
+GeneratedAssets/Environments/*/openart/details/*.png

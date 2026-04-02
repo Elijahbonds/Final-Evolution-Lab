@@ -12,5 +12,6 @@ The generative model provides VISUAL SKINS only; all physics, animation,
 and gameplay logic remain in UE5.
 """
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __pipeline__ = "generative-environment"
+__openart_integration__ = True

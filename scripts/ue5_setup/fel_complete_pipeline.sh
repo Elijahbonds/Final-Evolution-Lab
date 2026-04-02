@@ -135,10 +135,24 @@ fi
 # Source environment
 [[ -f "${ROOT}/.ue5_env" ]] && source "${ROOT}/.ue5_env"
 
+# ── Phase 1.5: OpenArt Enhanced Environment Asset Generation ─────────────────
+if [[ "${IOS_ONLY}" == "false" ]]; then
+  CURRENT_PHASE="OPENART_GENERATION"
+  log "PHASE 1.5: OpenArt Enhanced Environment Assets"
+  if [[ -f "${ROOT}/GeneratedAssets/Environments/openart_asset_manifest.json" ]]; then
+    log "  OpenArt assets already generated (manifest found) — skipping"
+  else
+    log "  Generating OpenArt enhanced assets for 12 environments..."
+    cd "${ROOT}"
+    python3 -m scripts.environment_gen.openart_enhanced_pipeline --quality high 2>&1 | tee -a "$PIPELINE_LOG"
+    log "  OpenArt asset generation complete ✓"
+  fi
+fi
+
 # ── Phase 2: Asset Import ───────────────────────────────────────────────────
 if [[ "${IOS_ONLY}" == "false" ]]; then
   CURRENT_PHASE="ASSET_IMPORT"
-  log "PHASE 2: Asset Import"
+  log "PHASE 2: Asset Import (includes OpenArt enhanced assets)"
   bash "${SCRIPT_DIR}/import_all_assets.sh" 2>&1 | tee -a "$PIPELINE_LOG"
 fi
 
