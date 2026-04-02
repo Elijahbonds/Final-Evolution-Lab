@@ -1,156 +1,116 @@
 // Copyright (c) Final Evolution Lab.
 
 #include "FELOnboardingWidget.h"
-#include "FELBasketballGameMode.h"
-#include "FELPlatformPaths.h"
-#include "Blueprint/WidgetTree.h"
-#include "Components/Button.h"
-#include "Components/PanelWidget.h"
+#include "FELSubscriptionManager.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
-#include "Components/VerticalBoxSlot.h"
-#include "Engine/World.h"
-#include "GameFramework/GameModeBase.h"
-#include "GameFramework/PlayerController.h"
+#include "Components/Button.h"
+#include "Components/WidgetSwitcher.h"
+
+struct FOnboardingStepContent
+{
+	FString Title;
+	FString Description;
+};
+
+static const FOnboardingStepContent StepContents[] =
+{
+	// Welcome
+	{ TEXT("Welcome to Final Evolution Lab"),
+	  TEXT("The ultimate sports training platform.\n17 game modes. 23 exercises. Infinite evolution.") },
+	// TrialExplain
+	{ TEXT("Start Your 72-Hour Free Trial"),
+	  TEXT("Get full access to every game mode, workout program, and exercise for 72 hours.\nNo credit card required to start!") },
+	// AccountCreate
+	{ TEXT("Create Your Account"),
+	  TEXT("Set up your profile to track progress, earn achievements, and compete with friends.") },
+	// TrialActivation
+	{ TEXT("Trial Activated!"),
+	  TEXT("Your 72-hour free trial is now active!\nExplore everything Final Evolution Lab has to offer.") },
+	// Tutorial
+	{ TEXT("Quick Tour"),
+	  TEXT("• Exercises: 23 animated demos with form coaching\n"
+	       "• Workouts: 5 pre-built programs + custom builder\n"
+	       "• Game Modes: Basketball, Soccer, Karate & more\n"
+	       "• Creators: Train with pro athletes") },
+	// StartPlaying
+	{ TEXT("Let's Go!"),
+	  TEXT("You're ready to start your evolution.\nChoose a game mode or workout to begin.") },
+};
 
 void UFELOnboardingWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	BuildFallbackLayout();
+
+	CurrentStep = EOnboardingStep::Welcome;
+
+	if (NextButton)
+		NextButton->OnClicked.AddDynamic(this, &UFELOnboardingWidget::OnNextClicked);
+	if (SkipButton)
+		SkipButton->OnClicked.AddDynamic(this, &UFELOnboardingWidget::OnSkipClicked);
+
+	UpdateStepDisplay();
 }
 
-void UFELOnboardingWidget::BuildFallbackLayout()
+void UFELOnboardingWidget::UpdateStepDisplay()
 {
-	if (!WidgetTree)
+	int32 Idx = (int32)CurrentStep;
+
+	if (StepSwitcher && Idx < StepSwitcher->GetNumWidgets())
+		StepSwitcher->SetActiveWidgetIndex(Idx);
+
+	if (Idx < UE_ARRAY_COUNT(StepContents))
 	{
-		return;
-	}
-	if (BodyTextBlock && DismissButton && WatchDemoButton)
-	{
-		return;
+		if (StepTitleText)
+			StepTitleText->SetText(FText::FromString(StepContents[Idx].Title));
+		if (StepDescText)
+			StepDescText->SetText(FText::FromString(StepContents[Idx].Description));
 	}
 
-	// Blueprint may supply Body + Dismiss only — insert Watch Demo before Dismiss.
-	if (BodyTextBlock && DismissButton && !WatchDemoButton)
-	{
-		if (UVerticalBox* RootVBox = Cast<UVerticalBox>(WidgetTree->RootWidget))
-		{
-			WatchDemoButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-			UTextBlock* WatchLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-			WatchLabel->SetText(NSLOCTEXT("FEL", "OnboardingWatchDemo", "Watch Demo (Perfect Form)"));
-			WatchLabel->SetJustification(ETextJustify::Center);
-			WatchDemoButton->AddChild(WatchLabel);
-			WatchDemoButton->OnClicked.AddDynamic(this, &UFELOnboardingWidget::OnWatchDemoClicked);
-			const int32 DismissIdx = RootVBox->GetChildIndex(DismissButton);
-			if (DismissIdx != INDEX_NONE)
-			{
-				RootVBox->InsertChildAt(DismissIdx, WatchDemoButton);
-			}
-			else
-			{
-				if (UVerticalBoxSlot* Sw = RootVBox->AddChildToVerticalBox(WatchDemoButton))
-				{
-					Sw->SetPadding(FMargin(28.f, 0.f, 28.f, 12.f));
-				}
-			}
-		}
-		return;
-	}
-
-	BodyTextBlock = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	BodyTextBlock->SetAutoWrapText(true);
-	BodyTextBlock->SetJustification(ETextJustify::Center);
-	BodyTextBlock->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-
-	WatchDemoButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-	UTextBlock* WatchLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	WatchLabel->SetText(NSLOCTEXT("FEL", "OnboardingWatchDemo", "Watch Demo (Perfect Form)"));
-	WatchLabel->SetJustification(ETextJustify::Center);
-	WatchDemoButton->AddChild(WatchLabel);
-	WatchDemoButton->OnClicked.AddDynamic(this, &UFELOnboardingWidget::OnWatchDemoClicked);
-
-	DismissButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-	UTextBlock* BtnLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	BtnLabel->SetText(NSLOCTEXT("FEL", "OnboardingOk", "Got it — enter the Lab"));
-	BtnLabel->SetJustification(ETextJustify::Center);
-	DismissButton->AddChild(BtnLabel);
-	DismissButton->OnClicked.AddDynamic(this, &UFELOnboardingWidget::OnDismissClicked);
-
-	UVerticalBox* RootVBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	WidgetTree->RootWidget = RootVBox;
-	if (UVerticalBoxSlot* S = RootVBox->AddChildToVerticalBox(BodyTextBlock))
-	{
-		S->SetPadding(FMargin(28.f, 28.f, 28.f, 16.f));
-	}
-	if (UVerticalBoxSlot* Sw = RootVBox->AddChildToVerticalBox(WatchDemoButton))
-	{
-		Sw->SetPadding(FMargin(28.f, 0.f, 28.f, 12.f));
-	}
-	if (UVerticalBoxSlot* S2 = RootVBox->AddChildToVerticalBox(DismissButton))
-	{
-		S2->SetPadding(FMargin(28.f, 0.f, 28.f, 28.f));
-	}
+	if (StepCounterText)
+		StepCounterText->SetText(FText::FromString(
+			FString::Printf(TEXT("%d / 6"), Idx + 1)));
 }
 
-void UFELOnboardingWidget::SetLabOnboardingBodyOverride(const FString& PlainText)
+void UFELOnboardingWidget::AdvanceStep()
 {
-	LabBodyPolicyOverride = PlainText;
-}
+	int32 Next = (int32)CurrentStep + 1;
 
-void UFELOnboardingWidget::InitializeLabOnboarding()
-{
-	if (!BodyTextBlock)
+	// Activate trial at the activation step
+	if (CurrentStep == EOnboardingStep::AccountCreate)
+		ActivateTrial();
+
+	if (Next > (int32)EOnboardingStep::StartPlaying)
 	{
+		RemoveFromParent();
 		return;
 	}
-	if (!LabBodyPolicyOverride.IsEmpty())
-	{
-		BodyTextBlock->SetText(FText::FromString(LabBodyPolicyOverride));
-		return;
-	}
-	BodyTextBlock->SetText(NSLOCTEXT(
-		"FEL",
-		"LabOnboardingBody",
-		"Welcome to the Lab.\n\n"
-		"• Use Get Ready → Play → Result like Arena (PROJECT_FLOWS).\n"
-		"• Dunk Contest uses the same neuro readiness export as the rest of the Lab (PRQ, hang time, leakage).\n"
-		"• Brain Brawl quizzes can boost PRQ during a match — check session_results.json after play.\n"
-		"• Watch Demo shows Bonds Bounce–scaled perfect form before you play."));
+
+	CurrentStep = (EOnboardingStep)Next;
+	UpdateStepDisplay();
 }
 
-void UFELOnboardingWidget::OnWatchDemoClicked()
+void UFELOnboardingWidget::SkipToGame()
 {
-	if (UWorld* World = GetWorld())
-	{
-		if (AGameModeBase* GM = World->GetAuthGameMode())
-		{
-			if (AFELBasketballGameMode* Mode = Cast<AFELBasketballGameMode>(GM))
-			{
-				Mode->TriggerExerciseDemo();
-			}
-		}
-	}
-}
-
-void UFELOnboardingWidget::OnDismissClicked()
-{
-	if (UWorld* World = GetWorld())
-	{
-		if (AGameModeBase* GM = World->GetAuthGameMode())
-		{
-			if (AFELBasketballGameMode* Mode = Cast<AFELBasketballGameMode>(GM))
-			{
-				Mode->EndExerciseDemoIfActive();
-			}
-		}
-	}
-	FELPlatformPaths::SetLabOnboardingCompleted();
-	if (APlayerController* PC = GetOwningPlayer())
-	{
-		PC->SetShowMouseCursor(false);
-		FInputModeGameOnly Mode;
-		PC->SetInputMode(Mode);
-	}
-	OnDismissed.Broadcast();
+	ActivateTrial();
 	RemoveFromParent();
+}
+
+void UFELOnboardingWidget::ActivateTrial()
+{
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	UFELSubscriptionManager* SubMgr = GI->GetSubsystem<UFELSubscriptionManager>();
+	if (!SubMgr) return;
+
+	SubMgr->StartFreeTrial();
+}
+
+void UFELOnboardingWidget::OnNextClicked()
+{
+	AdvanceStep();
+}
+
+void UFELOnboardingWidget::OnSkipClicked()
+{
+	SkipToGame();
 }

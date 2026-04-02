@@ -6,6 +6,7 @@ import VideoShowcase from "./components/VideoShowcase";
 import PRQSection from "./components/PRQSection";
 import AcademySection from "./components/AcademySection";
 import StreamingSection from "./components/StreamingSection";
+import PricingSection from "./components/PricingSection";
 import ShopSection from "./components/ShopSection";
 import InstallSection from "./components/InstallSection";
 import Footer from "./components/Footer";
@@ -16,6 +17,7 @@ export default function App() {
       <Nav />
       <Hero />
       <GameModes />
+      <PricingSection />
       <DownloadSection />
       <VideoShowcase />
       <PRQSection />

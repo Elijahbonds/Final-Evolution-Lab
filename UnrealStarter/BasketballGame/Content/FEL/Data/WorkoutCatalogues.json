@@ -1,0 +1,434 @@
+{
+  "version": "1.0.0",
+  "description": "Pre-built Workout Programs for Final Evolution Lab",
+  "programs": [
+    {
+      "id": "basketball_performance",
+      "name": "Basketball Performance",
+      "description": "8-week program focused on vertical jump, speed, agility, and basketball-specific athleticism. Designed for hoopers looking to elevate their game with plyometrics, strength, and mobility work.",
+      "durationWeeks": 8,
+      "daysPerWeek": 4,
+      "goal": "athletic",
+      "level": "intermediate",
+      "periodization": "undulating",
+      "weeks": [
+        {
+          "weekNumber": 1,
+          "isDeload": false,
+          "intensityModifier": 0.8,
+          "days": [
+            {
+              "dayName": "Day 1 - Lower Body Power",
+              "estimatedDuration": 50,
+              "exercises": [
+                { "exerciseID": "high_knees", "sets": 3, "reps": 20, "restTime": 30, "weight": 0, "notes": "Warm-up pace" },
+                { "exerciseID": "lateral_shuffle", "sets": 3, "reps": 0, "restTime": 30, "weight": 0, "notes": "30 seconds each direction" },
+                { "exerciseID": "squat_form", "sets": 4, "reps": 8, "restTime": 90, "weight": 0, "notes": "Focus on depth and control" },
+                { "exerciseID": "box_jump", "sets": 4, "reps": 6, "restTime": 120, "weight": 0, "notes": "Soft landing, full hip extension" },
+                { "exerciseID": "dunk_approach", "sets": 3, "reps": 5, "restTime": 120, "weight": 0, "notes": "Approach pattern with max jump" },
+                { "exerciseID": "ankle_dorsiflexion", "sets": 2, "reps": 15, "restTime": 30, "weight": 0, "notes": "Each side" },
+                { "exerciseID": "pigeon_stretch", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "60 seconds each side" }
+              ]
+            },
+            {
+              "dayName": "Day 2 - Upper Body & Core",
+              "estimatedDuration": 45,
+              "exercises": [
+                { "exerciseID": "arm_circles_progressive", "sets": 2, "reps": 20, "restTime": 15, "weight": 0, "notes": "" },
+                { "exerciseID": "pushup_explosive", "sets": 4, "reps": 10, "restTime": 60, "weight": 0, "notes": "Explosive push off floor" },
+                { "exerciseID": "shoulder_dislocate", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "Use band or PVC pipe" },
+                { "exerciseID": "balance_board", "sets": 3, "reps": 0, "restTime": 30, "weight": 0, "notes": "45 seconds per set" },
+                { "exerciseID": "breathing_box", "sets": 3, "reps": 5, "restTime": 0, "weight": 0, "notes": "4-4-4-4 pattern" }
+              ]
+            },
+            {
+              "dayName": "Day 3 - Agility & Plyometrics",
+              "estimatedDuration": 55,
+              "exercises": [
+                { "exerciseID": "dynamic_lunge_walk", "sets": 2, "reps": 10, "restTime": 30, "weight": 0, "notes": "Each leg" },
+                { "exerciseID": "high_knees", "sets": 3, "reps": 20, "restTime": 30, "weight": 0, "notes": "Explosive drive" },
+                { "exerciseID": "lateral_shuffle", "sets": 4, "reps": 0, "restTime": 45, "weight": 0, "notes": "20 yards each direction" },
+                { "exerciseID": "box_jump", "sets": 5, "reps": 5, "restTime": 90, "weight": 0, "notes": "Increase height each set" },
+                { "exerciseID": "dunk_approach", "sets": 4, "reps": 4, "restTime": 120, "weight": 0, "notes": "Full approach, max effort" },
+                { "exerciseID": "foam_roll_it_band", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "2 minutes each side" }
+              ]
+            },
+            {
+              "dayName": "Day 4 - Mobility & Recovery",
+              "estimatedDuration": 35,
+              "exercises": [
+                { "exerciseID": "hip_90_90", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "Each side" },
+                { "exerciseID": "thoracic_rotation", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "Slow and controlled" },
+                { "exerciseID": "ankle_dorsiflexion", "sets": 3, "reps": 15, "restTime": 30, "weight": 0, "notes": "Wall-assisted" },
+                { "exerciseID": "shoulder_dislocate", "sets": 2, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "90 seconds each side" },
+                { "exerciseID": "foam_roll_it_band", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "" },
+                { "exerciseID": "breathing_box", "sets": 5, "reps": 5, "restTime": 0, "weight": 0, "notes": "Deep recovery breathing" }
+              ]
+            }
+          ]
+        },
+        {
+          "weekNumber": 2,
+          "isDeload": false,
+          "intensityModifier": 0.85,
+          "days": [
+            {
+              "dayName": "Day 1 - Lower Body Power",
+              "estimatedDuration": 50,
+              "exercises": [
+                { "exerciseID": "high_knees", "sets": 3, "reps": 25, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "squat_form", "sets": 4, "reps": 8, "restTime": 90, "weight": 0, "notes": "Add resistance if possible" },
+                { "exerciseID": "box_jump", "sets": 5, "reps": 5, "restTime": 120, "weight": 0, "notes": "Higher box than week 1" },
+                { "exerciseID": "deadlift_hip_hinge", "sets": 3, "reps": 8, "restTime": 90, "weight": 0, "notes": "Hinge pattern" },
+                { "exerciseID": "dunk_approach", "sets": 4, "reps": 5, "restTime": 120, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 2 - Upper & Core",
+              "estimatedDuration": 45,
+              "exercises": [
+                { "exerciseID": "arm_circles_progressive", "sets": 2, "reps": 20, "restTime": 15, "weight": 0, "notes": "" },
+                { "exerciseID": "pushup_explosive", "sets": 5, "reps": 8, "restTime": 60, "weight": 0, "notes": "" },
+                { "exerciseID": "balance_board", "sets": 3, "reps": 0, "restTime": 30, "weight": 0, "notes": "60 seconds" },
+                { "exerciseID": "breathing_box", "sets": 3, "reps": 5, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 3 - Speed & Agility",
+              "estimatedDuration": 55,
+              "exercises": [
+                { "exerciseID": "dynamic_lunge_walk", "sets": 2, "reps": 12, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "lateral_shuffle", "sets": 5, "reps": 0, "restTime": 45, "weight": 0, "notes": "" },
+                { "exerciseID": "box_jump", "sets": 4, "reps": 6, "restTime": 90, "weight": 0, "notes": "Depth jumps" },
+                { "exerciseID": "dunk_approach", "sets": 5, "reps": 4, "restTime": 120, "weight": 0, "notes": "" },
+                { "exerciseID": "foam_roll_it_band", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 4 - Recovery",
+              "estimatedDuration": 30,
+              "exercises": [
+                { "exerciseID": "hip_90_90", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "thoracic_rotation", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "ankle_dorsiflexion", "sets": 3, "reps": 15, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "" },
+                { "exerciseID": "breathing_box", "sets": 5, "reps": 5, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            }
+          ]
+        },
+        {
+          "weekNumber": 4,
+          "isDeload": true,
+          "intensityModifier": 0.6,
+          "days": [
+            {
+              "dayName": "Day 1 - Light Movement",
+              "estimatedDuration": 30,
+              "exercises": [
+                { "exerciseID": "dynamic_lunge_walk", "sets": 2, "reps": 8, "restTime": 30, "weight": 0, "notes": "Easy pace" },
+                { "exerciseID": "squat_form", "sets": 2, "reps": 8, "restTime": 60, "weight": 0, "notes": "Light / bodyweight only" },
+                { "exerciseID": "hip_90_90", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "breathing_box", "sets": 5, "reps": 5, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 2 - Mobility Focus",
+              "estimatedDuration": 30,
+              "exercises": [
+                { "exerciseID": "thoracic_rotation", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "shoulder_dislocate", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "ankle_dorsiflexion", "sets": 3, "reps": 15, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "2 min each" },
+                { "exerciseID": "foam_roll_it_band", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "strength_foundation",
+      "name": "Strength Foundation",
+      "description": "12-week linear periodization program building base strength through compound movements. Perfect for beginners or those returning to training after a break.",
+      "durationWeeks": 12,
+      "daysPerWeek": 3,
+      "goal": "strength",
+      "level": "beginner",
+      "periodization": "linear",
+      "weeks": [
+        {
+          "weekNumber": 1,
+          "isDeload": false,
+          "intensityModifier": 0.7,
+          "days": [
+            {
+              "dayName": "Day A - Push Focus",
+              "estimatedDuration": 45,
+              "exercises": [
+                { "exerciseID": "arm_circles_progressive", "sets": 2, "reps": 15, "restTime": 15, "weight": 0, "notes": "Warm-up" },
+                { "exerciseID": "pushup_explosive", "sets": 3, "reps": 10, "restTime": 60, "weight": 0, "notes": "Controlled tempo" },
+                { "exerciseID": "squat_form", "sets": 3, "reps": 10, "restTime": 90, "weight": 0, "notes": "Bodyweight" },
+                { "exerciseID": "balance_board", "sets": 2, "reps": 0, "restTime": 30, "weight": 0, "notes": "30 seconds" },
+                { "exerciseID": "pigeon_stretch", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "60 sec each" }
+              ]
+            },
+            {
+              "dayName": "Day B - Pull & Hinge",
+              "estimatedDuration": 45,
+              "exercises": [
+                { "exerciseID": "dynamic_lunge_walk", "sets": 2, "reps": 8, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "deadlift_hip_hinge", "sets": 3, "reps": 10, "restTime": 90, "weight": 0, "notes": "Focus on hinge pattern" },
+                { "exerciseID": "squat_form", "sets": 3, "reps": 10, "restTime": 90, "weight": 0, "notes": "" },
+                { "exerciseID": "shoulder_dislocate", "sets": 2, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "foam_roll_it_band", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day C - Full Body",
+              "estimatedDuration": 50,
+              "exercises": [
+                { "exerciseID": "high_knees", "sets": 3, "reps": 20, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "pushup_explosive", "sets": 3, "reps": 8, "restTime": 60, "weight": 0, "notes": "" },
+                { "exerciseID": "squat_form", "sets": 4, "reps": 8, "restTime": 90, "weight": 0, "notes": "" },
+                { "exerciseID": "deadlift_hip_hinge", "sets": 3, "reps": 10, "restTime": 90, "weight": 0, "notes": "" },
+                { "exerciseID": "box_jump", "sets": 3, "reps": 5, "restTime": 60, "weight": 0, "notes": "Low box" },
+                { "exerciseID": "breathing_box", "sets": 3, "reps": 5, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            }
+          ]
+        },
+        {
+          "weekNumber": 4,
+          "isDeload": true,
+          "intensityModifier": 0.5,
+          "days": [
+            {
+              "dayName": "Day A - Light",
+              "estimatedDuration": 30,
+              "exercises": [
+                { "exerciseID": "dynamic_lunge_walk", "sets": 2, "reps": 8, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "squat_form", "sets": 2, "reps": 8, "restTime": 60, "weight": 0, "notes": "50% effort" },
+                { "exerciseID": "pigeon_stretch", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "" },
+                { "exerciseID": "breathing_box", "sets": 5, "reps": 5, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "athletic_conditioning",
+      "name": "Athletic Conditioning",
+      "description": "6-week high-intensity conditioning program combining HIIT, cardio, and strength circuits. Built for athletes who want to improve endurance and game-day stamina.",
+      "durationWeeks": 6,
+      "daysPerWeek": 5,
+      "goal": "endurance",
+      "level": "advanced",
+      "periodization": "undulating",
+      "weeks": [
+        {
+          "weekNumber": 1,
+          "isDeload": false,
+          "intensityModifier": 0.85,
+          "days": [
+            {
+              "dayName": "Day 1 - HIIT Circuit",
+              "estimatedDuration": 40,
+              "exercises": [
+                { "exerciseID": "high_knees", "sets": 4, "reps": 30, "restTime": 20, "weight": 0, "notes": "Max effort 30 sec" },
+                { "exerciseID": "pushup_explosive", "sets": 4, "reps": 15, "restTime": 20, "weight": 0, "notes": "" },
+                { "exerciseID": "box_jump", "sets": 4, "reps": 10, "restTime": 20, "weight": 0, "notes": "" },
+                { "exerciseID": "lateral_shuffle", "sets": 4, "reps": 0, "restTime": 20, "weight": 0, "notes": "30 sec" },
+                { "exerciseID": "squat_form", "sets": 4, "reps": 15, "restTime": 20, "weight": 0, "notes": "Jump squats" }
+              ]
+            },
+            {
+              "dayName": "Day 2 - Strength Endurance",
+              "estimatedDuration": 50,
+              "exercises": [
+                { "exerciseID": "dynamic_lunge_walk", "sets": 3, "reps": 12, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "squat_form", "sets": 5, "reps": 12, "restTime": 45, "weight": 0, "notes": "" },
+                { "exerciseID": "pushup_explosive", "sets": 5, "reps": 12, "restTime": 45, "weight": 0, "notes": "" },
+                { "exerciseID": "deadlift_hip_hinge", "sets": 4, "reps": 12, "restTime": 45, "weight": 0, "notes": "" },
+                { "exerciseID": "balance_board", "sets": 3, "reps": 0, "restTime": 30, "weight": 0, "notes": "45 sec" }
+              ]
+            },
+            {
+              "dayName": "Day 3 - Sport Drills",
+              "estimatedDuration": 45,
+              "exercises": [
+                { "exerciseID": "high_knees", "sets": 3, "reps": 25, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "lateral_shuffle", "sets": 5, "reps": 0, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "dunk_approach", "sets": 4, "reps": 5, "restTime": 90, "weight": 0, "notes": "" },
+                { "exerciseID": "kick_form", "sets": 3, "reps": 10, "restTime": 45, "weight": 0, "notes": "" },
+                { "exerciseID": "karate_kata_basic", "sets": 2, "reps": 5, "restTime": 60, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 4 - Power Circuit",
+              "estimatedDuration": 45,
+              "exercises": [
+                { "exerciseID": "arm_circles_progressive", "sets": 2, "reps": 20, "restTime": 15, "weight": 0, "notes": "" },
+                { "exerciseID": "box_jump", "sets": 5, "reps": 8, "restTime": 60, "weight": 0, "notes": "" },
+                { "exerciseID": "pushup_explosive", "sets": 4, "reps": 10, "restTime": 45, "weight": 0, "notes": "Clap push-ups" },
+                { "exerciseID": "squat_form", "sets": 4, "reps": 10, "restTime": 60, "weight": 0, "notes": "Pause squats" },
+                { "exerciseID": "tumbling_roundoff", "sets": 3, "reps": 5, "restTime": 60, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 5 - Active Recovery",
+              "estimatedDuration": 30,
+              "exercises": [
+                { "exerciseID": "hip_90_90", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "thoracic_rotation", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "90 sec each" },
+                { "exerciseID": "foam_roll_it_band", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "" },
+                { "exerciseID": "breathing_box", "sets": 5, "reps": 5, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mobility_recovery",
+      "name": "Mobility & Recovery",
+      "description": "4-week daily mobility and recovery program for flexibility, injury prevention, and joint health. Ideal for rest weeks or pairing with intense training phases.",
+      "durationWeeks": 4,
+      "daysPerWeek": 7,
+      "goal": "mobility",
+      "level": "beginner",
+      "periodization": "linear",
+      "weeks": [
+        {
+          "weekNumber": 1,
+          "isDeload": false,
+          "intensityModifier": 0.5,
+          "days": [
+            {
+              "dayName": "Morning Flow",
+              "estimatedDuration": 20,
+              "exercises": [
+                { "exerciseID": "dynamic_lunge_walk", "sets": 2, "reps": 8, "restTime": 15, "weight": 0, "notes": "Gentle warm-up" },
+                { "exerciseID": "arm_circles_progressive", "sets": 2, "reps": 15, "restTime": 15, "weight": 0, "notes": "" },
+                { "exerciseID": "hip_90_90", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "Each side" },
+                { "exerciseID": "thoracic_rotation", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "ankle_dorsiflexion", "sets": 2, "reps": 15, "restTime": 15, "weight": 0, "notes": "" },
+                { "exerciseID": "shoulder_dislocate", "sets": 2, "reps": 10, "restTime": 15, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "60 sec each" },
+                { "exerciseID": "breathing_box", "sets": 5, "reps": 5, "restTime": 0, "weight": 0, "notes": "Finish with calm breathing" }
+              ]
+            },
+            {
+              "dayName": "Evening Recovery",
+              "estimatedDuration": 15,
+              "exercises": [
+                { "exerciseID": "foam_roll_it_band", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "Full body foam roll" },
+                { "exerciseID": "pigeon_stretch", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "90 sec each" },
+                { "exerciseID": "hip_90_90", "sets": 2, "reps": 8, "restTime": 15, "weight": 0, "notes": "" },
+                { "exerciseID": "breathing_box", "sets": 10, "reps": 4, "restTime": 0, "weight": 0, "notes": "Deep relaxation" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dunk_training",
+      "name": "Dunk Training Program",
+      "description": "10-week vertical jump maximization program. Combines heavy strength work, plyometrics, and approach technique to add inches to your vertical. Built around Final Evolution Lab's dunk contest mode.",
+      "durationWeeks": 10,
+      "daysPerWeek": 4,
+      "goal": "vertical_jump",
+      "level": "intermediate",
+      "periodization": "block",
+      "weeks": [
+        {
+          "weekNumber": 1,
+          "isDeload": false,
+          "intensityModifier": 0.8,
+          "days": [
+            {
+              "dayName": "Day 1 - Max Strength",
+              "estimatedDuration": 55,
+              "exercises": [
+                { "exerciseID": "high_knees", "sets": 3, "reps": 20, "restTime": 30, "weight": 0, "notes": "Warm-up" },
+                { "exerciseID": "dynamic_lunge_walk", "sets": 2, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "squat_form", "sets": 5, "reps": 5, "restTime": 180, "weight": 0, "notes": "Heavy - max effort" },
+                { "exerciseID": "deadlift_hip_hinge", "sets": 4, "reps": 5, "restTime": 180, "weight": 0, "notes": "Heavy hinge" },
+                { "exerciseID": "ankle_dorsiflexion", "sets": 2, "reps": 15, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 2 - Plyometrics",
+              "estimatedDuration": 50,
+              "exercises": [
+                { "exerciseID": "lateral_shuffle", "sets": 3, "reps": 0, "restTime": 30, "weight": 0, "notes": "Warm-up" },
+                { "exerciseID": "box_jump", "sets": 6, "reps": 3, "restTime": 120, "weight": 0, "notes": "Max height, full recovery" },
+                { "exerciseID": "dunk_approach", "sets": 5, "reps": 3, "restTime": 150, "weight": 0, "notes": "Full approach, max jump" },
+                { "exerciseID": "squat_form", "sets": 3, "reps": 5, "restTime": 60, "weight": 0, "notes": "Jump squats" },
+                { "exerciseID": "foam_roll_it_band", "sets": 2, "reps": 0, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 3 - Technique & Power",
+              "estimatedDuration": 45,
+              "exercises": [
+                { "exerciseID": "arm_circles_progressive", "sets": 2, "reps": 15, "restTime": 15, "weight": 0, "notes": "" },
+                { "exerciseID": "dunk_approach", "sets": 8, "reps": 2, "restTime": 120, "weight": 0, "notes": "Focus on 1-foot and 2-foot plants" },
+                { "exerciseID": "box_jump", "sets": 4, "reps": 4, "restTime": 90, "weight": 0, "notes": "Depth jumps" },
+                { "exerciseID": "pushup_explosive", "sets": 3, "reps": 10, "restTime": 60, "weight": 0, "notes": "" },
+                { "exerciseID": "balance_board", "sets": 3, "reps": 0, "restTime": 30, "weight": 0, "notes": "Single leg" }
+              ]
+            },
+            {
+              "dayName": "Day 4 - Recovery & Mobility",
+              "estimatedDuration": 30,
+              "exercises": [
+                { "exerciseID": "hip_90_90", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "thoracic_rotation", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "ankle_dorsiflexion", "sets": 3, "reps": 15, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "shoulder_dislocate", "sets": 2, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "2 min each" },
+                { "exerciseID": "foam_roll_it_band", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "" },
+                { "exerciseID": "breathing_box", "sets": 5, "reps": 5, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            }
+          ]
+        },
+        {
+          "weekNumber": 5,
+          "isDeload": true,
+          "intensityModifier": 0.5,
+          "days": [
+            {
+              "dayName": "Day 1 - Light Movement",
+              "estimatedDuration": 25,
+              "exercises": [
+                { "exerciseID": "dynamic_lunge_walk", "sets": 2, "reps": 8, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "squat_form", "sets": 2, "reps": 8, "restTime": 60, "weight": 0, "notes": "Bodyweight only" },
+                { "exerciseID": "hip_90_90", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "breathing_box", "sets": 5, "reps": 5, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            },
+            {
+              "dayName": "Day 2 - Full Mobility",
+              "estimatedDuration": 25,
+              "exercises": [
+                { "exerciseID": "thoracic_rotation", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "ankle_dorsiflexion", "sets": 3, "reps": 15, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "shoulder_dislocate", "sets": 3, "reps": 10, "restTime": 30, "weight": 0, "notes": "" },
+                { "exerciseID": "pigeon_stretch", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "" },
+                { "exerciseID": "foam_roll_it_band", "sets": 3, "reps": 0, "restTime": 0, "weight": 0, "notes": "" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

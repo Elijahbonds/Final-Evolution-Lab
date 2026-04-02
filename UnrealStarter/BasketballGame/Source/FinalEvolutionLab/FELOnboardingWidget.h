@@ -1,5 +1,6 @@
 // Copyright (c) Final Evolution Lab.
-// First-time Lab entry: Get Ready–style copy per PROJECT_FLOWS.md (Arena/Lab sequencing).
+// UMG Widget: First-time user onboarding flow.
+// Phase 3: Integration
 
 #pragma once
 
@@ -7,48 +8,64 @@
 #include "Blueprint/UserWidget.h"
 #include "FELOnboardingWidget.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFELOnboardingDismissed);
+class UTextBlock;
+class UButton;
+class UWidgetSwitcher;
+class UImage;
 
-/**
- * Shown once until lab_onboarding_completed.flag exists in Documents/FEL (iOS) or Saved/FEL (desktop).
- */
+UENUM(BlueprintType)
+enum class EOnboardingStep : uint8
+{
+	Welcome,
+	TrialExplain,
+	AccountCreate,
+	TrialActivation,
+	Tutorial,
+	StartPlaying
+};
+
 UCLASS()
 class FINALEVOLUTIONLAB_API UFELOnboardingWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	/** Optional plain-text body from `FEL_ClinicalUIPolicy.json` (call before `InitializeLabOnboarding`). */
-	UFUNCTION(BlueprintCallable, Category = "FEL|Onboarding")
-	void SetLabOnboardingBodyOverride(const FString& PlainText);
+	UFUNCTION(BlueprintCallable, Category = "FEL|UI")
+	void AdvanceStep();
 
-	/** Build UI + bind dismiss; call after CreateWidget. */
-	UFUNCTION(BlueprintCallable, Category = "FEL|Onboarding")
-	void InitializeLabOnboarding();
-
-	UPROPERTY(BlueprintAssignable, Category = "FEL|Onboarding")
-	FOnFELOnboardingDismissed OnDismissed;
+	UFUNCTION(BlueprintCallable, Category = "FEL|UI")
+	void SkipToGame();
 
 protected:
 	virtual void NativeConstruct() override;
 
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
+	UWidgetSwitcher* StepSwitcher;
+
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
+	UTextBlock* StepTitleText;
+
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
+	UTextBlock* StepDescText;
+
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
+	UButton* NextButton;
+
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
+	UButton* SkipButton;
+
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly)
+	UTextBlock* StepCounterText;
+
 private:
-	void BuildFallbackLayout();
+	UFUNCTION()
+	void OnNextClicked();
 
 	UFUNCTION()
-	void OnDismissClicked();
+	void OnSkipClicked();
 
-	UPROPERTY(meta = (BindWidgetOptional))
-	class UTextBlock* BodyTextBlock = nullptr;
+	void UpdateStepDisplay();
+	void ActivateTrial();
 
-	UPROPERTY(meta = (BindWidgetOptional))
-	class UButton* DismissButton = nullptr;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	class UButton* WatchDemoButton = nullptr;
-
-	UFUNCTION()
-	void OnWatchDemoClicked();
-
-	FString LabBodyPolicyOverride;
+	EOnboardingStep CurrentStep = EOnboardingStep::Welcome;
 };
