@@ -3,7 +3,15 @@
 > **Follow this checklist step-by-step to build, deploy, and launch Final Evolution Lab.**  
 > **Estimated Total Time: 4–7 hours** (mostly waiting for builds)  
 > **Monthly AWS Budget: ~$150–400/month** (see [BUDGET_OPTIMIZATION.md](deployment/docs/BUDGET_OPTIMIZATION.md))  
-> **Marketing Site: [https://clinquant-figolla-2ad386.netlify.app](https://clinquant-figolla-2ad386.netlify.app)**
+> **Marketing Site: [https://clinquant-figolla-2ad386.netlify.app](https://clinquant-figolla-2ad386.netlify.app)**  
+>
+> ### 🍎 Mac Mini M4 Pro Users
+> If you're using a **Mac Mini M4 Pro**, see these dedicated guides for Mac-optimized instructions:
+> - **[QUICK_START_MAC.md](QUICK_START_MAC.md)** — Condensed quick-start for experienced developers
+> - **[MAC_MINI_SETUP_GUIDE.md](MAC_MINI_SETUP_GUIDE.md)** — Full UE5 setup guide for M4 Pro
+> - **[MAC_AWS_DEPLOYMENT.md](MAC_AWS_DEPLOYMENT.md)** — AWS deployment from Mac Terminal
+> - **[PROJECT_TRANSFER_GUIDE.md](PROJECT_TRANSFER_GUIDE.md)** — Transfer project from DeepAgent to Mac
+> - **[deployment/scripts/mac-deploy.sh](deployment/scripts/mac-deploy.sh)** — One-command deploy script
 
 ---
 
@@ -118,8 +126,16 @@
 
 - [ ] Copy the provided PEM file to your `~/.ssh/` directory:
   ```bash
-  cp "FinalEvolutionLab.pem" ~/.ssh/FinalEvolutionLab.pem
+  # macOS (Mac Mini M4 Pro)
+  cp ~/Downloads/FinalEvolutionLab.pem ~/.ssh/FinalEvolutionLab.pem
   chmod 400 ~/.ssh/FinalEvolutionLab.pem
+
+  # Linux
+  cp FinalEvolutionLab.pem ~/.ssh/FinalEvolutionLab.pem
+  chmod 400 ~/.ssh/FinalEvolutionLab.pem
+
+  # Windows (PowerShell)
+  # Copy to C:\Users\<username>\.ssh\FinalEvolutionLab.pem
   ```
 - [ ] Import the key pair into AWS (if not already imported):
   ```bash
@@ -128,6 +144,8 @@
     --public-key-material fileb://<(ssh-keygen -y -f ~/.ssh/FinalEvolutionLab.pem) \
     --region us-west-2
   ```
+
+  > **🍎 Mac Note:** If using zsh (default on macOS), the `<()` process substitution works natively.
 
 ### 1.6 Clone the Repository
 
@@ -713,6 +731,21 @@ aws autoscaling update-auto-scaling-group \
 ---
 
 ## Quick Reference Card
+
+### 🍎 Mac Mini M4 Pro Paths
+
+| Item | Mac Path |
+|------|----------|
+| Project directory | `~/Projects/rork-final-evolution-lab` |
+| UE5 install | `/Users/Shared/Epic Games/UE_5.4` |
+| UE5 Editor | `/Users/Shared/Epic Games/UE_5.4/Engine/Binaries/Mac/UnrealEditor.app` |
+| SSH key | `~/.ssh/fel-mac-mini` or `~/.ssh/FinalEvolutionLab.pem` |
+| Environment file | `~/Projects/rork-final-evolution-lab/.ue5_env` |
+| Linux build output | `~/Projects/rork-final-evolution-lab/Builds/Linux/` |
+| Terraform configs | `~/Projects/rork-final-evolution-lab/deployment/aws/` |
+| One-command deploy | `bash ~/Projects/rork-final-evolution-lab/deployment/scripts/mac-deploy.sh` |
+
+### General Commands
 
 | What | Command / URL |
 |------|--------------|
