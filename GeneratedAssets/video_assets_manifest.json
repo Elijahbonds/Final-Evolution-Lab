@@ -1,0 +1,79 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-04-02T04:58:06.578231+00:00",
+  "description": "Visual showcase assets from Venice Beach magic reveal series",
+  "total_videos": 7,
+  "usage": "UI backgrounds, marketing showcase, venue previews",
+  "videos": {
+    "hoopbus_magic_reveal": {
+      "filename": "Hoopbus_magic_reveal.mp4",
+      "path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/MagicReveal/Hoopbus_magic_reveal.mp4",
+      "size_mb": 6.31,
+      "venue_mapping": "classic_nba_arena",
+      "location": "Hoopbus",
+      "usage_type": "showcase_highlight",
+      "ue5_media_path": "/Game/FEL/Media/MagicReveal/Hoopbus_magic_reveal",
+      "status": "ready"
+    },
+    "muscle_beach_gym_magic_reveal": {
+      "filename": "Muscle_beach_gym_magic_reveal.mp4",
+      "path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/MagicReveal/Muscle_beach_gym_magic_reveal.mp4",
+      "size_mb": 13.42,
+      "venue_mapping": "training_gym",
+      "location": "Muscle Beach Gym",
+      "usage_type": "gym_preview",
+      "ue5_media_path": "/Game/FEL/Media/MagicReveal/Muscle_beach_gym_magic_reveal",
+      "status": "ready"
+    },
+    "muscle_beach_stage_magic_reveal": {
+      "filename": "Muscle_beach_stage_magic_reveal.mp4",
+      "path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/MagicReveal/Muscle_beach_stage_magic_reveal.mp4",
+      "size_mb": 17.35,
+      "venue_mapping": "beach_tropical",
+      "location": "Muscle Beach Stage",
+      "usage_type": "stage_showcase",
+      "ue5_media_path": "/Game/FEL/Media/MagicReveal/Muscle_beach_stage_magic_reveal",
+      "status": "ready"
+    },
+    "venice_ball_shop_magic_reveal": {
+      "filename": "Venice_Ball_Shop_magic_reveal.mp4",
+      "path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/MagicReveal/Venice_Ball_Shop_magic_reveal.mp4",
+      "size_mb": 14.14,
+      "venue_mapping": "marketplace",
+      "location": "Venice Ball Shop",
+      "usage_type": "marketplace_bg",
+      "ue5_media_path": "/Game/FEL/Media/MagicReveal/Venice_Ball_Shop_magic_reveal",
+      "status": "ready"
+    },
+    "venice_beach_black_top_magic_reveal": {
+      "filename": "Venice_Beach_Black_Top_magic_reveal.mp4",
+      "path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/MagicReveal/Venice_Beach_Black_Top_magic_reveal.mp4",
+      "size_mb": 8.51,
+      "venue_mapping": "rooftop_cityscape",
+      "location": "Venice Beach Black Top",
+      "usage_type": "venue_preview",
+      "ue5_media_path": "/Game/FEL/Media/MagicReveal/Venice_Beach_Black_Top_magic_reveal",
+      "status": "ready"
+    },
+    "venice_beach_court_magic_reveal": {
+      "filename": "Venice_Beach_Court_magic_reveal.mp4",
+      "path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/MagicReveal/Venice_Beach_Court_magic_reveal.mp4",
+      "size_mb": 4.59,
+      "venue_mapping": "venice_basketball",
+      "location": "Venice Beach Court",
+      "usage_type": "venue_preview",
+      "ue5_media_path": "/Game/FEL/Media/MagicReveal/Venice_Beach_Court_magic_reveal",
+      "status": "ready"
+    },
+    "venice_beach_tennis_courts_magic_reveal": {
+      "filename": "Venice_beach_tennis_courts_magic_reveal.mp4",
+      "path": "/home/ubuntu/rork-final-evolution-lab/SourceVideos/MagicReveal/Venice_beach_tennis_courts_magic_reveal.mp4",
+      "size_mb": 37.23,
+      "venue_mapping": "tennis_court",
+      "location": "Venice Beach Tennis",
+      "usage_type": "venue_preview",
+      "ue5_media_path": "/Game/FEL/Media/MagicReveal/Venice_beach_tennis_courts_magic_reveal",
+      "status": "ready"
+    }
+  }
+}
