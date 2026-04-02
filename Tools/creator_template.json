@@ -1,0 +1,71 @@
+{
+  "_comment": "Template for adding a new creator to Final Evolution Lab. Copy this file and fill in the fields.",
+  "_instructions": "1. Copy this file to a new JSON file. 2. Fill in all fields. 3. Run: python3 Tools/add_creator.py --file your_file.json",
+  "id": "new_creator_id",
+  "display_name": "Creator Full Name",
+  "tagline": "Short catchy tagline (max 50 chars)",
+  "bio": "Full biography of the creator. Include background, achievements, playing style, and what makes them unique. 2-4 sentences recommended.",
+  "location": "City, State/Country",
+  "primary_sport": "Basketball",
+  "position": "Guard / Forward / Center / Coach",
+  "height": "6'0\" (183 cm)",
+  "weight": "180 lbs (82 kg)",
+  "profile_image": "",
+  "banner_image": "",
+  "card_background": "",
+  "player_model": "",
+  "has_3d_model": false,
+  "tier": "Community",
+  "card_style": "Standard",
+  "is_featured": false,
+  "is_playable": false,
+  "sort_order": 99,
+  "date_added": "YYYY-MM-DD",
+  "highlights": [
+    {
+      "id": "unique_highlight_id",
+      "title": "Highlight Title",
+      "video_path": "/Game/FEL/Videos/CreatorName/video_name",
+      "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/thumb_name",
+      "duration_seconds": 30,
+      "location": "Where it was filmed",
+      "type": "gameplay | dunk | training | magic_reveal | 3d_model"
+    }
+  ],
+  "signature_moves": [
+    {
+      "id": "unique_move_id",
+      "name": "Move Name",
+      "description": "Description of the signature move.",
+      "anim_montage": "/Game/FEL/Animations/CreatorName/MoveName_Montage",
+      "difficulty": 3,
+      "category": "dunk | shooting | ball_handling | defense | passing | post_move | transition"
+    }
+  ],
+  "stats": [
+    {
+      "name": "Stat Label",
+      "value": "Stat Value",
+      "icon": "stat_icon_key"
+    }
+  ],
+  "social_links": [
+    {
+      "platform": "instagram | twitter | tiktok | youtube",
+      "handle": "@handle",
+      "url": "https://full-url-to-profile",
+      "followers": 0
+    }
+  ],
+  "challenges": [
+    {
+      "id": "unique_challenge_id",
+      "name": "Challenge Name",
+      "description": "What the player needs to do.",
+      "game_mode": "basketball_h2h | basketball_training | basketball_dunk_contest | basketball_tournament",
+      "difficulty": "Easy | Medium | Hard | Legendary",
+      "reward": "What the player earns for completing this.",
+      "required_score": 0
+    }
+  ]
+}

@@ -57,3 +57,21 @@ GeneratedAssets/Environments/*/openart/materials/*/*.png
 GeneratedAssets/Environments/*/openart/atmosphere/*.png
 GeneratedAssets/Environments/*/openart/skybox/*.png
 GeneratedAssets/Environments/*/openart/details/*.png
+
+
+# Phase 2: Creator Card System - Generated Assets
+GeneratedAssets/CreatorModels/*/*.glb
+GeneratedAssets/CreatorModels/*/*.fbx
+GeneratedAssets/CreatorModels/*/*.obj
+GeneratedAssets/CreatorModels/*/*.png
+GeneratedAssets/CreatorAssets/profiles/*.png
+GeneratedAssets/CreatorAssets/banners/*.png
+GeneratedAssets/CreatorAssets/backgrounds/*.png
+GeneratedAssets/CreatorAssets/icons/*.png
+# Keep manifests
+!GeneratedAssets/CreatorModels/creator_models_manifest.json
+!GeneratedAssets/CreatorAssets/creator_assets_manifest.json
+# Magic Reveal source videos (large binary files)
+SourceVideos/MagicReveal/*.mp4
+# Temp files from add_creator tool
+Tools/_temp_*.json

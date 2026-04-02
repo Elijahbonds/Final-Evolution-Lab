@@ -1,0 +1,69 @@
+{
+  "version": "1.0",
+  "assets": {
+    "elijah_bonds_profile": {
+      "path": "placeholder_elijah_bonds_profile.png",
+      "type": "profile",
+      "creator": "elijah_bonds",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Profile/elijah_bonds_profile"
+    },
+    "elijah_bonds_banner": {
+      "path": "placeholder_elijah_bonds_banner.png",
+      "type": "banner",
+      "creator": "elijah_bonds",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Banner/elijah_bonds_banner"
+    },
+    "elijah_bonds_card_bg": {
+      "path": "placeholder_elijah_bonds_card_bg.png",
+      "type": "card_bg",
+      "creator": "elijah_bonds",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Card_Bg/elijah_bonds_card_bg"
+    },
+    "amir_smith_profile": {
+      "path": "placeholder_amir_smith_profile.png",
+      "type": "profile",
+      "creator": "amir_smith",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Profile/amir_smith_profile"
+    },
+    "amir_smith_banner": {
+      "path": "placeholder_amir_smith_banner.png",
+      "type": "banner",
+      "creator": "amir_smith",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Banner/amir_smith_banner"
+    },
+    "amir_smith_card_bg": {
+      "path": "placeholder_amir_smith_card_bg.png",
+      "type": "card_bg",
+      "creator": "amir_smith",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Card_Bg/amir_smith_card_bg"
+    },
+    "eric_nash_profile": {
+      "path": "placeholder_eric_nash_profile.png",
+      "type": "profile",
+      "creator": "eric_nash",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Profile/eric_nash_profile"
+    },
+    "eric_nash_banner": {
+      "path": "placeholder_eric_nash_banner.png",
+      "type": "banner",
+      "creator": "eric_nash",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Banner/eric_nash_banner"
+    },
+    "eric_nash_card_bg": {
+      "path": "placeholder_eric_nash_card_bg.png",
+      "type": "card_bg",
+      "creator": "eric_nash",
+      "status": "placeholder",
+      "ue5_path": "/Game/FEL/CreatorAssets/Card_Bg/eric_nash_card_bg"
+    }
+  },
+  "last_updated": "2026-04-02T08:13:22.229947"
+}

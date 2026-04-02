@@ -1,0 +1,471 @@
+{
+  "version": "2.0.0",
+  "last_updated": "2026-04-02",
+  "creators": [
+    {
+      "id": "elijah_bonds",
+      "display_name": "Elijah Bonds",
+      "tagline": "The Man Who Flies",
+      "bio": "Venice Beach basketball legend and dunking performance coach. 6'2\" guard known for explosive vertical leaps and gravity-defying dunks. Creator of the iconic 'Kick Up' dunk — a move invented at Venice Beach where the ball starts at his feet, he jumps, kicks his legs back, releases the ball, and slams it home. A regular at the Venice Basketball League (VBL) and a fixture of the LA street basketball scene. Began playing basketball as a toddler and was obsessed with dunking from a young age. Daily training includes 500 game-speed shots covering layups, dunks, free throws, mid-range jumpers, and three-pointers.",
+      "location": "Venice Beach, CA",
+      "primary_sport": "Basketball",
+      "position": "Guard",
+      "height": "6'2\" (188 cm)",
+      "weight": "176 lbs (80 kg)",
+      "profile_image": "/Game/FEL/CreatorAssets/Profiles/elijah_bonds_profile",
+      "banner_image": "/Game/FEL/CreatorAssets/Banners/elijah_bonds_banner",
+      "card_background": "/Game/FEL/CreatorAssets/Backgrounds/elijah_bonds_bg",
+      "player_model": "",
+      "has_3d_model": false,
+      "tier": "Featured",
+      "card_style": "Legendary",
+      "is_featured": true,
+      "is_playable": true,
+      "sort_order": 1,
+      "date_added": "2026-04-02",
+      "highlights": [
+        {
+          "id": "eb_magic_reveal_venice_court",
+          "title": "Venice Beach Court — Magic Reveal",
+          "video_path": "/Game/FEL/Videos/MagicReveal/Venice_Beach_Court_magic_reveal",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/venice_court_thumb",
+          "duration_seconds": 30,
+          "location": "Venice Beach Basketball Court",
+          "type": "magic_reveal"
+        },
+        {
+          "id": "eb_magic_reveal_ball_shop",
+          "title": "Venice Ball Shop — Magic Reveal",
+          "video_path": "/Game/FEL/Videos/MagicReveal/Venice_Ball_Shop_magic_reveal",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/ball_shop_thumb",
+          "duration_seconds": 30,
+          "location": "Venice Ball Shop",
+          "type": "magic_reveal"
+        },
+        {
+          "id": "eb_magic_reveal_muscle_beach_gym",
+          "title": "Muscle Beach Gym — Magic Reveal",
+          "video_path": "/Game/FEL/Videos/MagicReveal/Muscle_beach_gym_magic_reveal",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/muscle_gym_thumb",
+          "duration_seconds": 30,
+          "location": "Muscle Beach Gym",
+          "type": "magic_reveal"
+        },
+        {
+          "id": "eb_magic_reveal_muscle_beach_stage",
+          "title": "Muscle Beach Stage — Magic Reveal",
+          "video_path": "/Game/FEL/Videos/MagicReveal/Muscle_beach_stage_magic_reveal",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/muscle_stage_thumb",
+          "duration_seconds": 30,
+          "location": "Muscle Beach Stage",
+          "type": "magic_reveal"
+        },
+        {
+          "id": "eb_magic_reveal_tennis_courts",
+          "title": "Venice Beach Tennis Courts — Magic Reveal",
+          "video_path": "/Game/FEL/Videos/MagicReveal/Venice_beach_tennis_courts_magic_reveal",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/tennis_courts_thumb",
+          "duration_seconds": 30,
+          "location": "Venice Beach Tennis Courts",
+          "type": "magic_reveal"
+        },
+        {
+          "id": "eb_magic_reveal_black_top",
+          "title": "Venice Beach Black Top — Magic Reveal",
+          "video_path": "/Game/FEL/Videos/MagicReveal/Venice_Beach_Black_Top_magic_reveal",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/black_top_thumb",
+          "duration_seconds": 30,
+          "location": "Venice Beach Black Top",
+          "type": "magic_reveal"
+        },
+        {
+          "id": "eb_magic_reveal_hoopbus",
+          "title": "HoopBus — Magic Reveal",
+          "video_path": "/Game/FEL/Videos/MagicReveal/Hoopbus_magic_reveal",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/hoopbus_thumb",
+          "duration_seconds": 30,
+          "location": "HoopBus",
+          "type": "magic_reveal"
+        },
+        {
+          "id": "eb_dunk_session_reverse_alleyoop",
+          "title": "Dunk Session — Reverse Alley-Oop",
+          "video_path": "/Game/FEL/Videos/ElijahBonds/01_dunk_session",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/dunk_reverse_thumb",
+          "duration_seconds": 45,
+          "location": "Venice Beach",
+          "type": "dunk"
+        },
+        {
+          "id": "eb_windmill_dunk_practice",
+          "title": "Windmill Dunk Practice",
+          "video_path": "/Game/FEL/Videos/ElijahBonds/06_windmill_dunk",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/windmill_thumb",
+          "duration_seconds": 40,
+          "location": "Venice Beach",
+          "type": "dunk"
+        },
+        {
+          "id": "eb_full_court_gameplay",
+          "title": "Full Court Game — Crossover & Euro Steps",
+          "video_path": "/Game/FEL/Videos/ElijahBonds/10_full_court_game",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/full_court_thumb",
+          "duration_seconds": 60,
+          "location": "Venice Beach",
+          "type": "gameplay"
+        }
+      ],
+      "signature_moves": [
+        {
+          "id": "eb_kick_up_dunk",
+          "name": "Kick Up Dunk",
+          "description": "Ball starts at feet, jump and kick legs back, release ball, dunk with hands. An original move invented by Elijah Bonds.",
+          "anim_montage": "/Game/FEL/Animations/ElijahBonds/KickUpDunk_Montage",
+          "difficulty": 5,
+          "category": "dunk"
+        },
+        {
+          "id": "eb_360_dunk",
+          "name": "360 In-Game Dunk",
+          "description": "Full 360-degree rotation dunk executed during live gameplay. Requires elite body control and timing.",
+          "anim_montage": "/Game/FEL/Animations/ElijahBonds/360Dunk_Montage",
+          "difficulty": 5,
+          "category": "dunk"
+        },
+        {
+          "id": "eb_reverse_alleyoop",
+          "name": "Reverse Alley-Oop",
+          "description": "Self-toss reverse alley-oop finish. A signature Venice Beach crowd-pleaser.",
+          "anim_montage": "/Game/FEL/Animations/ElijahBonds/ReverseAlleyOop_Montage",
+          "difficulty": 4,
+          "category": "dunk"
+        },
+        {
+          "id": "eb_windmill_slam",
+          "name": "Windmill Slam",
+          "description": "Full windmill extension dunk with maximum arm rotation.",
+          "anim_montage": "/Game/FEL/Animations/ElijahBonds/WindmillSlam_Montage",
+          "difficulty": 4,
+          "category": "dunk"
+        },
+        {
+          "id": "eb_crossover_eurostep",
+          "name": "Crossover Euro-Step",
+          "description": "Quick crossover into a euro-step finish at the rim.",
+          "anim_montage": "/Game/FEL/Animations/ElijahBonds/CrossoverEurostep_Montage",
+          "difficulty": 3,
+          "category": "ball_handling"
+        }
+      ],
+      "stats": [
+        { "name": "Vertical Leap", "value": "42+\"", "icon": "stat_vertical" },
+        { "name": "Daily Training Shots", "value": "500", "icon": "stat_shots" },
+        { "name": "Signature Dunks", "value": "5", "icon": "stat_dunks" },
+        { "name": "Magic Reveal Videos", "value": "7", "icon": "stat_video" },
+        { "name": "VBL Seasons", "value": "3+", "icon": "stat_season" },
+        { "name": "Dunk Contest Wins", "value": "2", "icon": "stat_trophy" }
+      ],
+      "social_links": [
+        {
+          "platform": "instagram",
+          "handle": "@elijahbonds",
+          "url": "https://instagram.com/elijahbonds",
+          "followers": 28000
+        },
+        {
+          "platform": "tiktok",
+          "handle": "@elijahbonds",
+          "url": "https://tiktok.com/@elijahbonds",
+          "followers": 0
+        }
+      ],
+      "challenges": [
+        {
+          "id": "eb_dunk_gauntlet",
+          "name": "Elijah's Dunk Gauntlet",
+          "description": "Land 5 different signature dunks in a single session. Channel the energy of Venice Beach.",
+          "game_mode": "basketball_dunk_contest",
+          "difficulty": "Legendary",
+          "reward": "Kick Up Dunk Unlock + Elijah Bonds Jersey",
+          "required_score": 500
+        },
+        {
+          "id": "eb_500_shot_challenge",
+          "name": "500 Shot Training Day",
+          "description": "Complete 500 shots in training mode — layups, dunks, free throws, mid-range, and threes.",
+          "game_mode": "basketball_training",
+          "difficulty": "Hard",
+          "reward": "Elijah Bonds Training Gear",
+          "required_score": 500
+        },
+        {
+          "id": "eb_venice_king",
+          "name": "King of Venice",
+          "description": "Win 3 consecutive games at the Venice Beach court using Elijah's playstyle.",
+          "game_mode": "basketball_h2h",
+          "difficulty": "Hard",
+          "reward": "Venice Beach Crown Badge",
+          "required_score": 3
+        }
+      ]
+    },
+    {
+      "id": "amir_smith",
+      "display_name": "Amir Smith",
+      "tagline": "The Forward Force",
+      "bio": "Professional basketball player from Missouri City, Texas. 6'7\" forward who graduated from Hampton University and competed internationally in the French NM1 league with Metz Basket Club. Known for his versatile inside-outside game, combining power post moves with perimeter shooting. His athletic frame and fluid movement make him a natural fit for the 3D-scanned player model experience in Final Evolution Lab.",
+      "location": "Missouri City, TX",
+      "primary_sport": "Basketball",
+      "position": "Forward",
+      "height": "6'7\" (201 cm)",
+      "weight": "215 lbs (98 kg)",
+      "profile_image": "/Game/FEL/CreatorAssets/Profiles/amir_smith_profile",
+      "banner_image": "/Game/FEL/CreatorAssets/Banners/amir_smith_banner",
+      "card_background": "/Game/FEL/CreatorAssets/Backgrounds/amir_smith_bg",
+      "player_model": "/Game/FEL/CreatorModels/AmirSmith/SK_AmirSmith",
+      "has_3d_model": true,
+      "tier": "Featured",
+      "card_style": "Holographic",
+      "is_featured": true,
+      "is_playable": true,
+      "sort_order": 2,
+      "date_added": "2026-04-02",
+      "highlights": [
+        {
+          "id": "as_3d_model_showcase",
+          "title": "3D Player Model — 360° View",
+          "video_path": "",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/amir_3d_model_thumb",
+          "duration_seconds": 0,
+          "location": "Meshy AI Studio",
+          "type": "3d_model"
+        },
+        {
+          "id": "as_hampton_highlights",
+          "title": "Hampton University Highlights",
+          "video_path": "/Game/FEL/Videos/AmirSmith/hampton_highlights",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/hampton_thumb",
+          "duration_seconds": 120,
+          "location": "Hampton University",
+          "type": "gameplay"
+        },
+        {
+          "id": "as_metz_france",
+          "title": "International Play — Metz Basket Club",
+          "video_path": "/Game/FEL/Videos/AmirSmith/metz_highlights",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/metz_thumb",
+          "duration_seconds": 90,
+          "location": "Metz, France",
+          "type": "gameplay"
+        }
+      ],
+      "signature_moves": [
+        {
+          "id": "as_power_post_spin",
+          "name": "Power Post Spin",
+          "description": "Back-to-basket post spin with a powerful finish at the rim.",
+          "anim_montage": "/Game/FEL/Animations/AmirSmith/PowerPostSpin_Montage",
+          "difficulty": 3,
+          "category": "post_move"
+        },
+        {
+          "id": "as_stepback_three",
+          "name": "Step-Back Three",
+          "description": "Quick step-back from the perimeter into a clean three-point release.",
+          "anim_montage": "/Game/FEL/Animations/AmirSmith/StepbackThree_Montage",
+          "difficulty": 3,
+          "category": "shooting"
+        },
+        {
+          "id": "as_coast_to_coast",
+          "name": "Coast to Coast",
+          "description": "Full court drive from rebound to finish, using his 6'7\" frame to bulldoze through traffic.",
+          "anim_montage": "/Game/FEL/Animations/AmirSmith/CoastToCoast_Montage",
+          "difficulty": 4,
+          "category": "transition"
+        }
+      ],
+      "stats": [
+        { "name": "Height", "value": "6'7\"", "icon": "stat_height" },
+        { "name": "College", "value": "Hampton U.", "icon": "stat_college" },
+        { "name": "Pro League", "value": "French NM1", "icon": "stat_league" },
+        { "name": "Position", "value": "Forward", "icon": "stat_position" },
+        { "name": "3D Scanned", "value": "Yes", "icon": "stat_3d" },
+        { "name": "Signature Moves", "value": "3", "icon": "stat_moves" }
+      ],
+      "social_links": [
+        {
+          "platform": "instagram",
+          "handle": "@amirsmith",
+          "url": "https://instagram.com/amirsmith",
+          "followers": 0
+        }
+      ],
+      "challenges": [
+        {
+          "id": "as_forward_dominance",
+          "name": "Amir's Forward Dominance",
+          "description": "Score 30 points playing as Amir Smith using only post moves and mid-range shots.",
+          "game_mode": "basketball_h2h",
+          "difficulty": "Hard",
+          "reward": "Amir Smith 3D Model Skin",
+          "required_score": 30
+        },
+        {
+          "id": "as_international_tour",
+          "name": "International Tour",
+          "description": "Win games on 5 different venue courts to replicate Amir's international career.",
+          "game_mode": "basketball_tournament",
+          "difficulty": "Medium",
+          "reward": "Metz Basket Club Jersey",
+          "required_score": 5
+        }
+      ]
+    },
+    {
+      "id": "eric_nash",
+      "display_name": "Eric Nash",
+      "tagline": "Coach on the Court",
+      "bio": "Venice Beach basketball coach and content creator known for his competitive pickup game style and coaching presence. A regular at the iconic Venice Beach courts, Eric combines old-school basketball IQ with modern training methods. Known for filming and showcasing the best of LA street basketball culture, including memorable sessions with celebrities and pro players. His coaching philosophy emphasizes fundamentals, court vision, and competitive fire.",
+      "location": "Venice Beach, CA",
+      "primary_sport": "Basketball",
+      "position": "Guard / Coach",
+      "height": "6'0\" (183 cm)",
+      "weight": "185 lbs (84 kg)",
+      "profile_image": "/Game/FEL/CreatorAssets/Profiles/eric_nash_profile",
+      "banner_image": "/Game/FEL/CreatorAssets/Banners/eric_nash_banner",
+      "card_background": "/Game/FEL/CreatorAssets/Backgrounds/eric_nash_bg",
+      "player_model": "",
+      "has_3d_model": false,
+      "tier": "Verified",
+      "card_style": "Premium",
+      "is_featured": true,
+      "is_playable": true,
+      "sort_order": 3,
+      "date_added": "2026-04-02",
+      "highlights": [
+        {
+          "id": "en_venice_pickup",
+          "title": "Venice Beach Pickup Game Highlights",
+          "video_path": "/Game/FEL/Videos/EricNash/venice_pickup",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/nash_venice_thumb",
+          "duration_seconds": 60,
+          "location": "Venice Beach Basketball Court",
+          "type": "gameplay"
+        },
+        {
+          "id": "en_coaching_session",
+          "title": "Coaching Session — Fundamentals",
+          "video_path": "/Game/FEL/Videos/EricNash/coaching_fundamentals",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/nash_coaching_thumb",
+          "duration_seconds": 90,
+          "location": "Venice Beach",
+          "type": "training"
+        },
+        {
+          "id": "en_celebrity_runs",
+          "title": "Celebrity Pickup Runs",
+          "video_path": "/Game/FEL/Videos/EricNash/celebrity_runs",
+          "thumbnail": "/Game/FEL/CreatorAssets/Thumbnails/nash_celeb_thumb",
+          "duration_seconds": 120,
+          "location": "Venice Beach",
+          "type": "gameplay"
+        }
+      ],
+      "signature_moves": [
+        {
+          "id": "en_pull_up_midrange",
+          "name": "Pull-Up Mid-Range",
+          "description": "Old-school pull-up jumper from the mid-range. Textbook form, high release.",
+          "anim_montage": "/Game/FEL/Animations/EricNash/PullUpMidrange_Montage",
+          "difficulty": 2,
+          "category": "shooting"
+        },
+        {
+          "id": "en_no_look_pass",
+          "name": "No-Look Dish",
+          "description": "Court-vision no-look pass to the open man. Pure basketball IQ.",
+          "anim_montage": "/Game/FEL/Animations/EricNash/NoLookPass_Montage",
+          "difficulty": 3,
+          "category": "passing"
+        },
+        {
+          "id": "en_lockdown_defense",
+          "name": "Lockdown Stance",
+          "description": "Low defensive stance with quick lateral movement. Coaching fundamentals in action.",
+          "anim_montage": "/Game/FEL/Animations/EricNash/LockdownDefense_Montage",
+          "difficulty": 2,
+          "category": "defense"
+        }
+      ],
+      "stats": [
+        { "name": "Coaching Years", "value": "10+", "icon": "stat_coaching" },
+        { "name": "Venice Beach Regular", "value": "Yes", "icon": "stat_location" },
+        { "name": "Playing Style", "value": "Fundamentals", "icon": "stat_style" },
+        { "name": "Signature Moves", "value": "3", "icon": "stat_moves" },
+        { "name": "Social Handle", "value": "@CoachEricNash", "icon": "stat_social" }
+      ],
+      "social_links": [
+        {
+          "platform": "twitter",
+          "handle": "@CoachEricNash",
+          "url": "https://twitter.com/CoachEricNash",
+          "followers": 0
+        },
+        {
+          "platform": "instagram",
+          "handle": "@coachericnash",
+          "url": "https://instagram.com/coachericnash",
+          "followers": 0
+        }
+      ],
+      "challenges": [
+        {
+          "id": "en_fundamentals_first",
+          "name": "Eric's Fundamentals First",
+          "description": "Complete a training session with 90%+ accuracy on all fundamental drills.",
+          "game_mode": "basketball_training",
+          "difficulty": "Medium",
+          "reward": "Coach Nash Whistle Badge",
+          "required_score": 90
+        },
+        {
+          "id": "en_court_vision",
+          "name": "Court Vision Master",
+          "description": "Record 15 assists in a single game using Eric Nash's passing moves.",
+          "game_mode": "basketball_h2h",
+          "difficulty": "Hard",
+          "reward": "No-Look Pass Unlock",
+          "required_score": 15
+        },
+        {
+          "id": "en_defensive_wall",
+          "name": "Defensive Wall",
+          "description": "Hold opponents under 40 points in 3 consecutive games.",
+          "game_mode": "basketball_h2h",
+          "difficulty": "Hard",
+          "reward": "Lockdown Badge + Coach Gear",
+          "required_score": 3
+        }
+      ]
+    }
+  ],
+  "coming_soon": [
+    {
+      "id": "placeholder_creator_1",
+      "display_name": "??? Coming Soon",
+      "tagline": "New Creator Incoming",
+      "tier": "ComingSoon",
+      "primary_sport": "Basketball"
+    },
+    {
+      "id": "placeholder_creator_2",
+      "display_name": "??? Coming Soon",
+      "tagline": "New Creator Incoming",
+      "tier": "ComingSoon",
+      "primary_sport": "Mixed"
+    }
+  ],
+  "featured_order": ["elijah_bonds", "amir_smith", "eric_nash"],
+  "schema_version": "2.0"
+}
