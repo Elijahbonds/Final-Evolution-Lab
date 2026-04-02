@@ -76,3 +76,19 @@ SourceVideos/MagicReveal/*.mp4
 # Temp files from add_creator tool
 Tools/_temp_*.json
 .terraform/
+
+# Certificates (sensitive)
+/certs/*.pem
+/certs/*.p12
+/certs/*.cer
+
+# iOS build artifacts
+/Builds/iOS/
+*.xcarchive
+*.ipa
+
+# Large video files
+/ios/magic_reveal_videos/*.mp4
+
+# Auto-generated PDFs
+*.pdf
