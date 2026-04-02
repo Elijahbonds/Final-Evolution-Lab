@@ -1,0 +1,51 @@
+# =============================================================================
+# Final Evolution Lab - Terraform Variables
+# =============================================================================
+# Copy this file to terraform.tfvars and customize for your deployment
+# =============================================================================
+
+# --- General ---
+project_name = "final-evolution-lab"
+environment  = "production"
+aws_region   = "us-west-2"
+
+# --- Networking ---
+vpc_cidr             = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24", "10.0.12.0/24"]
+availability_zones   = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+# --- GPU Instances ---
+gpu_instance_type = "g4dn.xlarge"    # 4 vCPU, 16GB RAM, T4 GPU - $0.526/hr
+# gpu_instance_type = "g4dn.2xlarge"  # 8 vCPU, 32GB RAM, T4 GPU - $0.752/hr
+# gpu_instance_type = "g5.xlarge"     # 4 vCPU, 16GB RAM, A10G GPU - $1.006/hr
+key_pair_name     = "FinalEvolutionLab"  # Matches uploaded .pem file
+root_volume_size  = 100
+
+# --- Auto Scaling ---
+asg_min_size         = 1
+asg_max_size         = 10
+asg_desired_capacity = 2
+
+# --- Domain & SSL ---
+domain_name      = "stream.finalevolutiongroup.com"
+# hosted_zone_id = "Z0123456789ABCDEF"  # Your Route53 hosted zone
+# ssl_certificate_arn = ""  # Leave empty to auto-create
+
+# --- S3 ---
+s3_builds_bucket_name = "fel-ue5-builds"
+
+# --- TURN Server ---
+turn_server_enabled = true
+turn_instance_type  = "c5.xlarge"
+# turn_secret = ""  # Auto-generated if empty
+
+# --- Notifications ---
+notification_email = "deploy@finalevolutiongroup.com"
+# slack_webhook_url = ""  # Optional Slack webhook
+
+# --- Additional Tags ---
+tags = {
+  Team    = "FinalEvolutionLab"
+  Contact = "deploy@finalevolutiongroup.com"
+}
