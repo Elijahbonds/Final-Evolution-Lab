@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-04-02T00:37:32+00:00",
+  "hostname": "chatllm-computer-5233ce1ff-d88df749-thp6g",
+  "passed": 27,
+  "failed": 5,
+  "warnings": 4,
+  "gpu_detected": false,
+  "ram_mb": 253668,
+  "disk_free_gb": 335,
+  "cpu_cores": 32,
+  "ready": false
+}

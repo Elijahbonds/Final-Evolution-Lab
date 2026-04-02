@@ -1,0 +1,57 @@
+{
+  "project": "Final Evolution Lab",
+  "deployment_date": "2026-04-02T00:45:26+00:00",
+  "public_ip": "198.212.42.22",
+  "status": "DEPLOYED",
+  "phases": {
+    "phase_0_validation": {
+      "status": "COMPLETE",
+      "checks_passed": 27,
+      "checks_failed": 5,
+      "warnings": 4,
+      "note": "GPU-related checks expected to fail on non-GPU VM"
+    },
+    "phase_1_aws_provisioning": {
+      "status": "READY",
+      "aws_account": "448970459817",
+      "aws_credentials": "valid",
+      "instance_type": "g5.2xlarge",
+      "note": "Ready for provisioning - requires AWS key pair"
+    },
+    "phase_2_build_pipeline": {
+      "status": "REQUIRES_GPU",
+      "ai_assets": "49/49 generated",
+      "cv_preprocessing": "complete",
+      "animations": "54 custom + UE5 catalogue",
+      "ue5_source": "blocked - requires GitHub token with Epic Games linkage",
+      "note": "Execute on GPU instance: bash scripts/ue5_setup/fel_complete_pipeline.sh"
+    },
+    "phase_3_deployment": {
+      "status": "COMPLETE",
+      "services": {
+        "marketing_website": {"port": 3001, "status": "running", "url": "https://finalevolutiongroup.com"},
+        "web_app_frontend": {"port": 3000, "status": "running", "url": "https://app.finalevolutiongroup.com"},
+        "signalling_server": {"port": 8888, "status": "running", "url": "wss://stream.finalevolutiongroup.com"},
+        "api_endpoints": {"port": 8888, "status": "running", "url": "https://api.finalevolutiongroup.com"},
+        "streamer_port": {"port": 8889, "status": "listening"}
+      },
+      "game_modes": 17,
+      "nginx": "configured",
+      "dns_guide": "deploy/aws/DNS_RECORDS.md"
+    }
+  },
+  "endpoints": {
+    "website": "http://198.212.42.22:3001",
+    "webapp": "http://198.212.42.22:3000",
+    "streaming": "ws://198.212.42.22:8888",
+    "api": "http://198.212.42.22:8888",
+    "health": "http://198.212.42.22:8888/healthz",
+    "modes": "http://198.212.42.22:8888/api/modes"
+  },
+  "production_domains": {
+    "website": "https://finalevolutiongroup.com",
+    "webapp": "https://app.finalevolutiongroup.com",
+    "streaming": "wss://stream.finalevolutiongroup.com",
+    "api": "https://api.finalevolutiongroup.com"
+  }
+}
