@@ -47,6 +47,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "builds" {
     id     = "archive-old-builds"
     status = "Enabled"
 
+    filter {}
+
     # Move builds older than 30 days to Infrequent Access
     transition {
       days          = 30
@@ -73,6 +75,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "builds" {
   rule {
     id     = "cleanup-noncurrent-versions"
     status = "Enabled"
+
+    filter {}
 
     noncurrent_version_expiration {
       noncurrent_days = 30

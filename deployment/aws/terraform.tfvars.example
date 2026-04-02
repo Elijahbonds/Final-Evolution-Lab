@@ -1,51 +1,93 @@
 # =============================================================================
-# Final Evolution Lab - Terraform Variables
+# Final Evolution Lab - Budget-Optimized Terraform Configuration
 # =============================================================================
-# Copy this file to terraform.tfvars and customize for your deployment
+# Copy this file to terraform.tfvars and customize for your deployment.
+# 
+# This configuration is optimized for a ~$400/month budget.
+# See deployment/docs/BUDGET_OPTIMIZATION.md for detailed cost analysis.
 # =============================================================================
 
-# --- General ---
+# --- Project Settings ---
 project_name = "final-evolution-lab"
 environment  = "production"
 aws_region   = "us-west-2"
 
-# --- Networking ---
-vpc_cidr             = "10.0.0.0/16"
-public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24", "10.0.12.0/24"]
-availability_zones   = ["us-west-2a", "us-west-2b", "us-west-2c"]
+# --- GPU Instance (Budget-Optimized) ---
+# g4dn.xlarge: 4 vCPU, 16 GB RAM, NVIDIA T4 GPU — best price/performance
+gpu_instance_type = "g4dn.xlarge"
+root_volume_size  = 80          # 80 GB is sufficient (saves ~$2/mo vs 100 GB)
+root_volume_type  = "gp3"
 
-# --- GPU Instances ---
-gpu_instance_type = "g4dn.xlarge"    # 4 vCPU, 16GB RAM, T4 GPU - $0.526/hr
-# gpu_instance_type = "g4dn.2xlarge"  # 8 vCPU, 32GB RAM, T4 GPU - $0.752/hr
-# gpu_instance_type = "g5.xlarge"     # 4 vCPU, 16GB RAM, A10G GPU - $1.006/hr
-key_pair_name     = "FinalEvolutionLab"  # Matches uploaded .pem file
-root_volume_size  = 100
+# --- Key Pair ---
+key_pair_name = "FinalEvolutionLab"
 
-# --- Auto Scaling ---
-asg_min_size         = 1
-asg_max_size         = 10
-asg_desired_capacity = 2
+# --- SPOT INSTANCES (60-70% cheaper!) ---
+# ⚠️  RECOMMENDED for $400 budget — saves ~$190/month per instance
+use_spot_instances     = true
+spot_max_price         = "0.25"   # Cap at $0.25/hr (on-demand = $0.526/hr)
+spot_instance_types    = ["g4dn.xlarge", "g4dn.2xlarge"]  # Multiple types for availability
+spot_allocation_strategy = "capacity-optimized"
+
+# Mixed instances: 0 on-demand base = 100% spot (max savings)
+# Set on_demand_base_capacity = 1 for a reliable fallback instance
+on_demand_base_capacity         = 0
+on_demand_percentage_above_base = 0
+
+# --- Auto Scaling (Minimal for Budget) ---
+asg_min_size         = 1    # Minimum 1 instance during business hours
+asg_max_size         = 2    # Cap at 2 to prevent surprise costs
+asg_desired_capacity = 1    # Run just 1 instance normally
+
+# Scaling thresholds
+scale_up_cpu_threshold  = 80
+scale_down_cpu_threshold = 30
+
+# --- Scheduled Scaling (Turn OFF at Night = ~50% savings) ---
+enable_scheduled_scaling = true
+schedule_scale_down_cron = "0 6 * * *"    # 6 AM UTC = 10 PM PST → scale to 0
+schedule_scale_up_cron   = "0 15 * * *"   # 3 PM UTC = 7 AM PST → scale to 1
+off_hours_min_capacity   = 0              # 0 = completely off at night
+
+# --- TURN Server (Budget Option) ---
+# Set to false to save ~$120/month if you don't need STUN/TURN relay
+# Most users on modern networks won't need it
+turn_server_enabled = false
+turn_instance_type  = "t3.small"  # Cheaper than c5.xlarge if enabled
 
 # --- Domain & SSL ---
-domain_name      = "stream.finalevolutiongroup.com"
-# hosted_zone_id = "Z0123456789ABCDEF"  # Your Route53 hosted zone
-# ssl_certificate_arn = ""  # Leave empty to auto-create
+domain_name     = "stream.finalevolutiongroup.com"
+hosted_zone_id  = ""    # Set to your Route53 hosted zone ID
+ssl_certificate_arn = "" # Leave empty to auto-create via ACM
 
 # --- S3 ---
 s3_builds_bucket_name = "fel-ue5-builds"
 
-# --- TURN Server ---
-turn_server_enabled = true
-turn_instance_type  = "c5.xlarge"
-# turn_secret = ""  # Auto-generated if empty
-
 # --- Notifications ---
 notification_email = "deploy@finalevolutiongroup.com"
-# slack_webhook_url = ""  # Optional Slack webhook
+slack_webhook_url  = ""
 
-# --- Additional Tags ---
+# --- Tags ---
 tags = {
-  Team    = "FinalEvolutionLab"
-  Contact = "deploy@finalevolutiongroup.com"
+  Budget    = "400-monthly"
+  CostCenter = "final-evolution-lab"
 }
+
+# =============================================================================
+# ESTIMATED MONTHLY COST WITH THESE SETTINGS:
+# =============================================================================
+#
+# Component                  | Cost/Month
+# ---------------------------|------------
+# GPU Instance (spot, 14h/d) | ~$95-130
+# ALB                        | ~$22
+# S3 + Data Transfer         | ~$5-15
+# CloudWatch                 | ~$5-10
+# Elastic IP (if TURN off)   | $0
+# NAT Gateway (if needed)    | ~$32
+# TOTAL (no TURN)            | ~$160-210
+#
+# With TURN server (t3.small):  add ~$15/month
+# With on-demand (no spot):     GPU jumps to ~$220/month
+#
+# ⚡ This fits comfortably within $400/month budget!
+# =============================================================================

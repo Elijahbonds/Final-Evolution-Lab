@@ -86,6 +86,74 @@ variable "root_volume_type" {
   default     = "gp3"
 }
 
+# --- Spot Instance Configuration (Cost Optimization) ---
+
+variable "use_spot_instances" {
+  description = "Use EC2 Spot Instances for GPU servers (60-70% cheaper, but can be interrupted)"
+  type        = bool
+  default     = false
+}
+
+variable "spot_max_price" {
+  description = "Maximum hourly price for spot instances (empty = on-demand price cap). Example: '0.25' for $0.25/hr"
+  type        = string
+  default     = ""
+}
+
+variable "spot_instance_types" {
+  description = "List of instance types for spot fleet (enables capacity-optimized selection)"
+  type        = list(string)
+  default     = ["g4dn.xlarge", "g4dn.2xlarge"]
+}
+
+variable "on_demand_base_capacity" {
+  description = "Number of on-demand instances as a baseline (0 = all spot for max savings)"
+  type        = number
+  default     = 0
+}
+
+variable "on_demand_percentage_above_base" {
+  description = "Percentage of on-demand instances above base capacity (0 = all spot above base)"
+  type        = number
+  default     = 0
+}
+
+variable "spot_allocation_strategy" {
+  description = "How to allocate spot capacity: capacity-optimized (recommended) or lowest-price"
+  type        = string
+  default     = "capacity-optimized"
+  validation {
+    condition     = contains(["capacity-optimized", "lowest-price", "capacity-optimized-prioritized"], var.spot_allocation_strategy)
+    error_message = "Spot allocation strategy must be: capacity-optimized, lowest-price, or capacity-optimized-prioritized."
+  }
+}
+
+# --- Scheduling Configuration (Cost Optimization) ---
+
+variable "enable_scheduled_scaling" {
+  description = "Enable scheduled scaling to turn off instances during off-hours"
+  type        = bool
+  default     = true
+}
+
+variable "schedule_scale_down_cron" {
+  description = "Cron expression (UTC) for scaling down at night. Default: 6 AM UTC = 10 PM PST"
+  type        = string
+  default     = "0 6 * * *"
+}
+
+variable "schedule_scale_up_cron" {
+  description = "Cron expression (UTC) for scaling up in the morning. Default: 2 PM UTC = 6 AM PST"
+  type        = string
+  default     = "0 14 * * *"
+}
+
+variable "off_hours_min_capacity" {
+  description = "Minimum instances during off-hours (0 = completely shut down)"
+  type        = number
+  default     = 0
+}
+
 # --- Auto Scaling Configuration ---
 
 variable "asg_min_size" {

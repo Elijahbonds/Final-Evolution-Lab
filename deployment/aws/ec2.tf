@@ -27,6 +27,19 @@ resource "aws_launch_template" "gpu" {
     }
   }
 
+  # Spot instance configuration (when enabled)
+  dynamic "instance_market_options" {
+    for_each = var.use_spot_instances ? [1] : []
+    content {
+      market_type = "spot"
+      spot_options {
+        max_price                      = var.spot_max_price != "" ? var.spot_max_price : null
+        instance_interruption_behavior = "terminate"
+        spot_instance_type             = "one-time"
+      }
+    }
+  }
+
   # Enable detailed monitoring
   monitoring {
     enabled = true
@@ -57,6 +70,7 @@ resource "aws_launch_template" "gpu" {
     tags = merge(local.common_tags, {
       Name = "${local.name_prefix}-gpu-instance"
       Role = "pixel-streaming"
+      SpotInstance = var.use_spot_instances ? "true" : "false"
     })
   }
 
@@ -85,9 +99,41 @@ resource "aws_autoscaling_group" "gpu" {
   health_check_type         = "ELB"
   health_check_grace_period = 600  # 10 min grace for UE5 startup
 
-  launch_template {
-    id      = aws_launch_template.gpu.id
-    version = "$Latest"
+  # Use mixed instances policy when spot is enabled, otherwise standard launch template
+  dynamic "mixed_instances_policy" {
+    for_each = var.use_spot_instances ? [1] : []
+    content {
+      instances_distribution {
+        on_demand_base_capacity                  = var.on_demand_base_capacity
+        on_demand_percentage_above_base_capacity = var.on_demand_percentage_above_base
+        spot_allocation_strategy                 = var.spot_allocation_strategy
+        spot_max_price                           = var.spot_max_price != "" ? var.spot_max_price : ""
+      }
+
+      launch_template {
+        launch_template_specification {
+          launch_template_id = aws_launch_template.gpu.id
+          version            = "$Latest"
+        }
+
+        # Allow multiple instance types for better spot availability
+        dynamic "override" {
+          for_each = var.spot_instance_types
+          content {
+            instance_type = override.value
+          }
+        }
+      }
+    }
+  }
+
+  # Standard launch template when spot is disabled
+  dynamic "launch_template" {
+    for_each = var.use_spot_instances ? [] : [1]
+    content {
+      id      = aws_launch_template.gpu.id
+      version = "$Latest"
+    }
   }
 
   target_group_arns = [
@@ -104,11 +150,14 @@ resource "aws_autoscaling_group" "gpu" {
     }
   }
 
-  # Warm pool for faster scaling
-  warm_pool {
-    pool_state                  = "Stopped"
-    min_size                    = 1
-    max_group_prepared_capacity = var.asg_max_size
+  # Warm pool for faster scaling (disabled for spot to save costs)
+  dynamic "warm_pool" {
+    for_each = var.use_spot_instances ? [] : [1]
+    content {
+      pool_state                  = "Stopped"
+      min_size                    = 1
+      max_group_prepared_capacity = var.asg_max_size
+    }
   }
 
   tag {
@@ -120,6 +169,12 @@ resource "aws_autoscaling_group" "gpu" {
   tag {
     key                 = "AutoScaling"
     value               = "true"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "SpotEnabled"
+    value               = var.use_spot_instances ? "true" : "false"
     propagate_at_launch = true
   }
 
@@ -160,24 +215,26 @@ resource "aws_autoscaling_policy" "scale_on_requests" {
   }
 }
 
-# --- Scheduled Scaling (optional, for known traffic patterns) ---
+# --- Scheduled Scaling (cost optimization - turn off during off-hours) ---
 
 resource "aws_autoscaling_schedule" "scale_down_night" {
+  count                  = var.enable_scheduled_scaling ? 1 : 0
   scheduled_action_name  = "${local.name_prefix}-night-scale-down"
   autoscaling_group_name = aws_autoscaling_group.gpu.name
-  min_size               = var.asg_min_size
+  min_size               = var.off_hours_min_capacity
   max_size               = var.asg_max_size
-  desired_capacity       = var.asg_min_size
-  recurrence             = "0 6 * * *"  # 6 AM UTC (10 PM PST) scale down
+  desired_capacity       = var.off_hours_min_capacity
+  recurrence             = var.schedule_scale_down_cron
 }
 
 resource "aws_autoscaling_schedule" "scale_up_day" {
+  count                  = var.enable_scheduled_scaling ? 1 : 0
   scheduled_action_name  = "${local.name_prefix}-day-scale-up"
   autoscaling_group_name = aws_autoscaling_group.gpu.name
   min_size               = var.asg_min_size
   max_size               = var.asg_max_size
   desired_capacity       = var.asg_desired_capacity
-  recurrence             = "0 14 * * *"  # 2 PM UTC (6 AM PST) scale up
+  recurrence             = var.schedule_scale_up_cron
 }
 
 # --- TURN Server Instance ---

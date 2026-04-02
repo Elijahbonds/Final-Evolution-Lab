@@ -75,3 +75,4 @@ GeneratedAssets/CreatorAssets/icons/*.png
 SourceVideos/MagicReveal/*.mp4
 # Temp files from add_creator tool
 Tools/_temp_*.json
+.terraform/

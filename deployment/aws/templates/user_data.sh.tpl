@@ -223,7 +223,7 @@ app.get('/api/modes', (req, res) => {
 
 wss.on('connection', (ws) => {
   const id = uuidv4();
-  console.log(`[${new Date().toISOString()}] Client connected: $${id}`);
+  console.log(`[$${new Date().toISOString()}] Client connected: $${id}`);
 
   ws.on('message', (data) => {
     try {
