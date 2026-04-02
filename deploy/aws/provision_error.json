@@ -1,0 +1,14 @@
+{
+  "status": "failed",
+  "phase": "Key Pair",
+  "error_code": "UnauthorizedOperation",
+  "error_message": "You are not authorized to perform this operation. User: arn:aws:sts::448970459817:assumed-role/spark-permissions/AbacusAIS3Session-usercode_policy_16d3862a2e_xvrjl is not authorized to perform: ec2:CreateKeyPair on resource: arn:aws:ec2:us-east-2:448970459817:key-pair/fel-gpu-us-east-2-1775095445 because no identity-based policy allows the ec2:CreateKeyPair action. Encoded authorization failure message: Tp7wLiLaAGEOXtdDkjx6Wevlarvh04F9hCI5A8ZTsFgdpvCiR04Ju33U415h-6Wk2Ya0aes25wHxQ_ocjgBQi4JoAbkNoi7HJ8LMItWgh6Uet2rog9EbSZN7KrWAeOc4UDYkax9x-TdcLD-xfKGQU44sFtjFnyhlvKYl-Lki__rMr-iqv4h0AMoVBWVl1LPS96bQwbDQa8wMTbX8fqNt1aKXpMZOi1p6OXoIo57x3-4ZrxFylkkM5mjSkT6jaSqrAvrGJa54T-cyUyQEDTZEJH_IlJMR0jkfudxOmFeLyI2xj8Oy6qKFUxtMrBAtCjZrmq-9RH92NwQmyf14lq5vX73sj0oihRWVCv9-9bl86fLvjSQ9c_fXKMjRH30DBaFB1zvAV9TX7CFGKqWFbUD6AQQ7FMgMG7r2h2jrDzKUeknthYroYrgfcqC4Cgrl__eM_i_hTP7JgNgbRmBVGn0_Q6QIo3AW_bvld_rkTh4dkw6wq024Odfvy3SaEuou95KcssC9661yuw0Zc01uzVHVjJ_ssd1KiEE_sUpDS9w5uJfFiidRGCCvzDDRwdyNZ1Z8RKu3vXPudw4w8rnGk02WN-kLo0yu3PPv-cp9fgCdFLbn6XxXWjIZveqe1mZK",
+  "region": "us-east-2",
+  "instance_type": "g5.2xlarge",
+  "timestamp": "2026-04-02T02:04:05.169854",
+  "solutions": {
+    "console_launch": "https://us-east-2.console.aws.amazon.com/ec2/home?region=us-east-2#LaunchInstances:",
+    "iam_policies": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html",
+    "manual_guide": "See deploy/aws/MANUAL_PROVISIONING.md"
+  }
+}
