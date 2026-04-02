@@ -1,0 +1,325 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Final Evolution Lab — AWS G5.2xlarge Infrastructure
+  Provisions a GPU instance with 500GB EBS for UE5 build + Pixel Streaming
+
+Parameters:
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 Key Pair for SSH access
+  AllowedSSHCidr:
+    Type: String
+    Default: '0.0.0.0/0'
+    Description: CIDR block allowed for SSH (restrict in production)
+  InstanceType:
+    Type: String
+    Default: g5.2xlarge
+    AllowedValues:
+      - g5.2xlarge
+      - g5.4xlarge
+      - g5.8xlarge
+    Description: GPU instance type
+  VolumeSize:
+    Type: Number
+    Default: 500
+    MinValue: 200
+    Description: EBS volume size in GB
+  GitHubToken:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: GitHub PAT linked to Epic Games (for UE5 source)
+  GaiaApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Gaia API key
+  LumaApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Luma AI API key
+  RunwayApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Runway API key
+  StabilityApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Stability AI API key
+  MeshyApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Meshy API key
+  NotificationEmail:
+    Type: String
+    Default: ''
+    Description: Email for pipeline notifications
+  SlackWebhook:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Slack webhook URL for notifications
+
+Mappings:
+  RegionAMI:
+    us-east-1:
+      AMI: ami-0c7217cdde317cfec  # Ubuntu 22.04 LTS
+    us-east-2:
+      AMI: ami-05fb0b8c1424f266b
+    us-west-1:
+      AMI: ami-0ce2cb35386fc22e9
+    us-west-2:
+      AMI: ami-03f65b8614a860c29
+    eu-west-1:
+      AMI: ami-0905a3c97561e0b69
+
+Resources:
+  # ─── VPC & Networking ──────────────────────────────────────────────
+  FELVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: FEL-VPC
+
+  FELSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref FELVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: FEL-Subnet
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: FEL-IGW
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref FELVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref FELVPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref FELSubnet
+      RouteTableId: !Ref RouteTable
+
+  # ─── Security Group ────────────────────────────────────────────────
+  FELSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Final Evolution Lab - Pixel Streaming + SSH
+      VpcId: !Ref FELVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedSSHCidr
+          Description: SSH
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+          Description: Web Frontend
+        - IpProtocol: tcp
+          FromPort: 8888
+          ToPort: 8889
+          CidrIp: 0.0.0.0/0
+          Description: Pixel Streaming Signalling
+        - IpProtocol: tcp
+          FromPort: 3478
+          ToPort: 3478
+          CidrIp: 0.0.0.0/0
+          Description: TURN TCP
+        - IpProtocol: udp
+          FromPort: 3478
+          ToPort: 3478
+          CidrIp: 0.0.0.0/0
+          Description: TURN UDP
+        - IpProtocol: udp
+          FromPort: 49152
+          ToPort: 49200
+          CidrIp: 0.0.0.0/0
+          Description: TURN Media Relay
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: FEL-SecurityGroup
+
+  # ─── IAM Role ──────────────────────────────────────────────────────
+  FELInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: FEL-InstanceRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: FEL-SNSPublish
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: '*'
+
+  FELInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref FELInstanceRole
+
+  # ─── Elastic IP ────────────────────────────────────────────────────
+  FELElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: FEL-ElasticIP
+
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref FELInstance
+      AllocationId: !GetAtt FELElasticIP.AllocationId
+
+  # ─── EC2 Instance ──────────────────────────────────────────────────
+  FELInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !FindInMap [RegionAMI, !Ref 'AWS::Region', AMI]
+      KeyName: !Ref KeyPairName
+      IamInstanceProfile: !Ref FELInstanceProfile
+      SubnetId: !Ref FELSubnet
+      SecurityGroupIds:
+        - !Ref FELSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: !Ref VolumeSize
+            VolumeType: gp3
+            Iops: 6000
+            Throughput: 400
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: FinalEvolutionLab-Build
+        - Key: Project
+          Value: FEL
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > /var/log/fel-bootstrap.log 2>&1
+
+          echo "=== FEL Bootstrap Starting ==="
+          export DEBIAN_FRONTEND=noninteractive
+
+          # Store credentials
+          mkdir -p /home/ubuntu/.fel
+          cat > /home/ubuntu/.fel/credentials.env << 'CREDS'
+          GITHUB_TOKEN=${GitHubToken}
+          GAIA_API_KEY=${GaiaApiKey}
+          LUMA_API_KEY=${LumaApiKey}
+          RUNWAY_API_KEY=${RunwayApiKey}
+          STABILITY_API_KEY=${StabilityApiKey}
+          MESHY_API_KEY=${MeshyApiKey}
+          NOTIFICATION_EMAIL=${NotificationEmail}
+          SLACK_WEBHOOK=${SlackWebhook}
+          CREDS
+          chmod 600 /home/ubuntu/.fel/credentials.env
+          chown ubuntu:ubuntu /home/ubuntu/.fel/credentials.env
+
+          # Download and run bootstrap
+          apt-get update -y
+          apt-get install -y git curl wget
+
+          # Clone project
+          cd /home/ubuntu
+          if [ -n "${GitHubToken}" ]; then
+            git clone https://${GitHubToken}@github.com/finalevolutiongroup/final-evolution-lab.git rork-final-evolution-lab || \
+            git clone https://github.com/finalevolutiongroup/final-evolution-lab.git rork-final-evolution-lab || true
+          fi
+
+          # Run bootstrap if project exists
+          if [ -d /home/ubuntu/rork-final-evolution-lab/deploy/aws ]; then
+            chmod +x /home/ubuntu/rork-final-evolution-lab/deploy/aws/bootstrap.sh
+            su - ubuntu -c '/home/ubuntu/rork-final-evolution-lab/deploy/aws/bootstrap.sh'
+          fi
+
+          echo "=== FEL Bootstrap Complete ==="
+
+Outputs:
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref FELInstance
+  PublicIP:
+    Description: Elastic IP address
+    Value: !Ref FELElasticIP
+  SSHCommand:
+    Description: SSH command to connect
+    Value: !Sub 'ssh -i ${KeyPairName}.pem ubuntu@${FELElasticIP}'
+  WebAppURL:
+    Description: Web App URL
+    Value: !Sub 'http://${FELElasticIP}:3000'
+  SignallingURL:
+    Description: Signalling Server WebSocket URL
+    Value: !Sub 'ws://${FELElasticIP}:8888'
+  PixelStreamingURL:
+    Description: Pixel Streaming URL
+    Value: !Sub 'http://${FELElasticIP}:3000'
+  BootstrapLog:
+    Description: View bootstrap log
+    Value: 'ssh ... then: tail -f /var/log/fel-bootstrap.log'
