@@ -1,126 +1,63 @@
-import React, { useState, useEffect, useCallback, createContext, useContext } from "react";
+import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { 
-  Activity, Brain, Users, Gamepad2, GraduationCap, ShoppingBag, 
-  Settings, LogOut, Home, User, Trophy, Heart, Dumbbell, 
-  Play, Zap, Target, Clock, ChevronRight, Menu, X, Star,
-  Shield, Award, TrendingUp, BarChart3, Calendar
+import {
+  Activity, Brain, Users, Gamepad2, GraduationCap, ShoppingBag,
+  LogOut, Home, User, Trophy, Heart, Dumbbell,
+  Zap, Target, Clock, ChevronRight, Menu, X, Star,
+  Award, BarChart3, Calendar, MessageCircle, Send,
+  Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
+  Crosshair, Timer, Flame, Crown, Medal, ChevronDown
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
-
-// Configure axios
 axios.defaults.withCredentials = true;
 
 // ===================== AUTH CONTEXT =====================
 const AuthContext = createContext(null);
-
 export const useAuth = () => useContext(AuthContext);
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const checkAuth = useCallback(async () => {
-    // CRITICAL: If returning from OAuth callback, skip the /me check.
-    // AuthCallback will exchange the session_id and establish the session first.
-    if (window.location.hash?.includes('session_id=')) {
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      const response = await axios.get(`${API}/auth/me`);
-      setUser(response.data);
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    if (window.location.hash?.includes('session_id=')) { setLoading(false); return; }
+    try { const r = await axios.get(`${API}/auth/me`); setUser(r.data); } catch { setUser(null); }
+    finally { setLoading(false); }
   }, []);
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  const logout = async () => {
-    try {
-      await axios.post(`${API}/auth/logout`);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, setUser, loading, logout, checkAuth }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  useEffect(() => { checkAuth(); }, [checkAuth]);
+  const logout = async () => { try { await axios.post(`${API}/auth/logout`); } catch {} setUser(null); };
+  return <AuthContext.Provider value={{ user, setUser, loading, logout }}>{children}</AuthContext.Provider>;
 };
 
-// ===================== AUTH CALLBACK =====================
 const AuthCallback = () => {
   const navigate = useNavigate();
   const { setUser } = useAuth();
-  const hasProcessed = React.useRef(false);
-
+  const hasProcessed = useRef(false);
   useEffect(() => {
     if (hasProcessed.current) return;
     hasProcessed.current = true;
-
-    const processAuth = async () => {
-      const hash = window.location.hash;
-      const sessionId = hash.split('session_id=')[1]?.split('&')[0];
-      
-      if (!sessionId) {
-        navigate('/login');
-        return;
-      }
-
+    const process = async () => {
+      const sid = window.location.hash.split('session_id=')[1]?.split('&')[0];
+      if (!sid) { navigate('/login'); return; }
       try {
-        const response = await axios.post(`${API}/auth/session`, { session_id: sessionId });
-        setUser(response.data);
-        navigate('/dashboard', { replace: true, state: { user: response.data } });
-      } catch (error) {
-        console.error("Auth error:", error);
-        navigate('/login');
-      }
+        const r = await axios.post(`${API}/auth/session`, { session_id: sid });
+        setUser(r.data);
+        navigate('/dashboard', { replace: true, state: { user: r.data } });
+      } catch { navigate('/login'); }
     };
-
-    processAuth();
+    process();
   }, [navigate, setUser]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-default)' }}>
-      <div className="text-center">
-        <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-zinc-400">Authenticating...</p>
-      </div>
-    </div>
-  );
+  return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div></div>;
 };
 
-// ===================== PROTECTED ROUTE =====================
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-default)' }}>
-        <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (!user && !location.state?.user) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div></div>;
+  if (!user && !location.state?.user) return <Navigate to="/login" replace />;
   return children;
 };
 
@@ -128,165 +65,83 @@ const ProtectedRoute = ({ children }) => {
 const LandingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) navigate('/dashboard');
-  }, [user, navigate]);
-
+  useEffect(() => { if (user) navigate('/dashboard'); }, [user, navigate]);
   const handleLogin = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
-
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-default)' }}>
-      {/* Hero Section */}
+    <div className="min-h-screen" style={{background:'var(--bg-default)'}}>
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 to-transparent"></div>
-        
-        {/* Header */}
         <header className="relative z-10 flex items-center justify-between px-8 py-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-cyan-400 flex items-center justify-center">
-              <Zap className="w-6 h-6 text-black" />
-            </div>
-            <span className="text-xl font-bold tracking-tight" style={{ fontFamily: 'Barlow Condensed' }}>
-              FINAL EVOLUTION LAB
-            </span>
+            <div className="w-10 h-10 bg-cyan-400 flex items-center justify-center"><Zap className="w-6 h-6 text-black" /></div>
+            <span className="text-xl font-bold tracking-tight" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION LAB</span>
           </div>
-          <button 
-            data-testid="hero-login-btn"
-            onClick={handleLogin}
-            className="btn-primary"
-          >
-            Enter Lab
-          </button>
+          <button data-testid="hero-login-btn" onClick={handleLogin} className="btn-primary">Enter Lab</button>
         </header>
-
-        {/* Hero Content */}
         <div className="relative z-10 max-w-6xl mx-auto px-8 py-24 text-center">
           <p className="overline mb-4">THE ATHLETE OPERATING SYSTEM</p>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6" style={{ fontFamily: 'Barlow Condensed' }}>
-            YOUR MOVEMENT<br />
-            <span className="text-cyan-400">AUDITED</span>
-          </h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">
-            System scan meets game arena. Train with AI, compete globally, evolve continuously.
-          </p>
-          
+          <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6" style={{fontFamily:'Barlow Condensed'}}>YOUR MOVEMENT<br/><span className="text-cyan-400">AUDITED</span></h1>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <button 
-              data-testid="cta-start-btn"
-              onClick={handleLogin}
-              className="btn-primary text-lg px-8 py-4"
-            >
-              Start System Scan
-            </button>
-            <button className="btn-secondary text-lg px-8 py-4">
-              Watch Demo
-            </button>
+            <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
+            <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
           </div>
-
-          {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
-            {[
-              { value: "17", label: "Game Modes" },
-              { value: "9,356+", label: "AI Assets" },
-              { value: "54", label: "Animations" },
-              { value: "12", label: "Venues" }
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="metric-value text-cyan-400">{stat.value}</div>
-                <div className="metric-label">{stat.label}</div>
-              </div>
+            {[{v:"17",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
+              <div key={i} className="text-center"><div className="metric-value text-cyan-400">{s.v}</div><div className="metric-label">{s.l}</div></div>
             ))}
           </div>
         </div>
       </div>
-
-      {/* Features Grid */}
       <div className="max-w-6xl mx-auto px-8 py-24">
         <p className="overline text-center mb-4">CORE SYSTEMS</p>
-        <h2 className="text-4xl font-bold text-center mb-16" style={{ fontFamily: 'Barlow Condensed' }}>
-          ONE SCAN. TOTAL INTEGRATION.
-        </h2>
-        
+        <h2 className="text-4xl font-bold text-center mb-16" style={{fontFamily:'Barlow Condensed'}}>ONE SCAN. TOTAL INTEGRATION.</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
-            { icon: Activity, title: "System Scan", desc: "Avatar, PRQ metrics, health signals, and workout plans unified" },
-            { icon: Users, title: "Creator Cards", desc: "Digital collectibles from elite athletes and coaches" },
-            { icon: Gamepad2, title: "Game Modes", desc: "17 modes across basketball, karate, soccer, and more" },
-            { icon: Trophy, title: "Coach Economy", desc: "Instruction and critique as first-class currencies" },
-            { icon: Brain, title: "Brain Brawl", desc: "Cognitive training for peak decision-making" },
-            { icon: GraduationCap, title: "Education", desc: "Common Core to kinesiology certification" }
-          ].map((feature, i) => (
+            {icon:Activity,t:"System Scan",d:"Avatar, PRQ metrics, health signals, and workout plans unified"},
+            {icon:Users,t:"Creator Cards",d:"Digital collectibles from elite athletes and coaches"},
+            {icon:Gamepad2,t:"17 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
+            {icon:Trophy,t:"Coach Economy",d:"Instruction and critique as first-class currencies"},
+            {icon:Brain,t:"Brain Brawl",d:"Cognitive training for peak decision-making"},
+            {icon:GraduationCap,t:"Education",d:"Common Core to kinesiology certification"}
+          ].map((f,i) => (
             <div key={i} className="surface-card p-6 card-hover">
-              <feature.icon className="w-10 h-10 text-cyan-400 mb-4" />
-              <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'Barlow Condensed' }}>{feature.title}</h3>
-              <p className="text-zinc-400">{feature.desc}</p>
+              <f.icon className="w-10 h-10 text-cyan-400 mb-4" /><h3 className="text-xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>{f.t}</h3><p className="text-zinc-400">{f.d}</p>
             </div>
           ))}
         </div>
       </div>
-
-      {/* CTA */}
       <div className="surface-glass py-16">
         <div className="max-w-4xl mx-auto px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed' }}>
-            READY TO EVOLVE?
-          </h2>
+          <h2 className="text-3xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>READY TO EVOLVE?</h2>
           <p className="text-zinc-400 mb-8">Join the lab. Train smarter. Compete harder.</p>
-          <button 
-            data-testid="footer-cta-btn"
-            onClick={handleLogin}
-            className="btn-primary text-lg px-8 py-4"
-          >
-            Enter Final Evolution Lab
-          </button>
+          <button data-testid="footer-cta-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Enter Final Evolution Lab</button>
         </div>
       </div>
     </div>
   );
 };
 
-// ===================== LOGIN PAGE =====================
 const LoginPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) navigate('/dashboard');
-  }, [user, navigate]);
-
+  useEffect(() => { if (user) navigate('/dashboard'); }, [user, navigate]);
   const handleLogin = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
-
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-default)' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}>
       <div className="surface-card p-8 w-full max-w-md text-center">
-        <div className="w-16 h-16 bg-cyan-400 flex items-center justify-center mx-auto mb-6">
-          <Zap className="w-10 h-10 text-black" />
-        </div>
-        <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'Barlow Condensed' }}>FINAL EVOLUTION LAB</h1>
+        <div className="w-16 h-16 bg-cyan-400 flex items-center justify-center mx-auto mb-6"><Zap className="w-10 h-10 text-black" /></div>
+        <h1 className="text-3xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION LAB</h1>
         <p className="text-zinc-400 mb-8">Sign in to access your training dashboard</p>
-        
-        <button 
-          data-testid="login-google-btn"
-          onClick={handleLogin}
-          className="btn-primary w-full flex items-center justify-center gap-3"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          Continue with Google
-        </button>
+        <button data-testid="login-google-btn" onClick={handleLogin} className="btn-primary w-full flex items-center justify-center gap-3">Continue with Google</button>
       </div>
     </div>
   );
@@ -297,196 +152,84 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-
   const navItems = [
-    { id: 'dashboard', icon: Home, label: 'Dashboard' },
-    { id: 'scan', icon: Activity, label: 'System Scan' },
-    { id: 'games', icon: Gamepad2, label: 'Game Modes' },
-    { id: 'cards', icon: Users, label: 'Creator Cards' },
-    { id: 'coach', icon: Trophy, label: 'Coach Hub' },
-    { id: 'education', icon: GraduationCap, label: 'Education' },
-    { id: 'brain-brawl', icon: Brain, label: 'Brain Brawl' },
+    {id:'dashboard',icon:Home,label:'Dashboard'},{id:'scan',icon:Activity,label:'System Scan'},
+    {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'cards',icon:Users,label:'Creator Cards'},
+    {id:'coach',icon:Trophy,label:'Coach Hub'},{id:'ai-coach',icon:MessageCircle,label:'AI Coach'},
+    {id:'education',icon:GraduationCap,label:'Education'},{id:'brain-brawl',icon:Brain,label:'Brain Brawl'},
+    {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Radio,label:'Pixel Stream'},
+    {id:'profile',icon:User,label:'Profile'},
   ];
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
-
   return (
     <>
-      {/* Mobile Toggle */}
-      <button 
-        data-testid="mobile-menu-btn"
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-zinc-900 border border-zinc-800"
-        onClick={() => setMobileOpen(!mobileOpen)}
-      >
+      <button data-testid="mobile-menu-btn" className="lg:hidden fixed top-4 left-4 z-[60] p-2 bg-zinc-900 border border-zinc-800" onClick={() => setMobileOpen(!mobileOpen)}>
         {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
-
-      {/* Sidebar */}
       <aside className={`sidebar ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} transition-transform`}>
-        {/* Logo */}
         <div className="p-6 border-b border-white/5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-cyan-400 flex items-center justify-center">
-              <Zap className="w-6 h-6 text-black" />
-            </div>
-            <div>
-              <div className="font-bold text-sm tracking-tight" style={{ fontFamily: 'Barlow Condensed' }}>FINAL EVOLUTION</div>
-              <div className="text-xs text-zinc-500">LAB v1.0</div>
-            </div>
+            <div className="w-10 h-10 bg-cyan-400 flex items-center justify-center"><Zap className="w-6 h-6 text-black" /></div>
+            <div><div className="font-bold text-sm tracking-tight" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION</div><div className="text-xs text-zinc-500">LAB v1.0</div></div>
           </div>
         </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 py-4">
+        <nav className="flex-1 py-2 overflow-y-auto">
           {navItems.map(item => (
-            <button
-              key={item.id}
-              data-testid={`nav-${item.id}`}
-              onClick={() => { setActiveTab(item.id); setMobileOpen(false); }}
-              className={`nav-item w-full ${activeTab === item.id ? 'active' : ''}`}
-            >
-              <item.icon className="w-5 h-5" />
-              {item.label}
+            <button key={item.id} data-testid={`nav-${item.id}`} onClick={() => {setActiveTab(item.id);setMobileOpen(false);}} className={`nav-item w-full ${activeTab === item.id ? 'active' : ''}`}>
+              <item.icon className="w-5 h-5" />{item.label}
             </button>
           ))}
         </nav>
-
-        {/* User Section */}
         <div className="p-4 border-t border-white/5">
-          <div className="flex items-center gap-3 mb-4">
-            {user?.picture ? (
-              <img src={user.picture} alt="" className="w-10 h-10 rounded-full" />
-            ) : (
-              <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-zinc-400" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm truncate">{user?.name || 'Athlete'}</div>
-              <div className="text-xs text-zinc-500">Level {user?.level || 1}</div>
-            </div>
+          <div className="flex items-center gap-3 mb-3">
+            {user?.picture ? <img src={user.picture} alt="" className="w-9 h-9 rounded-full" /> : <div className="w-9 h-9 bg-zinc-800 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-zinc-400" /></div>}
+            <div className="flex-1 min-w-0"><div className="font-medium text-sm truncate">{user?.name || 'Athlete'}</div><div className="text-xs text-zinc-500">Lvl {user?.level || 1}</div></div>
           </div>
-          <button 
-            data-testid="logout-btn"
-            onClick={handleLogout}
-            className="nav-item w-full text-red-400 hover:text-red-300"
-          >
-            <LogOut className="w-5 h-5" />
-            Sign Out
-          </button>
+          <button data-testid="logout-btn" onClick={async () => {await logout();navigate('/');}} className="nav-item w-full text-red-400 hover:text-red-300"><LogOut className="w-5 h-5" />Sign Out</button>
         </div>
       </aside>
     </>
   );
 };
 
-// ===================== DASHBOARD VIEW =====================
+// ===================== DASHBOARD =====================
 const DashboardView = ({ setActiveTab }) => {
   const { user } = useAuth();
   const [prq, setPrq] = useState(null);
   const [stats, setStats] = useState(null);
-
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prqRes, statsRes] = await Promise.all([
-          axios.get(`${API}/prq/metrics`),
-          axios.get(`${API}/stats/overview`)
-        ]);
-        setPrq(prqRes.data);
-        setStats(statsRes.data);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      }
-    };
-    fetchData();
+    Promise.all([axios.get(`${API}/prq/metrics`), axios.get(`${API}/stats/overview`)])
+      .then(([p, s]) => { setPrq(p.data); setStats(s.data); }).catch(console.error);
   }, []);
-
   return (
-    <div className="space-y-8 fade-in">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="overline mb-1">WELCOME BACK</p>
-          <h1 className="text-4xl font-black" style={{ fontFamily: 'Barlow Condensed' }}>
-            {user?.name?.split(' ')[0] || 'ATHLETE'}
-          </h1>
-        </div>
-        <div className="text-right">
-          <div className="metric-label">TODAY'S DATE</div>
-          <div className="text-lg font-medium">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
-        </div>
+    <div className="space-y-8 fade-in" data-testid="dashboard-view">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div><p className="overline mb-1">WELCOME BACK</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>{user?.name?.split(' ')[0] || 'ATHLETE'}</h1></div>
+        <div className="text-right"><div className="metric-label">TODAY</div><div className="text-lg font-medium">{new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</div></div>
       </div>
-
-      {/* PRQ Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* PRQ Score Card */}
-        <div className="surface-active p-6 lg:col-span-1" data-testid="prq-score-card">
+        <div className="surface-active p-6" data-testid="prq-score-card">
           <p className="overline mb-4">PERFORMANCE READINESS</p>
           <div className="flex items-center justify-center">
             <div className="relative">
-              <svg className="w-48 h-48 -rotate-90">
-                <circle cx="96" cy="96" r="80" fill="none" stroke="var(--secondary)" strokeWidth="12" />
-                <circle 
-                  cx="96" cy="96" r="80" 
-                  fill="none" 
-                  stroke="var(--primary)" 
-                  strokeWidth="12"
-                  strokeLinecap="round"
-                  strokeDasharray={`${(prq?.overall_score || 75) * 5.02} 502`}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="metric-value">{prq?.overall_score?.toFixed(0) || '75'}</span>
-                <span className="metric-label">PRQ SCORE</span>
-              </div>
+              <svg className="w-48 h-48" viewBox="0 0 192 192"><circle cx="96" cy="96" r="80" fill="none" stroke="var(--secondary)" strokeWidth="12" /><circle cx="96" cy="96" r="80" fill="none" stroke="var(--primary)" strokeWidth="12" strokeLinecap="round" transform="rotate(-90 96 96)" strokeDasharray={`${(prq?.overall_score||75)*5.02} 502`} /></svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="metric-value">{prq?.overall_score?.toFixed(0)||'75'}</span><span className="metric-label">PRQ</span></div>
             </div>
           </div>
         </div>
-
-        {/* Quick Stats */}
         <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-          {[
-            { label: 'Workouts', value: stats?.total_workouts || 0, icon: Dumbbell, color: 'text-green-400' },
-            { label: 'Sessions', value: stats?.coaching_sessions || 0, icon: Users, color: 'text-blue-400' },
-            { label: 'Brain Brawls', value: stats?.brain_brawl_sessions || 0, icon: Brain, color: 'text-purple-400' },
-            { label: 'XP Earned', value: stats?.xp || 0, icon: Star, color: 'text-yellow-400' }
-          ].map((stat, i) => (
-            <div key={i} className="surface-card p-6" data-testid={`stat-${stat.label.toLowerCase().replace(' ', '-')}`}>
-              <stat.icon className={`w-8 h-8 ${stat.color} mb-3`} />
-              <div className="metric-value text-2xl">{stat.value}</div>
-              <div className="metric-label">{stat.label}</div>
-            </div>
+          {[{l:'Workouts',v:stats?.total_workouts||0,icon:Dumbbell,c:'text-green-400'},{l:'Games',v:stats?.game_sessions||0,icon:Gamepad2,c:'text-blue-400'},{l:'Brain Brawls',v:stats?.brain_brawl_sessions||0,icon:Brain,c:'text-purple-400'},{l:'XP',v:stats?.xp||0,icon:Star,c:'text-yellow-400'}].map((s,i)=>(
+            <div key={i} className="surface-card p-6"><s.icon className={`w-8 h-8 ${s.c} mb-3`} /><div className="metric-value text-2xl">{s.v}</div><div className="metric-label">{s.l}</div></div>
           ))}
         </div>
       </div>
-
-      {/* Quick Actions */}
       <div>
-        <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed' }}>QUICK START</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { title: 'Start Workout', desc: 'AI-recommended training', icon: Dumbbell, action: () => setActiveTab('scan') },
-            { title: 'Play Game', desc: '17 modes available', icon: Gamepad2, action: () => setActiveTab('games') },
-            { title: 'Brain Brawl', desc: 'Sharpen your mind', icon: Brain, action: () => setActiveTab('brain-brawl') }
-          ].map((item, i) => (
-            <button
-              key={i}
-              data-testid={`quick-${item.title.toLowerCase().replace(' ', '-')}`}
-              onClick={item.action}
-              className="surface-card p-6 text-left card-hover flex items-center gap-4"
-            >
-              <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center">
-                <item.icon className="w-6 h-6 text-cyan-400" />
-              </div>
-              <div>
-                <div className="font-bold">{item.title}</div>
-                <div className="text-sm text-zinc-500">{item.desc}</div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-zinc-600 ml-auto" />
+        <h2 className="text-2xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>QUICK START</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[{t:'Play Game',d:'17 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Workout',d:'Start training',icon:Dumbbell,a:'scan'}].map((i,idx)=>(
+            <button key={idx} data-testid={`quick-${i.a}`} onClick={()=>setActiveTab(i.a)} className="surface-card p-5 text-left card-hover flex items-center gap-4">
+              <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center flex-shrink-0"><i.icon className="w-6 h-6 text-cyan-400" /></div>
+              <div className="flex-1 min-w-0"><div className="font-bold">{i.t}</div><div className="text-sm text-zinc-500">{i.d}</div></div>
+              <ChevronRight className="w-5 h-5 text-zinc-600 flex-shrink-0" />
             </button>
           ))}
         </div>
@@ -495,104 +238,214 @@ const DashboardView = ({ setActiveTab }) => {
   );
 };
 
-// ===================== SYSTEM SCAN VIEW =====================
+// ===================== SYSTEM SCAN =====================
 const SystemScanView = () => {
   const [prq, setPrq] = useState(null);
-  const [health, setHealth] = useState([]);
   const [workouts, setWorkouts] = useState([]);
+  const [activeWorkout, setActiveWorkout] = useState(null);
+  const [exerciseIdx, setExerciseIdx] = useState(0);
+  const [workoutTimer, setWorkoutTimer] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const timerRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prqRes, healthRes, workoutsRes] = await Promise.all([
-          axios.get(`${API}/prq/metrics`),
-          axios.get(`${API}/health/metrics`),
-          axios.get(`${API}/workouts/recommended`)
-        ]);
-        setPrq(prqRes.data);
-        setHealth(healthRes.data);
-        setWorkouts(workoutsRes.data);
-      } catch (error) {
-        console.error('Error fetching scan data:', error);
-      }
-    };
-    fetchData();
+    Promise.all([axios.get(`${API}/prq/metrics`), axios.get(`${API}/workouts/recommended`)])
+      .then(([p,w]) => {setPrq(p.data);setWorkouts(w.data);}).catch(console.error);
   }, []);
 
-  const metrics = [
-    { key: 'strength', label: 'Strength', color: '#FF6B6B' },
-    { key: 'speed', label: 'Speed', color: '#4ECDC4' },
-    { key: 'endurance', label: 'Endurance', color: '#45B7D1' },
-    { key: 'agility', label: 'Agility', color: '#96CEB4' },
-    { key: 'power', label: 'Power', color: '#FFEAA7' },
-    { key: 'flexibility', label: 'Flexibility', color: '#DDA0DD' },
-    { key: 'recovery', label: 'Recovery', color: '#98D8C8' },
-    { key: 'mental', label: 'Mental', color: '#F7DC6F' }
-  ];
+  useEffect(() => {
+    if (timerRunning) { timerRef.current = setInterval(() => setWorkoutTimer(t => t+1), 1000); }
+    return () => clearInterval(timerRef.current);
+  }, [timerRunning]);
+
+  const startWorkout = (w) => { setActiveWorkout(w); setExerciseIdx(0); setWorkoutTimer(0); setTimerRunning(true); };
+  const completeExercise = () => {
+    if (exerciseIdx + 1 >= activeWorkout.exercises.length) {
+      setTimerRunning(false);
+      axios.post(`${API}/workouts/log`, {workout_id: activeWorkout.id, workout_name: activeWorkout.name, duration_minutes: Math.ceil(workoutTimer/60)}).catch(console.error);
+      setActiveWorkout(null);
+    } else { setExerciseIdx(i => i+1); }
+  };
+
+  const metrics = [{k:'strength',l:'STR',c:'#FF6B6B'},{k:'speed',l:'SPD',c:'#4ECDC4'},{k:'endurance',l:'END',c:'#45B7D1'},{k:'agility',l:'AGI',c:'#96CEB4'},{k:'power',l:'PWR',c:'#FFEAA7'},{k:'flexibility',l:'FLX',c:'#DDA0DD'},{k:'recovery',l:'REC',c:'#98D8C8'},{k:'mental',l:'MNT',c:'#F7DC6F'}];
+
+  if (activeWorkout) {
+    const ex = activeWorkout.exercises[exerciseIdx];
+    return (
+      <div className="space-y-6 fade-in max-w-2xl mx-auto" data-testid="active-workout">
+        <div className="flex items-center justify-between">
+          <div><p className="overline mb-1">ACTIVE WORKOUT</p><h1 className="text-3xl font-black" style={{fontFamily:'Barlow Condensed'}}>{activeWorkout.name}</h1></div>
+          <div className="text-right"><div className="metric-value text-2xl text-cyan-400">{Math.floor(workoutTimer/60)}:{String(workoutTimer%60).padStart(2,'0')}</div><div className="metric-label">ELAPSED</div></div>
+        </div>
+        <div className="progress-bar"><div className="progress-fill" style={{width:`${((exerciseIdx+1)/activeWorkout.exercises.length)*100}%`}}></div></div>
+        <div className="surface-active p-8 text-center">
+          <div className="badge-clinical mb-4 inline-block">{exerciseIdx+1} / {activeWorkout.exercises.length}</div>
+          <h2 className="text-3xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>{ex.name}</h2>
+          <div className="flex justify-center gap-8 mb-8">
+            <div><div className="metric-value text-4xl">{ex.sets}</div><div className="metric-label">Sets</div></div>
+            <div><div className="metric-value text-4xl">{ex.reps}</div><div className="metric-label">Reps</div></div>
+            <div><div className="metric-value text-4xl">{ex.rest}</div><div className="metric-label">Rest</div></div>
+          </div>
+          <button data-testid="complete-exercise" onClick={completeExercise} className="btn-primary text-lg px-12 py-4">{exerciseIdx + 1 >= activeWorkout.exercises.length ? 'Finish Workout' : 'Next Exercise'}</button>
+        </div>
+        <button onClick={() => {setActiveWorkout(null);setTimerRunning(false);}} className="btn-secondary w-full">Cancel Workout</button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 fade-in">
-      <div>
-        <p className="overline mb-1">PERFORMANCE ANALYSIS</p>
-        <h1 className="text-4xl font-black" style={{ fontFamily: 'Barlow Condensed' }}>SYSTEM SCAN</h1>
-      </div>
-
-      {/* PRQ Breakdown */}
+      <div><p className="overline mb-1">PERFORMANCE ANALYSIS</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>SYSTEM SCAN</h1></div>
       <div className="surface-card p-6" data-testid="prq-breakdown">
-        <h2 className="text-xl font-bold mb-6" style={{ fontFamily: 'Barlow Condensed' }}>PRQ BREAKDOWN</h2>
+        <h2 className="text-xl font-bold mb-6" style={{fontFamily:'Barlow Condensed'}}>PRQ BREAKDOWN</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {metrics.map(m => (
-            <div key={m.key} className="surface-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="metric-label">{m.label}</span>
-                <span className="font-mono text-lg">{prq?.[m.key]?.toFixed(0) || '--'}</span>
-              </div>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${prq?.[m.key] || 0}%`, background: m.color }}
-                ></div>
-              </div>
+            <div key={m.k} className="surface-card p-4">
+              <div className="flex items-center justify-between mb-2"><span className="metric-label">{m.l}</span><span className="font-mono text-lg">{prq?.[m.k]?.toFixed(0)||'--'}</span></div>
+              <div className="progress-bar"><div className="progress-fill" style={{width:`${prq?.[m.k]||0}%`,background:m.c}}></div></div>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Health Metrics */}
-      <div className="surface-card p-6" data-testid="health-metrics">
-        <h2 className="text-xl font-bold mb-6" style={{ fontFamily: 'Barlow Condensed' }}>HEALTH SIGNALS</h2>
+      <div className="surface-card p-6" data-testid="health-signals">
+        <h2 className="text-xl font-bold mb-6" style={{fontFamily:'Barlow Condensed'}}>HEALTH SIGNALS</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Heart Rate', value: health[0]?.heart_rate || 72, unit: 'BPM', icon: Heart },
-            { label: 'Sleep', value: health[0]?.sleep_hours || 7.5, unit: 'HRS', icon: Clock },
-            { label: 'Steps', value: health[0]?.steps || 8500, unit: '', icon: Activity },
-            { label: 'Readiness', value: health[0]?.readiness_score || 85, unit: '%', icon: Zap }
-          ].map((item, i) => (
-            <div key={i} className="bg-black/50 p-4 border border-white/5">
-              <item.icon className="w-5 h-5 text-cyan-400 mb-2" />
-              <div className="metric-value text-2xl">{item.value}{item.unit && <span className="text-sm ml-1">{item.unit}</span>}</div>
-              <div className="metric-label">{item.label}</div>
+          {[{l:'Heart Rate',v:'72',u:'BPM',icon:Heart},{l:'Sleep',v:'7.5',u:'HRS',icon:Clock},{l:'Steps',v:'8,500',u:'',icon:Activity},{l:'Readiness',v:'85',u:'%',icon:Zap}].map((h,i)=>(
+            <div key={i} className="bg-black/50 p-4 border border-white/5"><h.icon className="w-5 h-5 text-cyan-400 mb-2" /><div className="metric-value text-2xl">{h.v}{h.u && <span className="text-sm ml-1">{h.u}</span>}</div><div className="metric-label">{h.l}</div></div>
+          ))}
+        </div>
+      </div>
+      <div data-testid="recommended-workouts">
+        <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>WORKOUT PLANS</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {workouts.map(w => (
+            <div key={w.id} className="surface-card p-6 card-hover">
+              <div className="flex items-center gap-2 mb-3"><span className="badge-clinical">{w.sport}</span><span className="badge-clinical" style={{background:'rgba(255,184,0,0.1)',borderColor:'rgba(255,184,0,0.3)',color:'#FFB800'}}>{w.difficulty}</span></div>
+              <h3 className="text-lg font-bold mb-2">{w.name}</h3>
+              <div className="flex items-center gap-4 text-sm text-zinc-400 mb-3"><span className="flex items-center gap-1"><Clock className="w-4 h-4" />{w.duration_minutes}min</span><span>{w.exercises.length} exercises</span></div>
+              <div className="space-y-2 mb-4">{w.exercises.map((e,i) => <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-white/5"><span>{e.name}</span><span className="text-zinc-500">{e.sets}×{e.reps}</span></div>)}</div>
+              <button data-testid={`start-workout-${w.id}`} onClick={()=>startWorkout(w)} className="btn-primary w-full">Start Workout</button>
             </div>
           ))}
         </div>
       </div>
+    </div>
+  );
+};
 
-      {/* Recommended Workouts */}
-      <div data-testid="recommended-workouts">
-        <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed' }}>RECOMMENDED WORKOUTS</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          {workouts.map(workout => (
-            <div key={workout.id} className="surface-card p-6 card-hover">
-              <div className="badge-clinical mb-3">{workout.sport}</div>
-              <h3 className="text-lg font-bold mb-2">{workout.name}</h3>
-              <div className="flex items-center gap-4 text-sm text-zinc-400 mb-4">
-                <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {workout.duration_minutes}min</span>
-                <span className="flex items-center gap-1"><Target className="w-4 h-4" /> {workout.difficulty}</span>
-              </div>
-              <button data-testid={`start-workout-${workout.id}`} className="btn-primary w-full">Start Workout</button>
-            </div>
-          ))}
+// ===================== PLAYABLE GAME ENGINE =====================
+const PlayableGame = ({ mode, onComplete, onBack }) => {
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [gameActive, setGameActive] = useState(true);
+  const [targets, setTargets] = useState([]);
+  const [combo, setCombo] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (gameActive && timeLeft > 0) {
+      timerRef.current = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    } else if (timeLeft <= 0) {
+      setGameActive(false);
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [gameActive, timeLeft]);
+
+  useEffect(() => {
+    if (!gameActive) return;
+    const spawn = setInterval(() => {
+      setTargets(prev => [...prev, {
+        id: Date.now(), x: Math.random() * 80 + 10, y: Math.random() * 60 + 10,
+        size: Math.random() * 30 + 30, type: Math.random() > 0.3 ? 'target' : 'bonus',
+        created: Date.now()
+      }].slice(-8));
+    }, mode.game_type === 'precision' ? 1500 : 800);
+    return () => clearInterval(spawn);
+  }, [gameActive, mode.game_type]);
+
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      setTargets(prev => prev.filter(t => Date.now() - t.created < 3000));
+    }, 500);
+    return () => clearInterval(cleanup);
+  }, []);
+
+  const hitTarget = (target) => {
+    if (!gameActive) return;
+    const points = target.type === 'bonus' ? 50 : 25;
+    const comboBonus = combo > 2 ? combo * 5 : 0;
+    setScore(s => s + points + comboBonus);
+    setCombo(c => c + 1);
+    setTargets(prev => prev.filter(t => t.id !== target.id));
+  };
+
+  const endGame = () => {
+    setGameActive(false);
+    clearInterval(timerRef.current);
+    onComplete(score);
+  };
+
+  useEffect(() => {
+    if (timeLeft <= 0 && score > 0) { endGame(); }
+  }, [timeLeft]);
+
+  const getGameTitle = () => {
+    const titles = {
+      shooting: 'Shoot & Score', timing: 'Perfect Timing', combat: 'Strike Zone',
+      reflex: 'Reflex Rush', precision: 'Precision Shot', balance: 'Balance Master',
+      endurance: 'Endurance Mode', strategy: 'Strategy Play', quiz: 'Brain Brawl'
+    };
+    return titles[mode.game_type] || 'Challenge';
+  };
+
+  if (!gameActive) {
+    return (
+      <div className="max-w-xl mx-auto text-center space-y-6 fade-in" data-testid="game-results">
+        <Award className="w-20 h-20 text-cyan-400 mx-auto" />
+        <h2 className="text-4xl font-bold" style={{fontFamily:'Barlow Condensed'}}>GAME OVER</h2>
+        <div className="metric-value text-6xl text-cyan-400">{score}</div>
+        <div className="metric-label">FINAL SCORE</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="surface-card p-4"><div className="metric-value text-2xl">{combo}</div><div className="metric-label">MAX COMBO</div></div>
+          <div className="surface-card p-4"><div className="metric-value text-2xl">{mode.display_name}</div><div className="metric-label">MODE</div></div>
         </div>
+        <div className="flex gap-4">
+          <button data-testid="play-again-btn" onClick={() => {setScore(0);setTimeLeft(30);setCombo(0);setGameActive(true);}} className="btn-primary flex-1">Play Again</button>
+          <button data-testid="back-to-modes" onClick={onBack} className="btn-secondary flex-1">Back to Modes</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 fade-in" data-testid="active-game">
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="btn-secondary text-sm px-4 py-2">Exit</button>
+        <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}: {getGameTitle()}</h2>
+        <div className="flex items-center gap-4">
+          <div className="text-center"><div className={`metric-value text-2xl ${timeLeft <= 10 ? 'text-red-400' : 'text-cyan-400'}`}>{timeLeft}</div><div className="metric-label">TIME</div></div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between surface-card p-3">
+        <div className="flex items-center gap-4"><span className="font-mono text-lg">SCORE: <span className="text-cyan-400">{score}</span></span></div>
+        {combo > 1 && <div className="badge-clinical" style={{background:'rgba(255,184,0,0.1)',borderColor:'rgba(255,184,0,0.3)',color:'#FFB800'}}>COMBO x{combo}</div>}
+      </div>
+      <div className="relative w-full bg-black/60 border border-white/10 overflow-hidden" style={{height:'400px',cursor:'crosshair'}} onClick={() => setCombo(0)}>
+        <div className="absolute inset-0" style={{backgroundImage:'radial-gradient(circle at 50% 50%, rgba(0,229,255,0.03) 0%, transparent 70%)'}}></div>
+        {targets.map(t => (
+          <button key={t.id} data-testid={`target-${t.id}`}
+            onClick={(e) => {e.stopPropagation(); hitTarget(t);}}
+            className="absolute transition-all duration-100"
+            style={{left:`${t.x}%`,top:`${t.y}%`,width:`${t.size}px`,height:`${t.size}px`,transform:'translate(-50%,-50%)'}}
+          >
+            <div className={`w-full h-full rounded-full flex items-center justify-center ${t.type === 'bonus' ? 'bg-yellow-400/80 border-2 border-yellow-300' : 'bg-cyan-400/80 border-2 border-cyan-300'} hover:scale-110 active:scale-90 transition-transform`}>
+              {t.type === 'bonus' ? <Star className="w-4 h-4 text-black" /> : <Crosshair className="w-4 h-4 text-black" />}
+            </div>
+          </button>
+        ))}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-zinc-600 text-sm">TAP TARGETS TO SCORE</div>
       </div>
     </div>
   );
@@ -602,61 +455,45 @@ const SystemScanView = () => {
 const GameModesView = () => {
   const [modes, setModes] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [playingMode, setPlayingMode] = useState(null);
 
-  useEffect(() => {
-    const fetchModes = async () => {
-      try {
-        const response = await axios.get(`${API}/games/modes`);
-        setModes(response.data);
-      } catch (error) {
-        console.error('Error fetching game modes:', error);
-      }
-    };
-    fetchModes();
-  }, []);
+  useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
 
-  const categories = ['all', 'Basketball', 'Combat', 'Field', 'Court', 'Board', 'Academy'];
-  const filteredModes = filter === 'all' ? modes : modes.filter(m => m.category === filter);
+  const handleGameComplete = async (score) => {
+    try { await axios.post(`${API}/games/session`, {mode_id: playingMode.id, score, duration_seconds: 30, completed: true}); } catch {}
+  };
+
+  if (playingMode) {
+    if (playingMode.game_type === 'quiz') {
+      return <BrainBrawlView onBack={() => setPlayingMode(null)} />;
+    }
+    return <PlayableGame mode={playingMode} onComplete={handleGameComplete} onBack={() => setPlayingMode(null)} />;
+  }
+
+  const categories = ['all','Basketball','Combat','Field','Court','Precision','Board','Performance','Academy'];
+  const filtered = filter === 'all' ? modes : modes.filter(m => m.category === filter);
 
   return (
     <div className="space-y-8 fade-in">
-      <div>
-        <p className="overline mb-1">ARENA ACCESS</p>
-        <h1 className="text-4xl font-black" style={{ fontFamily: 'Barlow Condensed' }}>GAME MODES</h1>
-      </div>
-
-      {/* Filter */}
+      <div><p className="overline mb-1">ARENA ACCESS</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>GAME MODES</h1></div>
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            data-testid={`filter-${cat.toLowerCase()}`}
-            onClick={() => setFilter(cat)}
-            className={`px-4 py-2 text-sm font-medium uppercase tracking-wide transition-all ${
-              filter === cat 
-                ? 'bg-cyan-400 text-black' 
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            {cat}
-          </button>
+        {categories.map(c => (
+          <button key={c} data-testid={`filter-${c.toLowerCase()}`} onClick={() => setFilter(c)} className={`px-4 py-2 text-sm font-medium uppercase tracking-wide whitespace-nowrap transition-all ${filter===c?'bg-cyan-400 text-black':'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{c}</button>
         ))}
       </div>
-
-      {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="game-modes-grid">
-        {filteredModes.map(mode => (
-          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`}>
-            <img src={mode.image_url} alt={mode.name} />
+        {filtered.map(mode => (
+          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && setPlayingMode(mode)}>
+            <img src={mode.image_url} alt={mode.name} loading="lazy" />
             <div className="game-mode-overlay">
-              <div className="badge-clinical mb-2 w-fit">{mode.category}</div>
-              <h3 className="text-xl font-bold" style={{ fontFamily: 'Barlow Condensed' }}>{mode.display_name}</h3>
-              <p className="text-sm text-zinc-400 mb-3">{mode.description}</p>
-              <div className="flex items-center gap-4 text-xs text-zinc-500">
-                <span>{mode.player_count}</span>
-                <span>{mode.duration}</span>
-                <span>{mode.difficulty}</span>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="badge-clinical">{mode.category}</span>
+                {mode.playable && <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>PLAYABLE</span>}
               </div>
+              <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
+              <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
+              <div className="flex items-center gap-4 text-xs text-zinc-500"><span>{mode.player_count}</span><span>{mode.duration}</span><span>{mode.difficulty}</span></div>
+              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2" onClick={(e) => {e.stopPropagation();setPlayingMode(mode);}}><Play className="w-4 h-4 inline mr-1" />Play Now</button>}
             </div>
           </div>
         ))}
@@ -665,75 +502,51 @@ const GameModesView = () => {
   );
 };
 
-// ===================== CREATOR CARDS VIEW =====================
+// ===================== CREATOR CARDS =====================
 const CreatorCardsView = () => {
   const [cards, setCards] = useState([]);
+  const [selected, setSelected] = useState(null);
+  useEffect(() => { axios.get(`${API}/cards`).then(r => setCards(r.data)).catch(console.error); }, []);
 
-  useEffect(() => {
-    const fetchCards = async () => {
-      try {
-        const response = await axios.get(`${API}/cards`);
-        setCards(response.data);
-      } catch (error) {
-        console.error('Error fetching cards:', error);
-      }
-    };
-    fetchCards();
-  }, []);
+  if (selected) {
+    return (
+      <div className="space-y-6 fade-in max-w-3xl mx-auto" data-testid="card-detail">
+        <button onClick={() => setSelected(null)} className="btn-secondary text-sm">Back to Gallery</button>
+        <div className={`creator-card ${selected.style} p-8`}>
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="w-full md:w-64 aspect-square bg-zinc-900 overflow-hidden flex-shrink-0"><img src={selected.image_url} alt={selected.name} className="w-full h-full object-cover" /></div>
+            <div className="flex-1">
+              <div className="badge-clinical mb-3">{selected.tier}</div>
+              <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{selected.name}</h2>
+              <p className="text-cyan-400 mb-3">{selected.title}</p>
+              <p className="text-zinc-400 mb-6">{selected.bio}</p>
+              <h4 className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Signature Moves</h4>
+              <div className="flex flex-wrap gap-2 mb-4">{selected.signature_moves.map((m,i) => <span key={i} className="badge-clinical">{m}</span>)}</div>
+              <h4 className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Challenges</h4>
+              <div className="space-y-2 mb-6">{selected.challenges.map((c,i) => (
+                <div key={i} className="surface-card p-3 flex items-center justify-between"><div><div className="font-medium text-sm">{c.name}</div><div className="text-xs text-zinc-500">{c.description}</div></div><span className="text-cyan-400 font-mono">+{c.reward} XP</span></div>
+              ))}</div>
+              <div className="flex items-center gap-4"><span className="metric-value text-3xl text-cyan-400">${selected.price}</span><button data-testid="purchase-card" className="btn-primary">Purchase Card</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="overline mb-1">ATHLETE MARKETPLACE</p>
-          <h1 className="text-4xl font-black" style={{ fontFamily: 'Barlow Condensed' }}>CREATOR CARDS</h1>
-        </div>
-        <button className="btn-secondary flex items-center gap-2">
-          <ShoppingBag className="w-5 h-5" /> My Collection
-        </button>
-      </div>
-
+      <div className="flex items-center justify-between"><div><p className="overline mb-1">ATHLETE MARKETPLACE</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>CREATOR CARDS</h1></div></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="creator-cards-grid">
         {cards.map(card => (
-          <div 
-            key={card.id} 
-            className={`creator-card ${card.style} p-6 card-hover`}
-            data-testid={`card-${card.id}`}
-          >
-            {/* Card Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="badge-clinical">{card.tier}</div>
-              <div className="text-right">
-                <div className="text-xs text-zinc-500">PRICE</div>
-                <div className="font-mono text-lg text-cyan-400">${card.price}</div>
-              </div>
-            </div>
-
-            {/* Creator Image */}
-            <div className="aspect-square mb-4 overflow-hidden bg-zinc-900">
-              <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
-            </div>
-
-            {/* Creator Info */}
-            <h3 className="text-xl font-bold" style={{ fontFamily: 'Barlow Condensed' }}>{card.name}</h3>
+          <div key={card.id} className={`creator-card ${card.style} p-6 card-hover cursor-pointer`} data-testid={`card-${card.id}`} onClick={() => setSelected(card)}>
+            <div className="flex items-start justify-between mb-4"><div className="badge-clinical">{card.tier}</div><div className="text-right"><div className="text-xs text-zinc-500">PRICE</div><div className="font-mono text-lg text-cyan-400">${card.price}</div></div></div>
+            <div className="aspect-square mb-4 overflow-hidden bg-zinc-900"><img src={card.image_url} alt={card.name} className="w-full h-full object-cover" loading="lazy" /></div>
+            <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{card.name}</h3>
             <p className="text-sm text-cyan-400 mb-2">{card.title}</p>
             <p className="text-sm text-zinc-400 mb-4 line-clamp-2">{card.bio}</p>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {Object.entries(card.stats || {}).slice(0, 3).map(([key, val]) => (
-                <div key={key} className="text-center p-2 bg-black/30">
-                  <div className="font-mono text-lg">{val.toLocaleString()}</div>
-                  <div className="text-xs text-zinc-500 uppercase">{key}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <button data-testid={`buy-${card.id}`} className="btn-primary flex-1">Purchase</button>
-              <button className="btn-secondary px-4"><Star className="w-5 h-5" /></button>
-            </div>
+            <div className="grid grid-cols-3 gap-2 mb-4">{Object.entries(card.stats||{}).slice(0,3).map(([k,v])=>(<div key={k} className="text-center p-2 bg-black/30"><div className="font-mono text-lg">{v.toLocaleString()}</div><div className="text-xs text-zinc-500 uppercase">{k}</div></div>))}</div>
+            <button data-testid={`buy-${card.id}`} className="btn-primary w-full">View Card</button>
           </div>
         ))}
       </div>
@@ -741,160 +554,153 @@ const CreatorCardsView = () => {
   );
 };
 
-// ===================== COACH HUB VIEW =====================
+// ===================== AI COACH =====================
+const AICoachView = () => {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [model, setModel] = useState('gpt-5.2');
+  const [convId] = useState(() => `conv_${Date.now()}`);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({behavior:'smooth'}); }, [messages]);
+
+  const quickPrompts = [
+    {label: 'Workout Plan', prompt: 'Create a personalized workout plan for today based on my PRQ metrics'},
+    {label: 'Nutrition', prompt: 'What should I eat pre and post workout today?'},
+    {label: 'Recovery', prompt: 'Design a recovery protocol based on my current fatigue levels'},
+    {label: 'Performance', prompt: 'Analyze my PRQ and suggest areas to improve'},
+  ];
+
+  const sendMessage = async (text) => {
+    const msg = text || input.trim();
+    if (!msg || loading) return;
+    setMessages(prev => [...prev, {role:'user', content:msg}]);
+    setInput('');
+    setLoading(true);
+    try {
+      const r = await axios.post(`${API}/ai/chat`, {message: msg, model, conversation_id: convId});
+      setMessages(prev => [...prev, {role:'ai', content: r.data.response, model: r.data.model}]);
+    } catch {
+      setMessages(prev => [...prev, {role:'ai', content: 'Connection issue. Please try again.', model: 'error'}]);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="space-y-6 fade-in h-full flex flex-col" style={{minHeight:'calc(100vh - 4rem)'}}>
+      <div className="flex items-center justify-between">
+        <div><p className="overline mb-1">POWERED BY AI</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>AI COACH</h1></div>
+        <select data-testid="model-select" value={model} onChange={e => setModel(e.target.value)} className="input-clinical w-auto text-sm">
+          <option value="gpt-5.2">GPT-5.2</option><option value="claude">Claude Sonnet</option><option value="gemini">Gemini Flash</option>
+        </select>
+      </div>
+
+      {messages.length === 0 && (
+        <div className="flex-1 flex items-center justify-center" data-testid="coach-welcome">
+          <div className="text-center max-w-xl">
+            <MessageCircle className="w-16 h-16 text-cyan-400 mx-auto mb-6" />
+            <h2 className="text-2xl font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>YOUR PERSONAL AI COACH</h2>
+            <p className="text-zinc-400 mb-8">Get personalized training plans, nutrition advice, recovery protocols, and performance analysis.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {quickPrompts.map((q,i) => (
+                <button key={i} data-testid={`quick-prompt-${i}`} onClick={() => sendMessage(q.prompt)} className="surface-card p-4 text-left card-hover">
+                  <div className="font-medium text-sm">{q.label}</div><div className="text-xs text-zinc-500 mt-1">{q.prompt.slice(0,50)}...</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {messages.length > 0 && (
+        <div className="flex-1 overflow-y-auto space-y-4 surface-card p-4" data-testid="chat-messages" style={{maxHeight:'calc(100vh - 20rem)'}}>
+          {messages.map((m,i) => (
+            <div key={i} className={`flex ${m.role==='user'?'justify-end':'justify-start'}`}>
+              <div className={`max-w-[80%] p-4 ${m.role==='user'?'bg-cyan-400/10 border border-cyan-400/30':'surface-card'}`}>
+                {m.role === 'ai' && <div className="text-xs text-zinc-500 mb-2 font-mono uppercase">{m.model}</div>}
+                <div className="text-sm whitespace-pre-wrap">{m.content}</div>
+              </div>
+            </div>
+          ))}
+          {loading && <div className="flex justify-start"><div className="surface-card p-4"><div className="flex gap-1"><div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay:'0.1s'}}></div><div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay:'0.2s'}}></div></div></div></div>}
+          <div ref={chatEndRef} />
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <input data-testid="chat-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==='Enter' && sendMessage()} placeholder="Ask your AI coach anything..." className="input-clinical flex-1" />
+        <button data-testid="send-btn" onClick={() => sendMessage()} disabled={loading || !input.trim()} className="btn-primary px-6"><Send className="w-5 h-5" /></button>
+      </div>
+    </div>
+  );
+};
+
+// ===================== COACH HUB =====================
 const CoachHubView = () => {
   const [coaches, setCoaches] = useState([]);
   const [sessions, setSessions] = useState([]);
-
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [coachesRes, sessionsRes] = await Promise.all([
-          axios.get(`${API}/coach/available`),
-          axios.get(`${API}/coach/sessions`)
-        ]);
-        setCoaches(coachesRes.data);
-        setSessions(sessionsRes.data);
-      } catch (error) {
-        console.error('Error fetching coach data:', error);
-      }
-    };
-    fetchData();
+    Promise.all([axios.get(`${API}/coach/available`), axios.get(`${API}/coach/sessions`)])
+      .then(([c,s]) => {setCoaches(c.data);setSessions(s.data);}).catch(console.error);
   }, []);
-
   return (
     <div className="space-y-8 fade-in">
-      <div>
-        <p className="overline mb-1">TRAINING NETWORK</p>
-        <h1 className="text-4xl font-black" style={{ fontFamily: 'Barlow Condensed' }}>COACH HUB</h1>
-      </div>
-
-      {/* Available Coaches */}
+      <div><p className="overline mb-1">TRAINING NETWORK</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>COACH HUB</h1></div>
       <div data-testid="available-coaches">
-        <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed' }}>AVAILABLE COACHES</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          {coaches.map((coach, i) => (
+        <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>AVAILABLE COACHES</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {coaches.map((c,i) => (
             <div key={i} className="surface-card p-6 card-hover">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center">
-                  <User className="w-8 h-8 text-zinc-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold">{coach.name}</h3>
-                  <p className="text-sm text-cyan-400">{coach.sport}</p>
-                </div>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-14 h-14 bg-zinc-800 rounded-full flex items-center justify-center"><User className="w-7 h-7 text-zinc-400" /></div>
+                <div className="flex-1"><h3 className="font-bold text-lg">{c.name}</h3><p className="text-sm text-cyan-400">{c.specialty || c.sport}</p></div>
+                <div className="text-right"><div className="font-mono text-lg text-cyan-400">${c.rate || 25}</div><div className="text-xs text-zinc-500">per session</div></div>
               </div>
-              <div className="flex items-center gap-4 text-sm text-zinc-400 mb-4">
-                <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" /> {coach.rating}</span>
-                <span>{coach.sessions} sessions</span>
-              </div>
+              <div className="flex items-center gap-4 text-sm text-zinc-400 mb-4"><span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" />{c.rating}</span><span>{c.sessions} sessions</span></div>
               <button data-testid={`book-coach-${i}`} className="btn-primary w-full">Book Session</button>
             </div>
           ))}
         </div>
       </div>
-
-      {/* My Sessions */}
       <div data-testid="my-sessions">
-        <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed' }}>MY SESSIONS</h2>
+        <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>MY SESSIONS</h2>
         {sessions.length === 0 ? (
-          <div className="surface-card p-8 text-center">
-            <Calendar className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-zinc-400">No sessions scheduled yet</p>
-            <p className="text-sm text-zinc-600">Book a coach to start your training journey</p>
-          </div>
+          <div className="surface-card p-8 text-center"><Calendar className="w-12 h-12 text-zinc-600 mx-auto mb-4" /><p className="text-zinc-400">No sessions scheduled</p></div>
         ) : (
-          <div className="space-y-4">
-            {sessions.map((session, i) => (
-              <div key={i} className="surface-card p-4 flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">{session.session_type} Session</h4>
-                  <p className="text-sm text-zinc-400">{session.sport}</p>
-                </div>
-                <div className="badge-clinical">{session.status}</div>
-              </div>
-            ))}
-          </div>
+          <div className="space-y-3">{sessions.map((s,i) => <div key={i} className="surface-card p-4 flex items-center justify-between"><div><h4 className="font-medium">{s.session_type} Session</h4><p className="text-sm text-zinc-400">{s.sport}</p></div><div className="badge-clinical">{s.status}</div></div>)}</div>
         )}
       </div>
     </div>
   );
 };
 
-// ===================== EDUCATION VIEW =====================
+// ===================== EDUCATION =====================
 const EducationView = () => {
   const [courses, setCourses] = useState([]);
   const [filter, setFilter] = useState('all');
-
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await axios.get(`${API}/education/courses`);
-        setCourses(response.data);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-      }
-    };
-    fetchCourses();
-  }, []);
-
-  const categories = ['all', 'brain_brawl', 'kinesiology', 'stem', 'common_core'];
-  const filteredCourses = filter === 'all' ? courses : courses.filter(c => c.category === filter);
-
+  useEffect(() => { axios.get(`${API}/education/courses`).then(r => setCourses(r.data)).catch(console.error); }, []);
+  const categories = ['all','brain_brawl','kinesiology','stem','common_core'];
+  const filtered = filter === 'all' ? courses : courses.filter(c => c.category === filter);
   return (
     <div className="space-y-8 fade-in">
-      <div>
-        <p className="overline mb-1">ATHLETE ACADEMY</p>
-        <h1 className="text-4xl font-black" style={{ fontFamily: 'Barlow Condensed' }}>EDUCATION</h1>
-      </div>
-
-      {/* Filter */}
+      <div><p className="overline mb-1">ATHLETE ACADEMY</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>EDUCATION</h1></div>
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            data-testid={`edu-filter-${cat}`}
-            onClick={() => setFilter(cat)}
-            className={`px-4 py-2 text-sm font-medium uppercase tracking-wide transition-all whitespace-nowrap ${
-              filter === cat 
-                ? 'bg-cyan-400 text-black' 
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            {cat.replace('_', ' ')}
-          </button>
-        ))}
+        {categories.map(c => <button key={c} data-testid={`edu-filter-${c}`} onClick={() => setFilter(c)} className={`px-4 py-2 text-sm font-medium uppercase tracking-wide whitespace-nowrap transition-all ${filter===c?'bg-cyan-400 text-black':'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{c.replace('_',' ')}</button>)}
       </div>
-
-      {/* Courses Grid */}
       <div className="grid md:grid-cols-2 gap-6" data-testid="courses-grid">
-        {filteredCourses.map(course => (
+        {filtered.map(course => (
           <div key={course.id} className="surface-card overflow-hidden card-hover" data-testid={`course-${course.id}`}>
-            <div className="aspect-video">
-              <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
-            </div>
+            <div className="aspect-video"><img src={course.image_url} alt={course.title} className="w-full h-full object-cover" loading="lazy" /></div>
             <div className="p-6">
               <div className="flex items-center gap-2 mb-3">
-                <span className="badge-clinical">{course.category.replace('_', ' ')}</span>
-                {course.is_certificate && (
-                  <span className="badge-clinical" style={{ background: 'rgba(0, 255, 157, 0.1)', borderColor: 'rgba(0, 255, 157, 0.3)', color: '#00FF9D' }}>
-                    Certificate
-                  </span>
-                )}
+                <span className="badge-clinical">{course.category.replace('_',' ')}</span>
+                {course.is_certificate && <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>Certificate</span>}
               </div>
-              <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'Barlow Condensed' }}>{course.title}</h3>
+              <h3 className="text-xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>{course.title}</h3>
               <p className="text-sm text-zinc-400 mb-4">{course.description}</p>
-              <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4">
-                <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {course.duration_hours}h</span>
-                <span className="flex items-center gap-1"><BarChart3 className="w-4 h-4" /> {course.level}</span>
-                <span>{course.instructor}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xl text-cyan-400">
-                  {course.price === 0 ? 'FREE' : `$${course.price}`}
-                </span>
-                <button data-testid={`enroll-${course.id}`} className="btn-primary">Enroll Now</button>
-              </div>
+              <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4"><span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration_hours}h</span><span>{course.level}</span><span>{course.instructor}</span></div>
+              <div className="flex items-center justify-between"><span className="font-mono text-xl text-cyan-400">{course.price===0?'FREE':`$${course.price}`}</span><button data-testid={`enroll-${course.id}`} className="btn-primary">Enroll</button></div>
             </div>
           </div>
         ))}
@@ -903,117 +709,79 @@ const EducationView = () => {
   );
 };
 
-// ===================== BRAIN BRAWL VIEW =====================
-const BrainBrawlView = () => {
+// ===================== BRAIN BRAWL =====================
+const BrainBrawlView = ({ onBack }) => {
   const [questions, setQuestions] = useState([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
-  const [gameState, setGameState] = useState('menu'); // menu, playing, results
+  const [gameState, setGameState] = useState('menu');
   const [answers, setAnswers] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(15);
+  const [category, setCategory] = useState('all');
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === 'playing' && timeLeft <= 0) {
+      answerQuestion(-1); // Time's up
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [gameState, timeLeft]);
 
   const startGame = async () => {
-    try {
-      const response = await axios.get(`${API}/brain-brawl/questions?count=5`);
-      setQuestions(response.data);
-      setCurrentQ(0);
-      setScore(0);
-      setAnswers([]);
-      setGameState('playing');
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-    }
+    try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
   };
 
   const answerQuestion = (index) => {
-    const isCorrect = index === questions[currentQ].correct;
-    if (isCorrect) setScore(s => s + 100);
-    setAnswers([...answers, { question: currentQ, selected: index, correct: isCorrect }]);
-    
+    clearTimeout(timerRef.current);
+    const isCorrect = index === questions[currentQ]?.correct;
+    const timeBonus = isCorrect ? timeLeft * 5 : 0;
+    if (isCorrect) setScore(s => s + 100 + timeBonus);
+    setAnswers(prev => [...prev, {q: currentQ, selected: index, correct: isCorrect}]);
     if (currentQ + 1 >= questions.length) {
       setGameState('results');
-      submitResults();
-    } else {
-      setCurrentQ(c => c + 1);
-    }
-  };
-
-  const submitResults = async () => {
-    try {
-      await axios.post(`${API}/brain-brawl/submit`, {
-        mode: 'quick_fire',
-        questions_total: questions.length,
-        questions_correct: answers.filter(a => a.correct).length + (questions[currentQ]?.correct === answers[answers.length - 1]?.selected ? 1 : 0),
-        score: score
-      });
-    } catch (error) {
-      console.error('Error submitting results:', error);
-    }
+      axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: answers.filter(a=>a.correct).length + (isCorrect?1:0), score: score + (isCorrect ? 100+timeBonus : 0), category}).catch(console.error);
+    } else { setCurrentQ(c => c + 1); setTimeLeft(15); }
   };
 
   return (
     <div className="space-y-8 fade-in">
-      <div>
-        <p className="overline mb-1">COGNITIVE TRAINING</p>
-        <h1 className="text-4xl font-black" style={{ fontFamily: 'Barlow Condensed' }}>BRAIN BRAWL</h1>
-      </div>
+      {onBack && <button onClick={onBack} className="btn-secondary text-sm">Back to Game Modes</button>}
+      <div><p className="overline mb-1">COGNITIVE TRAINING</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>BRAIN BRAWL</h1></div>
 
       {gameState === 'menu' && (
         <div className="max-w-2xl mx-auto text-center" data-testid="brain-brawl-menu">
           <div className="surface-card p-12">
             <Brain className="w-24 h-24 text-cyan-400 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed' }}>SHARPEN YOUR MIND</h2>
-            <p className="text-zinc-400 mb-8">Test your sports IQ and cognitive abilities under pressure</p>
-            
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              {[
-                { label: 'Questions', value: '5' },
-                { label: 'Categories', value: 'Sports IQ' },
-                { label: 'Reward', value: '+XP' }
-              ].map((item, i) => (
-                <div key={i} className="bg-black/50 p-4 border border-white/5">
-                  <div className="metric-value text-2xl">{item.value}</div>
-                  <div className="metric-label">{item.label}</div>
-                </div>
-              ))}
+            <h2 className="text-3xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>SHARPEN YOUR MIND</h2>
+            <p className="text-zinc-400 mb-6">Test your sports IQ and cognitive abilities</p>
+            <div className="flex gap-2 justify-center mb-8">
+              {['all','sports_iq','kinesiology'].map(c => <button key={c} data-testid={`bb-cat-${c}`} onClick={() => setCategory(c)} className={`px-4 py-2 text-sm uppercase ${category===c?'bg-cyan-400 text-black':'bg-zinc-800 text-zinc-400'}`}>{c.replace('_',' ')}</button>)}
             </div>
-
-            <button 
-              data-testid="start-brain-brawl"
-              onClick={startGame}
-              className="btn-primary text-lg px-12 py-4"
-            >
-              Start Challenge
-            </button>
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              {[{l:'Questions',v:'10'},{l:'Time per Q',v:'15s'},{l:'Reward',v:'+XP'}].map((i,idx) => <div key={idx} className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl">{i.v}</div><div className="metric-label">{i.l}</div></div>)}
+            </div>
+            <button data-testid="start-brain-brawl" onClick={startGame} className="btn-primary text-lg px-12 py-4">Start Challenge</button>
           </div>
         </div>
       )}
 
       {gameState === 'playing' && questions.length > 0 && (
         <div className="max-w-3xl mx-auto" data-testid="brain-brawl-game">
-          {/* Progress */}
-          <div className="flex items-center justify-between mb-6">
-            <span className="font-mono text-zinc-400">Q{currentQ + 1}/{questions.length}</span>
+          <div className="flex items-center justify-between mb-4">
+            <span className="font-mono text-zinc-400">Q{currentQ+1}/{questions.length}</span>
+            <div className={`metric-value text-2xl ${timeLeft <= 5 ? 'text-red-400' : 'text-cyan-400'}`}>{timeLeft}s</div>
             <span className="font-mono text-cyan-400">SCORE: {score}</span>
           </div>
-          <div className="progress-bar mb-8">
-            <div className="progress-fill" style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}></div>
-          </div>
-
-          {/* Question */}
+          <div className="progress-bar mb-6"><div className="progress-fill" style={{width:`${((currentQ+1)/questions.length)*100}%`}}></div></div>
           <div className="surface-card p-8">
-            <h2 className="text-2xl font-bold mb-8 text-center" style={{ fontFamily: 'Barlow Condensed' }}>
-              {questions[currentQ].question}
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              {questions[currentQ].options.map((option, i) => (
-                <button
-                  key={i}
-                  data-testid={`answer-${i}`}
-                  onClick={() => answerQuestion(i)}
-                  className="surface-card p-6 text-left card-hover text-lg font-medium"
-                >
-                  <span className="text-cyan-400 mr-3">{['A', 'B', 'C', 'D'][i]}.</span>
-                  {option}
+            {questions[currentQ].difficulty && <span className="badge-clinical mb-4 inline-block">{questions[currentQ].difficulty}</span>}
+            <h2 className="text-2xl font-bold mb-8 text-center" style={{fontFamily:'Barlow Condensed'}}>{questions[currentQ].question}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {questions[currentQ].options.map((opt,i) => (
+                <button key={i} data-testid={`answer-${i}`} onClick={() => answerQuestion(i)} className="surface-card p-5 text-left card-hover text-lg font-medium">
+                  <span className="text-cyan-400 mr-3 font-mono">{['A','B','C','D'][i]}.</span>{opt}
                 </button>
               ))}
             </div>
@@ -1025,30 +793,172 @@ const BrainBrawlView = () => {
         <div className="max-w-2xl mx-auto text-center" data-testid="brain-brawl-results">
           <div className="surface-card p-12">
             <Award className="w-24 h-24 text-cyan-400 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed' }}>CHALLENGE COMPLETE</h2>
-            
+            <h2 className="text-3xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>CHALLENGE COMPLETE</h2>
             <div className="metric-value text-6xl text-cyan-400 mb-2">{score}</div>
             <div className="metric-label mb-8">FINAL SCORE</div>
-
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="bg-black/50 p-4 border border-white/5">
-                <div className="metric-value text-2xl text-green-400">{answers.filter(a => a.correct).length}</div>
-                <div className="metric-label">Correct</div>
-              </div>
-              <div className="bg-black/50 p-4 border border-white/5">
-                <div className="metric-value text-2xl text-red-400">{answers.filter(a => !a.correct).length}</div>
-                <div className="metric-label">Incorrect</div>
-              </div>
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-green-400">{answers.filter(a=>a.correct).length}</div><div className="metric-label">Correct</div></div>
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-red-400">{answers.filter(a=>!a.correct).length}</div><div className="metric-label">Wrong</div></div>
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl">{answers.length}</div><div className="metric-label">Total</div></div>
             </div>
-
-            <button 
-              data-testid="play-again"
-              onClick={() => setGameState('menu')}
-              className="btn-primary text-lg px-12 py-4"
-            >
-              Play Again
-            </button>
+            <button data-testid="play-again" onClick={() => setGameState('menu')} className="btn-primary text-lg px-12 py-4">Play Again</button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===================== LEADERBOARD =====================
+const LeaderboardView = () => {
+  const [leaders, setLeaders] = useState([]);
+  const { user } = useAuth();
+  useEffect(() => { axios.get(`${API}/leaderboard`).then(r => setLeaders(r.data)).catch(console.error); }, []);
+  return (
+    <div className="space-y-8 fade-in">
+      <div><p className="overline mb-1">GLOBAL RANKINGS</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>LEADERBOARD</h1></div>
+      {/* Top 3 Podium */}
+      <div className="grid grid-cols-3 gap-4 items-end" data-testid="leaderboard-podium">
+        {leaders.length >= 3 && [leaders[1], leaders[0], leaders[2]].map((l,i) => {
+          const heights = ['h-32','h-40','h-24'];
+          const medals = [<Medal className="w-8 h-8 text-gray-300" />, <Crown className="w-10 h-10 text-yellow-400" />, <Medal className="w-7 h-7 text-amber-600" />];
+          return (
+            <div key={i} className="text-center">
+              <div className="mb-3">{medals[i]}</div>
+              <div className="w-16 h-16 bg-zinc-800 rounded-full mx-auto mb-2 flex items-center justify-center overflow-hidden">
+                {l.picture ? <img src={l.picture} alt="" className="w-full h-full object-cover" /> : <User className="w-8 h-8 text-zinc-400" />}
+              </div>
+              <div className="font-bold text-sm truncate">{l.name}</div>
+              <div className="font-mono text-cyan-400">{l.prq_score}</div>
+              <div className={`${heights[i]} bg-gradient-to-t from-cyan-400/20 to-transparent border-t-2 border-cyan-400 mt-2`}></div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Full List */}
+      <div className="surface-card" data-testid="leaderboard-list">
+        <div className="grid grid-cols-12 gap-4 p-4 text-sm text-zinc-500 border-b border-white/5">
+          <span className="col-span-1">RANK</span><span className="col-span-5">ATHLETE</span><span className="col-span-2">PRQ</span><span className="col-span-2">LEVEL</span><span className="col-span-2">SPORT</span>
+        </div>
+        {leaders.map((l,i) => (
+          <div key={i} data-testid={`leader-${i}`} className={`grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 transition-colors hover:bg-white/5 ${l.user_id === user?.user_id ? 'bg-cyan-400/5 border-l-2 border-l-cyan-400' : ''}`}>
+            <span className="col-span-1 font-mono text-zinc-400">#{l.rank}</span>
+            <span className="col-span-5 flex items-center gap-3"><div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center"><User className="w-4 h-4 text-zinc-400" /></div><span className="font-medium truncate">{l.name}</span></span>
+            <span className="col-span-2 font-mono text-cyan-400">{l.prq_score}</span>
+            <span className="col-span-2">Lvl {l.level}</span>
+            <span className="col-span-2 text-zinc-400 capitalize">{l.sport}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ===================== PIXEL STREAMING =====================
+const PixelStreamingView = () => {
+  const [status, setStatus] = useState(null);
+  const [serverUrl, setServerUrl] = useState('');
+  const [connecting, setConnecting] = useState(false);
+
+  useEffect(() => { axios.get(`${API}/streaming/status`).then(r => setStatus(r.data)).catch(console.error); }, []);
+
+  const handleConnect = async () => {
+    if (!serverUrl) return;
+    setConnecting(true);
+    try { await axios.post(`${API}/streaming/connect`, {server_url: serverUrl}); } catch {}
+    setConnecting(false);
+  };
+
+  return (
+    <div className="space-y-8 fade-in">
+      <div><p className="overline mb-1">UNREAL ENGINE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
+      <div className="surface-card p-8" data-testid="streaming-status">
+        <div className="flex items-center gap-4 mb-6">
+          {status?.available ? <Wifi className="w-8 h-8 text-green-400" /> : <WifiOff className="w-8 h-8 text-red-400" />}
+          <div><h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.available ? 'CONNECTED' : 'NOT CONNECTED'}</h3><p className="text-sm text-zinc-400">{status?.message}</p></div>
+        </div>
+        <div className="space-y-4">
+          <div className="flex gap-3">
+            <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="wss://stream.finalevolutiongroup.com" className="input-clinical flex-1" />
+            <button data-testid="connect-stream" onClick={handleConnect} disabled={connecting} className="btn-primary">{connecting ? 'Connecting...' : 'Connect'}</button>
+          </div>
+          <p className="text-xs text-zinc-500">Enter your Pixel Streaming signalling server URL to connect live UE5 game modes.</p>
+        </div>
+      </div>
+      {/* Stream Viewer */}
+      <div className="surface-card overflow-hidden" data-testid="stream-viewer">
+        <div className="aspect-video bg-black flex items-center justify-center border border-white/5">
+          <div className="text-center">
+            <Radio className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>AWAITING STREAM</h3>
+            <p className="text-sm text-zinc-700 mt-2">Connect your UE5 Pixel Streaming server to play game modes in full 3D</p>
+          </div>
+        </div>
+      </div>
+      {/* Supported Modes */}
+      <div>
+        <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>STREAMING-READY MODES</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {(status?.supported_modes || ['basketball_h2h','basketball_dunk','karate_h2h','soccer']).map(m => (
+            <div key={m} className="surface-card p-4 text-center"><div className="text-sm font-mono text-cyan-400 uppercase">{m.replace('_',' ')}</div></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ===================== PROFILE =====================
+const ProfileView = () => {
+  const { user } = useAuth();
+  const [progress, setProgress] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [bio, setBio] = useState(user?.bio || '');
+  const [sport, setSport] = useState(user?.sport || 'basketball');
+
+  useEffect(() => { axios.get(`${API}/profile/progress`).then(r => setProgress(r.data)).catch(console.error); }, []);
+
+  const saveProfile = async () => {
+    try { await axios.put(`${API}/profile`, {bio, sport}); setEditing(false); } catch (e) { console.error(e); }
+  };
+
+  return (
+    <div className="space-y-8 fade-in">
+      <div><p className="overline mb-1">ATHLETE PROFILE</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PROFILE</h1></div>
+      <div className="surface-card p-8" data-testid="profile-card">
+        <div className="flex items-center gap-6 mb-6">
+          <div className="w-24 h-24 bg-zinc-800 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+            {user?.picture ? <img src={user.picture} alt="" className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-zinc-400" />}
+          </div>
+          <div className="flex-1">
+            <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{user?.name}</h2>
+            <p className="text-cyan-400">{user?.email}</p>
+            <div className="flex items-center gap-4 mt-2">
+              <span className="badge-clinical">Level {user?.level || 1}</span>
+              <span className="badge-clinical">{user?.role}</span>
+              <span className="badge-clinical">{sport}</span>
+            </div>
+          </div>
+          <button data-testid="edit-profile" onClick={() => setEditing(!editing)} className="btn-secondary">{editing ? 'Cancel' : 'Edit'}</button>
+        </div>
+        {editing && (
+          <div className="space-y-4 border-t border-white/5 pt-6">
+            <div><label className="metric-label block mb-2">BIO</label><textarea data-testid="bio-input" value={bio} onChange={e => setBio(e.target.value)} className="input-clinical" rows={3} placeholder="Tell us about yourself..." /></div>
+            <div><label className="metric-label block mb-2">PRIMARY SPORT</label>
+              <select data-testid="sport-select" value={sport} onChange={e => setSport(e.target.value)} className="input-clinical">
+                {['basketball','karate','soccer','football','tennis','golf','surfing','skateboarding','snowboarding','training'].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <button data-testid="save-profile" onClick={saveProfile} className="btn-primary">Save Changes</button>
+          </div>
+        )}
+      </div>
+      {/* Progress Stats */}
+      {progress && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="progress-stats">
+          {[{l:'Workouts',v:progress.total_workouts,icon:Dumbbell},{l:'Games',v:progress.total_games,icon:Gamepad2},{l:'Brain Brawls',v:progress.total_brawls,icon:Brain},{l:'XP',v:progress.xp,icon:Star}].map((s,i)=>(
+            <div key={i} className="surface-card p-6 text-center"><s.icon className="w-8 h-8 text-cyan-400 mx-auto mb-3" /><div className="metric-value text-3xl">{s.v}</div><div className="metric-label">{s.l}</div></div>
+          ))}
         </div>
       )}
     </div>
@@ -1060,33 +970,29 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const location = useLocation();
   const { user, setUser } = useAuth();
-
-  useEffect(() => {
-    // Set user from location state if available
-    if (location.state?.user && !user) {
-      setUser(location.state.user);
-    }
-  }, [location.state, user, setUser]);
+  useEffect(() => { if (location.state?.user && !user) setUser(location.state.user); }, [location.state, user, setUser]);
 
   const renderContent = () => {
-    switch (activeTab) {
+    switch(activeTab) {
       case 'dashboard': return <DashboardView setActiveTab={setActiveTab} />;
       case 'scan': return <SystemScanView />;
       case 'games': return <GameModesView />;
       case 'cards': return <CreatorCardsView />;
       case 'coach': return <CoachHubView />;
+      case 'ai-coach': return <AICoachView />;
       case 'education': return <EducationView />;
       case 'brain-brawl': return <BrainBrawlView />;
+      case 'leaderboard': return <LeaderboardView />;
+      case 'streaming': return <PixelStreamingView />;
+      case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }
   };
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-default)' }}>
+    <div className="min-h-screen" style={{background:'var(--bg-default)'}}>
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="main-content">
-        {renderContent()}
-      </main>
+      <main className="main-content">{renderContent()}</main>
     </div>
   );
 };
@@ -1094,35 +1000,19 @@ const Dashboard = () => {
 // ===================== APP ROUTER =====================
 function AppRouter() {
   const location = useLocation();
-  
-  // Check URL fragment (not query params) for session_id
-  if (location.hash?.includes('session_id=')) {
-    return <AuthCallback />;
-  }
-  
+  if (location.hash?.includes('session_id=')) return <AuthCallback />;
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      } />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-// ===================== MAIN APP =====================
 function App() {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRouter />
-      </AuthProvider>
-    </BrowserRouter>
-  );
+  return <BrowserRouter><AuthProvider><AppRouter /></AuthProvider></BrowserRouter>;
 }
 
 export default App;
