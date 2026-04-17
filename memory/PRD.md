@@ -1,82 +1,74 @@
 # Final Evolution Lab - PRD
 
 ## Original Problem Statement
-Final Evolution Lab (FEL) is an athlete-first training platform that unifies readiness, play, and progression in one system. Features include System Scan (Avatar/PRQ/Health/Workout plan), Creator Cards & Card Market, 17 Game Modes, Coach/Critique Economy, Education (Brain Brawl, Common Core to College Prep, STEM, Applied Kinesiology Certificate).
-
-GitHub: https://github.com/Elijahbonds/Final-Evolution-Lab
+Final Evolution Lab (FEL) is an athlete-first training platform that unifies readiness, play, and progression in one system. Built from GitHub repo: https://github.com/Elijahbonds/Final-Evolution-Lab
 
 ## Architecture
-- **Frontend**: React 19 + Tailwind CSS + Radix UI components
-- **Backend**: FastAPI (Python) with Motor (async MongoDB)
+- **Frontend**: React 19 + Tailwind CSS + PayPal SDK + Radix UI
+- **Backend**: FastAPI (Python) + Motor (async MongoDB) + WebSocket
 - **Database**: MongoDB
-- **AI**: OpenAI GPT-5.2, Claude Sonnet, Gemini Flash via Emergent LLM Key
+- **AI**: OpenAI GPT-5.2, Claude Sonnet 4.5, Gemini 3 Flash via Emergent LLM Key
 - **Auth**: Emergent-managed Google OAuth
+- **Payments**: PayPal Sandbox (real keys provided)
 - **Design**: Dark clinical vibe (Barlow Condensed + IBM Plex Sans + JetBrains Mono)
 
 ## User Personas
-1. **Athlete** - Uses System Scan, plays game modes, trains with AI coach
-2. **Coach** - Listed in Coach Hub, provides sessions, earns through economy
-3. **Student-Athlete** - Uses Education modules (Brain Brawl, college prep, STEM)
-
-## Core Requirements
-- Google OAuth authentication
-- Dashboard with PRQ metrics and quick actions
-- System Scan with PRQ breakdown, health signals, workout plans
-- 17 playable game modes (target-based interactive games)
-- Creator Cards marketplace (Elijah Bonds, Amir Smith, Eric Nash)
-- AI Coach with multi-model support (GPT-5.2, Claude, Gemini)
-- Coach Hub with available coaches and session booking
-- Education portal with 5 courses and certificate programs
-- Brain Brawl cognitive training with timer and scoring
-- Leaderboard with rankings
-- Pixel Streaming UI for UE5 server connection
-- Profile management with bio/sport editing
+1. **Athlete** - System Scan, game modes, AI coaching, streaks, tournaments
+2. **Coach** - Coach Hub, video critique reviews, session booking
+3. **Student-Athlete** - Education, Brain Brawl, college prep
 
 ## What's Implemented (Jan 2026)
-- [x] Landing page with hero section and stats
+
+### Phase 1 (Initial MVP)
+- [x] Landing page with hero section, stats, feature grid
 - [x] Google OAuth via Emergent Auth
-- [x] Dashboard with PRQ score gauge and quick start
+- [x] Dashboard with PRQ score, stats, quick start
 - [x] System Scan (8 PRQ metrics, health signals, 4 workout plans)
-- [x] Active workout tracker with exercise progression and timer
+- [x] Active workout tracker with exercise progression
 - [x] 17 Game Modes all playable (target-based game engine)
 - [x] Creator Cards gallery with detail view
-- [x] AI Coach chat with GPT-5.2/Claude/Gemini model selector
+- [x] AI Coach chat (GPT-5.2 / Claude / Gemini selector)
 - [x] Coach Hub with 4 coaches and session booking
 - [x] Education portal with 5 courses
-- [x] Brain Brawl with timer, categories, and scoring
+- [x] Brain Brawl cognitive training (timer, categories, scoring)
 - [x] Leaderboard with rankings
-- [x] Pixel Streaming UI with server connection
+- [x] Pixel Streaming UI for UE5 server connection
 - [x] Profile with edit capability
-- [x] Game session tracking and XP system
-- [x] Workout logging
+
+### Phase 2 (Expansion)
+- [x] Daily Training Streak & Rewards system (30-day calendar, milestones at 3/7/14/30 days)
+- [x] PayPal integration for Creator Card purchases and course enrollment
+- [x] WebSocket multiplayer endpoint (/ws/game/{room_id})
+- [x] Social features (discover athletes, follow, challenge, activity feed)
+- [x] Tournament system (4 tournaments with brackets, registration, join)
+- [x] Avatar Builder (body type, skin tone, hair, jersey, shoes, accessories, expressions)
+- [x] Video Upload for coach critique sessions
+- [x] Coin economy (earned through streaks, spent in marketplace)
 
 ## Prioritized Backlog
-### P0 (Critical)
-- None remaining
-
 ### P1 (High)
-- Real-time multiplayer via WebSockets
-- Payment integration (Stripe) for creator cards and courses
-- Push notifications for coaching sessions
-- Advanced avatar customization with 3D model viewer
+- Real-time multiplayer game UI (WebSocket backend ready)
+- Push notifications
+- Advanced analytics dashboard with charts
+- Payment completion callback (PayPal return URL handling)
 
 ### P2 (Medium)
-- Social features (follow, friend, challenge)
-- Tournament/bracket system
-- Video analysis integration (DeepMotion)
-- Advanced analytics dashboard
-- Mobile responsive improvements
+- 3D avatar model with Meshy AI
+- Matchmaking system for tournaments
+- Chat between athletes
+- Workout history charts
+- Coach review/rating after sessions
 
 ### P3 (Future)
 - Native iOS app connection
 - UE5 Pixel Streaming production setup
 - AR training overlay
 - Community forums
-- Sponsorship/brand partnerships
+- Sponsorship partnerships
 
 ## Next Tasks
-1. Stripe integration for card purchases and course enrollment
-2. WebSocket multiplayer for game modes
-3. Advanced avatar builder with Meshy AI 3D models
-4. Video upload for coach critique sessions
-5. Push notification system
+1. WebSocket multiplayer game UI
+2. Tournament matchmaking and live bracket updates
+3. Payment completion flow (PayPal return URL)
+4. Advanced analytics with Recharts
+5. Push notifications via browser API
