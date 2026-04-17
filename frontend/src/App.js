@@ -8,8 +8,11 @@ import {
   Zap, Target, Clock, ChevronRight, Menu, X, Star,
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
-  Crosshair, Timer, Flame, Crown, Medal, ChevronDown
+  Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
+  Swords, Video, Palette, UserPlus
 } from "lucide-react";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -157,6 +160,9 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'cards',icon:Users,label:'Creator Cards'},
     {id:'coach',icon:Trophy,label:'Coach Hub'},{id:'ai-coach',icon:MessageCircle,label:'AI Coach'},
     {id:'education',icon:GraduationCap,label:'Education'},{id:'brain-brawl',icon:Brain,label:'Brain Brawl'},
+    {id:'streaks',icon:Flame,label:'Streaks'},{id:'social',icon:UserPlus,label:'Social'},
+    {id:'tournaments',icon:Swords,label:'Tournaments'},{id:'avatar',icon:Palette,label:'Avatar'},
+    {id:'critique',icon:Video,label:'Video Critique'},
     {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Radio,label:'Pixel Stream'},
     {id:'profile',icon:User,label:'Profile'},
   ];
@@ -225,7 +231,7 @@ const DashboardView = ({ setActiveTab }) => {
       <div>
         <h2 className="text-2xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>QUICK START</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[{t:'Play Game',d:'17 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Workout',d:'Start training',icon:Dumbbell,a:'scan'}].map((i,idx)=>(
+          {[{t:'Play Game',d:'17 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
             <button key={idx} data-testid={`quick-${i.a}`} onClick={()=>setActiveTab(i.a)} className="surface-card p-5 text-left card-hover flex items-center gap-4">
               <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center flex-shrink-0"><i.icon className="w-6 h-6 text-cyan-400" /></div>
               <div className="flex-1 min-w-0"><div className="font-bold">{i.t}</div><div className="text-sm text-zinc-500">{i.d}</div></div>
@@ -526,7 +532,11 @@ const CreatorCardsView = () => {
               <div className="space-y-2 mb-6">{selected.challenges.map((c,i) => (
                 <div key={i} className="surface-card p-3 flex items-center justify-between"><div><div className="font-medium text-sm">{c.name}</div><div className="text-xs text-zinc-500">{c.description}</div></div><span className="text-cyan-400 font-mono">+{c.reward} XP</span></div>
               ))}</div>
-              <div className="flex items-center gap-4"><span className="metric-value text-3xl text-cyan-400">${selected.price}</span><button data-testid="purchase-card" className="btn-primary">Purchase Card</button></div>
+              <div className="flex items-center gap-4"><span className="metric-value text-3xl text-cyan-400">${selected.price}</span><button data-testid="purchase-card" className="btn-primary" onClick={() => {
+                axios.post(`${API}/payments/create-order`, {item_type: 'card', item_id: selected.id, amount: selected.price, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
+                  if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
+                }).catch(console.error);
+              }}>Purchase via PayPal</button></div>
             </div>
           </div>
         </div>
@@ -700,7 +710,15 @@ const EducationView = () => {
               <h3 className="text-xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>{course.title}</h3>
               <p className="text-sm text-zinc-400 mb-4">{course.description}</p>
               <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4"><span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration_hours}h</span><span>{course.level}</span><span>{course.instructor}</span></div>
-              <div className="flex items-center justify-between"><span className="font-mono text-xl text-cyan-400">{course.price===0?'FREE':`$${course.price}`}</span><button data-testid={`enroll-${course.id}`} className="btn-primary">Enroll</button></div>
+              <div className="flex items-center justify-between"><span className="font-mono text-xl text-cyan-400">{course.price===0?'FREE':`$${course.price}`}</span><button data-testid={`enroll-${course.id}`} className="btn-primary" onClick={() => {
+                if (course.price > 0) {
+                  axios.post(`${API}/payments/create-order`, {item_type: 'course', item_id: course.id, amount: course.price, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
+                    if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
+                  }).catch(console.error);
+                } else {
+                  axios.post(`${API}/education/enroll/${course.id}`).catch(console.error);
+                }
+              }}>Enroll{course.price > 0 ? ' via PayPal' : ''}</button></div>
             </div>
           </div>
         ))}
@@ -982,6 +1000,11 @@ const Dashboard = () => {
       case 'ai-coach': return <AICoachView />;
       case 'education': return <EducationView />;
       case 'brain-brawl': return <BrainBrawlView />;
+      case 'streaks': return <StreaksView />;
+      case 'social': return <SocialView />;
+      case 'tournaments': return <TournamentsView />;
+      case 'avatar': return <AvatarBuilderView />;
+      case 'critique': return <VideoCritiqueView />;
       case 'leaderboard': return <LeaderboardView />;
       case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
@@ -1012,7 +1035,7 @@ function AppRouter() {
 }
 
 function App() {
-  return <BrowserRouter><AuthProvider><AppRouter /></AuthProvider></BrowserRouter>;
+  return <BrowserRouter><AuthProvider><PayPalScriptProvider options={{clientId: process.env.REACT_APP_PAYPAL_CLIENT_ID || 'test'}}><AppRouter /></PayPalScriptProvider></AuthProvider></BrowserRouter>;
 }
 
 export default App;
