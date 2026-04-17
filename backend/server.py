@@ -678,7 +678,78 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 
 @api_router.get("/streaming/status")
 async def get_streaming_status():
-    return {"available":False,"server_url":None,"message":"Connect your UE5 Pixel Streaming server to enable live game streaming.","supported_modes":["basketball_h2h","basketball_dunk","karate_h2h","soccer"]}
+    e3ds_stream = os.environ.get("E3DS_STREAM_URL", "")
+    e3ds_iframe = os.environ.get("E3DS_IFRAME_URL", "")
+    e3ds_app_id = os.environ.get("E3DS_APP_ID", "")
+    available = bool(e3ds_stream or e3ds_iframe)
+    
+    # Game mode → E3DS map mapping
+    mode_maps = {
+        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
+        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
+        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
+        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
+        "golf": "Links_Course", "tennis": "Tennis_Court",
+        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
+        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
+        "snowboarding": "Mountain_Slope",
+    }
+    
+    return {
+        "available": available,
+        "stream_url": e3ds_stream,
+        "iframe_url": e3ds_iframe,
+        "app_id": e3ds_app_id,
+        "provider": "eagle3d" if available else None,
+        "message": "Eagle 3D Streaming active — high-fidelity UE5 modes ready." if available else "No E3DS stream connected. Run deploy_e3ds.sh or enter your E3DS stream URL below.",
+        "supported_modes": list(mode_maps.keys()),
+        "mode_maps": mode_maps
+    }
+
+@api_router.post("/streaming/connect")
+async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Manually set E3DS stream URL (admin / dev use)"""
+    stream_url = data.get("stream_url") or data.get("server_url")
+    iframe_url = data.get("iframe_url", "")
+    if not stream_url:
+        raise HTTPException(status_code=400, detail="stream_url required")
+    # Persist to env file for subsequent restarts
+    env_path = ROOT_DIR / '.env'
+    lines = env_path.read_text().splitlines()
+    lines = [l for l in lines if not l.startswith("E3DS_")]
+    lines.append(f"E3DS_STREAM_URL={stream_url}")
+    if iframe_url:
+        lines.append(f"E3DS_IFRAME_URL={iframe_url}")
+    env_path.write_text("\n".join(lines) + "\n")
+    # Set in current process
+    os.environ["E3DS_STREAM_URL"] = stream_url
+    if iframe_url:
+        os.environ["E3DS_IFRAME_URL"] = iframe_url
+    return {"status": "connected", "stream_url": stream_url, "iframe_url": iframe_url}
+
+@api_router.post("/streaming/launch-mode")
+async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Send a command to E3DS to launch a specific game mode map"""
+    mode_id = data.get("mode_id")
+    mode_maps = {
+        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
+        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
+        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
+        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
+        "golf": "Links_Course", "tennis": "Tennis_Court",
+        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
+        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
+        "snowboarding": "Mountain_Slope",
+    }
+    target_map = mode_maps.get(mode_id)
+    if not target_map:
+        raise HTTPException(status_code=404, detail="Mode not found in E3DS map registry")
+    return {
+        "mode_id": mode_id, "map": target_map,
+        "command": {"cmd": "ueapp04", "value": {"ServerTravel": f"/Game/FEL/Maps/{target_map}"}},
+        "stream_url": os.environ.get("E3DS_STREAM_URL", ""),
+        "iframe_url": os.environ.get("E3DS_IFRAME_URL", "")
+    }
 
 @api_router.get("/")
 async def root():
