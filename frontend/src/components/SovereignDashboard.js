@@ -11,12 +11,20 @@ const API = `${BACKEND_URL}/api`;
 export const SovereignDashboard = () => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [health, setHealth] = useState(null);
+  const [handshake, setHandshake] = useState(null);
   const pollRef = useRef(null);
 
   const fetchStatus = async () => {
     try {
-      const r = await axios.get(`${API}/sovereign/status`);
-      setStatus(r.data);
+      const [s, h, hs] = await Promise.all([
+        axios.get(`${API}/sovereign/status`),
+        axios.get(`${API}/production/health`),
+        axios.get(`${API}/production/handshake-log`)
+      ]);
+      setStatus(s.data);
+      setHealth(h.data);
+      setHandshake(hs.data);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -160,7 +168,56 @@ export const SovereignDashboard = () => {
         </div>
       </div>
 
-      {/* Server Info */}
+      {/* Server Info + Production Health */}
+      {health && (
+        <div className="surface-card p-6" data-testid="production-health">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>PRODUCTION HEALTH CHECK</h2>
+            <span className={`badge-clinical ${health.status === 'PRODUCTION_READY' ? '' : 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'}`} style={health.status === 'PRODUCTION_READY' ? {background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'} : {}}>{health.status}</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="bg-black/30 p-3 border border-white/5">
+              <div className="metric-label">MODES</div>
+              <div className="font-mono">{health.checks?.mode_manager?.production_modes || 0} production / {health.checks?.mode_manager?.total_modes || 0} total</div>
+            </div>
+            <div className="bg-black/30 p-3 border border-white/5">
+              <div className="metric-label">PRQ SOURCE</div>
+              <div className="font-mono text-cyan-400">{health.checks?.prq_calculator?.static === false ? 'cpp_bridge (LIVE)' : 'STATIC'}</div>
+            </div>
+            <div className="bg-black/30 p-3 border border-white/5">
+              <div className="metric-label">PLACEHOLDER</div>
+              <div className="font-mono text-green-400">{health.placeholder_data === false ? 'NONE' : 'DETECTED'}</div>
+            </div>
+            <div className="bg-black/30 p-3 border border-white/5">
+              <div className="metric-label">UPROJECT</div>
+              <div className="font-mono text-xs">{health.checks?.websocket?.listening_for?.uproject || '-'}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Handshake Log */}
+      {handshake && (
+        <div className="surface-card p-6" data-testid="handshake-log">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>HANDSHAKE LOG</h2>
+            <span className={`text-sm font-mono ${handshake.handshake_status === 'CONNECTED' ? 'text-green-400' : 'text-yellow-400 animate-pulse'}`}>{handshake.handshake_status}</span>
+          </div>
+          <div className="bg-black/50 border border-white/5 p-4 font-mono text-xs max-h-48 overflow-y-auto space-y-1">
+            {handshake.log?.map((entry, i) => (
+              <div key={i} className={`${entry.level === 'WAIT' ? 'text-yellow-400' : entry.level === 'ERROR' ? 'text-red-400' : 'text-zinc-400'}`}>
+                <span className="text-zinc-600">[{new Date(entry.ts).toLocaleTimeString()}]</span> <span className={entry.level === 'WAIT' ? 'text-yellow-400' : 'text-zinc-500'}>[{entry.level}]</span> {entry.msg}
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-4 text-xs text-zinc-500 font-mono">
+            <span>Bridge: {handshake.bridge_identifier}</span>
+            <span>UUID: {handshake.project_uuid}</span>
+            <span>Messages: {handshake.total_messages_processed}</span>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between text-xs text-zinc-600 font-mono">
         <span><Server className="w-3 h-3 inline mr-1" />FEL Sovereign Backend v{status.server.version}</span>
         <span><Clock className="w-3 h-3 inline mr-1" />Uptime: {Math.floor(status.server.uptime_seconds / 60)}m {status.server.uptime_seconds % 60}s</span>
