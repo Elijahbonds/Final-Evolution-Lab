@@ -923,13 +923,26 @@ const PixelStreamingView = () => {
 
       {!status?.available && (
         <div className="surface-card p-6" data-testid="streaming-connect">
-          <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>CONNECT E3DS STREAM</h3>
-          <p className="text-sm text-zinc-400 mb-4">{status?.message}</p>
+          <div className="flex items-center gap-3 mb-4">
+            {status?.has_api_key ? <Wifi className="w-6 h-6 text-yellow-400" /> : <WifiOff className="w-6 h-6 text-red-400" />}
+            <div>
+              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.has_api_key ? 'E3DS API KEY CONFIGURED' : 'CONNECT E3DS STREAM'}</h3>
+              <p className="text-sm text-zinc-400">{status?.message}</p>
+            </div>
+          </div>
+          {status?.setup_steps?.length > 0 && (
+            <div className="bg-black/50 border border-white/5 p-4 mb-4">
+              <h4 className="metric-label mb-3">SETUP STEPS</h4>
+              {status.setup_steps.map((step, i) => (
+                <div key={i} className="text-sm text-zinc-400 py-1">{step}</div>
+              ))}
+            </div>
+          )}
           <div className="flex gap-3 mb-3">
             <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="https://stream.eagle3dstreaming.com/view/your-app-id" className="input-clinical flex-1" />
             <button data-testid="connect-stream" onClick={handleConnect} disabled={connecting} className="btn-primary">{connecting ? 'Connecting...' : 'Connect'}</button>
           </div>
-          <p className="text-xs text-zinc-600">Paste your E3DS iframe URL, or run <code className="text-cyan-400">./infra/deploy_e3ds.sh</code> to auto-provision via Pulumi.</p>
+          <p className="text-xs text-zinc-600">Paste the iframe URL from the E3DS Control Panel after uploading your UE5 build.</p>
         </div>
       )}
 

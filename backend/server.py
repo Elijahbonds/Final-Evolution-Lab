@@ -681,9 +681,9 @@ async def get_streaming_status():
     e3ds_stream = os.environ.get("E3DS_STREAM_URL", "")
     e3ds_iframe = os.environ.get("E3DS_IFRAME_URL", "")
     e3ds_app_id = os.environ.get("E3DS_APP_ID", "")
+    e3ds_api_key = os.environ.get("E3DS_API_KEY", "")
     available = bool(e3ds_stream or e3ds_iframe)
     
-    # Game mode → E3DS map mapping
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
@@ -700,10 +700,23 @@ async def get_streaming_status():
         "stream_url": e3ds_stream,
         "iframe_url": e3ds_iframe,
         "app_id": e3ds_app_id,
-        "provider": "eagle3d" if available else None,
-        "message": "Eagle 3D Streaming active — high-fidelity UE5 modes ready." if available else "No E3DS stream connected. Run deploy_e3ds.sh or enter your E3DS stream URL below.",
+        "has_api_key": bool(e3ds_api_key),
+        "provider": "eagle3d" if available else ("eagle3d_configured" if e3ds_api_key else None),
+        "message": (
+            "Eagle 3D Streaming active — high-fidelity UE5 modes ready." if available
+            else ("E3DS API key configured. Upload your UE5 build to the E3DS Control Panel (controlpanel.eagle3dstreaming.com), then paste the iframe URL below." if e3ds_api_key
+            else "No E3DS stream connected. Run deploy_e3ds.sh or enter your E3DS iframe URL.")
+        ),
         "supported_modes": list(mode_maps.keys()),
-        "mode_maps": mode_maps
+        "mode_maps": mode_maps,
+        "setup_steps": [
+            "1. Go to controlpanel.eagle3dstreaming.com and sign in",
+            "2. Upload your packaged UE5 build (.zip with Pixel Streaming enabled)",
+            "3. Create a Config for your app",
+            "4. Generate a Streaming Link",
+            "5. Copy the iframe embed script URL",
+            "6. Paste the iframe URL in the connection panel below"
+        ] if not available else []
     }
 
 @api_router.post("/streaming/connect")

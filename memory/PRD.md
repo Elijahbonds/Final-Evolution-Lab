@@ -1,46 +1,39 @@
 # Final Evolution Lab - PRD
 
-## Original Problem Statement
-Final Evolution Lab (FEL) is an athlete-first training platform. GitHub: https://github.com/Elijahbonds/Final-Evolution-Lab
-
 ## Architecture
-- **Frontend**: React 19 + Tailwind CSS + PayPal SDK + Radix UI
-- **Backend**: FastAPI + Motor (MongoDB) + WebSocket
-- **Database**: MongoDB
-- **AI**: GPT-5.2 / Claude / Gemini via Emergent LLM Key
+- **Frontend**: React 19 + Tailwind + PayPal SDK
+- **Backend**: FastAPI + MongoDB + WebSocket
+- **AI**: GPT-5.2/Claude/Gemini via Emergent LLM Key
 - **Auth**: Emergent Google OAuth
-- **Payments**: PayPal Sandbox
-- **Streaming**: Eagle 3D Streaming (E3DS) via Pulumi IaC
-- **Design**: Dark clinical vibe
+- **Payments**: PayPal (sandbox)
+- **Streaming**: Eagle 3D Streaming (E3DS) — Pulumi IaC + iframe embed + postMessage
+- **Design**: Dark clinical vibe (Barlow Condensed + IBM Plex Sans + JetBrains Mono)
 
-## What's Implemented (Jan 2026)
-- [x] Landing page, Google OAuth, Dashboard with PRQ gauge
-- [x] System Scan (8 PRQ metrics, health signals, 4 workout plans, active workout tracker)
-- [x] 17 Game Modes all playable (browser-based game engine)
-- [x] **Eagle 3D Streaming integration** — iframe embed, 15 game mode→venue map switching via postMessage
-- [x] **Pulumi IaC scripts** for E3DS GPU provisioning (`/app/infra/e3ds/`)
-- [x] **deploy_e3ds.sh** — one-command E3DS deploy, auto-injects stream URL to backend
-- [x] Creator Cards marketplace + PayPal checkout
-- [x] AI Coach (GPT-5.2 / Claude / Gemini) + multi-model chat
-- [x] Coach Hub with 4 coaches, session booking, video critique uploads
-- [x] Education (5 courses, Applied Kinesiology Certificate, PayPal enrollment)
-- [x] Brain Brawl (timer, categories, scoring, XP)
-- [x] Daily Training Streaks (30-day calendar, milestones at 3/7/14/30 days, coin rewards)
-- [x] Social (discover athletes, follow, challenge, activity feed)
-- [x] Tournaments (4 events with brackets, registration)
-- [x] Avatar Builder (body, skin, hair, jersey, shoes, accessories, expressions)
-- [x] Leaderboard with global rankings
-- [x] WebSocket multiplayer endpoint
-- [x] Profile management with progress stats
+## Implemented Features
+- Landing page, Google OAuth, Dashboard with PRQ gauge
+- System Scan (8 PRQ metrics, health signals, 4 workout plans with live tracker)
+- 17 Game Modes (browser-based + E3DS streaming-ready)
+- Eagle 3D Streaming: API key configured, iframe embed, 15 game→venue mappings, setup steps UI
+- Pulumi IaC: /app/infra/e3ds/ + deploy_e3ds.sh auto-deploy
+- Creator Cards marketplace + PayPal
+- AI Coach (GPT-5.2/Claude/Gemini)
+- Coach Hub (4 coaches, sessions, video critique upload)
+- Education (5 courses, certificates, PayPal enrollment)
+- Brain Brawl (timer, categories, XP)
+- Daily Training Streaks (30-day calendar, milestones)
+- Social (discover, follow, challenge, feed)
+- Tournaments (4 events, brackets, registration)
+- Avatar Builder (full customization)
+- Leaderboard, Profile, Coin economy, WebSocket multiplayer
 
-## E3DS Game Mode → UE5 Venue Mappings
-basketball_h2h/dunk/3v3 → Venice_Beach_Court | karate_h2h/endless → Zen_Dojo
-baseball → Baseball_Park | football → Gridiron_Stadium | soccer → Soccer_Stadium
-golf → Links_Course | tennis → Tennis_Court | volleyball → Sand_Court
-gymnastics → Training_Floor | surfing → Venice_Beach_Surf
-skateboarding → Skate_Park | snowboarding → Mountain_Slope
+## E3DS Integration Flow
+1. API key stored in backend/.env (E3DS_API_KEY)
+2. User uploads UE5 build to controlpanel.eagle3dstreaming.com
+3. Copies iframe URL → pastes in Pixel Stream connection panel
+4. Backend persists URL → iframe loads in stream viewer
+5. Game mode buttons send postMessage (ServerTravel) to switch UE5 maps
 
 ## Backlog
-### P1: Real-time multiplayer UI, payment completion callback, analytics dashboard
-### P2: 3D avatar (Meshy AI), matchmaking, athlete chat, workout charts
-### P3: iOS connection, AR overlay, community forums
+P1: Multiplayer UI, payment callback, analytics
+P2: 3D avatar (Meshy), matchmaking, chat
+P3: iOS, AR overlay, forums
