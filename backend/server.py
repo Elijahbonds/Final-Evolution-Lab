@@ -678,12 +678,7 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 
 @api_router.get("/streaming/status")
 async def get_streaming_status():
-    e3ds_stream = os.environ.get("E3DS_STREAM_URL", "")
-    e3ds_iframe = os.environ.get("E3DS_IFRAME_URL", "")
-    e3ds_app_id = os.environ.get("E3DS_APP_ID", "")
-    e3ds_api_key = os.environ.get("E3DS_API_KEY", "")
-    available = bool(e3ds_stream or e3ds_iframe)
-    
+    """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
@@ -695,54 +690,30 @@ async def get_streaming_status():
         "snowboarding": "Mountain_Slope",
     }
     
+    ws_connected = len(sovereign_bridge.clients) > 0
+    
     return {
-        "available": available,
-        "stream_url": e3ds_stream,
-        "iframe_url": e3ds_iframe,
-        "app_id": e3ds_app_id,
-        "has_api_key": bool(e3ds_api_key),
-        "provider": "eagle3d" if available else ("eagle3d_configured" if e3ds_api_key else None),
-        "message": (
-            "Eagle 3D Streaming active — high-fidelity UE5 modes ready." if available
-            else ("E3DS API key configured. Upload your UE5 build to the E3DS Control Panel (controlpanel.eagle3dstreaming.com), then paste the iframe URL below." if e3ds_api_key
-            else "No E3DS stream connected. Run deploy_e3ds.sh or enter your E3DS iframe URL.")
-        ),
+        "available": ws_connected,
+        "mode": "local_sovereign",
+        "cloud_streaming": False,
+        "e3ds_disabled": True,
+        "provider": "local_sovereign",
+        "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on ws://localhost:8888. Launch app on iPhone to connect.",
         "supported_modes": list(mode_maps.keys()),
         "mode_maps": mode_maps,
-        "setup_steps": [
-            "1. Go to controlpanel.eagle3dstreaming.com and sign in",
-            "2. Upload your packaged UE5 build (.zip with Pixel Streaming enabled)",
-            "3. Create a Config for your app",
-            "4. Generate a Streaming Link",
-            "5. Copy the iframe embed script URL",
-            "6. Paste the iframe URL in the connection panel below"
-        ] if not available else []
+        "ws_url": "ws://localhost:8888",
+        "data_feed": True,
+        "video_feed": False
     }
 
 @api_router.post("/streaming/connect")
 async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Manually set E3DS stream URL (admin / dev use)"""
-    stream_url = data.get("stream_url") or data.get("server_url")
-    iframe_url = data.get("iframe_url", "")
-    if not stream_url:
-        raise HTTPException(status_code=400, detail="stream_url required")
-    # Persist to env file for subsequent restarts
-    env_path = ROOT_DIR / '.env'
-    lines = env_path.read_text().splitlines()
-    lines = [l for l in lines if not l.startswith("E3DS_")]
-    lines.append(f"E3DS_STREAM_URL={stream_url}")
-    if iframe_url:
-        lines.append(f"E3DS_IFRAME_URL={iframe_url}")
-    env_path.write_text("\n".join(lines) + "\n")
-    # Set in current process
-    os.environ["E3DS_STREAM_URL"] = stream_url
-    if iframe_url:
-        os.environ["E3DS_IFRAME_URL"] = iframe_url
-    return {"status": "connected", "stream_url": stream_url, "iframe_url": iframe_url}
+    """Local sovereign connect — no cloud URL needed"""
+    return {"status": "local_sovereign", "ws_url": "ws://localhost:8888", "mode": "biomechanical_data_feed"}
 
 @api_router.post("/streaming/launch-mode")
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Send a command to E3DS to launch a specific game mode map"""
+    """Send venue travel command to local bridge (not cloud)"""
     mode_id = data.get("mode_id")
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
@@ -756,13 +727,13 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     }
     target_map = mode_maps.get(mode_id)
     if not target_map:
-        raise HTTPException(status_code=404, detail="Mode not found in E3DS map registry")
-    return {
-        "mode_id": mode_id, "map": target_map,
-        "command": {"cmd": "ueapp04", "value": {"ServerTravel": f"/Game/FEL/Maps/{target_map}"}},
-        "stream_url": os.environ.get("E3DS_STREAM_URL", ""),
-        "iframe_url": os.environ.get("E3DS_IFRAME_URL", "")
-    }
+        raise HTTPException(status_code=404, detail="Mode not found")
+    # Broadcast venue travel to all connected local clients
+    await sovereign_bridge.broadcast({
+        "type": "venue_travel", "mode_id": mode_id, "map": target_map,
+        "map_path": f"/Game/FEL/Maps/{target_map}"
+    }, encrypt=False)
+    return {"mode_id": mode_id, "map": target_map, "source": "local_sovereign", "cloud": False}
 
 @api_router.get("/")
 async def root():
@@ -1621,15 +1592,16 @@ async def get_handshake_log():
     connected = len(sovereign_bridge.clients) > 0
 
     log_entries = [
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Sovereign backend v2.0.0 started"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Venue DB mapping complete: 13 collections indexed"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"WebSocket /ws/sovereign listening for {bridge_config.get('handshake_identifier', 'FEL-SOVEREIGN-BRIDGE-v2')}"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Expected binaries: {bridge_config.get('expected_binary_signatures', [])}"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"PRQ Calculator: weighted_composite (source=cpp_bridge, static=False)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Encryption: AES-256-GCM (transit) + WiredTiger (rest) + TLS 1.3 (tunnel)"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": "Sovereign Hub v2.0.0 started (LOCAL SOVEREIGN MODE)"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": "Cloud streaming: DISABLED (E3DS bypassed)"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Sovereign Hub Listening on Port 8888"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues from FEL_VenueRegistry.production.json"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes from FEL_ModeManager.production.json"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Venue DB mapping complete: 13 collections indexed (Local MongoDB)"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"PRQ source: Local MongoDB (weighted_composite, static=False)"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Encryption: AES-256-GCM (transit) + WiredTiger (rest)"},
         {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Focus keepalive: {sovereign_state['focus_lock']} @ {sovereign_state['keepalive_interval']}s"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Data feed: Biomechanical (NO video window)"},
     ]
 
     if connected:

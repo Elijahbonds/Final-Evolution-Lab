@@ -1,18 +1,15 @@
 # Final Evolution Lab - PRD
 
-## Hard-Swap Complete
-- **Status:** PRODUCTION_READY | placeholder_data=False
-- All 17 modes mapped to FEL_ModeManager.production.json binaries (12 production, 5 staging)
-- PRQ source: cpp_bridge (UFELPRQCalculatorSubsystem), static=False, weighted_composite formula
-- WebSocket /ws/sovereign listening for FEL-SOVEREIGN-BRIDGE-v2 (FinalEvolutionLab.uproject)
-- 13 venue collections indexed in MongoDB from FEL_VenueRegistry.production.json
-- AES-256-GCM encryption on all sovereign transit
-- Match scores auto-chain to referral rewards
-- Handshake log confirms bridge → dashboard readiness
+## LOCAL SOVEREIGN MODE
+- E3DS: DISABLED | Cloud streaming: False | Video feed: False
+- Data feed: Biomechanical (LIVE) | WS: ws://localhost:8888
+- PRQ: Local MongoDB (weighted_composite, NOT simulation)
+- 13 venues from FEL_VenueRegistry.production.json
+- 17 modes (12 production) from FEL_ModeManager.production.json
+- AES-256-GCM encryption, no cloud transit
 
-## To Go Live
-1. Open FinalEvolutionLab.uproject on M4 Pro Mac Mini
-2. Build iOS Shipping target
-3. Tap app icon on iPhone 16 Pro Max
-4. WebSocket status flips WAITING → CONNECTED
-5. Live scores flow through sovereign bridge
+## How It Works
+- Visuals: iPhone 16 Pro Max screen (native UE5 app)
+- Data: Mac Mini screen (Sovereign Command Center)
+- Connection: Tap app → ws://localhost:8888 → Hub turns GREEN
+- Numbers move on Mac as you move on court
