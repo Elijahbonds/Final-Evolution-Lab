@@ -467,11 +467,39 @@ const GameModesView = () => {
   const [modes, setModes] = useState([]);
   const [filter, setFilter] = useState('all');
   const [playingMode, setPlayingMode] = useState(null);
+  const [launchingMode, setLaunchingMode] = useState(null);
+  const [sessionState, setSessionState] = useState(null);
 
   useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
 
+  const launchNativeMode = async (mode) => {
+    setLaunchingMode(mode.id);
+    try {
+      const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
+      setSessionState(r.data);
+      // Attempt deep link for native iOS
+      const deepLink = r.data.deep_link;
+      if (deepLink) {
+        window.location.href = deepLink;
+        // Fallback: if deep link doesn't open after 2s, play browser version
+        setTimeout(() => {
+          setLaunchingMode(null);
+          setPlayingMode(mode);
+        }, 2000);
+      }
+    } catch {
+      setLaunchingMode(null);
+      setPlayingMode(mode);
+    }
+  };
+
   const handleGameComplete = async (score) => {
-    try { await axios.post(`${API}/games/session`, {mode_id: playingMode.id, score, duration_seconds: 30, completed: true}); } catch {}
+    try {
+      await axios.post(`${API}/games/session`, {mode_id: playingMode.id, score, duration_seconds: 30, completed: true});
+      if (sessionState?.session_id) {
+        await axios.post(`${API}/session/state`, {session_id: sessionState.session_id, state: 'completed', score});
+      }
+    } catch {}
   };
 
   if (playingMode) {
@@ -504,7 +532,7 @@ const GameModesView = () => {
               <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
               <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
               <div className="flex items-center gap-4 text-xs text-zinc-500"><span>{mode.player_count}</span><span>{mode.duration}</span><span>{mode.difficulty}</span></div>
-              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2" onClick={(e) => {e.stopPropagation();setPlayingMode(mode);}}><Play className="w-4 h-4 inline mr-1" />Play Now</button>}
+              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching...</span> : <span><Play className="w-4 h-4 inline mr-1" />Play Now</span>}</button>}
             </div>
           </div>
         ))}

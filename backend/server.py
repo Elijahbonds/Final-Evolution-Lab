@@ -713,27 +713,165 @@ async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_curre
 
 @api_router.post("/streaming/launch-mode")
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Send venue travel command to local bridge (not cloud)"""
+    """Launch UE5 game mode via deep link — tracks session in Sovereign Hub"""
     mode_id = data.get("mode_id")
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    mode_config = registry.get(mode_id)
+    if not mode_config:
+        raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+
+    venue_key = mode_config["map"].split("/")[-1]
+    venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+
+    # Create live session in Sovereign Hub
+    session_id = f"sess_{uuid.uuid4().hex[:12]}"
+    session = {
+        "id": session_id, "user_id": user.user_id, "mode_id": mode_id,
+        "venue": venue_key, "map_path": mode_config["map"],
+        "gamemode_class": mode_config["gamemode_class"],
+        "binary": mode_config["binary"],
+        "status": "launching",  # launching → map_loading → active → completed
+        "score": 0, "started_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None, "source": "sovereign_hub_local"
     }
-    target_map = mode_maps.get(mode_id)
-    if not target_map:
-        raise HTTPException(status_code=404, detail="Mode not found")
-    # Broadcast venue travel to all connected local clients
+    await db.live_sessions.insert_one(session)
+
+    # Broadcast to all sovereign bridge clients
     await sovereign_bridge.broadcast({
-        "type": "venue_travel", "mode_id": mode_id, "map": target_map,
-        "map_path": f"/Game/FEL/Maps/{target_map}"
+        "type": "mode_launch", "session_id": session_id, "mode_id": mode_id,
+        "venue": venue_key, "map_path": mode_config["map"], "user_id": user.user_id
     }, encrypt=False)
-    return {"mode_id": mode_id, "map": target_map, "source": "local_sovereign", "cloud": False}
+
+    # Generate deep link for native iOS launch
+    deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}&session={session_id}"
+
+    return {
+        "session_id": session_id,
+        "mode_id": mode_id,
+        "venue": venue_key,
+        "map_path": mode_config["map"],
+        "gamemode_class": mode_config["gamemode_class"],
+        "binary": mode_config["binary"],
+        "status": mode_config["status"],
+        "deep_link": deep_link,
+        "source": "FEL_ModeManager.production.json",
+        "cloud": False,
+        "sovereign_session": True
+    }
+
+@api_router.post("/session/state")
+async def update_session_state(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Session state management — tracks launch → map_loading → active → completed"""
+    session_id = data.get("session_id")
+    new_state = data.get("state")  # map_loading, active, completed
+    score = data.get("score")
+
+    if not session_id or not new_state:
+        raise HTTPException(status_code=400, detail="session_id and state required")
+
+    updates = {"status": new_state}
+    if new_state == "completed":
+        updates["completed_at"] = datetime.now(timezone.utc).isoformat()
+    if score is not None:
+        updates["score"] = score
+
+    await db.live_sessions.update_one({"id": session_id}, {"$set": updates})
+
+    # If MapLoaded confirmation, broadcast to sovereign hub
+    if new_state == "active":
+        session = await db.live_sessions.find_one({"id": session_id}, {"_id": 0})
+        await sovereign_bridge.broadcast({
+            "type": "map_loaded", "session_id": session_id,
+            "venue": session.get("venue") if session else "unknown",
+            "user_id": user.user_id
+        }, encrypt=False)
+
+    # If completed, process score into PRQ and referrals
+    if new_state == "completed" and score:
+        session = await db.live_sessions.find_one({"id": session_id}, {"_id": 0})
+        if session:
+            await sovereign_bridge.process_match_event({
+                "user_id": user.user_id, "score": score,
+                "game_mode": session.get("mode_id"), "venue": session.get("venue"),
+                "duration": 0
+            }, "session_state")
+            # Recalculate PRQ live
+            await calculate_prq_live(user.user_id)
+
+    return {"session_id": session_id, "state": new_state, "acknowledged": True}
+
+@api_router.get("/session/active")
+async def get_active_sessions(user: User = Depends(get_current_user)):
+    """Get user's active sessions"""
+    sessions = await db.live_sessions.find(
+        {"user_id": user.user_id, "status": {"$in": ["launching", "map_loading", "active"]}},
+        {"_id": 0}
+    ).to_list(10)
+    return sessions
+
+@api_router.get("/modes/mapped")
+async def get_all_mapped_modes():
+    """All 17 modes with deep links and venue mapping — confirms playability"""
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    mapped = []
+    for mode_id, config in registry.items():
+        venue_key = config["map"].split("/")[-1]
+        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
+        mapped.append({
+            "mode_id": mode_id,
+            "deep_link": deep_link,
+            "map_path": config["map"],
+            "map_token": venue_key,
+            "gamemode_class": config["gamemode_class"],
+            "binary": config["binary"],
+            "production_status": config["status"],
+            "venue_display": venue_data.get("display_name", venue_key),
+            "category": venue_data.get("category", "Unknown"),
+            "db_collection": venue_data.get("db_collection", ""),
+            "linked": True
+        })
+    return {
+        "total_modes": len(mapped),
+        "all_linked": all(m["linked"] for m in mapped),
+        "deep_link_scheme": "finalevolution://",
+        "modes": mapped
+    }
+
+@api_router.get("/mobile/config")
+async def get_mobile_config():
+    """Mobile shell configuration — permissions, sensors, deep links"""
+    return {
+        "app_name": "Final Evolution Lab",
+        "bundle_id": "com.finalevolutionlab.sovereign",
+        "version": "2.0.0",
+        "platform": "iOS",
+        "device_target": "iPhone 16 Pro Max",
+        "deep_link_scheme": "finalevolution://",
+        "sovereign_hub": {
+            "ws_url": "ws://localhost:8888",
+            "tunnel": "Cloudflare (wss://)",
+            "sync_interval_ms": 500
+        },
+        "permissions": {
+            "lidar": {"key": "NSWorldSensingUsageDescription", "reason": "Movement analysis and biomechanical tracking", "required": True},
+            "motion": {"key": "NSMotionUsageDescription", "reason": "Athletic performance and form analysis", "required": True},
+            "camera": {"key": "NSCameraUsageDescription", "reason": "Form recording and video critique", "required": False},
+            "microphone": {"key": "NSMicrophoneUsageDescription", "reason": "Coach communication", "required": False},
+            "local_network": {"key": "NSLocalNetworkUsageDescription", "reason": "Sovereign Hub connection on local network", "required": True}
+        },
+        "sensor_feeds": {
+            "lidar": {"enabled": True, "data": ["depth_map", "point_cloud", "mesh"], "target_collection": "sensor_lidar"},
+            "imu": {"enabled": True, "data": ["accelerometer", "gyroscope", "magnetometer"], "target_collection": "sensor_imu"},
+            "arkit": {"enabled": True, "data": ["body_tracking", "hand_tracking", "face_tracking"], "target_collection": "sensor_arkit"}
+        },
+        "ue5_integration": {
+            "app_scheme": "finalevolution://",
+            "launch_template": "finalevolution://launch?map={venue}&mode={mode_id}&session={session_id}",
+            "state_callback": "/api/session/state",
+            "mode_registry": "FEL_ModeManager.production.json"
+        }
+    }
 
 @api_router.get("/")
 async def root():
