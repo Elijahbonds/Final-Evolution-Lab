@@ -1,74 +1,46 @@
 # Final Evolution Lab - PRD
 
 ## Original Problem Statement
-Final Evolution Lab (FEL) is an athlete-first training platform that unifies readiness, play, and progression in one system. Built from GitHub repo: https://github.com/Elijahbonds/Final-Evolution-Lab
+Final Evolution Lab (FEL) is an athlete-first training platform. GitHub: https://github.com/Elijahbonds/Final-Evolution-Lab
 
 ## Architecture
 - **Frontend**: React 19 + Tailwind CSS + PayPal SDK + Radix UI
-- **Backend**: FastAPI (Python) + Motor (async MongoDB) + WebSocket
+- **Backend**: FastAPI + Motor (MongoDB) + WebSocket
 - **Database**: MongoDB
-- **AI**: OpenAI GPT-5.2, Claude Sonnet 4.5, Gemini 3 Flash via Emergent LLM Key
-- **Auth**: Emergent-managed Google OAuth
-- **Payments**: PayPal Sandbox (real keys provided)
-- **Design**: Dark clinical vibe (Barlow Condensed + IBM Plex Sans + JetBrains Mono)
-
-## User Personas
-1. **Athlete** - System Scan, game modes, AI coaching, streaks, tournaments
-2. **Coach** - Coach Hub, video critique reviews, session booking
-3. **Student-Athlete** - Education, Brain Brawl, college prep
+- **AI**: GPT-5.2 / Claude / Gemini via Emergent LLM Key
+- **Auth**: Emergent Google OAuth
+- **Payments**: PayPal Sandbox
+- **Streaming**: Eagle 3D Streaming (E3DS) via Pulumi IaC
+- **Design**: Dark clinical vibe
 
 ## What's Implemented (Jan 2026)
+- [x] Landing page, Google OAuth, Dashboard with PRQ gauge
+- [x] System Scan (8 PRQ metrics, health signals, 4 workout plans, active workout tracker)
+- [x] 17 Game Modes all playable (browser-based game engine)
+- [x] **Eagle 3D Streaming integration** — iframe embed, 15 game mode→venue map switching via postMessage
+- [x] **Pulumi IaC scripts** for E3DS GPU provisioning (`/app/infra/e3ds/`)
+- [x] **deploy_e3ds.sh** — one-command E3DS deploy, auto-injects stream URL to backend
+- [x] Creator Cards marketplace + PayPal checkout
+- [x] AI Coach (GPT-5.2 / Claude / Gemini) + multi-model chat
+- [x] Coach Hub with 4 coaches, session booking, video critique uploads
+- [x] Education (5 courses, Applied Kinesiology Certificate, PayPal enrollment)
+- [x] Brain Brawl (timer, categories, scoring, XP)
+- [x] Daily Training Streaks (30-day calendar, milestones at 3/7/14/30 days, coin rewards)
+- [x] Social (discover athletes, follow, challenge, activity feed)
+- [x] Tournaments (4 events with brackets, registration)
+- [x] Avatar Builder (body, skin, hair, jersey, shoes, accessories, expressions)
+- [x] Leaderboard with global rankings
+- [x] WebSocket multiplayer endpoint
+- [x] Profile management with progress stats
 
-### Phase 1 (Initial MVP)
-- [x] Landing page with hero section, stats, feature grid
-- [x] Google OAuth via Emergent Auth
-- [x] Dashboard with PRQ score, stats, quick start
-- [x] System Scan (8 PRQ metrics, health signals, 4 workout plans)
-- [x] Active workout tracker with exercise progression
-- [x] 17 Game Modes all playable (target-based game engine)
-- [x] Creator Cards gallery with detail view
-- [x] AI Coach chat (GPT-5.2 / Claude / Gemini selector)
-- [x] Coach Hub with 4 coaches and session booking
-- [x] Education portal with 5 courses
-- [x] Brain Brawl cognitive training (timer, categories, scoring)
-- [x] Leaderboard with rankings
-- [x] Pixel Streaming UI for UE5 server connection
-- [x] Profile with edit capability
+## E3DS Game Mode → UE5 Venue Mappings
+basketball_h2h/dunk/3v3 → Venice_Beach_Court | karate_h2h/endless → Zen_Dojo
+baseball → Baseball_Park | football → Gridiron_Stadium | soccer → Soccer_Stadium
+golf → Links_Course | tennis → Tennis_Court | volleyball → Sand_Court
+gymnastics → Training_Floor | surfing → Venice_Beach_Surf
+skateboarding → Skate_Park | snowboarding → Mountain_Slope
 
-### Phase 2 (Expansion)
-- [x] Daily Training Streak & Rewards system (30-day calendar, milestones at 3/7/14/30 days)
-- [x] PayPal integration for Creator Card purchases and course enrollment
-- [x] WebSocket multiplayer endpoint (/ws/game/{room_id})
-- [x] Social features (discover athletes, follow, challenge, activity feed)
-- [x] Tournament system (4 tournaments with brackets, registration, join)
-- [x] Avatar Builder (body type, skin tone, hair, jersey, shoes, accessories, expressions)
-- [x] Video Upload for coach critique sessions
-- [x] Coin economy (earned through streaks, spent in marketplace)
-
-## Prioritized Backlog
-### P1 (High)
-- Real-time multiplayer game UI (WebSocket backend ready)
-- Push notifications
-- Advanced analytics dashboard with charts
-- Payment completion callback (PayPal return URL handling)
-
-### P2 (Medium)
-- 3D avatar model with Meshy AI
-- Matchmaking system for tournaments
-- Chat between athletes
-- Workout history charts
-- Coach review/rating after sessions
-
-### P3 (Future)
-- Native iOS app connection
-- UE5 Pixel Streaming production setup
-- AR training overlay
-- Community forums
-- Sponsorship partnerships
-
-## Next Tasks
-1. WebSocket multiplayer game UI
-2. Tournament matchmaking and live bracket updates
-3. Payment completion flow (PayPal return URL)
-4. Advanced analytics with Recharts
-5. Push notifications via browser API
+## Backlog
+### P1: Real-time multiplayer UI, payment completion callback, analytics dashboard
+### P2: 3D avatar (Meshy AI), matchmaking, athlete chat, workout charts
+### P3: iOS connection, AR overlay, community forums
