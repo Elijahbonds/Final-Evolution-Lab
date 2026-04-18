@@ -81,13 +81,13 @@ struct GameSceneHostView: UIViewRepresentable {
             case .basketballHeadToHead: return "player1"
             case .basketballDunkContest: return "dunker"
             case .basketball3v3: return "blue1"
-            case .karate: return "fighter1"
+            case .karate, .karateEndless: return "fighter1"
             case .baseball: return "batter"
             case .soccer: return "kicker"
             case .golf: return "golfer"
             case .tennis: return "player"
             case .volleyball: return "vPlayer1"
-            case .gymnastics: return "gymnast"
+            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding: return "gymnast"
             case .football: return "returner"
             }
         }
@@ -98,7 +98,7 @@ struct GameSceneHostView: UIViewRepresentable {
                 return CameraFollowConfig(offsetX: 2, offsetY: 5, offsetZ: 8, lookAtY: 1.2, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
             case .basketballDunkContest:
                 return CameraFollowConfig(offsetX: 1.5, offsetY: 5.5, offsetZ: 9, lookAtY: 2.0, followSpeed: 6, targetSpeed: 8, fovNormal: 48, fovAction: 35)
-            case .karate:
+            case .karate, .karateEndless:
                 return CameraFollowConfig(offsetX: 0, offsetY: 3.5, offsetZ: 6, lookAtY: 1.2, followSpeed: 7, targetSpeed: 9, fovNormal: 48, fovAction: 36)
             case .football:
                 return CameraFollowConfig(offsetX: 0, offsetY: 6, offsetZ: 8, lookAtY: 1.0, followSpeed: 5, targetSpeed: 6, fovNormal: 52, fovAction: 42)
@@ -112,7 +112,7 @@ struct GameSceneHostView: UIViewRepresentable {
                 return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 9, lookAtY: 1.0, followSpeed: 5, targetSpeed: 7, fovNormal: 50, fovAction: 40)
             case .volleyball:
                 return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 8, lookAtY: 1.5, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
-            case .gymnastics:
+            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding:
                 return CameraFollowConfig(offsetX: 1, offsetY: 4, offsetZ: 8, lookAtY: 1.5, followSpeed: 4, targetSpeed: 6, fovNormal: 48, fovAction: 36)
             }
         }
@@ -125,7 +125,7 @@ struct GameSceneHostView: UIViewRepresentable {
                 return MovementBounds(minX: -5.0, maxX: 4.0, minZ: -3.5, maxZ: 3.5, speed: 0.14)
             case .basketball3v3:
                 return MovementBounds(minX: -4.5, maxX: 4.5, minZ: -2.8, maxZ: 2.8, speed: 0.12)
-            case .karate:
+            case .karate, .karateEndless:
                 return MovementBounds(minX: -2.5, maxX: 2.5, minZ: -2.5, maxZ: 2.5, speed: 0.10)
             case .football:
                 return MovementBounds(minX: -4.0, maxX: 4.0, minZ: -12.0, maxZ: 12.0, speed: 0.16)
@@ -139,7 +139,7 @@ struct GameSceneHostView: UIViewRepresentable {
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -2.0, maxZ: 2.0, speed: 0.10)
             case .volleyball:
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -1.5, maxZ: 1.5, speed: 0.09)
-            case .gymnastics:
+            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding:
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -2.0, maxZ: 2.0, speed: 0.08)
             }
         }
@@ -159,7 +159,7 @@ struct GameSceneHostView: UIViewRepresentable {
                 return CameraFollowConfig(offsetX: 2, offsetY: 5, offsetZ: 8, lookAtY: 1.2, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
             case .basketballDunkContest:
                 return CameraFollowConfig(offsetX: 1.5, offsetY: 5.5, offsetZ: 9, lookAtY: 2.0, followSpeed: 6, targetSpeed: 8, fovNormal: 48, fovAction: 35)
-            case .karate:
+            case .karate, .karateEndless:
                 return CameraFollowConfig(offsetX: 0, offsetY: 3.5, offsetZ: 6, lookAtY: 1.2, followSpeed: 7, targetSpeed: 9, fovNormal: 48, fovAction: 36)
             default:
                 return CameraFollowConfig(offsetX: 1, offsetY: 4.5, offsetZ: 8, lookAtY: 1.0, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
@@ -483,14 +483,14 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         private func actionSpeedMultiplier() -> Double {
-            if gameMode == .karate {
+            if gameMode == .karate || gameMode == .karateEndless {
                 return 1.0 + (max(0, min(neuralDrive, 100)) / 100.0) * 0.55
             }
             return 1.0
         }
 
         func applyNeuralDriveTuning(in scene: SCNScene?) {
-            guard gameMode == .karate, let scene else { return }
+            guard (gameMode == .karate || gameMode == .karateEndless), let scene else { return }
             let boost = max(0, min(neuralDrive, 100)) / 100.0
             let emissionStrength = 0.2 + boost * 0.5
             for nodeName in ["fighter1", "fighter2"] {

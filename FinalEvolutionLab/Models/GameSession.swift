@@ -11,5 +11,7 @@ nonisolated struct GameSessionResult: Codable, Sendable, Identifiable {
     let isMultiplayer: Bool
     let duration: Int
 
-    var didWin: Bool { score > opponentScore }
+    var didWin: Bool {
+        VersusMatchOutcome.playerWins(playerScore: score, opponentScore: opponentScore)
+    }
 }

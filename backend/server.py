@@ -35,6 +35,22 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def _load_ue_mode_maps() -> Dict[str, str]:
+    """Mode id → Unreal map token for E3DS / Pixel Streaming (backend/ue_mode_maps.json)."""
+    path = ROOT_DIR / "ue_mode_maps.json"
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        m = data.get("mode_to_unreal_map") or {}
+        return {str(k): str(v) for k, v in m.items()}
+    except Exception as e:
+        logger.warning("Could not load ue_mode_maps.json: %s", e)
+        return {}
+
+
+UE_MODE_MAPS: Dict[str, str] = _load_ue_mode_maps()
+
 # ===================== MODELS =====================
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -683,8 +699,8 @@ async def get_streaming_status():
     e3ds_app_id = os.environ.get("E3DS_APP_ID", "")
     e3ds_api_key = os.environ.get("E3DS_API_KEY", "")
     available = bool(e3ds_stream or e3ds_iframe)
-    
-    mode_maps = {
+
+    mode_maps = UE_MODE_MAPS if UE_MODE_MAPS else {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
         "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
@@ -692,7 +708,7 @@ async def get_streaming_status():
         "golf": "Links_Course", "tennis": "Tennis_Court",
         "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
         "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena",
     }
     
     return {
@@ -744,7 +760,7 @@ async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_curre
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
     """Send a command to E3DS to launch a specific game mode map"""
     mode_id = data.get("mode_id")
-    mode_maps = {
+    mode_maps = UE_MODE_MAPS if UE_MODE_MAPS else {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
         "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
@@ -752,7 +768,7 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
         "golf": "Links_Course", "tennis": "Tennis_Court",
         "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
         "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena",
     }
     target_map = mode_maps.get(mode_id)
     if not target_map:

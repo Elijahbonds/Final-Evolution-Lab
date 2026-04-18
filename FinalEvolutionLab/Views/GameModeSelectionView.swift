@@ -85,7 +85,7 @@ struct GameModeSelectionView: View {
 
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
-                    Text("11")
+                    Text("\(GameModeRegistry.all.count)")
                         .font(.system(.caption, design: .monospaced, weight: .black))
                         .foregroundStyle(Theme.brandCyan)
                     Text("MODES")

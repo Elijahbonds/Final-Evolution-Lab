@@ -4,7 +4,9 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case basketballHeadToHead = "basketball_h2h"
     case basketballDunkContest = "basketball_dunk"
     case basketball3v3 = "basketball_3v3"
-    case karate = "karate"
+    /// Matches backend `karate_h2h` / UE Zen_Dojo
+    case karate = "karate_h2h"
+    case karateEndless = "karate_endless"
     case baseball = "baseball"
     case football = "football"
     case soccer = "soccer"
@@ -12,6 +14,10 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case tennis = "tennis"
     case volleyball = "volleyball"
     case gymnastics = "gymnastics"
+    case surfing = "surfing"
+    case skateboarding = "skateboarding"
+    case snowboarding = "snowboarding"
+    case brainBrawl = "brain_brawl"
 
     var id: String { rawValue }
 }
@@ -30,7 +36,7 @@ nonisolated enum InputScheme: String, Sendable {
 extension GameModeId {
     var inputScheme: InputScheme {
         switch self {
-        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .karate:
+        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .karate, .karateEndless:
             return .charge
         case .baseball:
             return .swipe
@@ -42,7 +48,7 @@ extension GameModeId {
             return .kickReturn
         case .soccer:
             return .penaltyKick
-        case .gymnastics:
+        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl:
             return .rhythmTap
         }
     }
@@ -64,6 +70,8 @@ nonisolated struct GameMode: Sendable, Identifiable {
         case combat = "Combat Sports"
         case field = "Field Sports"
         case precision = "Precision"
+        case board = "Board"
+        case academy = "Academy"
     }
 
     nonisolated enum MultiplayerType: String, Sendable {
@@ -110,11 +118,22 @@ struct GameModeRegistry {
         ),
         GameMode(
             id: .karate,
-            name: "Karate",
+            name: "Karate · 1v1",
             subtitle: "Point Sparring",
             sport: .combat,
             iconName: "figure.martial.arts",
             accentColor: Color(red: 1.0, green: 0.2, blue: 0.2),
+            multiplayerType: .realtime,
+            environmentName: "Dojo Arena",
+            hint: nil
+        ),
+        GameMode(
+            id: .karateEndless,
+            name: "Karate · Endless",
+            subtitle: "Survival Waves",
+            sport: .combat,
+            iconName: "flame.fill",
+            accentColor: Color(red: 1.0, green: 0.35, blue: 0.1),
             multiplayerType: .realtime,
             environmentName: "Dojo Arena",
             hint: nil
@@ -196,6 +215,50 @@ struct GameModeRegistry {
             environmentName: "Arena",
             hint: nil
         ),
+        GameMode(
+            id: .surfing,
+            name: "Surfing",
+            subtitle: "Line & Balance",
+            sport: .board,
+            iconName: "water.waves",
+            accentColor: Color(red: 0.2, green: 0.75, blue: 1.0),
+            multiplayerType: .realtime,
+            environmentName: "Venice Beach Surf",
+            hint: nil
+        ),
+        GameMode(
+            id: .skateboarding,
+            name: "Skateboarding",
+            subtitle: "Park Lines",
+            sport: .board,
+            iconName: "skateboard",
+            accentColor: Color(red: 0.95, green: 0.45, blue: 0.12),
+            multiplayerType: .realtime,
+            environmentName: "Skate Park",
+            hint: nil
+        ),
+        GameMode(
+            id: .snowboarding,
+            name: "Snowboarding",
+            subtitle: "Slope Control",
+            sport: .board,
+            iconName: "snowflake",
+            accentColor: Color(red: 0.85, green: 0.9, blue: 1.0),
+            multiplayerType: .realtime,
+            environmentName: "Mountain Slope",
+            hint: nil
+        ),
+        GameMode(
+            id: .brainBrawl,
+            name: "Brain Brawl",
+            subtitle: "Cognitive Arena",
+            sport: .academy,
+            iconName: "brain.head.profile",
+            accentColor: Color(red: 0.55, green: 0.35, blue: 1.0),
+            multiplayerType: .realtime,
+            environmentName: "Neuro Arena",
+            hint: nil
+        ),
     ]
 
     static func mode(for id: GameModeId) -> GameMode {
@@ -203,7 +266,7 @@ struct GameModeRegistry {
     }
 
     static var sportCategories: [GameMode.SportCategory] {
-        [.basketball, .combat, .field, .precision]
+        [.basketball, .combat, .field, .precision, .board, .academy]
     }
 
     static func modes(for sport: GameMode.SportCategory) -> [GameMode] {

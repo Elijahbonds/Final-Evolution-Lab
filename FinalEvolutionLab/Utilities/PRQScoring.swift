@@ -38,7 +38,7 @@ nonisolated enum PRQ: Sendable {
         case .basketballHeadToHead: 1.2
         case .basketballDunkContest: 1.0
         case .basketball3v3: 1.3
-        case .karate: 1.4
+        case .karate, .karateEndless: 1.4
         case .baseball: 1.0
         case .football: 1.5
         case .soccer: 1.1
@@ -46,6 +46,8 @@ nonisolated enum PRQ: Sendable {
         case .tennis: 1.1
         case .volleyball: 1.2
         case .gymnastics: 1.0
+        case .surfing, .skateboarding, .snowboarding: 1.05
+        case .brainBrawl: 1.1
         }
     }
 
@@ -55,7 +57,7 @@ nonisolated enum PRQ: Sendable {
         switch mode {
         case .basketballHeadToHead, .basketball3v3: modeBase = 0.40
         case .basketballDunkContest: modeBase = 0.45
-        case .karate: modeBase = 0.38
+        case .karate, .karateEndless: modeBase = 0.38
         case .baseball: modeBase = 0.35
         case .football: modeBase = 0.42
         case .soccer: modeBase = 0.40
@@ -63,6 +65,8 @@ nonisolated enum PRQ: Sendable {
         case .tennis: modeBase = 0.38
         case .volleyball: modeBase = 0.40
         case .gymnastics: modeBase = 0.35
+        case .surfing, .skateboarding, .snowboarding: modeBase = 0.36
+        case .brainBrawl: modeBase = 0.42
         }
         return modeBase + normalized * (0.90 - modeBase)
     }
@@ -71,7 +75,7 @@ nonisolated enum PRQ: Sendable {
         switch mode {
         case .basketballHeadToHead, .basketball3v3: "Court IQ"
         case .basketballDunkContest: "Hang Time"
-        case .karate: "Fight IQ"
+        case .karate, .karateEndless: "Fight IQ"
         case .baseball: "Bat Speed"
         case .football: "Burst Speed"
         case .soccer: "Shot Accuracy"
@@ -79,6 +83,10 @@ nonisolated enum PRQ: Sendable {
         case .tennis: "Rally Control"
         case .volleyball: "Spike Power"
         case .gymnastics: "Form Score"
+        case .surfing: "Wave IQ"
+        case .skateboarding: "Line Control"
+        case .snowboarding: "Edge Control"
+        case .brainBrawl: "Cognitive Flex"
         }
     }
 
@@ -88,7 +96,7 @@ nonisolated enum PRQ: Sendable {
         switch mode {
         case .basketballHeadToHead, .basketball3v3: modeScale = 0.85
         case .basketballDunkContest: modeScale = 0.90
-        case .karate: modeScale = 0.80
+        case .karate, .karateEndless: modeScale = 0.80
         case .baseball: modeScale = 0.75
         case .football: modeScale = 0.80
         case .soccer: modeScale = 0.78
@@ -96,6 +104,8 @@ nonisolated enum PRQ: Sendable {
         case .tennis: modeScale = 0.78
         case .volleyball: modeScale = 0.82
         case .gymnastics: modeScale = 0.75
+        case .surfing, .skateboarding, .snowboarding: modeScale = 0.76
+        case .brainBrawl: modeScale = 0.82
         }
         return (modeScale * normalized * 100).rounded() / 100
     }

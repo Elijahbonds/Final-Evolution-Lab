@@ -92,7 +92,7 @@ struct GamePlayView: View {
     private enum GolfSwingPhase { case idle, backswing }
     private enum FootballPhase { case `catch`, run }
 
-    private var isKarate: Bool { gameMode.id == .karate }
+    private var isKarate: Bool { gameMode.id == .karate || gameMode.id == .karateEndless }
     private var inputScheme: InputScheme { gameMode.id.inputScheme }
     private var supportsTricks: Bool { gameMode.id == .basketballDunkContest || gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3 || isKarate }
     private var specialMeterFull: Bool { specialMeter >= 100 }
@@ -274,7 +274,13 @@ struct GamePlayView: View {
 
             if showResults {
                 ResultScreen(
-                    winner: score > opponentScore ? .p1 : (score == opponentScore ? .draw : .p2),
+                    winner: {
+                        switch VersusMatchOutcome.winnerSide(playerScore: score, opponentScore: opponentScore) {
+                        case .playerWins: return .p1
+                        case .opponentWins: return .p2
+                        case .draw: return .draw
+                        }
+                    }(),
                     p1Score: score,
                     p2Score: opponentScore,
                     title: gameMode.name,
@@ -2036,14 +2042,14 @@ struct GamePlayView: View {
         case .basketballHeadToHead: ["Shoot", "Drive", "Crossover"]
         case .basketballDunkContest: ["Power Dunk", "360 Dunk", "Windmill"]
         case .basketball3v3: ["Pass", "Shoot", "Drive"]
-        case .karate: ["Punch", "Kick", "Block"]
+        case .karate, .karateEndless: ["Punch", "Kick", "Block"]
         case .baseball: ["Swing", "Bunt"]
         case .football: ["Catch", "Break Away"]
         case .soccer: ["Shoot"]
         case .golf: ["Swing"]
         case .tennis: ["Serve", "Volley", "Baseline"]
         case .volleyball: ["Spike"]
-        case .gymnastics: ["Tumble", "Vault", "Dismount"]
+        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl: ["Tumble", "Vault", "Dismount"]
         }
     }
 
@@ -2125,9 +2131,10 @@ struct GamePlayView: View {
     }
 
     private var shardRewards: [ShardReward] {
-        ShardReward.forGameResult(
-            won: score > opponentScore,
-            tied: score == opponentScore,
+        let flags = VersusMatchOutcome.rewardFlags(playerScore: score, opponentScore: opponentScore)
+        return ShardReward.forGameResult(
+            won: flags.won,
+            tied: flags.tied,
             combo: maxCombo,
             criticals: criticalHits
         )
@@ -2138,10 +2145,11 @@ struct GamePlayView: View {
     }
 
     private var prqReward: Double {
-        PRQ.modeReward(
+        let flags = VersusMatchOutcome.rewardFlags(playerScore: score, opponentScore: opponentScore)
+        return PRQ.modeReward(
             mode: gameMode.id,
-            won: score > opponentScore,
-            tied: score == opponentScore,
+            won: flags.won,
+            tied: flags.tied,
             combo: maxCombo,
             criticals: criticalHits,
             scoreDifferential: score - opponentScore
@@ -2212,6 +2220,7 @@ struct GamePlayView: View {
         if isTimerBased {
             switch gameMode.id {
             case .karate: timeRemaining = 90
+            case .karateEndless: timeRemaining = 240
             case .tennis: timeRemaining = 120
             case .volleyball: timeRemaining = 90
             case .basketball3v3: timeRemaining = 120
@@ -2674,7 +2683,7 @@ struct GamePlayView: View {
             }
         case .basketball3v3:
             return action == "Shoot" ? 3 : 2
-        case .karate:
+        case .karate, .karateEndless:
             switch action {
             case "Kick": return 3
             case "Punch": return 1
@@ -2692,7 +2701,7 @@ struct GamePlayView: View {
             return action == "Serve" ? 4 : (action == "Volley" ? 3 : 2)
         case .volleyball:
             return 3
-        case .gymnastics:
+        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl:
             return action == "Vault" ? 5 : (action == "Tumble" ? 3 : 4)
         }
     }

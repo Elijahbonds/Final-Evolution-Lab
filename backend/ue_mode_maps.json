@@ -1,0 +1,21 @@
+{
+  "description": "Single source of truth: FEL mode_id (API / iOS rawValue) → Unreal map token for E3DS launch / Pixel Streaming",
+  "mode_to_unreal_map": {
+    "basketball_h2h": "Venice_Beach_Court",
+    "basketball_dunk": "Venice_Beach_Court",
+    "basketball_3v3": "Venice_Beach_Court",
+    "karate_h2h": "Zen_Dojo",
+    "karate_endless": "Zen_Dojo",
+    "baseball": "Baseball_Park",
+    "football": "Gridiron_Stadium",
+    "soccer": "Soccer_Stadium",
+    "golf": "Links_Course",
+    "tennis": "Tennis_Court",
+    "volleyball": "Sand_Court",
+    "gymnastics": "Training_Floor",
+    "surfing": "Venice_Beach_Surf",
+    "skateboarding": "Skate_Park",
+    "snowboarding": "Mountain_Slope",
+    "brain_brawl": "Neuro_Arena"
+  }
+}

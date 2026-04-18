@@ -30,7 +30,7 @@ class TestStreamingStatus:
     """Tests for GET /api/streaming/status endpoint"""
     
     def test_streaming_status_returns_mode_maps(self, api_client):
-        """Streaming status should return E3DS configuration with 15 venue mappings"""
+        """Streaming status should return E3DS configuration with full UE mode registry"""
         response = api_client.get(f"{BASE_URL}/api/streaming/status")
         assert response.status_code == 200
         
@@ -38,11 +38,9 @@ class TestStreamingStatus:
         assert "mode_maps" in data
         assert "supported_modes" in data
         
-        # Verify 15 game mode mappings
         mode_maps = data["mode_maps"]
-        assert len(mode_maps) == 15
-        
-        # Verify specific mappings
+        assert len(mode_maps) == 16
+
         expected_mappings = {
             "basketball_h2h": "Venice_Beach_Court",
             "basketball_dunk": "Venice_Beach_Court",
@@ -59,6 +57,7 @@ class TestStreamingStatus:
             "surfing": "Venice_Beach_Surf",
             "skateboarding": "Skate_Park",
             "snowboarding": "Mountain_Slope",
+            "brain_brawl": "Neuro_Arena",
         }
         
         for mode, expected_map in expected_mappings.items():
@@ -76,12 +75,12 @@ class TestStreamingStatus:
             assert field in data, f"Missing field: {field}"
     
     def test_streaming_status_supported_modes_count(self, api_client):
-        """Should have 15 supported game modes"""
+        """Should have 16 supported Unreal / E3DS game modes (excludes web-only shop)"""
         response = api_client.get(f"{BASE_URL}/api/streaming/status")
         assert response.status_code == 200
         
         data = response.json()
-        assert len(data["supported_modes"]) == 15
+        assert len(data["supported_modes"]) == 16
 
 
 class TestStreamingConnect:
@@ -209,8 +208,8 @@ class TestStreamingLaunchMode:
         })
         assert response.status_code == 404
     
-    def test_launch_mode_all_15_modes(self, authenticated_client):
-        """Test all 15 game modes return correct maps"""
+    def test_launch_mode_all_ue_modes(self, authenticated_client):
+        """Each registered UE mode maps to the correct Unreal map token"""
         mode_map_pairs = [
             ("basketball_h2h", "Venice_Beach_Court"),
             ("basketball_dunk", "Venice_Beach_Court"),
@@ -227,6 +226,7 @@ class TestStreamingLaunchMode:
             ("surfing", "Venice_Beach_Surf"),
             ("skateboarding", "Skate_Park"),
             ("snowboarding", "Mountain_Slope"),
+            ("brain_brawl", "Neuro_Arena"),
         ]
         
         for mode_id, expected_map in mode_map_pairs:

@@ -233,7 +233,7 @@ nonisolated struct ComboResolver: Sendable {
     }
 
     static var combatModes: Set<GameModeId> {
-        [.karate]
+        [.karate, .karateEndless]
     }
 
     static func isDunkAllowed(for mode: GameModeId) -> Bool {
@@ -388,7 +388,7 @@ nonisolated struct PS2MovementConfig: Sendable {
             return .dunkContest
         case .basketballHeadToHead, .basketball3v3:
             return .standard
-        case .karate:
+        case .karate, .karateEndless:
             return PS2MovementConfig(
                 topSpeed: 7.0,
                 acceleration: 14,

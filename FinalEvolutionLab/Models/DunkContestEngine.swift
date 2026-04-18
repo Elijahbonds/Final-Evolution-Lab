@@ -60,6 +60,60 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
     }
 }
 
+/// Deterministic dunk math for production and tests; judge rolls are injected for `0..<spread`.
+nonisolated enum DunkContestScoring {
+    static func calculate(
+        state: DunkContestState,
+        prq: Double,
+        neuralBurst: Bool,
+        judgeOffsets: (Int, Int, Int)
+    ) -> (total: Int, j1: Int, j2: Int, j3: Int, message: String) {
+        let normalized = min(max(prq / 100.0, 0), 1)
+
+        let heightScore = state.jumpHeight * 20
+        let trickScore = state.selectedTrick.complexity * 25
+        let executionScore = ((state.launchQuality + state.landingQuality) / 2.0) * 20
+        let rotationScore = state.completedRotation * 8
+
+        var originalityBonus: Double = 0
+        let previousCount = state.trickHistory.filter { $0 == state.selectedTrick }.count
+        if previousCount == 0 { originalityBonus = 12 }
+        else if previousCount == 1 { originalityBonus = 5 }
+
+        let freestyleBonus = Double(min(state.totalFreestylePoints, 30))
+        let chainBonus = Double(state.midAirState.branchCount) * 5
+        let modifierBonus = (state.activeModifier.scoreMultiplier - 1.0) * 15
+
+        let styleLandingBonus: Double = state.styleLandingSuccess ? 8 : 0
+
+        var rawScore = heightScore + trickScore + executionScore + rotationScore +
+            originalityBonus + freestyleBonus + chainBonus + modifierBonus + styleLandingBonus
+        rawScore *= (0.85 + normalized * 0.15)
+        if neuralBurst { rawScore *= 1.12 }
+
+        let base = min(50, Int(rawScore / 3.0) + 30)
+        let spread = max(1, 5 - Int(executionScore / 8))
+        let o1 = judgeOffsets.0 % spread
+        let o2 = judgeOffsets.1 % spread
+        let o3 = judgeOffsets.2 % spread
+        let j1 = min(50, base + o1)
+        let j2 = min(50, base + o2)
+        let j3 = min(50, base + o3)
+        let total = j1 + j2 + j3
+
+        let message: String
+        if total >= 145 { message = "PERFECT DUNK!" }
+        else if total >= 140 { message = "LEGENDARY!" }
+        else if total >= 135 { message = "CROWD GOES WILD!" }
+        else if total >= 130 { message = "ELECTRIFYING!" }
+        else if total >= 120 { message = "POWERFUL!" }
+        else if total >= 110 { message = "SOLID DUNK" }
+        else { message = "NEEDS WORK" }
+
+        return (total, j1, j2, j3, message)
+    }
+}
+
 struct DunkContestState {
     var phase: DunkPhase = .idle
     var round: Int = 1
@@ -182,50 +236,25 @@ struct DunkContestState {
     }
 
     mutating func calculateDunkScore(prq: Double, neuralBurst: Bool) -> (total: Int, j1: Int, j2: Int, j3: Int, message: String) {
-        let normalized = min(max(prq / 100.0, 0), 1)
-
-        let heightScore = jumpHeight * 20
-        let trickScore = selectedTrick.complexity * 25
         let executionScore = ((launchQuality + landingQuality) / 2.0) * 20
-        let rotationScore = completedRotation * 8
-
-        var originalityBonus: Double = 0
-        let previousCount = trickHistory.filter { $0 == selectedTrick }.count
-        if previousCount == 0 { originalityBonus = 12 }
-        else if previousCount == 1 { originalityBonus = 5 }
-
-        let freestyleBonus = Double(min(totalFreestylePoints, 30))
-        let chainBonus = Double(midAirState.branchCount) * 5
-        let modifierBonus = (activeModifier.scoreMultiplier - 1.0) * 15
-
-        let styleLandingBonus: Double = styleLandingSuccess ? 8 : 0
-
-        var rawScore = heightScore + trickScore + executionScore + rotationScore +
-                       originalityBonus + freestyleBonus + chainBonus + modifierBonus + styleLandingBonus
-        rawScore *= (0.85 + normalized * 0.15)
-        if neuralBurst { rawScore *= 1.12 }
-
-        let base = min(50, Int(rawScore / 3.0) + 30)
         let spread = max(1, 5 - Int(executionScore / 8))
-        let j1 = min(50, base + Int.random(in: 0..<spread))
-        let j2 = min(50, base + Int.random(in: 0..<spread))
-        let j3 = min(50, base + Int.random(in: 0..<spread))
-        let total = j1 + j2 + j3
-
-        let message: String
-        if total >= 145 { message = "PERFECT DUNK!" }
-        else if total >= 140 { message = "LEGENDARY!" }
-        else if total >= 135 { message = "CROWD GOES WILD!" }
-        else if total >= 130 { message = "ELECTRIFYING!" }
-        else if total >= 120 { message = "POWERFUL!" }
-        else if total >= 110 { message = "SOLID DUNK" }
-        else { message = "NEEDS WORK" }
+        let judgeOffsets = (
+            Int.random(in: 0..<spread),
+            Int.random(in: 0..<spread),
+            Int.random(in: 0..<spread)
+        )
+        let out = DunkContestScoring.calculate(
+            state: self,
+            prq: prq,
+            neuralBurst: neuralBurst,
+            judgeOffsets: judgeOffsets
+        )
 
         impactIntensity = jumpHeight * landingQuality
         rimDistortionAmount = activeModifier == .power ? 0.15 : (activeModifier == .signature ? 0.2 : 0.08)
         trickHistory.append(selectedTrick)
 
-        return (total, j1, j2, j3, message)
+        return (out.total, out.j1, out.j2, out.j3, out.message)
     }
 
     mutating func startApproach() {

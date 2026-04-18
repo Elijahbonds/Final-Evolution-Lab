@@ -8,7 +8,17 @@
 import Foundation
 
 enum Config {
-    // Environment variables will be injected here at build time
-    // Add your ENV in Project Settings → Environment Variables
-    // Then use Config.YOUR_ENV_NAME in code
+    /// Runtime WebSocket URL for Emergent bridge (matches UE `EMERGENT_GAME_WS_URL` / DefaultGame.ini).
+    static let emergentGameWebSocketDefaultsKey = "fel_emergent_game_ws_url"
+
+    /// Non-empty URL from process environment `EMERGENT_GAME_WS_URL`, then UserDefaults ``emergentGameWebSocketDefaultsKey``.
+    static func resolvedEmergentGameWebSocketURL() -> String? {
+        if let env = ProcessInfo.processInfo.environment["EMERGENT_GAME_WS_URL"],
+           !env.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return env
+        }
+        let ud = UserDefaults.standard.string(forKey: emergentGameWebSocketDefaultsKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (ud?.isEmpty == false) ? ud : nil
+    }
 }

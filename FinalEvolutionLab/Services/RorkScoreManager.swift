@@ -56,4 +56,10 @@ final class RorkScoreManager {
             userInfo: ["score": score]
         )
     }
+
+    /// Clamps to 0…100 then applies the same path as Unity / Emergent score updates.
+    func applyClampedPrq(_ score: Int) {
+        let clamped = min(100, max(0, score))
+        simulateUnityScore(clamped)
+    }
 }

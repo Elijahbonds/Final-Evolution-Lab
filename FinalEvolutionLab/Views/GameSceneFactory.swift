@@ -32,6 +32,10 @@ struct GameSceneFactory {
             return buildVolleyballScene()
         case .gymnastics:
             return buildGymnasticsScene()
+        case .karateEndless:
+            return buildDojoScene()
+        case .surfing, .skateboarding, .snowboarding, .brainBrawl:
+            return buildGymnasticsScene()
         }
     }
 
