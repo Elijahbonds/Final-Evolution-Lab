@@ -14,6 +14,7 @@ import {
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
+import { SovereignDashboard } from "@/components/SovereignDashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -166,6 +167,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {id:'tournaments',icon:Swords,label:'Tournaments'},{id:'avatar',icon:Palette,label:'Avatar'},
     {id:'critique',icon:Video,label:'Video Critique'},{id:'referral',icon:Gift,label:'Referrals'},
     {id:'analytics',icon:BarChart3,label:'Analytics'},
+    {id:'sovereign',icon:Shield,label:'Sovereign'},
     {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Radio,label:'Pixel Stream'},
     {id:'profile',icon:User,label:'Profile'},
   ];
@@ -1082,6 +1084,7 @@ const Dashboard = () => {
       case 'multiplayer': return <MultiplayerView />;
       case 'referral': return <ReferralView />;
       case 'analytics': return <AnalyticsView />;
+      case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
       case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
