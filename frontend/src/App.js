@@ -9,10 +9,11 @@ import {
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
-  Swords, Video, Palette, UserPlus
+  Swords, Video, Palette, UserPlus, Gift
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
+import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -157,12 +158,14 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navItems = [
     {id:'dashboard',icon:Home,label:'Dashboard'},{id:'scan',icon:Activity,label:'System Scan'},
-    {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'cards',icon:Users,label:'Creator Cards'},
-    {id:'coach',icon:Trophy,label:'Coach Hub'},{id:'ai-coach',icon:MessageCircle,label:'AI Coach'},
+    {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'multiplayer',icon:Swords,label:'Multiplayer'},
+    {id:'cards',icon:Users,label:'Creator Cards'},{id:'coach',icon:Trophy,label:'Coach Hub'},
+    {id:'ai-coach',icon:MessageCircle,label:'AI Coach'},
     {id:'education',icon:GraduationCap,label:'Education'},{id:'brain-brawl',icon:Brain,label:'Brain Brawl'},
     {id:'streaks',icon:Flame,label:'Streaks'},{id:'social',icon:UserPlus,label:'Social'},
     {id:'tournaments',icon:Swords,label:'Tournaments'},{id:'avatar',icon:Palette,label:'Avatar'},
-    {id:'critique',icon:Video,label:'Video Critique'},
+    {id:'critique',icon:Video,label:'Video Critique'},{id:'referral',icon:Gift,label:'Referrals'},
+    {id:'analytics',icon:BarChart3,label:'Analytics'},
     {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Radio,label:'Pixel Stream'},
     {id:'profile',icon:User,label:'Profile'},
   ];
@@ -1076,6 +1079,9 @@ const Dashboard = () => {
       case 'tournaments': return <TournamentsView />;
       case 'avatar': return <AvatarBuilderView />;
       case 'critique': return <VideoCritiqueView />;
+      case 'multiplayer': return <MultiplayerView />;
+      case 'referral': return <ReferralView />;
+      case 'analytics': return <AnalyticsView />;
       case 'leaderboard': return <LeaderboardView />;
       case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
