@@ -23,15 +23,83 @@ xcuserdata/
 .swiftpm/
 Package.resolved
 
-# macOS
+# IDE and editors
+.idea/
+.vscode/
+
+# Yarn / JS (if present)
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js (if present)
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Testing / coverage
+/coverage
+
+# Production builds
+/build
+dist/
+dist
+
+# Environment and credentials
+.env
+.env.*
+*.env
+*token.json*
+*credentials.json*
+credentials.json
+*.pem
+*.key
+.credentials
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# macOS / system
 .DS_Store
 *.swp
 *~
 
+# Python
+__pycache__/
+*pyc*
+venv/
+.venv/
+
+# Archives / large binaries
+**/*.zip
+**/*.tar.gz
+**/*.tar
+**/*.tgz
+*.pack
+*.deb
+*.dylib
+
+# Build caches
+.cache/
+
 # Rork
 .rork/
-.env
 rork-eslint.config.js
+
+# Misc tooling
+.vercel
+.chainlit
+.ipynb_checkpoints/
+.chainlit
 
 core
 node_modules

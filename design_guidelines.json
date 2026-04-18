@@ -1,0 +1,126 @@
+{
+  "theme": "dark",
+  "archetype": "2 (The Performance Pro) mixed with 4 (Swiss & High-Contrast) - Dark Clinical Vibe",
+  "mood": "Sterile, Precise, Athletic, Scientific, Elite",
+  "colors": {
+    "background": {
+      "default": "#050505",
+      "paper": "#0F0F13",
+      "card": "#16161A",
+      "surface": "#1A1A24"
+    },
+    "primary": {
+      "DEFAULT": "#00E5FF",
+      "hover": "#00B3CC",
+      "foreground": "#050505",
+      "muted": "rgba(0, 229, 255, 0.15)"
+    },
+    "secondary": {
+      "DEFAULT": "#2E2E38",
+      "hover": "#3A3A45",
+      "foreground": "#FFFFFF"
+    },
+    "accent": {
+      "alert": "#FF3366",
+      "success": "#00FF9D",
+      "warning": "#FFB800"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "muted": "#71717A",
+      "inverse": "#050505"
+    },
+    "border": {
+      "default": "rgba(255, 255, 255, 0.08)",
+      "focus": "#00E5FF"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "'Barlow Condensed', sans-serif",
+      "body": "'IBM Plex Sans', sans-serif",
+      "mono": "'JetBrains Mono', monospace"
+    },
+    "hierarchy": {
+      "h1": "text-5xl md:text-6xl font-black uppercase tracking-tighter leading-none",
+      "h2": "text-3xl md:text-4xl font-bold uppercase tracking-tight",
+      "h3": "text-xl md:text-2xl font-bold uppercase tracking-tight",
+      "h4": "text-lg font-semibold tracking-wide",
+      "body": "text-base font-normal leading-relaxed text-zinc-300",
+      "body_small": "text-sm font-normal text-zinc-400",
+      "overline": "text-xs font-bold uppercase tracking-[0.2em] text-cyan-400",
+      "metric": "text-4xl md:text-5xl font-mono font-medium tracking-tight text-white",
+      "mono_label": "text-xs font-mono tracking-widest uppercase text-zinc-500"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "container_padding": "p-6 md:p-8 lg:p-12",
+      "section_gap": "gap-12 md:gap-24",
+      "component_gap": "gap-6",
+      "dense_gap": "gap-3"
+    },
+    "radius": {
+      "card": "rounded-none",
+      "button": "rounded-sm",
+      "input": "rounded-none",
+      "pill": "rounded-full"
+    },
+    "grid": {
+      "dashboard_base": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "bento_marketing": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8"
+    }
+  },
+  "surfaces": {
+    "clinical_card": "bg-[#0F0F13] border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.4)]",
+    "glass_header": "bg-[#050505]/80 backdrop-blur-xl border-b border-white/5",
+    "active_widget": "bg-[#16161A] border-l-2 border-cyan-400 border-t border-r border-b border-white/5",
+    "metric_box": "bg-[#050505] border border-white/5 p-4 relative overflow-hidden"
+  },
+  "motion": {
+    "transition_default": "transition-all duration-200 ease-out",
+    "hover_card": "hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-[0_8px_32px_rgba(0,229,255,0.1)]",
+    "hover_button": "hover:bg-cyan-500 hover:text-black active:scale-95"
+  },
+  "components": {
+    "button_primary": "bg-cyan-400 text-black font-bold uppercase tracking-wider px-6 py-3 rounded-sm transition-all hover:bg-cyan-300 hover:shadow-[0_0_16px_rgba(0,229,255,0.4)]",
+    "button_secondary": "bg-transparent border border-zinc-700 text-white font-bold uppercase tracking-wider px-6 py-3 rounded-sm transition-all hover:border-zinc-400 hover:bg-white/5",
+    "input_clinical": "bg-black border border-zinc-800 text-white font-mono px-4 py-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors w-full rounded-sm placeholder:text-zinc-600",
+    "badge_clinical": "px-2 py-1 bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 text-xs font-mono uppercase tracking-widest",
+    "sidebar": "w-64 bg-[#0A0A0A] border-r border-white/5 h-screen fixed left-0 top-0 flex flex-col",
+    "nav_item": "flex items-center gap-3 px-6 py-4 text-sm font-medium text-zinc-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent hover:border-cyan-400 transition-all",
+    "nav_item_active": "flex items-center gap-3 px-6 py-4 text-sm font-medium text-white bg-[#1A1A24] border-l-2 border-cyan-400"
+  },
+  "media": {
+    "images": {
+      "hero_bg": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2000&auto=format&fit=crop",
+      "brain_brawl": "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=1600&auto=format&fit=crop",
+      "avatar_placeholder": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=400&auto=format&fit=crop",
+      "creator_card_1": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?q=80&w=600&auto=format&fit=crop",
+      "creator_card_2": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=600&auto=format&fit=crop",
+      "game_mode_basketball": "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=800&auto=format&fit=crop",
+      "game_mode_soccer": "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=800&auto=format&fit=crop",
+      "game_mode_tennis": "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=800&auto=format&fit=crop",
+      "logo": "https://images.unsplash.com/photo-1614027164847-1b28cfe1df60?q=80&w=200&auto=format&fit=crop"
+    },
+    "icons": {
+      "library": "lucide-react"
+    }
+  },
+  "accessibility": {
+    "contrast_ratio": "Ensure minimum 4.5:1 for text against dark background.",
+    "focus_states": "All interactive elements must have visible focus rings: focus:ring-2 focus:ring-cyan-400 focus:outline-none.",
+    "aria": "Use aria-labels for icon-only buttons. Use data-testid on all interactive elements."
+  },
+  "instructions_to_main_agent": [
+    "Build a sidebar layout for the dashboard to accommodate the extensive feature set (Scan, Avatar, PRQ, Cards, Games, Coach, Education).",
+    "Use strict dark mode. The UI should feel like a high-tech medical or athletic lab. Sharp corners (rounded-none or rounded-sm max), thin 1px borders, and high contrast.",
+    "Do NOT use standard card shadows. Use subtle borders (border-white/10) and glowing accents (cyan) for active states.",
+    "Typography: Use Barlow Condensed for headings and IBM Plex Sans for body text. Install these via Google Fonts.",
+    "Use purely HTML/Tailwind for structural bento grid layouts; rely on Shadcn for complex interactives (select, dialog).",
+    "For the PRQ (Performance Readiness Quotient) metrics, use a large monospace font (JetBrains Mono) to look like clinical data readouts.",
+    "The 17 game modes can be presented in a horizontal scroll or a dense bento grid, avoiding generic lists.",
+    "All interactive elements must include a data-testid attribute formatted as kebab-case-role."
+  ]
+}
