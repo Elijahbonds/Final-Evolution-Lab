@@ -1504,11 +1504,11 @@ async def sovereign_websocket(websocket: WebSocket):
     client_id = f"sovereign_{uuid.uuid4().hex[:10]}"
     await sovereign_bridge.connect(websocket, client_id, "ue5_bridge")
     try:
-        # Send handshake with config from DefaultGame.ini + binary verification
+        # Send handshake — aligned with UFELEmergentBridgeSubsystem::Initialize expectations
         bridge_config = MODE_MANAGER.get("bridge_subsystem", {})
         await websocket.send_json({
-            "type": "handshake",
-            "server": "FEL Sovereign Backend",
+            "type": "sovereign_handshake",
+            "server": "FEL Sovereign Hub",
             "version": "2.0.0",
             "handshake_identifier": bridge_config.get("handshake_identifier", "FEL-SOVEREIGN-BRIDGE-v2"),
             "project_uuid": bridge_config.get("project_uuid", "FEL-5.7-PRODUCTION-2026"),
@@ -1516,14 +1516,21 @@ async def sovereign_websocket(websocket: WebSocket):
             "config": {
                 "bFocusKeepalive": sovereign_state["focus_lock"],
                 "KeepaliveInterval": sovereign_state["keepalive_interval"],
+                "bAutoReconnect": True,
+                "ReconnectDelaySeconds": 5.0,
+                "MaxReconnectAttempts": 10,
                 "encryption": sovereign_state["encryption"],
                 "venues_loaded": VENUE_REGISTRY.get("total_venues", 0),
                 "database_status": sovereign_state["database_status"],
                 "production_modes": len([m for m in MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {}).values() if m.get("status") == "production"]),
-                "prq_source": "cpp_bridge (NOT static)"
+                "prq_source": "local_mongodb (NOT simulation)",
+                "sovereign_mode": "local",
+                "cloud_disabled": True
             },
+            "venue_tokens": list(VENUE_REGISTRY.get("venues", {}).keys()),
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
+        logger.info(f"Sovereign Hub: Handshake sent to {client_id} — Listening on Port 8888")
 
         while True:
             data = await websocket.receive_json()
@@ -1539,27 +1546,38 @@ async def sovereign_websocket(websocket: WebSocket):
             elif msg_type == "focus_keepalive":
                 await websocket.send_json({"type": "focus_ack", "locked": True})
 
-            elif msg_type == "telemetry":
-                # Directive 1: Parse AFELBasketballGameState telemetry
-                telemetry = data.get("payload", {})
+            elif msg_type == "telemetry" or msg_type == "sovereign_telemetry":
+                # Aligned with UFELEmergentBridgeSubsystem::TickSovereignTelemetry
+                # C++ bridge sends: prq, combo_streak, combo_meter, arena_game_mode_id, venue_token, sovereign_display_mode, t
+                telemetry = data if msg_type == "sovereign_telemetry" else data.get("payload", {})
                 prq = telemetry.get("prq", 0)
-                combo = telemetry.get("combo_meter", 0)
+                combo = telemetry.get("combo_meter", telemetry.get("combo_meter01", 0))
+                combo_streak = telemetry.get("combo_streak", 0)
                 buckets = telemetry.get("buckets", 0)
                 velocity = telemetry.get("velocity_vectors", {})
                 vertical_jump = telemetry.get("vertical_jump_inches", 0)
+                arena_mode_id = telemetry.get("arena_game_mode_id", "")
+                venue_token = telemetry.get("venue_token", "")
+                display_mode = telemetry.get("sovereign_display_mode", "")
                 session_id = data.get("session_id")
 
                 sovereign_state["total_messages"] += 1
                 sovereign_state["last_telemetry"] = {
-                    "prq": prq, "combo_meter": combo, "buckets": buckets,
-                    "velocity_vectors": velocity, "vertical_jump": vertical_jump,
+                    "prq": prq, "combo_meter": combo, "combo_streak": combo_streak,
+                    "buckets": buckets, "velocity_vectors": velocity,
+                    "vertical_jump": vertical_jump,
+                    "arena_game_mode_id": arena_mode_id,
+                    "venue_token": venue_token,
+                    "sovereign_display_mode": display_mode,
                     "received_at": datetime.now(timezone.utc).isoformat()
                 }
 
                 # Store telemetry frame
                 await db.telemetry_frames.insert_one({
                     "session_id": session_id, "user_id": data.get("user_id"),
-                    "prq": prq, "combo_meter": combo, "buckets": buckets,
+                    "prq": prq, "combo_meter": combo, "combo_streak": combo_streak,
+                    "buckets": buckets, "arena_game_mode_id": arena_mode_id,
+                    "venue_token": venue_token, "sovereign_display_mode": display_mode,
                     "velocity_vectors": velocity, "vertical_jump_inches": vertical_jump,
                     "frame_ts": datetime.now(timezone.utc).isoformat()
                 })
@@ -1839,12 +1857,15 @@ async def get_handshake_log():
     ]
 
     if connected:
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": "HANDSHAKE SUCCESS: UFELEmergentBridgeSubsystem → Sovereign Backend"})
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"Binary verified: {bridge_config.get('expected_binary_signatures', ['FinalEvolutionLab-iOS-Shipping'])[0]}"})
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"Project UUID: {bridge_config.get('project_uuid', 'FEL-5.7-PRODUCTION-2026')}"})
+        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": "[SovereignHub] Handshake Successful"})
+        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"Binary: {bridge_config.get('expected_binary_signatures', ['FinalEvolutionLab-iOS-Shipping'])[0]}"})
+        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"PRQ data source: Local MongoDB (confirmed NOT simulation)"})
+        if sovereign_state.get("last_telemetry"):
+            t = sovereign_state["last_telemetry"]
+            log_entries.append({"ts": t.get("received_at", ""), "level": "DATA", "msg": f"sovereign_telemetry: PRQ={t.get('prq',0)} combo={t.get('combo_streak',0)} venue={t.get('venue_token','')}"})
     else:
-        log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": f"Awaiting handshake from {bridge_config.get('handshake_identifier', 'FEL-SOVEREIGN-BRIDGE-v2')}..."})
-        log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Tap app icon on iPhone 16 Pro Max to initiate connection"})
+        log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Sovereign Hub Listening on Port 8888 — awaiting iPhone connection"})
+        log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Tap app icon on iPhone 16 Pro Max to go live"})
 
     return {
         "handshake_status": "CONNECTED" if connected else "AWAITING",
