@@ -1,33 +1,27 @@
 # Final Evolution Lab - PRD
 
-## NATIVE iOS DEPLOYMENT — Local Sovereign
+## SOVEREIGN COMMAND CENTER — PRODUCTION
 
-### Deep Link Playability
-- All 17 modes mapped: `finalevolution://launch?map={venue}&mode={mode_id}&session={session_id}`
-- 12 production + 5 staging modes
-- Deep link → UE5 12-Mode Manager → Map loads → ws://localhost:8888 tracks session
-- Session state: launching → map_loading → active → completed
-- Score flows: Session complete → PRQ recalculate → Referral chain → MongoDB
-
-### Two-App System (iPhone 16 Pro Max)
-1. **Final Evolution Lab** — UE5 high-fidelity game (the Players)
-2. **Sovereign Dashboard** — Mobile shell (the Stadium)
-- "Start Training" → deep link → UE5 launches map → Mac Mini starts PRQ clock
-
-### Mobile Shell Config
-- Bundle: com.finalevolutionlab.sovereign
-- Permissions: LiDAR, Motion, Camera, Local Network
-- Sensors: depth_map, point_cloud, accelerometer, gyroscope, body_tracking
-- Hub: ws://localhost:8888 via Cloudflare tunnel
-
-### Sovereign Hub
-- Cloud: DISABLED | Video: DISABLED | E3DS: BYPASSED
-- Data feed: Biomechanical (LIVE from bridge)
+### Status
+- WebSocket: LISTENING on ws://localhost:8888
+- Database: READY (13 venues, Local MongoDB)
+- Integrity Guard: AWAITING_AUTH (bIsHardwareAuthenticated + back camera)
 - PRQ: Local MongoDB (weighted_composite, NOT simulation)
-- Encryption: AES-256-GCM
+- Cloud: DISABLED | E3DS: BYPASSED | Video: NONE
+- Data feed: Biomechanical (telemetry frames)
 
-### How to Play
-1. Tap Zen Dojo → Emergent Shell sends deep link
-2. UE5 switches to /Game/FEL/Maps/Zen_Dojo
-3. Mac Mini starts PRQ clock via Sovereign Hub
-4. Score/PRQ/biomechanical data flows in real-time
+### Telemetry Protocol (AFELBasketballGameState)
+- PRQ Score, Combo Meter, Buckets, Vertical Jump, Velocity Vectors
+- 30-day vertical jump tracking in vertical_jump_log collection
+- Creator Card lookup via StoodCardId → instant profile display
+
+### Integrity Guard
+- bIsHardwareAuthenticated flag from iPhone back camera
+- IMU-Visual Sync validation
+- Dashboard shows ACTIVE only if all checks pass
+- WARNING state triggers alert on Vizio display
+
+### Architecture
+Phone (UE5 visuals) → ws://localhost:8888 → Sovereign Hub → Local MongoDB
+Mac Mini (Command Center) → reads MongoDB → displays telemetry + PRQ + Integrity
+Vizio (Stadium View) → 75 PRQ overlay + Velocity Vectors on live feed

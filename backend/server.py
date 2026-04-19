@@ -838,6 +838,30 @@ async def get_all_mapped_modes():
         "modes": mapped
     }
 
+
+@api_router.get("/telemetry/vertical-jump")
+async def get_vertical_jump_progress(user: User = Depends(get_current_user)):
+    """30-day vertical jump progress from sovereign sessions"""
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    jumps = await db.vertical_jump_log.find(
+        {"user_id": user.user_id, "recorded_at": {"$gte": thirty_days_ago}}, {"_id": 0}
+    ).sort("recorded_at", 1).to_list(1000)
+    best = max((j.get("inches", 0) for j in jumps), default=0)
+    avg = sum(j.get("inches", 0) for j in jumps) / len(jumps) if jumps else 0
+    return {"entries": jumps, "total_logged": len(jumps), "best_inches": best, "avg_inches": round(avg, 1), "period": "30_days"}
+
+@api_router.get("/telemetry/live")
+async def get_live_telemetry():
+    """Latest telemetry frame from sovereign bridge"""
+    return {
+        "telemetry": sovereign_state.get("last_telemetry"),
+        "integrity": sovereign_state.get("integrity_status", "AWAITING_AUTH"),
+        "hardware_auth": sovereign_state.get("hardware_auth"),
+        "active_card": sovereign_state.get("active_creator_card"),
+        "ws_connected": len(sovereign_bridge.clients) > 0
+    }
+
+
 @api_router.get("/mobile/config")
 async def get_mobile_config():
     """Mobile shell configuration — permissions, sensors, deep links"""
@@ -1513,8 +1537,80 @@ async def sovereign_websocket(websocket: WebSocket):
                 await websocket.send_json({"type": "heartbeat_ack", "timestamp": datetime.now(timezone.utc).isoformat()})
 
             elif msg_type == "focus_keepalive":
-                # Gate 4: Focus-lock keepalive from E3DS iframe
                 await websocket.send_json({"type": "focus_ack", "locked": True})
+
+            elif msg_type == "telemetry":
+                # Directive 1: Parse AFELBasketballGameState telemetry
+                telemetry = data.get("payload", {})
+                prq = telemetry.get("prq", 0)
+                combo = telemetry.get("combo_meter", 0)
+                buckets = telemetry.get("buckets", 0)
+                velocity = telemetry.get("velocity_vectors", {})
+                vertical_jump = telemetry.get("vertical_jump_inches", 0)
+                session_id = data.get("session_id")
+
+                sovereign_state["total_messages"] += 1
+                sovereign_state["last_telemetry"] = {
+                    "prq": prq, "combo_meter": combo, "buckets": buckets,
+                    "velocity_vectors": velocity, "vertical_jump": vertical_jump,
+                    "received_at": datetime.now(timezone.utc).isoformat()
+                }
+
+                # Store telemetry frame
+                await db.telemetry_frames.insert_one({
+                    "session_id": session_id, "user_id": data.get("user_id"),
+                    "prq": prq, "combo_meter": combo, "buckets": buckets,
+                    "velocity_vectors": velocity, "vertical_jump_inches": vertical_jump,
+                    "frame_ts": datetime.now(timezone.utc).isoformat()
+                })
+
+                # Directive 2: Track 30-day vertical jump progress
+                if vertical_jump > 0:
+                    await db.vertical_jump_log.insert_one({
+                        "user_id": data.get("user_id"), "inches": vertical_jump,
+                        "session_id": session_id, "recorded_at": datetime.now(timezone.utc).isoformat()
+                    })
+
+                await websocket.send_json({"type": "telemetry_ack", "frame_stored": True})
+
+            elif msg_type == "hardware_auth":
+                # Directive 3: Integrity Guard — verify bIsHardwareAuthenticated
+                hw_flag = data.get("bIsHardwareAuthenticated", False)
+                camera_check = data.get("back_camera_verified", False)
+                imu_visual_sync = data.get("imu_visual_sync", False)
+
+                integrity_ok = hw_flag and camera_check
+                sovereign_state["integrity_status"] = "ACTIVE" if integrity_ok else "INTEGRITY_WARNING"
+                sovereign_state["hardware_auth"] = {
+                    "bIsHardwareAuthenticated": hw_flag,
+                    "back_camera_verified": camera_check,
+                    "imu_visual_sync": imu_visual_sync,
+                    "verified_at": datetime.now(timezone.utc).isoformat()
+                }
+
+                await websocket.send_json({
+                    "type": "hardware_auth_ack",
+                    "integrity": "ACTIVE" if integrity_ok else "WARNING",
+                    "hw_authenticated": hw_flag,
+                    "camera_verified": camera_check,
+                    "imu_sync": imu_visual_sync
+                })
+
+            elif msg_type == "creator_card_scan":
+                # Directive 5: Creator Card lookup
+                card_id = data.get("StoodCardId") or data.get("card_id")
+                cards = get_seeded_creator_cards()
+                card = next((c for c in cards if c["id"] == card_id), None)
+                if not card:
+                    card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
+
+                sovereign_state["active_creator_card"] = card_id
+                await websocket.send_json({
+                    "type": "creator_card_ack",
+                    "card_id": card_id,
+                    "found": card is not None,
+                    "profile": card
+                })
 
             elif msg_type == "match_score":
                 result = await sovereign_bridge.process_match_event(data, client_id)
@@ -1794,6 +1890,13 @@ async def get_sovereign_status():
             "total_match_events": sovereign_state["total_match_events"],
             "total_referral_events": sovereign_state["total_referral_events"]
         },
+        "telemetry": sovereign_state.get("last_telemetry"),
+        "integrity": {
+            "status": sovereign_state.get("integrity_status", "AWAITING_AUTH"),
+            "hardware_auth": sovereign_state.get("hardware_auth"),
+            "description": "ACTIVE = bIsHardwareAuthenticated + back_camera_verified"
+        },
+        "active_creator_card": sovereign_state.get("active_creator_card"),
         "ini_config": {
             "GameWebSocketUrl": os.environ.get("EMERGENT_GAME_WS_URL", ""),
             "bFocusKeepalive": "True",

@@ -3,7 +3,8 @@ import axios from "axios";
 import {
   Wifi, WifiOff, Database, Shield, Zap, Radio, RefreshCw,
   Check, Clock, Activity, Server, Lock, Globe, Smartphone,
-  Heart, TrendingUp, Target, Flame, Brain, Dumbbell, Play
+  Heart, TrendingUp, Target, Flame, Brain, Dumbbell, Play,
+  AlertTriangle, Eye, User, Award, ChevronUp
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -13,197 +14,213 @@ export const SovereignDashboard = () => {
   const [status, setStatus] = useState(null);
   const [health, setHealth] = useState(null);
   const [handshake, setHandshake] = useState(null);
-  const [liveVenue, setLiveVenue] = useState(null);
+  const [telemetry, setTelemetry] = useState(null);
   const [loading, setLoading] = useState(true);
   const pollRef = useRef(null);
 
-  const fetchStatus = async () => {
+  const fetchAll = async () => {
     try {
-      const [s, h, hs] = await Promise.all([
+      const [s, h, hs, t] = await Promise.all([
         axios.get(`${API}/sovereign/status`),
         axios.get(`${API}/production/health`),
-        axios.get(`${API}/production/handshake-log`)
+        axios.get(`${API}/production/handshake-log`),
+        axios.get(`${API}/telemetry/live`).catch(() => ({data: null}))
       ]);
       setStatus(s.data);
       setHealth(h.data);
       setHandshake(hs.data);
+      if (t.data) setTelemetry(t.data);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchStatus();
-    pollRef.current = setInterval(fetchStatus, 3000);
+    fetchAll();
+    pollRef.current = setInterval(fetchAll, 2000);
     return () => clearInterval(pollRef.current);
   }, []);
 
   if (loading || !status) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}>
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-zinc-400 font-mono text-sm">Initializing Sovereign Hub...</p>
-        </div>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="text-center"><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-zinc-400 font-mono text-sm">Initializing Sovereign Hub...</p></div></div>;
   }
 
   const wsConnected = status.websocket.status === 'connected';
   const dbReady = status.database.status === 'ready';
+  const integrityOk = status.integrity?.status === 'ACTIVE';
+  const telem = status.telemetry;
+  const card = status.active_creator_card;
 
   return (
     <div className="space-y-6 fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="overline mb-1">LOCAL SOVEREIGN · M4 PRO MAC MINI</p>
-          <h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>COMMAND CENTER</h1>
+          <p className="overline mb-1">SOVEREIGN COMMAND CENTER · PORT 8888</p>
+          <h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION HUB</h1>
         </div>
         <div className="flex items-center gap-3">
-          <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>LOCAL MODE</span>
-          <button onClick={fetchStatus} className="btn-secondary flex items-center gap-2 text-sm"><RefreshCw className="w-4 h-4" /> Refresh</button>
+          <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>LOCAL SOVEREIGN</span>
+          <button onClick={fetchAll} className="btn-secondary flex items-center gap-2 text-sm"><RefreshCw className="w-4 h-4" /></button>
         </div>
       </div>
 
-      {/* Primary Status: WebSocket + Database */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* WebSocket — Sovereign Hub */}
-        <div className={`surface-card p-8 border-l-4 ${wsConnected ? 'border-l-green-400' : 'border-l-yellow-400'}`} data-testid="ws-status">
-          <div className="flex items-center gap-4 mb-4">
-            {wsConnected ? (
-              <div className="w-14 h-14 bg-green-400/10 rounded-full flex items-center justify-center"><Wifi className="w-8 h-8 text-green-400" /></div>
-            ) : (
-              <div className="w-14 h-14 bg-yellow-400/10 rounded-full flex items-center justify-center"><Radio className="w-8 h-8 text-yellow-400 animate-pulse" /></div>
-            )}
+      {/* Primary Status Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* WebSocket */}
+        <div className={`surface-card p-6 border-l-4 ${wsConnected ? 'border-l-green-400' : 'border-l-yellow-400'}`} data-testid="ws-status">
+          <div className="flex items-center gap-3 mb-3">
+            {wsConnected ? <Wifi className="w-8 h-8 text-green-400" /> : <Radio className="w-8 h-8 text-yellow-400 animate-pulse" />}
             <div>
-              <h2 className="text-2xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{wsConnected ? 'BRIDGE CONNECTED' : 'WAITING FOR CONNECTION'}</h2>
-              <p className="text-sm font-mono text-cyan-400">Sovereign Hub Listening on Port 8888</p>
+              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{wsConnected ? 'CONNECTED' : 'LISTENING'}</h3>
+              <p className="font-mono text-xs text-cyan-400">ws://localhost:8888</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">CLIENTS</div><div className="font-mono text-xl">{status.websocket.connected_clients?.length || 0}</div></div>
-            <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">MESSAGES</div><div className="font-mono text-xl">{status.websocket.total_messages}</div></div>
-            <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">FOCUS LOCK</div><div className="font-mono text-sm text-cyan-400">ON ({status.websocket.keepalive_interval_ms}ms)</div></div>
-            <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">CLOUD</div><div className="font-mono text-sm text-zinc-500">DISABLED</div></div>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">CLIENTS</span><div className="font-mono">{status.websocket.connected_clients?.length || 0}</div></div>
+            <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">MSGS</span><div className="font-mono">{status.websocket.total_messages}</div></div>
           </div>
         </div>
 
-        {/* Database — Local MongoDB */}
-        <div className={`surface-card p-8 border-l-4 ${dbReady ? 'border-l-green-400' : 'border-l-red-400'}`} data-testid="db-status">
-          <div className="flex items-center gap-4 mb-4">
-            <div className={`w-14 h-14 ${dbReady ? 'bg-green-400/10' : 'bg-red-400/10'} rounded-full flex items-center justify-center`}>
-              <Database className={`w-8 h-8 ${dbReady ? 'text-green-400' : 'text-red-400'}`} />
-            </div>
+        {/* Database */}
+        <div className={`surface-card p-6 border-l-4 ${dbReady ? 'border-l-green-400' : 'border-l-red-400'}`} data-testid="db-status">
+          <div className="flex items-center gap-3 mb-3">
+            <Database className={`w-8 h-8 ${dbReady ? 'text-green-400' : 'text-red-400'}`} />
             <div>
-              <h2 className="text-2xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{dbReady ? 'DATABASE READY' : 'INITIALIZING'}</h2>
-              <p className="text-sm text-zinc-400">Local MongoDB · {status.database.total_venues} venue collections</p>
+              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{dbReady ? 'DATABASE READY' : 'INITIALIZING'}</h3>
+              <p className="text-xs text-zinc-400">Local MongoDB · {status.database.total_venues} venues</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-            {status.database.venues?.map((v, i) => (
-              <div key={i} className="flex items-center gap-2 py-1 text-sm"><Check className="w-3 h-3 text-green-400 flex-shrink-0" /><span className="font-mono text-xs text-zinc-400">{v}</span></div>
-            ))}
+          <div className="text-xs text-zinc-500">PRQ source: <span className="text-cyan-400">Local MongoDB (NOT simulation)</span></div>
+        </div>
+
+        {/* Integrity Guard */}
+        <div className={`surface-card p-6 border-l-4 ${integrityOk ? 'border-l-green-400' : status.integrity?.status === 'INTEGRITY_WARNING' ? 'border-l-red-400' : 'border-l-zinc-600'}`} data-testid="integrity-status">
+          <div className="flex items-center gap-3 mb-3">
+            {integrityOk ? <Shield className="w-8 h-8 text-green-400" /> : status.integrity?.status === 'INTEGRITY_WARNING' ? <AlertTriangle className="w-8 h-8 text-red-400" /> : <Shield className="w-8 h-8 text-zinc-600" />}
+            <div>
+              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status.integrity?.status || 'AWAITING AUTH'}</h3>
+              <p className="text-xs text-zinc-400">Integrity Guard (bIsHardwareAuthenticated)</p>
+            </div>
           </div>
+          {status.integrity?.hardware_auth && (
+            <div className="grid grid-cols-3 gap-1 text-xs">
+              <div className={`p-1 text-center ${status.integrity.hardware_auth.bIsHardwareAuthenticated ? 'text-green-400' : 'text-zinc-600'}`}>HW Auth {status.integrity.hardware_auth.bIsHardwareAuthenticated ? '✓' : '—'}</div>
+              <div className={`p-1 text-center ${status.integrity.hardware_auth.back_camera_verified ? 'text-green-400' : 'text-zinc-600'}`}>Camera {status.integrity.hardware_auth.back_camera_verified ? '✓' : '—'}</div>
+              <div className={`p-1 text-center ${status.integrity.hardware_auth.imu_visual_sync ? 'text-green-400' : 'text-zinc-600'}`}>IMU Sync {status.integrity.hardware_auth.imu_visual_sync ? '✓' : '—'}</div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Biomechanical Data Feed — replaces video window */}
-      <div className="surface-active p-6" data-testid="biomechanical-feed">
+      {/* Live Telemetry — Stadium Overlay View */}
+      <div className="surface-active p-6" data-testid="telemetry-stadium">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>BIOMECHANICAL DATA FEED</h2>
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-400 animate-pulse' : 'bg-zinc-600'}`}></div>
-            <span className="text-xs font-mono text-zinc-500">{wsConnected ? 'LIVE' : 'STANDBY'}</span>
+          <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>LIVE TELEMETRY · STADIUM VIEW</h2>
+          <div className="flex items-center gap-2">{wsConnected ? <><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs font-mono text-green-400">LIVE FEED</span></> : <span className="text-xs font-mono text-zinc-600">STANDBY</span>}</div>
+        </div>
+
+        {/* PRQ + Combo + Buckets — the AFELBasketballGameState overlay */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+          <div className="bg-black/60 p-5 border border-cyan-400/20 text-center">
+            <TrendingUp className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
+            <div className="metric-value text-4xl text-cyan-400">{telem?.prq || '—'}</div>
+            <div className="metric-label">PRQ SCORE</div>
+            <div className="text-xs text-zinc-600 mt-1">Local MongoDB</div>
+          </div>
+          <div className="bg-black/60 p-5 border border-yellow-400/20 text-center">
+            <Flame className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
+            <div className="metric-value text-4xl text-yellow-400">{telem?.combo_meter || '—'}</div>
+            <div className="metric-label">COMBO METER</div>
+          </div>
+          <div className="bg-black/60 p-5 border border-green-400/20 text-center">
+            <Target className="w-6 h-6 text-green-400 mx-auto mb-2" />
+            <div className="metric-value text-4xl text-green-400">{telem?.buckets || '—'}</div>
+            <div className="metric-label">BUCKETS</div>
+          </div>
+          <div className="bg-black/60 p-5 border border-purple-400/20 text-center">
+            <ChevronUp className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+            <div className="metric-value text-4xl text-purple-400">{telem?.vertical_jump || '—'}</div>
+            <div className="metric-label">VERT (IN)</div>
+          </div>
+          <div className="bg-black/60 p-5 border border-white/10 text-center">
+            <Activity className="w-6 h-6 text-white mx-auto mb-2" />
+            <div className="font-mono text-sm text-zinc-400 mt-2">
+              {telem?.velocity_vectors ? (
+                <div>X:{telem.velocity_vectors.x||0} Y:{telem.velocity_vectors.y||0} Z:{telem.velocity_vectors.z||0}</div>
+              ) : '—'}
+            </div>
+            <div className="metric-label">VELOCITY</div>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            {label:'ACTIVE VENUE', value: liveVenue || 'Awaiting...', icon: Target, color: 'text-cyan-400'},
-            {label:'PRQ SCORE', value: '—', icon: TrendingUp, color: 'text-cyan-400', note: 'Local MongoDB (NOT simulation)'},
-            {label:'HEART RATE', value: '—', icon: Heart, color: 'text-red-400'},
-            {label:'SESSION TIME', value: '00:00', icon: Clock, color: 'text-yellow-400'},
-          ].map((m, i) => (
-            <div key={i} className="bg-black/50 p-5 border border-white/5">
-              <m.icon className={`w-6 h-6 ${m.color} mb-2`} />
-              <div className="font-mono text-2xl mb-1">{m.value}</div>
-              <div className="metric-label">{m.label}</div>
-              {m.note && <div className="text-xs text-zinc-600 mt-1">{m.note}</div>}
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 bg-black/30 p-3 border border-white/5 text-xs text-zinc-600 font-mono">
-          Data source: UFELEmergentBridgeSubsystem → ws://localhost:8888 → Local MongoDB · No cloud · No video window
+
+        {/* Data source confirmation */}
+        <div className="bg-black/30 p-2 border border-white/5 text-xs text-zinc-600 font-mono text-center">
+          AFELBasketballGameState → ws://localhost:8888 → Local MongoDB · No cloud · No simulation
         </div>
       </div>
 
-      {/* Active Venue Grid — from FEL_VenueRegistry.production.json */}
-      <div data-testid="venue-grid">
-        <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>VENUE MAP · LIVE IDENTIFICATION</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {(status.database.venues || []).map((v, i) => (
-            <div key={i} className={`surface-card p-4 text-center card-hover cursor-pointer ${liveVenue === v ? 'border-l-2 border-cyan-400 bg-cyan-400/5' : ''}`} onClick={() => setLiveVenue(v)}>
-              <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{v.replace(/_/g, ' ')}</div>
-              <div className="text-xs text-zinc-600 font-mono">FEL_VenueRegistry</div>
-              {liveVenue === v && <div className="mt-2 text-xs text-green-400">ACTIVE</div>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Production Health */}
-      {health && (
-        <div className="surface-card p-6" data-testid="production-health">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>PRODUCTION HEALTH</h2>
-            <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>{health.status}</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">MODES</div><div className="font-mono">{health.checks?.mode_manager?.production_modes} prod / {health.checks?.mode_manager?.total_modes} total</div></div>
-            <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">PRQ SOURCE</div><div className="font-mono text-cyan-400">Local MongoDB</div></div>
-            <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">PLACEHOLDER</div><div className="font-mono text-green-400">{health.placeholder_data === false ? 'NONE' : 'DETECTED'}</div></div>
-            <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">CLOUD</div><div className="font-mono text-zinc-500">DISABLED</div></div>
-          </div>
+      {/* Active Creator Card — Directive 5 */}
+      {card && (
+        <div className="surface-card p-6" data-testid="active-creator-card">
+          <div className="flex items-center gap-3 mb-3"><Award className="w-6 h-6 text-yellow-400" /><h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>ACTIVE CREATOR CARD</h2></div>
+          <div className="badge-clinical inline-block">{card}</div>
+          <p className="text-xs text-zinc-500 mt-2">Loaded via StoodCardId from sovereign bridge</p>
         </div>
       )}
 
-      {/* Encryption */}
-      <div className="surface-card p-6" data-testid="encryption-status">
-        <div className="flex items-center gap-3 mb-3"><Lock className="w-5 h-5 text-cyan-400" /><h2 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>ENCRYPTION · AES-256-GCM</h2></div>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">TRANSIT</div><div className="font-mono text-sm text-green-400">AES-256-GCM</div></div>
-          <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">AT REST</div><div className="font-mono text-sm text-green-400">WiredTiger AES-256</div></div>
-          <div className="bg-black/30 p-3 border border-white/5"><div className="metric-label">NETWORK</div><div className="font-mono text-sm text-green-400">localhost (no cloud)</div></div>
+      {/* Venue Grid */}
+      <div data-testid="venue-grid">
+        <h2 className="text-xl font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>VENUE IDENTIFICATION · FEL_VenueRegistry</h2>
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          {(status.database.venues || []).map((v, i) => (
+            <div key={i} className="surface-card p-3 text-center"><Check className="w-3 h-3 text-green-400 mx-auto mb-1" /><div className="text-xs font-mono text-cyan-400">{v.replace(/_/g,' ')}</div></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Production Health + Encryption */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {health && (
+          <div className="surface-card p-5" data-testid="production-health">
+            <div className="flex items-center justify-between mb-3"><h3 className="font-bold" style={{fontFamily:'Barlow Condensed'}}>PRODUCTION HEALTH</h3><span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>{health.status}</span></div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">MODES</span><div className="font-mono">{health.checks?.mode_manager?.production_modes} prod</div></div>
+              <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">PLACEHOLDER</span><div className="font-mono text-green-400">NONE</div></div>
+            </div>
+          </div>
+        )}
+        <div className="surface-card p-5" data-testid="encryption">
+          <div className="flex items-center gap-2 mb-3"><Lock className="w-5 h-5 text-cyan-400" /><h3 className="font-bold" style={{fontFamily:'Barlow Condensed'}}>ENCRYPTION</h3></div>
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="bg-black/30 p-2 border border-white/5 text-center"><div className="text-green-400">AES-256-GCM</div><div className="metric-label">TRANSIT</div></div>
+            <div className="bg-black/30 p-2 border border-white/5 text-center"><div className="text-green-400">WiredTiger</div><div className="metric-label">AT REST</div></div>
+            <div className="bg-black/30 p-2 border border-white/5 text-center"><div className="text-green-400">localhost</div><div className="metric-label">NETWORK</div></div>
+          </div>
         </div>
       </div>
 
       {/* Handshake Log */}
       {handshake && (
-        <div className="surface-card p-6" data-testid="handshake-log">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>SOVEREIGN HUB LOG</h2>
+        <div className="surface-card p-5" data-testid="handshake-log">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold" style={{fontFamily:'Barlow Condensed'}}>SOVEREIGN HUB LOG</h3>
             <span className={`text-sm font-mono ${handshake.handshake_status === 'CONNECTED' ? 'text-green-400' : 'text-yellow-400 animate-pulse'}`}>{handshake.handshake_status}</span>
           </div>
-          <div className="bg-black/50 border border-white/5 p-4 font-mono text-xs max-h-56 overflow-y-auto space-y-1">
-            {handshake.log?.map((entry, i) => (
-              <div key={i} className={`${entry.level === 'WAIT' ? 'text-yellow-400' : entry.level === 'ERROR' ? 'text-red-400' : 'text-zinc-400'}`}>
-                <span className="text-zinc-600">[{new Date(entry.ts).toLocaleTimeString()}]</span>{' '}
-                <span className={entry.level === 'WAIT' ? 'text-yellow-400' : 'text-zinc-500'}>[{entry.level}]</span>{' '}
-                {entry.msg}
+          <div className="bg-black/50 border border-white/5 p-3 font-mono text-xs max-h-44 overflow-y-auto space-y-1">
+            {handshake.log?.map((e, i) => (
+              <div key={i} className={e.level === 'WAIT' ? 'text-yellow-400' : 'text-zinc-400'}>
+                <span className="text-zinc-600">[{new Date(e.ts).toLocaleTimeString()}]</span> [{e.level}] {e.msg}
               </div>
             ))}
-          </div>
-          <div className="mt-3 flex items-center gap-4 text-xs text-zinc-500 font-mono">
-            <span>Bridge: {handshake.bridge_identifier}</span>
-            <span>UUID: {handshake.project_uuid}</span>
           </div>
         </div>
       )}
 
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-zinc-600 font-mono">
-        <span><Server className="w-3 h-3 inline mr-1" />FEL Sovereign Hub v{status.server.version} · LOCAL</span>
-        <span><Clock className="w-3 h-3 inline mr-1" />Uptime: {Math.floor(status.server.uptime_seconds / 60)}m {status.server.uptime_seconds % 60}s</span>
-        <span><Smartphone className="w-3 h-3 inline mr-1" />Tap app → ws://localhost:8888 → Hub turns GREEN</span>
+        <span><Server className="w-3 h-3 inline mr-1" />Sovereign Hub v{status.server.version} · LOCAL</span>
+        <span><Clock className="w-3 h-3 inline mr-1" />Uptime: {Math.floor(status.server.uptime_seconds/60)}m</span>
+        <span><Smartphone className="w-3 h-3 inline mr-1" />iPhone → Port 8888 → Hub turns GREEN</span>
       </div>
     </div>
   );
