@@ -7,8 +7,8 @@
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "HAL/PlatformMisc.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/CommandLine.h"
 #include "Misc/CoreDelegates.h"
 #include "TimerManager.h"
 #include "UObject/UObjectGlobals.h"
@@ -73,7 +73,7 @@ void UFELEmergentDeepLinkSubsystem::Deinitialize()
 
 void UFELEmergentDeepLinkSubsystem::BindDelegates()
 {
-	StartupArgumentsHandle = FCoreDelegates::ApplicationReceivedStartupArguments.AddUObject(
+	StartupArgumentsHandle = FCoreDelegates::ApplicationReceivedStartupArgumentsDelegate.AddUObject(
 		this, &UFELEmergentDeepLinkSubsystem::OnStartupArguments);
 
 	PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(
@@ -84,7 +84,7 @@ void UFELEmergentDeepLinkSubsystem::UnbindDelegates()
 {
 	if (StartupArgumentsHandle.IsValid())
 	{
-		FCoreDelegates::ApplicationReceivedStartupArguments.Remove(StartupArgumentsHandle);
+		FCoreDelegates::ApplicationReceivedStartupArgumentsDelegate.Remove(StartupArgumentsHandle);
 		StartupArgumentsHandle.Reset();
 	}
 	if (PostLoadMapHandle.IsValid())
@@ -107,7 +107,28 @@ void UFELEmergentDeepLinkSubsystem::OnStartupArguments(const TArray<FString>& Ar
 
 void UFELEmergentDeepLinkSubsystem::TryConsumeLaunchURL()
 {
-	const FString Url = FPlatformMisc::GetLaunchURL();
+	// UE 5.7: FPlatformMisc::GetLaunchURL is not exposed on Mac/iOS here; cold-start URLs still arrive via
+	// ApplicationReceivedStartupArgumentsDelegate. Scan command line for embedded finalevolution:// links.
+	const FString Cmd = FCommandLine::Get();
+	if (!Cmd.Contains(TEXT("finalevolution://"), ESearchCase::IgnoreCase))
+	{
+		return;
+	}
+	const int32 Idx = Cmd.Find(TEXT("finalevolution://"), ESearchCase::IgnoreCase);
+	if (Idx == INDEX_NONE)
+	{
+		return;
+	}
+	FString Url = Cmd.Mid(Idx);
+	for (int32 i = 0; i < Url.Len(); ++i)
+	{
+		const TCHAR C = Url[i];
+		if (C == TCHAR(' ') || C == TCHAR('\t') || C == TCHAR('\r') || C == TCHAR('\n') || C == TCHAR('\"'))
+		{
+			Url.LeftInline(i);
+			break;
+		}
+	}
 	if (!Url.IsEmpty())
 	{
 		ProcessDeepLinkUrl(Url);
@@ -296,6 +317,8 @@ void UFELEmergentDeepLinkSubsystem::OnPostLoadMapWithWorld(UWorld* World)
 	const FString PayloadMode = LastRequestedModeId.IsEmpty() ? TEXT("") : LastRequestedModeId;
 
 	Bridge->BroadcastMapLoaded(PayloadMap, PayloadMode);
+
+	Bridge->ScheduleSovereignSessionSnapshotDeferred(0.15f);
 
 	UE_LOG(LogTemp, Log, TEXT("FEL DeepLink: map_loaded WS event map=%s mode=%s"), *PayloadMap, *PayloadMode);
 }

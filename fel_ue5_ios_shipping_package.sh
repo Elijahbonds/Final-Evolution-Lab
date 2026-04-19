@@ -34,6 +34,11 @@
 #   ./fel_ue5_ios_shipping_package.sh
 #   ./fel_ue5_ios_shipping_package.sh --open-xcode   # regenerate + open iOS workspace (signing / archive in Xcode)
 #   UPROJECT="/path/to/FinalEvolutionLab.uproject" ./fel_ue5_ios_shipping_package.sh --verify-only
+#   ./fel_ue5_ios_shipping_package.sh --full-cook   # -clean + wipe Saved/Cooked + StagedBuilds (force full recook)
+#   ./fel_ue5_ios_shipping_package.sh --full-cook --shipping   # force IOS_CLIENTCONFIG=Shipping (default; debug text stripped in game)
+#   ./fel_ue5_ios_shipping_package.sh --full-cook --development # IOS_CLIENTCONFIG=Development (verbose on device)
+#   ./fel_ue5_ios_shipping_package.sh --full-cook --verbose   # pass -verbose to RunUAT BuildCookRun
+#   ./fel_ue5_ios_shipping_package.sh --full-cook -map=VeniceBeach  # cook one map (e.g. Venice) instead of -allmaps
 #
 # =============================================================================
 set -euo pipefail
@@ -53,15 +58,28 @@ SKIP_SHARE_SHADER_CHECK="${SKIP_SHARE_SHADER_CHECK:-0}"
 
 VERIFY_ONLY=false
 OPEN_XCODE_ONLY=false
+FULL_COOK=false
+VERBOSE_UAT=false
+COOK_MAP_SHORT=""
 for arg in "$@"; do
   [[ "$arg" == "--verify-only" ]] && VERIFY_ONLY=true
   [[ "$arg" == "--open-xcode" ]] && OPEN_XCODE_ONLY=true
+  [[ "$arg" == "--full-cook" ]] && FULL_COOK=true
+  [[ "$arg" == "--verbose" ]] && VERBOSE_UAT=true
+  [[ "$arg" == "--shipping" ]] && export IOS_CLIENTCONFIG=Shipping
+  [[ "$arg" == "--development" ]] && export IOS_CLIENTCONFIG=Development
+  case "$arg" in
+    -map=*|--map=*) COOK_MAP_SHORT="${arg#*=}" ;;
+  esac
 done
+[[ "${IOS_FULL_COOK:-}" == "1" ]] && FULL_COOK=true
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 discover_fel_uproject() {
   local p base
+  local fixed="${HOME}/Developer/FinalEvolutionLab57/FinalEvolutionLab.uproject"
+  [[ -f "$fixed" ]] && { echo "$fixed"; return 0; }
   for base in "${HOME}/Documents" "${HOME}/UnrealProjects"; do
     [[ -d "$base" ]] || continue
     p="$(find "$base" -path '*/FinalEvolutionLab 5.7/FinalEvolutionLab.uproject' 2>/dev/null | head -1)"
@@ -278,6 +296,10 @@ pb = pathlib.Path(sys.argv[1])
 text0 = pb.read_text(encoding="utf-8")
 text = text0
 
+# Per-path xattr -c clears com.apple.FinderInfo that iCloud can reapply; codesign rejects it ("detritus").
+# Use `-exec … {} +` (not `\\;`): Xcode expands shellScript into Script-*.sh and the lone `\\;` becomes `;`, breaking -exec.
+find_strip = '\\nfind \\"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\\" -exec xattr -c {} + 2>/dev/null || true'
+
 # --- A) Copy Runnable phase (SRC_EXE…) ---
 start_mark = 'shellScript = "set -eo pipefail\\nSRC_EXE'
 start = text.find(start_mark)
@@ -296,18 +318,35 @@ if start >= 0:
         end_quote = -1
     if end_quote > 0:
         body = text[start_body:end_quote]
-        if not ("xattr -cr" in body and "CONTENTS_FOLDER_PATH" in body):
-            suffix = '\\nxattr -cr \\"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\\" 2>/dev/null || true'
+        broken_find = '\\nfind \\"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\\" -exec xattr -c {} ; 2>/dev/null || true'
+        if broken_find in body:
+            body = body.replace(broken_find, '')
+        xattr_line = '\\nxattr -cr \\"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\\" 2>/dev/null || true'
+        # codesign rejects com.apple.FinderInfo on bundles under iCloud-backed paths; xattr -cr alone may not clear it.
+        need_xattr = "xattr -cr" not in body
+        need_find = "-exec xattr -c {} +" not in body
+        suffix = ""
+        if need_xattr:
+            suffix += xattr_line
+        if need_find:
+            suffix += find_strip
+        if suffix:
             text = text[:start_body] + body + suffix + text[end_quote:]
 
 # --- B) Strip / ThinApp phase (runs after Copy, before CodeSign) ---
-thin_tail = '\"${UE_ENGINE_DIR}/Build/BatchFiles/Mac/ThinApp.sh\" \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\" \"${CONFIGURATION_BUILD_DIR}/${EXECUTABLE_PATH}\"'
+# UE 5.7 pbxproj escapes quotes inside shellScript as \\" … \\" — match the stored form exactly.
+thin_tail = '\\"${UE_ENGINE_DIR}/Build/BatchFiles/Mac/ThinApp.sh\\" \\"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\\" \\"${CONFIGURATION_BUILD_DIR}/${EXECUTABLE_PATH}\\"'
+thin_xattr_only = '\\nxattr -cr \\"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\\" 2>/dev/null || true'
+thin_both = thin_xattr_only + find_strip
 if thin_tail in text:
     j = text.find(thin_tail)
-    snippet = text[j : j + 420]
-    if "xattr -cr" not in snippet:
-        sfx = '\\nxattr -cr \\"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}\\" 2>/dev/null || true'
-        text = text.replace(thin_tail, thin_tail + sfx, 1)
+    tail_rest = text[j + len(thin_tail) : j + len(thin_tail) + 900]
+    if "-exec xattr -c {} +" in tail_rest:
+        pass
+    elif tail_rest.startswith(thin_xattr_only) and "-exec xattr -c {} +" not in tail_rest:
+        text = text.replace(thin_tail + thin_xattr_only, thin_tail + thin_both, 1)
+    else:
+        text = text.replace(thin_tail, thin_tail + thin_both, 1)
 
 if text != text0:
     pb.write_text(text, encoding="utf-8")
@@ -332,8 +371,9 @@ warn_ios_icloud_path_may_break_codesign() {
   case "$PROJECT_DIR" in
   */Documents/Documents\ -\ *)
     echo "WARN: UE project appears to live under iCloud-linked “Documents …” folders."
-    echo "      Builds there often pick up com.apple.provenance metadata that codesign rejects (“detritus”)."
-    echo "      Prefer cloning the project to a non-synced directory (e.g. ~/UnrealProjects/FinalEvolutionLab 5.7)."
+    echo "      macOS reapplies com.apple.FinderInfo on bundles there; Xcode codesign then fails (“detritus”)."
+    echo "      Copy or clone the whole project to a path outside Desktop & Documents (e.g. ~/Developer/FEL57 or a non-synced disk),"
+    echo "      then set UPROJECT to that .uproject and re-run this script."
     ;;
   esac
 }
@@ -380,10 +420,47 @@ verify_ios_app_bundle_plist() {
       /usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$app/Info.plist" 2>/dev/null \
         && echo "    (CFBundleIdentifier printed above)"
     fi
+    if [[ -d "$app/cookeddata" ]] || find "$app" -maxdepth 8 -name '*.pak' -print -quit 2>/dev/null | grep -q .; then
+      echo ">>> OK: cooked payload present (cookeddata/ and/or .pak in bundle)."
+    else
+      echo "WARN: No cookeddata/ or .pak under $app — device may show \"Failed to open descriptor file\" or launch to a grey screen."
+    fi
   else
     echo "WARN: Info.plist missing or empty — Xcode signing likely did not finalize: $app"
     echo "      Open FinalEvolutionLab (IOS).xcworkspace → Signing & Capabilities → Team, then re-run or use --open-xcode."
   fi
+}
+
+# RunUAT's archive step copies `Binaries/IOS/*.app` into -archivedirectory — but that bundle is often produced *before*
+# the Xcode "Copy Executable and Staged Data" phase rsyncs `cookeddata/` into the *stagingdirectory* tree. The result is
+# a runnable shell with no maps/content → "Failed to open descriptor file" / missing project descriptor on device.
+# Before deleting _internal_staging, promote the fully staged signed .app back into Binaries + archive root.
+promote_fully_staged_ios_app_from_internal_staging() {
+  local staging_root="$1"
+  [[ -d "$staging_root" ]] || return 0
+  local staged_app="" cand
+  while IFS= read -r cand; do
+    [[ -d "$cand/cookeddata" ]] && {
+      staged_app="$cand"
+      break
+    }
+    find "$cand" -maxdepth 8 -name '*.pak' -print -quit 2>/dev/null | grep -q . && {
+      staged_app="$cand"
+      break
+    }
+  done < <(find "$staging_root" -name 'FinalEvolutionLab.app' -type d 2>/dev/null)
+  [[ -n "$staged_app" ]] || {
+    echo "WARN: No FinalEvolutionLab.app with cookeddata/ or .pak under $staging_root — cook/stage may have failed or paths differ."
+    return 0
+  }
+  local bin_app="$PROJECT_DIR/Binaries/IOS/FinalEvolutionLab.app"
+  local arch_app="$IOS_ARCHIVE/FinalEvolutionLab.app"
+  echo ">>> Promoting fully staged iOS .app (has cookeddata — fixes empty archive / descriptor errors):"
+  echo "    $staged_app"
+  mkdir -p "$(dirname "$bin_app")" "$(dirname "$arch_app")"
+  rm -rf "$bin_app" "$arch_app"
+  ditto "$staged_app" "$bin_app"
+  ditto "$staged_app" "$arch_app"
 }
 
 run_ios_shipping_archive() {
@@ -429,19 +506,56 @@ run_ios_shipping_archive() {
     xattr -cr "$PROJECT_DIR/Binaries/IOS" 2>/dev/null || true
   fi
 
+  if [[ "$FULL_COOK" == "true" ]]; then
+    echo ">>> --full-cook: wiping Saved cook/stage caches + DDC and passing -clean to BuildCookRun."
+    rm -rf \
+      "$PROJECT_DIR/Saved" \
+      "$PROJECT_DIR/DerivedDataCache" \
+      2>/dev/null || true
+  fi
+
+  local cook_map_full=""
+  if [[ -n "${COOK_MAP_SHORT:-}" ]]; then
+    cook_map_full="$COOK_MAP_SHORT"
+    shopt -s nocasematch
+    case "${COOK_MAP_SHORT}" in
+      VeniceBeach|Venice)
+        cook_map_full="/Game/FEL/Venues/VeniceBeach/VeniceBeach"
+        ;;
+    esac
+    shopt -u nocasematch
+    if [[ "$cook_map_full" != /* ]]; then
+      die "Unknown or invalid -map/--map value: $COOK_MAP_SHORT (use VeniceBeach or full /Game/... path)."
+    fi
+    echo ">>> Cooking single map: $cook_map_full (instead of -allmaps)."
+  fi
+
+  local uat_extra=()
+  [[ "$FULL_COOK" == "true" ]] && uat_extra+=(-clean)
+  [[ "$VERBOSE_UAT" == "true" ]] && uat_extra+=(-verbose)
+
+  local cook_tokens=(-cook)
+  if [[ -n "$cook_map_full" ]]; then
+    cook_tokens+=(-map="$cook_map_full")
+  else
+    cook_tokens+=(-allmaps)
+  fi
+
   "$runuat" BuildCookRun \
     -project="$UPROJECT" \
     -noP4 \
     -platform=iOS \
     -clientconfig="$IOS_CLIENTCONFIG" \
     -build \
-    -cook \
-    -allmaps \
+    "${cook_tokens[@]}" \
     -stage \
     -archive \
     -archivedirectory="$IOS_ARCHIVE" \
     -stagingdirectory="$staging_internal" \
-    -utf8output
+    -utf8output \
+    "${uat_extra[@]}"
+
+  promote_fully_staged_ios_app_from_internal_staging "$staging_internal"
 
   rm -rf "$staging_internal"
 
@@ -457,6 +571,22 @@ run_ios_shipping_archive() {
   echo "Absolute path (install via Xcode Organizer / Devices, or distribute per your workflow):"
   echo "  $abs"
   du -sh "$abs" 2>/dev/null || true
+  echo ""
+  echo ">>> App bundle (TestFlight / devicectl install):"
+  local bin_ios="$PROJECT_DIR/Binaries/IOS"
+  [[ -d "$bin_ios" ]] && find "$bin_ios" -maxdepth 2 \( -name '*.ipa' -o -name '*.app' \) -print 2>/dev/null || true
+  echo ">>> To produce a signed .ipa for Transporter / TestFlight: Xcode → Window → Organizer → Distribute App,"
+  echo "    or xcodebuild -exportArchive after archiving FinalEvolutionLab (IOS)."
+  echo ">>> Emergent telemetry on device: set Config/DefaultGame.ini [Emergent] SovereignHubHost=<Mac Mini LAN IP>"
+  echo "    (GameWebSocketUrl may stay ws://127.0.0.1:PORT/... — the bridge rewrites localhost to the hub IP)."
+}
+
+print_apple_business_manager_hint() {
+  echo ""
+  echo "=== Apple Business Manager / enterprise distribution (summary) ==="
+  echo "1. App Store Connect: upload the .ipa (or use Xcode Organizer → Distribute to TestFlight)."
+  echo "2. Apple Business Manager (business.apple.com): add your org, purchase or assign apps, MDM device assignment."
+  echo "3. For custom B2B private apps, use App Store Connect + Business Manager linking (see Apple 'Custom Apps')."
 }
 
 run_verify() {
@@ -498,6 +628,7 @@ main() {
   fi
 
   run_ios_shipping_archive "$ue_root"
+  print_apple_business_manager_hint
 }
 
 main "$@"

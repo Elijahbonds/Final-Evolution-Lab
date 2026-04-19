@@ -44,6 +44,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Emergent")
 	void BroadcastMapLoaded(const FString& MapTokenOrPackage, const FString& ModeId);
 
+	/** Rich session snapshot (PRQ, combo, arena id) after GameState is ready — called deferred from map load. */
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void EmitSovereignSessionSnapshot(UWorld* World);
+
+	/** Deferred emit so GameState / arena id are populated after AFELBasketballGameMode::StartPlay. */
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void ScheduleSovereignSessionSnapshotDeferred(float DelaySeconds = 0.15f);
+
 	/** Raw UTF-8 text frame from server (JSON or plain text per your backend). */
 	UPROPERTY(BlueprintAssignable, Category = "Emergent")
 	FEmergentWebSocketRawMessage OnEmergentRawMessage;
@@ -60,12 +68,20 @@ private:
 	void HandleSocketClosedOrError();
 
 	void TickFocusKeepalive();
+	void TickSovereignTelemetry();
+
+	void TryStartSovereignTelemetryTimer();
+	void StopSovereignTelemetryTimer();
 
 	FString CachedWsUrl;
 	TSharedPtr<IWebSocket> Socket;
 
 	FTimerHandle FocusTimer;
 	FTimerHandle ReconnectTimer;
+	FTimerHandle SovereignTelemetryTimer;
+	FTimerHandle SovereignDeferTimer;
+
+	static constexpr float SovereignTelemetryIntervalSeconds = 0.1f;
 
 	bool bKeepaliveEnabled = false;
 	float KeepaliveInterval = 0.5f;
@@ -76,6 +92,7 @@ private:
 	int32 ReconnectAttemptCount = 0;
 
 	bool bDeinitializing = false;
+	bool bSovereignHandshakeLoggedThisMap = false;
 
 	static constexpr int32 MaxPendingOutbound = 128;
 	TArray<FString> PendingOutboundMessages;
