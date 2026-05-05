@@ -26,7 +26,9 @@
       "snowboarding": {"map": "/Game/FEL/Maps/Mountain_Slope", "gamemode_class": "/Script/FEL.BP_Snowboarding", "binary": "FEL-Snowboarding", "status": "staging"},
       "gymnastics": {"map": "/Game/FEL/Maps/Training_Floor", "gamemode_class": "/Script/FEL.BP_Gymnastics", "binary": "FEL-Gymnastics", "status": "staging"},
       "brain_brawl": {"map": "/Game/FEL/Maps/Neuro_Arena", "gamemode_class": "/Script/FEL.BP_BrainBrawl", "binary": "FEL-BrainBrawl", "status": "staging"},
-      "market_browse": {"map": "/Game/FEL/Maps/Sovereign_Shop", "gamemode_class": "/Script/FEL.BP_MarketBrowse", "binary": "FEL-Market", "status": "staging"}
+      "market_browse": {"map": "/Game/FEL/Maps/Sovereign_Shop", "gamemode_class": "/Script/FEL.BP_MarketBrowse", "binary": "FEL-Market", "status": "staging"},
+      "who_scene_it": {"map": "/Game/FEL/Maps/Neuro_Arena", "gamemode_class": "/Script/FEL.BP_WhoSceneIt", "binary": "FEL-WhoSceneIt", "status": "production"},
+      "mario_party_fever": {"map": "/Game/FEL/Maps/Venice_Beach_Court", "gamemode_class": "/Script/FEL.BP_PartyMode", "binary": "FEL-PartyMode", "status": "production"}
     }
   },
   "prq_calculator": {

@@ -641,6 +641,198 @@ async def get_progress(user: User = Depends(get_current_user)):
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
     return {"total_workouts":w,"total_games":g,"total_brawls":b,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"prq_score":user.prq_score,"coins":user.coins}
 
+
+# ===================== CREATOR CARD IP & MULTIMEDIA =====================
+
+@api_router.get("/cards/multimedia/{card_id}")
+async def get_card_multimedia(card_id: str):
+    """Get multimedia assets for a Creator Card — 3D animations, masterclass video, IP permissions"""
+    card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
+    if not card:
+        for c in get_seeded_creator_cards():
+            if c["id"] == card_id:
+                card = c
+                break
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+
+    # Multimedia asset containers — modular per IP distribution rights
+    multimedia = get_card_multimedia_assets(card_id)
+    return {
+        "card_id": card_id,
+        "creator": card.get("name"),
+        "multimedia": multimedia,
+        "ip_permissions": multimedia.get("ip_gate", {}),
+        "game_mode_avatar": {
+            "who_scene_it": {"enabled": True, "avatar_type": "trivia_host"},
+            "mario_party": {"enabled": True, "avatar_type": "board_piece", "power_ups": multimedia.get("power_ups", [])}
+        }
+    }
+
+@api_router.post("/cards/multimedia/{card_id}/unlock")
+async def unlock_card_content(card_id: str, data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Permission-gated content unlock based on distribution rights"""
+    content_type = data.get("content_type", "animation")  # animation, masterclass, full_set
+    await db.card_unlocks.insert_one({
+        "user_id": user.user_id, "card_id": card_id, "content_type": content_type,
+        "unlocked_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"unlocked": True, "card_id": card_id, "content_type": content_type}
+
+def get_card_multimedia_assets(card_id):
+    """Multimedia containers for Creator Cards — Acting, Music, Sports IP"""
+    registry = {
+        "card_elijah": {
+            "ip_category": "sports",
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Elijah Bonds"},
+            "animations_3d": [
+                {"id": "anim_magic_dunk", "name": "Magic Reveal Dunk", "type": "mocap", "duration_frames": 120, "format": "uasset", "rig": "UE5_Mannequin"},
+                {"id": "anim_crossover", "name": "Venice Crossover", "type": "mocap", "duration_frames": 90, "format": "uasset", "rig": "UE5_Mannequin"},
+                {"id": "anim_fadeaway", "name": "Beach Body Fadeaway", "type": "technical_movement", "duration_frames": 105, "format": "uasset", "rig": "UE5_Mannequin"}
+            ],
+            "masterclass_modules": [
+                {"id": "mc_dunk_form", "title": "Dunk Form Breakdown", "duration_min": 12, "format": "hls", "resolution": "4K"},
+                {"id": "mc_handles", "title": "Ball Handling Mastery", "duration_min": 18, "format": "hls", "resolution": "4K"}
+            ],
+            "power_ups": ["slam_dunk_boost", "crossover_freeze", "fadeaway_shield"],
+            "board_piece_config": {"model": "elijah_chibi", "special_move": "Magic Reveal", "energy_cost": 3}
+        },
+        "card_amir": {
+            "ip_category": "sports",
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Amir Smith"},
+            "animations_3d": [
+                {"id": "anim_shadow_strike", "name": "Shadow Strike", "type": "mocap", "duration_frames": 80, "format": "uasset", "rig": "UE5_Mannequin"},
+                {"id": "anim_iron_fist", "name": "Iron Fist Combo", "type": "mocap", "duration_frames": 150, "format": "uasset", "rig": "UE5_Mannequin"},
+                {"id": "anim_dragon_sweep", "name": "Dragon Sweep", "type": "technical_movement", "duration_frames": 95, "format": "uasset", "rig": "UE5_Mannequin"}
+            ],
+            "masterclass_modules": [
+                {"id": "mc_kata_basics", "title": "Kata Fundamentals", "duration_min": 15, "format": "hls", "resolution": "4K"},
+                {"id": "mc_combo_theory", "title": "Combo Theory", "duration_min": 20, "format": "hls", "resolution": "4K"}
+            ],
+            "power_ups": ["shadow_strike_stun", "iron_fist_break", "dragon_sweep_aoe"],
+            "board_piece_config": {"model": "amir_chibi", "special_move": "Dragon Sweep", "energy_cost": 4}
+        },
+        "card_eric": {
+            "ip_category": "sports",
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Eric Nash"},
+            "animations_3d": [
+                {"id": "anim_foundation", "name": "Foundation Flow", "type": "mocap", "duration_frames": 200, "format": "uasset", "rig": "UE5_Mannequin"},
+                {"id": "anim_power_circuit", "name": "Power Circuit", "type": "technical_movement", "duration_frames": 180, "format": "uasset", "rig": "UE5_Mannequin"}
+            ],
+            "masterclass_modules": [
+                {"id": "mc_athlete_dev", "title": "Athletic Development Blueprint", "duration_min": 25, "format": "hls", "resolution": "4K"},
+                {"id": "mc_periodization", "title": "Periodization Mastery", "duration_min": 30, "format": "hls", "resolution": "4K"}
+            ],
+            "power_ups": ["foundation_heal", "power_circuit_boost", "coach_buff_all"],
+            "board_piece_config": {"model": "eric_chibi", "special_move": "Coach Buff", "energy_cost": 2}
+        }
+    }
+    return registry.get(card_id, {"ip_category": "unknown", "ip_gate": {}, "animations_3d": [], "masterclass_modules": [], "power_ups": [], "board_piece_config": {}})
+
+# ===================== GAME MODES: WHO SCENE IT & MARIO PARTY =====================
+
+@api_router.get("/games/who-scene-it")
+async def get_who_scene_it_config():
+    """'Who Scene It' trivia mode — multimedia-driven with Creator Card integration"""
+    return {
+        "mode_id": "who_scene_it",
+        "display_name": "Who Scene It",
+        "description": "Sports & entertainment trivia with multimedia clips from Creator Cards",
+        "type": "trivia_party",
+        "max_players": 8,
+        "rounds": 5,
+        "categories": ["sports_moments", "signature_moves", "training_science", "athlete_history", "music_sports"],
+        "question_types": [
+            {"type": "clip_identify", "description": "Watch a mocap animation, identify the creator"},
+            {"type": "move_name", "description": "See the move, name the technique"},
+            {"type": "stat_check", "description": "Which creator has the higher stat?"},
+            {"type": "venue_match", "description": "Match the creator to their home venue"},
+            {"type": "masterclass_quiz", "description": "Questions from masterclass content"}
+        ],
+        "scoring": {"correct": 100, "speed_bonus_max": 50, "streak_bonus": 25},
+        "creator_card_integration": {
+            "avatars_as_hosts": True,
+            "clips_from_animations": True,
+            "hot_swap_enabled": True
+        },
+        "telemetry_channel": "who_scene_it",
+        "sovereign_encrypted": True
+    }
+
+@api_router.get("/games/who-scene-it/questions")
+async def get_who_scene_it_questions(round_num: int = 1):
+    """Generate trivia questions from Creator Card multimedia"""
+    questions = [
+        {"id": "wsi_1", "type": "clip_identify", "question": "Which creator performs this signature move?", "animation_id": "anim_magic_dunk", "options": ["Elijah Bonds", "Amir Smith", "Eric Nash", "Coach Williams"], "correct": 0, "points": 100},
+        {"id": "wsi_2", "type": "move_name", "question": "What is this karate technique called?", "animation_id": "anim_dragon_sweep", "options": ["Dragon Sweep", "Shadow Strike", "Iron Fist", "Foundation Flow"], "correct": 0, "points": 100},
+        {"id": "wsi_3", "type": "stat_check", "question": "Who has more career wins?", "options": ["Elijah (890)", "Amir (285)"], "correct": 0, "points": 100},
+        {"id": "wsi_4", "type": "venue_match", "question": "Which venue is Amir Smith's home arena?", "options": ["Venice Beach", "Zen Dojo", "Soccer Stadium", "Skate Park"], "correct": 1, "points": 100},
+        {"id": "wsi_5", "type": "masterclass_quiz", "question": "In Eric Nash's periodization module, what's the recommended training phase length?", "options": ["2 weeks", "4 weeks", "6 weeks", "8 weeks"], "correct": 1, "points": 150},
+    ]
+    random.shuffle(questions)
+    return {"round": round_num, "questions": questions[:5]}
+
+@api_router.get("/games/mario-party")
+async def get_mario_party_config():
+    """'Mario Party / Pac-Man Fever' board-style arcade mode"""
+    return {
+        "mode_id": "mario_party_fever",
+        "display_name": "FEL Party Mode",
+        "description": "Board-style arcade with Creator Card avatars, power-ups, and mini-games across all venues",
+        "type": "board_party",
+        "max_players": 4,
+        "board": {
+            "total_spaces": 40,
+            "venues_on_board": ["Venice_Beach_Court", "Zen_Dojo", "Baseball_Park", "Gridiron_Stadium", "Soccer_Stadium", "Links_Course", "Tennis_Court", "Sand_Court", "Training_Floor", "Venice_Beach_Surf", "Skate_Park", "Mountain_Slope", "Neuro_Arena"],
+            "special_spaces": ["star_space", "mini_game", "power_up", "creator_card_swap", "energy_drain", "warp_pipe"],
+            "hot_swap_creator_assets": True
+        },
+        "mini_games": [
+            {"id": "mg_dunk_race", "name": "Dunk Race", "venue": "Venice_Beach_Court", "type": "timing", "description": "First to 5 dunks wins", "mid_2000s_style": True},
+            {"id": "mg_combo_clash", "name": "Combo Clash", "venue": "Zen_Dojo", "type": "combat", "description": "Longest combo chain wins", "mid_2000s_style": True},
+            {"id": "mg_goal_rush", "name": "Goal Rush", "venue": "Soccer_Stadium", "type": "shooting", "description": "Score the most goals in 30s", "mid_2000s_style": True},
+            {"id": "mg_wave_rider", "name": "Wave Rider", "venue": "Venice_Beach_Surf", "type": "balance", "description": "Stay on the wave longest", "mid_2000s_style": True},
+            {"id": "mg_brain_blitz", "name": "Brain Blitz", "venue": "Neuro_Arena", "type": "quiz", "description": "Fastest correct answers", "mid_2000s_style": True},
+            {"id": "mg_trick_battle", "name": "Trick Battle", "venue": "Skate_Park", "type": "timing", "description": "Most trick points in 20s", "mid_2000s_style": True}
+        ],
+        "power_ups": [
+            {"id": "pu_slam_dunk", "name": "Slam Dunk Boost", "effect": "Double dice roll", "source": "card_elijah"},
+            {"id": "pu_shadow_strike", "name": "Shadow Strike Stun", "effect": "Skip opponent turn", "source": "card_amir"},
+            {"id": "pu_coach_buff", "name": "Coach Buff All", "effect": "All allies +1 to next roll", "source": "card_eric"},
+            {"id": "pu_energy_surge", "name": "Energy Surge", "effect": "Refill energy meter", "source": "system"},
+            {"id": "pu_venue_warp", "name": "Venue Warp", "effect": "Teleport to any venue space", "source": "system"}
+        ],
+        "energy_meter": {"max": 10, "recharge_per_turn": 2, "special_move_cost": 3},
+        "arcade_mechanics": {
+            "style": "mid_2000s_sports_titles",
+            "dunk_meter": True,
+            "power_gauge": True,
+            "combo_counter": True,
+            "announcer_voice": True,
+            "particle_effects": "retro_arcade"
+        },
+        "creator_card_as_board_pieces": True,
+        "telemetry_channel": "mario_party_fever",
+        "sovereign_encrypted": True
+    }
+
+@api_router.post("/games/mario-party/session")
+async def create_party_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Start a Mario Party session — tracks board state in Sovereign Hub"""
+    session = {
+        "id": str(uuid.uuid4()), "user_id": user.user_id,
+        "mode": "mario_party_fever", "players": [user.user_id],
+        "board_state": {"positions": {user.user_id: 0}, "turn": 0, "stars": {user.user_id: 0}},
+        "active_cards": data.get("selected_cards", ["card_elijah"]),
+        "mini_games_played": [], "power_ups_used": [],
+        "status": "active", "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.party_sessions.insert_one(session)
+    # Notify sovereign hub
+    await sovereign_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "mario_party_fever"}, encrypt=True)
+    return {k: v for k, v in session.items() if k != "_id"}
+
+
 # AI routes
 @api_router.post("/ai/coach")
 async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user)):
