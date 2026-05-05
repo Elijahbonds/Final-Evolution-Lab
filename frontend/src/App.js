@@ -15,6 +15,7 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 import { SovereignDashboard } from "@/components/SovereignDashboard";
+import { FELOSDashboard } from "@/components/FELOSDashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -158,6 +159,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navItems = [
+    {id:'fel-os',icon:Crosshair,label:'FEL OS'},
     {id:'dashboard',icon:Home,label:'Dashboard'},{id:'scan',icon:Activity,label:'System Scan'},
     {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'multiplayer',icon:Swords,label:'Multiplayer'},
     {id:'cards',icon:Users,label:'Creator Cards'},{id:'coach',icon:Trophy,label:'Coach Hub'},
@@ -1159,13 +1161,14 @@ const ProfileView = () => {
 
 // ===================== MAIN DASHBOARD =====================
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('fel-os');
   const location = useLocation();
   const { user, setUser } = useAuth();
   useEffect(() => { if (location.state?.user && !user) setUser(location.state.user); }, [location.state, user, setUser]);
 
   const renderContent = () => {
     switch(activeTab) {
+      case 'fel-os': return <FELOSDashboard setActiveTab={setActiveTab} />;
       case 'dashboard': return <DashboardView setActiveTab={setActiveTab} />;
       case 'scan': return <SystemScanView />;
       case 'games': return <GameModesView />;
