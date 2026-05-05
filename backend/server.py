@@ -13,6 +13,7 @@ import paypalrestsdk
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
 from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
+from routers import pass_image as pass_image_router
 
 # PayPal config
 paypalrestsdk.configure({
@@ -1881,9 +1882,24 @@ async def ensure_venue_collections():
     sovereign_state["venue_collections"] = len(venues)
     logger.info(f"Venue DB mapping complete: {len(venues)} collections indexed")
 
+
+async def ensure_fel_os_indexes():
+    """FEL OS hardening — cert integrity + brain-brawl spam control."""
+    # Unique compound index on education_progress to prevent duplicate cert rows
+    await db.education_progress.create_index(
+        [("user_id", 1), ("track_id", 1)], unique=True, name="uniq_user_track"
+    )
+    # 24h TTL on brain-brawl launches (prevents collection bloat from spam)
+    await db.brain_brawl_launches.create_index(
+        "launched_at_ts", expireAfterSeconds=86400, name="ttl_24h"
+    )
+    logger.info("FEL OS indexes: education_progress(unique user_id+track_id), brain_brawl_launches(TTL 24h)")
+
+
 @app.on_event("startup")
 async def startup_venue_mapping():
     await ensure_venue_collections()
+    await ensure_fel_os_indexes()
 
 # ── Directive 1 & 2: Sovereign WebSocket Bridge ──────────────────
 
@@ -2350,6 +2366,32 @@ async def get_handshake_log():
 
 # ── Directive 6: Live Connection Preview ──────────────────────────
 
+@api_router.get("/sovereign/handshake/verify")
+async def verify_sovereign_handshake():
+    """iOS shipping pre-flight: confirms backend is wired for the Sovereign bridge."""
+    expected_ws = os.environ.get("EMERGENT_GAME_WS_URL", "")
+    enc = os.environ.get("SOVEREIGN_ENCRYPTION", "AES-256-GCM")
+    keepalive = float(os.environ.get("SOVEREIGN_KEEPALIVE_INTERVAL", 0.5))
+    focus_lock = os.environ.get("SOVEREIGN_FOCUS_LOCK", "true").lower() == "true"
+    mode = os.environ.get("SOVEREIGN_MODE", "production")
+    ok = (
+        expected_ws.startswith("wss://")
+        and "localhost" not in expected_ws
+        and enc == "AES-256-GCM"
+        and mode == "production"
+    )
+    return {
+        "ok": ok,
+        "version": "2.0.0",
+        "expected_ws_url": expected_ws,
+        "device_target": "iPhone16,2",
+        "encryption": enc,
+        "focus_lock": focus_lock,
+        "keepalive_interval_s": keepalive,
+        "mode": mode,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+
 @api_router.get("/sovereign/status")
 async def get_sovereign_status():
     """Live Connection Preview — WebSocket + Database status"""
@@ -2410,6 +2452,7 @@ app.include_router(api_router)
 # FEL OS Master Directive routers (modular)
 app.include_router(education_tracks_router.router)
 app.include_router(system_scan_router.router)
+app.include_router(pass_image_router.router)
 
 # Root-level health check for Kubernetes probes (no /api prefix)
 @app.get("/health")

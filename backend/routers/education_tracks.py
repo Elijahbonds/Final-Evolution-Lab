@@ -682,6 +682,7 @@ async def launch_brain_brawl(user: User = Depends(get_current_user)):
         "user_id": user.user_id,
         "ue5_mode_id": track["ue5_mode_id"],
         "launched_at": datetime.now(timezone.utc).isoformat(),
+        "launched_at_ts": datetime.now(timezone.utc),  # used by 24h TTL index
     })
     return {
         "session_id": session_id,

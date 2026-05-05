@@ -3,7 +3,8 @@ import axios from "axios";
 import {
   Activity, ShoppingBag, Gamepad2, GraduationCap, Award, BookOpen,
   Atom, Brain, ChevronRight, ChevronLeft, CheckCircle2, Lock, Zap,
-  Trophy, Target, Flame, Crown, Sparkles, ExternalLink, Loader2
+  Trophy, Target, Flame, Crown, Sparkles, ExternalLink, Loader2,
+  Share2, Download, Copy, X
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -25,6 +26,7 @@ export const FELOSDashboard = ({ setActiveTab }) => {
   const [view, setView] = useState("overview"); // overview | track | lesson | final
   const [trackId, setTrackId] = useState(null);
   const [lessonId, setLessonId] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const refresh = useCallback(() => {
     axios.get(`${API}/system-scan/unified`).then((r) => setScan(r.data)).catch(console.error);
@@ -54,6 +56,13 @@ export const FELOSDashboard = ({ setActiveTab }) => {
         </div>
         {scan && (
           <div className="flex items-center gap-3" data-testid="fel-os-header-prq">
+            <button
+              data-testid="share-pass-btn"
+              onClick={() => setShareOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-3 py-2 border border-cyan-400/40 text-cyan-400 hover:bg-cyan-400/10 transition-colors text-xs font-bold tracking-wider uppercase"
+            >
+              <Share2 className="w-3.5 h-3.5" /> Share Pass
+            </button>
             <div className="text-right">
               <div className="text-xs text-zinc-500 uppercase tracking-wider">PRQ</div>
               <div className="text-3xl font-black text-cyan-400">{scan.scan.prq_score?.toFixed(1)}</div>
@@ -81,6 +90,10 @@ export const FELOSDashboard = ({ setActiveTab }) => {
           <ArenaQuadrant arena={scan.arena} onOpen={() => setActiveTab && setActiveTab("games")} />
           <AcademyQuadrant academy={scan.academy} onTrack={(tid) => { setTrackId(tid); setView("track"); }} />
         </div>
+      )}
+
+      {shareOpen && scan && (
+        <SharePassModal userId={scan.user.user_id} onClose={() => setShareOpen(false)} />
       )}
     </div>
   );
@@ -630,6 +643,91 @@ const BioDigitalQuickComplete = ({ onChange }) => {
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// SHARE PASS MODAL
+// ============================================================
+const SharePassModal = ({ userId, onClose }) => {
+  const [meta, setMeta] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [bust] = useState(() => Date.now());
+  const passUrl = `${BACKEND_URL}/api/system-scan/pass/${userId}.png`;
+  const passUrlBust = `${passUrl}?t=${bust}`;
+
+  useEffect(() => {
+    axios.get(`${API}/system-scan/pass-meta/${userId}`).then((r) => setMeta(r.data)).catch(console.error);
+  }, [userId]);
+
+  const copyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(passUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (e) { console.error(e); }
+  };
+
+  return (
+    <div
+      data-testid="share-pass-modal"
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-3xl bg-zinc-950 border border-cyan-400/30 p-6 space-y-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          data-testid="share-pass-close"
+          onClick={onClose}
+          className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div>
+          <div className="text-[10px] tracking-[0.4em] uppercase text-cyan-400">FEL OS · Pass</div>
+          <h3 className="text-2xl font-black tracking-tight" style={{fontFamily:'Barlow Condensed'}}>SHARE YOUR ATHLETE PASS</h3>
+          <p className="text-xs text-zinc-400 mt-1">Server-rendered. Public. Drives scouts back to your profile.</p>
+        </div>
+
+        <div className="border border-zinc-800 bg-black overflow-hidden">
+          <img
+            data-testid="share-pass-preview-img"
+            src={passUrlBust}
+            alt="FEL OS Pass"
+            className="w-full block"
+          />
+        </div>
+
+        {meta && (
+          <div className="text-xs text-zinc-400 font-mono p-3 border border-zinc-800 bg-zinc-900/40 break-all">
+            {meta.share_text}
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            data-testid="share-pass-copy"
+            onClick={copyUrl}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-400 text-black font-bold text-sm hover:bg-cyan-300 transition-colors"
+          >
+            {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copied ? 'Copied!' : 'Copy Public URL'}
+          </button>
+          <a
+            data-testid="share-pass-download"
+            href={passUrlBust}
+            download={`fel-os-pass-${userId}.png`}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-700 text-zinc-100 hover:border-cyan-400/40 hover:text-cyan-400 transition-colors text-sm font-bold"
+          >
+            <Download className="w-4 h-4" /> Download PNG
+          </a>
+        </div>
       </div>
     </div>
   );
