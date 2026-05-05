@@ -73,6 +73,7 @@ fi
 
 echo ""
 echo "=== Emergent checklist ==="
+echo "  • Full iOS cook (bCookAll + all venue maps): PROJECT_DIR=\"$PROJECT_DIR\" $REPO_ROOT/prepare_fel_full_ship.sh"
 echo "  • Config: $PROJECT_DIR/Config/DefaultGame.ini → [Emergent] GameWebSocketUrl (or leave empty)."
 echo "  • Runtime override: EMERGENT_GAME_WS_URL=wss://host/ws/game/roomId"
 echo "  • Pixel Streaming 2 (E3DS): merge UnrealStarter/BasketballGame/Config/DefaultEngine.pixelstreaming2.snippet.ini → DefaultEngine.ini"

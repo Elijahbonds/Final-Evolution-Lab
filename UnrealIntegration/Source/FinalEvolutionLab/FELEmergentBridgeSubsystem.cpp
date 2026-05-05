@@ -14,6 +14,8 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/DateTime.h"
 #include "Misc/Paths.h"
+#include "SocketSubsystem.h"
+#include "Sockets.h"
 #include "WebSocketsModule.h"
 #include "IWebSocket.h"
 
@@ -122,6 +124,219 @@ void UFELEmergentBridgeSubsystem::LoadEmergentDefaultsFromIni()
 	{
 		MaxReconnectAttempts = FMath::Max(0, MaxRA);
 	}
+
+	GConfig->GetString(TEXT("Emergent"), TEXT("SovereignHubHost"), SovereignHubHostIni, GameIni);
+	SovereignHubHostIni.TrimStartAndEndInline();
+
+	GConfig->GetBool(TEXT("EmergentHubDiscovery"), TEXT("bProbeCandidateHosts"), bProbeCandidateHosts, GameIni);
+	FString RawCandidates;
+	if (GConfig->GetString(TEXT("EmergentHubDiscovery"), TEXT("CandidateLanHosts"), RawCandidates, GameIni))
+	{
+		CandidateLanHosts.Reset();
+		TArray<FString> Parts;
+		RawCandidates.ParseIntoArray(Parts, TEXT(","));
+		for (FString& P : Parts)
+		{
+			P.TrimStartAndEndInline();
+			if (!P.IsEmpty())
+			{
+				CandidateLanHosts.Add(P);
+			}
+		}
+	}
+	GConfig->GetInt(TEXT("EmergentHubDiscovery"), TEXT("DiscoveryPort"), DiscoveryPortOverride, GameIni);
+	GConfig->GetBool(TEXT("EmergentHubDiscovery"), TEXT("bScanLocalSubnet"), bScanLocalSubnet, GameIni);
+}
+
+void UFELEmergentBridgeSubsystem::ApplyDynamicHubResolution(FString& InOutUrl)
+{
+	if (InOutUrl.IsEmpty())
+	{
+		return;
+	}
+
+	const bool bLocal = InOutUrl.Contains(TEXT("127.0.0.1"))
+		|| InOutUrl.Contains(TEXT("localhost"), ESearchCase::IgnoreCase);
+	if (!bLocal)
+	{
+		return;
+	}
+
+	FString Hub = FPlatformMisc::GetEnvironmentVariable(TEXT("EMERGENT_SOVEREIGN_HOST")).TrimStartAndEnd();
+	if (Hub.IsEmpty())
+	{
+		Hub = SovereignHubHostIni;
+	}
+
+	if (!Hub.IsEmpty())
+	{
+		InOutUrl.ReplaceInline(TEXT("127.0.0.1"), *Hub);
+		InOutUrl.ReplaceInline(TEXT("localhost"), *Hub, ESearchCase::IgnoreCase);
+		return;
+	}
+
+	const int32 Port =
+		(DiscoveryPortOverride > 0) ? DiscoveryPortOverride : FelExtractPortFromWsUrl(InOutUrl);
+
+	if (bProbeCandidateHosts && CandidateLanHosts.Num() > 0)
+	{
+		for (const FString& H : CandidateLanHosts)
+		{
+			if (!FelProbeTcpHost(H, Port))
+			{
+				continue;
+			}
+			InOutUrl.ReplaceInline(TEXT("127.0.0.1"), *H);
+			InOutUrl.ReplaceInline(TEXT("localhost"), *H, ESearchCase::IgnoreCase);
+			UE_LOG(LogTemp, Log, TEXT("[SovereignHub] Candidate LAN hub %s:%d (TCP probe OK)"), *H, Port);
+			return;
+		}
+	}
+
+	// IMPORTANT: Avoid full subnet scans on the game thread; blocking connects over a /24 can freeze startup on iOS.
+	// If you need LAN routing, set either:
+	//   - [Emergent] SovereignHubHost=192.168.x.y
+	//   - EMERGENT_SOVEREIGN_HOST env
+	//   - [EmergentHubDiscovery] CandidateLanHosts=192.168.x.y,192.168.x.z (with bProbeCandidateHosts=True)
+	if (bScanLocalSubnet)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[SovereignHub] bScanLocalSubnet is enabled but full subnet scan is disabled for UX safety. Set SovereignHubHost or CandidateLanHosts instead."));
+	}
+}
+
+bool UFELEmergentBridgeSubsystem::FelProbeTcpHost(const FString& Host, int32 Port) const
+{
+	if (Host.IsEmpty() || Port <= 0)
+	{
+		return false;
+	}
+
+	ISocketSubsystem* SockSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+	if (!SockSub)
+	{
+		return false;
+	}
+
+	FSocket* Socket = SockSub->CreateSocket(NAME_Stream, TEXT("FelLanProbe"), false);
+	if (!Socket)
+	{
+		return false;
+	}
+
+	TSharedRef<FInternetAddr> Addr = SockSub->CreateInternetAddr();
+	bool bResolved = false;
+	Addr->SetIp(*Host, bResolved);
+	if (!bResolved)
+	{
+		SockSub->DestroySocket(Socket);
+		return false;
+	}
+	Addr->SetPort(Port);
+
+	// Keep probes very short to avoid blocking the game thread.
+	Socket->SetNonBlocking(true);
+	const bool bStarted = Socket->Connect(*Addr);
+	bool bConnected = bStarted;
+	if (!bConnected)
+	{
+		bConnected = Socket->Wait(ESocketWaitConditions::WaitForWrite, FTimespan::FromMilliseconds(50));
+	}
+	Socket->Close();
+	SockSub->DestroySocket(Socket);
+	return bConnected;
+}
+
+FString UFELEmergentBridgeSubsystem::FelDiscoverHubViaSubnetScan(int32 Port) const
+{
+	if (Port <= 0)
+	{
+		return FString();
+	}
+
+	ISocketSubsystem* SockSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+	if (!SockSub)
+	{
+		return FString();
+	}
+
+	TArray<TSharedPtr<FInternetAddr>> Adapters;
+	if (!SockSub->GetLocalAdapterAddresses(Adapters) || Adapters.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SovereignHub] Subnet scan skipped (no local IPv4 adapters)."));
+		return FString();
+	}
+
+	for (const TSharedPtr<FInternetAddr>& Adapter : Adapters)
+	{
+		if (!Adapter.IsValid())
+		{
+			continue;
+		}
+
+		FString IpOnly = Adapter->ToString(false);
+		int32 ColonIdx = INDEX_NONE;
+		if (IpOnly.FindLastChar(TEXT(':'), ColonIdx))
+		{
+			IpOnly.LeftInline(ColonIdx);
+		}
+
+		TArray<FString> Octets;
+		IpOnly.ParseIntoArray(Octets, TEXT("."));
+		if (Octets.Num() != 4)
+		{
+			continue;
+		}
+
+		const int32 O0 = FCString::Atoi(*Octets[0]);
+		const int32 O1 = FCString::Atoi(*Octets[1]);
+		const int32 O2 = FCString::Atoi(*Octets[2]);
+		const int32 O3 = FCString::Atoi(*Octets[3]);
+		if (O0 == 127)
+		{
+			continue;
+		}
+
+		for (int32 Last = 1; Last <= 254; ++Last)
+		{
+			if (Last == O3)
+			{
+				continue;
+			}
+
+			const FString Host =
+				FString::Printf(TEXT("%d.%d.%d.%d"), O0, O1, O2, Last);
+			if (FelProbeTcpHost(Host, Port))
+			{
+				return Host;
+			}
+		}
+	}
+
+	return FString();
+}
+
+int32 UFELEmergentBridgeSubsystem::FelExtractPortFromWsUrl(const FString& Url) const
+{
+	const int32 SchemeIdx = Url.Find(TEXT("://"));
+	if (SchemeIdx == INDEX_NONE)
+	{
+		return (DiscoveryPortOverride > 0) ? DiscoveryPortOverride : 8787;
+	}
+
+	FString AfterScheme = Url.Mid(SchemeIdx + 3);
+	int32 SlashIdx = INDEX_NONE;
+	AfterScheme.FindChar(TEXT('/'), SlashIdx);
+	const FString HostPort = (SlashIdx == INDEX_NONE) ? AfterScheme : AfterScheme.Left(SlashIdx);
+
+	int32 ColonIdx = INDEX_NONE;
+	if (!HostPort.FindLastChar(TEXT(':'), ColonIdx))
+	{
+		return (DiscoveryPortOverride > 0) ? DiscoveryPortOverride : 8787;
+	}
+
+	const int32 Parsed = FCString::Atoi(*HostPort.Mid(ColonIdx + 1));
+	return Parsed > 0 ? Parsed : ((DiscoveryPortOverride > 0) ? DiscoveryPortOverride : 8787);
 }
 
 void UFELEmergentBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -141,6 +356,7 @@ void UFELEmergentBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 	}
 	if (!UrlToUse.IsEmpty())
 	{
+		ApplyDynamicHubResolution(UrlToUse);
 		SetGameWebSocketUrl(UrlToUse);
 	}
 }

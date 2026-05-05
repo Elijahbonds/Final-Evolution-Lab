@@ -24,22 +24,34 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Emergent|DeepLink")
 	void ProcessDeepLinkUrl(const FString& Url);
 
+	/**
+	 * Dashboard / WebSocket “Play Now”: resolve Emergent button id or native arena_mode (e.g. basketball_dunk) to a cooked map.
+	 * OptionalExplicitPackagePath — full /Game/FEL/Venues/... path if the server sends it directly.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Emergent|DeepLink")
+	void RequestPlayFromEmergent(
+		const FString& ButtonOrModeKey,
+		const FString& OptionalExplicitPackagePath,
+		const FString& OptionalArenaGameMode);
+
 private:
 	void BindDelegates();
 	void UnbindDelegates();
 
 	void OnStartupArguments(const TArray<FString>& Args);
-	void OnPostEngineInit();
 	void OnPostLoadMapWithWorld(UWorld* World);
 
 	void TryConsumeLaunchURL();
-	void OpenMapFromTokens(const FString& MapToken, const FString& ModeId);
+	void OpenMapFromTokens(const FString& MapPackagePath, const FString& ModeId);
 	void TryDeferredOpenLevel();
 	static FString ResolveModeToMapToken(const FString& ModeId);
+	void ReloadEmergentPlayMapsFromIni();
+	void ReloadEmergentButtonArenaModesFromIni();
+
+	FString ResolvePackagePathForPlayKey(const FString& MapOrButtonKey) const;
+	FString ResolveArenaModeForButton(const FString& ButtonKey, const FString& FallbackModeHint) const;
 	static void ParseQueryString(const FString& Query, TMap<FString, FString>& OutParams);
 	static FString StripSchemeAndHost(const FString& Url);
-	static FString PackagePathFromMapToken(const FString& MapToken);
-
 	FDelegateHandle StartupArgumentsHandle;
 	FDelegateHandle PostLoadMapHandle;
 
@@ -47,7 +59,14 @@ private:
 	FString LastRequestedModeId;
 
 	FString PendingOpenPackage;
+	FString PendingOpenOptions;
 	FTimerHandle DeferredOpenTimer;
 	FTimerHandle RetryLaunchUrlTimer;
 	int32 DeferredOpenAttempts = 0;
+
+	/** [EmergentPlayMap] keys from DefaultGame.ini (dashboard button ids + aliases). */
+	TMap<FString, FString> EmergentPlayMapIni;
+
+	/** [EmergentButtonArenaMode] optional: dashboard button -> native arena_game_mode_id (e.g. basketball_dunk). */
+	TMap<FString, FString> EmergentButtonArenaModeIni;
 };

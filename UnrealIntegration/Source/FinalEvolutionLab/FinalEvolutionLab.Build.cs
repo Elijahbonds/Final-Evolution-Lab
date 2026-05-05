@@ -18,7 +18,9 @@ public class FinalEvolutionLab : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"Json",
+			"RenderCore",
 			"WebSockets",
+			"Sockets",
 		});
 	}
 }

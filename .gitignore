@@ -104,3 +104,6 @@ rork-eslint.config.js
 core
 node_modules
 .expo
+
+# Build outputs
+/artifacts/

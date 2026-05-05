@@ -39,6 +39,7 @@
 #   ./fel_ue5_ios_shipping_package.sh --full-cook --development # IOS_CLIENTCONFIG=Development (verbose on device)
 #   ./fel_ue5_ios_shipping_package.sh --full-cook --verbose   # pass -verbose to RunUAT BuildCookRun
 #   ./fel_ue5_ios_shipping_package.sh --full-cook -map=VeniceBeach  # cook one map (e.g. Venice) instead of -allmaps
+#   ./fel_ue5_ios_shipping_package.sh --full-cook --allmaps   # explicit: cook all maps (default when -map is omitted)
 #
 # =============================================================================
 set -euo pipefail
@@ -61,13 +62,16 @@ OPEN_XCODE_ONLY=false
 FULL_COOK=false
 VERBOSE_UAT=false
 COOK_MAP_SHORT=""
+EXPORT_IPA=false
 for arg in "$@"; do
   [[ "$arg" == "--verify-only" ]] && VERIFY_ONLY=true
   [[ "$arg" == "--open-xcode" ]] && OPEN_XCODE_ONLY=true
   [[ "$arg" == "--full-cook" ]] && FULL_COOK=true
   [[ "$arg" == "--verbose" ]] && VERBOSE_UAT=true
+  [[ "$arg" == "--export-ipa" ]] && EXPORT_IPA=true
   [[ "$arg" == "--shipping" ]] && export IOS_CLIENTCONFIG=Shipping
   [[ "$arg" == "--development" ]] && export IOS_CLIENTCONFIG=Development
+  [[ "$arg" == "--allmaps" ]] && COOK_MAP_SHORT=""
   case "$arg" in
     -map=*|--map=*) COOK_MAP_SHORT="${arg#*=}" ;;
   esac
@@ -129,6 +133,18 @@ resolve_project_paths() {
   UPROJECT="$PROJECT_DIR/$(basename "$chosen")"
   DEFAULT_ENGINE="$PROJECT_DIR/Config/DefaultEngine.ini"
   DEFAULT_GAME="$PROJECT_DIR/Config/DefaultGame.ini"
+
+  # Prefer staging/archives outside iCloud-backed Documents paths to avoid codesign failures:
+  # "resource fork, Finder information, or similar detritus not allowed".
+  # If user didn't override IOS_ARCHIVE, relocate it into the UE project tree (usually ~/Developer/...).
+  local default_archive="$REPO_ROOT/artifacts/IOS_Shipping_Archive"
+  if [[ "${IOS_ARCHIVE:-}" == "$default_archive" ]]; then
+    case "$REPO_ROOT" in
+    */Documents/*|*/Desktop/*)
+      IOS_ARCHIVE="$PROJECT_DIR/Artifacts/IOS_${IOS_CLIENTCONFIG}_Archive"
+      ;;
+    esac
+  fi
 }
 
 verify_project_paths() {
@@ -434,6 +450,67 @@ verify_ios_app_bundle_plist() {
 # RunUAT's archive step copies `Binaries/IOS/*.app` into -archivedirectory — but that bundle is often produced *before*
 # the Xcode "Copy Executable and Staged Data" phase rsyncs `cookeddata/` into the *stagingdirectory* tree. The result is
 # a runnable shell with no maps/content → "Failed to open descriptor file" / missing project descriptor on device.
+copy_ios_deploy_artifacts() {
+  local proj="${1:-}"
+  [[ -z "$proj" ]] && return 0
+  local deploy="$proj/Binaries/IOS/Deploy"
+  mkdir -p "$deploy"
+  if [[ -f "$proj/Binaries/IOS/manifest.plist" ]]; then
+    cp -f "$proj/Binaries/IOS/manifest.plist" "$deploy/manifest.plist"
+    echo ">>> Copied manifest.plist → $deploy/"
+  fi
+  local ipa=""
+  ipa="$(find "$proj/Binaries/IOS" -maxdepth 1 -name '*.ipa' -print 2>/dev/null | head -1)"
+  if [[ -z "$ipa" && -n "${IOS_ARCHIVE:-}" ]]; then
+    ipa="$(find "$IOS_ARCHIVE" -maxdepth 3 -name 'FinalEvolutionLab.ipa' -print 2>/dev/null | head -1)"
+  fi
+  if [[ -n "$ipa" && -f "$ipa" ]]; then
+    cp -f "$ipa" "$deploy/FinalEvolutionLab.ipa"
+    echo ">>> Copied $(basename "$ipa") → $deploy/FinalEvolutionLab.ipa"
+  else
+    echo ">>> NOTE: No FinalEvolutionLab.ipa found under Binaries/IOS or archive — export IPA from Xcode Organizer if needed."
+  fi
+  if [[ -f "$proj/apps.json" ]]; then
+    cp -f "$proj/apps.json" "$deploy/apps.json"
+    echo ">>> Copied apps.json → $deploy/apps.json"
+  fi
+}
+
+# Replace manifest.plist bundle-version placeholder using CFBundleVersion from staged .app (OTA + AltStore parity).
+patch_manifest_bundle_version_from_app() {
+  local proj="${1:-}"
+  [[ -z "$proj" ]] && return 0
+  local bin_ios="$proj/Binaries/IOS"
+  local mp="$bin_ios/manifest.plist"
+  [[ -f "$mp" ]] || return 0
+  local app=""
+  app="$(find "$bin_ios" -maxdepth 1 -name '*.app' -type d 2>/dev/null | head -1)"
+  [[ -n "$app" && -f "$app/Info.plist" ]] || return 0
+  local bv
+  bv="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist" 2>/dev/null || true)"
+  [[ -n "$bv" ]] || return 0
+  if grep -q 'REPLACE_WITH_CFBundleVersion_FROM_IPA' "$mp" 2>/dev/null; then
+    /usr/bin/sed -i '' "s|<string>REPLACE_WITH_CFBundleVersion_FROM_IPA</string>|<string>${bv}</string>|" "$mp" 2>/dev/null || true
+    echo ">>> manifest.plist bundle-version ← CFBundleVersion $bv ($(basename "$app"))"
+  fi
+}
+
+# AltStore / SideStore Source JSON — same file for both clients. Refreshes on every successful cook.
+refresh_altstore_source_json() {
+  local proj="${1:-}"
+  [[ -z "$proj" ]] && return 0
+  local gen="$SCRIPT_DIR/scripts/fel_refresh_altstore_source.py"
+  [[ -f "$gen" ]] || {
+    echo "WARN: AltStore generator missing: $gen"
+    return 0
+  }
+  if command -v python3 >/dev/null 2>&1; then
+    python3 "$gen" "$proj" || echo "WARN: fel_refresh_altstore_source.py exited non-zero"
+  else
+    echo "WARN: python3 not found — skipping apps.json refresh"
+  fi
+}
+
 # Before deleting _internal_staging, promote the fully staged signed .app back into Binaries + archive root.
 promote_fully_staged_ios_app_from_internal_staging() {
   local staging_root="$1"
@@ -514,6 +591,8 @@ run_ios_shipping_archive() {
       2>/dev/null || true
   fi
 
+  mkdir -p "$PROJECT_DIR/Saved/Logs"
+
   local cook_map_full=""
   if [[ -n "${COOK_MAP_SHORT:-}" ]]; then
     cook_map_full="$COOK_MAP_SHORT"
@@ -541,6 +620,9 @@ run_ios_shipping_archive() {
     cook_tokens+=(-allmaps)
   fi
 
+  local log_file="$PROJECT_DIR/Saved/Logs/fel_ios_shipping_last.txt"
+  set +o pipefail
+  set +e
   "$runuat" BuildCookRun \
     -project="$UPROJECT" \
     -noP4 \
@@ -553,7 +635,14 @@ run_ios_shipping_archive() {
     -archivedirectory="$IOS_ARCHIVE" \
     -stagingdirectory="$staging_internal" \
     -utf8output \
-    "${uat_extra[@]}"
+    "${uat_extra[@]}" 2>&1 | tee "$log_file"
+  uat_ec="${PIPESTATUS[0]}"
+  set -e
+  set -o pipefail
+  if [[ "$uat_ec" -eq 0 ]]; then
+    echo "BUILD SUCCEEDED." >> "$log_file"
+  fi
+  [[ "$uat_ec" -eq 0 ]] || die "RunUAT BuildCookRun failed (exit $uat_ec). See: $log_file"
 
   promote_fully_staged_ios_app_from_internal_staging "$staging_internal"
 
@@ -563,6 +652,14 @@ run_ios_shipping_archive() {
   cleanup_ios_xattr_patch_loop
 
   verify_ios_app_bundle_plist
+
+  emit_ota_manifest_plist_to_binaries_ios "$PROJECT_DIR"
+  patch_manifest_bundle_version_from_app "$PROJECT_DIR"
+  refresh_altstore_source_json "$PROJECT_DIR"
+  copy_ios_deploy_artifacts "$PROJECT_DIR"
+  if [[ "$EXPORT_IPA" == true ]]; then
+    export_ipa_from_xcode_archive "$PROJECT_DIR"
+  fi
 
   local abs
   abs="$(cd "$IOS_ARCHIVE" && pwd)"
@@ -579,6 +676,92 @@ run_ios_shipping_archive() {
   echo "    or xcodebuild -exportArchive after archiving FinalEvolutionLab (IOS)."
   echo ">>> Emergent telemetry on device: set Config/DefaultGame.ini [Emergent] SovereignHubHost=<Mac Mini LAN IP>"
   echo "    (GameWebSocketUrl may stay ws://127.0.0.1:PORT/... — the bridge rewrites localhost to the hub IP)."
+  print_sideload_distribution_hint "$PROJECT_DIR"
+}
+
+emit_ota_manifest_plist_to_binaries_ios() {
+  local proj="${1:-}"
+  [[ -z "$proj" ]] && return 0
+  local out_dir="$proj/Binaries/IOS"
+  mkdir -p "$out_dir"
+  local tmpl="$SCRIPT_DIR/manifest.plist"
+  [[ -f "$tmpl" ]] || {
+    echo "WARN: manifest template missing: $tmpl"
+    return 0
+  }
+  /bin/cp -f "$tmpl" "$out_dir/manifest.plist"
+  if [[ -n "${FEL_OTA_IPA_URL:-}" ]]; then
+    /usr/bin/sed -i '' "s|https://finalevolutionlab.com/app/FinalEvolutionLab.ipa|${FEL_OTA_IPA_URL//&/\\&}|g" \
+      "$out_dir/manifest.plist" 2>/dev/null || true
+  fi
+  echo ""
+  echo ">>> OTA manifest (itms-services install): $out_dir/manifest.plist"
+  echo "    (set FEL_OTA_IPA_URL to retarget the .ipa before re-running this step if needed)"
+}
+
+print_sideload_distribution_hint() {
+  local proj="${1:-.}"
+  echo ""
+  echo "=== Third-party sideload (OTA / AltStore-style) ==="
+  echo "1. Merge UnrealIntegration/Config/DefaultEngine.FEL_iOS_sideload.snippet.ini into UE Config/DefaultEngine.ini"
+  echo "   (disables Game Center / Sign in with Apple entitlements — identity via Sovereign Hub)."
+  echo "2. Export a signed FinalEvolutionLab.ipa (Xcode Organizer → Distribute → Ad Hoc or Development)."
+  echo "3. Upload .ipa + repo-root manifest.plist over **HTTPS** (same host/path as manifest URLs)."
+  echo "4. Update manifest.plist bundle-version + software-package url; set apps.json versions[0].downloadURL + size."
+  echo "5. iPhone install link (safari / bio link):"
+  echo "   itms-services://?action=download-manifest&url=https://finalevolutionlab.com/app/manifest.plist"
+  echo "   Repo templates: $SCRIPT_DIR/manifest.plist , $SCRIPT_DIR/apps.json"
+  echo "   AltStore / SideStore source (same JSON): https://finalevolutionlab.com/apps.json"
+  echo "   Add button deep link: altstore://source?url=https://finalevolutionlab.com/apps.json"
+  echo "   Typical .ipa: export from Xcode Organizer after archive, or under Binaries/IOS if UAT emitted one."
+  local ipa_found
+  ipa_found="$(find "$proj/Binaries/IOS" -maxdepth 1 -name '*.ipa' -print 2>/dev/null | head -3)"
+  if [[ -z "$ipa_found" ]]; then
+    ipa_found="$(find "$proj" -maxdepth 7 -name 'FinalEvolutionLab.ipa' -print 2>/dev/null | head -3)"
+  fi
+  if [[ -n "$ipa_found" ]]; then
+    echo "   Found .ipa candidate(s):"
+    sed 's/^/     /' <<< "$ipa_found"
+  fi
+}
+
+export_ipa_from_xcode_archive() {
+  local proj="${1:-}"
+  [[ -z "$proj" ]] && return 0
+  local ws="$proj/FinalEvolutionLab (IOS).xcworkspace"
+  [[ -d "$ws" ]] || { echo "WARN: iOS workspace missing: $ws"; return 0; }
+
+  local xcarchive="$IOS_ARCHIVE/FinalEvolutionLab.xcarchive"
+  local export_dir="$IOS_ARCHIVE/_ipa_export"
+  mkdir -p "$IOS_ARCHIVE" "$export_dir"
+
+  echo ""
+  echo ">>> Xcode archive → $xcarchive"
+  xcodebuild -workspace "$ws" -scheme FinalEvolutionLab -configuration Shipping -destination "generic/platform=iOS" \
+    -archivePath "$xcarchive" archive || { echo "WARN: xcodebuild archive failed"; return 0; }
+
+  # Minimal export options for Development-style installs; adjust for App Store/TestFlight.
+  local opts="$IOS_ARCHIVE/ExportOptions.plist"
+  /usr/bin/plutil -create xml1 "$opts" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Delete :method" "$opts" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Add :method string development" "$opts" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Delete :signingStyle" "$opts" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Add :signingStyle string automatic" "$opts" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Delete :compileBitcode" "$opts" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Add :compileBitcode bool false" "$opts" 2>/dev/null || true
+
+  echo ">>> Exporting .ipa → $export_dir"
+  xcodebuild -exportArchive -archivePath "$xcarchive" -exportPath "$export_dir" -exportOptionsPlist "$opts" \
+    || { echo "WARN: xcodebuild -exportArchive failed"; return 0; }
+
+  local ipa
+  ipa="$(find "$export_dir" -maxdepth 2 -name '*.ipa' -print 2>/dev/null | head -1)"
+  if [[ -n "$ipa" ]]; then
+    /bin/cp -f "$ipa" "$proj/Binaries/IOS/FinalEvolutionLab.ipa" 2>/dev/null || true
+    echo ">>> Wrote .ipa: $proj/Binaries/IOS/FinalEvolutionLab.ipa"
+  else
+    echo "WARN: No .ipa produced under $export_dir"
+  fi
 }
 
 print_apple_business_manager_hint() {

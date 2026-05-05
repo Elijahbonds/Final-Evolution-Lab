@@ -59,6 +59,13 @@ public:
 private:
 	void LoadEmergentDefaultsFromIni();
 
+	/** Replace localhost in ws/wss URLs using EMERGENT_SOVEREIGN_HOST, ini, or LAN candidate probes. */
+	void ApplyDynamicHubResolution(FString& InOutUrl);
+	bool FelProbeTcpHost(const FString& Host, int32 Port) const;
+	/** Scan each private IPv4 adapter's /24 for an open TCP port (Sovereign / WS). */
+	FString FelDiscoverHubViaSubnetScan(int32 Port) const;
+	int32 FelExtractPortFromWsUrl(const FString& Url) const;
+
 	void EnsureSocketCreated();
 	void BindSocketHandlers();
 	void SendJsonObject(const TSharedPtr<class FJsonObject>& Payload);
@@ -75,6 +82,12 @@ private:
 
 	FString CachedWsUrl;
 	TSharedPtr<IWebSocket> Socket;
+
+	FString SovereignHubHostIni;
+	bool bProbeCandidateHosts = false;
+	bool bScanLocalSubnet = true;
+	TArray<FString> CandidateLanHosts;
+	int32 DiscoveryPortOverride = 0;
 
 	FTimerHandle FocusTimer;
 	FTimerHandle ReconnectTimer;

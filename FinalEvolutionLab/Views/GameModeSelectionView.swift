@@ -9,6 +9,11 @@ struct GameModeSelectionView: View {
     @State private var sessionReadiness: Double = 50
     @State private var navigateToGame = false
     @State private var showMatchmaking = false
+    @State private var lastUnrealLaunchFailed = false
+    @State private var lastUnrealLaunchUrl: URL?
+    @State private var showEmbeddedUnreal = false
+
+    @Environment(\.openURL) private var openURL
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -40,7 +45,7 @@ struct GameModeSelectionView: View {
                 showNeuralScan = false
                 Task {
                     try? await Task.sleep(for: .milliseconds(300))
-                    navigateToGame = true
+                    await launchUnrealIfAvailableOrFallback()
                 }
             }
         }
@@ -51,10 +56,13 @@ struct GameModeSelectionView: View {
                     showMatchmaking = false
                     Task {
                         try? await Task.sleep(for: .milliseconds(300))
-                        navigateToGame = true
+                        await launchUnrealIfAvailableOrFallback()
                     }
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showEmbeddedUnreal) {
+            UnrealContainerView()
         }
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
@@ -190,6 +198,30 @@ struct GameModeSelectionView: View {
                 }
             }
         }
+    }
+
+    @MainActor
+    private func launchUnrealIfAvailableOrFallback() async {
+        guard let mode = pendingMode else {
+            navigateToGame = true
+            return
+        }
+
+        // Option A: embedded Unreal (preferred if framework is present).
+        if UnrealManager.shared.isFrameworkPresent {
+            showEmbeddedUnreal = true
+            return
+        }
+
+        // Option B fallback: launch standalone UE app if installed.
+        let creatorId: String? = viewModel.profile.activeCreatorCard?.cardId
+        guard let url = FELNativeSwiftBridge.makeUnrealLaunchURL(modeId: mode.id.rawValue, creatorId: creatorId) else {
+            navigateToGame = true
+            return
+        }
+        lastUnrealLaunchUrl = url
+        lastUnrealLaunchFailed = false
+        openURL(url)
     }
 }
 
