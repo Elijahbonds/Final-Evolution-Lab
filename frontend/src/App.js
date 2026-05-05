@@ -477,15 +477,25 @@ const GameModesView = () => {
     try {
       const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
-      // Attempt deep link for native iOS
+      // Primary path: Deep link to UE5 native binary
       const deepLink = r.data.deep_link;
       if (deepLink) {
         window.location.href = deepLink;
-        // Fallback: if deep link doesn't open after 2s, play browser version
+        // UE5 binary takes over — show loading state while map loads
+        // The FELEmergentBridgeSubsystem will send MapLoaded confirmation via WebSocket
+        // If on desktop/web (not iOS), fallback after 3s
         setTimeout(() => {
           setLaunchingMode(null);
-          setPlayingMode(mode);
-        }, 2000);
+          // Only fallback to browser game if NOT on iOS
+          const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+          if (!isIOS) {
+            setPlayingMode(mode);
+          }
+        }, 3000);
+      } else {
+        // No deep link — use browser fallback
+        setLaunchingMode(null);
+        setPlayingMode(mode);
       }
     } catch {
       setLaunchingMode(null);
@@ -501,6 +511,24 @@ const GameModesView = () => {
       }
     } catch {}
   };
+
+  if (launchingMode) {
+    return (
+      <div className="max-w-xl mx-auto text-center space-y-6 fade-in" data-testid="ue5-loading">
+        <div className="surface-active p-12">
+          <div className="w-20 h-20 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+          <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING UE5 MODULE</h2>
+          <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab.uproject → {launchingMode.replace(/_/g,' ')}</p>
+          <div className="mt-6 space-y-2 text-xs text-zinc-500 font-mono">
+            <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Sovereign Hub: Connected</div>
+            <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered</div>
+            <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>Awaiting MapLoaded from bridge...</div>
+          </div>
+          <p className="text-xs text-zinc-600 mt-6">Deep link: finalevolution://launch?map=...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (playingMode) {
     if (playingMode.game_type === 'quiz') {
@@ -532,7 +560,7 @@ const GameModesView = () => {
               <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
               <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
               <div className="flex items-center gap-4 text-xs text-zinc-500"><span>{mode.player_count}</span><span>{mode.duration}</span><span>{mode.difficulty}</span></div>
-              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching...</span> : <span><Play className="w-4 h-4 inline mr-1" />Play Now</span>}</button>}
+              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2 w-full" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching UE5...</span> : <span><Play className="w-4 h-4 inline mr-1" />Launch Game</span>}</button>}
             </div>
           </div>
         ))}
