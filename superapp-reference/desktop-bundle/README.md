@@ -1,18 +1,11 @@
 # Superapp reference hub
 
-## Desktop bundle (Windsurf only sees `~/Desktop`)
-
-A **full copy** that lives on your Mac Desktop — **point Windsurf / Superapp at:**
-
+**Desktop location (point Windsurf / Superapp here):**  
 `/Users/elijahbonds/Desktop/FEL-Superapp-Reference`
 
-Refresh it after editing docs here:
+**Git repo clone (all source code):** see **`REPOSITORY_ROOT.txt`** in this folder — open files there for implementation work.
 
-```bash
-./scripts/sync_superapp_desktop.sh
-```
-
-Desktop-only entry files (`START_HERE.md`, `REPOSITORY_ROOT.txt`, absolute-path `MANIFEST.json`, README header) live under **`superapp-reference/desktop-bundle/`** in the repo.
+Start with **`START_HERE.md`**, then **`MANIFEST.json`** (includes absolute paths into the repo).
 
 ---
 
@@ -34,4 +27,4 @@ Desktop-only entry files (`START_HERE.md`, `REPOSITORY_ROOT.txt`, absolute-path 
 
 - **Integration branch:** `setup-healthkit` (not `main` for handoff unless explicitly merged).
 - **Product shape:** Unreal Engine **host** iOS app + **WKWebView** overlay dashboard; **`finalevolution://`** deep links; optional **HealthKit** in Swift shell; distribution via **App Store Connect / TestFlight** (no third-party store feeds in repo).
-- **Blindness fix:** If a tool “can’t see” the app, point it at **`MANIFEST.json`** and the linked paths—those files are the contract for what exists in-repo vs on-disk outside the clone.
+- **Blindness fix:** If a tool “can’t see” the app, point it at **`MANIFEST.json`** and the linked **`absolute_path`** entries — use **`REPOSITORY_ROOT.txt`** to open the clone.
