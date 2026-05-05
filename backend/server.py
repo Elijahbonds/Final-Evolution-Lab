@@ -2127,6 +2127,11 @@ async def get_sovereign_status():
 # Include all routes AFTER all route definitions
 app.include_router(api_router)
 
+# Root-level health check for Kubernetes probes (no /api prefix)
+@app.get("/health")
+async def k8s_health():
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 @app.on_event("shutdown")
