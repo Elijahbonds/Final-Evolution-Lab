@@ -28,6 +28,25 @@ UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Final Evolution Lab API")
+
+# ──────────────────────────────────────────────────────────────
+# K8s health probe — registered FIRST, before any router/middleware,
+# so liveness/readiness succeed even if downstream wiring fails.
+# DO NOT move this block.
+# ──────────────────────────────────────────────────────────────
+@app.get("/health")
+async def k8s_health():
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+# CORS registered before all routes so the middleware stack is canonical.
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1899,8 +1918,15 @@ async def ensure_fel_os_indexes():
 
 @app.on_event("startup")
 async def startup_venue_mapping():
-    await ensure_venue_collections()
-    await ensure_fel_os_indexes()
+    # Non-fatal: any DB hiccup must NOT prevent K8s probes from succeeding.
+    try:
+        await ensure_venue_collections()
+    except Exception as e:
+        logger.warning(f"ensure_venue_collections failed (non-fatal): {e}")
+    try:
+        await ensure_fel_os_indexes()
+    except Exception as e:
+        logger.warning(f"ensure_fel_os_indexes failed (non-fatal): {e}")
 
 # ── Directive 1 & 2: Sovereign WebSocket Bridge ──────────────────
 
@@ -2466,13 +2492,6 @@ app.include_router(education_tracks_router.router)
 app.include_router(system_scan_router.router)
 app.include_router(pass_image_router.router)
 app.include_router(biofuel_router.router)
-
-# Root-level health check for Kubernetes probes (no /api prefix)
-@app.get("/health")
-async def k8s_health():
-    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
-
-app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
