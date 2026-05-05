@@ -6,6 +6,7 @@ import {
   Trophy, Target, Flame, Crown, Sparkles, ExternalLink, Loader2,
   Share2, Download, Copy, X
 } from "lucide-react";
+import { BioFuelStripe, BioFuelScanner, BioFuelCookbook, BioFuelDoorDash } from "./BioFuel";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -27,6 +28,10 @@ export const FELOSDashboard = ({ setActiveTab }) => {
   const [trackId, setTrackId] = useState(null);
   const [lessonId, setLessonId] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [cookbookOpen, setCookbookOpen] = useState(false);
+  const [doordashOpen, setDoordashOpen] = useState(false);
+  const [biofuelKey, setBiofuelKey] = useState(0); // bump to force stripe refresh after a log
 
   const refresh = useCallback(() => {
     axios.get(`${API}/system-scan/unified`).then((r) => setScan(r.data)).catch(console.error);
@@ -84,16 +89,33 @@ export const FELOSDashboard = ({ setActiveTab }) => {
       {!scan ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-cyan-400" /></div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <ScanQuadrant scan={scan.scan} onOpen={() => setActiveTab && setActiveTab("scan")} />
-          <CardsQuadrant cards={scan.cards} onOpen={() => setActiveTab && setActiveTab("cards")} />
-          <ArenaQuadrant arena={scan.arena} onOpen={() => setActiveTab && setActiveTab("games")} />
-          <AcademyQuadrant academy={scan.academy} onTrack={(tid) => { setTrackId(tid); setView("track"); }} />
-        </div>
+        <>
+          <BioFuelStripe
+            key={biofuelKey}
+            onOpenScanner={() => setScannerOpen(true)}
+            onOpenCookbook={() => setCookbookOpen(true)}
+            onOpenDoorDash={() => setDoordashOpen(true)}
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <ScanQuadrant scan={scan.scan} onOpen={() => setActiveTab && setActiveTab("scan")} />
+            <CardsQuadrant cards={scan.cards} onOpen={() => setActiveTab && setActiveTab("cards")} />
+            <ArenaQuadrant arena={scan.arena} onOpen={() => setActiveTab && setActiveTab("games")} />
+            <AcademyQuadrant academy={scan.academy} onTrack={(tid) => { setTrackId(tid); setView("track"); }} />
+          </div>
+        </>
       )}
 
       {shareOpen && scan && (
         <SharePassModal userId={scan.user.user_id} onClose={() => setShareOpen(false)} />
+      )}
+      {scannerOpen && (
+        <BioFuelScanner onClose={() => setScannerOpen(false)} onLogged={() => { setBiofuelKey((k) => k + 1); refresh(); }} />
+      )}
+      {cookbookOpen && (
+        <BioFuelCookbook onClose={() => setCookbookOpen(false)} />
+      )}
+      {doordashOpen && (
+        <BioFuelDoorDash onClose={() => setDoordashOpen(false)} onLogged={() => { setBiofuelKey((k) => k + 1); refresh(); }} />
       )}
     </div>
   );

@@ -17,6 +17,15 @@ from routers.education_tracks import (
     _build_kinesiology_eligibility,
     BIO_DIGITAL_REQUIRED_MODULES,
 )
+from routers.biofuel import (
+    nasm_macro_target,
+    _today_intent,
+    _athlete_weight_kg,
+    _consumed_totals,
+    _supportive_cues,
+    ATHLETIC_INTENTS,
+    _today_key,
+)
 
 router = APIRouter(prefix="/api/system-scan", tags=["system-scan"])
 
@@ -107,4 +116,31 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
         "cards": cards,
         "arena": arena,
         "academy": academy,
+        "biofuel": await _biofuel_summary(user),
+    }
+
+
+async def _biofuel_summary(user: User) -> dict:
+    """5th pillar — NASM-CNC Bio-Fuel snapshot for the FEL OS stripe."""
+    weight_kg = _athlete_weight_kg(user)
+    intent = _today_intent(user)
+    target = nasm_macro_target(weight_kg, user.sport, intent)
+    log = await db.biofuel_logs.find_one({"user_id": user.user_id, "day": _today_key()}, {"_id": 0}) or {}
+    entries = log.get("entries", [])
+    consumed = _consumed_totals(entries)
+    pct = {
+        k: min(100, round(100 * consumed.get(k, 0) / target[k])) if target[k] else 0
+        for k in ("calories", "protein_g", "carbs_g", "fats_g")
+    }
+    cues = _supportive_cues(target, consumed, pct, ATHLETIC_INTENTS.get(intent, intent))
+    scan_count = await db.biofuel_scans.count_documents({"user_id": user.user_id})
+    return {
+        "intent": intent,
+        "intent_label": ATHLETIC_INTENTS.get(intent, intent),
+        "target": target,
+        "consumed": consumed,
+        "pct": pct,
+        "scan_count": scan_count,
+        "cues": cues[:2],  # top 2 supportive cues for the stripe
+        "entries_today": len(entries),
     }

@@ -14,6 +14,7 @@ from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
 from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
+from routers import biofuel as biofuel_router
 
 # PayPal config
 paypalrestsdk.configure({
@@ -2432,6 +2433,17 @@ async def get_sovereign_status():
             "description": "ACTIVE = bIsHardwareAuthenticated + back_camera_verified"
         },
         "active_creator_card": sovereign_state.get("active_creator_card"),
+        "biofuel": {
+            "registered": True,
+            "tone": "supportive",
+            "models": ["gemini-2.5-flash", "gpt-5.2"],
+            "intents": ["fascial_hydration", "cns_ignition", "post_dunk_recovery", "endurance_base", "sleep_anabolic"],
+            "endpoints": [
+                "/api/biofuel/scan", "/api/biofuel/recipes", "/api/biofuel/today",
+                "/api/biofuel/cues", "/api/biofuel/log",
+                "/api/biofuel/instacart-cart", "/api/biofuel/doordash-search",
+            ],
+        },
         "ini_config": {
             "GameWebSocketUrl": os.environ.get("EMERGENT_GAME_WS_URL", ""),
             "bFocusKeepalive": "True",
@@ -2453,6 +2465,7 @@ app.include_router(api_router)
 app.include_router(education_tracks_router.router)
 app.include_router(system_scan_router.router)
 app.include_router(pass_image_router.router)
+app.include_router(biofuel_router.router)
 
 # Root-level health check for Kubernetes probes (no /api prefix)
 @app.get("/health")
