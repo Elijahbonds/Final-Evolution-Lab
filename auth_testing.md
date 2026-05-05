@@ -1,10 +1,4 @@
-# Auth Testing Playbook for Final Evolution Lab
-
-## Test Identity Tracking
-After setting up Google Auth, save relevant test identities to `/app/memory/test_credentials.md`:
-- Allowed Google test accounts (email)
-- Linked app users
-- RBAC roles/permissions mapped to each test account
+# Auth Testing Playbook — Final Evolution Lab
 
 ## Step 1: Create Test User & Session
 ```bash
@@ -13,110 +7,38 @@ use('test_database');
 var userId = 'test-user-' + Date.now();
 var sessionToken = 'test_session_' + Date.now();
 db.users.insertOne({
-  user_id: userId,
-  email: 'test.user.' + Date.now() + '@example.com',
-  name: 'Test User',
-  picture: 'https://via.placeholder.com/150',
-  created_at: new Date(),
-  role: 'athlete',
-  prq_score: 75.0,
-  level: 1,
-  xp: 0
+  user_id: userId, email: 'test.user.' + Date.now() + '@example.com',
+  name: 'Test User', picture: 'https://via.placeholder.com/150',
+  created_at: new Date().toISOString(), role: 'athlete', sport: 'basketball',
+  prq_score: 75.0, level: 1, xp: 0, streak_days: 0, total_workouts: 0,
+  coins: 100, followers: [], following: [], avatar_config: null
 });
 db.user_sessions.insertOne({
-  user_id: userId,
-  session_token: sessionToken,
-  expires_at: new Date(Date.now() + 7*24*60*60*1000),
-  created_at: new Date()
-});
-db.prq_metrics.insertOne({
-  id: 'prq_' + Date.now(),
-  user_id: userId,
-  overall_score: 75.0,
-  strength: 70.0,
-  speed: 75.0,
-  endurance: 80.0,
-  agility: 72.0,
-  power: 68.0,
-  flexibility: 78.0,
-  recovery: 82.0,
-  mental: 76.0,
-  recorded_at: new Date()
+  user_id: userId, session_token: sessionToken,
+  expires_at: new Date(Date.now() + 7*24*60*60*1000).toISOString(),
+  created_at: new Date().toISOString()
 });
 print('Session token: ' + sessionToken);
 print('User ID: ' + userId);
 "
 ```
 
-## Step 2: Test Backend API
+## Step 2: Test Backend API (Bearer fallback works on mobile WebViews)
 ```bash
-# Get backend URL from .env
-API_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d '=' -f2)
-
-# Test auth endpoint
-curl -X GET "$API_URL/api/auth/me" \
-  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
-
-# Test PRQ metrics
-curl -X GET "$API_URL/api/prq/metrics" \
-  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
-
-# Test game modes
-curl -X GET "$API_URL/api/games/modes"
-
-# Test creator cards
-curl -X GET "$API_URL/api/cards"
-
-# Test courses
-curl -X GET "$API_URL/api/education/courses"
+curl -X GET "$API_URL/api/auth/me" -b "session_token=$TOKEN"
+curl -X GET "$API_URL/api/auth/me" -H "Authorization: Bearer $TOKEN"
 ```
 
-## Step 3: Browser Testing
-```python
-# Set cookie and navigate
-await page.context.add_cookies([{
-    "name": "session_token",
-    "value": "YOUR_SESSION_TOKEN",
-    "domain": "readiness-stack.preview.emergentagent.com",
-    "path": "/",
-    "httpOnly": True,
-    "secure": True,
-    "sameSite": "None"
-}])
-await page.goto("https://readiness-stack.preview.emergentagent.com/dashboard")
-```
+## Critical CORS rules
+- `allow_origins=["*"]` + `allow_credentials=True` is a CORS spec violation. Browsers DROP cookies. Use explicit origins or `allow_origin_regex`.
+- Production allowlist: `https://finalevolutiongroup.com`, `https://www.finalevolutiongroup.com`
+- Preview pattern: `https://*.preview.emergentagent.com`
 
-## Quick Debug
-```bash
-# Check data format
-mongosh --eval "
-use('test_database');
-db.users.find().limit(2).pretty();
-db.user_sessions.find().limit(2).pretty();
-"
+## Cookie Attribute Rules (iOS Safari + In-App WebViews)
+- `httponly=True` `secure=True` `samesite="none"` `path="/"` `max_age=7*86400`
+- The cookie MUST be set on a returned `JSONResponse`, not on a parameter `Response`.
+- ALSO return `session_token` in response body. Frontend stores in localStorage and adds `Authorization: Bearer <token>` on every axios request — bulletproof fallback.
 
-# Clean test data
-mongosh --eval "
-use('test_database');
-db.users.deleteMany({email: /test\.user\./});
-db.user_sessions.deleteMany({session_token: /test_session/});
-"
-```
-
-## Checklist
-- [ ] User document has user_id field
-- [ ] Session user_id matches user's user_id exactly
-- [ ] All queries use `{"_id": 0}` projection
-- [ ] Backend queries use user_id (not _id or id)
-- [ ] API returns user data with user_id field
-- [ ] Browser loads dashboard (not login page)
-
-## Success Indicators
-✅ /api/auth/me returns user data
-✅ Dashboard loads without redirect
-✅ CRUD operations work
-
-## Failure Indicators
-❌ "User not found" errors
-❌ 401 Unauthorized responses
-❌ Redirect to login page
+## Failure / Loop Indicators
+- ❌ Google sign-in → bounces back to `/login` after `/dashboard` loads → cookie dropped. Check CORS.
+- ❌ `POST /api/auth/session` 200 then `GET /api/auth/me` 401 → same root cause.

@@ -99,11 +99,19 @@ rork-eslint.config.js
 .vercel
 .chainlit
 .ipynb_checkpoints/
-.chainlit
 
-core
-node_modules
-.expo
+# Mobile development
+android-sdk/
 
-# Build outputs
+# Build artifacts (UE + iOS)
 /artifacts/
+artifacts/
+*.ipa
+*.app
+*.dSYM
+*.xcarchive
+
+# UE5 intermediate
+Saved/
+Intermediate/
+DerivedDataCache/

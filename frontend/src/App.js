@@ -15,10 +15,29 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 import { SovereignDashboard } from "@/components/SovereignDashboard";
+import { FELOSDashboard } from "@/components/FELOSDashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
+
+// ── Mobile-WebView Bearer fallback ─────────────────────────────
+// iOS Safari ITP and in-app WebViews (Instagram, Twitter, Messages)
+// frequently strip 3rd-party cookies even when SameSite=None+Secure is set.
+// We mirror the session_token in localStorage and attach it as
+// Authorization: Bearer <token> on every axios call. The backend already
+// accepts both cookie and Bearer (see get_current_user in server.py).
+const FEL_TOKEN_KEY = "fel_session_token";
+axios.interceptors.request.use((config) => {
+  try {
+    const tok = localStorage.getItem(FEL_TOKEN_KEY);
+    if (tok && !config.headers?.Authorization) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${tok}`;
+    }
+  } catch (_e) { /* localStorage unavailable in private mode — fall back to cookie */ }
+  return config;
+});
 
 // ===================== AUTH CONTEXT =====================
 const AuthContext = createContext(null);
@@ -33,7 +52,11 @@ const AuthProvider = ({ children }) => {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { checkAuth(); }, [checkAuth]);
-  const logout = async () => { try { await axios.post(`${API}/auth/logout`); } catch {} setUser(null); };
+  const logout = async () => {
+    try { await axios.post(`${API}/auth/logout`); } catch (_e) { /* ignore */ }
+    try { localStorage.removeItem(FEL_TOKEN_KEY); } catch (_e) { /* ignore */ }
+    setUser(null);
+  };
   return <AuthContext.Provider value={{ user, setUser, loading, logout }}>{children}</AuthContext.Provider>;
 };
 
@@ -49,6 +72,10 @@ const AuthCallback = () => {
       if (!sid) { navigate('/login'); return; }
       try {
         const r = await axios.post(`${API}/auth/session`, { session_id: sid });
+        // Persist Bearer fallback for mobile WebViews that strip cookies.
+        if (r.data?.session_token) {
+          try { localStorage.setItem(FEL_TOKEN_KEY, r.data.session_token); } catch (_e) { /* ignore */ }
+        }
         setUser(r.data);
         navigate('/dashboard', { replace: true, state: { user: r.data } });
       } catch { navigate('/login'); }
@@ -158,6 +185,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navItems = [
+    {id:'fel-os',icon:Crosshair,label:'FEL OS'},
     {id:'dashboard',icon:Home,label:'Dashboard'},{id:'scan',icon:Activity,label:'System Scan'},
     {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'multiplayer',icon:Swords,label:'Multiplayer'},
     {id:'cards',icon:Users,label:'Creator Cards'},{id:'coach',icon:Trophy,label:'Coach Hub'},
@@ -467,12 +495,110 @@ const GameModesView = () => {
   const [modes, setModes] = useState([]);
   const [filter, setFilter] = useState('all');
   const [playingMode, setPlayingMode] = useState(null);
+  const [launchingMode, setLaunchingMode] = useState(null);
+  const [sessionState, setSessionState] = useState(null);
+  const [launchStatus, setLaunchStatus] = useState(null); // null, 'launching', 'map_loading', 'timeout'
+  const wsRef = useRef(null);
 
+  // Fetch modes from centralized venue registry (not hardcoded)
   useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
 
-  const handleGameComplete = async (score) => {
-    try { await axios.post(`${API}/games/session`, {mode_id: playingMode.id, score, duration_seconds: 30, completed: true}); } catch {}
+  const launchNativeMode = async (mode) => {
+    setLaunchingMode(mode.id);
+    setLaunchStatus('launching');
+    try {
+      const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
+      setSessionState(r.data);
+
+      // Deep link to UE5 native binary
+      const deepLink = r.data.deep_link;
+      if (deepLink) {
+        window.location.href = deepLink;
+
+        // State-Aware Handshake: listen for MapLoaded via WebSocket
+        // NOT a blind timeout — wait for actual bridge confirmation
+        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+        setLaunchStatus('map_loading');
+
+        ws.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'sovereign_handshake' || msg.type === 'map_loaded') {
+              // MapLoaded signal received from UFELEmergentBridgeSubsystem
+              setLaunchStatus(null);
+              setLaunchingMode(null);
+              ws.close();
+            }
+          } catch {}
+        };
+
+        // 10s System Re-auth (NOT browser fallback)
+        // If no MapLoaded signal, trigger re-auth instead of showing placeholder
+        setTimeout(() => {
+          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+            ws.close();
+            setLaunchStatus('timeout');
+            // System Re-auth: re-verify session, do NOT fall back to browser game
+            axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: 'timeout' }).catch(() => {});
+            setLaunchingMode(null);
+          }
+        }, 10000);
+      } else {
+        // No deep link available (desktop/web) — use browser version
+        setLaunchingMode(null);
+        setLaunchStatus(null);
+        setPlayingMode(mode);
+      }
+    } catch {
+      setLaunchingMode(null);
+      setLaunchStatus(null);
+      setPlayingMode(mode);
+    }
   };
+
+  const handleGameComplete = async (score) => {
+    try {
+      await axios.post(`${API}/games/session`, {mode_id: playingMode.id, score, duration_seconds: 30, completed: true});
+      if (sessionState?.session_id) {
+        await axios.post(`${API}/session/state`, {session_id: sessionState.session_id, state: 'completed', score});
+      }
+    } catch {}
+  };
+
+  if (launchingMode || launchStatus === 'timeout') {
+    return (
+      <div className="max-w-xl mx-auto text-center space-y-6 fade-in" data-testid="ue5-loading">
+        <div className="surface-active p-12">
+          {launchStatus === 'timeout' ? (
+            <>
+              <Shield className="w-20 h-20 text-yellow-400 mx-auto mb-6" />
+              <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>SYSTEM RE-AUTH REQUIRED</h2>
+              <p className="text-zinc-400 mt-3">No MapLoaded signal received within 10s.</p>
+              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Sovereign Hub is reachable.</p>
+              <div className="flex gap-4 mt-6 justify-center">
+                <button onClick={() => {setLaunchStatus(null);setLaunchingMode(null);}} className="btn-secondary">Back to Modes</button>
+                <button onClick={() => launchNativeMode(modes.find(m => m.id === launchingMode) || modes[0])} className="btn-primary">Retry Launch</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+              <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING UE5 MODULE</h2>
+              <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab.uproject → {(launchingMode || '').replace(/_/g,' ')}</p>
+              <div className="mt-6 space-y-2 text-xs text-zinc-500 font-mono">
+                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Sovereign Hub</div>
+                <div className="flex items-center gap-2 justify-center"><div className={`w-2 h-2 rounded-full ${launchStatus === 'map_loading' ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'}`}></div>Awaiting MapLoaded handshake from bridge...</div>
+                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-zinc-600 rounded-full"></div>Secure Enclave validated</div>
+              </div>
+              <p className="text-xs text-zinc-600 mt-6">State-aware handshake (no blind timeout)</p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (playingMode) {
     if (playingMode.game_type === 'quiz') {
@@ -504,7 +630,7 @@ const GameModesView = () => {
               <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
               <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
               <div className="flex items-center gap-4 text-xs text-zinc-500"><span>{mode.player_count}</span><span>{mode.duration}</span><span>{mode.difficulty}</span></div>
-              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2" onClick={(e) => {e.stopPropagation();setPlayingMode(mode);}}><Play className="w-4 h-4 inline mr-1" />Play Now</button>}
+              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2 w-full" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching UE5...</span> : <span><Play className="w-4 h-4 inline mr-1" />Launch Game</span>}</button>}
             </div>
           </div>
         ))}
@@ -1061,13 +1187,14 @@ const ProfileView = () => {
 
 // ===================== MAIN DASHBOARD =====================
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('fel-os');
   const location = useLocation();
   const { user, setUser } = useAuth();
   useEffect(() => { if (location.state?.user && !user) setUser(location.state.user); }, [location.state, user, setUser]);
 
   const renderContent = () => {
     switch(activeTab) {
+      case 'fel-os': return <FELOSDashboard setActiveTab={setActiveTab} />;
       case 'dashboard': return <DashboardView setActiveTab={setActiveTab} />;
       case 'scan': return <SystemScanView />;
       case 'games': return <GameModesView />;
@@ -1086,7 +1213,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <PixelStreamingView />;
+      case 'streaming': return <SovereignDashboard />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }
