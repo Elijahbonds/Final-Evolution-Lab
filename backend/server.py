@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 import os, logging, uuid, random, json, aiofiles, hashlib, hmac, base64
 from pathlib import Path
@@ -38,11 +39,18 @@ app = FastAPI(title="Final Evolution Lab API")
 async def k8s_health():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
-# CORS registered before all routes so the middleware stack is canonical.
+# CORS: when allow_credentials=True, browsers REJECT a wildcard "*" origin
+# (CORS spec violation → cookies silently dropped on Safari + Chrome).
+# We explicitly allow our production domain and any *.preview.emergentagent.com.
+ALLOWED_ORIGIN_REGEX = (
+    r"https?://(localhost(:\d+)?|127\.0\.0\.1(:\d+)?"
+    r"|finalevolutiongroup\.com|www\.finalevolutiongroup\.com"
+    r"|.*\.preview\.emergentagent\.com|.*\.emergentagent\.com)"
+)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -87,8 +95,25 @@ async def create_session(request: Request, response: Response):
         "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat()
     })
-    response.set_cookie(key="session_token", value=session_token, httponly=True, secure=True, samesite="none", path="/", max_age=7*24*60*60)
-    return await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    # Return JSONResponse directly so the cookie is GUARANTEED to be on the
+    # response that ships to the browser (returning a dict + setting cookie on
+    # the parameter Response is fragile across FastAPI versions).
+    # session_token is ALSO returned in the body so the frontend can persist it
+    # in localStorage and send it as Authorization: Bearer — required for iOS
+    # in-app WebViews (Instagram/Twitter) that strip cookies.
+    payload = {**user_doc, "session_token": session_token}
+    resp = JSONResponse(content=payload)
+    resp.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=7 * 24 * 60 * 60,
+    )
+    return resp
 
 @api_router.get("/auth/me")
 async def get_me(user: User = Depends(get_current_user)):
@@ -97,9 +122,15 @@ async def get_me(user: User = Depends(get_current_user)):
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response):
     st = request.cookies.get("session_token")
-    if st: await db.user_sessions.delete_one({"session_token": st})
-    response.delete_cookie(key="session_token", path="/")
-    return {"message": "Logged out"}
+    if not st:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            st = auth_header.split(" ")[1]
+    if st:
+        await db.user_sessions.delete_one({"session_token": st})
+    resp = JSONResponse(content={"message": "Logged out"})
+    resp.delete_cookie(key="session_token", path="/", samesite="none", secure=True)
+    return resp
 
 # ===================== STREAKS & REWARDS =====================
 @api_router.get("/streaks")

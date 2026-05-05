@@ -21,6 +21,24 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
+// ── Mobile-WebView Bearer fallback ─────────────────────────────
+// iOS Safari ITP and in-app WebViews (Instagram, Twitter, Messages)
+// frequently strip 3rd-party cookies even when SameSite=None+Secure is set.
+// We mirror the session_token in localStorage and attach it as
+// Authorization: Bearer <token> on every axios call. The backend already
+// accepts both cookie and Bearer (see get_current_user in server.py).
+const FEL_TOKEN_KEY = "fel_session_token";
+axios.interceptors.request.use((config) => {
+  try {
+    const tok = localStorage.getItem(FEL_TOKEN_KEY);
+    if (tok && !config.headers?.Authorization) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${tok}`;
+    }
+  } catch (_e) { /* localStorage unavailable in private mode — fall back to cookie */ }
+  return config;
+});
+
 // ===================== AUTH CONTEXT =====================
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -34,7 +52,11 @@ const AuthProvider = ({ children }) => {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { checkAuth(); }, [checkAuth]);
-  const logout = async () => { try { await axios.post(`${API}/auth/logout`); } catch {} setUser(null); };
+  const logout = async () => {
+    try { await axios.post(`${API}/auth/logout`); } catch (_e) { /* ignore */ }
+    try { localStorage.removeItem(FEL_TOKEN_KEY); } catch (_e) { /* ignore */ }
+    setUser(null);
+  };
   return <AuthContext.Provider value={{ user, setUser, loading, logout }}>{children}</AuthContext.Provider>;
 };
 
@@ -50,6 +72,10 @@ const AuthCallback = () => {
       if (!sid) { navigate('/login'); return; }
       try {
         const r = await axios.post(`${API}/auth/session`, { session_id: sid });
+        // Persist Bearer fallback for mobile WebViews that strip cookies.
+        if (r.data?.session_token) {
+          try { localStorage.setItem(FEL_TOKEN_KEY, r.data.session_token); } catch (_e) { /* ignore */ }
+        }
         setUser(r.data);
         navigate('/dashboard', { replace: true, state: { user: r.data } });
       } catch { navigate('/login'); }
