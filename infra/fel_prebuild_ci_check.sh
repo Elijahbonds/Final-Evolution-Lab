@@ -63,6 +63,21 @@ else
     fail "Expected ${INTERNAL_ID}.uproject, found ${PROJECT_NAME}.uproject"
 fi
 
+# ─── Check 1b: Case-sensitivity guard (iOS is case-sensitive) ─────
+echo "CHECK 1b: Case-sensitivity (iOS != macOS dev workstation)"
+DESC_BASENAME="$(basename "$UPROJECT")"
+if [[ "$DESC_BASENAME" == "${INTERNAL_ID}.uproject" ]]; then
+    pass "Disk filename case-matches INTERNAL_ID exactly: ${INTERNAL_ID}.uproject"
+else
+    fail "Disk filename '${DESC_BASENAME}' differs from '${INTERNAL_ID}.uproject' — iOS will refuse to open"
+fi
+DIR_BASENAME="$(basename "$PROJECT_DIR")"
+if [[ "$DIR_BASENAME" == "$INTERNAL_ID" || "$DIR_BASENAME" == "${INTERNAL_ID}57" ]]; then
+    pass "Project folder case is iOS-safe: $DIR_BASENAME"
+else
+    warn "Project folder '$DIR_BASENAME' is not exact case match for $INTERNAL_ID — symlink to ~/Developer/${INTERNAL_ID} recommended"
+fi
+
 # ─── Check 2: Target.cs files ─────────────────────────────────────
 echo "CHECK 2: Target.cs naming"
 if [[ -f "$PROJECT_DIR/Source/${INTERNAL_ID}.Target.cs" ]]; then

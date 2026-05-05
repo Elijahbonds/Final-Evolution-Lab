@@ -44,18 +44,40 @@ export DEVICE="iPhone16,2"   # iPhone 16 Pro Max
 
 ## 4. Run the shipping pipeline
 
+**Standard shipping build:**
 ```bash
 ./fel_ue5_ios_shipping_package.sh --shipping
 ```
 
-What this does (fail-fast, idempotent):
-1. `infra/fel_prebuild_ci_check.sh` — UE5 descriptor / scheme integrity guard
-2. `GET ${BACKEND_URL}/api/sovereign/handshake/verify` — confirms the iOS bridge can talk to the production Sovereign Hub
-3. `RunUAT.sh BuildCookRun` for IOS Shipping (cook, build, stage, pak, archive)
-4. `xcodebuild archive` → `.xcarchive`
-5. `xcodebuild -exportArchive` with `infra/ue5_config/ExportOptions.plist` → `.ipa`
-6. Writes `dist/ios/manifest.json` with build metadata
-7. Logs land in `dist/ios/logs/{uat,archive,export}.log`
+**Emergency descriptor-error rebuild** (use this when "Failed to open descriptor file" appears on device):
+```bash
+./fel_ue5_ios_shipping_package.sh --shipping --purge-cache --no-pak
+```
+
+What `--purge-cache` does:
+- Deletes `Binaries/`, `Intermediate/`, `Saved/`, `DerivedDataCache/` under the project
+- Re-generates Xcode project files
+- Forces UAT to use current production-hardened paths instead of stale ones
+
+What `--no-pak` does:
+- Builds without `.pak` and Io Store
+- Stages `.uproject` as a flat file inside the IPA payload
+- Slightly larger IPA, but the OS can resolve the descriptor without the PAK loader
+
+What every shipping run does (fail-fast, idempotent):
+1. `infra/fel_prebuild_ci_check.sh` — UE5 descriptor / scheme / case-sensitivity guard
+2. `--purge-cache` (if set) — brute-force clean of UE5 build state
+3. Case-sensitivity check on disk filename vs `SCHEME` (iOS != macOS)
+4. `GET ${BACKEND_URL}/api/sovereign/handshake/verify` — confirms iOS bridge can reach the production Sovereign Hub
+5. `RunUAT.sh BuildCookRun` for IOS Shipping (cook, build, stage, archive ± pak)
+6. `xcodebuild archive` → `.xcarchive`
+7. `xcodebuild -exportArchive` with `infra/ue5_config/ExportOptions.plist` → `.ipa`
+8. **Post-build IPA inspection** — unzips the IPA and verifies:
+   - `.uproject` lives at `Payload/<App>.app/cookeddata/<SCHEME>/<SCHEME>.uproject` (flat) OR a `.pak` exists (compressed)
+   - `Info.plist` `UE_PROJECT_NAME` equals the SCHEME exactly
+   - **Aborts the build if the descriptor would not be findable at runtime**
+9. Writes `dist/ios/manifest.json` with build metadata
+10. Logs land in `dist/ios/logs/{uat,archive,export,regen}.log`
 
 ## 5. Upload to App Store Connect
 
@@ -102,11 +124,12 @@ If `ok` is `false`, the build is aborted before signing. Common causes:
 
 | Symptom | Fix |
 |---|---|
+| `Failed to open descriptor file ../../../FinalEvolutionLab/FinalEvolutionLab.uproject` | Run `./fel_ue5_ios_shipping_package.sh --shipping --purge-cache --no-pak`. The post-build IPA inspector now blocks the export if the descriptor is missing. If `fel_prebuild_ci_check.sh` reports CHECK 1b case mismatch, fix the disk filename to match `FinalEvolutionLab.uproject` exactly. |
 | `Code signing required` | Confirm `TEAM_ID` env var; `--allowProvisioningUpdates` is already set |
-| `RunUAT: missing target` | Ensure `FinalEvolutionLab.Target.cs` is in `Source/` |
-| `descriptor not found` | Run `infra/fix_ios_descriptor_path.sh` once; re-build |
+| `RunUAT: missing target` | Ensure `FinalEvolutionLab.Target.cs` is in `Source/`. Run `./infra/fix_ios_descriptor_path.sh` to auto-create it |
+| `descriptor not found` (different from above) | Run `infra/fix_ios_descriptor_path.sh` once; re-build with `--purge-cache` |
 | Handshake `ok: false` | Check backend `.env` `EMERGENT_GAME_WS_URL` matches `wss://finalevolutiongroup.com/ws/sovereign` |
-| IPA size > 500 MB | Disable unused UE5 plugins; check `--nodebuginfo` is set |
+| IPA size > 500 MB | Disable unused UE5 plugins; check `--nodebuginfo` is set; remove `--no-pak` once descriptor is verified |
 
 ---
 
