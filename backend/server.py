@@ -710,6 +710,254 @@ async def get_client_config():
         "version": "2.0.0"
     }
 
+# ===================== BIO-DIGITAL MASTERCLASS ECOSYSTEM =====================
+
+@api_router.get("/bio-digital/anatomy-overlay")
+async def get_anatomy_overlay_config():
+    """Ghost-in-the-Shell 3D anatomy overlay config for UE5 avatars"""
+    return {
+        "overlay_name": "Ghost Shell View",
+        "description": "Semi-transparent skin revealing musculoskeletal system and neural pathways during gameplay",
+        "render_layers": [
+            {"id": "skin_transparent", "opacity": 0.15, "material": "M_Skin_GhostShell", "order": 1},
+            {"id": "musculoskeletal", "opacity": 0.9, "material": "M_Anatomy_Muscles", "order": 2, "subsystems": ["skeletal_frame", "major_muscle_groups", "tendons_ligaments"]},
+            {"id": "fascia_network", "opacity": 0.7, "material": "M_Anatomy_Fascia", "order": 3, "highlight_on": "tension_detected"},
+            {"id": "neural_pathways", "opacity": 0.6, "material": "M_Anatomy_Neural", "order": 4, "pulse_on": "activation_signal"},
+            {"id": "vascular", "opacity": 0.4, "material": "M_Anatomy_Vascular", "order": 5, "optional": True}
+        ],
+        "real_time_highlights": {
+            "iap_zones": {
+                "description": "Intra-Abdominal Pressure visualization during high-intensity movements",
+                "trigger_modes": ["basketball_dunk", "basketball_h2h", "karate_h2h", "karate_endless"],
+                "visualization": "radial_gradient_core",
+                "color_low": "#00FF9D",
+                "color_high": "#FF3366",
+                "data_source": "imu_core_acceleration"
+            },
+            "biotensegrity": {
+                "description": "Tensional integrity network showing force distribution across fascial lines",
+                "trigger": "movement_phase_change",
+                "lines": ["superficial_back_line", "superficial_front_line", "lateral_line", "spiral_line", "arm_lines", "functional_lines"],
+                "visualization": "animated_tension_paths",
+                "data_source": "joint_angle_derivatives"
+            },
+            "kinetic_leakage": {
+                "description": "Points where force transmission breaks down in the kinetic chain",
+                "visualization": "red_pulse_at_joint",
+                "threshold": "angle_deviation > 15deg from optimal",
+                "common_sites": ["ankle_dorsiflexion", "hip_internal_rotation", "thoracic_extension", "scapular_stability"]
+            }
+        },
+        "supported_modes": ["basketball_h2h", "basketball_dunk", "karate_h2h", "karate_endless", "soccer", "gymnastics"],
+        "ue5_material_instances": {
+            "ghost_shell_master": "/Game/FEL/Materials/MI_GhostShell_Master",
+            "muscle_highlight": "/Game/FEL/Materials/MI_Muscle_Highlight",
+            "neural_pulse": "/Game/FEL/Materials/MI_Neural_Pulse",
+            "fascia_tension": "/Game/FEL/Materials/MI_Fascia_Tension"
+        }
+    }
+
+@api_router.get("/bio-digital/neuro-cues/{mode_id}")
+async def get_neuro_cues(mode_id: str):
+    """Movement education neuro-cues triggered by joint angles during gameplay"""
+    cue_registry = {
+        "basketball_dunk": [
+            {"joint": "ankle", "angle_trigger": 25, "cue_type": "audio", "text": "Load the spring — dorsiflexion drives vertical force", "timing": "pre_jump", "frc_principle": "PAILs/RAILs ankle"},
+            {"joint": "hip", "angle_trigger": 110, "cue_type": "visual_text", "text": "Hip hinge deep — store elastic energy in posterior chain", "timing": "loading_phase", "frc_principle": "CARs hip"},
+            {"joint": "shoulder", "angle_trigger": 170, "cue_type": "audio", "text": "Arm swing generates 15% of vertical force — full extension", "timing": "takeoff", "frc_principle": "Shoulder CARs"},
+            {"joint": "core", "angle_trigger": 0, "cue_type": "haptic", "text": "IAP brace — 360° core activation before liftoff", "timing": "pre_jump", "frc_principle": "Intra-abdominal pressure"}
+        ],
+        "karate_h2h": [
+            {"joint": "hip", "angle_trigger": 90, "cue_type": "visual_text", "text": "Rotate from the hip — power originates proximal to distal", "timing": "strike_initiation", "frc_principle": "Kinetic chain sequencing"},
+            {"joint": "shoulder", "angle_trigger": 45, "cue_type": "audio", "text": "Retract scapula — create tension before release", "timing": "wind_up", "frc_principle": "Scapular stability"},
+            {"joint": "wrist", "angle_trigger": 180, "cue_type": "visual_text", "text": "Snap the wrist — final link in kinetic chain", "timing": "impact", "frc_principle": "Distal acceleration"},
+            {"joint": "knee", "angle_trigger": 45, "cue_type": "audio", "text": "Reactive base — absorb and redirect ground reaction force", "timing": "stance_phase", "frc_principle": "FRC end-range"}
+        ],
+        "basketball_h2h": [
+            {"joint": "ankle", "angle_trigger": 20, "cue_type": "visual_text", "text": "Quick first step — ankle stiffness drives acceleration", "timing": "drive_initiation", "frc_principle": "Ankle PAILs"},
+            {"joint": "hip", "angle_trigger": 80, "cue_type": "audio", "text": "Low center of gravity — hip flexion creates deceptive stance", "timing": "crossover", "frc_principle": "Hip CARs"},
+            {"joint": "spine", "angle_trigger": 15, "cue_type": "visual_text", "text": "Thoracic rotation separates upper from lower — creates space", "timing": "drive_phase", "frc_principle": "Spinal segmentation"}
+        ]
+    }
+    cues = cue_registry.get(mode_id, [])
+    return {
+        "mode_id": mode_id,
+        "total_cues": len(cues),
+        "cues": cues,
+        "delivery_methods": ["audio_tts", "visual_text_overlay", "haptic_feedback", "avatar_highlight"],
+        "frc_integration": True,
+        "data_source": "sovereign_hub_telemetry → joint_angle_stream"
+    }
+
+@api_router.get("/bio-digital/masterclass/{card_id}")
+async def get_masterclass_mode(card_id: str):
+    """Creator Card Masterclass Mode — pro demonstration with neuro-cues"""
+    cards_data = {
+        "card_elijah": {
+            "creator": "Elijah Bonds",
+            "specialty": "Vertical Explosion & Ball Handling",
+            "demonstrations": [
+                {"move": "Magic Reveal Dunk", "animation": "anim_magic_dunk", "neuro_cues": 4, "anatomy_highlights": ["hip_extensors", "ankle_plantar_flexors", "core_iap"], "comparison_enabled": True},
+                {"move": "Venice Crossover", "animation": "anim_crossover", "neuro_cues": 3, "anatomy_highlights": ["hip_internal_rotation", "ankle_inversion", "lateral_line"], "comparison_enabled": True},
+                {"move": "Beach Body Fadeaway", "animation": "anim_fadeaway", "neuro_cues": 3, "anatomy_highlights": ["thoracic_extension", "shoulder_abduction", "biotensegrity_spiral"], "comparison_enabled": True}
+            ],
+            "teaching_points": [
+                "Vertical force = ankle stiffness × hip drive × arm swing synchronization",
+                "Crossover deception comes from hip internal rotation speed, not hand speed",
+                "Fadeaway balance requires IAP engagement 200ms before release"
+            ]
+        },
+        "card_amir": {
+            "creator": "Amir Smith",
+            "specialty": "Kinetic Chain Striking & Combat Flow",
+            "demonstrations": [
+                {"move": "Shadow Strike", "animation": "anim_shadow_strike", "neuro_cues": 4, "anatomy_highlights": ["hip_rotators", "obliques", "forearm_extensors"], "comparison_enabled": True},
+                {"move": "Iron Fist Combo", "animation": "anim_iron_fist", "neuro_cues": 5, "anatomy_highlights": ["full_kinetic_chain", "fascia_arm_lines", "core_anti_rotation"], "comparison_enabled": True},
+                {"move": "Dragon Sweep", "animation": "anim_dragon_sweep", "neuro_cues": 3, "anatomy_highlights": ["hip_abductors", "ankle_evertors", "lateral_line_tension"], "comparison_enabled": True}
+            ],
+            "teaching_points": [
+                "Strike power = proximal-to-distal sequencing with zero kinetic leakage",
+                "Combo flow requires fascial pre-tension — the spring before the release",
+                "Sweep mechanics: ground reaction force redirected through lateral fascial sling"
+            ]
+        },
+        "card_eric": {
+            "creator": "Eric Nash",
+            "specialty": "Functional Range & Periodization",
+            "demonstrations": [
+                {"move": "Foundation Flow", "animation": "anim_foundation", "neuro_cues": 6, "anatomy_highlights": ["hip_capsule", "shoulder_capsule", "spine_segmental", "ankle_complex"], "comparison_enabled": True},
+                {"move": "Power Circuit", "animation": "anim_power_circuit", "neuro_cues": 4, "anatomy_highlights": ["posterior_chain", "anterior_chain", "biotensegrity_full"], "comparison_enabled": True}
+            ],
+            "teaching_points": [
+                "FRC principle: own the range before you load the range",
+                "Periodization = progressive overload of joint capsule capacity",
+                "Movement quality > movement quantity — tissue adaptation takes 6-8 weeks"
+            ]
+        }
+    }
+    data = cards_data.get(card_id, {})
+    if not data:
+        raise HTTPException(status_code=404, detail="Creator card not found")
+    return {
+        "card_id": card_id,
+        **data,
+        "ghost_shell_enabled": True,
+        "side_by_side_comparison": True,
+        "sovereign_feedback": True,
+        "frc_principles_integrated": True
+    }
+
+# ===================== 3D FITNESS CATALOGUE (The Vault) =====================
+
+@api_router.get("/bio-digital/vault")
+async def get_fitness_vault():
+    """3D Fitness Catalogue — rotate, zoom, dissect exercises in lab environment"""
+    return {
+        "vault_name": "The Vault · 3D Fitness Catalogue",
+        "description": "Interactive 3D exercise library with anatomical dissection and FRC mobility drills",
+        "categories": [
+            {
+                "id": "frc_mobility",
+                "name": "FRC Mobility",
+                "description": "Functional Range Conditioning drills for joint health and control",
+                "exercises": [
+                    {"id": "ex_hip_cars", "name": "Hip CARs", "joints": ["hip"], "anatomy": ["hip_capsule", "hip_rotators", "glute_complex"], "duration": "90s/side", "level": "foundation"},
+                    {"id": "ex_shoulder_cars", "name": "Shoulder CARs", "joints": ["shoulder"], "anatomy": ["glenohumeral", "rotator_cuff", "scapular_stabilizers"], "duration": "90s/side", "level": "foundation"},
+                    {"id": "ex_ankle_pails", "name": "Ankle PAILs/RAILs", "joints": ["ankle"], "anatomy": ["ankle_dorsiflexors", "plantar_flexors", "peroneals"], "duration": "2min/side", "level": "intermediate"},
+                    {"id": "ex_spine_segmental", "name": "Spinal Segmentation", "joints": ["spine"], "anatomy": ["multifidus", "erector_spinae", "thoracolumbar_fascia"], "duration": "3min", "level": "intermediate"},
+                    {"id": "ex_hip_90_90", "name": "90/90 Hip Switches", "joints": ["hip"], "anatomy": ["hip_internal_rotation", "hip_external_rotation", "adductors"], "duration": "2min", "level": "foundation"}
+                ]
+            },
+            {
+                "id": "explosive_power",
+                "name": "Explosive Power",
+                "description": "Plyometric and ballistic movements for athletic performance",
+                "exercises": [
+                    {"id": "ex_box_jump", "name": "Box Jump", "joints": ["ankle", "knee", "hip"], "anatomy": ["posterior_chain", "quadriceps", "ankle_complex"], "duration": "4x8", "level": "intermediate"},
+                    {"id": "ex_med_ball_slam", "name": "Medicine Ball Slam", "joints": ["shoulder", "spine", "hip"], "anatomy": ["lats", "core", "hip_flexors"], "duration": "3x12", "level": "intermediate"},
+                    {"id": "ex_depth_jump", "name": "Depth Jump", "joints": ["ankle", "knee"], "anatomy": ["achilles_tendon", "quadriceps_tendon", "fascial_recoil"], "duration": "4x6", "level": "advanced"},
+                    {"id": "ex_rotational_throw", "name": "Rotational Med Ball Throw", "joints": ["hip", "spine", "shoulder"], "anatomy": ["obliques", "hip_rotators", "spiral_fascial_line"], "duration": "3x8/side", "level": "intermediate"}
+                ]
+            },
+            {
+                "id": "neuromuscular",
+                "name": "Neuromuscular Control",
+                "description": "Proprioception, balance, and motor control training",
+                "exercises": [
+                    {"id": "ex_single_leg_rdl", "name": "Single Leg RDL", "joints": ["hip", "ankle"], "anatomy": ["hamstrings", "glute_med", "ankle_stabilizers"], "duration": "3x10/side", "level": "intermediate"},
+                    {"id": "ex_perturbation", "name": "Perturbation Training", "joints": ["full_body"], "anatomy": ["vestibular_system", "proprioceptors", "core_reactive"], "duration": "5min", "level": "advanced"},
+                    {"id": "ex_reactive_cuts", "name": "Reactive Cutting Drills", "joints": ["ankle", "knee", "hip"], "anatomy": ["peroneals", "acl_protection", "hip_abductors"], "duration": "4x30s", "level": "advanced"}
+                ]
+            },
+            {
+                "id": "anatomy_theory",
+                "name": "Anatomy Theory",
+                "description": "Interactive 3D dissection of movement systems",
+                "modules": [
+                    {"id": "mod_fascia", "name": "Fascial Lines & Biotensegrity", "topics": ["superficial_back_line", "superficial_front_line", "lateral_line", "spiral_line", "arm_lines", "tensegrity_model"]},
+                    {"id": "mod_neural", "name": "Neural Drive & Motor Learning", "topics": ["motor_unit_recruitment", "rate_coding", "intermuscular_coordination", "neuroplasticity"]},
+                    {"id": "mod_iap", "name": "Intra-Abdominal Pressure", "topics": ["diaphragm_mechanics", "pelvic_floor", "transversus_abdominis", "breathing_bracing"]},
+                    {"id": "mod_kinetic_chain", "name": "Kinetic Chain Mechanics", "topics": ["proximal_to_distal", "force_coupling", "kinetic_leakage_sites", "ground_reaction_force"]}
+                ]
+            }
+        ],
+        "interaction": {
+            "rotate_3d": True,
+            "zoom": True,
+            "dissect_layers": True,
+            "ghost_shell_toggle": True,
+            "play_animation": True,
+            "overlay_fascia_lines": True,
+            "highlight_active_muscles": True
+        },
+        "total_exercises": 12,
+        "total_theory_modules": 4,
+        "ue5_viewport": "/Game/FEL/Maps/Anatomy_Lab"
+    }
+
+@api_router.get("/bio-digital/vault/{exercise_id}")
+async def get_exercise_detail(exercise_id: str):
+    """Detailed 3D exercise view with anatomy layers"""
+    exercises = {
+        "ex_hip_cars": {"name": "Hip CARs (Controlled Articular Rotations)", "joints": ["hip"], "anatomy_layers": [{"layer": "joint_capsule", "description": "Hip capsule receives synovial fluid distribution through full ROM"}, {"layer": "muscles", "active": ["psoas", "iliacus", "glute_max", "glute_med", "piriformis", "adductors"], "description": "Sequential activation through rotational arc"}, {"layer": "fascia", "lines": ["lateral_line", "spiral_line"], "description": "Fascial tension creates proprioceptive feedback at end-ranges"}], "frc_purpose": "Maintain and expand usable hip ROM through active joint exploration", "neuro_benefit": "Enhanced proprioceptive mapping of hip joint space"},
+        "ex_box_jump": {"name": "Box Jump", "joints": ["ankle", "knee", "hip"], "anatomy_layers": [{"layer": "muscles", "active": ["gastrocnemius", "soleus", "quadriceps", "glute_max", "hamstrings"], "description": "Triple extension chain: ankle → knee → hip"}, {"layer": "tendons", "active": ["achilles", "patellar", "hamstring_origin"], "description": "Elastic energy storage and release"}, {"layer": "fascia", "lines": ["superficial_back_line"], "description": "Full posterior fascial sling engagement"}], "frc_purpose": "Express power through full range with reactive joint stiffness", "neuro_benefit": "Rate of force development and plyometric neural drive"},
+    }
+    ex = exercises.get(exercise_id)
+    if not ex:
+        return {"exercise_id": exercise_id, "name": exercise_id.replace("ex_", "").replace("_", " ").title(), "anatomy_layers": [], "frc_purpose": "General movement quality", "neuro_benefit": "Motor pattern reinforcement"}
+    return {"exercise_id": exercise_id, **ex, "ghost_shell_enabled": True, "dissect_enabled": True}
+
+# ===================== AVATAR SYNTHESIS (Session Comparison) =====================
+
+@api_router.post("/bio-digital/compare")
+async def create_comparison_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Side-by-side playback: user's recorded session vs Pro Creator's movement"""
+    comparison = {
+        "id": str(uuid.uuid4()),
+        "user_id": user.user_id,
+        "creator_card_id": data.get("card_id"),
+        "move_id": data.get("move_id"),
+        "user_session_id": data.get("session_id"),
+        "analysis": {
+            "joint_angle_deviation": data.get("deviations", {}),
+            "kinetic_leakage_points": [],
+            "timing_difference_ms": 0,
+            "overall_similarity_pct": 0
+        },
+        "ghost_shell_enabled": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.comparison_sessions.insert_one(comparison)
+    return {k: v for k, v in comparison.items() if k != "_id"}
+
+@api_router.get("/bio-digital/compare/{session_id}")
+async def get_comparison(session_id: str, user: User = Depends(get_current_user)):
+    """Get comparison results — biomechanical analysis"""
+    comp = await db.comparison_sessions.find_one({"id": session_id, "user_id": user.user_id}, {"_id": 0})
+    if not comp:
+        raise HTTPException(status_code=404)
+    return comp
+
 
     return {"total_workouts":w,"total_games":g,"total_brawls":b,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"prq_score":user.prq_score,"coins":user.coins}
 
