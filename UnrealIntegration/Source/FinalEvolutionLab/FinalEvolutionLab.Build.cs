@@ -18,9 +18,20 @@ public class FinalEvolutionLab : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"Json",
+			"RHI",
 			"RenderCore",
 			"WebSockets",
 			"Sockets",
 		});
+
+		// iOS-only overlay (WKWebView) lives behind PLATFORM_IOS.
+		if (Target.Platform == UnrealTargetPlatform.IOS)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[]
+			{
+				"WebKit",
+				"MetalRHI",
+			});
+		}
 	}
 }

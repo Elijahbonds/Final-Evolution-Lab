@@ -25,6 +25,8 @@ final class UnityManager {
     private func loadUnity() {
         guard !isUnityLoaded else { return }
 
+        // Legacy: Unity embedding is being phased out in favor of Unreal-as-host.
+        // Keep this code path inert unless UnityFramework is actually present.
         let bundlePath = Bundle.main.privateFrameworksPath ?? ""
         let frameworkPath = bundlePath + "/UnityFramework.framework"
         guard let bundle = Bundle(path: frameworkPath) else {

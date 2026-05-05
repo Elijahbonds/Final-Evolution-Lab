@@ -436,6 +436,17 @@ verify_ios_app_bundle_plist() {
       /usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$app/Info.plist" 2>/dev/null \
         && echo "    (CFBundleIdentifier printed above)"
     fi
+    if command -v /usr/libexec/PlistBuddy >/dev/null 2>&1; then
+      local missing=()
+      for k in NSCameraUsageDescription NSHealthShareUsageDescription NSHealthUpdateUsageDescription NSBluetoothAlwaysUsageDescription; do
+        /usr/libexec/PlistBuddy -c "Print :${k}" "$app/Info.plist" >/dev/null 2>&1 || missing+=("$k")
+      done
+      if [[ "${#missing[@]}" -gt 0 ]]; then
+        echo "WARN: Missing privacy keys in Info.plist (some features may crash/deny permissions):"
+        for k in "${missing[@]}"; do echo "    - $k"; done
+        echo "      Fix: merge UnrealIntegration/Config/DefaultEngine.FEL_iOS_URL_scheme.snippet.ini into your UE Config/DefaultEngine.ini"
+      fi
+    fi
     if [[ -d "$app/cookeddata" ]] || find "$app" -maxdepth 8 -name '*.pak' -print -quit 2>/dev/null | grep -q .; then
       echo ">>> OK: cooked payload present (cookeddata/ and/or .pak in bundle)."
     else
