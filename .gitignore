@@ -142,3 +142,15 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Build artifacts
+artifacts/
+*.ipa
+*.app
+*.dSYM
+*.xcarchive
+
+# UE5 intermediate
+Saved/
+Intermediate/
+DerivedDataCache/
