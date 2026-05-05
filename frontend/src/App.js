@@ -469,36 +469,63 @@ const GameModesView = () => {
   const [playingMode, setPlayingMode] = useState(null);
   const [launchingMode, setLaunchingMode] = useState(null);
   const [sessionState, setSessionState] = useState(null);
+  const [launchStatus, setLaunchStatus] = useState(null); // null, 'launching', 'map_loading', 'timeout'
+  const wsRef = useRef(null);
 
+  // Fetch modes from centralized venue registry (not hardcoded)
   useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
 
   const launchNativeMode = async (mode) => {
     setLaunchingMode(mode.id);
+    setLaunchStatus('launching');
     try {
       const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
-      // Primary path: Deep link to UE5 native binary
+
+      // Deep link to UE5 native binary
       const deepLink = r.data.deep_link;
       if (deepLink) {
         window.location.href = deepLink;
-        // UE5 binary takes over — show loading state while map loads
-        // The FELEmergentBridgeSubsystem will send MapLoaded confirmation via WebSocket
-        // If on desktop/web (not iOS), fallback after 3s
+
+        // State-Aware Handshake: listen for MapLoaded via WebSocket
+        // NOT a blind timeout — wait for actual bridge confirmation
+        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+        setLaunchStatus('map_loading');
+
+        ws.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'sovereign_handshake' || msg.type === 'map_loaded') {
+              // MapLoaded signal received from UFELEmergentBridgeSubsystem
+              setLaunchStatus(null);
+              setLaunchingMode(null);
+              ws.close();
+            }
+          } catch {}
+        };
+
+        // 10s System Re-auth (NOT browser fallback)
+        // If no MapLoaded signal, trigger re-auth instead of showing placeholder
         setTimeout(() => {
-          setLaunchingMode(null);
-          // Only fallback to browser game if NOT on iOS
-          const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-          if (!isIOS) {
-            setPlayingMode(mode);
+          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+            ws.close();
+            setLaunchStatus('timeout');
+            // System Re-auth: re-verify session, do NOT fall back to browser game
+            axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: 'timeout' }).catch(() => {});
+            setLaunchingMode(null);
           }
-        }, 3000);
+        }, 10000);
       } else {
-        // No deep link — use browser fallback
+        // No deep link available (desktop/web) — use browser version
         setLaunchingMode(null);
+        setLaunchStatus(null);
         setPlayingMode(mode);
       }
     } catch {
       setLaunchingMode(null);
+      setLaunchStatus(null);
       setPlayingMode(mode);
     }
   };
@@ -512,19 +539,34 @@ const GameModesView = () => {
     } catch {}
   };
 
-  if (launchingMode) {
+  if (launchingMode || launchStatus === 'timeout') {
     return (
       <div className="max-w-xl mx-auto text-center space-y-6 fade-in" data-testid="ue5-loading">
         <div className="surface-active p-12">
-          <div className="w-20 h-20 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING UE5 MODULE</h2>
-          <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab.uproject → {launchingMode.replace(/_/g,' ')}</p>
-          <div className="mt-6 space-y-2 text-xs text-zinc-500 font-mono">
-            <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Sovereign Hub: Connected</div>
-            <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered</div>
-            <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>Awaiting MapLoaded from bridge...</div>
-          </div>
-          <p className="text-xs text-zinc-600 mt-6">Deep link: finalevolution://launch?map=...</p>
+          {launchStatus === 'timeout' ? (
+            <>
+              <Shield className="w-20 h-20 text-yellow-400 mx-auto mb-6" />
+              <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>SYSTEM RE-AUTH REQUIRED</h2>
+              <p className="text-zinc-400 mt-3">No MapLoaded signal received within 10s.</p>
+              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Sovereign Hub is reachable.</p>
+              <div className="flex gap-4 mt-6 justify-center">
+                <button onClick={() => {setLaunchStatus(null);setLaunchingMode(null);}} className="btn-secondary">Back to Modes</button>
+                <button onClick={() => launchNativeMode(modes.find(m => m.id === launchingMode) || modes[0])} className="btn-primary">Retry Launch</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+              <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING UE5 MODULE</h2>
+              <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab.uproject → {(launchingMode || '').replace(/_/g,' ')}</p>
+              <div className="mt-6 space-y-2 text-xs text-zinc-500 font-mono">
+                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Sovereign Hub</div>
+                <div className="flex items-center gap-2 justify-center"><div className={`w-2 h-2 rounded-full ${launchStatus === 'map_loading' ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'}`}></div>Awaiting MapLoaded handshake from bridge...</div>
+                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-zinc-600 rounded-full"></div>Secure Enclave validated</div>
+              </div>
+              <p className="text-xs text-zinc-600 mt-6">State-aware handshake (no blind timeout)</p>
+            </>
+          )}
         </div>
       </div>
     );

@@ -72,7 +72,7 @@ export const SovereignDashboard = () => {
             {wsConnected ? <Wifi className="w-8 h-8 text-green-400" /> : <Radio className="w-8 h-8 text-yellow-400 animate-pulse" />}
             <div>
               <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{wsConnected ? 'CONNECTED' : 'LISTENING'}</h3>
-              <p className="font-mono text-xs text-cyan-400">ws://localhost:8888</p>
+              <p className="font-mono text-xs text-cyan-400">wss://finalevolutiongroup.com/ws/sovereign</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -155,7 +155,7 @@ export const SovereignDashboard = () => {
 
         {/* Data source confirmation */}
         <div className="bg-black/30 p-2 border border-white/5 text-xs text-zinc-600 font-mono text-center">
-          AFELBasketballGameState → ws://localhost:8888 → Local MongoDB · No cloud · No simulation
+          AFELBasketballGameState → wss://finalevolutiongroup.com/ws/sovereign → Local MongoDB · No cloud · No simulation
         </div>
       </div>
 

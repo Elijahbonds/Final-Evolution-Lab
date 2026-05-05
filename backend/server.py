@@ -641,6 +641,76 @@ async def get_progress(user: User = Depends(get_current_user)):
     w = await db.workout_logs.count_documents({"user_id":user.user_id})
     g = await db.game_sessions.count_documents({"user_id":user.user_id})
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
+
+# ===================== CENTRALIZED VENUE REGISTRY (Fetch on launch) =====================
+
+@api_router.get("/registry/venues")
+async def get_venue_registry():
+    """Centralized venue registry — apps fetch this on launch, no hardcoded links"""
+    venues = VENUE_REGISTRY.get("venues", {})
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    ws_url = os.environ.get("EMERGENT_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/sovereign")
+
+    result = []
+    for mode_id, config in registry.items():
+        venue_key = config["map"].split("/")[-1]
+        venue_data = venues.get(venue_key, {})
+        result.append({
+            "mode_id": mode_id,
+            "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
+            "map_path": config["map"],
+            "venue_token": venue_key,
+            "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
+            "category": venue_data.get("category", "Unknown"),
+            "binary": config["binary"],
+            "status": config["status"],
+            "gamemode_class": config["gamemode_class"]
+        })
+
+    return {
+        "version": "2.0.0",
+        "total_modes": len(result),
+        "sovereign_hub": ws_url,
+        "deep_link_scheme": "finalevolution://",
+        "encryption": "AES-256-GCM",
+        "handshake_mode": "state_aware",
+        "timeout_action": "system_re_auth",
+        "timeout_seconds": 10,
+        "modes": result,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.get("/registry/config")
+async def get_client_config():
+    """Client configuration — fetched once on app launch for global settings"""
+    ws_url = os.environ.get("EMERGENT_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/sovereign")
+    return {
+        "sovereign_hub_url": ws_url,
+        "deep_link_scheme": "finalevolution://",
+        "encryption": "AES-256-GCM",
+        "handshake": {
+            "mode": "state_aware",
+            "signal": "MapLoaded",
+            "timeout_seconds": 10,
+            "timeout_action": "system_re_auth",
+            "no_browser_fallback": True
+        },
+        "integrity_guard": {
+            "required": True,
+            "secure_enclave": True,
+            "back_camera_verify": True,
+            "imu_visual_sync": True
+        },
+        "telemetry": {
+            "encrypted": True,
+            "algorithm": "AES-256-GCM",
+            "stream_interval_ms": 500
+        },
+        "registry_endpoint": "/api/registry/venues",
+        "version": "2.0.0"
+    }
+
+
     return {"total_workouts":w,"total_games":g,"total_brawls":b,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"prq_score":user.prq_score,"coins":user.coins}
 
 
@@ -892,10 +962,10 @@ async def get_streaming_status():
         "cloud_streaming": False,
         "e3ds_disabled": True,
         "provider": "local_sovereign",
-        "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on ws://localhost:8888. Launch app on iPhone to connect.",
+        "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect.",
         "supported_modes": list(mode_maps.keys()),
         "mode_maps": mode_maps,
-        "ws_url": "ws://localhost:8888",
+        "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
         "data_feed": True,
         "video_feed": False
     }
@@ -903,7 +973,7 @@ async def get_streaming_status():
 @api_router.post("/streaming/connect")
 async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_current_user)):
     """Local sovereign connect — no cloud URL needed"""
-    return {"status": "local_sovereign", "ws_url": "ws://localhost:8888", "mode": "biomechanical_data_feed"}
+    return {"status": "local_sovereign", "ws_url": "wss://finalevolutiongroup.com/ws/sovereign", "mode": "biomechanical_data_feed"}
 
 @api_router.post("/streaming/launch-mode")
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
@@ -1067,7 +1137,7 @@ async def get_mobile_config():
         "device_target": "iPhone 16 Pro Max",
         "deep_link_scheme": "finalevolution://",
         "sovereign_hub": {
-            "ws_url": "ws://localhost:8888",
+            "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
             "tunnel": "Cloudflare (wss://)",
             "sync_interval_ms": 500
         },

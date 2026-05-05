@@ -11,7 +11,7 @@ import Combine
 /// When an athlete taps a mode in the Sovereign Dashboard shell, this bridge:
 ///   1. Sends deep link to UE5 app: finalevolution://launch?map={venue}&mode={mode_id}&session={session_id}
 ///   2. Monitors app switch via UIApplication.didBecomeActiveNotification
-///   3. Establishes WebSocket to Sovereign Hub (ws://localhost:8888) for telemetry
+///   3. Establishes WebSocket to Sovereign Hub (wss://finalevolutiongroup.com/ws/sovereign) for telemetry
 
 @objc class FELNativeSwiftBridge: NSObject {
 
@@ -25,7 +25,7 @@ import Combine
     private var currentSessionId: String?
     private var currentVenue: String?
 
-    let sovereignHubURL = URL(string: "ws://localhost:8888")!
+    let sovereignHubURL = URL(string: "wss://finalevolutiongroup.com/ws/sovereign")!
     let deepLinkScheme = "finalevolution"
 
     // Production venue registry — matches FEL_VenueRegistry.production.json
