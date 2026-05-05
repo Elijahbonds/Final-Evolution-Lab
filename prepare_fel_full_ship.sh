@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # prepare_fel_full_ship.sh
-# Merge **full sideload ship** packaging into a UE project's DefaultGame.ini:
+# Merge **full Shipping cook + venue staging** defaults into a UE project's DefaultGame.ini:
 # bCookAll, MapsToCook, EmergentPlayMap, EmergentHubDiscovery, FELFeaturedMode.
 #
 # Uses infra/ue5_config/DefaultGame.ini as the canonical merged reference — copies the

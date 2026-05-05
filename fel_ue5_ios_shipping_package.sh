@@ -40,6 +40,7 @@
 #   ./fel_ue5_ios_shipping_package.sh --full-cook --verbose   # pass -verbose to RunUAT BuildCookRun
 #   ./fel_ue5_ios_shipping_package.sh --full-cook -map=VeniceBeach  # cook one map (e.g. Venice) instead of -allmaps
 #   ./fel_ue5_ios_shipping_package.sh --full-cook --allmaps   # explicit: cook all maps (default when -map is omitted)
+#   ./fel_ue5_ios_shipping_package.sh --full-cook --export-ipa   # after RunUAT: xcodebuild archive + -exportArchive (method: app-store → TestFlight / Transporter)
 #
 # =============================================================================
 set -euo pipefail
@@ -69,6 +70,8 @@ for arg in "$@"; do
   [[ "$arg" == "--full-cook" ]] && FULL_COOK=true
   [[ "$arg" == "--verbose" ]] && VERBOSE_UAT=true
   [[ "$arg" == "--export-ipa" ]] && EXPORT_IPA=true
+  # Legacy alias (same as --export-ipa; App Store Connect distribution only)
+  [[ "$arg" == "--export-ipa-appstore" ]] && EXPORT_IPA=true
   [[ "$arg" == "--shipping" ]] && export IOS_CLIENTCONFIG=Shipping
   [[ "$arg" == "--development" ]] && export IOS_CLIENTCONFIG=Development
   [[ "$arg" == "--allmaps" ]] && COOK_MAP_SHORT=""
@@ -466,10 +469,6 @@ copy_ios_deploy_artifacts() {
   [[ -z "$proj" ]] && return 0
   local deploy="$proj/Binaries/IOS/Deploy"
   mkdir -p "$deploy"
-  if [[ -f "$proj/Binaries/IOS/manifest.plist" ]]; then
-    cp -f "$proj/Binaries/IOS/manifest.plist" "$deploy/manifest.plist"
-    echo ">>> Copied manifest.plist → $deploy/"
-  fi
   local ipa=""
   ipa="$(find "$proj/Binaries/IOS" -maxdepth 1 -name '*.ipa' -print 2>/dev/null | head -1)"
   if [[ -z "$ipa" && -n "${IOS_ARCHIVE:-}" ]]; then
@@ -481,45 +480,36 @@ copy_ios_deploy_artifacts() {
   else
     echo ">>> NOTE: No FinalEvolutionLab.ipa found under Binaries/IOS or archive — export IPA from Xcode Organizer if needed."
   fi
-  if [[ -f "$proj/apps.json" ]]; then
-    cp -f "$proj/apps.json" "$deploy/apps.json"
-    echo ">>> Copied apps.json → $deploy/apps.json"
-  fi
 }
 
-# Replace manifest.plist bundle-version placeholder using CFBundleVersion from staged .app (OTA + AltStore parity).
-patch_manifest_bundle_version_from_app() {
+repack_descriptor_safe_ipa_from_cooked_app() {
   local proj="${1:-}"
   [[ -z "$proj" ]] && return 0
-  local bin_ios="$proj/Binaries/IOS"
-  local mp="$bin_ios/manifest.plist"
-  [[ -f "$mp" ]] || return 0
-  local app=""
-  app="$(find "$bin_ios" -maxdepth 1 -name '*.app' -type d 2>/dev/null | head -1)"
-  [[ -n "$app" && -f "$app/Info.plist" ]] || return 0
-  local bv
-  bv="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist" 2>/dev/null || true)"
-  [[ -n "$bv" ]] || return 0
-  if grep -q 'REPLACE_WITH_CFBundleVersion_FROM_IPA' "$mp" 2>/dev/null; then
-    /usr/bin/sed -i '' "s|<string>REPLACE_WITH_CFBundleVersion_FROM_IPA</string>|<string>${bv}</string>|" "$mp" 2>/dev/null || true
-    echo ">>> manifest.plist bundle-version ← CFBundleVersion $bv ($(basename "$app"))"
-  fi
-}
 
-# AltStore / SideStore Source JSON — same file for both clients. Refreshes on every successful cook.
-refresh_altstore_source_json() {
-  local proj="${1:-}"
-  [[ -z "$proj" ]] && return 0
-  local gen="$SCRIPT_DIR/scripts/fel_refresh_altstore_source.py"
-  [[ -f "$gen" ]] || {
-    echo "WARN: AltStore generator missing: $gen"
+  local app="$proj/Binaries/IOS/FinalEvolutionLab.app"
+  local out="$proj/Binaries/IOS/FinalEvolutionLab.ipa"
+  local deploy="$proj/Binaries/IOS/Deploy"
+  if [[ ! -d "$app" ]]; then
+    echo "WARN: Cannot repack descriptor-safe IPA; missing $app"
     return 0
-  }
-  if command -v python3 >/dev/null 2>&1; then
-    python3 "$gen" "$proj" || echo "WARN: fel_refresh_altstore_source.py exited non-zero"
-  else
-    echo "WARN: python3 not found — skipping apps.json refresh"
   fi
+  if [[ ! -d "$app/cookeddata" ]] && ! find "$app" -maxdepth 8 -name '*.pak' -print -quit 2>/dev/null | grep -q .; then
+    echo "WARN: Cannot repack descriptor-safe IPA; $app has no cookeddata/ or .pak"
+    return 0
+  fi
+
+  local tmp
+  tmp="$(mktemp -d /tmp/fel-ipa.XXXXXX)"
+  mkdir -p "$tmp/Payload" "$deploy"
+  ditto --norsrc "$app" "$tmp/Payload/FinalEvolutionLab.app"
+  rm -f "$out"
+  (
+    cd "$tmp"
+    COPYFILE_DISABLE=1 /usr/bin/zip -qry "$out" Payload
+  )
+  rm -rf "$tmp"
+  cp -f "$out" "$deploy/FinalEvolutionLab.ipa"
+  echo ">>> Repacked descriptor-safe .ipa from cooked app: $out"
 }
 
 # Before deleting _internal_staging, promote the fully staged signed .app back into Binaries + archive root.
@@ -623,6 +613,9 @@ run_ios_shipping_archive() {
   local uat_extra=()
   [[ "$FULL_COOK" == "true" ]] && uat_extra+=(-clean)
   [[ "$VERBOSE_UAT" == "true" ]] && uat_extra+=(-verbose)
+  local xml_config_cache="${UAT_XML_CONFIG_CACHE:-$PROJECT_DIR/Saved/AutomationTool/XmlConfigCache.bin}"
+  mkdir -p "$(dirname "$xml_config_cache")"
+  uat_extra+=("-XmlConfigCache=$xml_config_cache")
 
   local cook_tokens=(-cook)
   if [[ -n "$cook_map_full" ]]; then
@@ -664,67 +657,41 @@ run_ios_shipping_archive() {
 
   verify_ios_app_bundle_plist
 
-  emit_ota_manifest_plist_to_binaries_ios "$PROJECT_DIR"
-  patch_manifest_bundle_version_from_app "$PROJECT_DIR"
-  refresh_altstore_source_json "$PROJECT_DIR"
-  copy_ios_deploy_artifacts "$PROJECT_DIR"
+  # Descriptor-safe repack first (local artifact from cooked .app); optional --export-ipa runs after so the
+  # signed App Store .ipa is not overwritten by the repack zip.
+  repack_descriptor_safe_ipa_from_cooked_app "$PROJECT_DIR"
   if [[ "$EXPORT_IPA" == true ]]; then
     export_ipa_from_xcode_archive "$PROJECT_DIR"
   fi
+  copy_ios_deploy_artifacts "$PROJECT_DIR"
 
   local abs
   abs="$(cd "$IOS_ARCHIVE" && pwd)"
   echo ""
   echo "=== iOS $IOS_CLIENTCONFIG ARCHIVE COMPLETE ==="
-  echo "Absolute path (install via Xcode Organizer / Devices, or distribute per your workflow):"
+  echo "Absolute path (RunUAT archive + staged iOS output):"
   echo "  $abs"
   du -sh "$abs" 2>/dev/null || true
   echo ""
-  echo ">>> App bundle (TestFlight / devicectl install):"
+  echo ">>> Staged .app / .ipa under Binaries/IOS (validate cooked payload before upload):"
   local bin_ios="$PROJECT_DIR/Binaries/IOS"
   [[ -d "$bin_ios" ]] && find "$bin_ios" -maxdepth 2 \( -name '*.ipa' -o -name '*.app' \) -print 2>/dev/null || true
-  echo ">>> To produce a signed .ipa for Transporter / TestFlight: Xcode → Window → Organizer → Distribute App,"
-  echo "    or xcodebuild -exportArchive after archiving FinalEvolutionLab (IOS)."
+  echo ">>> Upload path: **App Store Connect** — Xcode → Organizer → **Distribute App**, Transporter, or"
+  echo "    \`./fel_ue5_ios_shipping_package.sh ... --export-ipa\` (uses infra/ue5_config/ExportOptions.plist)."
   echo ">>> Emergent telemetry on device: set Config/DefaultGame.ini [Emergent] SovereignHubHost=<Mac Mini LAN IP>"
   echo "    (GameWebSocketUrl may stay ws://127.0.0.1:PORT/... — the bridge rewrites localhost to the hub IP)."
-  print_sideload_distribution_hint "$PROJECT_DIR"
+  print_app_store_distribution_hint "$PROJECT_DIR"
 }
 
-emit_ota_manifest_plist_to_binaries_ios() {
-  local proj="${1:-}"
-  [[ -z "$proj" ]] && return 0
-  local out_dir="$proj/Binaries/IOS"
-  mkdir -p "$out_dir"
-  local tmpl="$SCRIPT_DIR/manifest.plist"
-  [[ -f "$tmpl" ]] || {
-    echo "WARN: manifest template missing: $tmpl"
-    return 0
-  }
-  /bin/cp -f "$tmpl" "$out_dir/manifest.plist"
-  if [[ -n "${FEL_OTA_IPA_URL:-}" ]]; then
-    /usr/bin/sed -i '' "s|https://finalevolutionlab.com/app/FinalEvolutionLab.ipa|${FEL_OTA_IPA_URL//&/\\&}|g" \
-      "$out_dir/manifest.plist" 2>/dev/null || true
-  fi
-  echo ""
-  echo ">>> OTA manifest (itms-services install): $out_dir/manifest.plist"
-  echo "    (set FEL_OTA_IPA_URL to retarget the .ipa before re-running this step if needed)"
-}
-
-print_sideload_distribution_hint() {
+print_app_store_distribution_hint() {
   local proj="${1:-.}"
   echo ""
-  echo "=== Third-party sideload (OTA / AltStore-style) ==="
-  echo "1. Merge UnrealIntegration/Config/DefaultEngine.FEL_iOS_sideload.snippet.ini into UE Config/DefaultEngine.ini"
-  echo "   (disables Game Center / Sign in with Apple entitlements — identity via Sovereign Hub)."
-  echo "2. Export a signed FinalEvolutionLab.ipa (Xcode Organizer → Distribute → Ad Hoc or Development)."
-  echo "3. Upload .ipa + repo-root manifest.plist over **HTTPS** (same host/path as manifest URLs)."
-  echo "4. Update manifest.plist bundle-version + software-package url; set apps.json versions[0].downloadURL + size."
-  echo "5. iPhone install link (safari / bio link):"
-  echo "   itms-services://?action=download-manifest&url=https://finalevolutionlab.com/app/manifest.plist"
-  echo "   Repo templates: $SCRIPT_DIR/manifest.plist , $SCRIPT_DIR/apps.json"
-  echo "   AltStore / SideStore source (same JSON): https://finalevolutionlab.com/apps.json"
-  echo "   Add button deep link: altstore://source?url=https://finalevolutionlab.com/apps.json"
-  echo "   Typical .ipa: export from Xcode Organizer after archive, or under Binaries/IOS if UAT emitted one."
+  echo "=== App Store Connect / TestFlight (distribution reminder) ==="
+  echo "1. Open Xcode → Window → Organizer → Archives → **Distribute App** (App Store Connect / TestFlight)."
+  echo "2. CLI: re-run with **--export-ipa** to produce a signed .ipa via infra/ue5_config/ExportOptions.plist (app-store)."
+  echo "3. Typical artifact after export:"
+  echo "   $proj/Binaries/IOS/FinalEvolutionLab.ipa"
+  echo "4. Descriptor safety: staged .app should include cooked payload (cookeddata/ and/or .pak) — this script prints warnings during plist verification."
   local ipa_found
   ipa_found="$(find "$proj/Binaries/IOS" -maxdepth 1 -name '*.ipa' -print 2>/dev/null | head -3)"
   if [[ -z "$ipa_found" ]]; then
@@ -743,24 +710,18 @@ export_ipa_from_xcode_archive() {
   [[ -d "$ws" ]] || { echo "WARN: iOS workspace missing: $ws"; return 0; }
 
   local xcarchive="$IOS_ARCHIVE/FinalEvolutionLab.xcarchive"
-  local export_dir="$IOS_ARCHIVE/_ipa_export"
+  local export_dir="$IOS_ARCHIVE/_ipa_export_appstore"
   mkdir -p "$IOS_ARCHIVE" "$export_dir"
+
+  local opts="$REPO_ROOT/infra/ue5_config/ExportOptions.plist"
+  [[ -f "$opts" ]] || { echo "WARN: App Store export plist missing: $opts"; return 0; }
 
   echo ""
   echo ">>> Xcode archive → $xcarchive"
   xcodebuild -workspace "$ws" -scheme FinalEvolutionLab -configuration Shipping -destination "generic/platform=iOS" \
     -archivePath "$xcarchive" archive || { echo "WARN: xcodebuild archive failed"; return 0; }
 
-  # Minimal export options for Development-style installs; adjust for App Store/TestFlight.
-  local opts="$IOS_ARCHIVE/ExportOptions.plist"
-  /usr/bin/plutil -create xml1 "$opts" 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Delete :method" "$opts" 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Add :method string development" "$opts" 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Delete :signingStyle" "$opts" 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Add :signingStyle string automatic" "$opts" 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Delete :compileBitcode" "$opts" 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Add :compileBitcode bool false" "$opts" 2>/dev/null || true
-
+  echo ">>> xcodebuild -exportArchive (method app-store — TestFlight / App Store Connect)"
   echo ">>> Exporting .ipa → $export_dir"
   xcodebuild -exportArchive -archivePath "$xcarchive" -exportPath "$export_dir" -exportOptionsPlist "$opts" \
     || { echo "WARN: xcodebuild -exportArchive failed"; return 0; }
@@ -773,14 +734,6 @@ export_ipa_from_xcode_archive() {
   else
     echo "WARN: No .ipa produced under $export_dir"
   fi
-}
-
-print_apple_business_manager_hint() {
-  echo ""
-  echo "=== Apple Business Manager / enterprise distribution (summary) ==="
-  echo "1. App Store Connect: upload the .ipa (or use Xcode Organizer → Distribute to TestFlight)."
-  echo "2. Apple Business Manager (business.apple.com): add your org, purchase or assign apps, MDM device assignment."
-  echo "3. For custom B2B private apps, use App Store Connect + Business Manager linking (see Apple 'Custom Apps')."
 }
 
 run_verify() {
@@ -822,7 +775,6 @@ main() {
   fi
 
   run_ios_shipping_archive "$ue_root"
-  print_apple_business_manager_hint
 }
 
 main "$@"
