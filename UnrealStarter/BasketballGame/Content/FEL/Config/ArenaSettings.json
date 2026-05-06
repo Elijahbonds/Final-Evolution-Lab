@@ -1,0 +1,174 @@
+{
+  "modes": {
+    "basketball_h2h": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Street · 1v1",
+      "unrealBasketballSlice": "StreetBall",
+      "bStreetJamArcade": true,
+      "timeLimitSeconds": 0,
+      "ballCount": 1,
+      "targetScore": 3,
+      "physicsJumpScale": 1.03,
+      "physicsWalkScale": 1.045,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
+    "basketball_dunk": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Dunk Contest",
+      "unrealBasketballSlice": "FirstToTwentyOne",
+      "ballSpawnType": "SingleAtPrimary",
+      "bIsDunkContest": true,
+      "timeLimitSeconds": 0,
+      "ballCount": 1,
+      "targetScore": 21,
+      "physicsJumpScale": 1.0,
+      "physicsWalkScale": 1.0,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
+    "basketball_3v3": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Street · 3v3",
+      "unrealBasketballSlice": "HalfCourtShootout",
+      "bStreetJamArcade": true,
+      "timeLimitSeconds": 0,
+      "ballCount": 2,
+      "targetScore": 11,
+      "physicsJumpScale": 1.035,
+      "physicsWalkScale": 1.055,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
+    "karate": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo.Dojo",
+      "modeDisplayName": "Karate · Dojo",
+      "unrealBasketballSlice": "StreetBall",
+      "targetScore": 5,
+      "timeLimitSeconds": 150,
+      "ballCount": 1
+    },
+    "baseball": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/BaseballPark/BaseballPark.BaseballPark",
+      "modeDisplayName": "Baseball · Ballpark",
+      "unrealBasketballSlice": "Practice",
+      "targetScore": 6,
+      "timeLimitSeconds": 300,
+      "ballCount": 1
+    },
+    "football": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Gridiron/Gridiron.Gridiron",
+      "modeDisplayName": "Football · kick return",
+      "unrealBasketballSlice": "StreetBall",
+      "targetScore": 3,
+      "timeLimitSeconds": 240,
+      "ballCount": 1,
+      "physicsWalkScale": 1.05
+    },
+    "soccer": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/SoccerStadium/SoccerStadium.SoccerStadium",
+      "modeDisplayName": "Soccer · stadium",
+      "unrealBasketballSlice": "StreetBall",
+      "targetScore": 5,
+      "timeLimitSeconds": 180,
+      "ballCount": 1
+    },
+    "golf": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Links/Links.Links",
+      "modeDisplayName": "Golf · Links",
+      "unrealBasketballSlice": "Practice",
+      "targetScore": 5,
+      "timeLimitSeconds": 300,
+      "ballCount": 1
+    },
+    "tennis": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/TennisCourt/TennisCourt.TennisCourt",
+      "modeDisplayName": "Tennis · Court",
+      "unrealBasketballSlice": "TimedBlitz",
+      "timeLimitSeconds": 120,
+      "targetScore": 5,
+      "ballCount": 1,
+      "physicsWalkScale": 1.04
+    },
+    "volleyball": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/SandCourt/SandCourt.SandCourt",
+      "modeDisplayName": "Volleyball · Sand court",
+      "unrealBasketballSlice": "TimedBlitz",
+      "timeLimitSeconds": 120,
+      "targetScore": 5,
+      "ballCount": 1,
+      "physicsWalkScale": 1.04
+    },
+    "gymnastics": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/TrainingFloor/TrainingFloor.TrainingFloor",
+      "modeDisplayName": "Gymnastics · Floor",
+      "unrealBasketballSlice": "Practice",
+      "targetScore": 5,
+      "timeLimitSeconds": 240,
+      "ballCount": 1
+    },
+    "brain_brawl": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/NeuroArena/NeuroArena.NeuroArena",
+      "modeDisplayName": "Academy · Brain Brawl",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 120,
+      "bScoringEnabled": false,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
+    "surfing": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Surf · Line",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 180,
+      "bScoringEnabled": true,
+      "physicsWalkScale": 1.06,
+      "physicsJumpScale": 1.04
+    },
+    "skateboarding": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Skate · Line",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 180,
+      "bScoringEnabled": true,
+      "physicsWalkScale": 1.05,
+      "physicsJumpScale": 1.06
+    },
+    "snowboarding": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/TrainingFloor/TrainingFloor.TrainingFloor",
+      "modeDisplayName": "Snow · Line",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 180,
+      "bScoringEnabled": true,
+      "physicsWalkScale": 1.04,
+      "physicsJumpScale": 1.05
+    },
+    "market_browse": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop.Luma_Venice_Shop",
+      "modeDisplayName": "Module Library",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 0,
+      "bScoringEnabled": false,
+      "bNeuroKineticLeakageForDunkParity": false
+    }
+  }
+}

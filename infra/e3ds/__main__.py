@@ -17,6 +17,7 @@ Prerequisites:
 import pulumi
 import pulumi_command as command
 import json, os
+from pathlib import Path
 
 # ─── Config ────────────────────────────────────────────────────────
 config = pulumi.Config()
@@ -32,24 +33,11 @@ gpu_tier         = config.get("gpuTier") or "rtx4080"  # rtx3070, rtx4080
 max_streams      = config.get_int("maxStreams") or 4
 idle_timeout_min = config.get_int("idleTimeoutMin") or 15
 
-# Game mode → map associations from FEL
-game_mode_maps = {
-    "basketball_h2h":  "Venice_Beach_Court",
-    "basketball_dunk": "Venice_Beach_Court",
-    "basketball_3v3":  "Venice_Beach_Court",
-    "karate_h2h":      "Zen_Dojo",
-    "karate_endless":  "Zen_Dojo",
-    "baseball":        "Baseball_Park",
-    "football":        "Gridiron_Stadium",
-    "soccer":          "Soccer_Stadium",
-    "golf":            "Links_Course",
-    "tennis":          "Tennis_Court",
-    "volleyball":      "Sand_Court",
-    "gymnastics":      "Training_Floor",
-    "surfing":         "Venice_Beach_Surf",
-    "skateboarding":   "Skate_Park",
-    "snowboarding":    "Mountain_Slope",
-}
+# Same registry as backend/server.py → backend/ue_mode_maps.json (all UE maps)
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_MAP_JSON = _REPO_ROOT / "backend" / "ue_mode_maps.json"
+with open(_MAP_JSON, encoding="utf-8") as _f:
+    game_mode_maps = json.load(_f)["mode_to_unreal_map"]
 
 # ─── E3DS Application Provisioning ─────────────────────────────────
 # Step 1: Create / update the E3DS application via their REST API
@@ -79,7 +67,7 @@ curl -sf -X POST "https://api.eagle3dstreaming.com/v1/apps" \
           "codec": "h264"
       }},
       "launch_args": "-AudioMixer -PixelStreamingIP=0.0.0.0 -PixelStreamingPort=8888 -RenderOffScreen -ForceRes -ResX=1920 -ResY=1080 -AllowPixelStreamingCommands -log",
-      "maps": {json.dumps(game_mode_maps)}
+      "maps": game_mode_maps
   })}'
 """
     ),

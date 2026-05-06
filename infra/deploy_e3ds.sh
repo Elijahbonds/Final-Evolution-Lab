@@ -8,8 +8,8 @@
 #   export FEL_BUILD_URL="https://s3.amazonaws.com/your-bucket/FinalEvolutionLab-Shipping.zip"
 #   ./deploy_e3ds.sh
 #
-# After deploy, the script writes E3DS_STREAM_URL to ../backend/.env
-# and restarts the backend so the web portal picks it up automatically.
+# After deploy, the script refreshes ../backend/.env with stream URLs while
+# preserving/writing E3DS_API_KEY so `/api/streaming/status` stays configured.
 # ──────────────────────────────────────────────────────────────────
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -58,20 +58,28 @@ echo "  Stream URL:  $E3DS_STREAM_URL"
 echo "  Iframe URL:  $E3DS_IFRAME_URL"
 echo "═══════════════════════════════════════════════════════"
 
-# Write to backend .env
+# Write stream metadata to backend .env (preserve E3DS_API_KEY and other E3DS_* secrets)
+touch "$BACKEND_ENV"
 if [ -n "$E3DS_STREAM_URL" ] && [ "$E3DS_STREAM_URL" != "" ]; then
-    # Remove existing E3DS entries
-    grep -v "^E3DS_" "$BACKEND_ENV" > "$BACKEND_ENV.tmp" || true
-    mv "$BACKEND_ENV.tmp" "$BACKEND_ENV"
-    
-    # Append new values
+    tmp="$(mktemp)"
+    grep -v '^E3DS_STREAM_URL=\|^E3DS_IFRAME_URL=\|^E3DS_APP_ID=' "$BACKEND_ENV" > "$tmp" || true
+    mv "$tmp" "$BACKEND_ENV"
+
     echo "E3DS_STREAM_URL=$E3DS_STREAM_URL" >> "$BACKEND_ENV"
     echo "E3DS_IFRAME_URL=$E3DS_IFRAME_URL" >> "$BACKEND_ENV"
     echo "E3DS_APP_ID=$E3DS_APP_ID" >> "$BACKEND_ENV"
-    
+
+    # Persist API key reference for backend /api/streaming/status (optional second line if env already set)
+    if [ -n "${E3DS_API_KEY:-}" ]; then
+        tmp="$(mktemp)"
+        grep -v '^E3DS_API_KEY=' "$BACKEND_ENV" > "$tmp" || true
+        mv "$tmp" "$BACKEND_ENV"
+        echo "E3DS_API_KEY=$E3DS_API_KEY" >> "$BACKEND_ENV"
+    fi
+
     echo ""
-    echo "▸ Backend .env updated with E3DS_STREAM_URL"
-    echo "▸ Restart backend: sudo supervisorctl restart backend"
+    echo "▸ Backend .env updated with E3DS stream URLs (E3DS_API_KEY preserved or refreshed)"
+    echo "▸ Restart backend so FastAPI picks up env: sudo supervisorctl restart backend"
 else
     echo ""
     echo "⚠ No stream URL captured — check E3DS control panel"

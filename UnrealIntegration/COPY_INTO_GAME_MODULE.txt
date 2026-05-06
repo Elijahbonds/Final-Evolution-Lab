@@ -1,0 +1,55 @@
+Final Production Integration — copy steps (Gate 5 → ship)
+
+Emergent prep (automated):
+
+  From repo root, with PROJECT_DIR pointing at your UE game folder:
+    PROJECT_DIR="/path/to/your/project" ./prepare_fel_emergent.sh
+    PROJECT_DIR="/path/to/your/project" ./prepare_fel_emergent.sh --copy-sources
+
+  Optional env at runtime (overrides DefaultGame.ini GameWebSocketUrl):
+    EMERGENT_GAME_WS_URL=wss://your-host/ws/game/room-id
+
+  Emergent Defaults live in DefaultGame.ini [Emergent]; see UnrealIntegration/Config/DefaultGame.FEL_Emergent.snippet.ini
+
+---
+
+1) Merge UnrealStarter/BasketballGame/Config/DefaultEngine.pixelstreaming2.snippet.ini into your live project's Config/DefaultEngine.ini.
+
+2) Copy *.h / *.cpp from UnrealIntegration/Source/FinalEvolutionLab/ into your game's Source/FinalEvolutionLab/ folder (same names), or use ./prepare_fel_emergent.sh --copy-sources.
+
+   Deep links (Emergent native shell ↔ UE map travel):
+     • Merge UnrealIntegration/Config/DefaultEngine.FEL_iOS_URL_scheme.snippet.ini into DefaultEngine.ini (registers **finalevolution://**).
+     • UFELEmergentDeepLinkSubsystem parses URLs like `finalevolution://launch?map=Zen_Dojo&mode=karate_h2h`, opens `/Game/FEL/Maps/<Venue>`,
+       maps **brain_brawl** → **Neuro_Arena**, then UFELEmergentBridgeSubsystem sends JSON `{ "type":"map_loaded", ... }` on the **same** Emergent WebSocket as other events (not Pixel Streaming port 8888 — that remains signaling for streaming).
+
+3) FinalEvolutionLab.Build.cs — add to PrivateDependencyModuleNames:
+     "WebSockets",
+     "Json",
+
+4) Enable WebSockets plugin in .uproject if not already (Editor → Plugins → WebSockets).
+
+5) Configure URL (pick one): DefaultGame.ini [Emergent] GameWebSocketUrl, EMERGENT_GAME_WS_URL env, or Blueprint/C++:
+
+     UFELEmergentBridgeSubsystem* B = GameInstance->GetSubsystem<UFELEmergentBridgeSubsystem>();
+     // Optional if already set via ini/env:
+     B->SetGameWebSocketUrl(TEXT("wss://your-host/ws/game/YOUR_ROOM_ID"));
+     B->SetFocusKeepaliveEnabled(true, 0.5f);
+     // ... end of match:
+     B->SendMatchScoreToWebSocket(TeamA, TeamB, TEXT("{}"));
+
+   Bridge behavior (current integration sources):
+     • Outbound JSON is queued while the socket is connecting/disconnected (bounded queue); flushed on connect.
+     • Inbound UTF-8 text frames: bind Blueprint event OnEmergentRawMessage (or parse JSON in C++).
+     • Auto-reconnect: DefaultGame.ini [Emergent] bAutoReconnect / ReconnectDelaySeconds / MaxReconnectAttempts.
+
+   Pixel Streaming 2 alternative (iframe focus): add UFELFocusKeepaliveTickComponent to your persistent actor,
+   bind OnKeepalive in Blueprint to PixelStreaming2 Streamer Component → SendAllPlayersMessage
+   ("ApplicationEvent", "{\"action\":\"focus_keepalive\"}") per E3DS docs.
+
+6) Copy FEL_VenueRegistry.production.json beside Config or load from your analytics bridge.
+
+7) Win64 cook (requires Windows target on Mac): ./fel_ue5_win64_cook_only.sh
+
+8) Linux E3DS package (no Windows needed; requires Linux target + cross-compile toolchain on Mac):
+     ./fel_ue5_eagle3d_linux_package.sh
+   Output: artifacts/Linux/FEL_UE5_E3DS_Linux_Package.zip — WebSockets bridge is OS-agnostic (Linux Shipping OK).
