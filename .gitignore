@@ -76,6 +76,10 @@ yarn-error.log*
 *.swp
 *~
 
+# Ruby / fastlane (local bundle)
+/vendor/bundle/
+/.bundle/
+
 # Python
 __pycache__/
 *pyc*

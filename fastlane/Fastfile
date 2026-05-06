@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Upload a built IPA to Firebase App Distribution (configure env vars first)."
+  lane :distribute_firebase do
+    firebase_app_distribution(
+      app: ENV["FIREBASE_APP_ID"],
+      ipa_path: ENV["IPA_PATH"],
+      groups: ENV["FIREBASE_TESTER_GROUPS"],
+      release_notes: ENV.fetch("FIREBASE_RELEASE_NOTES", "Automated build")
+    )
+  end
+end
