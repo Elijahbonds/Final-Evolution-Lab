@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+# Firebase upload auth: export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+# See fastlane/README.md
 
 default_platform(:ios)
 
