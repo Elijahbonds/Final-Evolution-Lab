@@ -40,7 +40,8 @@
 #   ./fel_ue5_ios_shipping_package.sh --full-cook --verbose   # pass -verbose to RunUAT BuildCookRun
 #   ./fel_ue5_ios_shipping_package.sh --full-cook -map=VeniceBeach  # cook one map (e.g. Venice) instead of -allmaps
 #   ./fel_ue5_ios_shipping_package.sh --full-cook --allmaps   # explicit: cook all maps (default when -map is omitted)
-#   ./fel_ue5_ios_shipping_package.sh --full-cook --export-ipa   # after RunUAT: xcodebuild archive + -exportArchive (method: app-store → TestFlight / Transporter)
+#   ./fel_ue5_ios_shipping_package.sh --full-cook --export-ipa   # after RunUAT: xcodebuild archive + export (method: app-store → TestFlight / Transporter)
+#   ./fel_ue5_ios_shipping_package.sh --full-cook --export-ipa-firebase   # same archive, second export: **ad-hoc** .ipa → Firebase App Distribution (FinalEvolutionLab-Firebase.ipa)
 #
 # =============================================================================
 set -euo pipefail
@@ -64,6 +65,7 @@ FULL_COOK=false
 VERBOSE_UAT=false
 COOK_MAP_SHORT=""
 EXPORT_IPA=false
+EXPORT_IPA_FIREBASE=false
 for arg in "$@"; do
   [[ "$arg" == "--verify-only" ]] && VERIFY_ONLY=true
   [[ "$arg" == "--open-xcode" ]] && OPEN_XCODE_ONLY=true
@@ -72,6 +74,7 @@ for arg in "$@"; do
   [[ "$arg" == "--export-ipa" ]] && EXPORT_IPA=true
   # Legacy alias (same as --export-ipa; App Store Connect distribution only)
   [[ "$arg" == "--export-ipa-appstore" ]] && EXPORT_IPA=true
+  [[ "$arg" == "--export-ipa-firebase" ]] && EXPORT_IPA_FIREBASE=true
   [[ "$arg" == "--shipping" ]] && export IOS_CLIENTCONFIG=Shipping
   [[ "$arg" == "--development" ]] && export IOS_CLIENTCONFIG=Development
   [[ "$arg" == "--allmaps" ]] && COOK_MAP_SHORT=""
@@ -480,6 +483,10 @@ copy_ios_deploy_artifacts() {
   else
     echo ">>> NOTE: No FinalEvolutionLab.ipa found under Binaries/IOS or archive — export IPA from Xcode Organizer if needed."
   fi
+  if [[ -f "$proj/Binaries/IOS/FinalEvolutionLab-Firebase.ipa" ]]; then
+    cp -f "$proj/Binaries/IOS/FinalEvolutionLab-Firebase.ipa" "$deploy/FinalEvolutionLab-Firebase.ipa"
+    echo ">>> Copied FinalEvolutionLab-Firebase.ipa → $deploy/ (ad-hoc / Firebase App Distribution)"
+  fi
 }
 
 repack_descriptor_safe_ipa_from_cooked_app() {
@@ -660,8 +667,9 @@ run_ios_shipping_archive() {
   # Descriptor-safe repack first (local artifact from cooked .app); optional --export-ipa runs after so the
   # signed App Store .ipa is not overwritten by the repack zip.
   repack_descriptor_safe_ipa_from_cooked_app "$PROJECT_DIR"
-  if [[ "$EXPORT_IPA" == true ]]; then
-    export_ipa_from_xcode_archive "$PROJECT_DIR"
+  if [[ "$EXPORT_IPA" == true ]] || [[ "$EXPORT_IPA_FIREBASE" == true ]]; then
+    [[ "$EXPORT_IPA" == true ]] && export_ipa_variant "$PROJECT_DIR" appstore
+    [[ "$EXPORT_IPA_FIREBASE" == true ]] && export_ipa_variant "$PROJECT_DIR" firebase
   fi
   copy_ios_deploy_artifacts "$PROJECT_DIR"
 
@@ -676,8 +684,8 @@ run_ios_shipping_archive() {
   echo ">>> Staged .app / .ipa under Binaries/IOS (validate cooked payload before upload):"
   local bin_ios="$PROJECT_DIR/Binaries/IOS"
   [[ -d "$bin_ios" ]] && find "$bin_ios" -maxdepth 2 \( -name '*.ipa' -o -name '*.app' \) -print 2>/dev/null || true
-  echo ">>> Upload path: **App Store Connect** — Xcode → Organizer → **Distribute App**, Transporter, or"
-  echo "    \`./fel_ue5_ios_shipping_package.sh ... --export-ipa\` (uses infra/ue5_config/ExportOptions.plist)."
+  echo ">>> App Store / TestFlight: \`--export-ipa\` → infra/ue5_config/ExportOptions.plist (method app-store)."
+  echo ">>> Firebase App Distribution: \`--export-ipa-firebase\` → FinalEvolutionLab-Firebase.ipa (method **ad-hoc** — tester devices must be on your Ad Hoc profile)."
   echo ">>> Emergent telemetry on device: set Config/DefaultGame.ini [Emergent] SovereignHubHost=<Mac Mini LAN IP>"
   echo "    (GameWebSocketUrl may stay ws://127.0.0.1:PORT/... — the bridge rewrites localhost to the hub IP)."
   print_app_store_distribution_hint "$PROJECT_DIR"
@@ -703,34 +711,72 @@ print_app_store_distribution_hint() {
   fi
 }
 
-export_ipa_from_xcode_archive() {
+# Shared Xcode archive for export (single archive when both App Store + Firebase exports requested).
+IOS_XCODE_ARCHIVE_BUILT=""
+
+ensure_ios_xcarchive_for_export() {
   local proj="${1:-}"
   [[ -z "$proj" ]] && return 0
+  [[ "$IOS_XCODE_ARCHIVE_BUILT" == "1" ]] && return 0
   local ws="$proj/FinalEvolutionLab (IOS).xcworkspace"
   [[ -d "$ws" ]] || { echo "WARN: iOS workspace missing: $ws"; return 0; }
 
   local xcarchive="$IOS_ARCHIVE/FinalEvolutionLab.xcarchive"
-  local export_dir="$IOS_ARCHIVE/_ipa_export_appstore"
-  mkdir -p "$IOS_ARCHIVE" "$export_dir"
-
-  local opts="$REPO_ROOT/infra/ue5_config/ExportOptions.plist"
-  [[ -f "$opts" ]] || { echo "WARN: App Store export plist missing: $opts"; return 0; }
+  mkdir -p "$IOS_ARCHIVE"
 
   echo ""
   echo ">>> Xcode archive → $xcarchive"
   xcodebuild -workspace "$ws" -scheme FinalEvolutionLab -configuration Shipping -destination "generic/platform=iOS" \
     -archivePath "$xcarchive" archive || { echo "WARN: xcodebuild archive failed"; return 0; }
+  IOS_XCODE_ARCHIVE_BUILT=1
+}
 
-  echo ">>> xcodebuild -exportArchive (method app-store — TestFlight / App Store Connect)"
+# variant: appstore | firebase (firebase = ad-hoc IPA for Firebase App Distribution)
+export_ipa_variant() {
+  local proj="${1:-}"
+  local variant="${2:-appstore}"
+  [[ -z "$proj" ]] && return 0
+  local ws="$proj/FinalEvolutionLab (IOS).xcworkspace"
+  [[ -d "$ws" ]] || { echo "WARN: iOS workspace missing: $ws"; return 0; }
+
+  ensure_ios_xcarchive_for_export "$proj" || return 0
+
+  local xcarchive="$IOS_ARCHIVE/FinalEvolutionLab.xcarchive"
+  local opts=""
+  local export_dir=""
+  local out_ipa_name=""
+  local label=""
+
+  case "$variant" in
+    firebase)
+      opts="$REPO_ROOT/infra/ue5_config/ExportOptions.ad-hoc.plist"
+      export_dir="$IOS_ARCHIVE/_ipa_export_firebase"
+      out_ipa_name="FinalEvolutionLab-Firebase.ipa"
+      label="ad-hoc (Firebase App Distribution — testers need devices on Ad Hoc provisioning)"
+      ;;
+    appstore|*)
+      opts="$REPO_ROOT/infra/ue5_config/ExportOptions.plist"
+      export_dir="$IOS_ARCHIVE/_ipa_export_appstore"
+      out_ipa_name="FinalEvolutionLab.ipa"
+      label="app-store (TestFlight / App Store Connect)"
+      ;;
+  esac
+
+  [[ -f "$opts" ]] || { echo "WARN: Export plist missing: $opts"; return 0; }
+  mkdir -p "$export_dir"
+
+  echo ""
+  echo ">>> xcodebuild -exportArchive ($label)"
   echo ">>> Exporting .ipa → $export_dir"
   xcodebuild -exportArchive -archivePath "$xcarchive" -exportPath "$export_dir" -exportOptionsPlist "$opts" \
-    || { echo "WARN: xcodebuild -exportArchive failed"; return 0; }
+    || { echo "WARN: xcodebuild -exportArchive failed for variant=$variant"; return 0; }
 
   local ipa
   ipa="$(find "$export_dir" -maxdepth 2 -name '*.ipa' -print 2>/dev/null | head -1)"
   if [[ -n "$ipa" ]]; then
-    /bin/cp -f "$ipa" "$proj/Binaries/IOS/FinalEvolutionLab.ipa" 2>/dev/null || true
-    echo ">>> Wrote .ipa: $proj/Binaries/IOS/FinalEvolutionLab.ipa"
+    mkdir -p "$proj/Binaries/IOS"
+    /bin/cp -f "$ipa" "$proj/Binaries/IOS/$out_ipa_name" 2>/dev/null || true
+    echo ">>> Wrote .ipa: $proj/Binaries/IOS/$out_ipa_name"
   else
     echo "WARN: No .ipa produced under $export_dir"
   fi
