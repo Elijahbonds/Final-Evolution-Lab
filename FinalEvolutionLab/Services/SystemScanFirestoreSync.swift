@@ -1,6 +1,11 @@
 import Foundation
 import FirebaseFirestore
 
+extension Notification.Name {
+    /// Posted after Firestore persist + ``UnrealManager``/Emergent bridge dispatch for a system scan.
+    static let felSystemScanBridgeCompleted = Notification.Name("felSystemScanBridgeCompleted")
+}
+
 /// Writes System Scan snapshots to Firestore for cross-device sync and Unreal consumption.
 @MainActor
 final class SystemScanFirestoreSync {
@@ -53,5 +58,6 @@ final class SystemScanFirestoreSync {
         }
         UnrealManager.shared.deliverSystemScanJSON(data)
         EmergentRealtimeClient.shared.sendSystemScanBridge(data)
+        NotificationCenter.default.post(name: .felSystemScanBridgeCompleted, object: nil)
     }
 }

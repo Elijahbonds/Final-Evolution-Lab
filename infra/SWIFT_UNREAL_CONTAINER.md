@@ -18,7 +18,7 @@
 
 3. Build the app. The **Embed Unreal Framework (optional)** run script copies the framework into `FinalEvolutionLab.app/Frameworks` and re-signs it when a signing identity is present.
 
-4. Runtime loading is handled by **`UnrealManager`**, which mirrors the older `UnityManager` pattern (`getInstance`, `runEmbedded`, `unloadApplication`, `rootView`).
+4. Runtime loading is handled by **`UnrealManager`**, which mirrors the older `UnityManager` pattern (`getInstance`, `runEmbedded`, `unloadApplication`, `rootView`). The latest system-scan JSON is **cached** until `receiveSystemScanJSON:` is available; **`notifyUnrealSystemScanListenerReady()`** flushes after a late ObjC hook-up.
 
 If the framework is missing, the **Unreal** tab shows a placeholder; the rest of the shell still runs.
 

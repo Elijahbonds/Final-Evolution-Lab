@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct DashboardView: View {
     let viewModel: LabViewModel
@@ -6,6 +7,7 @@ struct DashboardView: View {
     @State private var appeared: Bool = false
     @State private var gaugeAnimationProgress: Double = 0
     @State private var showShareToFeed: Bool = false
+    @State private var bridgeToastVisible: Bool = false
 #if DEBUG
     @State private var simulateScanBusy: Bool = false
     @State private var simulateScanMessage: String?
@@ -15,23 +17,32 @@ struct DashboardView: View {
     private var prqNormalized: Double { viewModel.effectiveMetrics.prqScore / 100.0 }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                headerSection
-                prqGaugeCard
-                healthKitRow
-                motionStreamCard
-                neuralSyncCard
+        ZStack(alignment: .bottom) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    headerSection
+                    prqGaugeCard
+                    healthKitRow
+                    motionStreamCard
+                    neuralSyncCard
 #if DEBUG
-                simulateSystemScanDebugCard
+                    simulateSystemScanDebugCard
 #endif
-                shareToFeedButton
+                    shareToFeedButton
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            .scrollIndicators(.hidden)
+            .background(Theme.slateBackground)
+
+            if bridgeToastVisible {
+                bridgeSyncToast
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 28)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
-        .scrollIndicators(.hidden)
-        .background(Theme.slateBackground)
         .sheet(isPresented: $showShareToFeed) {
             NavigationStack {
                 ShareToFeedView(viewModel: viewModel)
@@ -55,6 +66,40 @@ struct DashboardView: View {
         .onChange(of: prqScore) { _, newValue in
             withAnimation(.spring(duration: 0.6)) {
                 gaugeAnimationProgress = Double(newValue) / 100.0
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .felSystemScanBridgeCompleted)) { _ in
+            triggerBridgeSyncFeedback()
+        }
+    }
+
+    private var bridgeSyncToast: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Theme.neonGreen)
+            Text("Scan synced · bridge sent")
+                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(Theme.neonGreen.opacity(0.35), lineWidth: 1)
+        )
+    }
+
+    private func triggerBridgeSyncFeedback() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            bridgeToastVisible = true
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_850_000_000)
+            withAnimation(.easeOut(duration: 0.28)) {
+                bridgeToastVisible = false
             }
         }
     }
@@ -359,7 +404,7 @@ struct DashboardView: View {
                     defer { simulateScanBusy = false }
                     do {
                         try await SystemScanFirestoreSync.shared.syncSimulatedDebugScan()
-                        simulateScanMessage = "Mock scan synced + bridge sent."
+                        simulateScanMessage = nil
                     } catch {
                         simulateScanMessage = error.localizedDescription
                     }

@@ -24,12 +24,22 @@ users/{uid}/avatar_performance/current  # single doc, merge-updated “latest”
 | `vitals.hrvSdnnMs` | number? | SDNN in ms |
 | `vitals.activeKcal` | number? | day slice (matches app query window) |
 | `vitals.weeklyHrvAverageMs` | number? | |
+| `vitals.sleepHoursLastNight` | number? | Asleep hours from **sleepAnalysis** (recent window) |
 | `readiness` | map | PRQ / neural readiness |
 | `readiness.neuralReadinessScore` | number | 0…100 |
 | `readiness.grade` | string | `ELITE` / `PRIMED` / `READY` / `RECOVERING` |
 | `readiness.hrvTrend` | string | `IMPROVING` / `STABLE` / `DECLINING` |
 | `readiness.recoveryEstimateHours` | number | |
 | `avatar` | map | same shape as `avatar_performance/current` (denormalized) |
+
+### Avatar mapping (Swift)
+
+`AvatarPerformanceAttributes.calculateAttributes(vitals:readiness:sleepHoursForMapping:speedMultiplier:hangTimeBonus:isRecoveryMode:)` derives **0…1** axes from HealthKit + PRQ:
+
+- **Neural focus:** HRV vs weekly baseline, absolute HRV level, sleep quality (hours vs ~7–8.5h band), PRQ, HRV trend.
+- **Explosiveness:** Tier speed multiplier, HR reserve (HR − RHR), active energy, resting-HR reserve, recovery headroom.
+
+Missing sleep uses a neutral **0.48** so other signals still dominate.
 
 ## Document: `avatar_performance/current`
 

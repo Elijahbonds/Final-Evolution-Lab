@@ -17,6 +17,8 @@ class HealthKitService {
     var dailyTrend: HRVTrend = .stable
     var weeklyHRVAverage: Double = 0
     var recoveryEstimateHours: Double = 0
+    /// Asleep hours aggregated from **sleepAnalysis** samples in the last ~18h (prior night + morning).
+    var sleepHoursLastNight: Double = 0
 
     private let store = HKHealthStore()
     private var refreshTask: Task<Void, Never>?
@@ -24,13 +26,16 @@ class HealthKitService {
     func requestAuthorization() async {
         guard isAvailable else { return }
 
-        let readTypes: Set<HKObjectType> = [
+        var readTypes: Set<HKObjectType> = [
             HKQuantityType(.heartRate),
             HKQuantityType(.activeEnergyBurned),
             HKQuantityType(.restingHeartRate),
             HKQuantityType(.stepCount),
-            HKQuantityType(.heartRateVariabilitySDNN)
+            HKQuantityType(.heartRateVariabilitySDNN),
         ]
+        if let sleep = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
+            readTypes.insert(sleep)
+        }
 
         let shareTypes: Set<HKSampleType> = [
             HKQuantityType(.activeEnergyBurned)
@@ -53,13 +58,15 @@ class HealthKitService {
         async let rhr = fetchLatestQuantity(type: HKQuantityType(.restingHeartRate), unit: HKUnit.count().unitDivided(by: .minute()))
         async let hrv = fetchLatestQuantity(type: HKQuantityType(.heartRateVariabilitySDNN), unit: .secondUnit(with: .milli))
         async let weekAvg = fetchWeeklyHRVAverage()
+        async let sleepHrs = fetchSleepHoursRecentWindow()
 
-        let (hrVal, calVal, rhrVal, hrvVal, weekAvgVal) = await (hr, cal, rhr, hrv, weekAvg)
+        let (hrVal, calVal, rhrVal, hrvVal, weekAvgVal, sleepVal) = await (hr, cal, rhr, hrv, weekAvg, sleepHrs)
         heartRate = hrVal
         activeCalories = calVal
         restingHeartRate = rhrVal
         hrvValue = hrvVal
         weeklyHRVAverage = weekAvgVal
+        sleepHoursLastNight = sleepVal
         lastSyncDate = Date()
 
         calculateNeuralReadiness()
@@ -209,6 +216,31 @@ class HealthKitService {
         }
     }
 
+    private func fetchSleepHoursRecentWindow() async -> Double {
+        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return 0 }
+        let end = Date()
+        guard let start = Calendar.current.date(byAdding: .hour, value: -18, to: end) else { return 0 }
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.categorySample(type: sleepType, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .forward)],
+            limit: HKObjectQueryNoLimit
+        )
+
+        do {
+            let results = try await descriptor.result(for: store)
+            var asleepSeconds: TimeInterval = 0
+            for sample in results {
+                guard sample.valueIsAsleepForAvatarMapping else { continue }
+                asleepSeconds += sample.endDate.timeIntervalSince(sample.startDate)
+            }
+            return asleepSeconds / 3600.0
+        } catch {
+            return 0
+        }
+    }
+
     private func fetchWeeklyHRVAverage() async -> Double {
         let calendar = Calendar.current
         guard let weekAgo = calendar.date(byAdding: .day, value: -7, to: Date()) else { return 0 }
@@ -248,6 +280,24 @@ nonisolated struct ArcadePhysicsBuff: Sendable {
     let speedMultiplier: Double
     let hangTimeBonus: Double
     let isRecoveryMode: Bool
+}
+
+private extension HKCategorySample {
+    /// True for intervals that count as asleep (excludes inBed-only / awake).
+    var valueIsAsleepForAvatarMapping: Bool {
+        if #available(iOS 16.0, *) {
+            guard let v = HKCategoryValueSleepAnalysis(rawValue: value) else { return false }
+            switch v {
+            case .asleepUnspecified, .asleep, .asleepCore, .asleepDeep, .asleepREM:
+                return true
+            default:
+                return false
+            }
+        } else {
+            return value == HKCategoryValueSleepAnalysis.asleep.rawValue
+                || value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue
+        }
+    }
 }
 
 nonisolated enum HRVTrend: String, Sendable {
