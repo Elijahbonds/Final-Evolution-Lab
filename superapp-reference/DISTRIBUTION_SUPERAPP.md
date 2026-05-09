@@ -7,6 +7,14 @@
 3. **Upload** — Transporter or Organizer upload; wait for **processing** in App Store Connect.
 4. **TestFlight** — internal/external groups; share **ASC links** (not third-party install pages).
 
+## Firebase App Distribution (pre-release / trusted testers)
+
+Complements TestFlight: upload a **signed `.ipa`** to [Firebase App Distribution](https://firebase.google.com/docs/app-distribution) for email-based tester access and optional **Crashlytics** stability on those builds.
+
+- **Fastlane:** `bundle exec fastlane distribute` — see **`fastlane/README.md`** and **`fastlane/.env.example`**.
+- **Requires:** `FIREBASE_APP_ID`, `IPA_PATH`, `GOOGLE_APPLICATION_CREDENTIALS` (service account JSON), and **`FIREBASE_TESTER_GROUPS`** and/or **`FIREBASE_TESTERS`**.
+- **IPA** must be built on macOS (UE + Xcode) first; this monorepo does not build iOS on Linux CI without a remote Mac runner.
+
 ## What “Superapp” should store (suggested contract)
 
 Fill these in your Superapp database or release ticket tool:

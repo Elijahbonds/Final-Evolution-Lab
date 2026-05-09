@@ -57,6 +57,8 @@ superapp-reference/LOCAL_AND_SECRET_POINTER.md
 # Environment and credentials
 .env
 .env.*
+!.env.example
+!**/.env.example
 *.env
 *token.json*
 *credentials.json*
@@ -79,6 +81,7 @@ yarn-error.log*
 # Ruby / fastlane (local bundle)
 /vendor/bundle/
 /.bundle/
+fastlane/.env
 
 # Python
 __pycache__/

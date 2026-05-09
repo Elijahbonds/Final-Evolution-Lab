@@ -1,17 +1,53 @@
 # frozen_string_literal: true
-# Firebase upload auth: export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
-# See fastlane/README.md
+#
+# Firebase App Distribution — https://firebase.google.com/docs/app-distribution
+#
+# 1) Create a Firebase iOS app; copy App ID from Project settings (format: 1:PROJECT:ios:HASH)
+# 2) IAM: service account with "Firebase App Distribution Admin" (or Editor on small teams)
+# 3) Download JSON key → set GOOGLE_APPLICATION_CREDENTIALS or FIREBASE_SERVICE_CREDENTIALS_JSON path
+#
+# See fastlane/README.md and fastlane/.env.example
 
 default_platform(:ios)
 
 platform :ios do
-  desc "Upload a built IPA to Firebase App Distribution (configure env vars first)."
+  # Primary lane (matches common `fastlane distribute` tutorials)
+  desc "Upload an existing .ipa to Firebase App Distribution (set env vars; see fastlane/.env.example)."
+  lane :distribute do
+    firebase_app_id = ENV["FIREBASE_APP_ID"]
+    ipa = ENV["IPA_PATH"]
+    groups = ENV["FIREBASE_TESTER_GROUPS"] # comma-separated group aliases, e.g. "qa,internal"
+    testers = ENV["FIREBASE_TESTERS"] # optional comma-separated emails
+    notes = ENV.fetch("FIREBASE_RELEASE_NOTES", "Automated build")
+
+    UI.user_error!("FIREBASE_APP_ID is required (Firebase console → Project settings → Your apps → App ID).") if firebase_app_id.to_s.strip.empty?
+    UI.user_error!("IPA_PATH is required (absolute path to a signed .ipa). Build with Xcode or fel_ue5_ios_shipping_package.sh --export-ipa first.") if ipa.to_s.strip.empty?
+    UI.user_error!("IPA not found: #{ipa}") unless File.file?(ipa)
+
+    creds = ENV["GOOGLE_APPLICATION_CREDENTIALS"].to_s.strip
+    if !creds.empty? && !File.file?(creds)
+      UI.user_error!("GOOGLE_APPLICATION_CREDENTIALS points to missing file: #{creds}")
+    end
+
+    if groups.to_s.strip.empty? && testers.to_s.strip.empty?
+      UI.user_error!("Set FIREBASE_TESTER_GROUPS (e.g. internal-testers) and/or FIREBASE_TESTERS (comma-separated emails).")
+    end
+
+    dist_params = {
+      app: firebase_app_id,
+      ipa_path: ipa,
+      release_notes: notes
+    }
+    dist_params[:groups] = groups if groups.to_s.strip.length.positive?
+    dist_params[:testers] = testers if testers.to_s.strip.length.positive?
+    dist_params[:service_credentials_file] = creds if !creds.empty?
+
+    firebase_app_distribution(dist_params)
+    UI.success("Uploaded to Firebase App Distribution. Check Firebase console → App Distribution → Releases.")
+  end
+
+  desc "Same as :distribute (backward-compatible name)."
   lane :distribute_firebase do
-    firebase_app_distribution(
-      app: ENV["FIREBASE_APP_ID"],
-      ipa_path: ENV["IPA_PATH"],
-      groups: ENV["FIREBASE_TESTER_GROUPS"],
-      release_notes: ENV.fetch("FIREBASE_RELEASE_NOTES", "Automated build")
-    )
+    distribute
   end
 end
