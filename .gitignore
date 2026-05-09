@@ -12,6 +12,7 @@ tsconfig.json
 app.json
 
 # Xcode
+FinalEvolutionLab/GoogleService-Info.plist
 build/
 DerivedData/
 *.xcuserstate
