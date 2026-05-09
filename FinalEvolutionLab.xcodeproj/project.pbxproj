@@ -102,6 +102,7 @@
 				105FC5762E9EAD3100EA8BCF /* Sources */,
 				105FC5772E9EAD3100EA8BCF /* Frameworks */,
 				105FC5782E9EAD3100EA8BCF /* Resources */,
+				FEFB00302E9EAD3100EA8BCF /* Embed Unreal Framework (optional) */,
 			);
 			buildRules = (
 			);
@@ -113,6 +114,8 @@
 			name = FinalEvolutionLab;
 			packageProductDependencies = (
 				FEFB00202E9EAD3100EA8BCF /* FirebaseCore */,
+				FEFB00402E9EAD3100EA8BCF /* FirebaseFirestore */,
+				FEFB00502E9EAD3100EA8BCF /* FirebaseAuth */,
 			);
 			productName = FinalEvolutionLab;
 			productReference = 105FC57A2E9EAD3100EA8BCF /* FinalEvolutionLab.app */;
@@ -235,6 +238,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		FEFB00302E9EAD3100EA8BCF /* Embed Unreal Framework (optional) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Unreal Framework (optional)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "SRC=\"${SRCROOT}/FinalEvolutionLab/EmbeddedFrameworks/UnrealFramework.framework\"\nDEST_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks\"\nif [ ! -d \"$SRC\" ]; then\n  echo \"note: Unreal framework not at $SRC — skipping embed.\"\n  exit 0\nfi\nmkdir -p \"${DEST_DIR}\"\nrm -rf \"${DEST_DIR}/UnrealFramework.framework\"\ncp -R \"${SRC}\" \"${DEST_DIR}/\"\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ] && [ \"${EXPANDED_CODE_SIGN_IDENTITY}\" != \"-\" ]; then\n  /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der \"${DEST_DIR}/UnrealFramework.framework\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		105FC5762E9EAD3100EA8BCF /* Sources */ = {
@@ -612,6 +637,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCore;
+		};
+		FEFB00402E9EAD3100EA8BCF /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		FEFB00502E9EAD3100EA8BCF /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

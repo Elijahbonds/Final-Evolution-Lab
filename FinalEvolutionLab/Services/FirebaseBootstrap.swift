@@ -4,17 +4,33 @@ import Foundation
 import FirebaseCore
 #endif
 
-/// Configures the Firebase iOS SDK at process launch when `GoogleService-Info.plist` is present in the app bundle.
-/// Add that file from Firebase Console → Project settings → Your apps → iOS (download); keep secrets out of Git.
+/// Configures the Firebase iOS SDK at process launch when `GoogleService-Info.plist` is in the app bundle.
+/// Firestore / Auth clients assume this ran successfully; use ``isConfigured`` before writing.
 enum FirebaseBootstrap {
+    /// `true` after a successful `FirebaseApp.configure()` for this process.
+    static var isConfigured: Bool {
+#if canImport(FirebaseCore)
+        FirebaseApp.app() != nil
+#else
+        false
+#endif
+    }
+
     static func configureIfNeeded() {
 #if canImport(FirebaseCore)
-        guard Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist") != nil else {
+        guard FirebaseApp.app() == nil else { return }
+        guard Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil else {
+#if DEBUG
+            print("[FirebaseBootstrap] GoogleService-Info.plist missing from bundle — Firebase disabled.")
+#endif
             return
         }
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
+        FirebaseApp.configure()
+#if DEBUG
+        if let app = FirebaseApp.app() {
+            print("[FirebaseBootstrap] Configured googleAppID=\(app.options.googleAppID)")
         }
+#endif
 #else
         return
 #endif

@@ -11,9 +11,11 @@ This is **not** [Firebase App Distribution](https://firebase.google.com/docs/app
 
    (That path is **gitignored**; use `FinalEvolutionLab/GoogleService-Info.example.plist` as a naming reference only — replace values from the console download.)
 
-3. Build/run: **`FirebaseBootstrap`** runs before other startup code and calls **`FirebaseApp.configure()`** when the plist is in the bundle.
+3. Build/run: **`FirebaseBootstrap.configureIfNeeded()`** runs first in `FinalEvolutionLabApp` and calls **`FirebaseApp.configure()`** when the plist is in the bundle. Use **`FirebaseBootstrap.isConfigured`** before touching Firestore.
 
-4. Optional: add more Firebase products in Xcode (**File → Add Package Dependencies** already pulls `firebase-ios-sdk`; link extra products like **FirebaseCrashlytics** on the target).
+4. **Firestore + Auth (linked on target):** **`FirebaseIdentity.ensureUserSignedIn()`** signs in **anonymously** if needed so writes can use `users/{uid}/…`. System Scan snapshots are written by **`SystemScanFirestoreSync`** (see `infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md`).
+
+5. Optional: **FirebaseCrashlytics** and other products — add the SPM product on the **FinalEvolutionLab** target in Xcode.
 
 ## Unreal-only IPA (`Binaries/IOS/*.ipa` from UE)
 

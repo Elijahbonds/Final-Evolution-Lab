@@ -65,6 +65,17 @@ class HealthKitService {
         calculateNeuralReadiness()
         calculateTrend()
         calculateRecoveryEstimate()
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await SystemScanFirestoreSync.shared.syncLatestFromHealthKit(self)
+            } catch {
+#if DEBUG
+                print("[SystemScanFirestoreSync] \(error.localizedDescription)")
+#endif
+            }
+        }
     }
 
     func startAutoRefresh() {

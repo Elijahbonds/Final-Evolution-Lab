@@ -1,10 +1,11 @@
 import Foundation
 import UIKit
 
-/// Embedded Unreal runtime manager (Option A).
+/// Embedded Unreal runtime manager (Swift + Unreal container).
 ///
-/// This mirrors the `UnityManager` pattern, but expects you to embed an Unreal-produced framework into:
-/// `FinalEvolutionLab.app/Frameworks/UnrealFramework.framework`
+/// Place the UE-built framework at **`FinalEvolutionLab/EmbeddedFrameworks/UnrealFramework.framework`**;
+/// the Xcode **Embed Unreal Framework (optional)** phase copies it into:
+/// **`FinalEvolutionLab.app/Frameworks/UnrealFramework.framework`**
 ///
 /// The framework must provide an Objective‑C entrypoint class named `UnrealFramework`
 /// with `getInstance`, `runEmbedded`, `unloadApplication`, and `rootView` selectors.

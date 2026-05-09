@@ -1,5 +1,7 @@
 # iOS + Unreal shipping pipe
 
+**Product direction:** the shipped iOS app is **`FinalEvolutionLab.xcodeproj`** (Swift shell + embedded Unreal framework). See **`infra/SWIFT_UNREAL_CONTAINER.md`**.
+
 ## Scripts (this repo)
 
 - **`fel_ue5_ios_shipping_package.sh`**
