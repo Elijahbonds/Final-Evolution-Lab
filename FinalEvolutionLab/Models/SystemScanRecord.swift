@@ -49,6 +49,75 @@ struct AvatarPerformanceAttributes: Codable, Sendable {
 // MARK: - HealthKit mapping
 
 extension SystemScanRecord {
+    /// Random-but-plausible vitals + avatar vector for **Debug** testing without HealthKit.
+    static func makeSimulatedRandom() -> SystemScanRecord {
+        let explosiveness = Double.random(in: 0.38 ... 0.94)
+        let neuralFocus = Double.random(in: 0.42 ... 0.93)
+        let endurance = Double.random(in: 0.45 ... 0.88)
+        let recovery = Double.random(in: 0.25 ... 0.92)
+        let biomechanicalEfficiency = Double.random(in: 0.33 ... 0.87)
+
+        let score = min(
+            100,
+            max(
+                18,
+                (explosiveness * 35 + neuralFocus * 40 + endurance * 25) + Double.random(in: -8 ... 12)
+            )
+        )
+
+        let grade: String
+        switch score {
+        case 80...: grade = "ELITE"
+        case 60 ..< 80: grade = "PRIMED"
+        case 40 ..< 60: grade = "READY"
+        default: grade = "RECOVERING"
+        }
+
+        let speedMultiplier = 0.86 + explosiveness * 0.26
+        let hangTimeBonus = -0.12 + neuralFocus * 0.38
+        let recoveryHours = grade == "RECOVERING"
+            ? Double.random(in: 4 ... 20)
+            : Double.random(in: 0 ... 4)
+
+        let trends = ["IMPROVING", "STABLE", "DECLINING"]
+        let trend = trends.randomElement()!
+
+        let avatar = AvatarPerformanceAttributes(
+            schemaVersion: 1,
+            updatedAt: Timestamp(date: Date()),
+            explosiveness: explosiveness,
+            endurance: endurance,
+            recovery: recovery,
+            neuralFocus: neuralFocus,
+            biomechanicalEfficiency: biomechanicalEfficiency,
+            prqScore: score,
+            readinessGrade: grade,
+            speedMultiplier: speedMultiplier,
+            hangTimeBonus: hangTimeBonus,
+            isRecoveryMode: grade == "RECOVERING"
+        )
+
+        return SystemScanRecord(
+            schemaVersion: 1,
+            source: "debug_simulated",
+            capturedAt: Timestamp(date: Date()),
+            vitals: VitalsSnapshot(
+                heartRateBpm: Double.random(in: 58 ... 118),
+                restingHeartRateBpm: Double.random(in: 48 ... 74),
+                hrvSdnnMs: Double.random(in: 20 ... 72),
+                activeKcal: Double.random(in: 95 ... 720),
+                weeklyHrvAverageMs: Double.random(in: 26 ... 58)
+            ),
+            readiness: ReadinessSnapshot(
+                neuralReadinessScore: score,
+                grade: grade,
+                hrvTrend: trend,
+                recoveryEstimateHours: recoveryHours
+            ),
+            avatar: avatar
+        )
+    }
+
     @MainActor
     static func makeFromHealthKit(_ health: HealthKitService) -> SystemScanRecord {
         let avatar = AvatarPerformanceAttributes.from(health: health)

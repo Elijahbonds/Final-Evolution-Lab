@@ -56,6 +56,26 @@ Swift encodes **`UnrealSystemScanPayload`** (see `SystemScanRecord.unrealBridgeJ
 
 Top-level keys: `schemaVersion`, `capturedAtEpochMs`, `vitals`, `readiness`, `avatar` (avatar uses `updatedAtEpochMs`).
 
+### Native embedded framework
+
+After each successful Firestore write, **`UnrealManager.deliverSystemScanJSON(_:)`** logs the exact UTF-8 string and, if Unreal is loaded, calls Objective‑C:
+
+`- (void)receiveSystemScanJSON:(NSString *)json;`
+
+on the **`UnrealFramework`** principal instance.
+
+### Emergent WebSocket
+
+When `EMERGENT_GAME_WS_URL` / `fel_emergent_game_ws_url` is set, Swift sends one text frame:
+
+`{ "type": "fel_system_scan", "scan": <UnrealSystemScanPayload as JSON object> }`
+
+UE / backend can branch on `type === "fel_system_scan"`.
+
+### Debug: mock scan
+
+**Debug** builds show **SIMULATE SCAN** on the Performance Dashboard; it writes `source: "debug_simulated"` and runs the same bridge path as HealthKit.
+
 ## Security rules (starter)
 
 Lock writes to the signed-in user:

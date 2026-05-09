@@ -118,4 +118,27 @@ final class EmergentRealtimeClient {
         guard let value else { return }
         RorkScoreManager.shared.applyClampedPrq(value)
     }
+
+    /// Sends a UTF-8 text frame when the game WebSocket is connected (no-op otherwise).
+    func sendText(_ text: String) {
+        task?.send(.string(text)) { error in
+            if let error {
+#if DEBUG
+                print("[EmergentRealtimeClient] send failed: \(error.localizedDescription)")
+#endif
+            }
+        }
+    }
+
+    /// Wraps `UnrealSystemScanPayload` JSON in a typed envelope for UE / backend routing.
+    func sendSystemScanBridge(_ data: Data) {
+        guard let obj = try? JSONSerialization.jsonObject(with: data) else { return }
+        let envelope: [String: Any] = [
+            "type": "fel_system_scan",
+            "scan": obj,
+        ]
+        guard let out = try? JSONSerialization.data(withJSONObject: envelope, options: [.sortedKeys]),
+              let text = String(data: out, encoding: .utf8) else { return }
+        sendText(text)
+    }
 }

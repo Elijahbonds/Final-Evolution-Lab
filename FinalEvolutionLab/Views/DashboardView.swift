@@ -6,6 +6,10 @@ struct DashboardView: View {
     @State private var appeared: Bool = false
     @State private var gaugeAnimationProgress: Double = 0
     @State private var showShareToFeed: Bool = false
+#if DEBUG
+    @State private var simulateScanBusy: Bool = false
+    @State private var simulateScanMessage: String?
+#endif
 
     private var prqScore: Int { Int(viewModel.effectiveMetrics.prqScore) }
     private var prqNormalized: Double { viewModel.effectiveMetrics.prqScore / 100.0 }
@@ -18,6 +22,9 @@ struct DashboardView: View {
                 healthKitRow
                 motionStreamCard
                 neuralSyncCard
+#if DEBUG
+                simulateSystemScanDebugCard
+#endif
                 shareToFeedButton
             }
             .padding(.horizontal)
@@ -324,6 +331,77 @@ struct DashboardView: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+#if DEBUG
+    private var simulateSystemScanDebugCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "ladybug.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.orange)
+
+                Text("DEBUG · SYSTEM SCAN")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(2)
+
+                Spacer()
+            }
+
+            Text("Writes a mock scan to Firestore and pushes JSON to Unreal + Emergent WebSocket (if configured). Check Xcode console for [UnrealManager].")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.tertiary)
+
+            Button {
+                Task {
+                    simulateScanBusy = true
+                    simulateScanMessage = nil
+                    defer { simulateScanBusy = false }
+                    do {
+                        try await SystemScanFirestoreSync.shared.syncSimulatedDebugScan()
+                        simulateScanMessage = "Mock scan synced + bridge sent."
+                    } catch {
+                        simulateScanMessage = error.localizedDescription
+                    }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    if simulateScanBusy {
+                        ProgressView()
+                            .tint(.black)
+                    } else {
+                        Image(systemName: "waveform.badge.magnifyingglass")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    Text(simulateScanBusy ? "SYNCING…" : "SIMULATE SCAN")
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .tracking(1)
+                }
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.orange.opacity(0.9))
+                .clipShape(.rect(cornerRadius: 12))
+            }
+            .disabled(simulateScanBusy)
+
+            if let simulateScanMessage {
+                Text(simulateScanMessage)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(simulateScanMessage.contains("synced") ? Theme.neonGreen : .orange)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Color.orange.opacity(0.25), lineWidth: 0.5)
+                )
+        )
+    }
+#endif
 
     private var shareToFeedButton: some View {
         Button {

@@ -13,7 +13,7 @@ This is **not** [Firebase App Distribution](https://firebase.google.com/docs/app
 
 3. Build/run: **`FirebaseBootstrap.configureIfNeeded()`** runs first in `FinalEvolutionLabApp` and calls **`FirebaseApp.configure()`** when the plist is in the bundle. Use **`FirebaseBootstrap.isConfigured`** before touching Firestore.
 
-4. **Firestore + Auth (linked on target):** **`FirebaseIdentity.ensureUserSignedIn()`** signs in **anonymously** if needed so writes can use `users/{uid}/…`. System Scan snapshots are written by **`SystemScanFirestoreSync`** (see `infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md`).
+4. **Firestore + Auth (linked on target):** **`FirebaseIdentity.ensureUserSignedIn()`** signs in **anonymously** if needed so writes can use `users/{uid}/…`. System Scan snapshots are written by **`SystemScanFirestoreSync`** (see `infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md`). To **upgrade** that session to email or Apple **without changing UID**, use **`FirebaseIdentity.linkEmailPasswordAccount`** or **`linkWithCredential(_:)`** after the user provides credentials (Firebase `link(with:)` keeps the same document paths).
 
 5. Optional: **FirebaseCrashlytics** and other products — add the SPM product on the **FinalEvolutionLab** target in Xcode.
 

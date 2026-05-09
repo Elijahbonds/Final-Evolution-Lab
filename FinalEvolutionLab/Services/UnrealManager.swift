@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import UIKit
 
 /// Embedded Unreal runtime manager (Swift + Unreal container).
@@ -15,6 +16,11 @@ import UIKit
 @MainActor
 final class UnrealManager {
     static let shared = UnrealManager()
+
+    /// Objective‑C API on the UE host class: `- (void)receiveSystemScanJSON:(NSString *)json;`
+    private static let receiveSystemScanJSONSelector = NSSelectorFromString("receiveSystemScanJSON:")
+
+    private static let bridgeLog = Logger(subsystem: Bundle.main.bundleIdentifier ?? "FinalEvolutionLab", category: "UnrealBridge")
 
     private(set) var isUnrealLoaded: Bool = false
     var isUnrealActive: Bool = false {
@@ -78,6 +84,30 @@ final class UnrealManager {
     var unrealView: UIView? {
         guard isUnrealLoaded, let fw = unrealFramework as? NSObject else { return nil }
         return fw.perform(NSSelectorFromString("rootView"))?.takeUnretainedValue() as? UIView
+    }
+
+    /// Logs the exact UTF-8 JSON, then forwards to **`receiveSystemScanJSON:`** when the embedded framework is loaded and implements it.
+    func deliverSystemScanJSON(_ data: Data) {
+        guard let jsonString = String(data: data, encoding: .utf8) else {
+            Self.bridgeLog.error("System scan bridge: invalid UTF-8 data (\(data.count) bytes)")
+            print("[UnrealManager] deliverSystemScanJSON: <invalid UTF-8, \(data.count) bytes>")
+            return
+        }
+
+        print("[UnrealManager] deliverSystemScanJSON (exact JSON): \(jsonString)")
+        Self.bridgeLog.debug("\(jsonString)")
+
+        guard let fw = unrealFramework as? NSObject else {
+            print("[UnrealManager] Unreal runtime not loaded — JSON printed above only (no receiveSystemScanJSON: target).")
+            return
+        }
+
+        guard fw.responds(to: Self.receiveSystemScanJSONSelector) else {
+            print("[UnrealManager] UnrealFramework does not implement receiveSystemScanJSON: — add ObjC shim on UE host.")
+            return
+        }
+
+        _ = fw.perform(Self.receiveSystemScanJSONSelector, with: jsonString as NSString)
     }
 }
 
