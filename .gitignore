@@ -82,6 +82,7 @@ yarn-error.log*
 /vendor/bundle/
 /.bundle/
 fastlane/.env
+fastlane/report.xml
 
 # Python
 __pycache__/
