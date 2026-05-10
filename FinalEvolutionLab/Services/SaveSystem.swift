@@ -3,6 +3,7 @@ import Foundation
 struct SaveSystem {
     private static let profileKey = "finalEvolution_profile"
     private static let sessionsKey = "finalEvolution_sessions"
+    private static let pendingSystemScansKey = "finalEvolution_pendingSystemScans_v1"
 
     static func saveProfile(_ profile: UserProfile) {
         if let data = try? JSONEncoder().encode(profile) {
@@ -30,6 +31,38 @@ struct SaveSystem {
             return []
         }
         return sessions
+    }
+
+    // MARK: - Offline queue (System Scan → Firestore)
+
+    static func enqueuePendingSystemScan(_ scan: SystemScanRecord) {
+        var queue = loadPendingSystemScans()
+        queue.append(scan)
+        // Keep queue bounded so an offline device doesn't blow up UserDefaults.
+        if queue.count > 25 {
+            queue = Array(queue.suffix(25))
+        }
+        if let data = try? JSONEncoder().encode(queue) {
+            UserDefaults.standard.set(data, forKey: pendingSystemScansKey)
+        }
+    }
+
+    static func loadPendingSystemScans() -> [SystemScanRecord] {
+        guard let data = UserDefaults.standard.data(forKey: pendingSystemScansKey),
+              let scans = try? JSONDecoder().decode([SystemScanRecord].self, from: data) else {
+            return []
+        }
+        return scans
+    }
+
+    static func replacePendingSystemScans(_ scans: [SystemScanRecord]) {
+        if scans.isEmpty {
+            UserDefaults.standard.removeObject(forKey: pendingSystemScansKey)
+            return
+        }
+        if let data = try? JSONEncoder().encode(scans) {
+            UserDefaults.standard.set(data, forKey: pendingSystemScansKey)
+        }
     }
 
     private static let gameResultsKey = "finalEvolution_gameResults"

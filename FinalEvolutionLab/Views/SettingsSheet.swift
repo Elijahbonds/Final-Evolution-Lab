@@ -6,10 +6,40 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showExportAlert: Bool = false
     @State private var exportJSON: String = ""
+    @AppStorage(Config.useFirebaseEmulatorsDefaultsKey) private var useFirebaseEmulators: Bool = false
+
+    private var emulatorToggleBinding: Binding<Bool> {
+        Binding(
+            get: { useFirebaseEmulators },
+            set: { useFirebaseEmulators = $0 }
+        )
+    }
 
     var body: some View {
         NavigationStack {
             List {
+#if DEBUG
+                Section {
+                    Toggle(isOn: emulatorToggleBinding) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Firebase emulators")
+                                    .font(.body.weight(.semibold))
+                                Text("Auth \(Config.authEmulatorHost):\(Config.authEmulatorPort) · Firestore \(Config.firestoreEmulatorHost) · Data Connect \(Config.dataConnectEmulatorHost):\(Config.dataConnectEmulatorPort). Restart after changing.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "laptopcomputer.and.iphone")
+                                .foregroundStyle(Theme.brandCyan)
+                        }
+                    }
+                    .tint(Theme.brandBlue)
+                } header: {
+                    Text("Integration (local)")
+                }
+#endif
+
                 Section {
                     Toggle(isOn: $simpleMode) {
                         Label {

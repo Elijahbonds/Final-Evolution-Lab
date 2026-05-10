@@ -2536,6 +2536,176 @@ struct GameSceneFactory {
         actions.append(SCNAction.move(to: originalPos, duration: 0.08))
         camera.runAction(SCNAction.sequence(actions), forKey: "cameraShake")
     }
+
+    // MARK: - Drawing In / Myofascial hip tutorial (Body IQ)
+
+    /// SceneKit reference scene: staggered **V stance**, floor holographic V, overlays for torque / hike / tuck (Bonds Standard).
+    static func buildDrawingInTutorialScene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.015, green: 0.018, blue: 0.06, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(2.0, 2.15, 3.4), lookAt: SCNVector3(0, 1.05, 0))
+        addLighting(to: scene, tint: UIColor(red: 0.35, green: 0.65, blue: 1.0, alpha: 1))
+
+        addFloor(to: scene, color: UIColor(red: 0.04, green: 0.06, blue: 0.12, alpha: 1), reflectivity: 0.12)
+
+        let avatarTint = UIColor(red: 0.25, green: 0.82, blue: 1.0, alpha: 1)
+        addAvatar(to: scene, at: SCNVector3(0, 0, 0), color: avatarTint, name: "drawingAvatar")
+
+        guard let avatar = scene.rootNode.childNode(withName: "drawingAvatar", recursively: false) else {
+            return scene
+        }
+
+        avatar.eulerAngles.y = 0.26
+        if let lf = avatar.childNode(withName: "lFoot", recursively: true) {
+            lf.position = SCNVector3(-0.26, 0.15, 0.12)
+        }
+        if let rf = avatar.childNode(withName: "rFoot", recursively: true) {
+            rf.position = SCNVector3(0.24, 0.15, -0.18)
+        }
+
+        let apex = SCNVector3(0, 0.028, 0)
+        let leftFoot = SCNVector3(-0.26, 0.028, 0.12)
+        let rightFoot = SCNVector3(0.24, 0.028, -0.18)
+        let vParent = SCNNode()
+        vParent.name = "vStanceGuide"
+        vParent.addChildNode(floorSegment(from: apex, to: leftFoot, thickness: 0.045, color: brandCyan))
+        vParent.addChildNode(floorSegment(from: apex, to: rightFoot, thickness: 0.045, color: brandCyan))
+        scene.rootNode.addChildNode(vParent)
+
+        if let rLeg = avatar.childNode(withName: "rLeg", recursively: true) {
+            let ring = SCNTorus(ringRadius: 0.11, pipeRadius: 0.014)
+            let rm = SCNMaterial()
+            rm.diffuse.contents = brandCyan.withAlphaComponent(0.35)
+            rm.emission.contents = brandCyan.withAlphaComponent(0.55)
+            rm.transparency = 0.85
+            ring.materials = [rm]
+            let torusNode = SCNNode(geometry: ring)
+            torusNode.name = "overlayTorqueRing"
+            torusNode.position = SCNVector3(0, 0.18, 0)
+            torusNode.eulerAngles.x = Float.pi / 2
+            torusNode.isHidden = false
+            rLeg.addChildNode(torusNode)
+
+            let spin = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 4.2)
+            torusNode.runAction(SCNAction.repeatForever(spin), forKey: "torqueSpin")
+        }
+
+        let hipNode = avatar.childNode(withName: "hip", recursively: true)
+        let arrowUp = arrowNode(name: "overlayHipArrowUp", direction: .up, length: 0.42, color: UIColor.systemGreen)
+        arrowUp.position = SCNVector3(0.02, 0.35, 0)
+        arrowUp.isHidden = true
+        hipNode?.addChildNode(arrowUp)
+
+        let arrowDown = arrowNode(name: "overlayHipArrowDown", direction: .down, length: 0.48, color: UIColor(red: 0.85, green: 0.35, blue: 1.0, alpha: 1))
+        arrowDown.position = SCNVector3(0, -0.05, 0)
+        arrowDown.isHidden = true
+        hipNode?.addChildNode(arrowDown)
+
+        let fascia = fasciaBeamNode()
+        fascia.name = "overlayFasciaBeam"
+        fascia.isHidden = true
+        avatar.addChildNode(fascia)
+
+        let corset = corsetRingNode()
+        corset.name = "overlayCorset"
+        corset.position = SCNVector3(0, 1.28, 0)
+        corset.isHidden = true
+        avatar.addChildNode(corset)
+
+        let kneePulse = SCNSphere(radius: 0.055)
+        let km = SCNMaterial()
+        km.diffuse.contents = UIColor.systemYellow
+        km.emission.contents = UIColor.systemYellow.withAlphaComponent(0.85)
+        kneePulse.materials = [km]
+        let kneePulseNode = SCNNode(geometry: kneePulse)
+        kneePulseNode.name = "kneeLeakagePulse"
+        kneePulseNode.position = SCNVector3(-0.09, 0.58, 0.04)
+        kneePulseNode.isHidden = true
+        avatar.addChildNode(kneePulseNode)
+
+        return scene
+    }
+
+    private enum ArrowAxis { case up, down }
+
+    private static func arrowNode(name: String, direction: ArrowAxis, length: CGFloat, color: UIColor) -> SCNNode {
+        let shaft = SCNBox(width: 0.035, height: length, length: 0.035, chamferRadius: 0.01)
+        let head = SCNPyramid(width: 0.12, height: 0.14, length: 0.12)
+        let mat = SCNMaterial()
+        mat.diffuse.contents = color.withAlphaComponent(0.9)
+        mat.emission.contents = color.withAlphaComponent(0.45)
+        shaft.materials = [mat]
+        head.materials = [mat]
+        let root = SCNNode()
+        root.name = name
+        let shaftNode = SCNNode(geometry: shaft)
+        let headNode = SCNNode(geometry: head)
+        switch direction {
+        case .up:
+            shaftNode.position = SCNVector3(0, Float(length * 0.5 + 0.05), 0)
+            headNode.position = SCNVector3(0, Float(length + 0.12), 0)
+        case .down:
+            shaftNode.position = SCNVector3(0, -Float(length * 0.5 + 0.05), 0)
+            headNode.position = SCNVector3(0, -Float(length + 0.12), 0)
+            headNode.eulerAngles.x = Float.pi
+        }
+        root.addChildNode(shaftNode)
+        root.addChildNode(headNode)
+        return root
+    }
+
+    private static func fasciaBeamNode() -> SCNNode {
+        let beam = SCNCapsule(capRadius: 0.025, height: 0.55)
+        let mat = SCNMaterial()
+        mat.diffuse.contents = UIColor(red: 0.4, green: 0.95, blue: 0.75, alpha: 0.45)
+        mat.emission.contents = UIColor(red: 0.3, green: 1.0, blue: 0.85, alpha: 0.55)
+        mat.transparency = 0.65
+        beam.materials = [mat]
+        let n = SCNNode(geometry: beam)
+        n.position = SCNVector3(0.06, 1.42, 0)
+        n.eulerAngles.z = -0.35
+        n.eulerAngles.x = 0.15
+        let pulse = SCNAction.sequence([
+            SCNAction.fadeOpacity(to: 0.35, duration: 0.9),
+            SCNAction.fadeOpacity(to: 0.85, duration: 0.9)
+        ])
+        n.runAction(SCNAction.repeatForever(pulse), forKey: "fasciaPulse")
+        return n
+    }
+
+    private static func corsetRingNode() -> SCNNode {
+        let torus = SCNTorus(ringRadius: 0.14, pipeRadius: 0.022)
+        let mat = SCNMaterial()
+        mat.diffuse.contents = UIColor(red: 1.0, green: 0.55, blue: 0.2, alpha: 0.65)
+        mat.emission.contents = UIColor(red: 1.0, green: 0.45, blue: 0.15, alpha: 0.5)
+        torus.materials = [mat]
+        let n = SCNNode(geometry: torus)
+        n.eulerAngles.x = Float.pi / 2
+        let squeeze = SCNAction.sequence([
+            SCNAction.scale(to: 1.06, duration: 1.1),
+            SCNAction.scale(to: 0.94, duration: 1.1)
+        ])
+        n.runAction(SCNAction.repeatForever(squeeze), forKey: "corsetSqueeze")
+        return n
+    }
+
+    private static func floorSegment(from: SCNVector3, to: SCNVector3, thickness: CGFloat, color: UIColor) -> SCNNode {
+        let dx = to.x - from.x
+        let dz = to.z - from.z
+        let len = sqrt(dx * dx + dz * dz)
+        guard len > 0.001 else { return SCNNode() }
+        let box = SCNBox(width: thickness, height: 0.018, length: CGFloat(len), chamferRadius: 0)
+        let mat = SCNMaterial()
+        mat.diffuse.contents = color.withAlphaComponent(0.25)
+        mat.emission.contents = color.withAlphaComponent(0.55)
+        mat.transparency = 0.88
+        box.materials = [mat]
+        let node = SCNNode(geometry: box)
+        node.position = SCNVector3((from.x + to.x) * 0.5, (from.y + to.y) * 0.5, (from.z + to.z) * 0.5)
+        node.eulerAngles.y = atan2(dx, dz)
+        return node
+    }
 }
 
 final class HomeRunDerbyManager: NSObject, SCNPhysicsContactDelegate {

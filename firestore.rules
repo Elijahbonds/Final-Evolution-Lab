@@ -1,0 +1,37 @@
+rules_version = '2';
+// Deploy: firebase deploy --only firestore:rules
+// Clients must use Firebase Auth (anonymous is permitted). Paths are whitelist-only — no wide `users/{uid}/**`.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      // Per-scan snapshots: `FinalEvolutionLab/Services/SystemScanFirestoreSync.swift`
+      match /system_scans/{scanId} {
+        allow read: if isOwner(userId);
+        // Append-only: new doc per sync (no edits to historical rows from the client).
+        allow create: if isOwner(userId);
+        allow update, delete: if false;
+      }
+
+      // Latest avatar/readiness vector shared with UE: doc id must be `current` only.
+      match /avatar_performance/{docId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && docId == "current";
+        allow delete: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

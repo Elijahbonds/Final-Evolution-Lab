@@ -1,137 +1,152 @@
-# Final Evolution Lab — iOS Shipping Guide
+# Final Evolution Lab — iOS Shipping and Superapp Distribution
 
-> **Goal:** Produce a signed `.ipa` for **iPhone 16 Pro Max** ready for TestFlight / App Store.
-> The build runs on **macOS** (Linux preview environment cannot produce IPAs).
+Goal: ship the Unreal-hosted iOS single app through App Store Connect / TestFlight so Superapp can surface and track the release without hosting an install feed.
 
----
+## Canonical constraints
 
-## 1. Pre-requisites (Mac side)
+- Branch from `setup-healthkit`; do not wholesale merge old Cursor, Unity, or Xcode experiment branches.
+- Preserve the Unreal-hosted one-app architecture, WKWebView dashboard overlay, `finalevolution://` deep links, HealthKit usage strings, and descriptor-safe cooked payload packaging.
+- Use App Store Connect / TestFlight, or an approved Apple enterprise path if one is formally selected.
+- Do not add AltStore, SideStore, OTA manifest feeds, sideload install pages, or direct IPA install URLs.
 
-| Tool | Version | Notes |
-|---|---|---|
-| macOS | 14.5+ (Sonoma) | Required for Xcode 15.4 |
-| Xcode | 15.4+ | `xcode-select --install` and accept license |
-| UE5 | 5.7 source build | Installed at `/Users/Shared/Epic Games/UE_5.7` |
-| Apple Developer account | Active | Capable of provisioning a Team ID |
-| `iPhone 16 Pro Max` device or simulator | iOS 18+ | For on-device verification |
+## Superapp inventory
 
-Verify:
-```bash
-xcodebuild -version          # ≥ 15.4
-which RunUAT.sh              # /Users/Shared/Epic Games/UE_5.7/Engine/Build/BatchFiles/RunUAT.sh
-echo "$TEAM_ID"              # 10-char Apple Developer Team ID
-```
+No Superapp-specific CLI, backend endpoint, CI workflow, manifest schema, or install URL contract is defined in this repo.
 
-## 2. Pull repo
-
-```bash
-git clone <your-repo> ~/FinalEvolutionLab
-cd ~/FinalEvolutionLab
-chmod +x fel_ue5_ios_shipping_package.sh infra/fel_prebuild_ci_check.sh
-```
-
-## 3. Set required env vars
-
-```bash
-export TEAM_ID="ABCDE12345"
-export BUNDLE_ID="com.finalevolution.lab"
-export BACKEND_URL="https://api.finalevolutionlab.com"   # for handshake verify
-# Optional overrides
-export UE_ROOT="/Users/Shared/Epic Games/UE_5.7"
-export UPROJECT="$PWD/FinalEvolutionLab.uproject"
-export DEVICE="iPhone16,2"   # iPhone 16 Pro Max
-```
-
-## 4. Run the shipping pipeline
-
-**Standard shipping build:**
-```bash
-./fel_ue5_ios_shipping_package.sh --shipping
-```
-
-**Emergency descriptor-error rebuild** (use this when "Failed to open descriptor file" appears on device):
-```bash
-./fel_ue5_ios_shipping_package.sh --shipping --purge-cache --no-pak
-```
-
-What `--purge-cache` does:
-- Deletes `Binaries/`, `Intermediate/`, `Saved/`, `DerivedDataCache/` under the project
-- Re-generates Xcode project files
-- Forces UAT to use current production-hardened paths instead of stale ones
-
-What `--no-pak` does:
-- Builds without `.pak` and Io Store
-- Stages `.uproject` as a flat file inside the IPA payload
-- Slightly larger IPA, but the OS can resolve the descriptor without the PAK loader
-
-What every shipping run does (fail-fast, idempotent):
-1. `infra/fel_prebuild_ci_check.sh` — UE5 descriptor / scheme / case-sensitivity guard
-2. `--purge-cache` (if set) — brute-force clean of UE5 build state
-3. Case-sensitivity check on disk filename vs `SCHEME` (iOS != macOS)
-4. `GET ${BACKEND_URL}/api/sovereign/handshake/verify` — confirms iOS bridge can reach the production Sovereign Hub
-5. `RunUAT.sh BuildCookRun` for IOS Shipping (cook, build, stage, archive ± pak)
-6. `xcodebuild archive` → `.xcarchive`
-7. `xcodebuild -exportArchive` with `infra/ue5_config/ExportOptions.plist` → `.ipa`
-8. **Post-build IPA inspection** — unzips the IPA and verifies:
-   - `.uproject` lives at `Payload/<App>.app/cookeddata/<SCHEME>/<SCHEME>.uproject` (flat) OR a `.pak` exists (compressed)
-   - `Info.plist` `UE_PROJECT_NAME` equals the SCHEME exactly
-   - **Aborts the build if the descriptor would not be findable at runtime**
-9. Writes `dist/ios/manifest.json` with build metadata
-10. Logs land in `dist/ios/logs/{uat,archive,export,regen}.log`
-
-## 5. Upload to App Store Connect
-
-```bash
-xcrun altool --upload-app \
-    -f dist/ios/FinalEvolutionLab.ipa \
-    -t ios \
-    -u "$APPLE_ID" \
-    -p "$APP_SPECIFIC_PWD"
-```
-
-Or use **Transporter.app** (drag-and-drop the IPA).
-
-## 6. iPhone 16 Pro Max — on-device verification
-
-After TestFlight install:
-1. Launch FEL → tap **FEL OS / Game Modes / Brain Brawl Arena**
-2. Confirm deep link: `finalevolution://brain-brawl/launch` opens UE5 binary
-3. Watch **Sovereign Hub**: the `/api/sovereign/status` should show `connected_clients: ["ios-..."]`
-4. Verify telemetry frames flow on the dashboard (PRQ updates within 500 ms)
-
-## 7. Sovereign Hub Handshake — what it checks
-
-`GET /api/sovereign/handshake/verify` returns:
+Minimal in-repo contract for Superapp release tracking:
 
 ```json
 {
-  "ok": true,
-  "version": "2.0.0",
-  "expected_ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
-  "device_target": "iPhone16,2",
-  "encryption": "AES-256-GCM",
-  "focus_lock": true,
-  "keepalive_interval_s": 0.5
+  "app_name": "Final Evolution Lab",
+  "platform": "ios",
+  "distribution_channel": "app_store_connect_testflight",
+  "bundle_id": "com.finalevolutionlab.sovereign",
+  "apple_app_id": "",
+  "build_number": "",
+  "version": "",
+  "testflight_public_link": "",
+  "app_store_connect_build_url": "",
+  "release_notes": "",
+  "created_at": ""
 }
 ```
 
-If `ok` is `false`, the build is aborted before signing. Common causes:
-- Mismatched `EMERGENT_GAME_WS_URL` in backend `.env`
-- Production backend not deployed yet
-- Encryption mode drift
+Generate the metadata file after App Store Connect has accepted the build:
 
-## 8. Troubleshooting
+```bash
+APPLE_APP_ID="1234567890" \
+BUILD_NUMBER="42" \
+VERSION="1.0.0" \
+TESTFLIGHT_PUBLIC_LINK="https://testflight.apple.com/join/..." \
+APP_STORE_CONNECT_BUILD_URL="https://appstoreconnect.apple.com/apps/1234567890/testflight/ios" \
+RELEASE_NOTES="iOS HealthKit integration build" \
+./scripts/write_superapp_release_metadata.sh
+```
+
+Default output: `artifacts/superapp/final-evolution-lab-ios-release.json`.
+
+If Superapp later exposes an API, register exactly this JSON payload there; do not replace it with an IPA URL or install manifest unless the approved Apple distribution path requires it.
+
+## Fresh Mac prerequisites
+
+| Tool | Requirement |
+|---|---|
+| macOS | Xcode-supported macOS on Apple Silicon |
+| Xcode | Installed, selected with `xcode-select`, license accepted |
+| Unreal Engine | UE 5.7 with iOS target support |
+| Apple Developer | Active team with App Store Connect access |
+| Project branch | `setup-healthkit` |
+
+Verify:
+
+```bash
+git branch --show-current
+xcodebuild -version
+export UE_ROOT="/Users/Shared/Epic Games/UE_5.7"
+export IOS_DEVELOPMENT_TEAM="ABCDE12345"
+```
+
+Set `UPROJECT` only if auto-discovery does not find the correct Unreal project.
+
+## Build, stage, archive, and export
+
+Run preflight:
+
+```bash
+./fel_ue5_ios_shipping_package.sh --verify-only
+```
+
+Build and archive:
+
+```bash
+./fel_ue5_ios_shipping_package.sh --full-cook --shipping
+```
+
+Build, archive, and export an App Store Connect `.ipa`:
+
+```bash
+./fel_ue5_ios_shipping_package.sh --full-cook --shipping --export-ipa
+```
+
+The export step uses `infra/ue5_config/ExportOptions.plist` with `method=app-store`.
+
+Expected artifacts:
+
+- `.app` under the resolved iOS archive directory and project `Binaries/IOS`.
+- Optional `.ipa` at `Binaries/IOS/FinalEvolutionLab.ipa` when `--export-ipa` succeeds.
+- A descriptor-safe cooked payload inside the promoted `.app` via `cookeddata/` or `.pak`.
+
+## Upload to App Store Connect
+
+Preferred options:
+
+- Xcode Organizer: open the generated archive and choose App Store Connect distribution.
+- Transporter: upload `Binaries/IOS/FinalEvolutionLab.ipa` after `--export-ipa`.
+- `xcrun altool` only if your Apple account flow still supports it.
+
+Do not publish or host the `.ipa` for direct user installation.
+
+## Verification
+
+Before upload:
+
+```bash
+grep -RInE 'AltStore|SideStore|sideload|itms-services|manifest\.plist|Over[- ]the[- ]air|OTA' . \
+  --exclude-dir=.git --exclude-dir=Saved --exclude-dir=Intermediate --exclude-dir=Binaries --exclude-dir=DerivedDataCache
+```
+
+Confirm the shipped bundle:
+
+- `CFBundleIdentifier` matches the App Store Connect app record.
+- `NSHealthShareUsageDescription` and `NSHealthUpdateUsageDescription` are present when HealthKit is used.
+- `finalevolution://` is registered.
+- The `.app` contains `cookeddata/` or `.pak`.
+- App Store Connect export compliance, privacy nutrition labels, HealthKit declarations, camera usage, and encryption answers are complete.
+
+On device after TestFlight install:
+
+- Launch the app from TestFlight.
+- Open the WKWebView dashboard overlay.
+- Trigger a `finalevolution://` path.
+- Exercise the HealthKit permission path.
+- Confirm no descriptor error, grey-screen-only launch, or missing cooked payload issue.
+
+## Release day checklist
+
+1. Checkout `setup-healthkit` and confirm a clean working tree.
+2. Run `./fel_ue5_ios_shipping_package.sh --verify-only`.
+3. Run `./fel_ue5_ios_shipping_package.sh --full-cook --shipping --export-ipa`.
+4. Upload via Xcode Organizer or Transporter to App Store Connect.
+5. Wait for processing, answer export compliance and privacy prompts, then enable TestFlight.
+6. Generate `artifacts/superapp/final-evolution-lab-ios-release.json` with `scripts/write_superapp_release_metadata.sh`.
+7. Register that JSON with Superapp through the agreed human or API step.
+8. Install from TestFlight on a real device and smoke test launch, dashboard, deep links, HealthKit, and cooked-content boot.
+
+## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| `Failed to open descriptor file ../../../FinalEvolutionLab/FinalEvolutionLab.uproject` | Run `./fel_ue5_ios_shipping_package.sh --shipping --purge-cache --no-pak`. The post-build IPA inspector now blocks the export if the descriptor is missing. If `fel_prebuild_ci_check.sh` reports CHECK 1b case mismatch, fix the disk filename to match `FinalEvolutionLab.uproject` exactly. |
-| `Code signing required` | Confirm `TEAM_ID` env var; `--allowProvisioningUpdates` is already set |
-| `RunUAT: missing target` | Ensure `FinalEvolutionLab.Target.cs` is in `Source/`. Run `./infra/fix_ios_descriptor_path.sh` to auto-create it |
-| `descriptor not found` (different from above) | Run `infra/fix_ios_descriptor_path.sh` once; re-build with `--purge-cache` |
-| Handshake `ok: false` | Check backend `.env` `EMERGENT_GAME_WS_URL` matches `wss://finalevolutiongroup.com/ws/sovereign` |
-| IPA size > 500 MB | Disable unused UE5 plugins; check `--nodebuginfo` is set; remove `--no-pak` once descriptor is verified |
-
----
-
-**You are not packaging a binary — you are licensing an athlete-sovereign OS to the App Store.**
-Don't ship until the handshake is green and a real iPhone 16 Pro Max passes the on-device boot.
+| Missing `Info.plist` or privacy keys | Merge `UnrealIntegration/Config/DefaultEngine.FEL_iOS_URL_scheme.snippet.ini` into the active Unreal config and rebuild. |
+| Descriptor error on device | Use the current `fel_ue5_ios_shipping_package.sh`; it promotes the fully staged cooked `.app` and repacks a descriptor-safe IPA. |
+| Code signing failure | Set `IOS_DEVELOPMENT_TEAM` to the 10-character Apple team ID or configure Signing & Capabilities in the generated iOS workspace. |
+| No Superapp registration step exists | Hand off `artifacts/superapp/final-evolution-lab-ios-release.json` as the minimal release tracking contract. |

@@ -107,6 +107,9 @@ venv/
 .rork/
 rork-eslint.config.js
 
+# Emulator seed (optional npm deps)
+scripts/emulator_seed/node_modules/
+
 # Misc tooling
 .vercel
 .chainlit

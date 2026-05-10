@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var simpleMode: Bool = UserDefaults.standard.bool(forKey: "simpleMode")
     @State private var showSettings: Bool = false
     @State private var showOnboarding: Bool = false
+    @ObservedObject private var shareCoordinator = SocialShareCoordinator.shared
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -48,7 +49,7 @@ struct ContentView: View {
 
             Tab("Arena", systemImage: "trophy.fill", value: .social) {
                 NavigationStack {
-                    GameModeSelectionView(viewModel: viewModel)
+                    ArenaHubView(viewModel: viewModel)
                         .navigationTitle("")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
@@ -100,6 +101,9 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsSheet(simpleMode: $simpleMode, viewModel: viewModel)
         }
+        .sheet(item: $shareCoordinator.composerDraft) { draft in
+            SocialPostComposerSheet(draft: draft)
+        }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView { sport, age, goal in
                 viewModel.completeOnboarding(sport: sport, age: age, goal: goal)
@@ -120,6 +124,9 @@ struct ContentView: View {
         .overlay(alignment: .topTrailing) {
             RorkOverlayView()
                 .padding(.top, 50)
+        }
+        .overlay {
+            FelToastOverlay()
         }
     }
 

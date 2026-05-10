@@ -61,8 +61,15 @@ struct GameModeSelectionView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $showEmbeddedUnreal) {
+        .fullScreenCover(isPresented: $showEmbeddedUnreal, onDismiss: {
+            UnrealManager.shared.isUnrealActive = false
+        }) {
             UnrealContainerView()
+        }
+        .onChange(of: showEmbeddedUnreal) { _, open in
+            if open {
+                UnrealManager.shared.isUnrealActive = true
+            }
         }
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }

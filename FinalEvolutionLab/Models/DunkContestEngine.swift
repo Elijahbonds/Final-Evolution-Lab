@@ -61,30 +61,40 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
 }
 
 /// Deterministic dunk math for production and tests; judge rolls are injected for `0..<spread`.
+/// Uses scalar inputs only so scoring stays **`nonisolated`** and avoids MainActor isolation on ``DunkContestState`` (Swift 6–friendly).
 nonisolated enum DunkContestScoring {
     static func calculate(
-        state: DunkContestState,
+        jumpHeight: Double,
+        launchQuality: Double,
+        landingQuality: Double,
+        completedRotation: Double,
+        selectedTrick: DunkTrickSlot,
+        trickHistory: [DunkTrickSlot],
+        totalFreestylePoints: Int,
+        midAirBranchCount: Int,
+        activeModifier: DunkModifier,
+        styleLandingSuccess: Bool,
         prq: Double,
         neuralBurst: Bool,
         judgeOffsets: (Int, Int, Int)
     ) -> (total: Int, j1: Int, j2: Int, j3: Int, message: String) {
         let normalized = min(max(prq / 100.0, 0), 1)
 
-        let heightScore = state.jumpHeight * 20
-        let trickScore = state.selectedTrick.complexity * 25
-        let executionScore = ((state.launchQuality + state.landingQuality) / 2.0) * 20
-        let rotationScore = state.completedRotation * 8
+        let heightScore = jumpHeight * 20
+        let trickScore = selectedTrick.complexity * 25
+        let executionScore = ((launchQuality + landingQuality) / 2.0) * 20
+        let rotationScore = completedRotation * 8
 
         var originalityBonus: Double = 0
-        let previousCount = state.trickHistory.filter { $0 == state.selectedTrick }.count
+        let previousCount = trickHistory.filter { $0 == selectedTrick }.count
         if previousCount == 0 { originalityBonus = 12 }
         else if previousCount == 1 { originalityBonus = 5 }
 
-        let freestyleBonus = Double(min(state.totalFreestylePoints, 30))
-        let chainBonus = Double(state.midAirState.branchCount) * 5
-        let modifierBonus = (state.activeModifier.scoreMultiplier - 1.0) * 15
+        let freestyleBonus = Double(min(totalFreestylePoints, 30))
+        let chainBonus = Double(midAirBranchCount) * 5
+        let modifierBonus = (activeModifier.scoreMultiplier - 1.0) * 15
 
-        let styleLandingBonus: Double = state.styleLandingSuccess ? 8 : 0
+        let styleLandingBonus: Double = styleLandingSuccess ? 8 : 0
 
         var rawScore = heightScore + trickScore + executionScore + rotationScore +
             originalityBonus + freestyleBonus + chainBonus + modifierBonus + styleLandingBonus
@@ -244,7 +254,16 @@ struct DunkContestState {
             Int.random(in: 0..<spread)
         )
         let out = DunkContestScoring.calculate(
-            state: self,
+            jumpHeight: jumpHeight,
+            launchQuality: launchQuality,
+            landingQuality: landingQuality,
+            completedRotation: completedRotation,
+            selectedTrick: selectedTrick,
+            trickHistory: trickHistory,
+            totalFreestylePoints: totalFreestylePoints,
+            midAirBranchCount: midAirState.branchCount,
+            activeModifier: activeModifier,
+            styleLandingSuccess: styleLandingSuccess,
             prq: prq,
             neuralBurst: neuralBurst,
             judgeOffsets: judgeOffsets

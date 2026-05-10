@@ -13,6 +13,7 @@ struct LabView: View {
     @State private var showGlobalMatchmaking: Bool = false
     @State private var showCoach: Bool = false
     @State private var showBlueprints: Bool = false
+    @State private var showBodyIQLab: Bool = false
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
@@ -35,6 +36,7 @@ struct LabView: View {
                 tierBanner
                 scanSection
                 biomechanicsSection
+                bodyIQEducationEntry
                 athleteProfileBanner
                 globalArenaCard
                 courtSection
@@ -93,6 +95,55 @@ struct LabView: View {
         .navigationDestination(isPresented: $showBlueprints) {
             BlueprintsView(viewModel: viewModel)
         }
+        .navigationDestination(isPresented: $showBodyIQLab) {
+            BodyIQEducationLabView(viewModel: viewModel)
+        }
+    }
+
+    private var bodyIQEducationEntry: some View {
+        Button {
+            showBodyIQLab = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.elitePurple.opacity(0.14))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "figure.flexibility")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.elitePurple)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("BODY IQ LAB")
+                        .font(.system(.subheadline, weight: .black))
+                        .foregroundStyle(.white)
+                    Text("Movement Snacks · Bonds Standard prescriptions")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.elitePurple.opacity(0.45), Theme.brandCyan.opacity(0.25)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var headerSection: some View {

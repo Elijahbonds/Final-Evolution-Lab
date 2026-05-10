@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import AVFoundation
+import UIKit
 
 struct SystemScanView: View {
     let sport: String?
@@ -22,6 +23,14 @@ struct SystemScanView: View {
     }
 
     @State private var generatedResult: SystemScanResult?
+    @State private var communityPostState: CommunityPostState = .idle
+
+    private enum CommunityPostState: Equatable {
+        case idle
+        case posting
+        case posted
+        case failed(String)
+    }
 
     var body: some View {
         NavigationStack {
@@ -280,6 +289,52 @@ struct SystemScanView: View {
                     .padding(.horizontal)
                 }
 
+                if FirebaseBootstrap.isConfigured {
+                    VStack(spacing: 10) {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            Task { await postScanToCommunity(result) }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "square.and.arrow.up.on.square.fill")
+                                Text("SHARE TO LAB FEED")
+                            }
+                            .font(.system(.subheadline, design: .monospaced, weight: .black))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                LinearGradient(
+                                    colors: [Theme.brandBlue.opacity(0.95), Theme.brandCyan.opacity(0.85)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(.rect(cornerRadius: 14))
+                        }
+                        .disabled(communityPostState == .posting)
+
+                        switch communityPostState {
+                        case .idle:
+                            EmptyView()
+                        case .posting:
+                            Text("Publishing to SQL feed…")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        case .posted:
+                            Label("Posted — check the Arena Community tab.", systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(Theme.foundationGreen)
+                        case .failed(let msg):
+                            Text(msg)
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+
                 Button {
                     onComplete(result)
                     dismiss()
@@ -369,6 +424,46 @@ struct SystemScanView: View {
                 .font(.system(size: 11, weight: .black, design: .monospaced))
                 .foregroundStyle(.white)
         }
+    }
+
+    @MainActor
+    private func postScanToCommunity(_ result: SystemScanResult) async {
+        communityPostState = .posting
+        let metrics = labPerformanceMetrics(from: result)
+        do {
+            await TrainingLabSocialBridge.shared.syncPeakPRQFromScanResult(result)
+            let authorId = try await TrainingLabSocialBridge.shared.ensureSqlUserRegistration(displayName: nil)
+            let content = """
+            PRQ \(String(format: "%.1f", result.prqScore)) · \(result.movementGrade)
+            Explosiveness \(String(format: "%.0f", metrics.explosiveness * 100))% · Neural focus \(String(format: "%.0f", metrics.neuralFocus * 100))%
+            Vertical \(String(format: "%.1f\"", result.verticalEstimateInches)) · Flight \(String(format: "%.2fs", result.flightTimeSeconds))
+            Track: \(result.recommendedTrack)
+            """
+            try await TrainingLabSocialBridge.shared.createFeedPost(
+                content: content,
+                authorId: authorId,
+                gameModeId: nil,
+                trainingScore: result.prqScore,
+                clipUrl: nil,
+                feedSource: "system_scan"
+            )
+            communityPostState = .posted
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            FelToastCenter.shared.show("Shared to live Lab feed", isError: false)
+        } catch {
+            communityPostState = .failed(error.localizedDescription)
+            FelToastCenter.shared.show(error.localizedDescription, isError: true)
+        }
+    }
+
+    /// Normalized 0…1 metrics aligned with ``AvatarPerformanceAttributes``-style storytelling (demo scan — no HealthKit vitals).
+    private func labPerformanceMetrics(from result: SystemScanResult) -> (explosiveness: Double, neuralFocus: Double) {
+        let prqN = min(1.0, max(0.0, result.prqScore / 100.0))
+        let vertN = min(1.0, max(0.0, (result.verticalEstimateInches - 18.0) / 18.0))
+        let flightN = min(1.0, max(0.0, result.flightTimeSeconds / 0.72))
+        let explosiveness = min(1.0, max(0.12, prqN * 0.52 + vertN * 0.38 + flightN * 0.1))
+        let neuralFocus = min(1.0, max(0.12, prqN * 0.48 + flightN * 0.37 + (1.0 - vertN) * 0.15))
+        return (explosiveness, neuralFocus)
     }
 
     private func gradeColor(_ score: Double) -> Color {

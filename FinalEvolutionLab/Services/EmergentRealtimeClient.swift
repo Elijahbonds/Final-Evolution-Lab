@@ -78,6 +78,23 @@ final class EmergentRealtimeClient {
     static func applyEmergentPayload(_ obj: [String: Any], type: String?) {
         let t = type?.lowercased()
         switch t {
+        case "fel_game_result":
+            let mode =
+                (obj["gameModeId"] as? String)
+                ?? (obj["game_mode_id"] as? String)
+                ?? (obj["mode"] as? String)
+                ?? "game_mode"
+            let score: Double? = {
+                if let n = obj["trainingScore"] as? Double { return n }
+                if let n = obj["trainingScore"] as? Int { return Double(n) }
+                if let n = obj["score"] as? Double { return n }
+                if let n = obj["score"] as? Int { return Double(n) }
+                return nil
+            }()
+            let clip =
+                (obj["clipUrl"] as? String)
+                ?? (obj["clip_url"] as? String)
+            SocialShareCoordinator.shared.presentGameResult(gameModeId: mode, score: score, clipUrl: clip)
         case "prq_delta":
             if let delta = obj["delta"] as? Int {
                 let current = RorkScoreManager.shared.currentPrqScore

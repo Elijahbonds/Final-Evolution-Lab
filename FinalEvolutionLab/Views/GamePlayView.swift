@@ -2531,6 +2531,8 @@ struct GamePlayView: View {
     }
 
     private func executeDunkScoring() {
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+
         let result = dunkEngine.calculateDunkScore(
             prq: playerPRQ,
             neuralBurst: arcadePhysics.neuralBurstActive
@@ -3001,6 +3003,7 @@ struct GamePlayView: View {
     }
 
     private func finalizeResults() {
+        CrashReporter.setGameMode(id: gameMode.id.rawValue)
         viewModel.profile.evolutionShards += shardsReward
         viewModel.profile.metrics.prqScore = PRQ.clamp(viewModel.profile.metrics.prqScore + prqReward)
         viewModel.profile.metrics.neuralDrive = min(100, viewModel.profile.metrics.neuralDrive + 3)

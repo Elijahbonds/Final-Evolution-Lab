@@ -35,7 +35,16 @@ struct GameLogicTests {
         state.midAirState.reset()
 
         let out = DunkContestScoring.calculate(
-            state: state,
+            jumpHeight: state.jumpHeight,
+            launchQuality: state.launchQuality,
+            landingQuality: state.landingQuality,
+            completedRotation: state.completedRotation,
+            selectedTrick: state.selectedTrick,
+            trickHistory: state.trickHistory,
+            totalFreestylePoints: state.totalFreestylePoints,
+            midAirBranchCount: state.midAirState.branchCount,
+            activeModifier: state.activeModifier,
+            styleLandingSuccess: state.styleLandingSuccess,
             prq: 50,
             neuralBurst: false,
             judgeOffsets: (0, 0, 0)
@@ -79,5 +88,25 @@ struct GameLogicTests {
 
         EmergentRealtimeClient.applyEmergentPayload(["type": "prq_set", "value": 42], type: "prq_set")
         #expect(RorkScoreManager.shared.currentPrqScore == 42)
+    }
+
+    @Test @MainActor
+    func emergentFelGameResultPreparesShareDraft() {
+        SocialShareCoordinator.shared.dismissComposer()
+        EmergentRealtimeClient.applyEmergentPayload(
+            [
+                "type": "fel_game_result",
+                "gameModeId": "dunk_contest",
+                "score": 88,
+                "clipUrl": "https://example.com/clip.mp4",
+            ],
+            type: "fel_game_result"
+        )
+        let draft = SocialShareCoordinator.shared.composerDraft
+        #expect(draft != nil)
+        #expect(draft?.gameModeId == "dunk_contest")
+        #expect(draft?.trainingScore == 88)
+        #expect(draft?.clipUrl == "https://example.com/clip.mp4")
+        SocialShareCoordinator.shared.dismissComposer()
     }
 }

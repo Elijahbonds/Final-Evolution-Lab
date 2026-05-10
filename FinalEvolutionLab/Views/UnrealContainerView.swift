@@ -9,6 +9,18 @@ struct UnrealContainerView: View {
             if unrealManager.isUnrealActive && unrealManager.isUnrealLoaded {
                 UnrealContainerRepresentable()
                     .ignoresSafeArea()
+            } else if unrealManager.isUnrealActive && !unrealManager.isUnrealLoaded && unrealManager.isFrameworkPresent {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .tint(Theme.brandCyan)
+                        .scaleEffect(1.2)
+                    Text("LOADING ARENA RUNTIME…")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(3)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Theme.deepBlack)
             } else {
                 placeholder
             }
