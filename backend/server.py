@@ -1,9 +1,9 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
-import os, logging, uuid, random, json, aiofiles, hashlib, hmac, base64
+import os, logging, uuid, random, json, aiofiles, hashlib, hmac, base64, secrets
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
@@ -12,6 +12,14 @@ import paypalrestsdk
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
+from privacy_minors import athlete_visible_in_public_discovery, include_prq_in_public_athlete_search
+from commerce_catalog import COMMERCE_CATALOG, resolve_paypal_line_item
+from iap_verify import extract_line_items, extract_product_ids, verify_legacy_receipt
+from storekit_catalog import (
+    decode_unsigned_jws_payload,
+    mapping_valid_for_commerce,
+    resolve_storekit_product,
+)
 from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
@@ -28,6 +36,10 @@ paypalrestsdk.configure({
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+_MAX_VIDEO_BYTES = int(os.environ.get("FEL_MAX_VIDEO_UPLOAD_MB", "80")) * 1024 * 1024
+_VIDEO_READ_CHUNK = 1024 * 1024
+_ALLOWED_VIDEO_EXT = frozenset({".mp4", ".mov", ".webm", ".m4v"})
+
 app = FastAPI(title="Final Evolution Lab API")
 
 # ──────────────────────────────────────────────────────────────
@@ -42,10 +54,17 @@ async def k8s_health():
 # CORS: when allow_credentials=True, browsers REJECT a wildcard "*" origin
 # (CORS spec violation → cookies silently dropped on Safari + Chrome).
 # We explicitly allow our production domain and any *.preview.emergentagent.com.
-ALLOWED_ORIGIN_REGEX = (
+# Default includes preview hosts for developer ergonomics. Set ``FEL_CORS_STRICT_PRODUCTION=1`` in
+# production to allow credentialed access only from finalevolutiongroup.com + localhost.
+_PRODUCTION_ORIGIN_REGEX = (
     r"https?://(localhost(:\d+)?|127\.0\.0\.1(:\d+)?"
-    r"|finalevolutiongroup\.com|www\.finalevolutiongroup\.com"
-    r"|.*\.preview\.emergentagent\.com|.*\.emergentagent\.com)"
+    r"|finalevolutiongroup\.com|www\.finalevolutiongroup\.com)"
+)
+_PREVIEW_ORIGIN_SUFFIX = r"|https?://.*\.preview\.emergentagent\.com|https?://.*\.emergentagent\.com"
+ALLOWED_ORIGIN_REGEX = (
+    _PRODUCTION_ORIGIN_REGEX
+    if os.environ.get("FEL_CORS_STRICT_PRODUCTION", "").lower() in ("1", "true", "yes")
+    else _PRODUCTION_ORIGIN_REGEX + _PREVIEW_ORIGIN_SUFFIX
 )
 app.add_middleware(
     CORSMiddleware,
@@ -58,6 +77,121 @@ app.add_middleware(
 api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _fel_ios_client(request: Request) -> bool:
+    ua = (request.headers.get("user-agent") or "").lower()
+    x = (request.headers.get("x-fel-client") or "").lower()
+    return "fel-ios" in ua or x == "ios" or "fel/unreal-ios" in ua
+
+
+def _age_from_iso_dob(dob: Optional[str]) -> Optional[int]:
+    if not dob:
+        return None
+    try:
+        from datetime import date as date_cls
+
+        parts = str(dob).strip().split("-")
+        if len(parts) != 3:
+            return None
+        y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+        bd = date_cls(y, m, d)
+        today = date_cls.today()
+        return today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+    except Exception:
+        return None
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Validated profile patch (PROFILE-01). Unknown fields ignored."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    name: Optional[str] = Field(None, max_length=80)
+    bio: Optional[str] = Field(None, max_length=4000)
+    sport: Optional[str] = Field(None, max_length=40)
+    avatar_url: Optional[str] = Field(None, max_length=2048)
+    avatar_config: Optional[Dict[str, Any]] = None
+    allergies: Optional[List[str]] = None
+    dietary_restrictions: Optional[List[str]] = None
+    date_of_birth: Optional[str] = Field(None, max_length=10)
+    parental_consent_acknowledged: Optional[bool] = None
+
+    @field_validator("avatar_url")
+    @classmethod
+    def avatar_scheme(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        if not (
+            v.startswith("https://")
+            or v.startswith("http://localhost")
+            or v.startswith("http://127.0.0.1")
+            or v.startswith("/")
+        ):
+            raise ValueError("avatar_url must be https, localhost, or a site-relative path")
+        return v
+
+    @field_validator("allergies", "dietary_restrictions")
+    @classmethod
+    def cap_list(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return None
+        if len(v) > 40:
+            raise ValueError("too many entries (max 40)")
+        return [str(x)[:64] for x in v]
+
+    @field_validator("date_of_birth")
+    @classmethod
+    def dob_iso(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v).strip()
+        if len(s) != 10 or s[4] != "-" or s[7] != "-":
+            raise ValueError("date_of_birth must be YYYY-MM-DD")
+        return s
+
+    @model_validator(mode="after")
+    def avatar_blob_limit(self) -> "ProfileUpdateRequest":
+        if self.avatar_config is None:
+            return self
+        raw = json.dumps(self.avatar_config, default=str)
+        if len(raw) > 12000:
+            raise ValueError("avatar_config payload too large")
+        return self
+
+
+class AnalyticsSessionIn(BaseModel):
+    """Client-reported analytics — schema/size bounded (ANALYTICS-01). Treat as untrusted telemetry."""
+
+    game_mode: Optional[str] = Field(None, max_length=80)
+    venue: Optional[str] = Field(None, max_length=128)
+    session_start: Optional[str] = Field(None, max_length=48)
+    session_end: Optional[str] = Field(None, max_length=48)
+    duration_seconds: float = Field(0, ge=0, le=86400 * 7)
+    score: float = Field(0, ge=-1e9, le=1e9)
+    latency_ms: Optional[float] = Field(None, ge=0, le=120000)
+    events: List[Any] = Field(default_factory=list)
+    stream_quality: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("events")
+    @classmethod
+    def cap_events(cls, v: Any) -> Any:
+        if not isinstance(v, list):
+            raise ValueError("events must be a list")
+        if len(v) > 400:
+            raise ValueError("too many events (max 400)")
+        return v
+
+    @field_validator("stream_quality")
+    @classmethod
+    def cap_stream(cls, v: Any) -> Any:
+        if not isinstance(v, dict):
+            raise ValueError("stream_quality must be an object")
+        raw = json.dumps(v, default=str)
+        if len(raw) > 8000:
+            raise ValueError("stream_quality payload too large")
+        return v
+
 
 @api_router.post("/auth/session")
 async def create_session(request: Request, response: Response):
@@ -198,15 +332,19 @@ async def get_streak_rewards(user: User = Depends(get_current_user)):
     ]
     return {"current_streak": current, "milestones": milestones}
 
-# ===================== PAYPAL =====================
+# ===================== PAYPAL (web / non-IAP) =====================
 @api_router.post("/payments/create-order")
-async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    item_type = data.get("item_type", "card")  # card, course
+async def create_paypal_order(request: Request, data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Create PayPal order using **server catalog prices only** (COMMERCE-01). Client ``amount`` is ignored."""
+    item_type = data.get("item_type", "card")
     item_id = data.get("item_id")
-    amount = data.get("amount", 0)
-
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Invalid amount")
+    if _fel_ios_client(request) and item_type in ("card", "course"):
+        raise HTTPException(
+            status_code=400,
+            detail="Digital purchases in the iOS app must use In-App Purchase (StoreKit), not PayPal web checkout.",
+        )
+    meta = resolve_paypal_line_item(item_type, item_id)
+    amount = float(meta["price_usd"])
 
     payment = paypalrestsdk.Payment({
         "intent": "sale",
@@ -217,49 +355,265 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
         },
         "transactions": [{
             "item_list": {"items": [{
-                "name": f"FEL {item_type.title()} - {item_id}",
+                "name": meta["title"][:120],
                 "sku": item_id,
                 "price": f"{amount:.2f}",
                 "currency": "USD",
                 "quantity": 1
             }]},
             "amount": {"total": f"{amount:.2f}", "currency": "USD"},
-            "description": f"Final Evolution Lab - {item_type.title()} Purchase"
+            "description": f"Final Evolution Lab — {meta['title']}"
         }]
     })
 
     if payment.create():
-        # Store order
         order = {
             "id": payment.id, "user_id": user.user_id, "item_type": item_type,
             "item_id": item_id, "amount": amount, "status": "created",
+            "fulfilled": False,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.orders.insert_one(order)
         approval_url = next((l.href for l in payment.links if l.rel == "approval_url"), None)
-        return {"order_id": payment.id, "approval_url": approval_url, "status": "created"}
-    else:
-        logger.error(f"PayPal error: {payment.error}")
-        raise HTTPException(status_code=500, detail=f"Payment creation failed: {payment.error}")
+        return {"order_id": payment.id, "approval_url": approval_url, "status": "created", "amount_usd": amount}
+    logger.error(f"PayPal error: {payment.error}")
+    raise HTTPException(status_code=500, detail=f"Payment creation failed: {payment.error}")
+
+
+async def _fulfill_paid_order(order: Dict[str, Any], user: User):
+    """Grant entitlements once per paid order (idempotent at DB level where possible)."""
+    if order["item_type"] == "card":
+        await db.creator_cards.update_one(
+            {"id": order["item_id"], "for_sale": True},
+            {"$set": {"owner_id": user.user_id, "for_sale": False}},
+        )
+    elif order["item_type"] == "course":
+        await db.enrollments.update_one(
+            {"user_id": user.user_id, "course_id": order["item_id"]},
+            {"$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "user_id": user.user_id,
+                "course_id": order["item_id"],
+                "progress": 0,
+                "enrolled_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True,
+        )
+
 
 @api_router.post("/payments/capture")
 async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Capture PayPal payment only if the order belongs to the signed-in user (COMMERCE-02)."""
     payment_id = data.get("payment_id")
     payer_id = data.get("payer_id")
     if not payment_id or not payer_id:
         raise HTTPException(status_code=400, detail="payment_id and payer_id required")
 
+    order = await db.orders.find_one({"id": payment_id, "user_id": user.user_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found for this account")
+    if order.get("fulfilled"):
+        return {"status": "completed", "order_id": payment_id, "idempotent": True}
+    if order.get("status") != "created":
+        raise HTTPException(status_code=409, detail="Order is not capturable")
+
     payment = paypalrestsdk.Payment.find(payment_id)
-    if payment.execute({"payer_id": payer_id}):
-        await db.orders.update_one({"id": payment_id}, {"$set": {"status": "completed", "payer_id": payer_id, "completed_at": datetime.now(timezone.utc).isoformat()}})
-        order = await db.orders.find_one({"id": payment_id}, {"_id": 0})
-        if order:
-            if order["item_type"] == "card":
-                await db.creator_cards.update_one({"id": order["item_id"]}, {"$set": {"owner_id": user.user_id, "for_sale": False}})
-            elif order["item_type"] == "course":
-                await db.enrollments.insert_one({"id": str(uuid.uuid4()), "user_id": user.user_id, "course_id": order["item_id"], "progress": 0, "enrolled_at": datetime.now(timezone.utc).isoformat()})
-        return {"status": "completed", "order_id": payment_id}
-    raise HTTPException(status_code=500, detail="Payment capture failed")
+    if not payment.execute({"payer_id": payer_id}):
+        raise HTTPException(status_code=500, detail="Payment capture failed")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    upd = await db.orders.update_one(
+        {"id": payment_id, "user_id": user.user_id, "status": "created"},
+        {"$set": {"status": "completed", "payer_id": payer_id, "completed_at": now_iso}},
+    )
+    if upd.modified_count == 0:
+        doc = await db.orders.find_one({"id": payment_id, "user_id": user.user_id}, {"_id": 0})
+        if doc and doc.get("fulfilled"):
+            return {"status": "completed", "order_id": payment_id, "idempotent": True}
+        raise HTTPException(status_code=409, detail="Could not finalize order state")
+
+    order = await db.orders.find_one({"id": payment_id, "user_id": user.user_id}, {"_id": 0})
+    if order.get("fulfilled"):
+        return {"status": "completed", "order_id": payment_id, "idempotent": True}
+
+    await _fulfill_paid_order(order, user)
+    await db.orders.update_one(
+        {"id": payment_id, "user_id": user.user_id},
+        {"$set": {"fulfilled": True, "fulfilled_at": now_iso}},
+    )
+    return {"status": "completed", "order_id": payment_id}
+
+
+async def _iap_assert_transaction_available(user: User, apple_transaction_id: Optional[str]) -> None:
+    if not apple_transaction_id:
+        return
+    ex = await db.iap_pending_transactions.find_one({"apple_transaction_id": apple_transaction_id}, {"_id": 0})
+    if ex and ex.get("user_id") != user.user_id:
+        raise HTTPException(
+            status_code=409,
+            detail="This Apple transaction id is already recorded for another account.",
+        )
+
+
+async def _iap_record_pending(
+    *,
+    user: User,
+    apple_product_id: str,
+    mapping: Dict[str, str],
+    submission_kind: str,
+    legacy_receipt_verified: bool,
+    apple_transaction_id: Optional[str],
+    idempotency_key: str,
+) -> Dict[str, Any]:
+    await _iap_assert_transaction_available(user, apple_transaction_id)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    rid = str(uuid.uuid4())
+    doc = {
+        "id": rid,
+        "user_id": user.user_id,
+        "idempotency_key": idempotency_key,
+        "apple_product_id": apple_product_id,
+        "item_type": mapping["item_type"],
+        "item_id": mapping["item_id"],
+        "apple_transaction_id": apple_transaction_id,
+        "submission_kind": submission_kind,
+        "legacy_receipt_verified": legacy_receipt_verified,
+        "fulfillment_blocked_reason": "pending_app_store_server_api_or_verified_jws",
+        "created_at": now_iso,
+    }
+    res = await db.iap_pending_transactions.update_one(
+        {"user_id": user.user_id, "idempotency_key": idempotency_key},
+        {"$setOnInsert": doc},
+        upsert=True,
+    )
+    if getattr(res, "upserted_id", None) is not None:
+        return {
+            "record_id": rid,
+            "apple_product_id": apple_product_id,
+            "item_type": mapping["item_type"],
+            "item_id": mapping["item_id"],
+            "legacy_receipt_verified": legacy_receipt_verified,
+            "idempotent": False,
+        }
+    existing = await db.iap_pending_transactions.find_one(
+        {"user_id": user.user_id, "idempotency_key": idempotency_key}, {"_id": 0}
+    )
+    erid = (existing or {}).get("id", rid)
+    return {
+        "record_id": erid,
+        "apple_product_id": apple_product_id,
+        "item_type": mapping["item_type"],
+        "item_id": mapping["item_id"],
+        "legacy_receipt_verified": (existing or {}).get("legacy_receipt_verified", legacy_receipt_verified),
+        "idempotent": True,
+    }
+
+
+@api_router.post("/payments/iap/verify")
+async def verify_iap_transaction(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """
+    COMMERCE-03 — Fail-closed StoreKit contract: resolve App Store product IDs via ``storekit_catalog``,
+    optionally validate legacy receipts with Apple, record ``iap_pending_transactions`` — **never** grants
+    entitlements until App Store Server API / verified StoreKit 2 JWS fulfillment is implemented.
+    """
+    receipt_b64 = (data.get("receipt_data") or data.get("receipt") or "").strip()
+    jws = (data.get("signed_transaction_jws") or data.get("transaction_jws") or "").strip()
+
+    if not jws and not receipt_b64:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide signed_transaction_jws (StoreKit 2) and/or receipt_data (base64 legacy receipt).",
+        )
+
+    pending_out: List[Dict[str, Any]] = []
+    warnings: List[str] = []
+    receipt_body: Optional[Dict[str, Any]] = None
+
+    if jws:
+        try:
+            payload = decode_unsigned_jws_payload(jws)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid transaction JWS payload: {exc}") from exc
+
+        pid = payload.get("productId") or payload.get("product_id")
+        if not pid or not isinstance(pid, str):
+            raise HTTPException(status_code=400, detail="Transaction JWS payload missing productId")
+
+        tid = str(payload.get("transactionId") or payload.get("transaction_id") or "").strip() or None
+        mapping = resolve_storekit_product(pid)
+        if not mapping:
+            raise HTTPException(status_code=400, detail=f"Unknown App Store product id (configure storekit_catalog): {pid}")
+        if not mapping_valid_for_commerce(mapping):
+            raise HTTPException(status_code=500, detail="StoreKit catalog entry does not match COMMERCE_CATALOG")
+
+        digest = hashlib.sha256(jws.encode("utf-8")).hexdigest()
+        idempotency_key = f"apple_tx_{tid}" if tid else f"jws_digest_{digest}"
+        pending_out.append(
+            await _iap_record_pending(
+                user=user,
+                apple_product_id=pid,
+                mapping=mapping,
+                submission_kind="storekit2_jws_unsigned_decode",
+                legacy_receipt_verified=False,
+                apple_transaction_id=tid,
+                idempotency_key=idempotency_key,
+            )
+        )
+
+    if receipt_b64:
+        shared = (os.environ.get("APPLE_SHARED_SECRET") or os.environ.get("APP_STORE_SHARED_SECRET") or "").strip()
+        if not shared:
+            raise HTTPException(
+                status_code=503,
+                detail="APPLE_SHARED_SECRET not configured — cannot call verifyReceipt for legacy receipts.",
+            )
+        receipt_body = await verify_legacy_receipt(receipt_b64, shared)
+        matched_any = False
+        for item in extract_line_items(receipt_body or {}):
+            pid = item["product_id"]
+            tid = item["transaction_id"]
+            mapping = resolve_storekit_product(pid)
+            if not mapping:
+                warnings.append(f"No storekit_catalog mapping for receipt product_id={pid}")
+                continue
+            if not mapping_valid_for_commerce(mapping):
+                logger.warning("storekit_catalog mapping invalid for commerce: %s", pid)
+                continue
+            matched_any = True
+            pending_out.append(
+                await _iap_record_pending(
+                    user=user,
+                    apple_product_id=pid,
+                    mapping=mapping,
+                    submission_kind="legacy_verifyReceipt",
+                    legacy_receipt_verified=True,
+                    apple_transaction_id=tid,
+                    idempotency_key=f"apple_tx_{tid}",
+                )
+            )
+        if not matched_any and not warnings:
+            warnings.append(
+                "Receipt verified with Apple but no line items matched storekit_catalog — extend DEFAULT_STOREKIT_MAP or FEL_STOREKIT_CATALOG_JSON."
+            )
+
+        env_note = receipt_body.get("environment")
+    else:
+        env_note = None
+
+    return {
+        "status": "recorded",
+        "verification_contract": "fail_closed_no_entitlements",
+        "entitlements_granted": [],
+        "pending": pending_out,
+        "warnings": warnings,
+        "apple_environment": env_note if receipt_b64 else None,
+        "product_ids_in_receipt": extract_product_ids(receipt_body) if receipt_body else [],
+        "message": (
+            "Fail-closed posture: pending rows recorded for recognized products. "
+            "No creator cards, courses, or digital entitlements are granted until "
+            "App Store Server API verification (or cryptographically verified StoreKit 2 JWS handling) is wired for fulfillment."
+        ),
+    }
 
 @api_router.get("/payments/history")
 async def get_payment_history(user: User = Depends(get_current_user)):
@@ -300,9 +654,33 @@ async def get_challenges(user: User = Depends(get_current_user)):
 
 @api_router.post("/social/challenge/{challenge_id}/respond")
 async def respond_challenge(challenge_id: str, data: Dict[str, Any], user: User = Depends(get_current_user)):
-    action = data.get("action")  # accept, decline
-    await db.challenges.update_one({"id": challenge_id}, {"$set": {"status": action + "ed"}})
-    return {"status": action + "ed", "challenge_id": challenge_id}
+    """SOCIAL-01 — only participants may respond; pending-only transitions."""
+    action = (data.get("action") or "").strip().lower()
+    status_map = {"accept": "accepted", "decline": "declined", "cancel": "cancelled"}
+    if action not in status_map:
+        raise HTTPException(status_code=400, detail="action must be accept, decline, or cancel")
+
+    ch = await db.challenges.find_one({"id": challenge_id}, {"_id": 0})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    if ch.get("status") != "pending":
+        raise HTTPException(status_code=409, detail="Challenge is no longer pending")
+
+    if action in ("accept", "decline"):
+        if user.user_id != ch.get("challenged_id"):
+            raise HTTPException(status_code=403, detail="Only the challenged athlete can accept or decline")
+    else:
+        if user.user_id != ch.get("challenger_id"):
+            raise HTTPException(status_code=403, detail="Only the challenger can cancel")
+
+    new_status = status_map[action]
+    result = await db.challenges.update_one(
+        {"id": challenge_id, "status": "pending"},
+        {"$set": {"status": new_status, "responded_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Could not update challenge")
+    return {"status": new_status, "challenge_id": challenge_id}
 
 @api_router.get("/social/feed")
 async def get_activity_feed(user: User = Depends(get_current_user)):
@@ -312,19 +690,46 @@ async def get_activity_feed(user: User = Depends(get_current_user)):
     return feed
 
 @api_router.get("/social/athletes")
-async def search_athletes(q: str = ""):
-    query = {"role": {"$in": ["athlete", "coach"]}}
+async def search_athletes(
+    q: str = "",
+    skip: int = 0,
+    limit: int = 20,
+    _user: User = Depends(get_current_user),
+):
+    """SOCIAL-02 / PRIVACY-09 — explicit discovery opt-in only; minors hidden without guardian consent; no PRQ for minors."""
+    limit = min(max(limit, 1), 50)
+    skip = max(skip, 0)
+    query: Dict[str, Any] = {
+        "role": {"$in": ["athlete", "coach"]},
+        "discovery_opt_in": True,
+    }
     if q:
         query["name"] = {"$regex": q, "$options": "i"}
-    athletes = await db.users.find(query, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "sport": 1, "prq_score": 1, "level": 1, "followers": 1}).limit(20).to_list(20)
-    if not athletes:
-        return [
-            {"user_id": "u1", "name": "Elijah Bonds", "sport": "basketball", "prq_score": 95.5, "level": 25, "followers": ["u2", "u3"]},
-            {"user_id": "u2", "name": "Amir Smith", "sport": "karate", "prq_score": 92.3, "level": 22, "followers": ["u1"]},
-            {"user_id": "u3", "name": "Eric Nash", "sport": "training", "prq_score": 89.7, "level": 20, "followers": []},
-            {"user_id": "u4", "name": "Maya Johnson", "sport": "soccer", "prq_score": 87.4, "level": 18, "followers": ["u1", "u2"]},
-        ]
-    return athletes
+    fetch_cap = min(limit * 5, 200)
+    raw = (
+        await db.users.find(query, {"_id": 0})
+        .skip(skip)
+        .limit(fetch_cap)
+        .to_list(fetch_cap)
+    )
+    out = []
+    for a in raw:
+        if not athlete_visible_in_public_discovery(a):
+            continue
+        row = {
+            "user_id": a.get("user_id"),
+            "name": a.get("name"),
+            "picture": a.get("picture"),
+            "sport": a.get("sport"),
+            "level": a.get("level"),
+            "followers": a.get("followers") or [],
+        }
+        if include_prq_in_public_athlete_search(a):
+            row["prq_score"] = a.get("prq_score")
+        out.append(row)
+        if len(out) >= limit:
+            break
+    return out
 
 # ===================== TOURNAMENTS =====================
 @api_router.get("/tournaments")
@@ -371,10 +776,91 @@ async def get_avatar_config(user: User = Depends(get_current_user)):
     config = user.avatar_config or get_default_avatar()
     return config
 
+def _validate_avatar_config_for_update(data: Dict[str, Any]) -> Dict[str, Any]:
+    """AVATAR-01 — only allow values from the catalog / option lists."""
+    o = get_avatar_options()
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="avatar_config must be an object")
+    blob = json.dumps(data, default=str)
+    if len(blob) > 8000:
+        raise HTTPException(status_code=400, detail="avatar_config too large")
+    allowed_fields = {
+        "body_type", "skin_tone", "hair_style", "hair_color", "jersey_color", "shorts_color",
+        "shoe_style", "shoe_color", "accessories", "expression",
+    }
+    for k in data.keys():
+        if k not in allowed_fields:
+            raise HTTPException(status_code=400, detail=f"Unknown avatar field: {k}")
+    out: Dict[str, Any] = {}
+    if "body_type" in data:
+        v = str(data["body_type"])
+        if v not in o["body_types"]:
+            raise HTTPException(status_code=400, detail="invalid body_type")
+        out["body_type"] = v
+    if "skin_tone" in data:
+        v = str(data["skin_tone"])
+        if v not in o["skin_tones"]:
+            raise HTTPException(status_code=400, detail="invalid skin_tone")
+        out["skin_tone"] = v
+    if "hair_style" in data:
+        v = str(data["hair_style"])
+        if v not in o["hair_styles"]:
+            raise HTTPException(status_code=400, detail="invalid hair_style")
+        out["hair_style"] = v
+    if "hair_color" in data:
+        v = str(data["hair_color"])
+        if v not in o["hair_colors"]:
+            raise HTTPException(status_code=400, detail="invalid hair_color")
+        out["hair_color"] = v
+    if "jersey_color" in data:
+        v = str(data["jersey_color"])
+        if v not in o["jersey_colors"]:
+            raise HTTPException(status_code=400, detail="invalid jersey_color")
+        out["jersey_color"] = v
+    if "shorts_color" in data:
+        v = str(data["shorts_color"])
+        if v not in o["shorts_colors"]:
+            raise HTTPException(status_code=400, detail="invalid shorts_color")
+        out["shorts_color"] = v
+    if "shoe_style" in data:
+        v = str(data["shoe_style"])
+        if v not in o["shoe_styles"]:
+            raise HTTPException(status_code=400, detail="invalid shoe_style")
+        out["shoe_style"] = v
+    if "shoe_color" in data:
+        v = str(data["shoe_color"])
+        if v not in o["shoe_colors"]:
+            raise HTTPException(status_code=400, detail="invalid shoe_color")
+        out["shoe_color"] = v
+    if "expression" in data:
+        v = str(data["expression"])
+        if v not in o["expressions"]:
+            raise HTTPException(status_code=400, detail="invalid expression")
+        out["expression"] = v
+    if "accessories" in data:
+        acc = data["accessories"]
+        if not isinstance(acc, list) or len(acc) > 8:
+            raise HTTPException(status_code=400, detail="accessories must be a list (max 8)")
+        good = set(o["accessories"])
+        out["accessories"] = []
+        for a in acc:
+            s = str(a)
+            if s not in good:
+                raise HTTPException(status_code=400, detail=f"invalid accessory: {s}")
+            out["accessories"].append(s)
+    return out
+
+
 @api_router.put("/avatar/config")
 async def update_avatar_config(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    await db.users.update_one({"user_id": user.user_id}, {"$set": {"avatar_config": data}})
-    return data
+    clean = _validate_avatar_config_for_update(data)
+    await db.users.update_one({"user_id": user.user_id}, {"$set": {"avatar_config": clean}})
+    return clean
+
+def _normalize_video_extension(filename: str) -> str:
+    ext = Path(filename or "").suffix.lower()
+    return ext if ext in _ALLOWED_VIDEO_EXT else ".mp4"
+
 
 def get_default_avatar():
     return {
@@ -402,35 +888,74 @@ async def get_avatar_options():
 # ===================== VIDEO UPLOAD =====================
 @api_router.post("/uploads/video")
 async def upload_video(file: UploadFile = File(...), user: User = Depends(get_current_user)):
-    if not file.content_type.startswith("video/"):
+    """Stream to disk with hard byte cap (UPLOAD-01). Do not trust UploadFile.size alone."""
+    ct = (file.content_type or "").lower()
+    if not ct.startswith("video/") and ct not in ("application/octet-stream",):
         raise HTTPException(status_code=400, detail="Must be a video file")
-    if file.size and file.size > 100 * 1024 * 1024:  # 100MB limit
-        raise HTTPException(status_code=400, detail="File too large (100MB max)")
+    if file.size and file.size > _MAX_VIDEO_BYTES:
+        raise HTTPException(status_code=413, detail="File too large")
 
     file_id = str(uuid.uuid4())
-    ext = file.filename.split(".")[-1] if "." in file.filename else "mp4"
-    filepath = UPLOAD_DIR / f"{file_id}.{ext}"
-
-    async with aiofiles.open(filepath, 'wb') as f:
-        content = await file.read()
-        await f.write(content)
+    ext = _normalize_video_extension(file.filename or "")
+    filepath = UPLOAD_DIR / f"{file_id}{ext}"
+    total = 0
+    try:
+        async with aiofiles.open(filepath, "wb") as out:
+            while True:
+                chunk = await file.read(_VIDEO_READ_CHUNK)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > _MAX_VIDEO_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Video exceeds maximum size ({_MAX_VIDEO_BYTES // (1024 * 1024)} MB)",
+                    )
+                await out.write(chunk)
+    except HTTPException:
+        try:
+            filepath.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
 
     video_doc = {
-        "id": file_id, "user_id": user.user_id, "filename": file.filename,
-        "filepath": str(filepath), "content_type": file.content_type,
-        "size": len(content), "uploaded_at": datetime.now(timezone.utc).isoformat()
+        "id": file_id,
+        "user_id": user.user_id,
+        "filename": file.filename,
+        "filepath": str(filepath),
+        "content_type": file.content_type,
+        "size": total,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.videos.insert_one(video_doc)
-    return {"id": file_id, "filename": file.filename, "size": len(content)}
+    return {"id": file_id, "filename": file.filename, "size": total}
 
 @api_router.post("/coach/critique")
 async def submit_critique(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """COACH-01 — bind video to athlete; coach must exist with coach/admin role."""
+    vid = data.get("video_id")
+    coach_id = data.get("coach_id")
+    if not vid or not coach_id:
+        raise HTTPException(status_code=400, detail="video_id and coach_id required")
+    video = await db.videos.find_one({"id": vid, "user_id": user.user_id}, {"_id": 0})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found for this account")
+    coach = await db.users.find_one({"user_id": coach_id}, {"_id": 0})
+    if not coach or coach.get("role") not in ("coach", "admin"):
+        raise HTTPException(status_code=400, detail="Invalid coach")
+    notes = str(data.get("notes") or "")[:8000]
     critique = {
-        "id": str(uuid.uuid4()), "athlete_id": user.user_id,
-        "coach_id": data.get("coach_id"), "video_id": data.get("video_id"),
-        "sport": data.get("sport"), "notes": data.get("notes", ""),
-        "status": "pending", "feedback": None, "rating": None,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "id": str(uuid.uuid4()),
+        "athlete_id": user.user_id,
+        "coach_id": coach_id,
+        "video_id": vid,
+        "sport": str(data.get("sport") or "")[:64],
+        "notes": notes,
+        "status": "pending",
+        "feedback": None,
+        "rating": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.critiques.insert_one(critique)
     return {k: v for k, v in critique.items() if k != "_id"}
@@ -525,9 +1050,9 @@ def get_seeded_game_modes():
         {"id":"surfing","name":"Surfing","display_name":"Surf · Line","venue":"Venice Beach","category":"Board","description":"Ride the waves","image_url":"https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"balance"},
         {"id":"skateboarding","name":"Skateboarding","display_name":"Skate · Park","venue":"Skate Park","category":"Board","description":"Land trick combos","image_url":"https://images.unsplash.com/photo-1547447134-cd3f5c716030?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
         {"id":"snowboarding","name":"Snowboarding","display_name":"Snow · Line","venue":"Mountain","category":"Board","description":"Navigate slopes","image_url":"https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"market_browse","name":"Sovereign Shop","display_name":"Sovereign Shop","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
+        {"id":"market_browse","name":"Module Library","display_name":"Module Library","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
         {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
-        {"id":"mario_party_fever","name":"FEL Party Mode","display_name":"FEL Party · Arcade","venue":"Venice Beach","category":"Party","description":"Board-style arcade with Creator Card avatars and mini-games across all venues","image_url":"https://images.unsplash.com/photo-1511882150382-421056c89033?w=800","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"}
+        {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"https://images.unsplash.com/photo-1511882150382-421056c89033?w=800","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"}
     ]
 
 @api_router.get("/cards")
@@ -583,20 +1108,9 @@ def get_seeded_courses(category=None):
     ]
     return [c for c in courses if c["category"]==category] if category else courses
 
-@api_router.get("/brain-brawl/questions")
-async def get_bb_questions(category: str = "all", count: int = 10):
-    return get_seeded_questions(category, count)
-
-@api_router.post("/brain-brawl/submit")
-async def submit_bb(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    s = {"id":str(uuid.uuid4()),"user_id":user.user_id,"mode":data.get("mode","quick_fire"),"questions_total":data.get("questions_total",10),"questions_correct":data.get("questions_correct",0),"score":data.get("score",0),"category":data.get("category","all"),"completed_at":datetime.now(timezone.utc).isoformat()}
-    await db.brain_brawl_sessions.insert_one(s)
-    xp = s["score"]//10
-    await db.users.update_one({"user_id":user.user_id}, {"$inc":{"xp":xp}})
-    return {"session":{k:v for k,v in s.items() if k!="_id"},"xp_earned":xp}
-
-def get_seeded_questions(category, count):
-    qs = [
+def _brain_brawl_question_bank():
+    """Canonical bank — includes internal ``correct`` indices for server-side grading only."""
+    return [
         {"id":"q1","question":"In basketball, how many points is a shot from beyond the arc worth?","options":["2","3","4","1"],"correct":1,"category":"sports_iq","difficulty":"easy"},
         {"id":"q2","question":"What is the standard length of an NBA quarter?","options":["10 min","12 min","15 min","8 min"],"correct":1,"category":"sports_iq","difficulty":"easy"},
         {"id":"q3","question":"In karate, what does 'dan' refer to?","options":["Stance","Belt rank","Kata name","Dojo"],"correct":1,"category":"sports_iq","difficulty":"medium"},
@@ -613,9 +1127,140 @@ def get_seeded_questions(category, count):
         {"id":"q14","question":"What does HIIT stand for?","options":["High Impact Interval Training","High Intensity Interval Training","High Intensity Isometric Training","High Impact Isometric Training"],"correct":1,"category":"kinesiology","difficulty":"easy"},
         {"id":"q15","question":"Most commonly injured joint in basketball?","options":["Shoulder","Ankle","Knee","Wrist"],"correct":1,"category":"kinesiology","difficulty":"medium"},
     ]
-    filtered = [q for q in qs if q["category"]==category or category=="all"]
+
+
+def _pick_bb_questions(category: str, count: int) -> List[Dict[str, Any]]:
+    qs = _brain_brawl_question_bank()
+    filtered = [q for q in qs if q["category"] == category or category == "all"]
     random.shuffle(filtered)
-    return filtered[:count]
+    return filtered[: min(count, len(filtered))]
+
+
+def _strip_bb_correct(qs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [{k: v for k, v in q.items() if k != "correct"} for q in qs]
+
+
+@api_router.get("/brain-brawl/questions")
+async def get_bb_questions(category: str = "all", count: int = 10):
+    """Legacy poll — **does not** expose correct indices (EDU-06). Prefer ``POST /brain-brawl/session/start``."""
+    count = max(1, min(int(count), 25))
+    picked = _pick_bb_questions(category, count)
+    return _strip_bb_correct(picked)
+
+
+@api_router.post("/brain-brawl/session/start")
+async def bb_session_start(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Issue a server-side quiz session with per-question shuffled options (EDU-06/07)."""
+    category = data.get("category", "all")
+    count = max(1, min(int(data.get("count", 10)), 25))
+    raw = _pick_bb_questions(category, count)
+    if not raw:
+        raise HTTPException(status_code=400, detail="No questions for category")
+
+    session_id = f"bb_{uuid.uuid4().hex[:14]}"
+    stored_meta = []
+    questions_out = []
+
+    for q in raw:
+        pair = list(enumerate(q["options"]))
+        random.shuffle(pair)
+        shuffled_opts = [text for _, text in pair]
+        correct_new = next(
+            new_j for new_j, (old_j, _) in enumerate(pair) if old_j == q["correct"]
+        )
+        questions_out.append({
+            "id": q["id"],
+            "question": q["question"],
+            "options": shuffled_opts,
+            "category": q.get("category"),
+            "difficulty": q.get("difficulty"),
+        })
+        stored_meta.append({"id": q["id"], "correct_index": correct_new})
+
+    now = datetime.now(timezone.utc)
+    await db.brain_brawl_quiz_sessions.insert_one({
+        "session_id": session_id,
+        "user_id": user.user_id,
+        "questions": stored_meta,
+        "category": category,
+        "created_at": now,
+        "expires_at": now + timedelta(hours=2),
+        "submitted": False,
+    })
+    return {"session_id": session_id, "questions": questions_out}
+
+
+@api_router.post("/brain-brawl/session/submit")
+async def bb_session_submit(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Grade a Brain Brawl session server-side; XP derived only from verified correctness (EDU-07)."""
+    session_id = data.get("session_id")
+    answers = data.get("answers")
+    if not session_id or not isinstance(answers, list):
+        raise HTTPException(status_code=400, detail="session_id and answers[] required")
+
+    doc = await db.brain_brawl_quiz_sessions.find_one({"session_id": session_id, "user_id": user.user_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="session not found")
+    if doc.get("submitted"):
+        raise HTTPException(status_code=400, detail="session already submitted")
+    if datetime.now(timezone.utc) > doc["expires_at"]:
+        raise HTTPException(status_code=400, detail="session expired")
+
+    meta = doc["questions"]
+    if len(answers) != len(meta):
+        raise HTTPException(status_code=400, detail="answers length mismatch")
+
+    correct_n = sum(1 for i, m in enumerate(meta) if answers[i] == m["correct_index"])
+    total = len(meta)
+    base_score = correct_n * 100
+    xp = max(0, base_score // 10)
+    completed_iso = datetime.now(timezone.utc).isoformat()
+
+    # Atomic submit — award XP only if exactly one writer flips submitted:false (Phase 6 / EDU-07).
+    claimed = await db.brain_brawl_quiz_sessions.update_one(
+        {"_id": doc["_id"], "submitted": False},
+        {"$set": {
+            "submitted": True,
+            "questions_correct": correct_n,
+            "score": base_score,
+            "xp_awarded": xp,
+            "completed_at": completed_iso,
+        }},
+    )
+    if claimed.modified_count != 1:
+        raise HTTPException(status_code=409, detail="session already submitted")
+
+    sess_row = {
+        "id": str(uuid.uuid4()),
+        "user_id": user.user_id,
+        "mode": "quick_fire_verified",
+        "questions_total": total,
+        "questions_correct": correct_n,
+        "score": base_score,
+        "category": doc.get("category", "all"),
+        "session_id": session_id,
+        "completed_at": completed_iso,
+        "xp_awarded": xp,
+    }
+    await db.brain_brawl_sessions.insert_one(sess_row)
+    await db.users.update_one({"user_id": user.user_id}, {"$inc": {"xp": xp}})
+
+    return {
+        "session_id": session_id,
+        "questions_total": total,
+        "questions_correct": correct_n,
+        "score": base_score,
+        "xp_earned": xp,
+    }
+
+
+@api_router.post("/brain-brawl/submit")
+async def submit_bb(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Deprecated — client-supplied scores are not trusted (EDU-07). Use ``/brain-brawl/session/submit``."""
+    raise HTTPException(
+        status_code=410,
+        detail="Use POST /api/brain-brawl/session/start then POST /api/brain-brawl/session/submit with session_id and answers.",
+    )
 
 @api_router.get("/leaderboard")
 async def get_leaderboard(limit: int = 20):
@@ -642,11 +1287,11 @@ async def get_stats(user: User = Depends(get_current_user)):
     return {"total_workouts":w,"coaching_sessions":s,"brain_brawl_sessions":b,"game_sessions":g,"prq_score":user.prq_score,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"coins":user.coins}
 
 @api_router.put("/profile")
-async def update_profile(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    allowed = {"name","bio","sport","avatar_url","avatar_config"}
-    updates = {k:v for k,v in data.items() if k in allowed}
-    if updates: await db.users.update_one({"user_id":user.user_id}, {"$set":updates})
-    return await db.users.find_one({"user_id":user.user_id}, {"_id":0})
+async def update_profile(body: ProfileUpdateRequest, user: User = Depends(get_current_user)):
+    updates = body.model_dump(exclude_none=True)
+    if updates:
+        await db.users.update_one({"user_id": user.user_id}, {"$set": updates})
+    return await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
 
 @api_router.get("/profile/progress")
 async def get_progress(user: User = Depends(get_current_user)):
@@ -997,7 +1642,7 @@ async def get_card_multimedia(card_id: str):
         "ip_permissions": multimedia.get("ip_gate", {}),
         "game_mode_avatar": {
             "who_scene_it": {"enabled": True, "avatar_type": "trivia_host"},
-            "mario_party": {"enabled": True, "avatar_type": "board_piece", "power_ups": multimedia.get("power_ups", [])}
+            "court_carnival": {"enabled": True, "avatar_type": "board_piece", "power_ups": multimedia.get("power_ups", [])}
         }
     }
 
@@ -1105,18 +1750,30 @@ async def get_who_scene_it_questions(round_num: int = 1):
     return {"round": round_num, "questions": questions[:5]}
 
 @api_router.get("/games/mario-party")
-async def get_mario_party_config():
-    """'Mario Party / Pac-Man Fever' board-style arcade mode"""
+async def get_court_carnival_config_legacy():
+    """Deprecated alias — use GET /games/court-carnival."""
+    return await get_court_carnival_config()
+
+
+@api_router.post("/games/mario-party/session")
+async def create_party_session_legacy(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Deprecated alias — use POST /games/court-carnival/session."""
+    return await create_party_session(data, user)
+
+
+@api_router.get("/games/court-carnival")
+async def get_court_carnival_config():
+    """Venice Beach board-style arcade mash-up (Court Carnival)."""
     return {
-        "mode_id": "mario_party_fever",
-        "display_name": "FEL Party Mode",
-        "description": "Board-style arcade with Creator Card avatars, power-ups, and mini-games across all venues",
+        "mode_id": "court_carnival",
+        "display_name": "Court Carnival",
+        "description": "Venice Beach mini-game mash-up with Creator Card avatars, power-ups, and rotating challenges",
         "type": "board_party",
         "max_players": 4,
         "board": {
             "total_spaces": 40,
             "venues_on_board": ["Venice_Beach_Court", "Zen_Dojo", "Baseball_Park", "Gridiron_Stadium", "Soccer_Stadium", "Links_Course", "Tennis_Court", "Sand_Court", "Training_Floor", "Venice_Beach_Surf", "Skate_Park", "Mountain_Slope", "Neuro_Arena"],
-            "special_spaces": ["star_space", "mini_game", "power_up", "creator_card_swap", "energy_drain", "warp_pipe"],
+            "special_spaces": ["star_space", "mini_game", "power_up", "creator_card_swap", "energy_drain", "venue_gate"],
             "hot_swap_creator_assets": True
         },
         "mini_games": [
@@ -1144,16 +1801,16 @@ async def get_mario_party_config():
             "particle_effects": "retro_arcade"
         },
         "creator_card_as_board_pieces": True,
-        "telemetry_channel": "mario_party_fever",
+        "telemetry_channel": "court_carnival",
         "sovereign_encrypted": True
     }
 
-@api_router.post("/games/mario-party/session")
+@api_router.post("/games/court-carnival/session")
 async def create_party_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Start a Mario Party session — tracks board state in Sovereign Hub"""
+    """Start a Court Carnival session — tracks board state in Sovereign Hub"""
     session = {
         "id": str(uuid.uuid4()), "user_id": user.user_id,
-        "mode": "mario_party_fever", "players": [user.user_id],
+        "mode": "court_carnival", "players": [user.user_id],
         "board_state": {"positions": {user.user_id: 0}, "turn": 0, "stars": {user.user_id: 0}},
         "active_cards": data.get("selected_cards", ["card_elijah"]),
         "mini_games_played": [], "power_ups_used": [],
@@ -1161,7 +1818,7 @@ async def create_party_session(data: Dict[str, Any], user: User = Depends(get_cu
     }
     await db.party_sessions.insert_one(session)
     # Notify sovereign hub
-    await sovereign_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "mario_party_fever"}, encrypt=True)
+    await sovereign_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "court_carnival"}, encrypt=True)
     return {k: v for k, v in session.items() if k != "_id"}
 
 
@@ -1188,10 +1845,33 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     model = data.get("model","gpt-5.2")
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
+    udoc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+    allergies = udoc.get("allergies") or []
+    restrictions = udoc.get("dietary_restrictions") or []
+    day_key = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    blog = await db.biofuel_logs.find_one({"user_id": user.user_id, "day": day_key}, {"_id": 0})
+    n_meals = len(blog.get("entries", [])) if blog else 0
+    age = _age_from_iso_dob(udoc.get("date_of_birth"))
+    minor_line = ""
+    if age is not None and age < 18:
+        minor_line = (
+            f"User is a minor (estimated age {age}) — use age-appropriate language; no weight-loss pressure; "
+            "encourage a parent/guardian and a qualified professional for any medical or specialized diet topic.\n"
+        )
+    scope = (
+        "You are FEL AI Assistant — wellness and athletic education only. "
+        "You are not a physician or registered dietitian: never diagnose, prescribe, or replace individualized medical nutrition therapy. "
+        "When nutrition is discussed, respect stated allergies/restrictions, favor evidence-informed general guidance, and defer to qualified clinicians for medical conditions, minors needing specialized diets, or eating disorders.\n"
+        f"{minor_line}"
+        f"Athlete: {user.name}. General PRQ: {user.prq_score}/100.\n"
+        f"Profile allergies / avoid: {allergies}. Dietary restrictions / preferences: {restrictions}.\n"
+        f"BioFuel diary today: {n_meals} meal entries logged.\n"
+        "Be concise and practical."
+    )
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
-        chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=f"You are FEL AI Assistant. Help {user.name} with training, nutrition, recovery. PRQ: {user.prq_score}/100. Be concise.")
+        chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=scope)
         chat.with_model(p,m)
         r = await chat.send_message(UserMessage(text=msg))
         await db.ai_conversations.insert_one({"conversation_id":cid,"user_id":user.user_id,"user_message":msg,"ai_response":r,"model":model,"created_at":datetime.now(timezone.utc).isoformat()})
@@ -1318,7 +1998,7 @@ async def update_session_state(data: Dict[str, Any], user: User = Depends(get_cu
                 "user_id": user.user_id, "score": score,
                 "game_mode": session.get("mode_id"), "venue": session.get("venue"),
                 "duration": 0
-            }, "session_state")
+            }, "session_state", user.user_id)
             # Recalculate PRQ live
             await calculate_prq_live(user.user_id)
 
@@ -1388,37 +2068,48 @@ async def get_live_telemetry():
 
 @api_router.get("/mobile/config")
 async def get_mobile_config():
-    """Mobile shell configuration — permissions, sensors, deep links"""
+    """Public-safe mobile hints — align with shipping Info.plist / entitlements (APPSTORE-01 / PRIVACY-01)."""
     return {
-        "app_name": "Final Evolution Lab",
-        "bundle_id": "com.finalevolutionlab.sovereign",
-        "version": "2.0.0",
+        "app_display_name": "Final Evolution Hub",
+        "module_library_version": "2.0.0",
         "platform": "iOS",
-        "device_target": "iPhone 16 Pro Max",
         "deep_link_scheme": "finalevolution://",
-        "sovereign_hub": {
+        "notes": (
+            "Bundle identifier is defined by the Xcode target — do not rely on this payload for App Store identity. "
+            "Sensor lists describe optional UE features; only capabilities with matching Info.plist usage strings may be used at runtime."
+        ),
+        "live_data_hub": {
             "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
-            "tunnel": "Cloudflare (wss://)",
-            "sync_interval_ms": 500
+            "sync_interval_ms": 500,
+            "role": "optional_training_data_feed",
         },
+        "permissions_profile": "healthkit_primary_reference_shell",
+        "entitlements_shipped": ["HealthKit (reference shell — see FinalEvolutionLab.entitlements)"],
         "permissions": {
-            "lidar": {"key": "NSWorldSensingUsageDescription", "reason": "Movement analysis and biomechanical tracking", "required": True},
-            "motion": {"key": "NSMotionUsageDescription", "reason": "Athletic performance and form analysis", "required": True},
-            "camera": {"key": "NSCameraUsageDescription", "reason": "Form recording and video critique", "required": False},
-            "microphone": {"key": "NSMicrophoneUsageDescription", "reason": "Coach communication", "required": False},
-            "local_network": {"key": "NSLocalNetworkUsageDescription", "reason": "Sovereign Hub connection on local network", "required": True}
+            "healthkit": {
+                "key": "NSHealthShareUsageDescription / NSHealthUpdateUsageDescription",
+                "reason": "Activity and readiness signals when the athlete opts in",
+                "required": True,
+                "matches_entitlements_file": True,
+            },
+            "camera": {"key": "NSCameraUsageDescription", "reason": "Optional capture when enabled in build", "required": False, "matches_build_plist": "verify_target"},
+            "microphone": {"key": "NSMicrophoneUsageDescription", "reason": "Optional voice/coach features when enabled", "required": False},
+            "motion": {"key": "NSMotionUsageDescription", "reason": "Optional IMU when Unreal feature enables it", "required": False},
+            "local_network": {"key": "NSLocalNetworkUsageDescription", "reason": "Optional LAN hub when enabled", "required": False},
+            "world_sensing": {"key": "NSWorldSensingUsageDescription", "reason": "Optional LiDAR / spatial — UE targets only if plist includes string", "required": False},
         },
-        "sensor_feeds": {
-            "lidar": {"enabled": True, "data": ["depth_map", "point_cloud", "mesh"], "target_collection": "sensor_lidar"},
-            "imu": {"enabled": True, "data": ["accelerometer", "gyroscope", "magnetometer"], "target_collection": "sensor_imu"},
-            "arkit": {"enabled": True, "data": ["body_tracking", "hand_tracking", "face_tracking"], "target_collection": "sensor_arkit"}
+        "sensor_feeds_advertised": {
+            "_note": "Advertised capabilities for UE routing — enable only with matching Info.plist privacy strings.",
+            "lidar": {"enabled": False},
+            "imu": {"enabled": False},
+            "arkit": {"enabled": False},
         },
         "ue5_integration": {
             "app_scheme": "finalevolution://",
             "launch_template": "finalevolution://launch?map={venue}&mode={mode_id}&session={session_id}",
             "state_callback": "/api/session/state",
-            "mode_registry": "FEL_ModeManager.production.json"
-        }
+            "mode_registry": "FEL_ModeManager.production.json",
+        },
     }
 
 @api_router.get("/")
@@ -1518,15 +2209,23 @@ async def get_active_rooms():
 
 @api_router.post("/multiplayer/rooms/{room_id}/join")
 async def join_room(room_id: str, user: User = Depends(get_current_user)):
-    room = await db.multiplayer_rooms.find_one({"id": room_id}, {"_id": 0})
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
-    if len(room.get("players", [])) >= room.get("max_players", 2):
-        raise HTTPException(status_code=400, detail="Room full")
-    await db.multiplayer_rooms.update_one(
-        {"id": room_id},
-        {"$push": {"players": {"user_id": user.user_id, "name": user.name, "ready": False, "score": 0}}}
+    """MULTI-01 — atomic capacity + dedupe membership."""
+    player = {"user_id": user.user_id, "name": user.name, "ready": False, "score": 0}
+    upd = await db.multiplayer_rooms.update_one(
+        {
+            "id": room_id,
+            "players": {"$not": {"$elemMatch": {"user_id": user.user_id}}},
+            "$expr": {"$lt": [{"$size": {"$ifNull": ["$players", []]}}, {"$ifNull": ["$max_players", 2]}]},
+        },
+        {"$push": {"players": player}},
     )
+    if upd.matched_count == 0:
+        room = await db.multiplayer_rooms.find_one({"id": room_id}, {"_id": 0})
+        if not room:
+            raise HTTPException(status_code=404, detail="Room not found")
+        if any(p.get("user_id") == user.user_id for p in room.get("players", [])):
+            return {"status": "already_joined", "room_id": room_id}
+        raise HTTPException(status_code=400, detail="Room full")
     return {"status": "joined", "room_id": room_id}
 
 @api_router.post("/multiplayer/rooms/{room_id}/spectate")
@@ -1564,42 +2263,46 @@ async def generate_referral_code(user: User = Depends(get_current_user)):
 
 @api_router.post("/referral/redeem")
 async def redeem_referral(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Redeem a referral code — rewards both referrer and new user"""
+    """Redeem a referral code — atomic slot claim (REFERRAL-01) then rewards."""
     code = data.get("code", "").strip().upper()
     if not code:
         raise HTTPException(status_code=400, detail="Referral code required")
 
-    referral = await db.referrals.find_one({"code": code, "type": "code"}, {"_id": 0})
-    if not referral:
-        raise HTTPException(status_code=404, detail="Invalid referral code")
-    if referral["user_id"] == user.user_id:
-        raise HTTPException(status_code=400, detail="Cannot redeem your own code")
-    if user.user_id in referral.get("referred_users", []):
-        raise HTTPException(status_code=400, detail="Already redeemed")
-    if referral.get("uses", 0) >= referral.get("max_uses", 50):
-        raise HTTPException(status_code=400, detail="Referral code expired")
+    claimed = await db.referrals.update_one(
+        {
+            "code": code,
+            "type": "code",
+            "user_id": {"$ne": user.user_id},
+            "referred_users": {"$nin": [user.user_id]},
+            "$expr": {"$lt": ["$uses", {"$ifNull": ["$max_uses", 50]}]},
+        },
+        {"$inc": {"uses": 1, "rewards_earned": 200}, "$push": {"referred_users": user.user_id}},
+    )
+    if claimed.modified_count == 0:
+        referral = await db.referrals.find_one({"code": code, "type": "code"}, {"_id": 0})
+        if not referral:
+            raise HTTPException(status_code=404, detail="Invalid referral code")
+        if referral["user_id"] == user.user_id:
+            raise HTTPException(status_code=400, detail="Cannot redeem your own code")
+        if user.user_id in referral.get("referred_users", []):
+            raise HTTPException(status_code=400, detail="Already redeemed")
+        raise HTTPException(status_code=400, detail="Referral code expired or unavailable")
 
-    # Reward referrer: 200 coins + 100 XP
-    await db.users.update_one({"user_id": referral["user_id"]}, {"$inc": {"coins": 200, "xp": 100}})
-    # Reward new user: 100 coins + 50 XP
+    referral = await db.referrals.find_one({"code": code, "type": "code"}, {"_id": 0})
+    referrer_id = referral["user_id"]
+
+    await db.users.update_one({"user_id": referrer_id}, {"$inc": {"coins": 200, "xp": 100}})
     await db.users.update_one({"user_id": user.user_id}, {"$inc": {"coins": 100, "xp": 50}})
 
-    # Update referral record
-    await db.referrals.update_one({"code": code}, {
-        "$inc": {"uses": 1, "rewards_earned": 200},
-        "$push": {"referred_users": user.user_id}
-    })
-
-    # Log PayPal-eligible credit (for future payout)
     await db.referral_credits.insert_one({
         "id": str(uuid.uuid4()),
-        "referrer_id": referral["user_id"],
+        "referrer_id": referrer_id,
         "referred_id": user.user_id,
         "referrer_reward": {"coins": 200, "xp": 100},
         "referred_reward": {"coins": 100, "xp": 50},
         "paypal_eligible": True,
         "paid_out": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
     return {"message": "Referral redeemed!", "coins_earned": 100, "xp_earned": 50, "referrer_rewarded": True}
@@ -1690,27 +2393,29 @@ async def get_spectator_config(tournament_id: str):
 # ===================== GATE 5: ANALYTICS & SOVEREIGN SYNC =====================
 
 @api_router.post("/analytics/session")
-async def log_analytics_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Log game session analytics — feeds into Sovereign Sync pipeline"""
+async def log_analytics_session(body: AnalyticsSessionIn, user: User = Depends(get_current_user)):
+    """Log client-reported session analytics — bounded schema (ANALYTICS-01)."""
+    payload = body.model_dump()
     session = {
         "id": str(uuid.uuid4()),
         "user_id": user.user_id,
-        "game_mode": data.get("game_mode"),
-        "venue": data.get("venue"),
-        "session_start": data.get("session_start", datetime.now(timezone.utc).isoformat()),
-        "session_end": data.get("session_end"),
-        "duration_seconds": data.get("duration_seconds", 0),
-        "score": data.get("score", 0),
-        "events": data.get("events", []),
-        "stream_quality": data.get("stream_quality", {}),
-        "latency_ms": data.get("latency_ms"),
-        "sync_status": "pending",  # pending → synced_local → synced_remote
+        "game_mode": payload.get("game_mode"),
+        "venue": payload.get("venue"),
+        "session_start": payload.get("session_start") or datetime.now(timezone.utc).isoformat(),
+        "session_end": payload.get("session_end"),
+        "duration_seconds": payload.get("duration_seconds", 0),
+        "score": payload.get("score", 0),
+        "events": payload.get("events", []),
+        "stream_quality": payload.get("stream_quality") or {},
+        "latency_ms": payload.get("latency_ms"),
+        "metrics_trust": "client_reported_unverified",
+        "sync_status": "pending",
         "sovereign_sync": {
-            "local_store": True,          # Data stored in MongoDB first
-            "m4_pro_sync": "pending",     # Sync to M4 Pro Mac Mini
-            "signaling_server": "private" # Uses private signaling server
+            "local_store": True,
+            "m4_pro_sync": "pending",
+            "signaling_server": "private",
         },
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.analytics_sessions.insert_one(session)
     return {k: v for k, v in session.items() if k != "_id"}
@@ -1740,8 +2445,12 @@ async def get_analytics_dashboard(user: User = Depends(get_current_user)):
     ]).to_list(1)
 
     # Sync status
-    pending = await db.analytics_sessions.count_documents({"user_id": user.user_id, "sync_status": "pending"})
-    synced = await db.analytics_sessions.count_documents({"user_id": user.user_id, "sync_status": {"$ne": "pending"}})
+    pending = await db.analytics_sessions.count_documents(
+        {"user_id": user.user_id, "sync_status": {"$in": ["pending", "queued_for_remote"]}}
+    )
+    synced = await db.analytics_sessions.count_documents(
+        {"user_id": user.user_id, "sync_status": {"$nin": ["pending", "queued_for_remote"]}}
+    )
 
     return {
         "mode_stats": [{
@@ -1846,23 +2555,24 @@ async def trigger_sovereign_sync(user: User = Depends(get_current_user)):
     ).to_list(1000)
 
     if not pending:
-        return {"message": "No pending data to sync", "synced": 0}
+        return {"message": "No pending data to sync", "queued": 0}
 
-    # Mark as synced (actual sync happens via M4 Pro signaling server)
+    # ANALYTICS-02 — queue only; do not imply remote delivery until receipt ACK exists elsewhere.
     await db.analytics_sessions.update_many(
         {"user_id": user.user_id, "sync_status": "pending"},
         {"$set": {
-            "sync_status": "synced_local",
+            "sync_status": "queued_for_remote",
             "sovereign_sync.m4_pro_sync": "queued",
-            "synced_at": datetime.now(timezone.utc).isoformat()
-        }}
+            "sovereign_sync.delivery_proof": None,
+            "sync_queued_at": datetime.now(timezone.utc).isoformat(),
+        }},
     )
 
     return {
         "message": f"Queued {len(pending)} sessions for sovereign sync",
-        "synced": len(pending),
+        "queued": len(pending),
         "target": "M4 Pro Mac Mini (Private Signaling Server)",
-        "sync_status": "queued"
+        "sync_status": "queued_for_remote",
     }
 
 # SOVEREIGN BACKEND code follows, then include_router at end
@@ -1947,6 +2657,14 @@ async def ensure_fel_os_indexes():
     logger.info("FEL OS indexes: education_progress(unique user_id+track_id), brain_brawl_launches(TTL 24h)")
 
 
+async def ensure_iap_pending_indexes():
+    """Fail-closed IAP intake — dedupe pending rows per user."""
+    await db.iap_pending_transactions.create_index(
+        [("user_id", 1), ("idempotency_key", 1)], unique=True, name="uniq_user_iap_idempotency"
+    )
+    logger.info("IAP pending indexes: iap_pending_transactions(unique user_id+idempotency_key)")
+
+
 @app.on_event("startup")
 async def startup_venue_mapping():
     # Non-fatal: any DB hiccup must NOT prevent K8s probes from succeeding.
@@ -1958,6 +2676,10 @@ async def startup_venue_mapping():
         await ensure_fel_os_indexes()
     except Exception as e:
         logger.warning(f"ensure_fel_os_indexes failed (non-fatal): {e}")
+    try:
+        await ensure_iap_pending_indexes()
+    except Exception as e:
+        logger.warning(f"ensure_iap_pending_indexes failed (non-fatal): {e}")
 
 # ── Directive 1 & 2: Sovereign WebSocket Bridge ──────────────────
 
@@ -1966,8 +2688,9 @@ class SovereignBridge:
         self.clients: Dict[str, WebSocket] = {}
         self.client_meta: Dict[str, Dict] = {}
 
-    async def connect(self, ws: WebSocket, client_id: str, client_type: str = "ue5"):
-        await ws.accept()
+    async def connect(self, ws: WebSocket, client_id: str, client_type: str = "ue5", *, skip_accept: bool = False):
+        if not skip_accept:
+            await ws.accept()
         self.clients[client_id] = ws
         self.client_meta[client_id] = {
             "type": client_type, "connected_at": datetime.now(timezone.utc).isoformat(),
@@ -1994,61 +2717,178 @@ class SovereignBridge:
             except:
                 self.disconnect(cid)
 
-    async def process_match_event(self, data: dict, client_id: str):
-        """Process match score from UFELEmergentBridgeSubsystem → Referral reward mapping"""
+    async def process_match_event(self, data: dict, client_id: str, bound_user_id: Optional[str] = None):
+        """Match scores from UE — rewards/referrals/PRQ only when ``bound_user_id`` is set (session or HTTP-verified)."""
         sovereign_state["total_match_events"] += 1
-        user_id = data.get("user_id")
+        claim_uid = data.get("user_id")
         score = data.get("score", 0)
         game_mode = data.get("game_mode")
         venue = data.get("venue")
 
-        # Store in venue-specific collection (Directive 4)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue, {})
         collection = venue_data.get("db_collection", "sessions_default")
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        # WebSocket without session_token: never trust payload user_id for progression (REALTIME trust gate).
+        if not bound_user_id:
+            trust = "unbound_payload_untrusted"
+            await db[collection].insert_one({
+                "user_id": None,
+                "payload_claimed_user_id": claim_uid,
+                "game_mode": game_mode,
+                "venue": venue,
+                "score": score,
+                "client_id": client_id,
+                "source": "sovereign_bridge",
+                "metrics_trust": trust,
+                "reward_eligible": False,
+                "encrypted": True,
+                "created_at": now_iso,
+            })
+            await db.analytics_sessions.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": None,
+                "payload_claimed_user_id": claim_uid,
+                "game_mode": game_mode,
+                "venue": venue,
+                "score": score,
+                "duration_seconds": data.get("duration", 0),
+                "metrics_trust": trust,
+                "source": "sovereign_bridge",
+                "sync_status": "telemetry_only",
+                "sovereign_sync": {"mode": "telemetry_only"},
+                "created_at": now_iso,
+            })
+            return {
+                "processed": True,
+                "xp_earned": 0,
+                "reward_eligible": False,
+                "venue_collection": collection,
+                "trust": trust,
+            }
+
+        user_id = bound_user_id
+        trust = "session_bound"
+
         await db[collection].insert_one({
-            "user_id": user_id, "game_mode": game_mode, "venue": venue,
-            "score": score, "client_id": client_id, "source": "sovereign_bridge",
-            "encrypted": True, "created_at": datetime.now(timezone.utc).isoformat()
+            "user_id": user_id,
+            "payload_claimed_user_id": claim_uid,
+            "game_mode": game_mode,
+            "venue": venue,
+            "score": score,
+            "client_id": client_id,
+            "source": "sovereign_bridge",
+            "metrics_trust": trust,
+            "reward_eligible": True,
+            "encrypted": True,
+            "created_at": now_iso,
         })
 
-        # Directive 3: Map score to referral reward system
+        xp_earned = 0
         if score > 0:
             xp_earned = max(10, score // 5)
             await db.users.update_one({"user_id": user_id}, {"$inc": {"xp": xp_earned}})
-            # Check if user was referred — bonus XP for referral chain
             referral = await db.referral_credits.find_one(
                 {"referred_id": user_id, "paid_out": False}, {"_id": 0}
             )
             if referral:
-                # Referrer gets bonus coins when their referral scores
                 bonus = max(1, score // 50)
                 await db.users.update_one(
                     {"user_id": referral["referrer_id"]},
-                    {"$inc": {"coins": bonus}}
+                    {"$inc": {"coins": bonus}},
                 )
                 await db.referral_credits.update_one(
                     {"referred_id": user_id, "paid_out": False},
-                    {"$inc": {"referrer_reward.coins": bonus}}
+                    {"$inc": {"referrer_reward.coins": bonus}},
                 )
 
-        # Log to analytics (Directive 5: encrypted)
         await db.analytics_sessions.insert_one({
-            "id": str(uuid.uuid4()), "user_id": user_id, "game_mode": game_mode,
-            "venue": venue, "score": score, "duration_seconds": data.get("duration", 0),
-            "source": "sovereign_bridge", "sync_status": "pending",
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "payload_claimed_user_id": claim_uid,
+            "game_mode": game_mode,
+            "venue": venue,
+            "score": score,
+            "duration_seconds": data.get("duration", 0),
+            "metrics_trust": trust,
+            "source": "sovereign_bridge",
+            "sync_status": "pending",
             "sovereign_sync": {"local_store": True, "m4_pro_sync": "pending"},
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": now_iso,
         })
 
-        return {"processed": True, "xp_earned": max(10, score // 5), "venue_collection": collection}
+        return {"processed": True, "xp_earned": xp_earned, "venue_collection": collection, "trust": trust}
+
+
+def _fel_sovereign_ws_require_auth() -> bool:
+    """
+    Require ``session_token`` on ``/ws/sovereign`` by default outside dev/local/test.
+
+    Override: ``FEL_SOVEREIGN_WS_REQUIRE_AUTH=1|0``, or ``FEL_SOVEREIGN_WS_ALLOW_ANON=1`` (same as REQUIRE_AUTH=0).
+    Unset ``FEL_ENV`` is treated as local developer machine (anonymous bridge allowed).
+    """
+    explicit = os.environ.get("FEL_SOVEREIGN_WS_REQUIRE_AUTH", "").strip().lower()
+    if explicit in ("1", "true", "yes"):
+        return True
+    if explicit in ("0", "false", "no"):
+        return False
+
+    if os.environ.get("FEL_SOVEREIGN_WS_ALLOW_ANON", "").strip().lower() in ("1", "true", "yes"):
+        return False
+
+    fel_env = (
+        os.environ.get("FEL_ENV") or os.environ.get("ENVIRONMENT") or os.environ.get("NODE_ENV") or ""
+    ).strip().lower()
+
+    dev_like = fel_env in (
+        "",
+        "development",
+        "dev",
+        "local",
+        "localhost",
+        "test",
+        "testing",
+        "ci",
+    )
+    if dev_like:
+        return False
+
+    return True
+
+
+async def fel_ws_resolve_bound_user(websocket: WebSocket) -> Optional[str]:
+    """Resolve authenticated user for WebSocket from session_token (query or cookie)."""
+    token = websocket.query_params.get("session_token") or websocket.cookies.get("session_token")
+    if not token:
+        return None
+    session_doc = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
+    if not session_doc:
+        return None
+    expires_at = session_doc["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        return None
+    return session_doc.get("user_id")
+
 
 sovereign_bridge = SovereignBridge()
 
 @app.websocket("/ws/sovereign")
 async def sovereign_websocket(websocket: WebSocket):
-    """Directive 1: Main sovereign WebSocket — listens for UFELEmergentBridgeSubsystem"""
+    """Sovereign WebSocket — REALTIME-01: bind identity via session_token when present."""
     client_id = f"sovereign_{uuid.uuid4().hex[:10]}"
-    await sovereign_bridge.connect(websocket, client_id, "ue5_bridge")
+    await websocket.accept()
+    bound_uid = await fel_ws_resolve_bound_user(websocket)
+    require_auth = _fel_sovereign_ws_require_auth()
+    if require_auth and not bound_uid:
+        await websocket.send_json({"type": "error", "detail": "session_token required (query ?session_token= or cookie)"})
+        await websocket.close(code=1008)
+        return
+    await sovereign_bridge.connect(websocket, client_id, "ue5_bridge", skip_accept=True)
+    sovereign_bridge.client_meta[client_id]["bound_user_id"] = bound_uid
     try:
         # Send handshake — aligned with UFELEmergentBridgeSubsystem::Initialize expectations
         bridge_config = MODE_MANAGER.get("bridge_subsystem", {})
@@ -2107,6 +2947,12 @@ async def sovereign_websocket(websocket: WebSocket):
                 display_mode = telemetry.get("sovereign_display_mode", "")
                 session_id = data.get("session_id")
 
+                meta = sovereign_bridge.client_meta.get(client_id, {})
+                bu = meta.get("bound_user_id")
+                claim_uid = data.get("user_id")
+                uid = bu
+                trust = "session_bound" if bu else "unbound_payload_untrusted"
+
                 sovereign_state["total_messages"] += 1
                 sovereign_state["last_telemetry"] = {
                     "prq": prq, "combo_meter": combo, "combo_streak": combo_streak,
@@ -2115,49 +2961,64 @@ async def sovereign_websocket(websocket: WebSocket):
                     "arena_game_mode_id": arena_mode_id,
                     "venue_token": venue_token,
                     "sovereign_display_mode": display_mode,
-                    "received_at": datetime.now(timezone.utc).isoformat()
+                    "received_at": datetime.now(timezone.utc).isoformat(),
+                    "user_id_trust": trust,
+                    "bound_user_id": bu,
+                    "payload_claimed_user_id": claim_uid,
                 }
 
-                # Store telemetry frame
+                # Payload user_id is diagnostic only — never authoritative for account linkage (REALTIME trust gate).
                 await db.telemetry_frames.insert_one({
-                    "session_id": session_id, "user_id": data.get("user_id"),
-                    "prq": prq, "combo_meter": combo, "combo_streak": combo_streak,
-                    "buckets": buckets, "arena_game_mode_id": arena_mode_id,
-                    "venue_token": venue_token, "sovereign_display_mode": display_mode,
-                    "velocity_vectors": velocity, "vertical_jump_inches": vertical_jump,
-                    "frame_ts": datetime.now(timezone.utc).isoformat()
+                    "session_id": session_id,
+                    "user_id": uid,
+                    "payload_user_id": claim_uid,
+                    "metrics_trust": trust,
+                    "prq": prq,
+                    "combo_meter": combo,
+                    "combo_streak": combo_streak,
+                    "buckets": buckets,
+                    "arena_game_mode_id": arena_mode_id,
+                    "venue_token": venue_token,
+                    "sovereign_display_mode": display_mode,
+                    "velocity_vectors": velocity,
+                    "vertical_jump_inches": vertical_jump,
+                    "frame_ts": datetime.now(timezone.utc).isoformat(),
                 })
 
-                # Directive 2: Track 30-day vertical jump progress
-                if vertical_jump > 0:
+                # Vertical jump progress API — session-bound sockets only (no payload spoofing).
+                if vertical_jump > 0 and bu:
                     await db.vertical_jump_log.insert_one({
-                        "user_id": data.get("user_id"), "inches": vertical_jump,
-                        "session_id": session_id, "recorded_at": datetime.now(timezone.utc).isoformat()
+                        "user_id": bu,
+                        "inches": vertical_jump,
+                        "session_id": session_id,
+                        "metrics_trust": trust,
+                        "recorded_at": datetime.now(timezone.utc).isoformat(),
                     })
 
                 await websocket.send_json({"type": "telemetry_ack", "frame_stored": True})
 
             elif msg_type == "hardware_auth":
-                # Directive 3: Integrity Guard — verify bIsHardwareAuthenticated
-                hw_flag = data.get("bIsHardwareAuthenticated", False)
-                camera_check = data.get("back_camera_verified", False)
-                imu_visual_sync = data.get("imu_visual_sync", False)
+                # REALTIME-02 — client flags are telemetry only; never cryptographic proof of integrity.
+                hw_flag = bool(data.get("bIsHardwareAuthenticated", False))
+                camera_check = bool(data.get("back_camera_verified", False))
+                imu_visual_sync = bool(data.get("imu_visual_sync", False))
 
-                integrity_ok = hw_flag and camera_check
-                sovereign_state["integrity_status"] = "ACTIVE" if integrity_ok else "INTEGRITY_WARNING"
+                sovereign_state["integrity_status"] = "TELEMETRY_ONLY"
                 sovereign_state["hardware_auth"] = {
                     "bIsHardwareAuthenticated": hw_flag,
                     "back_camera_verified": camera_check,
                     "imu_visual_sync": imu_visual_sync,
-                    "verified_at": datetime.now(timezone.utc).isoformat()
+                    "trust_level": "client_self_report_not_verified",
+                    "verified_at": datetime.now(timezone.utc).isoformat(),
                 }
 
                 await websocket.send_json({
                     "type": "hardware_auth_ack",
-                    "integrity": "ACTIVE" if integrity_ok else "WARNING",
+                    "integrity": "TELEMETRY_ONLY",
+                    "trust_level": "client_self_report_not_verified",
                     "hw_authenticated": hw_flag,
                     "camera_verified": camera_check,
-                    "imu_sync": imu_visual_sync
+                    "imu_sync": imu_visual_sync,
                 })
 
             elif msg_type == "creator_card_scan":
@@ -2177,11 +3038,10 @@ async def sovereign_websocket(websocket: WebSocket):
                 })
 
             elif msg_type == "match_score":
-                result = await sovereign_bridge.process_match_event(data, client_id)
-                # Recalculate PRQ live from C++ bridge data
-                if data.get("user_id"):
-                    live_prq = await calculate_prq_live(data["user_id"])
-                    result["live_prq"] = live_prq
+                bu = sovereign_bridge.client_meta.get(client_id, {}).get("bound_user_id")
+                result = await sovereign_bridge.process_match_event(data, client_id, bu)
+                if bu:
+                    result["live_prq"] = await calculate_prq_live(bu)
                 await websocket.send_json({"type": "match_score_ack", **result})
 
             elif msg_type == "referral_event":
@@ -2189,17 +3049,31 @@ async def sovereign_websocket(websocket: WebSocket):
                 await websocket.send_json({"type": "referral_ack", "processed": True})
 
             elif msg_type == "analytics":
-                # Encrypted analytics from iPhone via Cloudflare tunnel
-                await db.analytics_sessions.insert_one({
-                    "id": str(uuid.uuid4()), "user_id": data.get("user_id"),
-                    "game_mode": data.get("game_mode"), "venue": data.get("venue"),
-                    "duration_seconds": data.get("duration", 0), "score": data.get("score", 0),
-                    "source": "sovereign_bridge_mobile", "sync_status": "pending",
-                    "sovereign_sync": {"local_store": True, "m4_pro_sync": "pending"},
+                bu = sovereign_bridge.client_meta.get(client_id, {}).get("bound_user_id")
+                claim_uid = data.get("user_id")
+                uid = bu
+                trust = "session_bound" if bu else "unbound_payload_untrusted"
+                row = {
+                    "id": str(uuid.uuid4()),
+                    "user_id": uid,
+                    "payload_claimed_user_id": claim_uid,
+                    "game_mode": data.get("game_mode"),
+                    "venue": data.get("venue"),
+                    "duration_seconds": min(float(data.get("duration") or 0), 86400 * 7),
+                    "score": data.get("score", 0),
+                    "metrics_trust": trust,
+                    "source": "sovereign_bridge_mobile",
                     "encrypted_transit": True,
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                })
-                await websocket.send_json({"type": "analytics_ack", "stored": True})
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                if bu:
+                    row["sync_status"] = "pending"
+                    row["sovereign_sync"] = {"local_store": True, "m4_pro_sync": "pending"}
+                else:
+                    row["sync_status"] = "telemetry_only"
+                    row["sovereign_sync"] = {"mode": "telemetry_only"}
+                await db.analytics_sessions.insert_one(row)
+                await websocket.send_json({"type": "analytics_ack", "stored": True, "trust": trust})
 
             elif msg_type == "venue_travel":
                 # Map travel command from bridge

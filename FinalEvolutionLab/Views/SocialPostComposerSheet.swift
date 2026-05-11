@@ -68,10 +68,9 @@ struct SocialPostComposerSheet: View {
         errorText = nil
         defer { isPosting = false }
         do {
-            let author = try await TrainingLabSocialBridge.shared.ensureSqlUserRegistration(displayName: nil)
+            _ = try await TrainingLabSocialBridge.shared.ensureSqlUserRegistration(displayName: nil)
             try await TrainingLabSocialBridge.shared.createFeedPost(
                 content: content.trimmingCharacters(in: .whitespacesAndNewlines),
-                authorId: author,
                 gameModeId: draft.gameModeId,
                 trainingScore: draft.trainingScore,
                 clipUrl: draft.clipUrl,

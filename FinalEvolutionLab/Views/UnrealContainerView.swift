@@ -1,14 +1,23 @@
 import SwiftUI
 import UIKit
+import OSLog
 
 struct UnrealContainerView: View {
+    var onExit: () -> Void = {}
+
     @State private var unrealManager = UnrealManager.shared
+
+    private static let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "FinalEvolutionLab", category: "UnrealContainer")
 
     var body: some View {
         ZStack {
             if unrealManager.isUnrealActive && unrealManager.isUnrealLoaded {
-                UnrealContainerRepresentable()
-                    .ignoresSafeArea()
+                if unrealManager.unrealView != nil {
+                    UnrealContainerRepresentable()
+                        .ignoresSafeArea()
+                } else {
+                    embeddingUnavailablePanel(message: "Arena runtime loaded but did not expose a view (rootView). Check the embedded UnrealFramework export.")
+                }
             } else if unrealManager.isUnrealActive && !unrealManager.isUnrealLoaded && unrealManager.isFrameworkPresent {
                 VStack(spacing: 16) {
                     ProgressView()
@@ -32,6 +41,7 @@ struct UnrealContainerView: View {
                         Button {
                             withAnimation(.spring(duration: 0.35)) {
                                 unrealManager.isUnrealActive = false
+                                onExit()
                             }
                         } label: {
                             Image(systemName: "power")
@@ -48,6 +58,41 @@ struct UnrealContainerView: View {
                 Spacer()
             }
         }
+        .onAppear {
+            if unrealManager.isUnrealLoaded {
+                let hasRoot = unrealManager.unrealView != nil
+                Self.log.notice("Unreal loaded — rootView present: \(hasRoot, privacy: .public)")
+            }
+        }
+    }
+
+    private func embeddingUnavailablePanel(message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(.orange)
+            Text("RUNTIME VIEW MISSING")
+                .font(.system(size: 12, weight: .black, design: .monospaced))
+                .foregroundStyle(.white)
+                .tracking(2)
+            Text(message)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+            Button("CLOSE") {
+                unrealManager.isUnrealActive = false
+                onExit()
+            }
+            .font(.system(.subheadline, design: .monospaced, weight: .bold))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 12)
+            .background(Theme.brandCyan)
+            .clipShape(Capsule())
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.deepBlack)
     }
 
     private var placeholder: some View {
@@ -114,6 +159,8 @@ struct UnrealContainerRepresentable: UIViewControllerRepresentable {
 }
 
 final class UnrealHostViewController: UIViewController {
+    private static let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "FinalEvolutionLab", category: "UnrealHost")
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
@@ -127,7 +174,8 @@ final class UnrealHostViewController: UIViewController {
                 unrealView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 unrealView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             ])
+        } else {
+            Self.log.error("UnrealHostViewController: unrealView is nil — embed rootView in UnrealFramework.")
         }
     }
 }
-

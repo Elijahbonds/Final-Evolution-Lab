@@ -24,8 +24,9 @@ final class RorkScoreManager {
             queue: .main
         ) { [weak self] notification in
             guard let self,
-                  let score = notification.userInfo?["score"] as? Int else { return }
+                  let raw = notification.userInfo?["score"] as? Int else { return }
             MainActor.assumeIsolated {
+                let score = min(100, max(0, raw))
                 self.currentPrqScore = score
                 UserDefaults.standard.set(score, forKey: RorkScoreManager.userDefaultsKey)
                 NotificationCenter.default.post(name: rorkScoreDidUpdateNotification, object: nil, userInfo: ["score": score])

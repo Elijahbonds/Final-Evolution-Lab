@@ -4,6 +4,15 @@
   "version": 1,
   "integration_branch": "setup-healthkit",
   "description": "Curated index of paths agents should open for full-app context. Not an exhaustive file listing.",
+  "architecture_lock": {
+    "canonical_document": "SHIPPING_ARCHITECTURE.md",
+    "binding_summary": "Production = Unreal Engine game host + WKWebView overlay dashboard. Swift shell under FinalEvolutionLab/, UAAL/standalone Swift-first flows, and Unity-era paths are legacy/reference unless explicitly selected — do not revert shipping wiring to those by default.",
+    "read_first": [
+      "SHIPPING_ARCHITECTURE.md",
+      "infra/SHIPPING.md",
+      "superapp-reference/IOS_UNREAL_PIPE.md"
+    ]
+  },
   "critical_paths": {
     "shipping_script": {
       "path": "fel_ue5_ios_shipping_package.sh",
@@ -31,7 +40,7 @@
     },
     "swift_ios_app": {
       "path": "FinalEvolutionLab/",
-      "role": "Xcode SwiftUI shell — HealthKit services, views (parallel to Unreal-hosted product track)"
+      "role": "Legacy/lab SwiftUI shell — HealthKit, Firebase, Data Connect iteration; not the default Unreal-host retail stack (see architecture_lock)"
     },
     "backend_api": {
       "path": "backend/",

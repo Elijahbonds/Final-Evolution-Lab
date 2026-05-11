@@ -9,12 +9,17 @@ struct BodyIQEducationLabView: View {
     @State private var isPosting: Bool = false
 
     private var audit: BiomechanicsAudit {
-        viewModel.biomechanicsAudit ?? .empty
+        viewModel.biomechanicsAudit ?? .previewNeutral
     }
 
     private var neuralFocus01: Double {
         let m = viewModel.effectiveMetrics
         return min(1.0, max(0, (m.neuralDrive + m.readinessScore) / 200.0))
+    }
+
+    /// True when the current Lab scan supports biomechanical prescription — athlete-specific social framing allowed.
+    private var measuredScanForSocialClaims: Bool {
+        viewModel.profile.systemScan?.supportsBiomechanicalPrescription == true
     }
 
     var body: some View {
@@ -50,6 +55,40 @@ struct BodyIQEducationLabView: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 18)
                                     .stroke(Theme.brandCyan.opacity(0.25), lineWidth: 1)
+                            )
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    BondsStandardCoachView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(Theme.elitePurple)
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(Theme.elitePurple.opacity(0.12)))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("BONDS STANDARD COACH")
+                                .font(.system(.caption2, design: .monospaced, weight: .black))
+                                .foregroundStyle(Theme.elitePurple)
+                                .tracking(2)
+                            Text("Full cue stack: V-stance → torque → hike → tuck → drawing-in")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.65))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.white.opacity(0.35))
+                    }
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(Theme.cardBackground)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18)
+                                    .stroke(Theme.elitePurple.opacity(0.28), lineWidth: 1)
                             )
                     )
                 }
@@ -111,6 +150,12 @@ struct BodyIQEducationLabView: View {
             Text("Dynamic bio-feedback — map → position → breath.")
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.9))
+            if !measuredScanForSocialClaims {
+                Text("No measured Lab audit on file — Movement Snack posts to the feed will be labeled general education, not athlete-specific findings.")
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(.orange.opacity(0.85))
+                    .padding(.top, 4)
+            }
         }
     }
 
@@ -182,7 +227,7 @@ struct BodyIQEducationLabView: View {
                                 .tint(Theme.brandCyan)
                                 .scaleEffect(0.8)
                         }
-                        Text("POST DISCOVERY")
+                        Text(measuredScanForSocialClaims ? "POST DISCOVERY" : "POST (GENERAL)")
                             .font(.system(.caption, design: .monospaced, weight: .heavy))
                     }
                     .foregroundStyle(Theme.brandCyan)
@@ -229,9 +274,12 @@ struct BodyIQEducationLabView: View {
             sharingSnack = nil
         }
         do {
+            let provenance: MovementSnackFeedProvenance =
+                measuredScanForSocialClaims ? .measuredAthleteSpecific : .generalEducation
             try await TrainingLabSocialBridge.shared.publishMovementSnackDiscovery(
                 snack: snack,
-                athleteDisplayName: viewModel.profile.displayName
+                athleteDisplayName: viewModel.profile.displayName,
+                provenance: provenance
             )
             FelToastCenter.shared.show("Discovery posted to Lab feed", isError: false)
         } catch {

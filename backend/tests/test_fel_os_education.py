@@ -3,10 +3,29 @@ Backend tests: FEL OS Education Tracks, Kinesiology Cert, Bio-Digital, Brain Bra
 Unified System Scan, and refactor regression checks.
 """
 import os
+import sys
+import time
+from pathlib import Path
+
 import pytest
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from routers.education_tracks import TRACKS  # noqa: E402
+
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://readiness-stack.preview.emergentagent.com").rstrip("/")
+
+
+def _kin_perfect_answers(questions_payload):
+    """Match shuffled options back to canonical bank by question stem (integration helper)."""
+    bank = TRACKS["kinesiology"]["final_assessment"]["questions"]
+    by_stem = {q["q"]: q for q in bank}
+    out = []
+    for item in questions_payload:
+        orig = by_stem[item["q"]]
+        correct_text = orig["options"][orig["correct"]]
+        out.append(item["options"].index(correct_text))
+    return out
 
 # Pre-provisioned sessions (see test_credentials.md + mongosh seed)
 FRESH_TOKEN = "sess_edu_1777958291132"       # PRQ 82, fresh (no progress)
@@ -65,12 +84,16 @@ class TestEducationTracks:
 class TestAuthGating:
     @pytest.mark.parametrize("method,path", [
         ("post", "/api/education/tracks/common_core/lesson/cc_math_1/submit"),
+        ("post", "/api/education/tracks/common_core/lesson/cc_math_1/open"),
         ("get",  "/api/education/progress"),
         ("get",  "/api/education/kinesiology/eligibility"),
         ("post", "/api/education/kinesiology/final-assessment/submit"),
+        ("post", "/api/education/kinesiology/final-assessment/start"),
         ("post", "/api/education/kinesiology/certify"),
+        ("post", "/api/education/bio-digital/begin-module"),
         ("post", "/api/education/bio-digital/complete-module"),
         ("post", "/api/education/brain-brawl/launch"),
+        ("post", "/api/brain-brawl/session/start"),
         ("get",  "/api/system-scan/unified"),
     ])
     def test_requires_auth(self, method, path):
@@ -141,9 +164,6 @@ KIN_ANSWERS = {
     "kin_per_1": [1, 1, 1, 1], "kin_neu_1": [1, 0, 1, 1],
     "kin_rec_1": [2, 1, 1, 0], "kin_eth_1": [1, 1, 1, 1],
 }
-FINAL_ANSWERS = [1] * 10  # all correct_index == 1
-
-
 class TestKinesiologyHappyPath:
     def test_complete_flow(self):
         tok = FRESH_TOKEN
@@ -156,11 +176,20 @@ class TestKinesiologyHappyPath:
             assert r.status_code == 200, f"lesson {lid} failed: {r.text}"
             assert r.json()["passed"] is True, f"lesson {lid} not passed: {r.json()}"
 
-        # 2. Bio-digital modules
+        # 2. Bio-digital modules (begin → receipt → complete)
         for m in ["skeletal_basics", "muscular_chains", "kinetic_chain_pillars", "neural_priming"]:
+            rb = requests.post(
+                f"{BASE_URL}/api/education/bio-digital/begin-module",
+                headers=h(tok), json={"module_id": m},
+            )
+            assert rb.status_code == 200, rb.text
+            receipt = rb.json().get("completion_receipt")
+            assert receipt
+            # BIO_DIGITAL_MIN_ACTIVE_SECONDS default (3s) — anti instant-complete gate
+            time.sleep(3.5)
             r = requests.post(
                 f"{BASE_URL}/api/education/bio-digital/complete-module",
-                headers=h(tok), json={"module_id": m},
+                headers=h(tok), json={"module_id": m, "completion_receipt": receipt},
             )
             assert r.status_code == 200
         # 3. Eligibility — final not yet passed, so not all_met
@@ -180,15 +209,24 @@ class TestKinesiologyHappyPath:
         r = requests.post(f"{BASE_URL}/api/education/kinesiology/certify", headers=h(tok))
         assert r.status_code == 400
 
-        # 5. Final assessment
+        # 5. Final assessment (server-shuffled attempt + verified receipt)
+        rs = requests.post(
+            f"{BASE_URL}/api/education/kinesiology/final-assessment/start",
+            headers=h(tok), json={},
+        )
+        assert rs.status_code == 200, rs.text
+        att = rs.json()
+        perfect = _kin_perfect_answers(att["questions"])
         r = requests.post(
             f"{BASE_URL}/api/education/kinesiology/final-assessment/submit",
-            headers=h(tok), json={"answers": FINAL_ANSWERS},
+            headers=h(tok),
+            json={"attempt_token": att["attempt_token"], "answers": perfect},
         )
         assert r.status_code == 200, r.text
         fd = r.json()
         assert fd["passed"] is True
         assert fd["score_pct"] >= 80.0
+        assert fd.get("final_verified_receipt")
 
         # 6. Certify
         r = requests.post(f"{BASE_URL}/api/education/kinesiology/certify", headers=h(tok))
@@ -228,6 +266,12 @@ class TestExistingUserIdempotent:
 
 # ---------- Brain Brawl ----------
 class TestBrainBrawl:
+    def test_legacy_questions_strip_correct_index(self):
+        r = requests.get(f"{BASE_URL}/api/brain-brawl/questions?count=5")
+        assert r.status_code == 200
+        for q in r.json():
+            assert "correct" not in q
+
     def test_launch_returns_deep_link(self):
         r = requests.post(f"{BASE_URL}/api/education/brain-brawl/launch", headers=h(FRESH_TOKEN))
         assert r.status_code == 200

@@ -43,6 +43,8 @@ namespace
 			M.Add(TEXT("snowboarding"), TEXT("Mountain_Slope"));
 			M.Add(TEXT("brain_brawl"), TEXT("Neuro_Arena"));
 			M.Add(TEXT("market_browse"), TEXT("Sovereign_Shop"));
+			M.Add(TEXT("who_scene_it"), TEXT("Neuro_Arena"));
+			M.Add(TEXT("court_carnival"), TEXT("Venice_Beach_Court"));
 			return M;
 		}();
 		if (const FString* Found = Map.Find(ArenaId))
@@ -78,7 +80,48 @@ namespace
 		{
 			return TEXT("Neuro_Arena");
 		}
+		if (ArenaId == TEXT("who_scene_it"))
+		{
+			return TEXT("Neuro_Arena");
+		}
+		if (ArenaId == TEXT("court_carnival"))
+		{
+			return TEXT("Venice_Beach_Court");
+		}
 		return ArenaId.IsEmpty() ? TEXT("Venice_Beach_Default") : ArenaId;
+	}
+
+	/** Matches `backend/FEL_ModeManager.production.json` `map` (maps package path). */
+	FString FELProductionMapPathForMode(const FString& ModeId)
+	{
+		static const TMap<FString, FString> P = [] {
+			TMap<FString, FString> M;
+			M.Add(TEXT("basketball_h2h"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+			M.Add(TEXT("basketball_dunk"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+			M.Add(TEXT("basketball_3v3"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+			M.Add(TEXT("karate_h2h"), TEXT("/Game/FEL/Maps/Zen_Dojo"));
+			M.Add(TEXT("karate_endless"), TEXT("/Game/FEL/Maps/Zen_Dojo"));
+			M.Add(TEXT("baseball"), TEXT("/Game/FEL/Maps/Baseball_Park"));
+			M.Add(TEXT("football"), TEXT("/Game/FEL/Maps/Gridiron_Stadium"));
+			M.Add(TEXT("soccer"), TEXT("/Game/FEL/Maps/Soccer_Stadium"));
+			M.Add(TEXT("golf"), TEXT("/Game/FEL/Maps/Links_Course"));
+			M.Add(TEXT("tennis"), TEXT("/Game/FEL/Maps/Tennis_Court"));
+			M.Add(TEXT("volleyball"), TEXT("/Game/FEL/Maps/Sand_Court"));
+			M.Add(TEXT("gymnastics"), TEXT("/Game/FEL/Maps/Training_Floor"));
+			M.Add(TEXT("surfing"), TEXT("/Game/FEL/Maps/Venice_Beach_Surf"));
+			M.Add(TEXT("skateboarding"), TEXT("/Game/FEL/Maps/Skate_Park"));
+			M.Add(TEXT("snowboarding"), TEXT("/Game/FEL/Maps/Mountain_Slope"));
+			M.Add(TEXT("brain_brawl"), TEXT("/Game/FEL/Maps/Neuro_Arena"));
+			M.Add(TEXT("market_browse"), TEXT("/Game/FEL/Maps/Sovereign_Shop"));
+			M.Add(TEXT("who_scene_it"), TEXT("/Game/FEL/Maps/Neuro_Arena"));
+			M.Add(TEXT("court_carnival"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+			return M;
+		}();
+		if (const FString* Found = P.Find(ModeId))
+		{
+			return *Found;
+		}
+		return FString();
 	}
 }
 
@@ -592,6 +635,7 @@ void UFELEmergentBridgeSubsystem::BroadcastMapLoaded(const FString& MapTokenOrPa
 	O->SetStringField(TEXT("type"), TEXT("map_loaded"));
 	O->SetStringField(TEXT("map"), MapTokenOrPackage);
 	O->SetStringField(TEXT("mode"), ModeId);
+	FString ProdPath = FELProductionMapPathForMode(ModeId);
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		if (UWorld* W = GI->GetWorld())
@@ -599,6 +643,10 @@ void UFELEmergentBridgeSubsystem::BroadcastMapLoaded(const FString& MapTokenOrPa
 			if (AFELBasketballGameState* GS = W->GetGameState<AFELBasketballGameState>())
 			{
 				const FString ArenaId = GS->GetArenaGameModeId();
+				if (ProdPath.IsEmpty())
+				{
+					ProdPath = FELProductionMapPathForMode(ArenaId);
+				}
 				O->SetStringField(TEXT("arena_game_mode_id"), ArenaId);
 				O->SetStringField(TEXT("venue_token"), SovereignVenueTokenForArena(ArenaId));
 				O->SetStringField(TEXT("sovereign_display_mode"), SovereignHandshakeDisplayMode(ArenaId));
@@ -606,6 +654,10 @@ void UFELEmergentBridgeSubsystem::BroadcastMapLoaded(const FString& MapTokenOrPa
 				O->SetNumberField(TEXT("combo_meter"), GS->GetComboMeter01());
 			}
 		}
+	}
+	if (!ProdPath.IsEmpty())
+	{
+		O->SetStringField(TEXT("production_map_path"), ProdPath);
 	}
 	O->SetNumberField(TEXT("t"), FDateTime::UtcNow().ToUnixTimestamp());
 	SendJsonObject(O);
@@ -627,6 +679,11 @@ void UFELEmergentBridgeSubsystem::EmitSovereignSessionSnapshot(UWorld* World)
 	if (AFELBasketballGameState* GS = World->GetGameState<AFELBasketballGameState>())
 	{
 		const FString ArenaId = GS->GetArenaGameModeId();
+		const FString ProdPath = FELProductionMapPathForMode(ArenaId);
+		if (!ProdPath.IsEmpty())
+		{
+			O->SetStringField(TEXT("production_map_path"), ProdPath);
+		}
 		O->SetStringField(TEXT("arena_game_mode_id"), ArenaId);
 		O->SetStringField(TEXT("venue_token"), SovereignVenueTokenForArena(ArenaId));
 		O->SetStringField(TEXT("sovereign_display_mode"), SovereignHandshakeDisplayMode(ArenaId));

@@ -227,7 +227,7 @@ email: String
 
 
 
-public class LinkUserToFirebaseAuthMutation{
+public class UpdateMyTrainingProfileMutation{
 
   let dataConnect: DataConnect
 
@@ -235,127 +235,11 @@ public class LinkUserToFirebaseAuthMutation{
     self.dataConnect = dataConnect
   }
 
-  public static let OperationName = "LinkUserToFirebaseAuth"
+  public static let OperationName = "UpdateMyTrainingProfile"
 
-  public typealias Ref = MutationRef<LinkUserToFirebaseAuthMutation.Data,LinkUserToFirebaseAuthMutation.Variables>
-
-  public struct Variables: OperationVariable {
-  
-        
-  
-        
-        public var
-userKey: UserKey
-
-
-    
-    
-    
-    public init (
-        
-userKey: UserKey
-
-        
-        ) {
-        self.userKey = userKey
-        
-
-        
-    }
-
-    public static func == (lhs: Variables, rhs: Variables) -> Bool {
-      
-        return lhs.userKey == rhs.userKey
-              
-    }
-
-    
-public func hash(into hasher: inout Hasher) {
-  
-  hasher.combine(userKey)
-  
-}
-
-    enum CodingKeys: String, CodingKey {
-      
-      case userKey
-      
-    }
-
-    public func encode(to encoder: Encoder) throws {
-      var container = encoder.container(keyedBy: CodingKeys.self)
-      let codecHelper = CodecHelper<CodingKeys>()
-      
-      
-      try codecHelper.encode(userKey, forKey: .userKey, container: &container)
-      
-      
-    }
-
-  }
-
-  public struct Data: Decodable, Sendable {
-
-
-
-public var 
-user_update: UserKey?
-
-  }
-
-  public func ref(
-        
-userKey: UserKey
-
-        ) -> MutationRef<LinkUserToFirebaseAuthMutation.Data,LinkUserToFirebaseAuthMutation.Variables>  {
-        var variables = LinkUserToFirebaseAuthMutation.Variables(userKey:userKey)
-        
-
-        let ref = dataConnect.mutation(name: "LinkUserToFirebaseAuth", variables: variables, resultsDataType:LinkUserToFirebaseAuthMutation.Data.self)
-        return ref as MutationRef<LinkUserToFirebaseAuthMutation.Data,LinkUserToFirebaseAuthMutation.Variables>
-   }
-
-  @MainActor
-   public func execute( 
-        
-userKey: UserKey
-
-        ) async throws -> OperationResult<LinkUserToFirebaseAuthMutation.Data> {
-        var variables = LinkUserToFirebaseAuthMutation.Variables(userKey:userKey)
-        
-
-        let ref = dataConnect.mutation(name: "LinkUserToFirebaseAuth", variables: variables, resultsDataType:LinkUserToFirebaseAuthMutation.Data.self)
-        
-        return try await ref.execute()
-        
-   }
-}
-
-
-
-
-
-
-public class UpdateUserTrainingProfileMutation{
-
-  let dataConnect: DataConnect
-
-  init(dataConnect: DataConnect) {
-    self.dataConnect = dataConnect
-  }
-
-  public static let OperationName = "UpdateUserTrainingProfile"
-
-  public typealias Ref = MutationRef<UpdateUserTrainingProfileMutation.Data,UpdateUserTrainingProfileMutation.Variables>
+  public typealias Ref = MutationRef<UpdateMyTrainingProfileMutation.Data,UpdateMyTrainingProfileMutation.Variables>
 
   public struct Variables: OperationVariable {
-  
-        
-  
-        
-        public var
-userKey: UserKey
-
   
         
         public var
@@ -372,9 +256,6 @@ avatarUrl: String?
     
     public init (
         
-userKey: UserKey
-,
-        
 topPRQScore: Double
 
         
@@ -382,7 +263,6 @@ topPRQScore: Double
         ,
         _ optionalVars: ((inout Variables)->())? = nil
         ) {
-        self.userKey = userKey
         self.topPRQScore = topPRQScore
         
 
@@ -395,16 +275,13 @@ topPRQScore: Double
 
     public static func == (lhs: Variables, rhs: Variables) -> Bool {
       
-        return lhs.userKey == rhs.userKey && 
-              lhs.topPRQScore == rhs.topPRQScore && 
+        return lhs.topPRQScore == rhs.topPRQScore && 
               lhs.avatarUrl == rhs.avatarUrl
               
     }
 
     
 public func hash(into hasher: inout Hasher) {
-  
-  hasher.combine(userKey)
   
   hasher.combine(topPRQScore)
   
@@ -413,8 +290,6 @@ public func hash(into hasher: inout Hasher) {
 }
 
     enum CodingKeys: String, CodingKey {
-      
-      case userKey
       
       case topPRQScore
       
@@ -425,10 +300,6 @@ public func hash(into hasher: inout Hasher) {
     public func encode(to encoder: Encoder) throws {
       var container = encoder.container(keyedBy: CodingKeys.self)
       let codecHelper = CodecHelper<CodingKeys>()
-      
-      
-      try codecHelper.encode(userKey, forKey: .userKey, container: &container)
-      
       
       
       try codecHelper.encode(topPRQScore, forKey: .topPRQScore, container: &container)
@@ -453,44 +324,40 @@ user_update: UserKey?
 
   public func ref(
         
-userKey: UserKey
-,
 topPRQScore: Double
 
         
         ,
-        _ optionalVars: ((inout UpdateUserTrainingProfileMutation.Variables)->())? = nil
-        ) -> MutationRef<UpdateUserTrainingProfileMutation.Data,UpdateUserTrainingProfileMutation.Variables>  {
-        var variables = UpdateUserTrainingProfileMutation.Variables(userKey:userKey,topPRQScore:topPRQScore)
+        _ optionalVars: ((inout UpdateMyTrainingProfileMutation.Variables)->())? = nil
+        ) -> MutationRef<UpdateMyTrainingProfileMutation.Data,UpdateMyTrainingProfileMutation.Variables>  {
+        var variables = UpdateMyTrainingProfileMutation.Variables(topPRQScore:topPRQScore)
         
         if let optionalVars {
             optionalVars(&variables)
         }
         
 
-        let ref = dataConnect.mutation(name: "UpdateUserTrainingProfile", variables: variables, resultsDataType:UpdateUserTrainingProfileMutation.Data.self)
-        return ref as MutationRef<UpdateUserTrainingProfileMutation.Data,UpdateUserTrainingProfileMutation.Variables>
+        let ref = dataConnect.mutation(name: "UpdateMyTrainingProfile", variables: variables, resultsDataType:UpdateMyTrainingProfileMutation.Data.self)
+        return ref as MutationRef<UpdateMyTrainingProfileMutation.Data,UpdateMyTrainingProfileMutation.Variables>
    }
 
   @MainActor
    public func execute( 
         
-userKey: UserKey
-,
 topPRQScore: Double
 
         
         ,
-        _ optionalVars: (@MainActor (inout UpdateUserTrainingProfileMutation.Variables)->())? = nil
-        ) async throws -> OperationResult<UpdateUserTrainingProfileMutation.Data> {
-        var variables = UpdateUserTrainingProfileMutation.Variables(userKey:userKey,topPRQScore:topPRQScore)
+        _ optionalVars: (@MainActor (inout UpdateMyTrainingProfileMutation.Variables)->())? = nil
+        ) async throws -> OperationResult<UpdateMyTrainingProfileMutation.Data> {
+        var variables = UpdateMyTrainingProfileMutation.Variables(topPRQScore:topPRQScore)
         
         if let optionalVars {
             optionalVars(&variables)
         }
         
 
-        let ref = dataConnect.mutation(name: "UpdateUserTrainingProfile", variables: variables, resultsDataType:UpdateUserTrainingProfileMutation.Data.self)
+        let ref = dataConnect.mutation(name: "UpdateMyTrainingProfile", variables: variables, resultsDataType:UpdateMyTrainingProfileMutation.Data.self)
         
         return try await ref.execute()
         
@@ -521,11 +388,6 @@ public class CreatePostMutation{
 content: String
 
   
-        
-        public var
-authorId: UUID
-
-  
         @OptionalVariable
         public var
 gameModeId: String?
@@ -552,9 +414,6 @@ feedSource: String?
     public init (
         
 content: String
-,
-        
-authorId: UUID
 
         
         
@@ -562,7 +421,6 @@ authorId: UUID
         _ optionalVars: ((inout Variables)->())? = nil
         ) {
         self.content = content
-        self.authorId = authorId
         
 
         
@@ -575,7 +433,6 @@ authorId: UUID
     public static func == (lhs: Variables, rhs: Variables) -> Bool {
       
         return lhs.content == rhs.content && 
-              lhs.authorId == rhs.authorId && 
               lhs.gameModeId == rhs.gameModeId && 
               lhs.trainingScore == rhs.trainingScore && 
               lhs.clipUrl == rhs.clipUrl && 
@@ -587,8 +444,6 @@ authorId: UUID
 public func hash(into hasher: inout Hasher) {
   
   hasher.combine(content)
-  
-  hasher.combine(authorId)
   
   hasher.combine(gameModeId)
   
@@ -603,8 +458,6 @@ public func hash(into hasher: inout Hasher) {
     enum CodingKeys: String, CodingKey {
       
       case content
-      
-      case authorId
       
       case gameModeId
       
@@ -622,10 +475,6 @@ public func hash(into hasher: inout Hasher) {
       
       
       try codecHelper.encode(content, forKey: .content, container: &container)
-      
-      
-      
-      try codecHelper.encode(authorId, forKey: .authorId, container: &container)
       
       
       if $gameModeId.isSet { 
@@ -660,14 +509,12 @@ post_insert: PostKey
   public func ref(
         
 content: String
-,
-authorId: UUID
 
         
         ,
         _ optionalVars: ((inout CreatePostMutation.Variables)->())? = nil
         ) -> MutationRef<CreatePostMutation.Data,CreatePostMutation.Variables>  {
-        var variables = CreatePostMutation.Variables(content:content,authorId:authorId)
+        var variables = CreatePostMutation.Variables(content:content)
         
         if let optionalVars {
             optionalVars(&variables)
@@ -682,14 +529,12 @@ authorId: UUID
    public func execute( 
         
 content: String
-,
-authorId: UUID
 
         
         ,
         _ optionalVars: (@MainActor (inout CreatePostMutation.Variables)->())? = nil
         ) async throws -> OperationResult<CreatePostMutation.Data> {
-        var variables = CreatePostMutation.Variables(content:content,authorId:authorId)
+        var variables = CreatePostMutation.Variables(content:content)
         
         if let optionalVars {
             optionalVars(&variables)
@@ -729,11 +574,6 @@ postId: UUID
   
         
         public var
-authorId: UUID
-
-  
-        
-        public var
 content: String
 
 
@@ -745,15 +585,11 @@ content: String
 postId: UUID
 ,
         
-authorId: UUID
-,
-        
 content: String
 
         
         ) {
         self.postId = postId
-        self.authorId = authorId
         self.content = content
         
 
@@ -763,7 +599,6 @@ content: String
     public static func == (lhs: Variables, rhs: Variables) -> Bool {
       
         return lhs.postId == rhs.postId && 
-              lhs.authorId == rhs.authorId && 
               lhs.content == rhs.content
               
     }
@@ -773,8 +608,6 @@ public func hash(into hasher: inout Hasher) {
   
   hasher.combine(postId)
   
-  hasher.combine(authorId)
-  
   hasher.combine(content)
   
 }
@@ -782,8 +615,6 @@ public func hash(into hasher: inout Hasher) {
     enum CodingKeys: String, CodingKey {
       
       case postId
-      
-      case authorId
       
       case content
       
@@ -795,10 +626,6 @@ public func hash(into hasher: inout Hasher) {
       
       
       try codecHelper.encode(postId, forKey: .postId, container: &container)
-      
-      
-      
-      try codecHelper.encode(authorId, forKey: .authorId, container: &container)
       
       
       
@@ -822,12 +649,10 @@ comment_insert: CommentKey
         
 postId: UUID
 ,
-authorId: UUID
-,
 content: String
 
         ) -> MutationRef<CreateCommentMutation.Data,CreateCommentMutation.Variables>  {
-        var variables = CreateCommentMutation.Variables(postId:postId,authorId:authorId,content:content)
+        var variables = CreateCommentMutation.Variables(postId:postId,content:content)
         
 
         let ref = dataConnect.mutation(name: "CreateComment", variables: variables, resultsDataType:CreateCommentMutation.Data.self)
@@ -839,12 +664,10 @@ content: String
         
 postId: UUID
 ,
-authorId: UUID
-,
 content: String
 
         ) async throws -> OperationResult<CreateCommentMutation.Data> {
-        var variables = CreateCommentMutation.Variables(postId:postId,authorId:authorId,content:content)
+        var variables = CreateCommentMutation.Variables(postId:postId,content:content)
         
 
         let ref = dataConnect.mutation(name: "CreateComment", variables: variables, resultsDataType:CreateCommentMutation.Data.self)
@@ -877,11 +700,6 @@ public class LikePostMutation{
         public var
 postId: UUID
 
-  
-        
-        public var
-userId: UUID
-
 
     
     
@@ -889,14 +707,10 @@ userId: UUID
     public init (
         
 postId: UUID
-,
-        
-userId: UUID
 
         
         ) {
         self.postId = postId
-        self.userId = userId
         
 
         
@@ -904,8 +718,7 @@ userId: UUID
 
     public static func == (lhs: Variables, rhs: Variables) -> Bool {
       
-        return lhs.postId == rhs.postId && 
-              lhs.userId == rhs.userId
+        return lhs.postId == rhs.postId
               
     }
 
@@ -914,15 +727,11 @@ public func hash(into hasher: inout Hasher) {
   
   hasher.combine(postId)
   
-  hasher.combine(userId)
-  
 }
 
     enum CodingKeys: String, CodingKey {
       
       case postId
-      
-      case userId
       
     }
 
@@ -932,10 +741,6 @@ public func hash(into hasher: inout Hasher) {
       
       
       try codecHelper.encode(postId, forKey: .postId, container: &container)
-      
-      
-      
-      try codecHelper.encode(userId, forKey: .userId, container: &container)
       
       
     }
@@ -954,11 +759,9 @@ postLike_insert: PostLikeKey
   public func ref(
         
 postId: UUID
-,
-userId: UUID
 
         ) -> MutationRef<LikePostMutation.Data,LikePostMutation.Variables>  {
-        var variables = LikePostMutation.Variables(postId:postId,userId:userId)
+        var variables = LikePostMutation.Variables(postId:postId)
         
 
         let ref = dataConnect.mutation(name: "LikePost", variables: variables, resultsDataType:LikePostMutation.Data.self)
@@ -969,11 +772,9 @@ userId: UUID
    public func execute( 
         
 postId: UUID
-,
-userId: UUID
 
         ) async throws -> OperationResult<LikePostMutation.Data> {
-        var variables = LikePostMutation.Variables(postId:postId,userId:userId)
+        var variables = LikePostMutation.Variables(postId:postId)
         
 
         let ref = dataConnect.mutation(name: "LikePost", variables: variables, resultsDataType:LikePostMutation.Data.self)
@@ -1006,11 +807,6 @@ public class UnlikePostMutation{
         public var
 postId: UUID
 
-  
-        
-        public var
-userId: UUID
-
 
     
     
@@ -1018,14 +814,10 @@ userId: UUID
     public init (
         
 postId: UUID
-,
-        
-userId: UUID
 
         
         ) {
         self.postId = postId
-        self.userId = userId
         
 
         
@@ -1033,8 +825,7 @@ userId: UUID
 
     public static func == (lhs: Variables, rhs: Variables) -> Bool {
       
-        return lhs.postId == rhs.postId && 
-              lhs.userId == rhs.userId
+        return lhs.postId == rhs.postId
               
     }
 
@@ -1043,15 +834,11 @@ public func hash(into hasher: inout Hasher) {
   
   hasher.combine(postId)
   
-  hasher.combine(userId)
-  
 }
 
     enum CodingKeys: String, CodingKey {
       
       case postId
-      
-      case userId
       
     }
 
@@ -1061,10 +848,6 @@ public func hash(into hasher: inout Hasher) {
       
       
       try codecHelper.encode(postId, forKey: .postId, container: &container)
-      
-      
-      
-      try codecHelper.encode(userId, forKey: .userId, container: &container)
       
       
     }
@@ -1083,11 +866,9 @@ postLike_delete: PostLikeKey?
   public func ref(
         
 postId: UUID
-,
-userId: UUID
 
         ) -> MutationRef<UnlikePostMutation.Data,UnlikePostMutation.Variables>  {
-        var variables = UnlikePostMutation.Variables(postId:postId,userId:userId)
+        var variables = UnlikePostMutation.Variables(postId:postId)
         
 
         let ref = dataConnect.mutation(name: "UnlikePost", variables: variables, resultsDataType:UnlikePostMutation.Data.self)
@@ -1098,11 +879,9 @@ userId: UUID
    public func execute( 
         
 postId: UUID
-,
-userId: UUID
 
         ) async throws -> OperationResult<UnlikePostMutation.Data> {
-        var variables = UnlikePostMutation.Variables(postId:postId,userId:userId)
+        var variables = UnlikePostMutation.Variables(postId:postId)
         
 
         let ref = dataConnect.mutation(name: "UnlikePost", variables: variables, resultsDataType:UnlikePostMutation.Data.self)
@@ -1132,10 +911,8 @@ public class DeletePostMutation{
   public struct Variables: OperationVariable {
   
         
-  
-        
         public var
-postKey: PostKey
+postId: UUID
 
 
     
@@ -1143,11 +920,11 @@ postKey: PostKey
     
     public init (
         
-postKey: PostKey
+postId: UUID
 
         
         ) {
-        self.postKey = postKey
+        self.postId = postId
         
 
         
@@ -1155,20 +932,20 @@ postKey: PostKey
 
     public static func == (lhs: Variables, rhs: Variables) -> Bool {
       
-        return lhs.postKey == rhs.postKey
+        return lhs.postId == rhs.postId
               
     }
 
     
 public func hash(into hasher: inout Hasher) {
   
-  hasher.combine(postKey)
+  hasher.combine(postId)
   
 }
 
     enum CodingKeys: String, CodingKey {
       
-      case postKey
+      case postId
       
     }
 
@@ -1177,7 +954,7 @@ public func hash(into hasher: inout Hasher) {
       let codecHelper = CodecHelper<CodingKeys>()
       
       
-      try codecHelper.encode(postKey, forKey: .postKey, container: &container)
+      try codecHelper.encode(postId, forKey: .postId, container: &container)
       
       
     }
@@ -1195,10 +972,10 @@ post_delete: PostKey?
 
   public func ref(
         
-postKey: PostKey
+postId: UUID
 
         ) -> MutationRef<DeletePostMutation.Data,DeletePostMutation.Variables>  {
-        var variables = DeletePostMutation.Variables(postKey:postKey)
+        var variables = DeletePostMutation.Variables(postId:postId)
         
 
         let ref = dataConnect.mutation(name: "DeletePost", variables: variables, resultsDataType:DeletePostMutation.Data.self)
@@ -1208,10 +985,10 @@ postKey: PostKey
   @MainActor
    public func execute( 
         
-postKey: PostKey
+postId: UUID
 
         ) async throws -> OperationResult<DeletePostMutation.Data> {
-        var variables = DeletePostMutation.Variables(postKey:postKey)
+        var variables = DeletePostMutation.Variables(postId:postId)
         
 
         let ref = dataConnect.mutation(name: "DeletePost", variables: variables, resultsDataType:DeletePostMutation.Data.self)
@@ -1241,10 +1018,8 @@ public class DeleteCommentMutation{
   public struct Variables: OperationVariable {
   
         
-  
-        
         public var
-commentKey: CommentKey
+commentId: UUID
 
 
     
@@ -1252,11 +1027,11 @@ commentKey: CommentKey
     
     public init (
         
-commentKey: CommentKey
+commentId: UUID
 
         
         ) {
-        self.commentKey = commentKey
+        self.commentId = commentId
         
 
         
@@ -1264,20 +1039,20 @@ commentKey: CommentKey
 
     public static func == (lhs: Variables, rhs: Variables) -> Bool {
       
-        return lhs.commentKey == rhs.commentKey
+        return lhs.commentId == rhs.commentId
               
     }
 
     
 public func hash(into hasher: inout Hasher) {
   
-  hasher.combine(commentKey)
+  hasher.combine(commentId)
   
 }
 
     enum CodingKeys: String, CodingKey {
       
-      case commentKey
+      case commentId
       
     }
 
@@ -1286,7 +1061,7 @@ public func hash(into hasher: inout Hasher) {
       let codecHelper = CodecHelper<CodingKeys>()
       
       
-      try codecHelper.encode(commentKey, forKey: .commentKey, container: &container)
+      try codecHelper.encode(commentId, forKey: .commentId, container: &container)
       
       
     }
@@ -1304,10 +1079,10 @@ comment_delete: CommentKey?
 
   public func ref(
         
-commentKey: CommentKey
+commentId: UUID
 
         ) -> MutationRef<DeleteCommentMutation.Data,DeleteCommentMutation.Variables>  {
-        var variables = DeleteCommentMutation.Variables(commentKey:commentKey)
+        var variables = DeleteCommentMutation.Variables(commentId:commentId)
         
 
         let ref = dataConnect.mutation(name: "DeleteComment", variables: variables, resultsDataType:DeleteCommentMutation.Data.self)
@@ -1317,13 +1092,702 @@ commentKey: CommentKey
   @MainActor
    public func execute( 
         
-commentKey: CommentKey
+commentId: UUID
 
         ) async throws -> OperationResult<DeleteCommentMutation.Data> {
-        var variables = DeleteCommentMutation.Variables(commentKey:commentKey)
+        var variables = DeleteCommentMutation.Variables(commentId:commentId)
         
 
         let ref = dataConnect.mutation(name: "DeleteComment", variables: variables, resultsDataType:DeleteCommentMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
+public class SpendEvolutionShardsMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "SpendEvolutionShards"
+
+  public typealias Ref = MutationRef<SpendEvolutionShardsMutation.Data,SpendEvolutionShardsMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+deltaShards: Int
+
+  
+        
+        public var
+reason: String
+
+  
+        @OptionalVariable
+        public var
+referenceId: String?
+
+
+    
+    
+    
+    public init (
+        
+deltaShards: Int
+,
+        
+reason: String
+
+        
+        
+        ,
+        _ optionalVars: ((inout Variables)->())? = nil
+        ) {
+        self.deltaShards = deltaShards
+        self.reason = reason
+        
+
+        
+        if let optionalVars {
+            optionalVars(&self)
+        }
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.deltaShards == rhs.deltaShards && 
+              lhs.reason == rhs.reason && 
+              lhs.referenceId == rhs.referenceId
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(deltaShards)
+  
+  hasher.combine(reason)
+  
+  hasher.combine(referenceId)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case deltaShards
+      
+      case reason
+      
+      case referenceId
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(deltaShards, forKey: .deltaShards, container: &container)
+      
+      
+      
+      try codecHelper.encode(reason, forKey: .reason, container: &container)
+      
+      
+      if $referenceId.isSet { 
+      try codecHelper.encode(referenceId, forKey: .referenceId, container: &container)
+      }
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+shardLedger_insert: ShardLedgerKey
+
+
+
+
+public var 
+user_update: UserKey?
+
+  }
+
+  public func ref(
+        
+deltaShards: Int
+,
+reason: String
+
+        
+        ,
+        _ optionalVars: ((inout SpendEvolutionShardsMutation.Variables)->())? = nil
+        ) -> MutationRef<SpendEvolutionShardsMutation.Data,SpendEvolutionShardsMutation.Variables>  {
+        var variables = SpendEvolutionShardsMutation.Variables(deltaShards:deltaShards,reason:reason)
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.mutation(name: "SpendEvolutionShards", variables: variables, resultsDataType:SpendEvolutionShardsMutation.Data.self)
+        return ref as MutationRef<SpendEvolutionShardsMutation.Data,SpendEvolutionShardsMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+deltaShards: Int
+,
+reason: String
+
+        
+        ,
+        _ optionalVars: (@MainActor (inout SpendEvolutionShardsMutation.Variables)->())? = nil
+        ) async throws -> OperationResult<SpendEvolutionShardsMutation.Data> {
+        var variables = SpendEvolutionShardsMutation.Variables(deltaShards:deltaShards,reason:reason)
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.mutation(name: "SpendEvolutionShards", variables: variables, resultsDataType:SpendEvolutionShardsMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
+public class ClaimCreatorCardOwnershipMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "ClaimCreatorCardOwnership"
+
+  public typealias Ref = MutationRef<ClaimCreatorCardOwnershipMutation.Data,ClaimCreatorCardOwnershipMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+catalogCardId: String
+
+
+    
+    
+    
+    public init (
+        
+catalogCardId: String
+
+        
+        ) {
+        self.catalogCardId = catalogCardId
+        
+
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.catalogCardId == rhs.catalogCardId
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(catalogCardId)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case catalogCardId
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(catalogCardId, forKey: .catalogCardId, container: &container)
+      
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+userOwnedCreatorCard_insert: UserOwnedCreatorCardKey
+
+  }
+
+  public func ref(
+        
+catalogCardId: String
+
+        ) -> MutationRef<ClaimCreatorCardOwnershipMutation.Data,ClaimCreatorCardOwnershipMutation.Variables>  {
+        var variables = ClaimCreatorCardOwnershipMutation.Variables(catalogCardId:catalogCardId)
+        
+
+        let ref = dataConnect.mutation(name: "ClaimCreatorCardOwnership", variables: variables, resultsDataType:ClaimCreatorCardOwnershipMutation.Data.self)
+        return ref as MutationRef<ClaimCreatorCardOwnershipMutation.Data,ClaimCreatorCardOwnershipMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+catalogCardId: String
+
+        ) async throws -> OperationResult<ClaimCreatorCardOwnershipMutation.Data> {
+        var variables = ClaimCreatorCardOwnershipMutation.Variables(catalogCardId:catalogCardId)
+        
+
+        let ref = dataConnect.mutation(name: "ClaimCreatorCardOwnership", variables: variables, resultsDataType:ClaimCreatorCardOwnershipMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
+public class CreateCritiqueRequestWithEscrowMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "CreateCritiqueRequestWithEscrow"
+
+  public typealias Ref = MutationRef<CreateCritiqueRequestWithEscrowMutation.Data,CreateCritiqueRequestWithEscrowMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+requestKey: String
+
+  
+        
+        public var
+exerciseName: String
+
+  
+        @OptionalVariable
+        public var
+notes: String?
+
+
+    
+    
+    
+    public init (
+        
+requestKey: String
+,
+        
+exerciseName: String
+
+        
+        
+        ,
+        _ optionalVars: ((inout Variables)->())? = nil
+        ) {
+        self.requestKey = requestKey
+        self.exerciseName = exerciseName
+        
+
+        
+        if let optionalVars {
+            optionalVars(&self)
+        }
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.requestKey == rhs.requestKey && 
+              lhs.exerciseName == rhs.exerciseName && 
+              lhs.notes == rhs.notes
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(requestKey)
+  
+  hasher.combine(exerciseName)
+  
+  hasher.combine(notes)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case requestKey
+      
+      case exerciseName
+      
+      case notes
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(requestKey, forKey: .requestKey, container: &container)
+      
+      
+      
+      try codecHelper.encode(exerciseName, forKey: .exerciseName, container: &container)
+      
+      
+      if $notes.isSet { 
+      try codecHelper.encode(notes, forKey: .notes, container: &container)
+      }
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+shardLedger_insert: ShardLedgerKey
+
+
+
+
+public var 
+user_update: UserKey?
+
+
+
+
+public var 
+coachCritiqueRequest_insert: CoachCritiqueRequestKey
+
+  }
+
+  public func ref(
+        
+requestKey: String
+,
+exerciseName: String
+
+        
+        ,
+        _ optionalVars: ((inout CreateCritiqueRequestWithEscrowMutation.Variables)->())? = nil
+        ) -> MutationRef<CreateCritiqueRequestWithEscrowMutation.Data,CreateCritiqueRequestWithEscrowMutation.Variables>  {
+        var variables = CreateCritiqueRequestWithEscrowMutation.Variables(requestKey:requestKey,exerciseName:exerciseName)
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.mutation(name: "CreateCritiqueRequestWithEscrow", variables: variables, resultsDataType:CreateCritiqueRequestWithEscrowMutation.Data.self)
+        return ref as MutationRef<CreateCritiqueRequestWithEscrowMutation.Data,CreateCritiqueRequestWithEscrowMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+requestKey: String
+,
+exerciseName: String
+
+        
+        ,
+        _ optionalVars: (@MainActor (inout CreateCritiqueRequestWithEscrowMutation.Variables)->())? = nil
+        ) async throws -> OperationResult<CreateCritiqueRequestWithEscrowMutation.Data> {
+        var variables = CreateCritiqueRequestWithEscrowMutation.Variables(requestKey:requestKey,exerciseName:exerciseName)
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.mutation(name: "CreateCritiqueRequestWithEscrow", variables: variables, resultsDataType:CreateCritiqueRequestWithEscrowMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
+public class CreateCardMarketListingMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "CreateCardMarketListing"
+
+  public typealias Ref = MutationRef<CreateCardMarketListingMutation.Data,CreateCardMarketListingMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+catalogCardId: String
+
+  
+        
+        public var
+priceShards: Int
+
+
+    
+    
+    
+    public init (
+        
+catalogCardId: String
+,
+        
+priceShards: Int
+
+        
+        ) {
+        self.catalogCardId = catalogCardId
+        self.priceShards = priceShards
+        
+
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.catalogCardId == rhs.catalogCardId && 
+              lhs.priceShards == rhs.priceShards
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(catalogCardId)
+  
+  hasher.combine(priceShards)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case catalogCardId
+      
+      case priceShards
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(catalogCardId, forKey: .catalogCardId, container: &container)
+      
+      
+      
+      try codecHelper.encode(priceShards, forKey: .priceShards, container: &container)
+      
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+cardMarketListing_insert: CardMarketListingKey
+
+  }
+
+  public func ref(
+        
+catalogCardId: String
+,
+priceShards: Int
+
+        ) -> MutationRef<CreateCardMarketListingMutation.Data,CreateCardMarketListingMutation.Variables>  {
+        var variables = CreateCardMarketListingMutation.Variables(catalogCardId:catalogCardId,priceShards:priceShards)
+        
+
+        let ref = dataConnect.mutation(name: "CreateCardMarketListing", variables: variables, resultsDataType:CreateCardMarketListingMutation.Data.self)
+        return ref as MutationRef<CreateCardMarketListingMutation.Data,CreateCardMarketListingMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+catalogCardId: String
+,
+priceShards: Int
+
+        ) async throws -> OperationResult<CreateCardMarketListingMutation.Data> {
+        var variables = CreateCardMarketListingMutation.Variables(catalogCardId:catalogCardId,priceShards:priceShards)
+        
+
+        let ref = dataConnect.mutation(name: "CreateCardMarketListing", variables: variables, resultsDataType:CreateCardMarketListingMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
+public class DeactivateCardMarketListingMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "DeactivateCardMarketListing"
+
+  public typealias Ref = MutationRef<DeactivateCardMarketListingMutation.Data,DeactivateCardMarketListingMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+listingId: UUID
+
+
+    
+    
+    
+    public init (
+        
+listingId: UUID
+
+        
+        ) {
+        self.listingId = listingId
+        
+
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.listingId == rhs.listingId
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(listingId)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case listingId
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(listingId, forKey: .listingId, container: &container)
+      
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+cardMarketListing_update: CardMarketListingKey?
+
+  }
+
+  public func ref(
+        
+listingId: UUID
+
+        ) -> MutationRef<DeactivateCardMarketListingMutation.Data,DeactivateCardMarketListingMutation.Variables>  {
+        var variables = DeactivateCardMarketListingMutation.Variables(listingId:listingId)
+        
+
+        let ref = dataConnect.mutation(name: "DeactivateCardMarketListing", variables: variables, resultsDataType:DeactivateCardMarketListingMutation.Data.self)
+        return ref as MutationRef<DeactivateCardMarketListingMutation.Data,DeactivateCardMarketListingMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+listingId: UUID
+
+        ) async throws -> OperationResult<DeactivateCardMarketListingMutation.Data> {
+        var variables = DeactivateCardMarketListingMutation.Variables(listingId:listingId)
+        
+
+        let ref = dataConnect.mutation(name: "DeactivateCardMarketListing", variables: variables, resultsDataType:DeactivateCardMarketListingMutation.Data.self)
         
         return try await ref.execute()
         
@@ -1740,11 +2204,6 @@ username: String
 
 
 public var 
-email: String
-
-
-
-public var 
 profilePictureUrl: String?
 
 
@@ -1787,8 +2246,6 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     case username
     
-    case email
-    
     case profilePictureUrl
     
     case avatarUrl
@@ -1808,10 +2265,6 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     
     self.username = try codecHelper.decode(String.self, forKey: .username, container: &container)
-    
-    
-    
-    self.email = try codecHelper.decode(String.self, forKey: .email, container: &container)
     
     
     
@@ -2254,56 +2707,181 @@ public class GetUserByFirebaseUidQuery{
   public typealias Ref = QueryRefObservation<GetUserByFirebaseUidQuery.Data,GetUserByFirebaseUidQuery.Variables>
 
   public struct Variables: OperationVariable {
+
+    
+    
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+
+public struct User: Decodable, Sendable ,Hashable, Equatable, Identifiable {
   
-        
-        public var
-firebaseUid: String
 
 
-    
-    
-    
-    public init (
-        
-firebaseUid: String
+public var 
+id: UUID
 
-        
-        ) {
-        self.firebaseUid = firebaseUid
-        
 
-        
-    }
 
-    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+public var 
+username: String
+
+
+
+public var 
+profilePictureUrl: String?
+
+
+
+public var 
+avatarUrl: String?
+
+
+
+public var 
+topPRQScore: Double?
+
+
+
+public var 
+evolutionShards: Int
+
+
+
+public var 
+firebaseUid: String?
+
+
+  
+  public var userKey: UserKey {
+    return UserKey(
       
-        return lhs.firebaseUid == rhs.firebaseUid
-              
-    }
+      id: id
+    )
+  }
 
-    
+  
 public func hash(into hasher: inout Hasher) {
   
-  hasher.combine(firebaseUid)
+  hasher.combine(id)
   
 }
+public static func == (lhs: User, rhs: User) -> Bool {
+    
+    return lhs.id == rhs.id 
+        
+  }
 
-    enum CodingKeys: String, CodingKey {
-      
-      case firebaseUid
-      
-    }
+  
 
-    public func encode(to encoder: Encoder) throws {
-      var container = encoder.container(keyedBy: CodingKeys.self)
-      let codecHelper = CodecHelper<CodingKeys>()
-      
-      
-      try codecHelper.encode(firebaseUid, forKey: .firebaseUid, container: &container)
-      
-      
-    }
+  
+  enum CodingKeys: String, CodingKey {
+    
+    case id
+    
+    case username
+    
+    case profilePictureUrl
+    
+    case avatarUrl
+    
+    case topPRQScore
+    
+    case evolutionShards
+    
+    case firebaseUid
+    
+  }
 
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+    
+    
+    self.username = try codecHelper.decode(String.self, forKey: .username, container: &container)
+    
+    
+    
+    self.profilePictureUrl = try codecHelper.decode(String?.self, forKey: .profilePictureUrl, container: &container)
+    
+    
+    
+    self.avatarUrl = try codecHelper.decode(String?.self, forKey: .avatarUrl, container: &container)
+    
+    
+    
+    self.topPRQScore = try codecHelper.decode(Double?.self, forKey: .topPRQScore, container: &container)
+    
+    
+    
+    self.evolutionShards = try codecHelper.decode(Int.self, forKey: .evolutionShards, container: &container)
+    
+    
+    
+    self.firebaseUid = try codecHelper.decode(String?.self, forKey: .firebaseUid, container: &container)
+    
+    
+  }
+}
+public var 
+users: [User]
+
+  }
+
+  public func ref(
+        
+        ) -> QueryRefObservation<GetUserByFirebaseUidQuery.Data,GetUserByFirebaseUidQuery.Variables>  {
+        var variables = GetUserByFirebaseUidQuery.Variables()
+        
+
+        let ref = dataConnect.query(name: "GetUserByFirebaseUid", variables: variables, resultsDataType:GetUserByFirebaseUidQuery.Data.self, publisher: .observableMacro)
+        return ref as! QueryRefObservation<GetUserByFirebaseUidQuery.Data,GetUserByFirebaseUidQuery.Variables>
+   }
+
+  @MainActor
+   public func execute( fetchPolicy: QueryFetchPolicy = .preferCache,  
+        
+        ) async throws -> OperationResult<GetUserByFirebaseUidQuery.Data> {
+        var variables = GetUserByFirebaseUidQuery.Variables()
+        
+
+        let ref = dataConnect.query(name: "GetUserByFirebaseUid", variables: variables, resultsDataType:GetUserByFirebaseUidQuery.Data.self, publisher: .observableMacro)
+        
+        let refCast = ref as! QueryRefObservation<GetUserByFirebaseUidQuery.Data,GetUserByFirebaseUidQuery.Variables>
+        return try await refCast.execute(fetchPolicy: fetchPolicy)
+        
+   }
+}
+
+
+
+
+
+
+public class GetMyPrivateProfileQuery{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "GetMyPrivateProfile"
+
+  public typealias Ref = QueryRefObservation<GetMyPrivateProfileQuery.Data,GetMyPrivateProfileQuery.Variables>
+
+  public struct Variables: OperationVariable {
+
+    
+    
   }
 
   public struct Data: Decodable, Sendable {
@@ -2342,6 +2920,11 @@ avatarUrl: String?
 
 public var 
 topPRQScore: Double?
+
+
+
+public var 
+evolutionShards: Int
 
 
 
@@ -2386,6 +2969,8 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     case topPRQScore
     
+    case evolutionShards
+    
     case firebaseUid
     
   }
@@ -2420,6 +3005,10 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     
     
+    self.evolutionShards = try codecHelper.decode(Int.self, forKey: .evolutionShards, container: &container)
+    
+    
+    
     self.firebaseUid = try codecHelper.decode(String?.self, forKey: .firebaseUid, container: &container)
     
     
@@ -2432,28 +3021,24 @@ users: [User]
 
   public func ref(
         
-firebaseUid: String
-
-        ) -> QueryRefObservation<GetUserByFirebaseUidQuery.Data,GetUserByFirebaseUidQuery.Variables>  {
-        var variables = GetUserByFirebaseUidQuery.Variables(firebaseUid:firebaseUid)
+        ) -> QueryRefObservation<GetMyPrivateProfileQuery.Data,GetMyPrivateProfileQuery.Variables>  {
+        var variables = GetMyPrivateProfileQuery.Variables()
         
 
-        let ref = dataConnect.query(name: "GetUserByFirebaseUid", variables: variables, resultsDataType:GetUserByFirebaseUidQuery.Data.self, publisher: .observableMacro)
-        return ref as! QueryRefObservation<GetUserByFirebaseUidQuery.Data,GetUserByFirebaseUidQuery.Variables>
+        let ref = dataConnect.query(name: "GetMyPrivateProfile", variables: variables, resultsDataType:GetMyPrivateProfileQuery.Data.self, publisher: .observableMacro)
+        return ref as! QueryRefObservation<GetMyPrivateProfileQuery.Data,GetMyPrivateProfileQuery.Variables>
    }
 
   @MainActor
    public func execute( fetchPolicy: QueryFetchPolicy = .preferCache,  
         
-firebaseUid: String
-
-        ) async throws -> OperationResult<GetUserByFirebaseUidQuery.Data> {
-        var variables = GetUserByFirebaseUidQuery.Variables(firebaseUid:firebaseUid)
+        ) async throws -> OperationResult<GetMyPrivateProfileQuery.Data> {
+        var variables = GetMyPrivateProfileQuery.Variables()
         
 
-        let ref = dataConnect.query(name: "GetUserByFirebaseUid", variables: variables, resultsDataType:GetUserByFirebaseUidQuery.Data.self, publisher: .observableMacro)
+        let ref = dataConnect.query(name: "GetMyPrivateProfile", variables: variables, resultsDataType:GetMyPrivateProfileQuery.Data.self, publisher: .observableMacro)
         
-        let refCast = ref as! QueryRefObservation<GetUserByFirebaseUidQuery.Data,GetUserByFirebaseUidQuery.Variables>
+        let refCast = ref as! QueryRefObservation<GetMyPrivateProfileQuery.Data,GetMyPrivateProfileQuery.Variables>
         return try await refCast.execute(fetchPolicy: fetchPolicy)
         
    }
@@ -2549,11 +3134,6 @@ username: String
 
 
 public var 
-email: String
-
-
-
-public var 
 profilePictureUrl: String?
 
 
@@ -2565,6 +3145,11 @@ avatarUrl: String?
 
 public var 
 topPRQScore: Double?
+
+
+
+public var 
+evolutionShards: Int
 
 
   
@@ -2596,13 +3181,13 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     case username
     
-    case email
-    
     case profilePictureUrl
     
     case avatarUrl
     
     case topPRQScore
+    
+    case evolutionShards
     
   }
 
@@ -2620,10 +3205,6 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     
     
-    self.email = try codecHelper.decode(String.self, forKey: .email, container: &container)
-    
-    
-    
     self.profilePictureUrl = try codecHelper.decode(String?.self, forKey: .profilePictureUrl, container: &container)
     
     
@@ -2633,6 +3214,10 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     
     self.topPRQScore = try codecHelper.decode(Double?.self, forKey: .topPRQScore, container: &container)
+    
+    
+    
+    self.evolutionShards = try codecHelper.decode(Int.self, forKey: .evolutionShards, container: &container)
     
     
   }
@@ -3049,6 +3634,731 @@ postId: UUID
         let ref = dataConnect.query(name: "ListCommentsForPost", variables: variables, resultsDataType:ListCommentsForPostQuery.Data.self, publisher: .observableMacro)
         
         let refCast = ref as! QueryRefObservation<ListCommentsForPostQuery.Data,ListCommentsForPostQuery.Variables>
+        return try await refCast.execute(fetchPolicy: fetchPolicy)
+        
+   }
+}
+
+
+
+
+
+
+public class ListShardLedgerForUserQuery{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "ListShardLedgerForUser"
+
+  public typealias Ref = QueryRefObservation<ListShardLedgerForUserQuery.Data,ListShardLedgerForUserQuery.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        @OptionalVariable
+        public var
+limit: Int?
+
+
+    
+    
+    
+    public init (
+        
+        
+        
+        _ optionalVars: ((inout Variables)->())? = nil
+        ) {
+        
+
+        
+        if let optionalVars {
+            optionalVars(&self)
+        }
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.limit == rhs.limit
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(limit)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case limit
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      if $limit.isSet { 
+      try codecHelper.encode(limit, forKey: .limit, container: &container)
+      }
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+
+public struct ShardLedger: Decodable, Sendable ,Hashable, Equatable, Identifiable {
+  
+
+
+public var 
+id: UUID
+
+
+
+public var 
+deltaShards: Int
+
+
+
+public var 
+reason: String
+
+
+
+public var 
+referenceId: String?
+
+
+
+public var 
+createdAt: Timestamp
+
+
+  
+  public var shardLedgerKey: ShardLedgerKey {
+    return ShardLedgerKey(
+      
+      id: id
+    )
+  }
+
+  
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(id)
+  
+}
+public static func == (lhs: ShardLedger, rhs: ShardLedger) -> Bool {
+    
+    return lhs.id == rhs.id 
+        
+  }
+
+  
+
+  
+  enum CodingKeys: String, CodingKey {
+    
+    case id
+    
+    case deltaShards
+    
+    case reason
+    
+    case referenceId
+    
+    case createdAt
+    
+  }
+
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+    
+    
+    self.deltaShards = try codecHelper.decode(Int.self, forKey: .deltaShards, container: &container)
+    
+    
+    
+    self.reason = try codecHelper.decode(String.self, forKey: .reason, container: &container)
+    
+    
+    
+    self.referenceId = try codecHelper.decode(String?.self, forKey: .referenceId, container: &container)
+    
+    
+    
+    self.createdAt = try codecHelper.decode(Timestamp.self, forKey: .createdAt, container: &container)
+    
+    
+  }
+}
+public var 
+shardLedgers: [ShardLedger]
+
+  }
+
+  public func ref(
+        
+        
+        
+        _ optionalVars: ((inout ListShardLedgerForUserQuery.Variables)->())? = nil
+        ) -> QueryRefObservation<ListShardLedgerForUserQuery.Data,ListShardLedgerForUserQuery.Variables>  {
+        var variables = ListShardLedgerForUserQuery.Variables()
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.query(name: "ListShardLedgerForUser", variables: variables, resultsDataType:ListShardLedgerForUserQuery.Data.self, publisher: .observableMacro)
+        return ref as! QueryRefObservation<ListShardLedgerForUserQuery.Data,ListShardLedgerForUserQuery.Variables>
+   }
+
+  @MainActor
+   public func execute( fetchPolicy: QueryFetchPolicy = .preferCache,  
+        
+        
+        
+        _ optionalVars: (@MainActor (inout ListShardLedgerForUserQuery.Variables)->())? = nil
+        ) async throws -> OperationResult<ListShardLedgerForUserQuery.Data> {
+        var variables = ListShardLedgerForUserQuery.Variables()
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.query(name: "ListShardLedgerForUser", variables: variables, resultsDataType:ListShardLedgerForUserQuery.Data.self, publisher: .observableMacro)
+        
+        let refCast = ref as! QueryRefObservation<ListShardLedgerForUserQuery.Data,ListShardLedgerForUserQuery.Variables>
+        return try await refCast.execute(fetchPolicy: fetchPolicy)
+        
+   }
+}
+
+
+
+
+
+
+public class ListCreatorCardsQuery{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "ListCreatorCards"
+
+  public typealias Ref = QueryRefObservation<ListCreatorCardsQuery.Data,ListCreatorCardsQuery.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        @OptionalVariable
+        public var
+limit: Int?
+
+
+    
+    
+    
+    public init (
+        
+        
+        
+        _ optionalVars: ((inout Variables)->())? = nil
+        ) {
+        
+
+        
+        if let optionalVars {
+            optionalVars(&self)
+        }
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.limit == rhs.limit
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(limit)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case limit
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      if $limit.isSet { 
+      try codecHelper.encode(limit, forKey: .limit, container: &container)
+      }
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+
+public struct CreatorCard: Decodable, Sendable ,Hashable, Equatable, Identifiable {
+  
+
+
+public var 
+id: UUID
+
+
+
+public var 
+catalogCardId: String
+
+
+
+public var 
+displayName: String
+
+
+
+public var 
+rarityTier: String?
+
+
+
+public var 
+createdAt: Timestamp
+
+
+  
+  public var creatorCardKey: CreatorCardKey {
+    return CreatorCardKey(
+      
+      id: id
+    )
+  }
+
+  
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(id)
+  
+}
+public static func == (lhs: CreatorCard, rhs: CreatorCard) -> Bool {
+    
+    return lhs.id == rhs.id 
+        
+  }
+
+  
+
+  
+  enum CodingKeys: String, CodingKey {
+    
+    case id
+    
+    case catalogCardId
+    
+    case displayName
+    
+    case rarityTier
+    
+    case createdAt
+    
+  }
+
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+    
+    
+    self.catalogCardId = try codecHelper.decode(String.self, forKey: .catalogCardId, container: &container)
+    
+    
+    
+    self.displayName = try codecHelper.decode(String.self, forKey: .displayName, container: &container)
+    
+    
+    
+    self.rarityTier = try codecHelper.decode(String?.self, forKey: .rarityTier, container: &container)
+    
+    
+    
+    self.createdAt = try codecHelper.decode(Timestamp.self, forKey: .createdAt, container: &container)
+    
+    
+  }
+}
+public var 
+creatorCards: [CreatorCard]
+
+  }
+
+  public func ref(
+        
+        
+        
+        _ optionalVars: ((inout ListCreatorCardsQuery.Variables)->())? = nil
+        ) -> QueryRefObservation<ListCreatorCardsQuery.Data,ListCreatorCardsQuery.Variables>  {
+        var variables = ListCreatorCardsQuery.Variables()
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.query(name: "ListCreatorCards", variables: variables, resultsDataType:ListCreatorCardsQuery.Data.self, publisher: .observableMacro)
+        return ref as! QueryRefObservation<ListCreatorCardsQuery.Data,ListCreatorCardsQuery.Variables>
+   }
+
+  @MainActor
+   public func execute( fetchPolicy: QueryFetchPolicy = .preferCache,  
+        
+        
+        
+        _ optionalVars: (@MainActor (inout ListCreatorCardsQuery.Variables)->())? = nil
+        ) async throws -> OperationResult<ListCreatorCardsQuery.Data> {
+        var variables = ListCreatorCardsQuery.Variables()
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.query(name: "ListCreatorCards", variables: variables, resultsDataType:ListCreatorCardsQuery.Data.self, publisher: .observableMacro)
+        
+        let refCast = ref as! QueryRefObservation<ListCreatorCardsQuery.Data,ListCreatorCardsQuery.Variables>
+        return try await refCast.execute(fetchPolicy: fetchPolicy)
+        
+   }
+}
+
+
+
+
+
+
+public class ListActiveCardMarketListingsQuery{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "ListActiveCardMarketListings"
+
+  public typealias Ref = QueryRefObservation<ListActiveCardMarketListingsQuery.Data,ListActiveCardMarketListingsQuery.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        @OptionalVariable
+        public var
+limit: Int?
+
+
+    
+    
+    
+    public init (
+        
+        
+        
+        _ optionalVars: ((inout Variables)->())? = nil
+        ) {
+        
+
+        
+        if let optionalVars {
+            optionalVars(&self)
+        }
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.limit == rhs.limit
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(limit)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case limit
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      if $limit.isSet { 
+      try codecHelper.encode(limit, forKey: .limit, container: &container)
+      }
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+
+public struct CardMarketListing: Decodable, Sendable ,Hashable, Equatable, Identifiable {
+  
+
+
+public var 
+id: UUID
+
+
+
+public var 
+catalogCardId: String
+
+
+
+public var 
+priceShards: Int
+
+
+
+public var 
+listedAt: Timestamp
+
+
+
+public var 
+active: Bool
+
+
+
+
+
+public struct User: Decodable, Sendable ,Hashable, Equatable, Identifiable {
+  
+
+
+public var 
+id: UUID
+
+
+
+public var 
+username: String
+
+
+
+public var 
+avatarUrl: String?
+
+
+  
+  public var userKey: UserKey {
+    return UserKey(
+      
+      id: id
+    )
+  }
+
+  
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(id)
+  
+}
+public static func == (lhs: User, rhs: User) -> Bool {
+    
+    return lhs.id == rhs.id 
+        
+  }
+
+  
+
+  
+  enum CodingKeys: String, CodingKey {
+    
+    case id
+    
+    case username
+    
+    case avatarUrl
+    
+  }
+
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+    
+    
+    self.username = try codecHelper.decode(String.self, forKey: .username, container: &container)
+    
+    
+    
+    self.avatarUrl = try codecHelper.decode(String?.self, forKey: .avatarUrl, container: &container)
+    
+    
+  }
+}
+public var 
+seller: User
+
+
+  
+  public var cardMarketListingKey: CardMarketListingKey {
+    return CardMarketListingKey(
+      
+      id: id
+    )
+  }
+
+  
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(id)
+  
+}
+public static func == (lhs: CardMarketListing, rhs: CardMarketListing) -> Bool {
+    
+    return lhs.id == rhs.id 
+        
+  }
+
+  
+
+  
+  enum CodingKeys: String, CodingKey {
+    
+    case id
+    
+    case catalogCardId
+    
+    case priceShards
+    
+    case listedAt
+    
+    case active
+    
+    case seller
+    
+  }
+
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+    
+    
+    self.catalogCardId = try codecHelper.decode(String.self, forKey: .catalogCardId, container: &container)
+    
+    
+    
+    self.priceShards = try codecHelper.decode(Int.self, forKey: .priceShards, container: &container)
+    
+    
+    
+    self.listedAt = try codecHelper.decode(Timestamp.self, forKey: .listedAt, container: &container)
+    
+    
+    
+    self.active = try codecHelper.decode(Bool.self, forKey: .active, container: &container)
+    
+    
+    
+    self.seller = try codecHelper.decode(User.self, forKey: .seller, container: &container)
+    
+    
+  }
+}
+public var 
+cardMarketListings: [CardMarketListing]
+
+  }
+
+  public func ref(
+        
+        
+        
+        _ optionalVars: ((inout ListActiveCardMarketListingsQuery.Variables)->())? = nil
+        ) -> QueryRefObservation<ListActiveCardMarketListingsQuery.Data,ListActiveCardMarketListingsQuery.Variables>  {
+        var variables = ListActiveCardMarketListingsQuery.Variables()
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.query(name: "ListActiveCardMarketListings", variables: variables, resultsDataType:ListActiveCardMarketListingsQuery.Data.self, publisher: .observableMacro)
+        return ref as! QueryRefObservation<ListActiveCardMarketListingsQuery.Data,ListActiveCardMarketListingsQuery.Variables>
+   }
+
+  @MainActor
+   public func execute( fetchPolicy: QueryFetchPolicy = .preferCache,  
+        
+        
+        
+        _ optionalVars: (@MainActor (inout ListActiveCardMarketListingsQuery.Variables)->())? = nil
+        ) async throws -> OperationResult<ListActiveCardMarketListingsQuery.Data> {
+        var variables = ListActiveCardMarketListingsQuery.Variables()
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.query(name: "ListActiveCardMarketListings", variables: variables, resultsDataType:ListActiveCardMarketListingsQuery.Data.self, publisher: .observableMacro)
+        
+        let refCast = ref as! QueryRefObservation<ListActiveCardMarketListingsQuery.Data,ListActiveCardMarketListingsQuery.Variables>
         return try await refCast.execute(fetchPolicy: fetchPolicy)
         
    }

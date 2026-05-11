@@ -113,7 +113,7 @@ class TestSocialAPI:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) >= 1  # At least one athlete (test user or seeded)
+        # PRIVACY-09: discovery requires explicit discovery_opt_in — remote DB may legitimately return none.
         for athlete in data:
             assert "user_id" in athlete
             assert "name" in athlete

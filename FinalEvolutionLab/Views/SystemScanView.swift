@@ -24,6 +24,8 @@ struct SystemScanView: View {
 
     @State private var generatedResult: SystemScanResult?
     @State private var communityPostState: CommunityPostState = .idle
+    @State private var analysisSessionID = UUID()
+    @State private var analysisTask: Task<Void, Never>?
 
     private enum CommunityPostState: Equatable {
         case idle
@@ -61,6 +63,7 @@ struct SystemScanView: View {
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .onDisappear { cancelAnalysis() }
         }
         .presentationDetents([.large])
         .presentationBackground(Theme.deepBlack)
@@ -106,7 +109,7 @@ struct SystemScanView: View {
                     .foregroundStyle(Theme.brandBlue)
                     .tracking(3)
 
-                Text("Upload a dunk or vertical jump attempt from your camera roll. Our system will analyze your movement data and generate your PRQ score.")
+                Text("Upload a clip to run the training-lab demo scan: scores are synthesized from your goal selection — not ARKit pose, mesh depth, or frontal-plane knee geometry. Full biomechanical capture ships later.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -137,8 +140,14 @@ struct SystemScanView: View {
             }
             .padding(.horizontal, 24)
             .onChange(of: selectedItem) { _, newItem in
-                guard newItem != nil else { return }
-                startAnalysis()
+                guard let newItem else { return }
+                cancelAnalysis()
+                Task {
+                    _ = try? await newItem.loadTransferable(type: Data.self)
+                    await MainActor.run {
+                        startAnalysis()
+                    }
+                }
             }
 
             Spacer()
@@ -187,7 +196,7 @@ struct SystemScanView: View {
                     .tracking(2)
                     .contentTransition(.opacity)
 
-                Text("Processing movement data...")
+                Text("Demo pipeline — no live pose mesh or confidence score in this build.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -203,10 +212,10 @@ struct SystemScanView: View {
 
     private var analysisLabel: String {
         switch analysisProgress {
-        case 0..<0.25: "DETECTING BODY POSE..."
-        case 0.25..<0.5: "MEASURING FLIGHT TIME..."
-        case 0.5..<0.75: "CALCULATING VERTICAL..."
-        case 0.75..<1.0: "GENERATING PRQ SCORE..."
+        case 0..<0.25: "BUILDING DEMO PROFILE..."
+        case 0.25..<0.5: "SAMPLING FLIGHT WINDOW..."
+        case 0.5..<0.75: "PROJECTING VERTICAL ESTIMATE..."
+        case 0.75..<1.0: "DERIVING PRQ SAMPLE..."
         default: "COMPLETE"
         }
     }
@@ -220,7 +229,11 @@ struct SystemScanView: View {
                         .foregroundStyle(Theme.brandCyan)
                         .tracking(4)
 
-                    Text("Your PRQ")
+                    Text("Demo scan — illustrative metrics only")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    Text(result.commitsCompetitiveMetrics ? "Measured PRQ" : "Preview PRQ")
                         .font(.system(size: 34, weight: .black))
                         .italic()
                         .foregroundStyle(.white)
@@ -240,7 +253,7 @@ struct SystemScanView: View {
                             .font(.system(size: 52, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
 
-                        Text("PRQ")
+                        Text(result.commitsCompetitiveMetrics ? "PRQ" : "PREVIEW PRQ")
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .foregroundStyle(.tertiary)
                             .tracking(3)
@@ -291,44 +304,51 @@ struct SystemScanView: View {
 
                 if FirebaseBootstrap.isConfigured {
                     VStack(spacing: 10) {
-                        Button {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            Task { await postScanToCommunity(result) }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "square.and.arrow.up.on.square.fill")
-                                Text("SHARE TO LAB FEED")
-                            }
-                            .font(.system(.subheadline, design: .monospaced, weight: .black))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                LinearGradient(
-                                    colors: [Theme.brandBlue.opacity(0.95), Theme.brandCyan.opacity(0.85)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                        if result.commitsCompetitiveMetrics {
+                            Button {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                Task { await postScanToCommunity(result) }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "square.and.arrow.up.on.square.fill")
+                                    Text("SHARE TO LAB FEED")
+                                }
+                                .font(.system(.subheadline, design: .monospaced, weight: .black))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Theme.brandBlue.opacity(0.95), Theme.brandCyan.opacity(0.85)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
-                            .clipShape(.rect(cornerRadius: 14))
-                        }
-                        .disabled(communityPostState == .posting)
+                                .clipShape(.rect(cornerRadius: 14))
+                            }
+                            .disabled(communityPostState == .posting)
 
-                        switch communityPostState {
-                        case .idle:
-                            EmptyView()
-                        case .posting:
-                            Text("Publishing to SQL feed…")
+                            switch communityPostState {
+                            case .idle:
+                                EmptyView()
+                            case .posting:
+                                Text("Publishing to SQL feed…")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            case .posted:
+                                Label("Posted — check the Arena Community tab.", systemImage: "checkmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.foundationGreen)
+                            case .failed(let msg):
+                                Text(msg)
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                                    .multilineTextAlignment(.center)
+                            }
+                        } else {
+                            Text("Measured scans only for the live feed — this session uses the non-scoring demo pipeline.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                        case .posted:
-                            Label("Posted — check the Arena Community tab.", systemImage: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(Theme.foundationGreen)
-                        case .failed(let msg):
-                            Text(msg)
-                                .font(.caption)
-                                .foregroundStyle(.orange)
                                 .multilineTextAlignment(.center)
                         }
                     }
@@ -428,11 +448,19 @@ struct SystemScanView: View {
 
     @MainActor
     private func postScanToCommunity(_ result: SystemScanResult) async {
+        guard result.commitsCompetitiveMetrics else {
+            communityPostState = .idle
+            FelToastCenter.shared.show(
+                "Live Lab feed requires a verified measured scan. This clip uses the training-lab demo scorer only.",
+                isError: true
+            )
+            return
+        }
         communityPostState = .posting
         let metrics = labPerformanceMetrics(from: result)
         do {
             await TrainingLabSocialBridge.shared.syncPeakPRQFromScanResult(result)
-            let authorId = try await TrainingLabSocialBridge.shared.ensureSqlUserRegistration(displayName: nil)
+            _ = try await TrainingLabSocialBridge.shared.ensureSqlUserRegistration(displayName: nil)
             let content = """
             PRQ \(String(format: "%.1f", result.prqScore)) · \(result.movementGrade)
             Explosiveness \(String(format: "%.0f", metrics.explosiveness * 100))% · Neural focus \(String(format: "%.0f", metrics.neuralFocus * 100))%
@@ -441,7 +469,6 @@ struct SystemScanView: View {
             """
             try await TrainingLabSocialBridge.shared.createFeedPost(
                 content: content,
-                authorId: authorId,
                 gameModeId: nil,
                 trainingScore: result.prqScore,
                 clipUrl: nil,
@@ -475,29 +502,58 @@ struct SystemScanView: View {
         }
     }
 
+    private func cancelAnalysis() {
+        analysisTask?.cancel()
+        analysisTask = nil
+    }
+
     private func startAnalysis() {
+        cancelAnalysis()
         withAnimation(.spring(response: 0.4)) { phase = .analyzing }
         analysisProgress = 0
+        let sessionID = UUID()
+        analysisSessionID = sessionID
 
-        Task {
+        analysisTask = Task {
             for i in 1...20 {
+                do {
+                    try Task.checkCancellation()
+                } catch {
+                    return
+                }
                 try? await Task.sleep(for: .milliseconds(200))
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    analysisProgress = Double(i) / 20.0
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard analysisSessionID == sessionID else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        analysisProgress = Double(i) / 20.0
+                    }
                 }
             }
-
+            do {
+                try Task.checkCancellation()
+            } catch {
+                return
+            }
             let result = generateScanResult()
-            generatedResult = result
-
+            await MainActor.run {
+                guard analysisSessionID == sessionID else { return }
+                generatedResult = result
+            }
             try? await Task.sleep(for: .milliseconds(500))
-            withAnimation(.spring(response: 0.5)) {
-                phase = .results
-                gridPulse = false
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard analysisSessionID == sessionID else { return }
+                withAnimation(.spring(response: 0.5)) {
+                    phase = .results
+                    gridPulse = false
+                }
             }
         }
     }
 
+    /// Preview-only synthesis: goal-band randomization — **not** video, ARKit, Luma, or pose measurement.
+    /// Competitive PRQ / biomechanics require a future measured pipeline with explicit scan source + confidence metadata.
     private func generateScanResult() -> SystemScanResult {
         let basePRQ: Double
         let baseVertical: Double
@@ -535,16 +591,17 @@ struct SystemScanView: View {
         default: grade = "FOUNDATION PHASE"
         }
 
-        var notes: [String] = []
+        var notes: [String] = [
+            "This session does not measure knee alignment, rib flare, or pelvic tilt — those require pose/mesh confidence in a future build."
+        ]
         if basePRQ < 60 {
-            notes.append("Focus on ankle stiffness drills to improve ground contact efficiency.")
+            notes.append("Lower simulated PRQ — prioritize recovery and repeat attempts when fresh (not an ankle mechanics diagnosis).")
         }
         if baseVertical < 26 {
-            notes.append("Hip extension power can be improved with targeted plyometric progressions.")
+            notes.append("Lower vertical estimate in this random sample — plyometric progressions are general guidance only.")
         }
-        notes.append("Knee tracking looks stable. Maintain current mobility work.")
         if basePRQ >= 70 {
-            notes.append("Strong neural drive detected. Ready for advanced reactive training.")
+            notes.append("Higher simulated PRQ band — good candidate for progressive reactive work when readiness allows.")
         }
         if let sportName = sport, !sportName.isEmpty {
             notes.append("\(sportName)-specific movement patterns will be prioritized in your program.")
@@ -568,7 +625,9 @@ struct SystemScanView: View {
             movementGrade: grade,
             notes: notes,
             recommendedTrack: recommendedTrack,
-            avatarConfig: avatarConfig
+            avatarConfig: avatarConfig,
+            source: .demoSynthetic,
+            confidence01: 0.35
         )
     }
 }

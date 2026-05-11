@@ -53,7 +53,14 @@ private:
 	void TickOverlayHeartbeat();
 
 	FString DashboardUrl;
+	FString OverlayBridgeToken;
+	FString OverlaySessionId;
+	TSet<FString> AllowedDashboardHosts;
 	bool bPendingHideOnMapLoad = false;
 	FTimerHandle HeartbeatTimer;
+
+	static FString HostFromHttpUrl(const FString& Url);
+	void BuildAllowedHosts(TArray<FString>& OutHosts) const;
+	bool IsHostAllowedForDashboard(const FString& Url) const;
 };
 

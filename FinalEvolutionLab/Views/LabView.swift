@@ -14,6 +14,7 @@ struct LabView: View {
     @State private var showCoach: Bool = false
     @State private var showBlueprints: Bool = false
     @State private var showBodyIQLab: Bool = false
+    @State private var showBondsCoachPrescription: Bool = false
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
@@ -61,6 +62,10 @@ struct LabView: View {
                 withAnimation(.spring(response: 0.4)) { courtLoaded = true }
             }
         }
+        .onDisappear {
+            freestyleDunkTimer?.cancel()
+            freestyleDunkTimer = nil
+        }
         .sheet(isPresented: $showSystemScan) {
             SystemScanView(
                 sport: viewModel.profile.sport,
@@ -97,6 +102,23 @@ struct LabView: View {
         }
         .navigationDestination(isPresented: $showBodyIQLab) {
             BodyIQEducationLabView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showBondsCoachPrescription) {
+            NavigationStack {
+                BondsStandardCoachView()
+            }
+            .presentationBackground(Theme.deepBlack)
+        }
+        .onChange(of: viewModel.biomechanicsAudit?.auditDate) { _, _ in
+            guard let audit = viewModel.biomechanicsAudit else { return }
+            // Bonds Standard targets hip chain mechanics — do not tie this sheet to core/IAP routing inferred from PRQ-only proxies.
+            let hasHipLeakage = audit.kineticLeakageZones.contains { $0.joint == .hip }
+            guard hasHipLeakage else { return }
+            let ts = audit.auditDate.timeIntervalSince1970
+            let key = "fel_bonds_coach_prompted_\(Int(ts))"
+            guard !UserDefaults.standard.bool(forKey: key) else { return }
+            UserDefaults.standard.set(true, forKey: key)
+            showBondsCoachPrescription = true
         }
     }
 
@@ -184,7 +206,7 @@ struct LabView: View {
 
     private var tierBanner: some View {
         HStack(spacing: 12) {
-            PRQTierBadge(tier: viewModel.userPRQTier, prq: effectiveMetrics.prqScore)
+            PRQTierBadge(tier: viewModel.userPRQTier, prq: viewModel.competitivePRQScore)
 
             Spacer()
 
@@ -319,7 +341,8 @@ struct LabView: View {
 
     private var globalArenaCard: some View {
         Button {
-            pendingArenaMode = GameModeRegistry.all.first
+            guard let mode = GameModeRegistry.resolvedLastSelectedMode() else { return }
+            pendingArenaMode = mode
             showGlobalMatchmaking = true
         } label: {
             HStack(spacing: 14) {
@@ -339,19 +362,25 @@ struct LabView: View {
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
 
-                    HStack(spacing: 8) {
-                        HStack(spacing: 3) {
-                            Circle()
-                                .fill(.green)
-                                .frame(width: 5, height: 5)
-                            Text("\(viewModel.globalLeaderboard.onlinePlayerCount) online")
-                                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.green.opacity(0.7))
-                        }
+                    if let last = GameModeRegistry.resolvedLastSelectedMode() {
+                        HStack(spacing: 8) {
+                            HStack(spacing: 3) {
+                                Circle()
+                                    .fill(.green)
+                                    .frame(width: 5, height: 5)
+                                Text("\(viewModel.globalLeaderboard.onlinePlayerCount) online")
+                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(.green.opacity(0.7))
+                            }
 
-                        Text("PRQ-based matchmaking")
+                            Text(last.name.uppercased())
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Theme.brandCyan.opacity(0.6))
+                        }
+                    } else {
+                        Text("Choose a mode in Arena tab first")
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan.opacity(0.6))
+                            .foregroundStyle(.orange.opacity(0.85))
                     }
                 }
 
@@ -372,6 +401,8 @@ struct LabView: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(GameModeRegistry.resolvedLastSelectedMode() == nil)
+        .opacity(GameModeRegistry.resolvedLastSelectedMode() == nil ? 0.55 : 1)
     }
 
     private var courtSection: some View {
@@ -977,7 +1008,8 @@ struct LabView: View {
     private func executeFreestyleScoring() {
         let prq = viewModel.effectiveMetrics.prqScore
         let burst = viewModel.arcadePhysics.neuralBurstActive
-        let result = freestyleDunk.calculateDunkScore(prq: prq, neuralBurst: burst)
+        var judgeRNG = SplitMix64(seed: freestyleDunk.sessionSeed &+ UInt64(freestyleDunk.round) &+ 0x6A75647F)
+        let result = freestyleDunk.calculateDunkScore(prq: prq, neuralBurst: burst, judgeRNG: &judgeRNG)
 
         withAnimation(.spring(response: 0.3)) {
             freestyleJudgeScores = (result.j1, result.j2, result.j3)
@@ -1095,6 +1127,12 @@ struct LabView: View {
                         .font(.system(.caption2, design: .monospaced, weight: .bold))
                         .foregroundStyle(Theme.brandCyan)
                         .tracking(2)
+
+                    if !scan.commitsCompetitiveMetrics {
+                        Text("Preview PRQ — not applied to ranked PRQ or Body IQ prescriptions")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.tertiary)
+                    }
 
                     Text(scan.movementGrade)
                         .font(.system(.title3, weight: .black))
@@ -1529,7 +1567,7 @@ struct LabView: View {
 
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            MetricCard(title: SimpleModeLabels.prqScore(simpleMode), value: String(format: "%.1f", effectiveMetrics.prqScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
+            MetricCard(title: simpleMode ? SimpleModeLabels.prqScore(simpleMode) : "RANKED PRQ", value: String(format: "%.1f", viewModel.competitivePRQScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
             MetricCard(title: SimpleModeLabels.efficiency(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.efficiencyScore), icon: "bolt.fill", color: .orange)
             MetricCard(title: SimpleModeLabels.readiness(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.readinessScore), icon: "heart.fill", color: .red)
             MetricCard(title: SimpleModeLabels.evolutionShards(simpleMode), value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)

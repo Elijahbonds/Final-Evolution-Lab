@@ -14,6 +14,9 @@ Endpoints:
 Notes:
   - Instacart Connect & DoorDash Marketplace APIs are partner-gated. We generate deep links
     + provide a copy-friendly ingredient list. Real cart-push goes live once partner keys land.
+  - APPSTORE-02: deep links open third-party grocery/meal ordering for real-world food — not in-app
+    digital IAP. Keep separate from StoreKit digital goods; surfaces should be user-initiated and
+    non-gamified ordering aids only.
   - Tone: SUPPORTIVE coach by user directive.
   - Vision model: chosen per-request from {gemini-2.5-flash, gpt-5.2}.
 """
@@ -21,12 +24,12 @@ import json
 import re
 import urllib.parse
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from core import EMERGENT_KEY, User, db, get_current_user
 
@@ -45,7 +48,75 @@ ATHLETIC_INTENTS = {
     "sleep_anabolic": "Pre-sleep parasympathetic & overnight protein synthesis",
 }
 
-NUTRI_SHARDS_PER_SCAN = 12  # base award
+NUTRI_SHARDS_PER_SCAN = 12  # base award (applied only after /scan/confirm)
+MAX_IMAGE_BASE64_CHARS = 4_500_000  # ~3.3 MiB payload guard for WKWebView / vision routes
+ALLOWED_LOG_SOURCES = frozenset({"scan", "recipe", "manual", "doordash", "instacart", "pending_scan_confirm"})
+SCAN_CONFIRM_RATE_LIMIT_PER_HOUR = 24
+
+# Single-meal log sanity caps (per eating occasion — prevents corrupted daily totals / LLM glitches)
+MEAL_MAX_CALORIES = 3500
+MEAL_MAX_PROTEIN_G = 220
+MEAL_MAX_CARBS_G = 450
+MEAL_MAX_FATS_G = 180
+MEAL_MAX_HYDRATION_ML = 2500
+
+
+def _clamp_meal_int(v: Any, cap: int) -> int:
+    try:
+        x = int(v or 0)
+    except (TypeError, ValueError):
+        x = 0
+    return max(0, min(cap, x))
+
+
+def _recipe_ingredient_blob(r: Dict[str, Any]) -> str:
+    parts = [str(r.get("title", "")), str(r.get("summary", ""))]
+    for ing in r.get("ingredients") or []:
+        if isinstance(ing, dict):
+            parts.append(str(ing.get("name", "")))
+    return " ".join(parts).lower()
+
+
+def _avoid_tokens(user: User) -> List[str]:
+    """Flatten allergies + diet keywords for naive substring filtering (NUTRI-07)."""
+    toks: List[str] = []
+    for a in getattr(user, "allergies", None) or []:
+        if isinstance(a, str) and a.strip():
+            toks.append(a.strip().lower())
+    for d in getattr(user, "dietary_restrictions", None) or []:
+        if not isinstance(d, str) or not d.strip():
+            continue
+        dl = d.strip().lower()
+        if dl == "vegan":
+            toks.extend(
+                ["beef", "chicken", "pork", "fish", "egg", "whey", "milk", "cheese", "bone", "broth", "honey", "yogurt", "salmon"]
+            )
+        elif dl == "vegetarian":
+            toks.extend(["beef", "chicken", "pork", "fish", "bone", "broth", "shrimp", "salmon"])
+        elif dl in ("halal",):
+            toks.extend(["pork", "bacon"])
+        elif dl in ("kosher",):
+            toks.extend(["pork", "shellfish", "shrimp"])
+        elif dl in ("gluten_free", "gluten-free"):
+            toks.extend(["wheat", "barley", "rye", "bread", "pasta"])
+        else:
+            toks.append(dl)
+    return list(dict.fromkeys(toks))
+
+
+def _violates_avoid(blob: str, tokens: List[str]) -> bool:
+    b = blob.lower()
+    for t in tokens:
+        if t and t in b:
+            return True
+    return False
+
+
+def _filter_recipes_for_user(items: List[Dict[str, Any]], user: User) -> List[Dict[str, Any]]:
+    tok = _avoid_tokens(user)
+    if not tok:
+        return items
+    return [r for r in items if not _violates_avoid(_recipe_ingredient_blob(r), tok)]
 
 
 def nasm_macro_target(weight_kg: float, sport: str, intent: str) -> Dict[str, Any]:
@@ -233,18 +304,44 @@ DOORDASH_SEED: List[Dict[str, Any]] = [
 
 class ScanRequest(BaseModel):
     model: str = "gemini-2.5-flash"
-    image_base64: str
-    hint: Optional[str] = None  # e.g., "post-workout"
+    image_base64: str = Field(..., min_length=32)
+    hint: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("image_base64")
+    @classmethod
+    def image_not_huge(cls, v: str) -> str:
+        if len(v) > MAX_IMAGE_BASE64_CHARS:
+            raise ValueError(f"image_base64 exceeds max length ({MAX_IMAGE_BASE64_CHARS} chars); compress on client")
+        return v
+
+
+class ScanConfirmRequest(BaseModel):
+    scan_id: str = Field(..., min_length=8, max_length=80)
 
 
 class LogRequest(BaseModel):
-    label: str
-    calories: float
-    protein_g: float
-    carbs_g: float
-    fats_g: float
-    intent: Optional[str] = None
-    source: str = "scan"  # scan | recipe | manual | doordash | instacart
+    label: str = Field(..., min_length=1, max_length=120)
+    calories: float = Field(..., ge=0, le=MEAL_MAX_CALORIES)
+    protein_g: float = Field(..., ge=0, le=MEAL_MAX_PROTEIN_G)
+    carbs_g: float = Field(..., ge=0, le=MEAL_MAX_CARBS_G)
+    fats_g: float = Field(..., ge=0, le=MEAL_MAX_FATS_G)
+    intent: Optional[str] = Field(None, max_length=64)
+    source: str = Field(default="manual")
+    micros: Optional[Dict[str, Any]] = None
+    hydration_ml: Optional[int] = Field(
+        None,
+        ge=0,
+        le=MEAL_MAX_HYDRATION_ML,
+        description="Fluids for this meal (ml). When set, counts toward hydration for today (see consumed_totals).",
+    )
+    client_event_id: Optional[str] = Field(None, max_length=128)
+
+    @field_validator("source")
+    @classmethod
+    def source_allowlist(cls, v: str) -> str:
+        if v not in ALLOWED_LOG_SOURCES:
+            raise ValueError(f"source must be one of {sorted(ALLOWED_LOG_SOURCES)}")
+        return v
 
 
 class CartRequest(BaseModel):
@@ -294,7 +391,7 @@ def _extract_json(text: str) -> Dict[str, Any]:
 
 @router.post("/scan")
 async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
-    """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
+    """Photo → macro estimate. Result is **pending** until ``POST /scan/confirm`` — no XP or diary write until confirmed."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
     if not EMERGENT_KEY:
@@ -325,42 +422,93 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
     except (ValueError, json.JSONDecodeError) as e:
         raise HTTPException(status_code=502, detail=f"could not parse vision response: {e}")
 
-    # Coerce + safe defaults
     intent = parsed.get("athletic_intent", "post_dunk_recovery")
     if intent not in ATHLETIC_INTENTS:
         intent = "post_dunk_recovery"
 
     scan_id = f"scan_{uuid.uuid4().hex[:10]}"
+    now = datetime.now(timezone.utc).isoformat()
+
+    mc = parsed.get("micros") if isinstance(parsed.get("micros"), dict) else {}
+    hyd_micro = _clamp_meal_int(mc.get("hydration_ml"), MEAL_MAX_HYDRATION_ML)
+    mc = {**mc, "hydration_ml": hyd_micro}
+
     out = {
         "scan_id": scan_id,
         "model": req.model,
         "label": str(parsed.get("label", "Meal"))[:80],
-        "calories": int(parsed.get("calories", 0) or 0),
-        "protein_g": int(parsed.get("protein_g", 0) or 0),
-        "carbs_g": int(parsed.get("carbs_g", 0) or 0),
-        "fats_g": int(parsed.get("fats_g", 0) or 0),
-        "micros": parsed.get("micros") or {},
+        "calories": _clamp_meal_int(parsed.get("calories"), MEAL_MAX_CALORIES),
+        "protein_g": _clamp_meal_int(parsed.get("protein_g"), MEAL_MAX_PROTEIN_G),
+        "carbs_g": _clamp_meal_int(parsed.get("carbs_g"), MEAL_MAX_CARBS_G),
+        "fats_g": _clamp_meal_int(parsed.get("fats_g"), MEAL_MAX_FATS_G),
+        "micros": mc,
         "athletic_intent": intent,
-        "nutri_shards_awarded": NUTRI_SHARDS_PER_SCAN,
-        "scanned_at": datetime.now(timezone.utc).isoformat(),
+        "nutri_shards_awarded": 0,
+        "pending_confirmation": True,
+        "scanned_at": now,
     }
 
-    # Persist scan record
-    await db.biofuel_scans.insert_one({**out, "user_id": user.user_id})
-
-    # Award Nutri-Shards (stored as XP)
-    await db.users.update_one(
-        {"user_id": user.user_id}, {"$inc": {"xp": NUTRI_SHARDS_PER_SCAN}}
-    )
-
-    # Auto-log to today's tracker
-    await _append_log(user.user_id, {
-        "label": out["label"], "calories": out["calories"], "protein_g": out["protein_g"],
-        "carbs_g": out["carbs_g"], "fats_g": out["fats_g"], "intent": intent,
-        "source": "scan", "scan_id": scan_id,
+    await db.biofuel_scans.insert_one({
+        **out,
+        "user_id": user.user_id,
+        "confirmed": False,
     })
 
     return out
+
+
+@router.post("/scan/confirm")
+async def confirm_scan(body: ScanConfirmRequest, user: User = Depends(get_current_user)):
+    """Confirm a pending vision estimate — awards Nutri-Shards (XP) once and appends today's log (idempotent)."""
+    since = datetime.now(timezone.utc) - timedelta(hours=1)
+    recent = await db.biofuel_scans.count_documents({
+        "user_id": user.user_id,
+        "confirmed": True,
+        "confirmed_at_ts": {"$gte": since},
+    })
+    if recent >= SCAN_CONFIRM_RATE_LIMIT_PER_HOUR:
+        raise HTTPException(status_code=429, detail="Too many scan confirmations this hour — try again later.")
+
+    doc = await db.biofuel_scans.find_one({"scan_id": body.scan_id, "user_id": user.user_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="scan not found")
+    if doc.get("confirmed"):
+        return {"ok": True, "already_confirmed": True, "scan_id": body.scan_id}
+
+    res = await db.biofuel_scans.update_one(
+        {"scan_id": body.scan_id, "user_id": user.user_id, "confirmed": {"$ne": True}},
+        {"$set": {"confirmed": True, "confirmed_at": datetime.now(timezone.utc).isoformat(), "confirmed_at_ts": datetime.now(timezone.utc)}},
+    )
+    if res.modified_count != 1:
+        return {"ok": True, "already_confirmed": True, "scan_id": body.scan_id}
+
+    await db.users.update_one({"user_id": user.user_id}, {"$inc": {"xp": NUTRI_SHARDS_PER_SCAN}})
+
+    intent = doc.get("athletic_intent", "post_dunk_recovery")
+    micros = doc.get("micros") or {}
+    if isinstance(micros, dict) and "hydration_ml" in micros:
+        micros = {
+            **micros,
+            "hydration_ml": _clamp_meal_int(micros.get("hydration_ml"), MEAL_MAX_HYDRATION_ML),
+        }
+    await _append_log(user.user_id, {
+        "label": doc["label"],
+        "calories": doc["calories"],
+        "protein_g": doc["protein_g"],
+        "carbs_g": doc["carbs_g"],
+        "fats_g": doc["fats_g"],
+        "intent": intent,
+        "source": "scan",
+        "scan_id": body.scan_id,
+        "micros": micros,
+    })
+
+    return {
+        "ok": True,
+        "nutri_shards_awarded": NUTRI_SHARDS_PER_SCAN,
+        "scan_id": body.scan_id,
+        "pending_confirmation": False,
+    }
 
 
 # ============================================================
@@ -368,10 +516,12 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
 # ============================================================
 
 @router.get("/recipes")
-async def list_recipes(intent: Optional[str] = None):
+async def list_recipes(intent: Optional[str] = None, user: User = Depends(get_current_user)):
     items = RECIPES if not intent else [r for r in RECIPES if r["intent"] == intent]
+    items = _filter_recipes_for_user(items, user)
     return {
         "intents": [{"id": k, "label": v} for k, v in ATHLETIC_INTENTS.items()],
+        "nutrition_filters_active": bool(_avoid_tokens(user)),
         "recipes": [{
             "id": r["id"], "title": r["title"], "intent": r["intent"],
             "intent_label": r["intent_label"], "duration_min": r["duration_min"],
@@ -381,10 +531,12 @@ async def list_recipes(intent: Optional[str] = None):
 
 
 @router.get("/recipes/{recipe_id}")
-async def get_recipe(recipe_id: str):
+async def get_recipe(recipe_id: str, user: User = Depends(get_current_user)):
     r = next((x for x in RECIPES if x["id"] == recipe_id), None)
     if not r:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if r not in _filter_recipes_for_user([r], user):
+        raise HTTPException(status_code=404, detail="Recipe not available for your allergy / diet profile")
     return r
 
 
@@ -405,23 +557,66 @@ async def _append_log(user_id: str, entry: Dict[str, Any]):
 
 @router.post("/log")
 async def log_meal(req: LogRequest, user: User = Depends(get_current_user)):
-    entry = req.model_dump()
+    entry = req.model_dump(exclude_none=True)
+    day = _today_key()
+    if req.client_event_id:
+        dup = await db.biofuel_logs.find_one(
+            {"user_id": user.user_id, "day": day, "entries.client_event_id": req.client_event_id},
+            {"_id": 1},
+        )
+        if dup:
+            return {"ok": True, "day": day, "deduped": True}
     await _append_log(user.user_id, entry)
-    return {"ok": True, "day": _today_key()}
+    return {"ok": True, "day": day}
 
 
 def _consumed_totals(entries: List[Dict[str, Any]]) -> Dict[str, int]:
+    hyd = 0
+    for e in entries:
+        m = e.get("micros") if isinstance(e.get("micros"), dict) else {}
+        mh = int(m.get("hydration_ml") or 0)
+        th = int(e.get("hydration_ml") or 0)
+        # Prefer explicit top-level hydration_ml when present (manual / partner logs);
+        # otherwise use vision micros estimate — avoids double-counting the same meal.
+        hyd += th if th else mh
     return {
         "calories": int(sum((e.get("calories") or 0) for e in entries)),
         "protein_g": int(sum((e.get("protein_g") or 0) for e in entries)),
         "carbs_g": int(sum((e.get("carbs_g") or 0) for e in entries)),
         "fats_g": int(sum((e.get("fats_g") or 0) for e in entries)),
+        "hydration_ml": hyd,
     }
 
 
 def _athlete_weight_kg(user: User) -> float:
-    # Until a `weight_kg` field is captured, derive a reasonable default from PRQ (75kg baseline)
+    w = getattr(user, "weight_kg", None)
+    if w is not None:
+        try:
+            wf = float(w)
+            if 30.0 <= wf <= 250.0:
+                return wf
+        except (TypeError, ValueError):
+            pass
     return 75.0
+
+
+def _nutrition_target_meta(user: User) -> Dict[str, Any]:
+    w = getattr(user, "weight_kg", None)
+    try:
+        has = w is not None and 30.0 <= float(w) <= 250.0
+    except (TypeError, ValueError):
+        has = False
+    if has:
+        return {
+            "targets_confidence": "personalized",
+            "weight_kg_source": "profile",
+            "assumption_note": None,
+        }
+    return {
+        "targets_confidence": "default_assumption",
+        "weight_kg_source": "default_75kg",
+        "assumption_note": "Profile weight not set — using 75 kg reference until you add weight_kg, goal, and preferences.",
+    }
 
 
 def _today_intent(user: User) -> str:
@@ -432,16 +627,21 @@ def _today_intent(user: User) -> str:
 @router.get("/today")
 async def get_today(user: User = Depends(get_current_user)):
     weight_kg = _athlete_weight_kg(user)
+    meta = _nutrition_target_meta(user)
     intent = _today_intent(user)
     target = nasm_macro_target(weight_kg, user.sport, intent)
     log = await db.biofuel_logs.find_one({"user_id": user.user_id, "day": _today_key()}, {"_id": 0}) or {}
     entries = log.get("entries", [])
     consumed = _consumed_totals(entries)
-    deltas = {k: max(0, target[k] - consumed.get(k, 0)) for k in ("calories", "protein_g", "carbs_g", "fats_g")}
+    macro_keys = ("calories", "protein_g", "carbs_g", "fats_g")
+    deltas = {k: max(0, target[k] - consumed.get(k, 0)) for k in macro_keys}
     pct = {
         k: min(100, round(100 * consumed.get(k, 0) / target[k])) if target[k] else 0
-        for k in ("calories", "protein_g", "carbs_g", "fats_g")
+        for k in macro_keys
     }
+    hyd_t = int(target.get("hydration_ml") or 0) or 1
+    hyd_c = int(consumed.get("hydration_ml") or 0)
+    pct["hydration_ml"] = min(100, round(100 * hyd_c / hyd_t)) if hyd_t else 0
     return {
         "day": _today_key(),
         "weight_kg": weight_kg,
@@ -452,6 +652,7 @@ async def get_today(user: User = Depends(get_current_user)):
         "remaining": deltas,
         "pct": pct,
         "entries": entries,
+        **meta,
     }
 
 
@@ -484,7 +685,7 @@ def _supportive_cues(target: Dict, consumed: Dict, pct: Dict, intent_label: str)
             "tone": "supportive",
             "icon": "Scale",
             "title": "Macros are leaning carb-heavy",
-            "message": "Hey, you're crushing carbs today. Adding a protein source would round out recovery.",
+            "message": "You're ahead on carbs today — pairing the next snack with a lean protein helps steady energy.",
             "action_label": "Browse 3D Cookbook",
             "action": "cookbook:post_dunk_recovery",
         })
@@ -555,6 +756,8 @@ async def instacart_cart(req: CartRequest, user: User = Depends(get_current_user
     r = next((x for x in RECIPES if x["id"] == req.recipe_id), None)
     if not r:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if not _filter_recipes_for_user([r], user):
+        raise HTTPException(status_code=400, detail="Recipe conflicts with your allergy / diet profile")
     items = [i["name"] for i in r["ingredients"]]
     query = ", ".join(items)
     deep_link = f"https://www.instacart.com/store/s?k={urllib.parse.quote(query)}"
@@ -565,6 +768,9 @@ async def instacart_cart(req: CartRequest, user: User = Depends(get_current_user
         "fallback_url": "https://www.instacart.com",
         "items": items,
         "note": "Awaiting Instacart Connect partner credentials for one-click cart push.",
+        "policy_note": (
+            "Opens external grocery ordering (real-world food). Not an in-app digital purchase — separate from App Store IAP."
+        ),
     }
 
 
@@ -583,7 +789,34 @@ async def doordash_search(req: DoorDashRequest, user: User = Depends(get_current
         p_ok = m["protein_g"] >= min_p
         return cal_ok and p_ok
 
-    matches = [m for m in pool if fit(m)] or pool[:3]
+    macro_fit = [m for m in pool if fit(m)]
+    base = macro_fit if macro_fit else pool[: min(3, len(pool))]
+    tok = _avoid_tokens(user)
+    if tok:
+        safe = [m for m in base if not _violates_avoid(str(m.get("name", "")), tok)]
+        if not safe:
+            return {
+                "intent": intent,
+                "intent_label": ATHLETIC_INTENTS.get(intent, intent),
+                "remaining_today": today["remaining"],
+                "min_protein_g": min_p,
+                "max_calories": remaining_cal,
+                "matches": [],
+                "no_safe_matches": True,
+                "message": (
+                    "No seeded options pass your allergy / diet filters with the current macro window. "
+                    "Adjust intent, log a custom meal, or order manually with your clinician-approved substitutions."
+                ),
+                "nutrition_filters_active": True,
+                "note": "Awaiting DoorDash Marketplace partner credentials for in-app macro-aware ordering.",
+                "policy_note": (
+                    "Opens external restaurant/meal delivery search (real-world food). Not an in-app digital purchase — separate from App Store IAP."
+                ),
+            }
+        matches = safe
+    else:
+        matches = base
+
     for m in matches:
         m["deep_link"] = f"https://www.doordash.com/search/store/?query={urllib.parse.quote(m['city_query'])}"
     return {
@@ -593,5 +826,10 @@ async def doordash_search(req: DoorDashRequest, user: User = Depends(get_current
         "min_protein_g": min_p,
         "max_calories": remaining_cal,
         "matches": matches,
+        "no_safe_matches": False,
+        "nutrition_filters_active": bool(tok),
         "note": "Awaiting DoorDash Marketplace partner credentials for in-app macro-aware ordering.",
+        "policy_note": (
+            "Opens external restaurant/meal delivery search (real-world food). Not an in-app digital purchase — separate from App Store IAP."
+        ),
     }

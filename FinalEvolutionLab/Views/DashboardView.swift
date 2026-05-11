@@ -13,8 +13,8 @@ struct DashboardView: View {
     @State private var simulateScanMessage: String?
 #endif
 
-    private var prqScore: Int { Int(viewModel.effectiveMetrics.prqScore) }
-    private var prqNormalized: Double { viewModel.effectiveMetrics.prqScore / 100.0 }
+    private var prqScore: Int { Int(viewModel.competitivePRQScore) }
+    private var prqNormalized: Double { viewModel.competitivePRQScore / 100.0 }
 
     var body: some View {
         ZStack(alignment: .bottom) {

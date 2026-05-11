@@ -63,8 +63,9 @@ struct GameModeSelectionView: View {
         }
         .fullScreenCover(isPresented: $showEmbeddedUnreal, onDismiss: {
             UnrealManager.shared.isUnrealActive = false
+            UnrealManager.shared.clearEmbeddedNeuroSession()
         }) {
-            UnrealContainerView()
+            UnrealContainerView(onExit: { showEmbeddedUnreal = false })
         }
         .onChange(of: showEmbeddedUnreal) { _, open in
             if open {
@@ -100,7 +101,7 @@ struct GameModeSelectionView: View {
 
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
-                    Text("\(GameModeRegistry.all.count)")
+                    Text("\(GameModeRegistry.shippingModes.count)")
                         .font(.system(.caption, design: .monospaced, weight: .black))
                         .foregroundStyle(Theme.brandCyan)
                     Text("MODES")
@@ -128,10 +129,9 @@ struct GameModeSelectionView: View {
 
     private var globalMatchmakingBanner: some View {
         Button {
-            if let mode = GameModeRegistry.all.first {
-                pendingMode = mode
-                showMatchmaking = true
-            }
+            guard let mode = GameModeRegistry.resolvedLastSelectedMode() else { return }
+            pendingMode = mode
+            showMatchmaking = true
         } label: {
             HStack(spacing: 14) {
                 ZStack {
@@ -150,9 +150,15 @@ struct GameModeSelectionView: View {
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
 
-                    Text("Find opponents by PRQ tier")
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
-                        .foregroundStyle(Theme.brandCyan.opacity(0.7))
+                    if let last = GameModeRegistry.resolvedLastSelectedMode() {
+                        Text("Matchmaking · \(last.name)")
+                            .font(.system(.caption2, design: .monospaced, weight: .medium))
+                            .foregroundStyle(Theme.brandCyan.opacity(0.7))
+                    } else {
+                        Text("Pick any mode card below first")
+                            .font(.system(.caption2, design: .monospaced, weight: .medium))
+                            .foregroundStyle(.orange.opacity(0.85))
+                    }
                 }
 
                 Spacer()
@@ -172,6 +178,8 @@ struct GameModeSelectionView: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(GameModeRegistry.resolvedLastSelectedMode() == nil)
+        .opacity(GameModeRegistry.resolvedLastSelectedMode() == nil ? 0.55 : 1)
     }
 
     private func sportSection(_ category: GameMode.SportCategory) -> some View {
@@ -193,6 +201,7 @@ struct GameModeSelectionView: View {
             LazyVGrid(columns: columns, spacing: 14) {
                 ForEach(Array(modes.enumerated()), id: \.element.id) { modeIndex, mode in
                     GameModeCard(mode: mode) {
+                        SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
                         pendingMode = mode
                         showNeuralScan = true
                     }
@@ -216,11 +225,20 @@ struct GameModeSelectionView: View {
 
         // Option A: embedded Unreal (preferred if framework is present).
         if UnrealManager.shared.isFrameworkPresent {
+            if let m = pendingMode {
+                UnrealManager.shared.prepareEmbeddedNeuroSession(
+                    mode: m.id,
+                    audit: viewModel.biomechanicsAudit,
+                    metrics: viewModel.effectiveMetrics
+                )
+            }
             showEmbeddedUnreal = true
             return
         }
 
-        // Option B fallback: launch standalone UE app if installed.
+        // Super-app / App Store: never bounce out to a separate UE install — stay in SceneKit gameplay.
+        #if DEBUG
+        // Dev-only: optional standalone UE build via URL scheme when framework is absent.
         let creatorId: String? = viewModel.profile.activeCreatorCard?.cardId
         guard let url = FELNativeSwiftBridge.makeUnrealLaunchURL(modeId: mode.id.rawValue, creatorId: creatorId) else {
             navigateToGame = true
@@ -229,6 +247,9 @@ struct GameModeSelectionView: View {
         lastUnrealLaunchUrl = url
         lastUnrealLaunchFailed = false
         openURL(url)
+        #else
+        navigateToGame = true
+        #endif
     }
 }
 
@@ -338,16 +359,17 @@ struct GameModeCard: View {
         Group {
             switch mode.multiplayerType {
             case .realtime:
+                let rules = GameModeRules.forMode(mode.id)
                 HStack(spacing: 3) {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
+                    Image(systemName: rules.useMatchCountdown ? "timer" : "person.fill")
                         .font(.system(size: 7))
-                    Text("LIVE")
+                    Text(rules.useMatchCountdown ? "TIMED" : "LOCAL")
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
                 }
-                .foregroundStyle(Theme.brandCyan)
+                .foregroundStyle(rules.useMatchCountdown ? Theme.brandCyan : Color.white.opacity(0.65))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
-                .background(Theme.brandCyan.opacity(0.1))
+                .background((rules.useMatchCountdown ? Theme.brandCyan : Color.white).opacity(0.1))
                 .clipShape(Capsule())
             case .turnBased:
                 HStack(spacing: 3) {

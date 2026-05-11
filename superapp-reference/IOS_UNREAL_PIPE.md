@@ -1,6 +1,8 @@
 # iOS + Unreal shipping pipe
 
-**Product direction:** the shipped iOS app is **`FinalEvolutionLab.xcodeproj`** (Swift shell + embedded Unreal framework). See **`infra/SWIFT_UNREAL_CONTAINER.md`**.
+> **Architecture lock (2026):** **Production retail** = **Unreal Engine iOS host** + **WKWebView dashboard overlay** (`FELOverlay` / approved dashboard URL). **Not** a SwiftUI-first shell, **not** UAAL-only or Unity-era mobile hosts, **not** “embedded Unreal as the primary app identity” unless leadership explicitly re-baselines shipping — see **`SHIPPING_ARCHITECTURE.md`** (repo root) and **`infra/SHIPPING.md`**.
+>
+> This document’s **scripts and UE packaging steps** remain authoritative for **cook, IPA, privacy plist, and ASC export**. Any mention of **Swift shell + embedded Unreal framework** refers to the **legacy / lab Xcode target** (`FinalEvolutionLab/`) for HealthKit, Firebase, Data Connect, and iteration — **never** imply it is the default App Store shipping architecture without an explicit product decision.
 
 ## Scripts (this repo)
 
@@ -20,7 +22,7 @@ Do **not** upload the **App Store** export IPA (`--export-ipa`). Use **`--export
 
 ## Firebase SDK at launch (Analytics / Crashlytics / etc.)
 
-That is separate from App Distribution: add **`GoogleService-Info.plist`** and initialize Firebase in the **native** host app. For this repo’s **Swift shell**, see **`infra/FIREBASE_IOS_SDK.md`**. A **Unreal-only** IPA still needs Firebase wired into **that** generated Xcode project unless you ship the Swift wrapper build.
+That is separate from App Distribution: add **`GoogleService-Info.plist`** and initialize Firebase in the **native host app**. For the **legacy Swift lab shell**, see **`infra/FIREBASE_IOS_SDK.md`**. The **Unreal-hosted** IPA wires Firebase in **that** generated Xcode project / host unless you explicitly ship the Swift wrapper build.
 
 ## On-disk UE project (usually not fully in Git)
 
@@ -33,5 +35,5 @@ after GenerateProjectFiles / RunUAT. Automation must reference **`UPROJECT`** ex
 ## Success criteria for device / ASC
 
 1. Staged `.app` contains **cooked payload** (`cookeddata/` and/or `.pak`).
-2. Root **`Info.plist`** has **`CFBundleIdentifier`** and privacy keys matching APIs used.
+2. Root **`Info.plist`** has **`CFBundleIdentifier`** and privacy keys matching APIs used (align bundle ID with App Store Connect — avoid stale internal codenames in release metadata).
 3. **Signing:** Team + capabilities (e.g. HealthKit) match **App ID** in Apple Developer + ASC record.

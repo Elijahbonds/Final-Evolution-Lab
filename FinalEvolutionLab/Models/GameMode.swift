@@ -18,6 +18,10 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case skateboarding = "skateboarding"
     case snowboarding = "snowboarding"
     case brainBrawl = "brain_brawl"
+    /// Matches ``ArenaSettings.json`` / ``FEL_ModeManager.production.json`` (`BP_WhoSceneIt`).
+    case whoSceneIt = "who_scene_it"
+    /// Venice mini-game mash-up — matches UE ``BP_PartyMode`` / ``court_carnival``.
+    case courtCarnival = "court_carnival"
 
     var id: String { rawValue }
 }
@@ -31,6 +35,10 @@ nonisolated enum InputScheme: String, Sendable {
     case rallyAce
     case penaltyKick
     case rhythmTap
+    /// Recognition / clip prompts — distinct UX from generic rhythm academy loops.
+    case filmQuiz
+    /// Board-and-space carnival loop — distinct UX from extreme sports rhythm.
+    case partyBoard
 }
 
 extension GameModeId {
@@ -50,6 +58,10 @@ extension GameModeId {
             return .penaltyKick
         case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl:
             return .rhythmTap
+        case .whoSceneIt:
+            return .filmQuiz
+        case .courtCarnival:
+            return .partyBoard
         }
     }
 }
@@ -72,6 +84,7 @@ nonisolated struct GameMode: Sendable, Identifiable {
         case precision = "Precision"
         case board = "Board"
         case academy = "Academy"
+        case party = "Party"
     }
 
     nonisolated enum MultiplayerType: String, Sendable {
@@ -79,9 +92,48 @@ nonisolated struct GameMode: Sendable, Identifiable {
         case turnBased
         case solo
     }
+
+    nonisolated enum ReleaseState: String, Sendable {
+        case production
+        case preview
+    }
+
+    let releaseState: ReleaseState
+
+    init(
+        id: GameModeId,
+        name: String,
+        subtitle: String,
+        sport: SportCategory,
+        iconName: String,
+        accentColor: Color,
+        multiplayerType: MultiplayerType,
+        environmentName: String,
+        hint: String?,
+        releaseState: ReleaseState = .production
+    ) {
+        self.id = id
+        self.name = name
+        self.subtitle = subtitle
+        self.sport = sport
+        self.iconName = iconName
+        self.accentColor = accentColor
+        self.multiplayerType = multiplayerType
+        self.environmentName = environmentName
+        self.hint = hint
+        self.releaseState = releaseState
+    }
 }
 
 struct GameModeRegistry {
+    /// Modes shown in Arena navigation for the current build (preview modes hidden in App Store unless ``Config.showPreviewGameModes``).
+    static var shippingModes: [GameMode] {
+        if Config.showPreviewGameModes {
+            return all
+        }
+        return all.filter { $0.releaseState == .production }
+    }
+
     static let all: [GameMode] = [
         GameMode(
             id: .basketballHeadToHead,
@@ -259,17 +311,47 @@ struct GameModeRegistry {
             environmentName: "Neuro Arena",
             hint: nil
         ),
+        GameMode(
+            id: .whoSceneIt,
+            name: "Who Scene It",
+            subtitle: "Neuro Arena (Preview)",
+            sport: .academy,
+            iconName: "theatermasks.fill",
+            accentColor: Color(red: 0.45, green: 0.55, blue: 1.0),
+            multiplayerType: .realtime,
+            environmentName: "Neuro Arena",
+            hint: "Placeholder — matches ArenaSettings / production map",
+            releaseState: .preview
+        ),
+        GameMode(
+            id: .courtCarnival,
+            name: "Court Carnival",
+            subtitle: "Mini-game mash-up · Venice Beach",
+            sport: .party,
+            iconName: "sparkles.rectangle.stack",
+            accentColor: Color(red: 1.0, green: 0.45, blue: 0.65),
+            multiplayerType: .realtime,
+            environmentName: "Venice Beach Court",
+            hint: "Rotating challenges — matches ArenaSettings / production map"
+        ),
     ]
 
     static func mode(for id: GameModeId) -> GameMode {
         all.first(where: { $0.id == id }) ?? all[0]
     }
 
+    /// Uses ``SaveSystem/loadLastSelectedArenaModeId()`` so Global Arena matchmaking matches an explicit grid selection (GAME-35).
+    static func resolvedLastSelectedMode() -> GameMode? {
+        guard let raw = SaveSystem.loadLastSelectedArenaModeId(),
+              let id = GameModeId(rawValue: raw) else { return nil }
+        return mode(for: id)
+    }
+
     static var sportCategories: [GameMode.SportCategory] {
-        [.basketball, .combat, .field, .precision, .board, .academy]
+        [.basketball, .combat, .field, .precision, .board, .academy, .party]
     }
 
     static func modes(for sport: GameMode.SportCategory) -> [GameMode] {
-        all.filter { $0.sport == sport }
+        shippingModes.filter { $0.sport == sport }
     }
 }

@@ -15,6 +15,11 @@ for f in "$REPO_ROOT/superapp-reference/"*.md; do
   cp -a "$f" "$DEST/"
 done
 
+# Canonical repo-root architecture lock (Windsurf / agents: read before shell or commerce changes).
+if [[ -f "$REPO_ROOT/SHIPPING_ARCHITECTURE.md" ]]; then
+  cp -a "$REPO_ROOT/SHIPPING_ARCHITECTURE.md" "$DEST/"
+fi
+
 cp -a "$REPO_ROOT/superapp-reference/desktop-bundle/"* "$DEST/"
 echo ">>> Updated: $DEST"
 echo "    Point Windsurf at: $DEST"

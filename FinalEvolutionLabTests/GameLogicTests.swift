@@ -3,6 +3,20 @@ import Testing
 
 struct GameLogicTests {
 
+    @Test func rankingPrqIsZeroOnLossWithoutParticipation() {
+        let noPlay = PRQ.rankingSessionPRQ(
+            mode: .basketballHeadToHead,
+            won: false,
+            tied: false,
+            combo: 0,
+            criticals: 0,
+            scoreDifferential: -5,
+            participationEligible: false,
+            sessionReadiness: 100
+        )
+        #expect(noPlay == 0)
+    }
+
     @Test func versusMatchOutcomeRewards() {
         let w = VersusMatchOutcome.rewardFlags(playerScore: 10, opponentScore: 7)
         #expect(w.won == true && w.tied == false)
@@ -79,19 +93,36 @@ struct GameLogicTests {
 
     @Test @MainActor
     func emergentPayloadClampsPrq() {
+        let session = "unit-test-emergent-session"
+        EmergentRealtimeTrust.bindTrustedGameplaySession(id: session)
+        defer { EmergentRealtimeTrust.clearTrustedGameplaySession() }
+
         RorkScoreManager.shared.applyClampedPrq(50)
-        EmergentRealtimeClient.applyEmergentPayload(["type": "prq_update", "prq": 150], type: "prq_update")
+        EmergentRealtimeClient.applyEmergentPayload(
+            ["type": "prq_update", "prq": 150, "game_session_id": session],
+            type: "prq_update"
+        )
         #expect(RorkScoreManager.shared.currentPrqScore == 100)
 
-        EmergentRealtimeClient.applyEmergentPayload(["type": "prq_delta", "delta": -500], type: "prq_delta")
+        EmergentRealtimeClient.applyEmergentPayload(
+            ["type": "prq_delta", "delta": -500, "game_session_id": session],
+            type: "prq_delta"
+        )
         #expect(RorkScoreManager.shared.currentPrqScore == 0)
 
-        EmergentRealtimeClient.applyEmergentPayload(["type": "prq_set", "value": 42], type: "prq_set")
+        EmergentRealtimeClient.applyEmergentPayload(
+            ["type": "prq_set", "value": 42, "game_session_id": session],
+            type: "prq_set"
+        )
         #expect(RorkScoreManager.shared.currentPrqScore == 42)
     }
 
     @Test @MainActor
     func emergentFelGameResultPreparesShareDraft() {
+        let session = "unit-test-emergent-session-share"
+        EmergentRealtimeTrust.bindTrustedGameplaySession(id: session)
+        defer { EmergentRealtimeTrust.clearTrustedGameplaySession() }
+
         SocialShareCoordinator.shared.dismissComposer()
         EmergentRealtimeClient.applyEmergentPayload(
             [
@@ -99,6 +130,7 @@ struct GameLogicTests {
                 "gameModeId": "dunk_contest",
                 "score": 88,
                 "clipUrl": "https://example.com/clip.mp4",
+                "game_session_id": session,
             ],
             type: "fel_game_result"
         )

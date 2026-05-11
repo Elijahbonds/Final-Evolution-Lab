@@ -8,6 +8,14 @@
 #
 # See fastlane/README.md and fastlane/.env.example
 
+begin
+  require "dotenv"
+  env_file = File.expand_path(".env", __dir__)
+  Dotenv.load(env_file) if File.file?(env_file)
+rescue LoadError
+  # Optional: run `bundle install` after adding gem "dotenv"; until then export FIREBASE_APP_ID in the shell.
+end
+
 default_platform(:ios)
 
 platform :ios do
@@ -49,5 +57,27 @@ platform :ios do
   desc "Same as :distribute (backward-compatible name)."
   lane :distribute_firebase do
     distribute
+  end
+
+  desc "Upload App Store–exported .ipa to TestFlight (same IPA_PATH as Firebase lane). Uses Apple ID / Appfile or App Store Connect API key from the environment — run `fastlane spaceauth` or set APP_STORE_CONNECT_* vars."
+  lane :beta_testflight do
+    ipa = ENV["IPA_PATH"].to_s.strip
+    UI.user_error!("IPA_PATH required (absolute path to an app-store export .ipa)") if ipa.empty?
+    UI.user_error!("IPA not found: #{ipa}") unless File.file?(ipa)
+
+    skip_wait = !ENV.fetch("SKIP_WAITING_TF_BUILD", "true").casecmp("false").zero?
+
+    upload_to_testflight(
+      ipa: ipa,
+      skip_waiting_for_build_processing: skip_wait,
+      distribute_external: false,
+      notify_external_testers: false
+    )
+    UI.success("Uploaded to App Store Connect (TestFlight processing). Check developer.apple.com → TestFlight.")
+  end
+
+  desc "Alias for :beta_testflight."
+  lane :testflight do
+    beta_testflight
   end
 end

@@ -18,11 +18,15 @@ struct GameSceneHostView: UIViewRepresentable {
         scnView.allowsCameraControl = false
         scnView.antialiasingMode = .multisampling4X
         scnView.isPlaying = true
-        scnView.preferredFramesPerSecond = 60
+        let screenMax = UIScreen.main.maximumFramesPerSecond
+        // SceneKit preview path: prefer device refresh up to 120Hz. Full-frame UE gameplay remains in the embedded host.
+        scnView.preferredFramesPerSecond = screenMax > 0 ? min(120, screenMax) : 60
         scnView.showsStatistics = false
 
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
         scnView.addGestureRecognizer(tap)
+        context.coordinator.tapGesture = tap
+        scnView.delegate = context.coordinator
 
         context.coordinator.scnView = scnView
         context.coordinator.applyNeuralDriveTuning(in: scnView.scene)
@@ -30,6 +34,10 @@ struct GameSceneHostView: UIViewRepresentable {
         context.coordinator.startPlayerMovementLoop()
 
         return scnView
+    }
+
+    static func dismantleUIView(_ uiView: SCNView, coordinator: Coordinator) {
+        coordinator.teardown(view: uiView)
     }
 
     func updateUIView(_ uiView: SCNView, context: Context) {
@@ -46,11 +54,16 @@ struct GameSceneHostView: UIViewRepresentable {
         Coordinator(onAction: onAction, gameMode: gameMode, neuralDrive: neuralDrive)
     }
 
-    class Coordinator: NSObject {
+    class Coordinator: NSObject, SCNSceneRendererDelegate {
         let onAction: () -> Void
         let gameMode: GameModeId
         var neuralDrive: Double
         weak var scnView: SCNView?
+        weak var tapGesture: UITapGestureRecognizer?
+
+        /// Updated by ``SCNSceneRendererDelegate`` — drives camera smoothing at real frame deltas.
+        var latestFrameDelta: Float = 1.0 / 60.0
+        private var lastRendererTime: CFTimeInterval?
 
         var leftStickInput: CGPoint = .zero
         var rightStickInput: CGPoint = .zero
@@ -87,7 +100,12 @@ struct GameSceneHostView: UIViewRepresentable {
             case .golf: return "golfer"
             case .tennis: return "player"
             case .volleyball: return "vPlayer1"
-            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding: return "gymnast"
+            case .gymnastics: return "gymnast"
+            case .surfing: return "surfer"
+            case .skateboarding: return "skater"
+            case .snowboarding: return "rider"
+            case .brainBrawl, .whoSceneIt: return "cognitivePlayer"
+            case .courtCarnival: return "player1"
             case .football: return "returner"
             }
         }
@@ -112,8 +130,18 @@ struct GameSceneHostView: UIViewRepresentable {
                 return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 9, lookAtY: 1.0, followSpeed: 5, targetSpeed: 7, fovNormal: 50, fovAction: 40)
             case .volleyball:
                 return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 8, lookAtY: 1.5, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
-            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding:
+            case .gymnastics:
                 return CameraFollowConfig(offsetX: 1, offsetY: 4, offsetZ: 8, lookAtY: 1.5, followSpeed: 4, targetSpeed: 6, fovNormal: 48, fovAction: 36)
+            case .surfing:
+                return CameraFollowConfig(offsetX: 2.4, offsetY: 4.6, offsetZ: 9.2, lookAtY: 1.45, followSpeed: 5, targetSpeed: 8, fovNormal: 50, fovAction: 38)
+            case .skateboarding:
+                return CameraFollowConfig(offsetX: 1.1, offsetY: 3.7, offsetZ: 7.4, lookAtY: 1.15, followSpeed: 6, targetSpeed: 9, fovNormal: 48, fovAction: 36)
+            case .snowboarding:
+                return CameraFollowConfig(offsetX: 1.8, offsetY: 5.1, offsetZ: 9, lookAtY: 1.55, followSpeed: 4, targetSpeed: 7, fovNormal: 52, fovAction: 40)
+            case .brainBrawl, .whoSceneIt:
+                return CameraFollowConfig(offsetX: 0.9, offsetY: 4.2, offsetZ: 7.2, lookAtY: 1.45, followSpeed: 3, targetSpeed: 5, fovNormal: 46, fovAction: 34)
+            case .courtCarnival:
+                return CameraFollowConfig(offsetX: 2, offsetY: 5, offsetZ: 8, lookAtY: 1.2, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
             }
         }
 
@@ -139,8 +167,18 @@ struct GameSceneHostView: UIViewRepresentable {
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -2.0, maxZ: 2.0, speed: 0.10)
             case .volleyball:
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -1.5, maxZ: 1.5, speed: 0.09)
-            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding:
+            case .gymnastics:
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -2.0, maxZ: 2.0, speed: 0.08)
+            case .surfing:
+                return MovementBounds(minX: -3.5, maxX: 3.5, minZ: -2.8, maxZ: 2.8, speed: 0.095)
+            case .skateboarding:
+                return MovementBounds(minX: -3.2, maxX: 3.2, minZ: -2.4, maxZ: 2.4, speed: 0.11)
+            case .snowboarding:
+                return MovementBounds(minX: -3.8, maxX: 3.8, minZ: -3.2, maxZ: 3.2, speed: 0.09)
+            case .brainBrawl, .whoSceneIt:
+                return MovementBounds(minX: -2.4, maxX: 2.4, minZ: -1.6, maxZ: 1.6, speed: 0.055)
+            case .courtCarnival:
+                return MovementBounds(minX: -4.5, maxX: 4.5, minZ: -2.8, maxZ: 2.8, speed: 0.12)
             }
         }
 
@@ -189,7 +227,7 @@ struct GameSceneHostView: UIViewRepresentable {
             let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true)
             let playerPos = playerNode?.presentation.position ?? SCNVector3(0, 0, 0)
 
-            let delta: Float = 1.0 / 60.0
+            let delta = max(latestFrameDelta, 1.0 / 240.0)
             let config = cameraConfig
 
             let currentState = determineCinematicState()
@@ -323,9 +361,11 @@ struct GameSceneHostView: UIViewRepresentable {
 
             let bounds = movementBounds
             let speed = bounds.speed * Float(1.0 + neuralDrive / 200.0)
+            let delta = max(latestFrameDelta, 1.0 / 240.0)
+            let tickScale = delta * 60.0
 
-            let moveX = stickX * speed
-            let moveZ = -stickY * speed
+            let moveX = stickX * speed * tickScale
+            let moveZ = -stickY * speed * tickScale
 
             var newPos = playerNode.position
             newPos.x = min(bounds.maxX, max(bounds.minX, newPos.x + moveX))
@@ -333,19 +373,20 @@ struct GameSceneHostView: UIViewRepresentable {
 
             playerNode.position = newPos
 
-            let targetAngle = atan2(moveX, moveZ)
+            let targetAngle = atan2(stickX * speed, -stickY * speed)
             let currentAngle = playerNode.eulerAngles.y
             var angleDiff = targetAngle - currentAngle
             if angleDiff > .pi { angleDiff -= .pi * 2 }
             if angleDiff < -.pi { angleDiff += .pi * 2 }
-            playerNode.eulerAngles.y += angleDiff * 0.15
+            playerNode.eulerAngles.y += angleDiff * 0.15 * tickScale
 
             animateRunState(playerNode, speed: magnitude)
 
             if let ball = findBallNode(in: scene) {
                 let ballOffset = SCNVector3(0, 1.4, 0)
                 let targetBallPos = SCNVector3(newPos.x + ballOffset.x, ballOffset.y, newPos.z + ballOffset.z)
-                ball.position = lerpVec3(ball.position, targetBallPos, t: 0.2)
+                let followT = min(0.35, 0.2 * tickScale)
+                ball.position = lerpVec3(ball.position, targetBallPos, t: followT)
             }
 
             let rightMag = hypot(Float(rightStickInput.x), Float(rightStickInput.y))
@@ -355,8 +396,21 @@ struct GameSceneHostView: UIViewRepresentable {
                 var diff = lookAngle - currentY
                 if diff > .pi { diff -= .pi * 2 }
                 if diff < -.pi { diff += .pi * 2 }
-                playerNode.eulerAngles.y += diff * 0.1
+                playerNode.eulerAngles.y += diff * 0.1 * tickScale
             }
+        }
+
+        func teardown(view: SCNView) {
+            view.delegate = nil
+            lastRendererTime = nil
+            if let g = tapGesture {
+                view.removeGestureRecognizer(g)
+                tapGesture = nil
+            }
+            view.scene?.rootNode.removeAction(forKey: "cameraFollowLoop")
+            view.scene?.rootNode.removeAction(forKey: "playerMoveLoop")
+            view.scene = nil
+            scnView = nil
         }
 
         private func animateRunState(_ node: SCNNode, speed: Float) {

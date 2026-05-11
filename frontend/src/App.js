@@ -15,7 +15,7 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 import { SovereignDashboard } from "@/components/SovereignDashboard";
-import { FELOSDashboard } from "@/components/FELOSDashboard";
+import { FELOSDashboard, EducationTracksPortal } from "@/components/FELOSDashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -38,6 +38,15 @@ axios.interceptors.request.use((config) => {
   } catch (_e) { /* localStorage unavailable in private mode — fall back to cookie */ }
   return config;
 });
+
+/** Dashboard embedded in Unreal iOS WKWebView — digital goods must use StoreKit, not PayPal web checkout. */
+function felIOSHostedWebView() {
+  if (typeof window === "undefined") return false;
+  if (window.__FEL_BRIDGE_TOKEN__) return true;
+  const mh = window.webkit?.messageHandlers;
+  if (!mh) return false;
+  return !!(mh.FELBridge || mh.felNativeBridge || mh.FELNativeBridge);
+}
 
 // ===================== AUTH CONTEXT =====================
 const AuthContext = createContext(null);
@@ -195,7 +204,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {id:'tournaments',icon:Swords,label:'Tournaments'},{id:'avatar',icon:Palette,label:'Avatar'},
     {id:'critique',icon:Video,label:'Video Critique'},{id:'referral',icon:Gift,label:'Referrals'},
     {id:'analytics',icon:BarChart3,label:'Analytics'},
-    {id:'sovereign',icon:Shield,label:'Sovereign'},
+    {id:'sovereign',icon:Shield,label:'Final Evolution Hub'},
     {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Radio,label:'Pixel Stream'},
     {id:'profile',icon:User,label:'Profile'},
   ];
@@ -576,7 +585,7 @@ const GameModesView = () => {
               <Shield className="w-20 h-20 text-yellow-400 mx-auto mb-6" />
               <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>SYSTEM RE-AUTH REQUIRED</h2>
               <p className="text-zinc-400 mt-3">No MapLoaded signal received within 10s.</p>
-              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Sovereign Hub is reachable.</p>
+              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Final Evolution Hub is reachable.</p>
               <div className="flex gap-4 mt-6 justify-center">
                 <button onClick={() => {setLaunchStatus(null);setLaunchingMode(null);}} className="btn-secondary">Back to Modes</button>
                 <button onClick={() => launchNativeMode(modes.find(m => m.id === launchingMode) || modes[0])} className="btn-primary">Retry Launch</button>
@@ -588,7 +597,7 @@ const GameModesView = () => {
               <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING UE5 MODULE</h2>
               <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab.uproject → {(launchingMode || '').replace(/_/g,' ')}</p>
               <div className="mt-6 space-y-2 text-xs text-zinc-500 font-mono">
-                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Sovereign Hub</div>
+                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Final Evolution Hub</div>
                 <div className="flex items-center gap-2 justify-center"><div className={`w-2 h-2 rounded-full ${launchStatus === 'map_loading' ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'}`}></div>Awaiting MapLoaded handshake from bridge...</div>
                 <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-zinc-600 rounded-full"></div>Secure Enclave validated</div>
               </div>
@@ -663,11 +672,38 @@ const CreatorCardsView = () => {
               <div className="space-y-2 mb-6">{selected.challenges.map((c,i) => (
                 <div key={i} className="surface-card p-3 flex items-center justify-between"><div><div className="font-medium text-sm">{c.name}</div><div className="text-xs text-zinc-500">{c.description}</div></div><span className="text-cyan-400 font-mono">+{c.reward} XP</span></div>
               ))}</div>
-              <div className="flex items-center gap-4"><span className="metric-value text-3xl text-cyan-400">${selected.price}</span><button data-testid="purchase-card" className="btn-primary" onClick={() => {
-                axios.post(`${API}/payments/create-order`, {item_type: 'card', item_id: selected.id, amount: selected.price, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
-                  if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
-                }).catch(console.error);
-              }}>Purchase via PayPal</button></div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <span className="metric-value text-3xl text-cyan-400">${selected.price}</span>
+                {felIOSHostedWebView() ? (
+                  <div className="space-y-2 max-w-md">
+                    <p className="text-sm text-zinc-400">
+                      In the iOS game shell, creator cards use In-App Purchase (StoreKit). Web PayPal checkout is not used here.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-primary text-sm"
+                      data-testid="purchase-card-storekit"
+                      onClick={() => {
+                        try {
+                          window.webkit?.messageHandlers?.felNativeBridge?.postMessage({
+                            fel_action: "purchase_card",
+                            item_type: "card",
+                            item_id: selected.id,
+                          });
+                        } catch (_e) { /* no bridge */ }
+                      }}
+                    >
+                      Open in-app purchase
+                    </button>
+                  </div>
+                ) : (
+                  <button data-testid="purchase-card" className="btn-primary" onClick={() => {
+                    axios.post(`${API}/payments/create-order`, {item_type: 'card', item_id: selected.id, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
+                      if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
+                    }).catch(console.error);
+                  }}>Purchase via PayPal</button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -816,55 +852,14 @@ const CoachHubView = () => {
   );
 };
 
-// ===================== EDUCATION =====================
-const EducationView = () => {
-  const [courses, setCourses] = useState([]);
-  const [filter, setFilter] = useState('all');
-  useEffect(() => { axios.get(`${API}/education/courses`).then(r => setCourses(r.data)).catch(console.error); }, []);
-  const categories = ['all','brain_brawl','kinesiology','stem','common_core'];
-  const filtered = filter === 'all' ? courses : courses.filter(c => c.category === filter);
-  return (
-    <div className="space-y-8 fade-in">
-      <div><p className="overline mb-1">ATHLETE ACADEMY</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>EDUCATION</h1></div>
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map(c => <button key={c} data-testid={`edu-filter-${c}`} onClick={() => setFilter(c)} className={`px-4 py-2 text-sm font-medium uppercase tracking-wide whitespace-nowrap transition-all ${filter===c?'bg-cyan-400 text-black':'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{c.replace('_',' ')}</button>)}
-      </div>
-      <div className="grid md:grid-cols-2 gap-6" data-testid="courses-grid">
-        {filtered.map(course => (
-          <div key={course.id} className="surface-card overflow-hidden card-hover" data-testid={`course-${course.id}`}>
-            <div className="aspect-video"><img src={course.image_url} alt={course.title} className="w-full h-full object-cover" loading="lazy" /></div>
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="badge-clinical">{course.category.replace('_',' ')}</span>
-                {course.is_certificate && <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>Certificate</span>}
-              </div>
-              <h3 className="text-xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>{course.title}</h3>
-              <p className="text-sm text-zinc-400 mb-4">{course.description}</p>
-              <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4"><span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration_hours}h</span><span>{course.level}</span><span>{course.instructor}</span></div>
-              <div className="flex items-center justify-between"><span className="font-mono text-xl text-cyan-400">{course.price===0?'FREE':`$${course.price}`}</span><button data-testid={`enroll-${course.id}`} className="btn-primary" onClick={() => {
-                if (course.price > 0) {
-                  axios.post(`${API}/payments/create-order`, {item_type: 'course', item_id: course.id, amount: course.price, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
-                    if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
-                  }).catch(console.error);
-                } else {
-                  axios.post(`${API}/education/enroll/${course.id}`).catch(console.error);
-                }
-              }}>Enroll{course.price > 0 ? ' via PayPal' : ''}</button></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // ===================== BRAIN BRAWL =====================
 const BrainBrawlView = ({ onBack }) => {
   const [questions, setQuestions] = useState([]);
+  const [sessionId, setSessionId] = useState(null);
+  const [picked, setPicked] = useState([]);
+  const [verified, setVerified] = useState(null);
   const [currentQ, setCurrentQ] = useState(0);
-  const [score, setScore] = useState(0);
   const [gameState, setGameState] = useState('menu');
-  const [answers, setAnswers] = useState([]);
   const [timeLeft, setTimeLeft] = useState(15);
   const [category, setCategory] = useState('all');
   const timerRef = useRef(null);
@@ -879,19 +874,34 @@ const BrainBrawlView = ({ onBack }) => {
   }, [gameState, timeLeft]);
 
   const startGame = async () => {
-    try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
+    try {
+      const r = await axios.post(`${API}/brain-brawl/session/start`, { category, count: 10 });
+      setSessionId(r.data.session_id);
+      setQuestions(r.data.questions);
+      setCurrentQ(0);
+      setPicked([]);
+      setVerified(null);
+      setTimeLeft(15);
+      setGameState('playing');
+    } catch (e) { console.error(e); }
   };
 
   const answerQuestion = (index) => {
     clearTimeout(timerRef.current);
-    const isCorrect = index === questions[currentQ]?.correct;
-    const timeBonus = isCorrect ? timeLeft * 5 : 0;
-    if (isCorrect) setScore(s => s + 100 + timeBonus);
-    setAnswers(prev => [...prev, {q: currentQ, selected: index, correct: isCorrect}]);
+    const next = [...picked, index];
+    setPicked(next);
     if (currentQ + 1 >= questions.length) {
-      setGameState('results');
-      axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: answers.filter(a=>a.correct).length + (isCorrect?1:0), score: score + (isCorrect ? 100+timeBonus : 0), category}).catch(console.error);
-    } else { setCurrentQ(c => c + 1); setTimeLeft(15); }
+      axios
+        .post(`${API}/brain-brawl/session/submit`, { session_id: sessionId, answers: next })
+        .then((res) => {
+          setVerified(res.data);
+          setGameState('results');
+        })
+        .catch(console.error);
+    } else {
+      setCurrentQ((c) => c + 1);
+      setTimeLeft(15);
+    }
   };
 
   return (
@@ -919,9 +929,9 @@ const BrainBrawlView = ({ onBack }) => {
       {gameState === 'playing' && questions.length > 0 && (
         <div className="max-w-3xl mx-auto" data-testid="brain-brawl-game">
           <div className="flex items-center justify-between mb-4">
-            <span className="font-mono text-zinc-400">Q{currentQ+1}/{questions.length}</span>
+            <span className="font-mono text-zinc-400">Q{currentQ + 1}/{questions.length}</span>
             <div className={`metric-value text-2xl ${timeLeft <= 5 ? 'text-red-400' : 'text-cyan-400'}`}>{timeLeft}s</div>
-            <span className="font-mono text-cyan-400">SCORE: {score}</span>
+            <span className="font-mono text-zinc-500 text-sm">Verified grading</span>
           </div>
           <div className="progress-bar mb-6"><div className="progress-fill" style={{width:`${((currentQ+1)/questions.length)*100}%`}}></div></div>
           <div className="surface-card p-8">
@@ -938,19 +948,20 @@ const BrainBrawlView = ({ onBack }) => {
         </div>
       )}
 
-      {gameState === 'results' && (
+      {gameState === 'results' && verified && (
         <div className="max-w-2xl mx-auto text-center" data-testid="brain-brawl-results">
           <div className="surface-card p-12">
             <Award className="w-24 h-24 text-cyan-400 mx-auto mb-6" />
             <h2 className="text-3xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>CHALLENGE COMPLETE</h2>
-            <div className="metric-value text-6xl text-cyan-400 mb-2">{score}</div>
-            <div className="metric-label mb-8">FINAL SCORE</div>
+            <div className="metric-value text-6xl text-cyan-400 mb-2">{verified.score ?? 0}</div>
+            <div className="metric-label mb-2">SERVER-VERIFIED SCORE</div>
+            <div className="text-sm text-zinc-400 mb-8">+{verified.xp_earned ?? 0} XP · {verified.questions_correct ?? 0}/{verified.questions_total ?? 0} correct</div>
             <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-green-400">{answers.filter(a=>a.correct).length}</div><div className="metric-label">Correct</div></div>
-              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-red-400">{answers.filter(a=>!a.correct).length}</div><div className="metric-label">Wrong</div></div>
-              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl">{answers.length}</div><div className="metric-label">Total</div></div>
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-green-400">{verified.questions_correct}</div><div className="metric-label">Correct</div></div>
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-red-400">{(verified.questions_total ?? 0) - (verified.questions_correct ?? 0)}</div><div className="metric-label">Wrong</div></div>
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl">{verified.questions_total}</div><div className="metric-label">Total</div></div>
             </div>
-            <button data-testid="play-again" onClick={() => setGameState('menu')} className="btn-primary text-lg px-12 py-4">Play Again</button>
+            <button data-testid="play-again" onClick={() => { setGameState('menu'); setVerified(null); }} className="btn-primary text-lg px-12 py-4">Play Again</button>
           </div>
         </div>
       )}
@@ -1201,7 +1212,7 @@ const Dashboard = () => {
       case 'cards': return <CreatorCardsView />;
       case 'coach': return <CoachHubView />;
       case 'ai-coach': return <AICoachView />;
-      case 'education': return <EducationView />;
+      case 'education': return <EducationTracksPortal setActiveTab={setActiveTab} />;
       case 'brain-brawl': return <BrainBrawlView />;
       case 'streaks': return <StreaksView />;
       case 'social': return <SocialView />;

@@ -7,8 +7,8 @@
   "build_target_linux": "FinalEvolutionLab-Linux-Shipping",
   "mode_manager": {
     "class": "UFELModeManagerSubsystem",
-    "total_modes": 17,
-    "production_modes": 12,
+    "total_modes": 19,
+    "production_modes": 14,
     "mode_registry": {
       "basketball_h2h": {"map": "/Game/FEL/Maps/Venice_Beach_Court", "gamemode_class": "/Script/FEL.BP_Basketball_H2H", "binary": "FEL-Basketball-H2H", "status": "production"},
       "basketball_dunk": {"map": "/Game/FEL/Maps/Venice_Beach_Court", "gamemode_class": "/Script/FEL.BP_DunkContest", "binary": "FEL-DunkContest", "status": "production"},
@@ -28,7 +28,7 @@
       "brain_brawl": {"map": "/Game/FEL/Maps/Neuro_Arena", "gamemode_class": "/Script/FEL.BP_BrainBrawl", "binary": "FEL-BrainBrawl", "status": "staging"},
       "market_browse": {"map": "/Game/FEL/Maps/Sovereign_Shop", "gamemode_class": "/Script/FEL.BP_MarketBrowse", "binary": "FEL-Market", "status": "staging"},
       "who_scene_it": {"map": "/Game/FEL/Maps/Neuro_Arena", "gamemode_class": "/Script/FEL.BP_WhoSceneIt", "binary": "FEL-WhoSceneIt", "status": "production"},
-      "mario_party_fever": {"map": "/Game/FEL/Maps/Venice_Beach_Court", "gamemode_class": "/Script/FEL.BP_PartyMode", "binary": "FEL-PartyMode", "status": "production"}
+      "court_carnival": {"map": "/Game/FEL/Maps/Venice_Beach_Court", "gamemode_class": "/Script/FEL.BP_PartyMode", "binary": "FEL-PartyMode", "status": "production"}
     }
   },
   "prq_calculator": {

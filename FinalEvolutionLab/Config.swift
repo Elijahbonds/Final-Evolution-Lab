@@ -72,6 +72,9 @@ enum Config {
     /// Paired with ``sqlSocialUserIdKey`` — if `auth.uid` changes, cache is discarded.
     static let sqlSocialFirebaseUidKey = "fel_sql_social_firebase_uid"
 
+    /// UE / server sets this to the active verified gameplay session id; inbound Emergent WS payloads must repeat it to mutate PRQ or surface ``fel_game_result``.
+    static let trustedGameplaySessionDefaultsKey = "fel_trusted_ue_gameplay_session_id"
+
     /// Non-empty URL from process environment `EMERGENT_GAME_WS_URL`, then UserDefaults ``emergentGameWebSocketDefaultsKey``.
     static func resolvedEmergentGameWebSocketURL() -> String? {
         if let env = ProcessInfo.processInfo.environment["EMERGENT_GAME_WS_URL"],
@@ -81,5 +84,29 @@ enum Config {
         let ud = UserDefaults.standard.string(forKey: emergentGameWebSocketDefaultsKey)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return (ud?.isEmpty == false) ? ud : nil
+    }
+
+    // MARK: - Shipping gameplay / meta flags (GAME-26, GAME-32)
+
+    /// When `true`, global leaderboard + matchmaking pool use ``SampleData`` and simulated stats. **Ship with `false`** unless intentionally demoing.
+    static var useDemoLeaderboardAndMatchmaking: Bool {
+        if ProcessInfo.processInfo.environment["FEL_DEMO_LEADERBOARDS"] == "1" { return true }
+        if ProcessInfo.processInfo.environment["FEL_DEMO_LEADERBOARDS"] == "0" { return false }
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    /// Includes ``GameModeReleaseState.preview`` modes in Arena navigation (DEBUG on; release off unless `FEL_PREVIEW_GAME_MODES=1`).
+    static var showPreviewGameModes: Bool {
+        if ProcessInfo.processInfo.environment["FEL_PREVIEW_GAME_MODES"] == "1" { return true }
+        if ProcessInfo.processInfo.environment["FEL_PREVIEW_GAME_MODES"] == "0" { return false }
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
     }
 }

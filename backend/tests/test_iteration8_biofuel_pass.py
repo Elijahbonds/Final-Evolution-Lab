@@ -207,7 +207,7 @@ class TestBiofuelAuthenticated:
                   "fats_g", "micros", "athletic_intent", "nutri_shards_awarded", "scanned_at"):
             assert k in d, f"missing key {k}"
         assert d["model"] == model
-        assert d["nutri_shards_awarded"] == 12
+        assert d["nutri_shards_awarded"] == 0  # awarded only after POST /scan/confirm
 
     def test_instacart_cart_valid_recipe(self):
         r = requests.post(f"{BASE_URL}/api/biofuel/instacart-cart", headers=hdr(),

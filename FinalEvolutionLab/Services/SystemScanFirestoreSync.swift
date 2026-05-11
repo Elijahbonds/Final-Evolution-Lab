@@ -8,7 +8,7 @@ extension Notification.Name {
 }
 
 /// Writes System Scan snapshots to Firestore for cross-device sync and Unreal consumption.
-@MainActor
+/// Encoding and Firestore batches run off the main actor so large stability payloads do not block UI.
 final class SystemScanFirestoreSync {
     static let shared = SystemScanFirestoreSync()
 
@@ -23,7 +23,9 @@ final class SystemScanFirestoreSync {
 
     /// Persists a historical scan and upserts the latest avatar vector for UE.
     func syncLatestFromHealthKit(_ health: HealthKitService) async throws {
-        let scan = SystemScanRecord.makeFromHealthKit(health)
+        let scan = await MainActor.run {
+            SystemScanRecord.makeFromHealthKit(health)
+        }
         await syncScanWithDegradation(scan)
     }
 
@@ -37,7 +39,7 @@ final class SystemScanFirestoreSync {
     /// - Always: bridge to Unreal + optional WebSocket immediately.
     /// - Best-effort: persist to Firestore; on failure, enqueue locally and retry later.
     private func syncScanWithDegradation(_ scan: SystemScanRecord) async {
-        deliverScanToBridge(scan)
+        await deliverScanToBridge(scan)
 
         guard FirebaseBootstrap.isConfigured else {
             SaveSystem.enqueuePendingSystemScan(scan)
@@ -61,10 +63,8 @@ final class SystemScanFirestoreSync {
         let batch = db.batch()
         let scanRef = db.collection("users").document(uid).collection("system_scans").document()
         try batch.setData(from: scan, forDocument: scanRef, encoder: encoder)
-
         let avatarRef = db.collection("users").document(uid).collection("avatar_performance").document("current")
         try batch.setData(from: scan.avatar, forDocument: avatarRef, merge: true, encoder: encoder)
-
         try await batch.commit()
     }
 
@@ -73,7 +73,6 @@ final class SystemScanFirestoreSync {
         var pending = SaveSystem.loadPendingSystemScans()
         guard !pending.isEmpty else { return }
 
-        // Attempt oldest-first; stop on first failure to avoid churn.
         while let scan = pending.first {
             do {
                 try await persistScan(scan)
@@ -85,7 +84,7 @@ final class SystemScanFirestoreSync {
         }
     }
 
-    private func deliverScanToBridge(_ scan: SystemScanRecord) {
+    private func deliverScanToBridge(_ scan: SystemScanRecord) async {
         let data: Data
         do {
             data = try scan.unrealBridgeJSON()
@@ -96,15 +95,27 @@ final class SystemScanFirestoreSync {
 #endif
             return
         }
-        UnrealManager.shared.deliverSystemScanJSON(data)
-        EmergentRealtimeClient.shared.sendSystemScanBridge(data)
-        NotificationCenter.default.post(name: .felSystemScanBridgeCompleted, object: nil)
+        await MainActor.run {
+            UnrealManager.shared.deliverSystemScanJSON(data)
+            EmergentRealtimeClient.shared.sendSystemScanBridge(data)
+            NotificationCenter.default.post(name: .felSystemScanBridgeCompleted, object: nil)
+        }
         Task { @MainActor in
             await TrainingLabSocialBridge.shared.syncTrainingProfileFromScan(scan)
-            SocialShareCoordinator.shared.presentScanAchievement(
-                prq: scan.avatar.prqScore,
-                grade: scan.readiness.grade
-            )
+            if shouldPresentScanAchievement(scan) {
+                let headlinePRQ = scan.avatar.verifiedPerformancePRQ ?? scan.avatar.readinessScore
+                SocialShareCoordinator.shared.presentScanAchievement(
+                    prq: headlinePRQ,
+                    grade: scan.readiness.grade
+                )
+            }
         }
+    }
+
+    /// No celebration for pure readiness/vitals sync — require verified competitive PRQ or pose confidence (SCAN-54).
+    private func shouldPresentScanAchievement(_ scan: SystemScanRecord) -> Bool {
+        if let verified = scan.avatar.verifiedPerformancePRQ, verified > 0 { return true }
+        if let pose = scan.stability?.poseConfidence01, pose >= 0.55 { return true }
+        return false
     }
 }

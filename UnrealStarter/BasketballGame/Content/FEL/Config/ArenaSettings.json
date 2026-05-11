@@ -48,6 +48,22 @@
       "timeLimitSeconds": 150,
       "ballCount": 1
     },
+    "karate_h2h": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo.Dojo",
+      "modeDisplayName": "Karate · Point Sparring",
+      "unrealBasketballSlice": "StreetBall",
+      "targetScore": 5,
+      "timeLimitSeconds": 150,
+      "ballCount": 1
+    },
+    "karate_endless": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo.Dojo",
+      "modeDisplayName": "Karate · Endless",
+      "unrealBasketballSlice": "StreetBall",
+      "targetScore": 999,
+      "timeLimitSeconds": 0,
+      "ballCount": 1
+    },
     "baseball": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/BaseballPark/BaseballPark.BaseballPark",
       "modeDisplayName": "Baseball · Ballpark",
@@ -169,6 +185,31 @@
       "timeLimitSeconds": 0,
       "bScoringEnabled": false,
       "bNeuroKineticLeakageForDunkParity": false
+    },
+    "who_scene_it": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/NeuroArena/NeuroArena.NeuroArena",
+      "modeDisplayName": "Who Scene It (Placeholder)",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 180,
+      "bScoringEnabled": false,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
+    "court_carnival": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Court Carnival (Placeholder)",
+      "unrealBasketballSlice": "StreetBall",
+      "ballSpawnType": "SingleAtPrimary",
+      "bIsDunkContest": false,
+      "ballCount": 1,
+      "targetScore": 0,
+      "timeLimitSeconds": 600,
+      "bScoringEnabled": true,
+      "physicsJumpScale": 1.0,
+      "physicsWalkScale": 1.0
     }
   }
 }

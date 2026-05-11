@@ -180,7 +180,7 @@ struct UnityExportBuilder {
 
         let gameModes = GameModeId.allCases.map { modeId -> UnityExportManifest.GameModeExport in
             let mode = GameModeRegistry.mode(for: modeId)
-            let physics = GamePhysicsConfig.forMode(modeId, prq: metrics.prqScore, audit: audit)
+            let physics = GamePhysicsConfig.forMode(modeId, prq: metrics.prqScore, audit: audit, metrics: metrics)
             let movement = PS2MovementConfig.forMode(modeId)
             return UnityExportManifest.GameModeExport(
                 id: modeId.rawValue,

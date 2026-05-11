@@ -114,6 +114,16 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
             )
         ),
     ]
+
+    /// Encoded in each card’s QR. Optional ``athleteId`` scopes the active equipped card for sharing.
+    func qrPayload(includeAthleteId athleteId: String?) -> String {
+        var s = "https://finalevolutiongroup.com/creator-card/\(id)"
+        if let raw = athleteId?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty,
+           let enc = raw.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            s += "?athlete=\(enc)"
+        }
+        return s
+    }
 }
 
 nonisolated struct MovementSignature: Sendable {

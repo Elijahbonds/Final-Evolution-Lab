@@ -29,6 +29,16 @@ class User(BaseModel):
     role: str = "athlete"
     sport: str = "basketball"
     prq_score: float = 75.0
+    # Lab-verified competitive PRQ (measured assessment). Prefer for certification gates vs generic prq_score.
+    verified_performance_prq: Optional[float] = None
+    weight_kg: Optional[float] = None
+    allergies: Optional[List[str]] = None
+    dietary_restrictions: Optional[List[str]] = None
+    # ISO YYYY-MM-DD for minors policy (optional)
+    date_of_birth: Optional[str] = None
+    parental_consent_acknowledged: bool = False
+    # Explicit opt-in for authenticated athlete discovery list (SOCIAL-02 / PRIVACY-09). Absent/false = not discoverable.
+    discovery_opt_in: Optional[bool] = None
     level: int = 1
     xp: int = 0
     streak_days: int = 0

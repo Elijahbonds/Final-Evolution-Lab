@@ -41,7 +41,7 @@ export const SovereignDashboard = () => {
   }, []);
 
   if (loading || !status) {
-    return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="text-center"><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-zinc-400 font-mono text-sm">Initializing Sovereign Hub...</p></div></div>;
+    return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="text-center"><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-zinc-400 font-mono text-sm">Initializing Final Evolution Hub...</p></div></div>;
   }
 
   const wsConnected = status.websocket.status === 'connected';
@@ -164,7 +164,7 @@ export const SovereignDashboard = () => {
         <div className="surface-card p-6" data-testid="active-creator-card">
           <div className="flex items-center gap-3 mb-3"><Award className="w-6 h-6 text-yellow-400" /><h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>ACTIVE CREATOR CARD</h2></div>
           <div className="badge-clinical inline-block">{card}</div>
-          <p className="text-xs text-zinc-500 mt-2">Loaded via StoodCardId from sovereign bridge</p>
+          <p className="text-xs text-zinc-500 mt-2">Loaded via StoodCardId from performance bridge</p>
         </div>
       )}
 
@@ -218,7 +218,7 @@ export const SovereignDashboard = () => {
 
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-zinc-600 font-mono">
-        <span><Server className="w-3 h-3 inline mr-1" />Sovereign Hub v{status.server.version} · LOCAL</span>
+        <span><Server className="w-3 h-3 inline mr-1" />Final Evolution Hub v{status.server.version} · LOCAL</span>
         <span><Clock className="w-3 h-3 inline mr-1" />Uptime: {Math.floor(status.server.uptime_seconds/60)}m</span>
         <span><Smartphone className="w-3 h-3 inline mr-1" />iPhone → Port 8888 → Hub turns GREEN</span>
       </div>

@@ -1,11 +1,19 @@
 import SwiftUI
 import SceneKit
 import UIKit
+import QuartzCore
+
+private struct PendingGoldenApexPayload {
+    let trick: DirectionalTrick
+    let isCritical: Bool
+}
 
 struct GamePlayView: View {
     let viewModel: LabViewModel
     let gameMode: GameMode
     let sessionReadiness: Double
+    /// When true (screenshot harness only), skips multiplayer lobby + countdown so START MATCH + scene chrome are visible immediately.
+    var skipMatchLobbyForScreenshotHarness: Bool = false
 
     @State private var score: Int = 0
     @State private var opponentScore: Int = 0
@@ -29,6 +37,11 @@ struct GamePlayView: View {
     @State private var showBiomechanicsHUD: Bool = true
     @State private var liveLeakagePenalty: Double = 0
     @State private var leakageFlashJoint: JointType?
+    @State private var lastGameplayLeakagePenaltyAt: [JointType: TimeInterval] = [:]
+
+    @State private var matchSessionId = UUID()
+    @State private var finalizedMatchSessionId: UUID?
+    @State private var delayedOpponentScoreGeneration: UInt64 = 0
 
     @State private var dunkRound: Int = 1
     @State private var lastJudgeScores: (Int, Int, Int)?
@@ -87,6 +100,14 @@ struct GamePlayView: View {
     @State private var qteGradeText: String = ""
     @State private var timeScaleUpdateTask: Task<Void, Never>? = nil
 
+    /// Host / join / accept peer — must finish before countdown (GAME-11).
+    @State private var matchLobbyComplete: Bool = false
+    @State private var playerActionCount: Int = 0
+    @State private var lastCommittedTrickDirection: ComboDirection = .up
+    @State private var pendingGoldenApex: PendingGoldenApexPayload?
+    @State private var apexQTESessionGeneration: UInt64 = 0
+    @State private var sessionStartedAt: Date?
+
     @Environment(\.dismiss) private var dismiss
 
     private enum GolfSwingPhase { case idle, backswing }
@@ -94,6 +115,13 @@ struct GamePlayView: View {
 
     private var isKarate: Bool { gameMode.id == .karate || gameMode.id == .karateEndless }
     private var inputScheme: InputScheme { gameMode.id.inputScheme }
+
+    private var usesAcademyRhythmOverlay: Bool {
+        switch inputScheme {
+        case .rhythmTap, .filmQuiz, .partyBoard: true
+        default: false
+        }
+    }
     private var supportsTricks: Bool { gameMode.id == .basketballDunkContest || gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3 || isKarate }
     private var specialMeterFull: Bool { specialMeter >= 100 }
 
@@ -112,11 +140,20 @@ struct GamePlayView: View {
     }
 
     private var physicsConfig: GamePhysicsConfig {
-        GamePhysicsConfig.forMode(gameMode.id, prq: viewModel.effectiveMetrics.prqScore, audit: viewModel.biomechanicsAudit)
+        GamePhysicsConfig.forMode(
+            gameMode.id,
+            prq: viewModel.effectiveMetrics.prqScore,
+            audit: viewModel.biomechanicsAudit,
+            metrics: viewModel.effectiveMetrics
+        )
+    }
+
+    private var gameRules: GameModeRules {
+        GameModeRules.forMode(gameMode.id)
     }
 
     private var isTimerBased: Bool {
-        gameMode.multiplayerType == .realtime
+        gameRules.useMatchCountdown
     }
 
     private var isDunkContest: Bool {
@@ -136,20 +173,16 @@ struct GamePlayView: View {
     }
 
     private var targetScore: Int {
-        gameMode.id == .basketball3v3 ? 15 : 21
+        gameRules.targetScore
     }
 
     private var maxRounds: Int {
-        switch gameMode.id {
-        case .golf: 9
-        case .tennis: 1
-        case .baseball: 5
-        case .football: 1
-        case .soccer: 5
-        case .volleyball: 1
-        case .gymnastics: 6
-        default: 1
-        }
+        gameRules.roundLimit
+    }
+
+    private var participationEligibleForRewards: Bool {
+        let minA = gameRules.rewardEligibleMinActions
+        return score > 0 || maxCombo >= 2 || criticalHits > 0 || playerActionCount >= minA
     }
 
     var body: some View {
@@ -296,7 +329,11 @@ struct GamePlayView: View {
                 )
             }
 
-            if !gameReady && !showResults {
+            if !matchLobbyComplete && !showResults {
+                matchLobbyOverlay
+            }
+
+            if matchLobbyComplete && !gameReady && !showResults {
                 GetReadyScreen(
                     title: gameMode.name,
                     subtitle: gameMode.hint,
@@ -304,13 +341,16 @@ struct GamePlayView: View {
                     accentColor: gameMode.accentColor,
                     onComplete: {
                         gameReady = true
-                        startGame()
                     }
                 )
             }
 
-            if isActive && inputScheme == .rhythmTap {
-                gymnasticsTimingOverlay
+            if pendingGoldenApex != nil && isActive {
+                apexQTETapOverlay
+            }
+
+            if isActive && usesAcademyRhythmOverlay {
+                academyRhythmOverlay
             }
 
             if supportsTricks && isActive {
@@ -346,6 +386,18 @@ struct GamePlayView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 8) {
+                    if multipeerService.pendingInvitationPeerName != nil {
+                        Button("Accept") {
+                            multipeerService.acceptPendingInvitation()
+                        }
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.green)
+                        Button("Decline") {
+                            multipeerService.rejectPendingInvitation()
+                        }
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.orange)
+                    }
                     Button {
                         withAnimation(.spring(response: 0.3)) {
                             showBiomechanicsHUD.toggle()
@@ -364,8 +416,20 @@ struct GamePlayView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .onAppear { }
+        .onAppear {
+            if skipMatchLobbyForScreenshotHarness {
+                matchLobbyComplete = true
+                gameReady = true
+            }
+        }
+        .onChange(of: multipeerService.lastReceivedScore) { _, newScore in
+            guard multipeerService.isConnected else { return }
+            withAnimation(.spring(response: 0.2)) {
+                opponentScore = newScore
+            }
+        }
         .onDisappear {
+            matchLobbyComplete = false
             multipeerService.stop()
             gameTimerTask?.cancel()
             streakTimer?.cancel()
@@ -828,7 +892,11 @@ struct GamePlayView: View {
                 case .penaltyKick:
                     penaltyKickControlView
                 case .rhythmTap:
-                    gymnasticsControlView
+                    rhythmTapControlView
+                case .filmQuiz:
+                    filmQuizControlView
+                case .partyBoard:
+                    partyBoardControlView
                 default:
                     EmptyView()
                 }
@@ -849,33 +917,6 @@ struct GamePlayView: View {
                 .padding(.horizontal, 12)
             }
 
-            if !isActive && !showResults && gameReady {
-                HStack(spacing: 16) {
-                    Button {
-                        multipeerService.startHosting(gameId: gameMode.id.rawValue)
-                    } label: {
-                        Label("HOST", systemImage: "antenna.radiowaves.left.and.right")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                            .foregroundStyle(Theme.brandCyan)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Theme.brandCyan.opacity(0.1))
-                            .clipShape(Capsule())
-                    }
-
-                    Button {
-                        multipeerService.startBrowsing(gameId: gameMode.id.rawValue)
-                    } label: {
-                        Label("JOIN", systemImage: "magnifyingglass")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                            .foregroundStyle(.orange)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Color.orange.opacity(0.1))
-                            .clipShape(Capsule())
-                    }
-                }
-            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 4)
@@ -1294,19 +1335,42 @@ struct GamePlayView: View {
 
     private enum KickPower { case low, mid, high }
 
-    // MARK: - Gymnastics Control
+    // MARK: - Rhythm tap (gym + extreme sports)
 
-    private var gymnasticsControlView: some View {
-        VStack(spacing: 8) {
+    private var rhythmTapControlView: some View {
+        rhythmTapChrome(
+            headerTitle: "TAP TO PERFORM",
+            headerSubtitle: "Time your moves for bonus points"
+        )
+    }
+
+    private var filmQuizControlView: some View {
+        rhythmTapChrome(
+            headerTitle: "CLIP QUIZ",
+            headerSubtitle: "Recognition rounds — not the same loop as Brain Brawl"
+        )
+    }
+
+    private var partyBoardControlView: some View {
+        rhythmTapChrome(
+            headerTitle: "BOARD SPACES",
+            headerSubtitle: "Party carnival loop — roll the lane, hit events"
+        )
+    }
+
+    private func rhythmTapChrome(headerTitle: String, headerSubtitle: String) -> some View {
+        let actions = actionsForMode
+        let icons = rhythmTapIconsForMode(gameMode.id)
+        return VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "figure.gymnastics")
+                Image(systemName: rhythmTapHeaderIcon(gameMode.id))
                     .font(.system(size: 20))
                     .foregroundStyle(gameMode.accentColor)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("TAP TO PERFORM")
+                    Text(headerTitle)
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
-                    Text("Time your moves for bonus points")
+                    Text(headerSubtitle)
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
@@ -1323,81 +1387,127 @@ struct GamePlayView: View {
             )
 
             HStack(spacing: 10) {
-                Button {
-                    performAction("Tumble")
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("TUMBLE")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                    }
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(gameMode.accentColor)
-                    .clipShape(.rect(cornerRadius: 14))
+                rhythmTapButton(title: actions.indices.contains(0) ? actions[0] : "—", symbol: icons.indices.contains(0) ? icons[0] : "circle", role: .primary) {
+                    if actions.indices.contains(0) { performAction(actions[0]) }
                 }
-                .disabled(!isActive)
-                .opacity(isActive ? 1 : 0.4)
-
-                Button {
-                    performAction("Vault")
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "figure.gymnastics")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("VAULT")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(gameMode.accentColor.opacity(0.25))
-                    .clipShape(.rect(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 1)
-                    )
+                rhythmTapButton(title: actions.indices.contains(1) ? actions[1] : "—", symbol: icons.indices.contains(1) ? icons[1] : "circle", role: .secondary) {
+                    if actions.indices.contains(1) { performAction(actions[1]) }
                 }
-                .disabled(!isActive)
-                .opacity(isActive ? 1 : 0.4)
-
-                Button {
-                    performAction("Dismount")
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("DISMOUNT")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                    }
-                    .foregroundStyle(gameMode.accentColor)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(gameMode.accentColor.opacity(0.12))
-                    .clipShape(.rect(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(gameMode.accentColor.opacity(0.3), lineWidth: 1)
-                    )
+                rhythmTapButton(title: actions.indices.contains(2) ? actions[2] : "—", symbol: icons.indices.contains(2) ? icons[2] : "circle", role: .tertiary) {
+                    if actions.indices.contains(2) { performAction(actions[2]) }
                 }
-                .disabled(!isActive)
-                .opacity(isActive ? 1 : 0.4)
             }
         }
     }
 
-    private var gymnasticsTimingOverlay: some View {
-        VStack {
+    private enum RhythmTapButtonRole {
+        case primary, secondary, tertiary
+    }
+
+    @ViewBuilder
+    private func rhythmTapButton(title: String, symbol: String, role: RhythmTapButtonRole, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: symbol)
+                    .font(.system(size: 16, weight: .bold))
+                Text(title.uppercased())
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+            }
+            .foregroundStyle(foregroundForRhythmRole(role))
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(backgroundForRhythmRole(role))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(strokeForRhythmRole(role), lineWidth: 1)
+            )
+        }
+        .disabled(!isActive)
+        .opacity(isActive ? 1 : 0.4)
+    }
+
+    private func foregroundForRhythmRole(_ role: RhythmTapButtonRole) -> Color {
+        switch role {
+        case .primary: return .black
+        case .secondary: return .white
+        case .tertiary: return gameMode.accentColor
+        }
+    }
+
+    private func backgroundForRhythmRole(_ role: RhythmTapButtonRole) -> Color {
+        switch role {
+        case .primary: return gameMode.accentColor
+        case .secondary: return gameMode.accentColor.opacity(0.25)
+        case .tertiary: return gameMode.accentColor.opacity(0.12)
+        }
+    }
+
+    private func strokeForRhythmRole(_ role: RhythmTapButtonRole) -> Color {
+        switch role {
+        case .primary: return .clear
+        case .secondary: return gameMode.accentColor.opacity(0.4)
+        case .tertiary: return gameMode.accentColor.opacity(0.3)
+        }
+    }
+
+    private func rhythmTapHeaderIcon(_ mode: GameModeId) -> String {
+        switch mode {
+        case .gymnastics: return "figure.gymnastics"
+        case .surfing: return "water.waves"
+        case .skateboarding: return "figure.skating"
+        case .snowboarding: return "snowflake"
+        case .brainBrawl: return "brain.head.profile"
+        case .whoSceneIt: return "theatermasks.fill"
+        case .courtCarnival: return "sparkles.rectangle.stack"
+        default: return "figure.mixed.cardio"
+        }
+    }
+
+    private func rhythmTapIconsForMode(_ mode: GameModeId) -> [String] {
+        switch mode {
+        case .gymnastics:
+            return ["arrow.triangle.2.circlepath", "figure.gymnastics", "sparkles"]
+        case .surfing:
+            return ["water.waves", "point.topleft.down.to.point.bottomright.fill", "wind"]
+        case .skateboarding:
+            return ["figure.skating", "square.grid.2x2", "arrow.trianglehead.branch"]
+        case .snowboarding:
+            return ["snowflake", "arrow.up.circle", "line.diagonal"]
+        case .brainBrawl:
+            return ["eye.circle", "square.grid.3x3", "shield.lefthalf.filled"]
+        case .whoSceneIt:
+            return ["theatermasks.fill", "film.fill", "person.fill.questionmark"]
+        case .courtCarnival:
+            return ["dice.fill", "sparkles", "bolt.fill"]
+        default:
+            return ["circle", "circle", "circle"]
+        }
+    }
+
+    private var academyRhythmOverlay: some View {
+        let roundLabel: String
+        let subtitle: String
+        switch gameMode.id {
+        case .whoSceneIt:
+            roundLabel = "Q\(roundNumber)/\(maxRounds)"
+            subtitle = "CLIP"
+        case .courtCarnival:
+            roundLabel = "S\(roundNumber)/\(maxRounds)"
+            subtitle = "BOARD"
+        default:
+            roundLabel = "R\(roundNumber)/\(maxRounds)"
+            subtitle = "ROUTINE"
+        }
+        return VStack {
             Spacer()
             HStack {
                 Spacer()
                 VStack(spacing: 4) {
-                    Text("R\(roundNumber)/\(maxRounds)")
+                    Text(roundLabel)
                         .font(.system(size: 14, weight: .black, design: .monospaced))
                         .foregroundStyle(gameMode.accentColor)
-                    Text("ROUTINE")
+                    Text(subtitle)
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
@@ -2049,8 +2159,99 @@ struct GamePlayView: View {
         case .golf: ["Swing"]
         case .tennis: ["Serve", "Volley", "Baseline"]
         case .volleyball: ["Spike"]
-        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl: ["Tumble", "Vault", "Dismount"]
+        case .gymnastics: ["Tumble", "Vault", "Dismount"]
+        case .surfing: ["Snap", "Carve", "Aerial"]
+        case .skateboarding: ["Ollie", "Grind", "Kickflip"]
+        case .snowboarding: ["Carve", "Jump", "Butter"]
+        case .brainBrawl: ["Focus", "Pattern", "Counter"]
+        case .whoSceneIt: ["Freeze", "Spot Star", "Recall"]
+        case .courtCarnival: ["Mini", "Roll", "Boost"]
         }
+    }
+
+    private var matchLobbyOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.94).ignoresSafeArea()
+            VStack(spacing: 20) {
+                Text("MULTIPLAYER SETUP")
+                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                    .foregroundStyle(gameMode.accentColor)
+                Text(gameMode.name)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+                Text("Session key: \(gameMode.id.rawValue)")
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                if multipeerService.pendingInvitationPeerName != nil {
+                    Text("Incoming invite — use Accept or Decline in the toolbar.")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                HStack(spacing: 16) {
+                    Button {
+                        multipeerService.startHosting(gameId: gameMode.id.rawValue)
+                    } label: {
+                        Label("HOST", systemImage: "antenna.radiowaves.left.and.right")
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(Theme.brandCyan)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Theme.brandCyan.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    Button {
+                        multipeerService.startBrowsing(gameId: gameMode.id.rawValue)
+                    } label: {
+                        Label("JOIN", systemImage: "magnifyingglass")
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.orange.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
+                Button {
+                    withAnimation(.spring(response: 0.35)) { matchLobbyComplete = true }
+                } label: {
+                    Text("CONTINUE TO COUNTDOWN")
+                        .font(.system(.subheadline, design: .monospaced, weight: .black))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(gameMode.accentColor)
+                        .clipShape(.rect(cornerRadius: 14))
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+            }
+            .padding(28)
+        }
+    }
+
+    private var apexQTETapOverlay: some View {
+        VStack {
+            Spacer()
+            Button {
+                commitApexQTEResolution()
+            } label: {
+                Text("APEX — TAP NOW")
+                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+                    .background(
+                        LinearGradient(colors: [Theme.brandCyan, gameMode.accentColor], startPoint: .leading, endPoint: .trailing)
+                    )
+                    .clipShape(Capsule())
+                    .shadow(color: gameMode.accentColor.opacity(0.45), radius: 14)
+            }
+            .padding(.bottom, 130)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.38).ignoresSafeArea())
     }
 
     private var peerStatusBadge: some View {
@@ -2136,7 +2337,8 @@ struct GamePlayView: View {
             won: flags.won,
             tied: flags.tied,
             combo: maxCombo,
-            criticals: criticalHits
+            criticals: criticalHits,
+            participationEligible: participationEligibleForRewards
         )
     }
 
@@ -2146,19 +2348,30 @@ struct GamePlayView: View {
 
     private var prqReward: Double {
         let flags = VersusMatchOutcome.rewardFlags(playerScore: score, opponentScore: opponentScore)
-        return PRQ.modeReward(
+        return PRQ.rankingSessionPRQ(
             mode: gameMode.id,
             won: flags.won,
             tied: flags.tied,
             combo: maxCombo,
             criticals: criticalHits,
-            scoreDifferential: score - opponentScore
-        ) + (sessionReadiness / 100.0) * 0.3
+            scoreDifferential: score - opponentScore,
+            participationEligible: participationEligibleForRewards,
+            sessionReadiness: sessionReadiness
+        )
     }
 
     // MARK: - Game Logic
 
     private func startGame() {
+        matchSessionId = UUID()
+        finalizedMatchSessionId = nil
+        delayedOpponentScoreGeneration = 0
+        lastGameplayLeakagePenaltyAt = [:]
+        playerActionCount = 0
+        pendingGoldenApex = nil
+        lastCommittedTrickDirection = .up
+        sessionStartedAt = Date()
+
         withAnimation { isActive = true }
         score = 0
         opponentScore = 0
@@ -2169,7 +2382,7 @@ struct GamePlayView: View {
         dunkRound = 1
         lastJudgeScores = nil
         crowdMessage = ""
-        dunkEngine = DunkContestState()
+        dunkEngine = DunkContestState(sessionSeed: GameplaySeed.uint64(from: matchSessionId))
         dunkTimerTask?.cancel()
         dunkTimerTask = nil
         styleTriggerHeld = false
@@ -2218,14 +2431,7 @@ struct GamePlayView: View {
         timeScaleUpdateTask = nil
 
         if isTimerBased {
-            switch gameMode.id {
-            case .karate: timeRemaining = 90
-            case .karateEndless: timeRemaining = 240
-            case .tennis: timeRemaining = 120
-            case .volleyball: timeRemaining = 90
-            case .basketball3v3: timeRemaining = 120
-            default: timeRemaining = 60
-            }
+            timeRemaining = max(1, gameRules.matchDurationSeconds)
             startTimer()
         }
     }
@@ -2256,6 +2462,7 @@ struct GamePlayView: View {
 
     private func performAction(_ action: String) {
         guard isActive else { return }
+        playerActionCount += 1
 
         let physics = leakageAdjustedPhysics
         let modeChance = PRQ.successChanceFromPRQ(playerPRQ, for: gameMode.id)
@@ -2338,11 +2545,13 @@ struct GamePlayView: View {
             sessionReadiness: sessionReadiness,
             playerPRQ: playerPRQ
         )
-        if Double.random(in: 0...1) < ddaChance {
+        if !multipeerService.isConnected, Double.random(in: 0...1) < ddaChance {
+            delayedOpponentScoreGeneration += 1
+            let generation = delayedOpponentScoreGeneration
             let aiDelay = dda.aiReactionSpeed(playerScore: score, aiScore: opponentScore)
             Task {
                 try? await Task.sleep(for: .seconds(aiDelay))
-                guard isActive else { return }
+                guard isActive, generation == delayedOpponentScoreGeneration else { return }
                 withAnimation(.spring(response: 0.25)) {
                     opponentScore += DynamicDifficulty.opponentPoints(
                         playerScore: score,
@@ -2533,9 +2742,11 @@ struct GamePlayView: View {
     private func executeDunkScoring() {
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
 
+        var judgeRNG = SplitMix64(seed: GameplaySeed.uint64(from: matchSessionId) &+ UInt64(dunkEngine.round) &+ 0x6A75647F)
         let result = dunkEngine.calculateDunkScore(
             prq: playerPRQ,
-            neuralBurst: arcadePhysics.neuralBurstActive
+            neuralBurst: arcadePhysics.neuralBurstActive,
+            judgeRNG: &judgeRNG
         )
 
         withAnimation(.spring(response: 0.3)) {
@@ -2596,21 +2807,24 @@ struct GamePlayView: View {
     }
 
     private func simulateAIDunk() {
-        let aiPRQ = 50.0 + Double.random(in: 0...30)
+        guard !multipeerService.isConnected else { return }
+        var rng = SplitMix64(seed: GameplaySeed.aiDunkProfileSeed(matchSeed: GameplaySeed.uint64(from: matchSessionId), round: dunkEngine.round))
+        let aiPRQ = 50.0 + Double(rng.next() % 31)
         let aiNormalized = aiPRQ / 100.0
         let dda = prqDDA
         let aggression = dda.scaledAggression(playerScore: score, aiScore: opponentScore)
 
-        let aiHeight = Double.random(in: 0.4...0.85) * aggression
-        let aiExecution = Double.random(in: 0.5...0.9) * aggression
-        let aiTrick = Double.random(in: 0.5...0.8)
+        let aiHeight = rng.nextDouble(in: 0.4...0.85) * aggression
+        let aiExecution = rng.nextDouble(in: 0.5...0.9) * aggression
+        let aiTrick = rng.nextDouble(in: 0.5...0.8)
 
         let rawScore = (aiHeight * 20 + aiTrick * 25 + aiExecution * 20 + 15) * (0.85 + aiNormalized * 0.15)
         let base = min(50, Int(rawScore / 3.0) + 28)
         let spread = max(1, 4)
-        let j1 = min(50, base + Int.random(in: 0..<spread))
-        let j2 = min(50, base + Int.random(in: 0..<spread))
-        let j3 = min(50, base + Int.random(in: 0..<spread))
+        let span = UInt64(spread)
+        let j1 = min(50, base + Int(rng.next() % span))
+        let j2 = min(50, base + Int(rng.next() % span))
+        let j3 = min(50, base + Int(rng.next() % span))
         let total = j1 + j2 + j3
 
         let message: String
@@ -2703,8 +2917,20 @@ struct GamePlayView: View {
             return action == "Serve" ? 4 : (action == "Volley" ? 3 : 2)
         case .volleyball:
             return 3
-        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl:
+        case .gymnastics:
             return action == "Vault" ? 5 : (action == "Tumble" ? 3 : 4)
+        case .surfing:
+            return action == "Carve" ? 5 : (action == "Snap" ? 3 : 4)
+        case .skateboarding:
+            return action == "Grind" ? 5 : (action == "Ollie" ? 3 : 4)
+        case .snowboarding:
+            return action == "Jump" ? 5 : (action == "Carve" ? 3 : 4)
+        case .brainBrawl:
+            return action == "Pattern" ? 5 : (action == "Focus" ? 3 : 4)
+        case .whoSceneIt:
+            return action == "Spot Star" ? 6 : (action == "Freeze" ? 3 : 4)
+        case .courtCarnival:
+            return action == "Mini" ? 4 : (action == "Roll" ? 3 : 2)
         }
     }
 
@@ -2759,6 +2985,8 @@ struct GamePlayView: View {
     // MARK: - Wii-Style Input Handlers
 
     private func applyOutcomeFromCharge(_ chargeValue: Double) {
+        guard isActive else { return }
+        playerActionCount += 1
         let physics = leakageAdjustedPhysics
         let modeChance = PRQ.successChanceFromPRQ(playerPRQ, for: gameMode.id)
         let blendedBase = (physics.successChanceBase + modeChance) / 2.0
@@ -2812,14 +3040,16 @@ struct GamePlayView: View {
                 Task {
                     try? await Task.sleep(for: .milliseconds(500))
                     guard isActive else { return }
-                    withAnimation(.spring(response: 0.25)) { opponentScore += 1 }
+                    if !multipeerService.isConnected {
+                        withAnimation(.spring(response: 0.25)) { opponentScore += 1 }
+                    }
                     endGame()
                 }
                 return
             }
         }
 
-        if gameMode.id != .football {
+        if gameMode.id != .football, !multipeerService.isConnected {
             let ddaChance = DynamicDifficulty.opponentSuccessChance(
                 baseChance: 0.55,
                 playerScore: score,
@@ -2828,10 +3058,12 @@ struct GamePlayView: View {
                 playerPRQ: playerPRQ
             )
             if Double.random(in: 0...1) < ddaChance {
+                delayedOpponentScoreGeneration += 1
+                let generation = delayedOpponentScoreGeneration
                 let aiDelay = Double.random(in: 0.4...0.8)
                 Task {
                     try? await Task.sleep(for: .seconds(aiDelay))
-                    guard isActive else { return }
+                    guard isActive, generation == delayedOpponentScoreGeneration else { return }
                     let aiPoints = DynamicDifficulty.opponentPoints(
                         playerScore: score,
                         aiScore: opponentScore,
@@ -2914,7 +3146,9 @@ struct GamePlayView: View {
             Task {
                 try? await Task.sleep(for: .milliseconds(500))
                 guard isActive else { return }
-                withAnimation(.spring(response: 0.25)) { opponentScore += 1 }
+                if !multipeerService.isConnected {
+                    withAnimation(.spring(response: 0.25)) { opponentScore += 1 }
+                }
                 try? await Task.sleep(for: .seconds(1.0))
                 guard isActive else { return }
                 withAnimation { lastAction = "" }
@@ -3003,13 +3237,34 @@ struct GamePlayView: View {
     }
 
     private func finalizeResults() {
+        if finalizedMatchSessionId == matchSessionId { return }
+
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
-        viewModel.profile.evolutionShards += shardsReward
+        if shardsReward > 0 {
+            viewModel.profile.pendingUnverifiedShardCredits += shardsReward
+            Task {
+                await TrainingLabSocialBridge.shared.recordShardLedgerForArenaSession(
+                    gameModeId: gameMode.id.rawValue,
+                    deltaShards: shardsReward,
+                    sessionId: matchSessionId.uuidString
+                )
+            }
+        }
+#if DEBUG
         viewModel.profile.metrics.prqScore = PRQ.clamp(viewModel.profile.metrics.prqScore + prqReward)
         viewModel.profile.metrics.neuralDrive = min(100, viewModel.profile.metrics.neuralDrive + 3)
+#endif
+
+        let elapsedSeconds: Int = {
+            if let start = sessionStartedAt {
+                let sec = Int(Date().timeIntervalSince(start).rounded())
+                return max(1, min(sec, 24 * 3600))
+            }
+            return isTimerBased ? gameRules.matchDurationSeconds : roundNumber * 5
+        }()
 
         let result = GameSessionResult(
-            id: UUID().uuidString,
+            id: "local:\(matchSessionId.uuidString)",
             gameModeId: gameMode.id.rawValue,
             date: Date(),
             score: score,
@@ -3017,16 +3272,25 @@ struct GamePlayView: View {
             shardsEarned: shardsReward,
             prqBonus: prqReward,
             isMultiplayer: multipeerService.isConnected,
-            duration: isTimerBased ? 60 : roundNumber * 5
+            duration: elapsedSeconds,
+            verificationSeed: GameplaySeed.uint64(from: matchSessionId),
+            trustLevel: .localPractice
         )
 
         SaveSystem.saveProfile(viewModel.profile)
         SaveSystem.saveGameResult(result)
         viewModel.globalLeaderboard.refreshRankings(userProfile: viewModel.profile, sampleData: SampleData.leaderboard)
+
+        finalizedMatchSessionId = matchSessionId
     }
 
     private func handleLiveLeakage(joint: JointType, severity: Double) {
-        guard isActive, severity > 0.3 else { return }
+        let now = Date().timeIntervalSince1970
+        let cooldown: TimeInterval = 1.05
+        if let last = lastGameplayLeakagePenaltyAt[joint], now - last < cooldown { return }
+
+        guard isActive, severity > 0.35 else { return }
+        lastGameplayLeakagePenaltyAt[joint] = now
 
         withAnimation(.easeOut(duration: 0.2)) {
             liveLeakagePenalty = min(0.4, liveLeakagePenalty + severity * 0.15)
@@ -3136,16 +3400,16 @@ struct GamePlayView: View {
                                 .foregroundStyle(Theme.elitePurple)
                                 .tracking(2)
                             HStack(spacing: 12) {
-                                trickDirectionButton(.up, label: "\u{25B2}", hint: isKarate ? "Rasengan" : "Windmill")
+                                trickDirectionButton(.up, label: "\u{25B2}", hint: isKarate ? "Vortex" : "Windmill")
                                 trickDirectionButton(.down, label: "\u{25BC}", hint: isKarate ? "Barrage" : "Between")
-                                trickDirectionButton(.left, label: "\u{25C0}", hint: isKarate ? "Chidori" : "Tomahawk")
-                                trickDirectionButton(.right, label: "\u{25B6}", hint: isKarate ? "Shadow" : "360")
+                                trickDirectionButton(.left, label: "\u{25C0}", hint: isKarate ? "Surge" : "Tomahawk")
+                                trickDirectionButton(.right, label: "\u{25B6}", hint: isKarate ? "Phantom" : "360")
                             }
                             if specialMeterFull {
                                 Button {
                                     executeSpecialTrick()
                                 } label: {
-                                    Text(isKarate ? "GATE OF DEATH" : "GIANT KILLER")
+                                    Text(isKarate ? "FINAL GATE" : "GIANT KILLER")
                                         .font(.system(size: 9, weight: .black, design: .monospaced))
                                         .foregroundStyle(.black)
                                         .padding(.horizontal, 12)
@@ -3260,6 +3524,9 @@ struct GamePlayView: View {
 
     private func executeTrickCombo(direction: ComboDirection) {
         guard isActive, isModifierHeld else { return }
+        if direction != .neutral {
+            lastCommittedTrickDirection = direction
+        }
         let goldenTrick = DirectionalTrick.resolve(direction: direction, modifier: activeModifierState, mode: gameMode.id)
         executeGoldenTrick(goldenTrick)
     }
@@ -3270,12 +3537,14 @@ struct GamePlayView: View {
             specialMeter = 0
             activeModifierState = .special
         }
-        let goldenTrick = DirectionalTrick.resolve(direction: currentTrickDirection, modifier: .special, mode: gameMode.id)
+        let dir = currentTrickDirection != .neutral ? currentTrickDirection : lastCommittedTrickDirection
+        let goldenTrick = DirectionalTrick.resolve(direction: dir, modifier: .special, mode: gameMode.id)
         executeGoldenTrick(goldenTrick)
-        triggerMatrixSlowMo(effect: .finisher)
     }
 
     private func executeGoldenTrick(_ trick: DirectionalTrick) {
+        guard pendingGoldenApex == nil else { return }
+
         let physics = leakageAdjustedPhysics
         let riskRoll = Double.random(in: 0...1)
         let successThreshold = physics.successChanceBase / trick.riskFactor
@@ -3292,71 +3561,111 @@ struct GamePlayView: View {
 
         if success {
             goldenComboEngine = goldenComboEngine.addTrick(trick, at: now)
-
-            let apexEngine = goldenComboEngine.startApexQTE(at: now)
-            let resolvedEngine = apexEngine.resolveApexQTE(inputTime: now + Double.random(in: 0.05...0.2))
-            goldenComboEngine = resolvedEngine
-
-            let grade = resolvedEngine.lastQTEGrade ?? .ok
-            lastQTEGrade = grade
-
-            let stylePoints = goldenComboEngine.finalScore(
-                prqNormalized: min(max(playerPRQ / 100.0, 0), 1),
-                neuralBurst: arcadePhysics.neuralBurstActive
-            )
-            let scaledPoints = max(1, stylePoints / max(1, goldenComboEngine.chainLength))
-            let finalPoints = physics.adjustedPoints(base: scaledPoints, combo: combo, isCritical: isCritical)
-
-            withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
-                score += finalPoints
-                combo += 1
-                maxCombo = max(maxCombo, combo)
-                lastActionIsCritical = isCritical
-                lastActionIsBurst = arcadePhysics.neuralBurstActive
-                lastAction = "+\(finalPoints)"
-                lastTrickName = trick.displayName
-                showTrickText = true
-                specialMeter = min(100, specialMeter + physics.specialMeterGainRate)
-                qteGradeText = grade.rawValue
-                showQTEGrade = true
-            }
-
-            let impact = ImpactFXConfig.forImpact(
-                modifier: trick.modifier == .special ? .special : activeModifierState,
-                qteGrade: grade,
-                jumpHeight: Double(physicsConfig.jumpHeight) / 4.0
-            )
-            triggerScreenShake(intensity: impact.screenShakeIntensity / 14.0)
-
-            if isCritical {
-                criticalHits += 1
-                triggerCriticalFlash()
-            } else {
-                triggerFlash()
-            }
-            triggerImpactFlash()
-            resetStreakTimer()
-
-            if grade.triggersSlowMo || trick.modifier == .special {
-                triggerMatrixSlowMo(effect: trick.modifier == .special ? .finisher : .slowMo)
-            }
-
-            matrixState = matrixState.resolveAction(at: CACurrentMediaTime())
-
+            goldenComboEngine = goldenComboEngine.startApexQTE(at: now)
+            pendingGoldenApex = PendingGoldenApexPayload(trick: trick, isCritical: isCritical)
+            apexQTESessionGeneration += 1
+            let generation = apexQTESessionGeneration
             Task {
-                try? await Task.sleep(for: .seconds(2.0))
-                withAnimation { showTrickText = false; lastTrickName = ""; showQTEGrade = false }
-                matrixState = matrixState.toIdle(at: CACurrentMediaTime())
+                try? await Task.sleep(for: .seconds(QTEApexWindow.windowDuration + 0.12))
+                guard generation == apexQTESessionGeneration, pendingGoldenApex != nil else { return }
+                resolveGoldenApex(withInputTime: nil)
             }
+            return
+        }
+
+        withAnimation(.spring(response: 0.3)) {
+            combo = 0
+            lastAction = "CLANK!"
+            lastActionIsCritical = false
+            lastActionIsBurst = false
+            goldenComboEngine = goldenComboEngine.reset()
+        }
+        triggerScreenShake(intensity: 0.3)
+        matrixState = matrixState.toIdle(at: CACurrentMediaTime())
+
+        withAnimation(.spring(response: 0.2)) {
+            isModifierHeld = false
+            activeModifierState = .none
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(2.0))
+            withAnimation { lastAction = "" }
+        }
+    }
+
+    private func commitApexQTEResolution() {
+        guard pendingGoldenApex != nil else { return }
+        apexQTESessionGeneration += 1
+        resolveGoldenApex(withInputTime: CACurrentMediaTime())
+    }
+
+    private func resolveGoldenApex(withInputTime inputTime: CFTimeInterval?) {
+        guard let payload = pendingGoldenApex else { return }
+        pendingGoldenApex = nil
+        let t: CFTimeInterval
+        if let inputTime {
+            t = inputTime
+        } else if let end = goldenComboEngine.apexWindow?.windowEnd {
+            t = end + 0.6
         } else {
-            withAnimation(.spring(response: 0.3)) {
-                combo = 0
-                lastAction = "CLANK!"
-                lastActionIsCritical = false
-                lastActionIsBurst = false
-                goldenComboEngine = goldenComboEngine.reset()
-            }
-            triggerScreenShake(intensity: 0.3)
+            t = CACurrentMediaTime()
+        }
+        goldenComboEngine = goldenComboEngine.resolveApexQTE(inputTime: t)
+        let grade = goldenComboEngine.lastQTEGrade ?? .ok
+        lastQTEGrade = grade
+        finishGoldenTrickScoring(trick: payload.trick, grade: grade, isCritical: payload.isCritical)
+    }
+
+    private func finishGoldenTrickScoring(trick: DirectionalTrick, grade: QTEGrade, isCritical: Bool) {
+        let physics = leakageAdjustedPhysics
+
+        let stylePoints = goldenComboEngine.finalScore(
+            prqNormalized: min(max(playerPRQ / 100.0, 0), 1),
+            neuralBurst: arcadePhysics.neuralBurstActive
+        )
+        let scaledPoints = max(1, stylePoints / max(1, goldenComboEngine.chainLength))
+        let finalPoints = physics.adjustedPoints(base: scaledPoints, combo: combo, isCritical: isCritical)
+
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+            score += finalPoints
+            combo += 1
+            maxCombo = max(maxCombo, combo)
+            lastActionIsCritical = isCritical
+            lastActionIsBurst = arcadePhysics.neuralBurstActive
+            lastAction = "+\(finalPoints)"
+            lastTrickName = trick.displayName
+            showTrickText = true
+            specialMeter = min(100, specialMeter + physics.specialMeterGainRate)
+            qteGradeText = grade.rawValue
+            showQTEGrade = true
+        }
+
+        let impact = ImpactFXConfig.forImpact(
+            modifier: trick.modifier == .special ? .special : activeModifierState,
+            qteGrade: grade,
+            jumpHeight: Double(physicsConfig.jumpHeight) / 4.0
+        )
+        triggerScreenShake(intensity: impact.screenShakeIntensity / 14.0)
+
+        if isCritical {
+            criticalHits += 1
+            triggerCriticalFlash()
+        } else {
+            triggerFlash()
+        }
+        triggerImpactFlash()
+        resetStreakTimer()
+
+        if grade.triggersSlowMo || trick.modifier == .special {
+            triggerMatrixSlowMo(effect: trick.modifier == .special ? .finisher : .slowMo)
+        }
+
+        matrixState = matrixState.resolveAction(at: CACurrentMediaTime())
+
+        Task {
+            try? await Task.sleep(for: .seconds(2.0))
+            withAnimation { showTrickText = false; lastTrickName = ""; showQTEGrade = false }
             matrixState = matrixState.toIdle(at: CACurrentMediaTime())
         }
 
@@ -3483,6 +3792,7 @@ struct GamePlayView: View {
         case .right: comboDir = .right
         }
         currentTrickDirection = comboDir
+        lastCommittedTrickDirection = comboDir
         if inputScheme == .rallyAce || inputScheme == .dragTap || inputScheme == .penaltyKick {
             nudgeAimWithDirection(comboDir)
         }
@@ -3565,6 +3875,7 @@ struct GamePlayView: View {
         } else {
             currentTrickDirection = vector.y >= 0 ? .up : .down
         }
+        lastCommittedTrickDirection = currentTrickDirection
     }
 
     private func nudgeAimWithDirection(_ direction: ComboDirection) {
@@ -3814,9 +4125,10 @@ struct GamePlayView: View {
     // MARK: - Defense Simulation
 
     private func simulateDefenderProximity() {
-        let baseDistance = Double.random(in: 1.0...5.0)
+        let stick = hypot(leftStickVector.x, leftStickVector.y)
         let lateralScale = DefensivePhysics.lateralQuicknessScale(perimeterDefense: arcadePhysics.perimeterDefense)
-        let adjusted = baseDistance / lateralScale
+        let spacingFeet = max(0.8, min(6.0, 5.2 - stick * 3.2))
+        let adjusted = spacingFeet / lateralScale
         withAnimation(.spring(response: 0.3)) {
             defenderSimDistance = max(0.5, min(6.0, adjusted))
             defensiveState.defenderDistance = defenderSimDistance

@@ -10,11 +10,13 @@ struct MatchmakingView: View {
     @State private var pulseRing: CGFloat = 0
     @State private var selectedTier: PRQTier?
     @State private var showNeuralScan = false
-    @State private var sessionReadiness: Double = 50
+    @State private var sessionReadiness: Double = 0
     @State private var showRecentMatches = false
+    /// When non-nil, neural scan is for accepting this match (GAME-34).
+    @State private var matchPendingReadiness: MatchmakingResult?
 
     private var userTier: PRQTier {
-        PRQTier.fromPRQ(viewModel.effectiveMetrics.prqScore)
+        PRQTier.fromPRQ(viewModel.competitivePRQScore)
     }
 
     var body: some View {
@@ -32,12 +34,6 @@ struct MatchmakingView: View {
             .padding()
         }
         .preferredColorScheme(.dark)
-        .fullScreenCover(isPresented: $showNeuralScan) {
-            NeuralReadinessScanView { readiness in
-                sessionReadiness = readiness
-                showNeuralScan = false
-            }
-        }
         .sheet(isPresented: $showRecentMatches) {
             recentMatchesSheet
         }
@@ -46,6 +42,21 @@ struct MatchmakingView: View {
         }
         .onDisappear {
             viewModel.globalLeaderboard.cancelMatchmaking()
+            viewModel.globalLeaderboard.stopOnlinePresenceSimulation()
+        }
+        .fullScreenCover(isPresented: $showNeuralScan, onDismiss: {
+            if matchPendingReadiness != nil {
+                matchPendingReadiness = nil
+            }
+        }) {
+            if let pending = matchPendingReadiness {
+                NeuralReadinessScanView { readiness in
+                    sessionReadiness = readiness
+                    matchPendingReadiness = nil
+                    showNeuralScan = false
+                    onMatchFound(pending.opponent, readiness)
+                }
+            }
         }
     }
 
@@ -128,7 +139,7 @@ struct MatchmakingView: View {
                         .frame(width: CGFloat(100 + ring * 40), height: CGFloat(100 + ring * 40))
                 }
 
-                PRQTierBadge(tier: userTier, prq: viewModel.effectiveMetrics.prqScore)
+                PRQTierBadge(tier: userTier, prq: viewModel.competitivePRQScore)
             }
 
             VStack(spacing: 8) {
@@ -173,7 +184,7 @@ struct MatchmakingView: View {
             Button {
                 Task {
                     await viewModel.globalLeaderboard.findMatch(
-                        userPRQ: viewModel.effectiveMetrics.prqScore,
+                        userPRQ: viewModel.competitivePRQScore,
                         preferredTier: selectedTier
                     )
                 }
@@ -259,7 +270,7 @@ struct MatchmakingView: View {
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(.secondary)
 
-                    Text(String(format: "%.0f", viewModel.effectiveMetrics.prqScore))
+                    Text(String(format: "%.0f", viewModel.competitivePRQScore))
                         .font(.system(.headline, design: .monospaced, weight: .black))
                         .foregroundStyle(.white)
                 }
@@ -300,6 +311,7 @@ struct MatchmakingView: View {
             }
 
             Button {
+                matchPendingReadiness = result
                 showNeuralScan = true
             } label: {
                 HStack(spacing: 8) {
@@ -314,11 +326,6 @@ struct MatchmakingView: View {
                 .clipShape(.rect(cornerRadius: 14))
             }
             .padding(.horizontal, 32)
-            .onChange(of: showNeuralScan) { _, isShowing in
-                if !isShowing && sessionReadiness > 0 {
-                    onMatchFound(result.opponent, sessionReadiness)
-                }
-            }
 
             Button {
                 viewModel.globalLeaderboard.cancelMatchmaking()
