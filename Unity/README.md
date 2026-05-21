@@ -1,5 +1,7 @@
 # Final Evolution — Unity (UaaL) scripts in this repo
 
+> **Status: Unity prototype/reference track.** The production iOS target is the Unreal Engine 5.7 host with WKWebView dashboard overlay. See `SHIPPING_ARCHITECTURE.md`. Do not use these scripts for the shipping path.
+
 Copy **`Scripts/`** and **`Editor/`** into your Unity project under **`Assets/`** (e.g. `Assets/FEL/Scripts`, `Assets/FEL/Editor`). Adjust assembly definitions if you use them.
 
 ## Batch iOS export

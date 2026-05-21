@@ -1,5 +1,7 @@
 # Final Evolution Lab — Unity 6 project
 
+> **Status: Unity prototype/reference track.** The production iOS target is the Unreal Engine 5.7 host with WKWebView dashboard overlay. See `SHIPPING_ARCHITECTURE.md`.
+
 ## Setup
 
 1. Open **`UnityProject`** in **Unity 6000.x** (see `ProjectSettings/ProjectVersion.txt`).

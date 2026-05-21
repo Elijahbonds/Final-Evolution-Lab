@@ -1,5 +1,15 @@
 # AGENTS.md
 
+## Shipping target (anti-drift)
+
+**Unreal Engine 5.7** is the canonical production shipping target per leadership decision. See `SHIPPING_ARCHITECTURE.md`.
+
+- Do not implement new production gameplay in Unity.
+- Do not revive SwiftUI-first hosting or Unreal-as-a-Library / XCFramework embedding.
+- One retail iOS app: Unreal host + native WKWebView dashboard overlay.
+- Distribution: App Store Connect / TestFlight only. No sideload/AltStore/Sovereign Store.
+- Unity and Swift remain reference/prototype. Production fixes land in Unreal.
+
 ## Cursor Cloud specific instructions
 
 ### Repository overview

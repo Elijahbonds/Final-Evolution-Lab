@@ -1,5 +1,13 @@
 # Final Evolution Lab — default stack
+# CANONICAL SHIPPING TARGET: Unreal Engine 5.7 (see SHIPPING_ARCHITECTURE.md).
 # **FEL: implement only in Unreal; never Swift unless I say so.** All product work: `UnrealStarter/BasketballGame/` (C++ / Blueprint / UMG / Niagara / Editor Python under `BasketballGame/EditorPython` or `UnrealStarter/EditorPython`). Do not edit `ios/`, `FinalEvolutionLab/`, or any `.swift` file unless the user explicitly requests Swift/iOS work. See UNREAL_ONLY.md.
+#
+# Anti-drift rule (leadership re-baseline):
+# - Unreal Engine 5.7 is the production target. Unity is reference/prototype only.
+# - Do not implement new production gameplay in Unity.
+# - Do not revive SwiftUI-first hosting or Unreal-as-a-Library / XCFramework embedding.
+# - Do not create a second app. One retail iOS app: Unreal host + WKWebView dashboard overlay.
+# - Distribution: App Store Connect / TestFlight. No sideload/AltStore/Sovereign Store language.
 
 # Unreal Engine 5.7+ (when working with Unreal C++, Blueprints, or editor scripts)
 

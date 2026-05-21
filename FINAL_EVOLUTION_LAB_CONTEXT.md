@@ -80,4 +80,4 @@ To mirror the dump exactly you’d add Coach and Blueprints as separate tabs and
 
 ---
 
-*Use this file plus the full code-dump document for agent context. The canonical dump is the single source of truth for the intended iOS + Unity structure and APIs.*
+*Use this file plus the full code-dump document for agent context. The canonical shipping target is **Unreal Engine 5.7** (see `SHIPPING_ARCHITECTURE.md`). The code-dump describes the historical iOS + Unity structure for reference only.*
