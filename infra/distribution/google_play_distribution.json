@@ -1,0 +1,91 @@
+{
+  "_comment": "FEL Google Play Store Distribution Config — Antigravity x Seele AI Stack",
+  "package_name": "com.antigravity.finalevolutionlab",
+  "app_name": "Final Evolution Lab",
+  "short_description": "The ultimate sports evolution platform — 12+ game modes, real-time multiplayer, Creator Cards, PRQ rating system.",
+  "full_description": "Final Evolution Lab (FEL) is a next-generation sports gaming platform built on Unreal Engine 5.7 with the Antigravity x Seele AI stack. Compete in 12+ sports modes from basketball to karate, earn Creator Cards, climb the PRQ leaderboard, and evolve your athletic profile.\n\nFEATURES:\n• 12 Production Game Modes: Basketball H2H, Dunk Contest, 3v3, Karate H2H, Karate Endless, Baseball, Football, Soccer, Golf, Tennis, Volleyball, Surfing\n• Creator Card System: Collect, trade, and use real athlete cards\n• PRQ Rating System: Weighted composite physical readiness quotient\n• Shard Economy: Earn shards through gameplay, combos, and critical hits\n• Real-time Multiplayer via Sovereign Hub\n• AI Coaching powered by Seele AI\n• Venice Beach and 10+ iconic sports venues",
+  "category": "GAME_SPORTS",
+  "content_rating": "EVERYONE_10_PLUS",
+  "target_sdk": 35,
+  "min_sdk": 28,
+  "store_listing": {
+    "default_language": "en-US",
+    "privacy_policy_url": "https://antigravity.io/privacy",
+    "website_url": "https://antigravity.io/fel",
+    "support_email": "support@antigravity.io"
+  },
+  "distribution": {
+    "countries": "ALL",
+    "pricing": {
+      "model": "free_with_iap",
+      "base_price": "0.00",
+      "iap_items": [
+        {"sku": "fel_shard_pack_100", "price": "0.99", "type": "consumable"},
+        {"sku": "fel_shard_pack_500", "price": "3.99", "type": "consumable"},
+        {"sku": "fel_shard_pack_2000", "price": "9.99", "type": "consumable"},
+        {"sku": "fel_creator_card_pack", "price": "4.99", "type": "consumable"},
+        {"sku": "fel_sovereign_pass_monthly", "price": "9.99", "type": "subscription"},
+        {"sku": "fel_sovereign_pass_yearly", "price": "79.99", "type": "subscription"}
+      ]
+    }
+  },
+  "release_tracks": {
+    "internal": {
+      "description": "Internal testing — Seele AI integration team",
+      "testers": "seele-internal@antigravity.io"
+    },
+    "closed_alpha": {
+      "description": "Closed alpha — Venice Beach beta testers",
+      "max_testers": 100
+    },
+    "open_beta": {
+      "description": "Open beta — public preview before production launch",
+      "auto_promote_after_days": 14
+    },
+    "production": {
+      "description": "Full production release",
+      "staged_rollout_percentage": 10,
+      "full_rollout_after_days": 7
+    }
+  },
+  "aab_config": {
+    "signing": {
+      "key_alias": "fel-release-key",
+      "keystore": "release-keystore.jks",
+      "play_app_signing": true
+    },
+    "bundle_config": {
+      "abi_filters": ["arm64-v8a"],
+      "texture_compression": "ASTC",
+      "split_apks": true,
+      "asset_packs": [
+        {
+          "name": "venue_assets",
+          "delivery_type": "install_time",
+          "description": "Core venue maps and textures"
+        },
+        {
+          "name": "staging_venues",
+          "delivery_type": "on_demand",
+          "description": "Staging venue content (skateboarding, snowboarding, gymnastics, brain_brawl)"
+        }
+      ]
+    }
+  },
+  "seele_ai_integration": {
+    "backend_url": "https://api.antigravity.io/fel/v1",
+    "sovereign_hub_wss": "wss://readiness-stack.preview.emergentagent.com/ws/sovereign",
+    "analytics_endpoint": "https://analytics.antigravity.io/fel",
+    "crash_reporting": "firebase_crashlytics",
+    "remote_config": "firebase_remote_config"
+  },
+  "build_pipeline": {
+    "ci_provider": "github_actions",
+    "build_command": "gradlew bundleRelease",
+    "pre_build_validations": [
+      "scripts/validate_cooked_payload.py",
+      "scripts/validate_ios_descriptor.py"
+    ],
+    "artifact_path": "app/build/outputs/bundle/release/app-release.aab"
+  }
+}

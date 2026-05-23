@@ -8,7 +8,7 @@
   "mode_manager": {
     "class": "UFELModeManagerSubsystem",
     "total_modes": 19,
-    "production_modes": 14,
+    "production_modes": 13,
     "staging_modes": 4,
     "preview_modes": 2,
     "mode_registry": {
