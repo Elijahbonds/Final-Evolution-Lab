@@ -8,7 +8,7 @@
   "mode_manager": {
     "class": "UFELModeManagerSubsystem",
     "total_modes": 19,
-    "production_modes": 13,
+    "production_modes": 12,
     "staging_modes": 4,
     "preview_modes": 2,
     "mode_registry": {
@@ -28,7 +28,7 @@
       "snowboarding": {"map": "/Game/FEL/Venues/MountainSlope/MountainSlope", "gamemode_class": "/Script/FEL.BP_Snowboarding", "binary": "FEL-Snowboarding", "status": "staging"},
       "gymnastics": {"map": "/Game/FEL/Venues/TrainingFloor/TrainingFloor", "gamemode_class": "/Script/FEL.BP_Gymnastics", "binary": "FEL-Gymnastics", "status": "staging"},
       "brain_brawl": {"map": "/Game/FEL/Venues/NeuroArena/NeuroArena", "gamemode_class": "/Script/FEL.BP_BrainBrawl", "binary": "FEL-BrainBrawl", "status": "staging"},
-      "market_browse": {"map": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop", "gamemode_class": "/Script/FEL.BP_MarketBrowse", "binary": "FEL-Market", "status": "production"},
+      "market_browse": {"map": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop", "gamemode_class": "/Script/FEL.BP_MarketBrowse", "binary": "FEL-Market", "status": "non-game-module"},
       "who_scene_it": {"map": "/Game/FEL/Venues/NeuroArena/NeuroArena", "gamemode_class": "/Script/FEL.BP_WhoSceneIt", "binary": "FEL-WhoSceneIt", "status": "preview"},
       "court_carnival": {"map": "/Game/FEL/Venues/VeniceBeach/VeniceBeach", "gamemode_class": "/Script/FEL.BP_PartyMode", "binary": "FEL-PartyMode", "status": "preview"}
     }

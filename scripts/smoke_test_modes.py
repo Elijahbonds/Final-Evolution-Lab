@@ -36,8 +36,10 @@ PRODUCTION_MODES = [
     "basketball_h2h", "basketball_dunk", "basketball_3v3",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing", "market_browse",
+    "tennis", "volleyball", "surfing",
 ]
+
+NON_GAME_MODULES = ["market_browse"]
 
 STAGING_MODES = ["skateboarding", "snowboarding", "gymnastics", "brain_brawl"]
 PREVIEW_MODES = ["who_scene_it", "court_carnival"]
@@ -73,6 +75,14 @@ def test_mode_manager_registry():
             ok(f"{mode} → preview (expected)")
         else:
             fail(f"{mode} missing or wrong status in registry")
+
+    for mode in NON_GAME_MODULES:
+        if mode in registry and registry[mode]["status"] == "non-game-module":
+            ok(f"{mode} → non-game-module (expected)")
+        elif mode in registry:
+            fail(f"{mode} status={registry[mode]['status']}, expected non-game-module")
+        else:
+            fail(f"{mode} missing from registry")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 2: UE Mode Maps Coverage
@@ -234,7 +244,7 @@ def test_economy_integration():
             fail(f"{label} missing")
 
     # Verify PRQ weights cover all scoring modes
-    scoring_modes = [m for m in PRODUCTION_MODES if m != "market_browse"]
+    scoring_modes = PRODUCTION_MODES  # all production modes are scoring modes
     for mode in scoring_modes:
         if f'"{mode}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]:
             ok(f"PRQ weight defined for {mode}")
