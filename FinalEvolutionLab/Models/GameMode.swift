@@ -18,6 +18,9 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case skateboarding = "skateboarding"
     case snowboarding = "snowboarding"
     case brainBrawl = "brain_brawl"
+    case whoSceneIt = "who_scene_it"
+    case courtCarnival = "court_carnival"
+    case marketBrowse = "market_browse"
 
     var id: String { rawValue }
 }
@@ -48,8 +51,12 @@ extension GameModeId {
             return .kickReturn
         case .soccer:
             return .penaltyKick
-        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl:
+        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl, .whoSceneIt:
             return .rhythmTap
+        case .courtCarnival:
+            return .dragTap
+        case .marketBrowse:
+            return .dragTap
         }
     }
 }
@@ -72,6 +79,8 @@ nonisolated struct GameMode: Sendable, Identifiable {
         case precision = "Precision"
         case board = "Board"
         case academy = "Academy"
+        case party = "Party"
+        case shop = "Shop"
     }
 
     nonisolated enum MultiplayerType: String, Sendable {
@@ -259,6 +268,39 @@ struct GameModeRegistry {
             environmentName: "Neuro Arena",
             hint: nil
         ),
+        GameMode(
+            id: .whoSceneIt,
+            name: "Who Scene It",
+            subtitle: "Sports & Entertainment Trivia",
+            sport: .academy,
+            iconName: "questionmark.circle.fill",
+            accentColor: Color(red: 0.9, green: 0.3, blue: 0.6),
+            multiplayerType: .realtime,
+            environmentName: "Neuro Arena",
+            hint: "Creator Card multimedia clips"
+        ),
+        GameMode(
+            id: .courtCarnival,
+            name: "Court Carnival",
+            subtitle: "Board-Style Arcade Party",
+            sport: .party,
+            iconName: "party.popper.fill",
+            accentColor: Color(red: 1.0, green: 0.5, blue: 0.0),
+            multiplayerType: .realtime,
+            environmentName: "Venice Beach Court",
+            hint: "Mini-games across all venues"
+        ),
+        GameMode(
+            id: .marketBrowse,
+            name: "Sovereign Shop",
+            subtitle: "Browse & Purchase",
+            sport: .shop,
+            iconName: "storefront.fill",
+            accentColor: Color(red: 0.4, green: 0.8, blue: 0.6),
+            multiplayerType: .solo,
+            environmentName: "Luma Venice Shop",
+            hint: nil
+        ),
     ]
 
     static func mode(for id: GameModeId) -> GameMode {
@@ -266,7 +308,7 @@ struct GameModeRegistry {
     }
 
     static var sportCategories: [GameMode.SportCategory] {
-        [.basketball, .combat, .field, .precision, .board, .academy]
+        [.basketball, .combat, .field, .precision, .board, .academy, .party, .shop]
     }
 
     static func modes(for sport: GameMode.SportCategory) -> [GameMode] {

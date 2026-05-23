@@ -40,13 +40,24 @@
       "bScoringEnabled": true,
       "bNeuroKineticLeakageForDunkParity": true
     },
-    "karate": {
+    "karate_h2h": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo.Dojo",
-      "modeDisplayName": "Karate · Dojo",
+      "modeDisplayName": "Karate · 1v1",
       "unrealBasketballSlice": "StreetBall",
       "targetScore": 5,
       "timeLimitSeconds": 150,
-      "ballCount": 1
+      "ballCount": 1,
+      "bScoringEnabled": true
+    },
+    "karate_endless": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo.Dojo",
+      "modeDisplayName": "Karate · Endless",
+      "unrealBasketballSlice": "StreetBall",
+      "targetScore": 0,
+      "timeLimitSeconds": 0,
+      "ballCount": 1,
+      "bScoringEnabled": true,
+      "bEndlessMode": true
     },
     "baseball": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/BaseballPark/BaseballPark.BaseballPark",
@@ -133,7 +144,7 @@
       "physicsJumpScale": 1.04
     },
     "skateboarding": {
-      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/SkatePark/SkatePark.SkatePark",
       "modeDisplayName": "Skate · Line",
       "unrealBasketballSlice": "Practice",
       "ballSpawnType": "None",
@@ -146,7 +157,7 @@
       "physicsJumpScale": 1.06
     },
     "snowboarding": {
-      "unrealOpenLevelPackage": "/Game/FEL/Venues/TrainingFloor/TrainingFloor.TrainingFloor",
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/MountainSlope/MountainSlope.MountainSlope",
       "modeDisplayName": "Snow · Line",
       "unrealBasketballSlice": "Practice",
       "ballSpawnType": "None",
@@ -157,6 +168,32 @@
       "bScoringEnabled": true,
       "physicsWalkScale": 1.04,
       "physicsJumpScale": 1.05
+    },
+    "who_scene_it": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/NeuroArena/NeuroArena.NeuroArena",
+      "modeDisplayName": "Who Scene It",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 900,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": false,
+      "maxPlayers": 8
+    },
+    "court_carnival": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Court Carnival",
+      "unrealBasketballSlice": "Practice",
+      "ballSpawnType": "None",
+      "bIsDunkContest": false,
+      "ballCount": 0,
+      "targetScore": 0,
+      "timeLimitSeconds": 1800,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": false,
+      "maxPlayers": 4
     },
     "market_browse": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop.Luma_Venice_Shop",

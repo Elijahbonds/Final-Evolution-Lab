@@ -1,25 +1,33 @@
 {
-  "schema": "fel-venue-registry-1",
-  "notes": "Align analytics venue keys with Emergent policy. iOS Swift registry has 11 modes (GameMode.swift); UE basketball build adds maps (e.g. Zen Dojo) — reconcile 12th mode with product owner.",
+  "schema": "fel-venue-registry-2",
+  "notes": "Production venue registry — 19 modes (14 production, 4 staging, 2 preview). Aligned with FEL_ModeManager, GameMode.swift, DefaultGame.ini, and ArenaSettings.json.",
   "modes": [
     { "id": "basketball_h2h", "analyticsMode": "head_to_head", "venueKey": "venice_beach_court", "displayVenue": "Venice Beach Court" },
     { "id": "basketball_dunk", "analyticsMode": "dunk_contest", "venueKey": "venice_beach_court_dunk", "displayVenue": "Venice Beach Court" },
     { "id": "basketball_3v3", "analyticsMode": "streetball_3v3", "venueKey": "venice_beach_court_3v3", "displayVenue": "Venice Beach Court" },
-    { "id": "karate", "analyticsMode": "karate_sparring", "venueKey": "dojo_arena", "displayVenue": "Dojo Arena" },
+    { "id": "karate_h2h", "analyticsMode": "karate_sparring", "venueKey": "dojo_arena", "displayVenue": "Dojo Arena" },
+    { "id": "karate_endless", "analyticsMode": "karate_endless", "venueKey": "dojo_arena", "displayVenue": "Dojo Arena" },
     { "id": "baseball", "analyticsMode": "home_run_derby", "venueKey": "stadium_diamond", "displayVenue": "Stadium Diamond" },
     { "id": "football", "analyticsMode": "kick_return", "venueKey": "stadium_field", "displayVenue": "Stadium Field" },
     { "id": "soccer", "analyticsMode": "penalty_shootout", "venueKey": "stadium_pitch", "displayVenue": "Stadium Pitch" },
     { "id": "golf", "analyticsMode": "closest_to_pin", "venueKey": "golf_green", "displayVenue": "Golf Green" },
     { "id": "tennis", "analyticsMode": "rally_ace_tennis", "venueKey": "venice_beach_court_tennis", "displayVenue": "Venice Beach Court" },
     { "id": "volleyball", "analyticsMode": "rally_ace_volleyball", "venueKey": "beach_court", "displayVenue": "Beach Court" },
+    { "id": "surfing", "analyticsMode": "surf_line", "venueKey": "venice_beach_surf", "displayVenue": "Venice Beach Surf" },
     { "id": "gymnastics", "analyticsMode": "gymnastics_routine", "venueKey": "arena_floor", "displayVenue": "Arena" },
-    { "id": "ue_basketball_placeholder", "analyticsMode": "zen_dojo_ue", "venueKey": "zen_dojo", "displayVenue": "Zen Dojo", "optional": true }
+    { "id": "skateboarding", "analyticsMode": "skate_line", "venueKey": "skate_park", "displayVenue": "Skate Park" },
+    { "id": "snowboarding", "analyticsMode": "snow_line", "venueKey": "mountain_slope", "displayVenue": "Mountain Slope" },
+    { "id": "brain_brawl", "analyticsMode": "brain_brawl", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena" },
+    { "id": "who_scene_it", "analyticsMode": "who_scene_it", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena" },
+    { "id": "court_carnival", "analyticsMode": "court_carnival", "venueKey": "venice_beach_court", "displayVenue": "Venice Beach Court" },
+    { "id": "market_browse", "analyticsMode": "market_browse", "venueKey": "luma_venice_shop", "displayVenue": "Luma Venice Shop" }
   ],
   "venues": [
     { "venueKey": "venice_beach_court", "analyticsPolicyName": "Venice Beach — H2H" },
     { "venueKey": "venice_beach_court_dunk", "analyticsPolicyName": "Venice Beach — Dunk" },
     { "venueKey": "venice_beach_court_3v3", "analyticsPolicyName": "Venice Beach — 3v3" },
     { "venueKey": "venice_beach_court_tennis", "analyticsPolicyName": "Venice Beach — Tennis" },
+    { "venueKey": "venice_beach_surf", "analyticsPolicyName": "Venice Beach — Surf" },
     { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
     { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena" },
     { "venueKey": "zen_dojo", "analyticsPolicyName": "Zen Dojo (UE map)" },
@@ -28,6 +36,10 @@
     { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
     { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
     { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
+    { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },
+    { "venueKey": "mountain_slope", "analyticsPolicyName": "Mountain Slope" },
+    { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena" },
+    { "venueKey": "luma_venice_shop", "analyticsPolicyName": "Luma Venice Shop" },
     { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
   ]
 }
