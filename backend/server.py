@@ -498,14 +498,105 @@ async def log_workout(data: Dict[str, Any], user: User = Depends(get_current_use
 async def get_game_modes():
     return get_seeded_game_modes()
 
+## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
+PRQ_MODE_WEIGHTS = {
+    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+    "karate_h2h": 1.4, "karate_endless": 1.4,
+    "baseball": 1.0, "football": 1.5, "soccer": 1.1,
+    "golf": 0.9, "tennis": 1.1, "volleyball": 1.2,
+    "surfing": 1.05, "skateboarding": 1.0, "snowboarding": 1.0,
+    "gymnastics": 1.0, "brain_brawl": 0.8,
+    "who_scene_it": 0.7, "court_carnival": 0.9,
+}
+SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
+SHARD_COMBO_MULTIPLIER, SHARD_CRITICAL_BONUS = 5, 10
+XP_CAP_PER_SESSION = 500
+
+def _compute_prq_delta(mode_id: str, score: int, duration: int, completed: bool) -> float:
+    """PRQ delta = base_score × mode_weight × completion_bonus"""
+    weight = PRQ_MODE_WEIGHTS.get(mode_id, 1.0)
+    base = score * 0.1
+    completion_bonus = 1.25 if completed else 0.75
+    time_factor = min(1.0, duration / 60.0) if duration > 0 else 0.5
+    return round(base * weight * completion_bonus * time_factor, 2)
+
+def _compute_shard_reward(outcome: str, combo_count: int = 0, critical_count: int = 0) -> int:
+    """Shard rewards: 50 win / 25 draw / 15 loss + combo×5 (if >3) + criticals×10"""
+    base = {"win": SHARD_WIN, "draw": SHARD_DRAW, "loss": SHARD_LOSS}.get(outcome, SHARD_LOSS)
+    combo_bonus = max(0, combo_count - 3) * SHARD_COMBO_MULTIPLIER if combo_count > 3 else 0
+    critical_bonus = critical_count * SHARD_CRITICAL_BONUS
+    return base + combo_bonus + critical_bonus
+
 @api_router.post("/games/session")
 async def create_game_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    s = {"id": str(uuid.uuid4()), "user_id": user.user_id, "mode_id": data.get("mode_id"), "score": data.get("score",0), "duration_seconds": data.get("duration_seconds",0), "completed": data.get("completed",False), "created_at": datetime.now(timezone.utc).isoformat()}
+    mode_id = data.get("mode_id", "basketball_h2h")
+    score = data.get("score", 0)
+    duration = data.get("duration_seconds", 0)
+    completed = data.get("completed", False)
+    outcome = data.get("outcome", "loss")  # "win" | "draw" | "loss"
+    combo_count = data.get("combo_count", 0)
+    critical_count = data.get("critical_count", 0)
+
+    # Core session record
+    s = {
+        "id": str(uuid.uuid4()), "user_id": user.user_id,
+        "mode_id": mode_id, "score": score,
+        "duration_seconds": duration, "completed": completed,
+        "outcome": outcome, "created_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    # PRQ delta calculation
+    prq_delta = _compute_prq_delta(mode_id, score, duration, completed)
+    s["prq_delta"] = prq_delta
+
+    # Shard reward calculation
+    shards_earned = _compute_shard_reward(outcome, combo_count, critical_count)
+    s["shards_earned"] = shards_earned
+
+    # XP with 500/session cap
+    raw_xp = max(10, score // 5)
+    xp = min(raw_xp, XP_CAP_PER_SESSION)
+    s["xp_earned"] = xp
+
+    # Persist session
     await db.game_sessions.insert_one(s)
-    xp = max(10, s["score"]//5)
-    await db.users.update_one({"user_id": user.user_id}, {"$inc": {"xp": xp}})
-    await db.activity_feed.insert_one({"user_id": user.user_id, "type": "game", "detail": data.get("mode_id"), "score": s["score"], "created_at": datetime.now(timezone.utc).isoformat()})
-    return {"session": {k:v for k,v in s.items() if k!="_id"}, "xp_earned": xp}
+
+    # Update user aggregates: XP, PRQ, shards
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$inc": {"xp": xp, "prq_rating": prq_delta, "shards": shards_earned}}
+    )
+
+    # Record shard ledger entry
+    await db.shard_ledger.insert_one({
+        "user_id": user.user_id,
+        "session_id": s["id"],
+        "mode_id": mode_id,
+        "shards": shards_earned,
+        "outcome": outcome,
+        "combo_count": combo_count,
+        "critical_count": critical_count,
+        "created_at": s["created_at"]
+    })
+
+    # Activity feed
+    await db.activity_feed.insert_one({
+        "user_id": user.user_id, "type": "game",
+        "detail": mode_id, "score": score,
+        "prq_delta": prq_delta, "shards_earned": shards_earned,
+        "created_at": s["created_at"]
+    })
+
+    # Expanded session receipt
+    receipt = {k: v for k, v in s.items() if k != "_id"}
+    return {
+        "session": receipt,
+        "xp_earned": xp,
+        "prq_delta": prq_delta,
+        "shards_earned": shards_earned,
+        "prq_mode_weight": PRQ_MODE_WEIGHTS.get(mode_id, 1.0),
+        "xp_capped": raw_xp > XP_CAP_PER_SESSION
+    }
 
 def get_seeded_game_modes():
     return [
@@ -527,7 +618,7 @@ def get_seeded_game_modes():
         {"id":"snowboarding","name":"Snowboarding","display_name":"Snow · Line","venue":"Mountain","category":"Board","description":"Navigate slopes","image_url":"https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
         {"id":"market_browse","name":"Sovereign Shop","display_name":"Sovereign Shop","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
         {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
-        {"id":"mario_party_fever","name":"FEL Party Mode","display_name":"FEL Party · Arcade","venue":"Venice Beach","category":"Party","description":"Board-style arcade with Creator Card avatars and mini-games across all venues","image_url":"https://images.unsplash.com/photo-1511882150382-421056c89033?w=800","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"}
+        {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Board-style arcade with Creator Card avatars and mini-games across all venues","image_url":"https://images.unsplash.com/photo-1511882150382-421056c89033?w=800","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"}
     ]
 
 @api_router.get("/cards")
@@ -997,7 +1088,7 @@ async def get_card_multimedia(card_id: str):
         "ip_permissions": multimedia.get("ip_gate", {}),
         "game_mode_avatar": {
             "who_scene_it": {"enabled": True, "avatar_type": "trivia_host"},
-            "mario_party": {"enabled": True, "avatar_type": "board_piece", "power_ups": multimedia.get("power_ups", [])}
+            "court_carnival": {"enabled": True, "avatar_type": "board_piece", "power_ups": multimedia.get("power_ups", [])}
         }
     }
 
@@ -1104,12 +1195,12 @@ async def get_who_scene_it_questions(round_num: int = 1):
     random.shuffle(questions)
     return {"round": round_num, "questions": questions[:5]}
 
-@api_router.get("/games/mario-party")
-async def get_mario_party_config():
-    """'Mario Party / Pac-Man Fever' board-style arcade mode"""
+@api_router.get("/games/court-carnival")
+async def get_court_carnival_config():
+    """Court Carnival — board-style arcade mode (formerly mario_party_fever)"""
     return {
-        "mode_id": "mario_party_fever",
-        "display_name": "FEL Party Mode",
+        "mode_id": "court_carnival",
+        "display_name": "Court Carnival",
         "description": "Board-style arcade with Creator Card avatars, power-ups, and mini-games across all venues",
         "type": "board_party",
         "max_players": 4,
@@ -1144,16 +1235,16 @@ async def get_mario_party_config():
             "particle_effects": "retro_arcade"
         },
         "creator_card_as_board_pieces": True,
-        "telemetry_channel": "mario_party_fever",
+        "telemetry_channel": "court_carnival",
         "sovereign_encrypted": True
     }
 
-@api_router.post("/games/mario-party/session")
+@api_router.post("/games/court-carnival/session")
 async def create_party_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Start a Mario Party session — tracks board state in Sovereign Hub"""
+    """Start a Court Carnival session — tracks board state in Sovereign Hub"""
     session = {
         "id": str(uuid.uuid4()), "user_id": user.user_id,
-        "mode": "mario_party_fever", "players": [user.user_id],
+        "mode": "court_carnival", "players": [user.user_id],
         "board_state": {"positions": {user.user_id: 0}, "turn": 0, "stars": {user.user_id: 0}},
         "active_cards": data.get("selected_cards", ["card_elijah"]),
         "mini_games_played": [], "power_ups_used": [],
@@ -1161,7 +1252,7 @@ async def create_party_session(data: Dict[str, Any], user: User = Depends(get_cu
     }
     await db.party_sessions.insert_one(session)
     # Notify sovereign hub
-    await sovereign_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "mario_party_fever"}, encrypt=True)
+    await sovereign_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "court_carnival"}, encrypt=True)
     return {k: v for k, v in session.items() if k != "_id"}
 
 
