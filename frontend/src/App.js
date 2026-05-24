@@ -16,6 +16,7 @@ import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCriti
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
+import DistributionPage from "@/components/DistributionPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -91,6 +92,16 @@ const ProtectedRoute = ({ children }) => {
   if (loading) return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div></div>;
   if (!user && !location.state?.user) return <Navigate to="/login" replace />;
   return children;
+};
+
+// ===================== DOWNLOAD / DISTRIBUTION PAGE =====================
+const DownloadPage = () => {
+  const handleLogin = () => {
+    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    const redirectUrl = window.location.origin + '/dashboard';
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
+  return <DistributionPage onLogin={handleLogin} />;
 };
 
 // ===================== LANDING PAGE =====================
@@ -1234,6 +1245,7 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/download" element={<DownloadPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
