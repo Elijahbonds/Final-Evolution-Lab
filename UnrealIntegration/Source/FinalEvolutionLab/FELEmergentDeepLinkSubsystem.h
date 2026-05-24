@@ -7,6 +7,8 @@
 
 #include "FELEmergentDeepLinkSubsystem.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFELMapLoadedSignature, FString, MapToken, FString, ModeId);
+
 /**
  * Handles finalevolution:// deep links (iOS URL scheme) and coordinates map travel + Emergent WebSocket feedback.
  * Pair with DefaultEngine.FEL_iOS_URL_scheme.snippet.ini (CFBundleURLTypes) and Pixel Streaming / local WS on 8888.
@@ -33,6 +35,9 @@ public:
 		const FString& ButtonOrModeKey,
 		const FString& OptionalExplicitPackagePath,
 		const FString& OptionalArenaGameMode);
+
+	UPROPERTY(BlueprintAssignable, Category = "Emergent|DeepLink")
+	FFELMapLoadedSignature OnFELMapLoaded;
 
 private:
 	void BindDelegates();

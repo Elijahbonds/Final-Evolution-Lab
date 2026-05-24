@@ -1,0 +1,363 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg-default: #050505;
+  --bg-paper: #0F0F13;
+  --bg-card: #16161A;
+  --bg-surface: #1A1A24;
+  --primary: #00E5FF;
+  --primary-hover: #00B3CC;
+  --primary-muted: rgba(0, 229, 255, 0.15);
+  --secondary: #2E2E38;
+  --secondary-hover: #3A3A45;
+  --accent-alert: #FF3366;
+  --accent-success: #00FF9D;
+  --accent-warning: #FFB800;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-focus: #00E5FF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-default);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+  font-family: 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Metric Display */
+.metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.metric-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+}
+
+/* Overline */
+.overline {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+}
+
+/* Surfaces */
+.surface-card {
+  background: var(--bg-paper);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.surface-active {
+  background: var(--bg-card);
+  border-left: 2px solid var(--primary);
+  border-top: 1px solid var(--border-default);
+  border-right: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.surface-glass {
+  background: rgba(5, 5, 5, 0.8);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--primary);
+  color: var(--bg-default);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+
+.btn-primary:hover {
+  background: #00B3CC;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.4);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Input */
+.input-clinical {
+  background: var(--bg-default);
+  border: 1px solid var(--secondary);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  transition: all 0.2s ease-out;
+}
+
+.input-clinical:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.input-clinical::placeholder {
+  color: var(--text-muted);
+}
+
+/* Badge */
+.badge-clinical {
+  display: inline-flex;
+  padding: 0.25rem 0.5rem;
+  background: var(--primary-muted);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: var(--primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 16rem;
+  background: #0A0A0A;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-left: 2px solid transparent;
+  transition: all 0.2s ease-out;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  border-left-color: var(--primary);
+}
+
+.nav-item.active {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border-left-color: var(--primary);
+}
+
+/* Main content area */
+.main-content {
+  margin-left: 16rem;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+/* PRQ Gauge */
+.prq-gauge {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.prq-gauge-bg {
+  fill: none;
+  stroke: var(--secondary);
+  stroke-width: 12;
+}
+
+.prq-gauge-fill {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 1s ease-out;
+}
+
+/* Card Hover Effect */
+.card-hover {
+  transition: all 0.2s ease-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 229, 255, 0.1);
+}
+
+/* Game Mode Card */
+.game-mode-card {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+}
+
+.game-mode-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease-out;
+}
+
+.game-mode-card:hover img {
+  transform: scale(1.05);
+}
+
+.game-mode-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1rem;
+}
+
+/* Creator Card */
+.creator-card {
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-paper));
+  border: 1px solid var(--border-default);
+  overflow: hidden;
+}
+
+.creator-card.legendary {
+  border-color: #FFD700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.creator-card.holographic {
+  border-color: #FF69B4;
+  background: linear-gradient(135deg, var(--bg-card), rgba(255, 105, 180, 0.1));
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-default);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-hover);
+}
+
+/* Animations */
+@keyframes pulse-cyan {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(0, 229, 255, 0); }
+}
+
+.pulse-cyan {
+  animation: pulse-cyan 2s infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Loading Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-paper) 25%, var(--bg-card) 50%, var(--bg-paper) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Progress Bar */
+.progress-bar {
+  height: 4px;
+  background: var(--secondary);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.3s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+}

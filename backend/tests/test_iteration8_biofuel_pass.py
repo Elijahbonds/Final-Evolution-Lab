@@ -19,11 +19,17 @@ from pymongo import MongoClient
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 if not BASE_URL:
     # fallback to frontend/.env
-    with open("/app/frontend/.env") as f:
-        for line in f:
-            if line.startswith("REACT_APP_BACKEND_URL="):
-                BASE_URL = line.split("=", 1)[1].strip().rstrip("/")
+    for path in ["frontend/.env", "../frontend/.env", "/app/frontend/.env"]:
+        if os.path.exists(path):
+            with open(path) as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        BASE_URL = line.split("=", 1)[1].strip().rstrip("/")
+                        break
+            if BASE_URL:
                 break
+    if not BASE_URL:
+        BASE_URL = "http://localhost:8000"
 
 MONGO_URL = "mongodb://localhost:27017"
 DB_NAME = "test_database"
@@ -207,7 +213,7 @@ class TestBiofuelAuthenticated:
                   "fats_g", "micros", "athletic_intent", "nutri_shards_awarded", "scanned_at"):
             assert k in d, f"missing key {k}"
         assert d["model"] == model
-        assert d["nutri_shards_awarded"] == 12
+        assert d["nutri_shards_awarded"] == 0  # awarded only after POST /scan/confirm
 
     def test_instacart_cart_valid_recipe(self):
         r = requests.post(f"{BASE_URL}/api/biofuel/instacart-cart", headers=hdr(),

@@ -7,6 +7,8 @@
 
 #include "FELOverlaySubsystem.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFELOverlayMessageSignature, FString, Payload);
+
 /**
  * Unified FEL OS overlay: native iOS WKWebView "curtain" above the Unreal viewport.
  *
@@ -24,6 +26,9 @@ class FINALEVOLUTIONLAB_API UFELOverlaySubsystem : public UGameInstanceSubsystem
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
+
+	UPROPERTY(BlueprintAssignable, Category = "FEL|Overlay")
+	FFELOverlayMessageSignature OnOverlayMessageReceived;
 
 	UFUNCTION(BlueprintCallable, Category = "FEL|Overlay")
 	void ShowOverlay();
@@ -53,7 +58,14 @@ private:
 	void TickOverlayHeartbeat();
 
 	FString DashboardUrl;
+	FString OverlayBridgeToken;
+	FString OverlaySessionId;
+	TSet<FString> AllowedDashboardHosts;
 	bool bPendingHideOnMapLoad = false;
 	FTimerHandle HeartbeatTimer;
+
+	static FString HostFromHttpUrl(const FString& Url);
+	void BuildAllowedHosts(TArray<FString>& OutHosts) const;
+	bool IsHostAllowedForDashboard(const FString& Url) const;
 };
 

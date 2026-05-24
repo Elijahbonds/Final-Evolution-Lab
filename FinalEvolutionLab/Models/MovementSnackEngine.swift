@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore
 
 // MARK: - Bonds Standard → prescription taxonomy
 
@@ -11,8 +12,9 @@ nonisolated enum KineticLeakageCategory: String, Codable, Sendable, CaseIterable
 
     var id: String { rawValue }
 
-    /// Maps existing ``LeakageZone`` joints into prescription lanes (core = lumbo-pelvic–hip chain).
-    static func inferred(from audit: BiomechanicsAudit) -> [KineticLeakageCategory] {
+    /// Maps existing ``LeakageZone`` joints into prescription lanes.
+    /// ``corePelvicChain`` is **not** inferred from knee/hip leakage scores alone — only when ``MovementSnackDetectionContext/qualifiesForCorePelvicPrescription`` is true (pose evidence).
+    static func inferred(from audit: BiomechanicsAudit, detectionContext: MovementSnackDetectionContext = .unavailable) -> [KineticLeakageCategory] {
         var set: Set<KineticLeakageCategory> = []
         for zone in audit.kineticLeakageZones {
             switch zone.joint {
@@ -20,17 +22,11 @@ nonisolated enum KineticLeakageCategory: String, Codable, Sendable, CaseIterable
                 set.insert(.ankleInstability)
             case .knee:
                 set.insert(.kneeTracking)
-                if zone.severity >= 0.28 {
-                    set.insert(.corePelvicChain)
-                }
             case .hip:
                 set.insert(.hipExtensionPower)
-                set.insert(.corePelvicChain)
             }
         }
-        let kneeHip = audit.kineticLeakageZones.contains(where: { $0.joint == .knee })
-            && audit.kineticLeakageZones.contains(where: { $0.joint == .hip })
-        if kneeHip {
+        if detectionContext.qualifiesForCorePelvicPrescription {
             set.insert(.corePelvicChain)
         }
         return Array(set).sorted { $0.rawValue < $1.rawValue }
@@ -83,8 +79,8 @@ nonisolated struct MovementSnack: Identifiable, Codable, Sendable, Hashable {
 
 nonisolated enum MovementSnackEngine {
     /// Derives 1…n snacks from the latest biomechanical audit (Bonds Standard leakage → prescription).
-    static func snacks(from audit: BiomechanicsAudit, neuralFocus01: Double?) -> [MovementSnack] {
-        let categories = KineticLeakageCategory.inferred(from: audit)
+    static func snacks(from audit: BiomechanicsAudit, neuralFocus01: Double?, detectionContext: MovementSnackDetectionContext = .unavailable) -> [MovementSnack] {
+        let categories = KineticLeakageCategory.inferred(from: audit, detectionContext: detectionContext)
         if categories.isEmpty {
             return [primedMaintenanceSnack(neuralFocus01: neuralFocus01)]
         }
@@ -98,21 +94,22 @@ nonisolated enum MovementSnackEngine {
         if categories.contains(.ankleInstability) {
             result.append(ankleStabilitySnack(neuralFocus01: neuralFocus01))
         }
-        if categories.contains(.kneeTracking) && !categories.contains(.corePelvicChain) {
+        if categories.contains(.kneeTracking) {
             result.append(kneeStackSnack(neuralFocus01: neuralFocus01))
         }
-        if categories.contains(.hipExtensionPower) && !categories.contains(.corePelvicChain) {
+        if categories.contains(.hipExtensionPower) {
             result.append(hipDriveSnack(neuralFocus01: neuralFocus01))
         }
         var seen = Set<String>()
         return result.filter { seen.insert($0.id).inserted }
     }
 
-    /// Optional bridge from Firestore ``SystemScanRecord`` when no live demo scan exists — uses avatar vector only.
+    /// Optional bridge from Firestore ``SystemScanRecord`` when no live demo scan exists — avatar axes do **not** imply pose geometry; stability drives pelvic prescriptions only (SCAN-52).
     static func snacksFromRecord(_ record: SystemScanRecord) -> [MovementSnack] {
-        let audit = BiomechanicsAudit.fromAvatarAttributes(record.avatar, capturedAt: record.capturedAt.dateValue())
+        let audit = BiomechanicsAudit.coachingGuidanceFromAvatar(record.avatar, capturedAt: record.capturedAt.dateValue())
         let nf = record.avatar.neuralFocus
-        return snacks(from: audit, neuralFocus01: nf)
+        let ctx = MovementSnackDetectionContext.fromStability(record.stability)
+        return snacks(from: audit, neuralFocus01: nf, detectionContext: ctx)
     }
 
     static func proprioceptivePulsePeriodSeconds(neuralFocus01: Double) -> Double {
@@ -156,7 +153,7 @@ nonisolated enum MovementSnackEngine {
         MovementSnack(
             id: "snack_knee_tracking_v1",
             requiredUnrealAnimationAssetID: "FEL_BodyIQ_Knee_TrackSequence_v1",
-            phaseMappingCarsCue: "Tibia / hip rotation CARS — own the knee window without valgus collapse.",
+            phaseMappingCarsCue: "Tibia / hip rotation CARS — own the knee window without frontal-plane collapse (pose-informed coaching only).",
             unrealCorrectivePoseAssetID: "FEL_BodyIQ_Corrective_SplitSquatKneeLine_v1",
             unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_RibAnchor_Loop_v1",
             title: "Knee Line Snack",
@@ -185,25 +182,3 @@ nonisolated enum MovementSnackEngine {
     }
 }
 
-// MARK: - BiomechanicsAudit + SystemScanRecord helpers
-
-private extension BiomechanicsAudit {
-    /// Lightweight audit when only persistent avatar axes exist (HealthKit / Firestore path).
-    static func fromAvatarAttributes(_ a: AvatarPerformanceAttributes, capturedAt: Date) -> BiomechanicsAudit {
-        let prq = a.prqScore
-        let vertical = a.hangTimeBonus * 40.0
-        let flight = a.speedMultiplier * 0.35
-        let synthetic = SystemScanResult(
-            id: "avatar_snapshot",
-            date: capturedAt,
-            prqScore: prq,
-            verticalEstimateInches: vertical,
-            flightTimeSeconds: flight,
-            movementGrade: a.readinessGrade,
-            notes: [],
-            recommendedTrack: "",
-            avatarConfig: .default
-        )
-        return BiomechanicsAudit.fromScanResult(synthetic)
-    }
-}

@@ -1,0 +1,20 @@
+{
+  "id": "skateboard_prop_model_fbx",
+  "name": "Skateboard Prop (FBX)",
+  "category": "models",
+  "type": "prop_fbx",
+  "file": "skateboard_prop_model_fbx.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/a553f996-28e5-4c6c-a0f3-b6cc2bcfac1a/1009173/unityModel_1009173_2877816.fbx"],
+  "description": "Colorful skateboard with deck, trucks, and wheels for Unreal FEL skateboarding mode.",
+  "tags": ["skateboard", "deck", "prop", "fbx", "sport", "street", "fel"],
+  "keywords": ["skateboard", "deck", "trucks", "wheels", "FBX", "street sport"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T18:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 23,
+  "version": "1.0",
+  "property_id": "search_bd7c41860676_0",
+  "motion_asset_id": 1009173,
+  "fel_modes": ["skateboarding"]
+}

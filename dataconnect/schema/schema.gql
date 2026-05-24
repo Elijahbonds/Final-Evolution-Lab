@@ -14,6 +14,8 @@ type User @table {
   avatarUrl: String @col(dataType: "text")
   # Best PRQ (or lab composite) for leaderboard + feed badges; update from System Scan pipeline.
   topPRQScore: Float
+  # Canonical shard balance (SQL); keep in sync with SpendEvolutionShards / admin grants / local profile when offline.
+  evolutionShards: Int! @default(expr: "0")
   # Nullable: reserved for seeded rows without Auth. Normal app users always set firebaseUid via mutations.
   # Postgres UNIQUE treats NULL as distinct — avoid relying on uniqueness for multiple NULL firebaseUids when seeding test data.
   firebaseUid: String @unique @col(dataType: "varchar(128)")
@@ -43,5 +45,53 @@ type Comment @table {
 type PostLike @table(key: ["post", "user"]) {
   post: Post!
   user: User!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# Creator Cards + shard economy (first-class tables; wire rewards / marketplace in app layer).
+type CreatorCard @table {
+  id: UUID! @default(expr: "uuidV4()")
+  catalogCardId: String! @unique @col(dataType: "varchar(64)")
+  displayName: String! @col(dataType: "varchar(128)")
+  rarityTier: String @col(dataType: "varchar(32)")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# Deploy: add `dedupeKey` with backfill for existing rows before `firebase deploy` of Data Connect / SQL.
+type ShardLedger @table {
+  id: UUID! @default(expr: "uuidV4()")
+  user: User!
+  deltaShards: Int!
+  reason: String! @col(dataType: "varchar(64)")
+  referenceId: String @col(dataType: "varchar(128)")
+  createdAt: Timestamp! @default(expr: "request.time")
+  # Server-only idempotency: spend/grant mutations set `dedupeKey_expr` from uid slice + reason + referenceId (never client-supplied).
+  dedupeKey: String! @unique @col(dataType: "varchar(512)")
+}
+
+type CardMarketListing @table {
+  id: UUID! @default(expr: "uuidV4()")
+  seller: User!
+  catalogCardId: String! @col(dataType: "varchar(64)")
+  priceShards: Int!
+  listedAt: Timestamp! @default(expr: "request.time")
+  active: Boolean! @default(expr: "true")
+}
+
+# Inventory: user owns a catalog creator card (after verified SQL spend + ClaimCreatorCardOwnership).
+type UserOwnedCreatorCard @table(key: ["user", "creatorCard"]) {
+  user: User!
+  creatorCard: CreatorCard!
+  acquiredAt: Timestamp! @default(expr: "request.time")
+}
+
+# Coach critique escrow — row created atomically with shard spend (`requestKey` matches ledger `referenceId`).
+type CoachCritiqueRequest @table {
+  requestKey: String! @unique @col(dataType: "varchar(36)")
+  user: User!
+  exerciseName: String! @col(dataType: "varchar(128)")
+  notes: String @col(dataType: "text")
+  shardsEscrowed: Int!
+  status: String! @col(dataType: "varchar(24)")
   createdAt: Timestamp! @default(expr: "request.time")
 }

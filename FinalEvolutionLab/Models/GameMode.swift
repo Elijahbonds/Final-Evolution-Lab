@@ -18,8 +18,11 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case skateboarding = "skateboarding"
     case snowboarding = "snowboarding"
     case brainBrawl = "brain_brawl"
+    /// Matches ``ArenaSettings.json`` / ``FEL_ModeManager.production.json`` (`BP_WhoSceneIt`).
     case whoSceneIt = "who_scene_it"
+    /// Venice mini-game mash-up — matches UE ``BP_PartyMode`` / ``court_carnival``.
     case courtCarnival = "court_carnival"
+    /// Module library browser.
     case marketBrowse = "market_browse"
 
     var id: String { rawValue }
@@ -34,6 +37,10 @@ nonisolated enum InputScheme: String, Sendable {
     case rallyAce
     case penaltyKick
     case rhythmTap
+    /// Recognition / clip prompts — distinct UX from generic rhythm academy loops.
+    case filmQuiz
+    /// Board-and-space carnival loop — distinct UX from extreme sports rhythm.
+    case partyBoard
 }
 
 extension GameModeId {
@@ -53,8 +60,10 @@ extension GameModeId {
             return .penaltyKick
         case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl, .whoSceneIt:
             return .rhythmTap
+        case .whoSceneIt:
+            return .filmQuiz
         case .courtCarnival:
-            return .dragTap
+            return .partyBoard
         case .marketBrowse:
             return .dragTap
         }
@@ -80,7 +89,6 @@ nonisolated struct GameMode: Sendable, Identifiable {
         case board = "Board"
         case academy = "Academy"
         case party = "Party"
-        case shop = "Shop"
     }
 
     nonisolated enum MultiplayerType: String, Sendable {
@@ -88,9 +96,48 @@ nonisolated struct GameMode: Sendable, Identifiable {
         case turnBased
         case solo
     }
+
+    nonisolated enum ReleaseState: String, Sendable {
+        case production
+        case preview
+    }
+
+    let releaseState: ReleaseState
+
+    init(
+        id: GameModeId,
+        name: String,
+        subtitle: String,
+        sport: SportCategory,
+        iconName: String,
+        accentColor: Color,
+        multiplayerType: MultiplayerType,
+        environmentName: String,
+        hint: String?,
+        releaseState: ReleaseState = .production
+    ) {
+        self.id = id
+        self.name = name
+        self.subtitle = subtitle
+        self.sport = sport
+        self.iconName = iconName
+        self.accentColor = accentColor
+        self.multiplayerType = multiplayerType
+        self.environmentName = environmentName
+        self.hint = hint
+        self.releaseState = releaseState
+    }
 }
 
 struct GameModeRegistry {
+    /// Modes shown in Arena navigation for the current build (preview modes hidden in App Store unless ``Config.showPreviewGameModes``).
+    static var shippingModes: [GameMode] {
+        if Config.showPreviewGameModes {
+            return all
+        }
+        return all.filter { $0.releaseState == .production }
+    }
+
     static let all: [GameMode] = [
         GameMode(
             id: .basketballHeadToHead,
@@ -145,7 +192,8 @@ struct GameModeRegistry {
             accentColor: Color(red: 1.0, green: 0.35, blue: 0.1),
             multiplayerType: .realtime,
             environmentName: "Dojo Arena",
-            hint: nil
+            hint: nil,
+            releaseState: .preview
         ),
         GameMode(
             id: .baseball,
@@ -233,7 +281,8 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.2, green: 0.75, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Surf",
-            hint: nil
+            hint: nil,
+            releaseState: .preview
         ),
         GameMode(
             id: .skateboarding,
@@ -244,7 +293,8 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.95, green: 0.45, blue: 0.12),
             multiplayerType: .realtime,
             environmentName: "Skate Park",
-            hint: nil
+            hint: nil,
+            releaseState: .preview
         ),
         GameMode(
             id: .snowboarding,
@@ -255,7 +305,8 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.85, green: 0.9, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Mountain Slope",
-            hint: nil
+            hint: nil,
+            releaseState: .preview
         ),
         GameMode(
             id: .brainBrawl,
@@ -271,35 +322,38 @@ struct GameModeRegistry {
         GameMode(
             id: .whoSceneIt,
             name: "Who Scene It",
-            subtitle: "Sports & Entertainment Trivia",
+            subtitle: "Neuro Arena (Preview)",
             sport: .academy,
-            iconName: "questionmark.circle.fill",
-            accentColor: Color(red: 0.9, green: 0.3, blue: 0.6),
+            iconName: "theatermasks.fill",
+            accentColor: Color(red: 0.45, green: 0.55, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Neuro Arena",
-            hint: "Creator Card multimedia clips"
+            hint: "Placeholder — matches ArenaSettings / production map",
+            releaseState: .preview
         ),
         GameMode(
             id: .courtCarnival,
             name: "Court Carnival",
-            subtitle: "Board-Style Arcade Party",
+            subtitle: "Mini-game mash-up · Venice Beach",
             sport: .party,
-            iconName: "party.popper.fill",
-            accentColor: Color(red: 1.0, green: 0.5, blue: 0.0),
+            iconName: "sparkles.rectangle.stack",
+            accentColor: Color(red: 1.0, green: 0.45, blue: 0.65),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: "Mini-games across all venues"
+            hint: "Rotating challenges — matches ArenaSettings / production map",
+            releaseState: .preview
         ),
         GameMode(
             id: .marketBrowse,
-            name: "Sovereign Shop",
-            subtitle: "Browse & Purchase",
-            sport: .shop,
-            iconName: "storefront.fill",
-            accentColor: Color(red: 0.4, green: 0.8, blue: 0.6),
+            name: "Market Browse",
+            subtitle: "Module Library",
+            sport: .academy,
+            iconName: "cart.fill",
+            accentColor: Color.blue,
             multiplayerType: .solo,
             environmentName: "Luma Venice Shop",
-            hint: nil
+            hint: nil,
+            releaseState: .preview
         ),
     ]
 
@@ -307,11 +361,133 @@ struct GameModeRegistry {
         all.first(where: { $0.id == id }) ?? all[0]
     }
 
+    /// Uses ``SaveSystem/loadLastSelectedArenaModeId()`` so Global Arena matchmaking matches an explicit grid selection (GAME-35).
+    static func resolvedLastSelectedMode() -> GameMode? {
+        guard let raw = SaveSystem.loadLastSelectedArenaModeId(),
+              let id = GameModeId(rawValue: raw) else { return nil }
+        return mode(for: id)
+    }
+
     static var sportCategories: [GameMode.SportCategory] {
-        [.basketball, .combat, .field, .precision, .board, .academy, .party, .shop]
+        [.basketball, .combat, .field, .precision, .board, .academy, .party]
     }
 
     static func modes(for sport: GameMode.SportCategory) -> [GameMode] {
-        all.filter { $0.sport == sport }
+        shippingModes.filter { $0.sport == sport }
+    }
+
+    /// Ingests a `FELModeManagerPayload` to dynamically update or filter shipping game modes.
+    static func loadFromPayload(_ payload: FELModeManagerPayload) -> [GameMode] {
+        var loaded: [GameMode] = []
+        for (rawId, entry) in payload.modeManager.modeRegistry {
+            guard let modeId = GameModeId(rawValue: rawId) else { continue }
+            let baseMode = all.first(where: { $0.id == modeId })
+            let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
+            
+            let mode = GameMode(
+                id: modeId,
+                name: baseMode?.name ?? rawId.replacingOccurrences(of: "_", with: " ").capitalized,
+                subtitle: baseMode?.subtitle ?? "Unreal Engine 5.7 Mode",
+                sport: baseMode?.sport ?? .basketball,
+                iconName: baseMode?.iconName ?? "gamecontroller",
+                accentColor: baseMode?.accentColor ?? .orange,
+                multiplayerType: baseMode?.multiplayerType ?? .realtime,
+                environmentName: baseMode?.environmentName ?? "Arena",
+                hint: baseMode?.hint,
+                releaseState: releaseState
+            )
+            loaded.append(mode)
+        }
+        return loaded
+    }
+}
+
+// MARK: - JSON Ingestion Models for Unreal 5.7 Mode Manager
+
+struct ModeRegistryEntry: Codable, Sendable {
+    let map: String
+    let gamemodeClass: String
+    let binary: String
+    let status: String
+
+    enum CodingKeys: String, CodingKey {
+        case map
+        case gamemodeClass = "gamemode_class"
+        case binary
+        case status
+    }
+}
+
+struct ModeManagerConfig: Codable, Sendable {
+    let `class`: String
+    let totalModes: Int
+    let productionModes: Int
+    let modeRegistry: [String: ModeRegistryEntry]
+
+    enum CodingKeys: String, CodingKey {
+        case `class`
+        case totalModes = "total_modes"
+        case productionModes = "production_modes"
+        case modeRegistry = "mode_registry"
+    }
+}
+
+struct PRQCalculatorConfig: Codable, Sendable {
+    let `class`: String
+    let source: String
+    let scalingFormula: String
+    let weights: [String: Double]
+    let updateTrigger: String
+    let decayRatePerDay: Double
+    let boostOnStreak: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case `class`
+        case source
+        case scalingFormula = "scaling_formula"
+        case weights
+        case updateTrigger = "update_trigger"
+        case decayRatePerDay = "decay_rate_per_day"
+        case boostOnStreak = "boost_on_streak"
+    }
+}
+
+struct BridgeSubsystemConfig: Codable, Sendable {
+    let `class`: String
+    let handshakeIdentifier: String
+    let projectUuid: String
+    let expectedBinarySignatures: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case `class`
+        case handshakeIdentifier = "handshake_identifier"
+        case projectUuid = "project_uuid"
+        case expectedBinarySignatures = "expected_binary_signatures"
+    }
+}
+
+struct FELModeManagerPayload: Codable, Sendable {
+    let cookedRuntimeNote: String
+    let project: String
+    let uproject: String
+    let engine: String
+    let localRepo: String
+    let buildTarget: String
+    let buildTargetLinux: String
+    let modeManager: ModeManagerConfig
+    let prqCalculator: PRQCalculatorConfig
+    let bridgeSubsystem: BridgeSubsystemConfig
+
+    enum CodingKeys: String, CodingKey {
+        case cookedRuntimeNote = "cooked_runtime_note"
+        case project
+        case uproject
+        case engine
+        case localRepo = "local_repo"
+        case buildTarget = "build_target"
+        case buildTargetLinux = "build_target_linux"
+        case modeManager = "mode_manager"
+        case prqCalculator = "prq_calculator"
+        case bridgeSubsystem = "bridge_subsystem"
     }
 }

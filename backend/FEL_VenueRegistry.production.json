@@ -8,7 +8,7 @@
     "Venice_Beach_Court": {
       "map_path": "/Game/FEL/Maps/Venice_Beach_Court",
       "display_name": "Venice Beach Court",
-      "game_modes": ["basketball_h2h", "basketball_dunk", "basketball_3v3"],
+      "game_modes": ["basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival"],
       "category": "Basketball",
       "environment": "venice_beach_sunset",
       "max_concurrent": 4,
@@ -128,16 +128,26 @@
     "Neuro_Arena": {
       "map_path": "/Game/FEL/Maps/Neuro_Arena",
       "display_name": "Neuro Arena",
-      "game_modes": ["brain_brawl"],
+      "game_modes": ["brain_brawl", "who_scene_it"],
       "category": "Academy",
       "environment": "neon_arcade",
       "max_concurrent": 8,
       "assets": 42,
       "db_collection": "sessions_brain_brawl"
+    },
+    "Sovereign_Shop": {
+      "map_path": "/Game/FEL/Maps/Sovereign_Shop",
+      "display_name": "Module Library",
+      "game_modes": ["market_browse"],
+      "category": "Dashboard",
+      "environment": "sovereign_shop",
+      "max_concurrent": 1,
+      "assets": 12,
+      "db_collection": "sessions_market_browse"
     }
   },
-  "total_venues": 13,
-  "total_game_modes": 16,
+  "total_venues": 14,
+  "total_game_modes": 19,
   "sovereign_sync": {
     "target": "M4 Pro Mac Mini",
     "protocol": "WSS over Cloudflare Tunnel",

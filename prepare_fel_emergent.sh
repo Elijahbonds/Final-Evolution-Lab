@@ -66,8 +66,8 @@ if [[ "$COPY_SOURCES" == "1" ]]; then
   [[ -d "$INTEGRATION_SRC" ]] || die "Missing integration sources: $INTEGRATION_SRC"
   mkdir -p "$PROJECT_DIR/Source/FinalEvolutionLab"
   # shellcheck disable=SC2086
-  cp -v "$INTEGRATION_SRC"/*.h "$INTEGRATION_SRC"/*.cpp "$PROJECT_DIR/Source/FinalEvolutionLab/"
-  echo ">>> Copied bridge *.h/*.cpp → $PROJECT_DIR/Source/FinalEvolutionLab/"
+  cp -rv "$INTEGRATION_SRC"/* "$PROJECT_DIR/Source/FinalEvolutionLab/"
+  echo ">>> Copied bridge sources recursively → $PROJECT_DIR/Source/FinalEvolutionLab/"
   echo ">>> Next: confirm FinalEvolutionLab.Build.cs includes WebSockets + Json; enable WebSockets plugin."
 fi
 

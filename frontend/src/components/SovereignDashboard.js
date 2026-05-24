@@ -10,7 +10,7 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-export const SovereignDashboard = () => {
+export const HubDashboard = () => {
   const [status, setStatus] = useState(null);
   const [health, setHealth] = useState(null);
   const [handshake, setHandshake] = useState(null);
@@ -21,7 +21,7 @@ export const SovereignDashboard = () => {
   const fetchAll = async () => {
     try {
       const [s, h, hs, t] = await Promise.all([
-        axios.get(`${API}/sovereign/status`),
+        axios.get(`${API}/hub/status`),
         axios.get(`${API}/production/health`),
         axios.get(`${API}/production/handshake-log`),
         axios.get(`${API}/telemetry/live`).catch(() => ({data: null}))
@@ -41,7 +41,7 @@ export const SovereignDashboard = () => {
   }, []);
 
   if (loading || !status) {
-    return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="text-center"><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-zinc-400 font-mono text-sm">Initializing Sovereign Hub...</p></div></div>;
+    return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="text-center"><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-zinc-400 font-mono text-sm">Initializing Final Evolution Hub...</p></div></div>;
   }
 
   const wsConnected = status.websocket.status === 'connected';
@@ -55,11 +55,11 @@ export const SovereignDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="overline mb-1">SOVEREIGN COMMAND CENTER · PORT 8888</p>
+          <p className="overline mb-1">LOCAL COMMAND CENTER · PORT 8888</p>
           <h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION HUB</h1>
         </div>
         <div className="flex items-center gap-3">
-          <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>LOCAL SOVEREIGN</span>
+          <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>LOCAL HUB</span>
           <button onClick={fetchAll} className="btn-secondary flex items-center gap-2 text-sm"><RefreshCw className="w-4 h-4" /></button>
         </div>
       </div>
@@ -164,7 +164,7 @@ export const SovereignDashboard = () => {
         <div className="surface-card p-6" data-testid="active-creator-card">
           <div className="flex items-center gap-3 mb-3"><Award className="w-6 h-6 text-yellow-400" /><h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>ACTIVE CREATOR CARD</h2></div>
           <div className="badge-clinical inline-block">{card}</div>
-          <p className="text-xs text-zinc-500 mt-2">Loaded via StoodCardId from sovereign bridge</p>
+          <p className="text-xs text-zinc-500 mt-2">Loaded via StoodCardId from performance bridge</p>
         </div>
       )}
 
@@ -203,7 +203,7 @@ export const SovereignDashboard = () => {
       {handshake && (
         <div className="surface-card p-5" data-testid="handshake-log">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold" style={{fontFamily:'Barlow Condensed'}}>SOVEREIGN HUB LOG</h3>
+            <h3 className="font-bold" style={{fontFamily:'Barlow Condensed'}}>CONNECTION LOG</h3>
             <span className={`text-sm font-mono ${handshake.handshake_status === 'CONNECTED' ? 'text-green-400' : 'text-yellow-400 animate-pulse'}`}>{handshake.handshake_status}</span>
           </div>
           <div className="bg-black/50 border border-white/5 p-3 font-mono text-xs max-h-44 overflow-y-auto space-y-1">
@@ -218,7 +218,7 @@ export const SovereignDashboard = () => {
 
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-zinc-600 font-mono">
-        <span><Server className="w-3 h-3 inline mr-1" />Sovereign Hub v{status.server.version} · LOCAL</span>
+        <span><Server className="w-3 h-3 inline mr-1" />Final Evolution Hub v{status.server.version} · LOCAL</span>
         <span><Clock className="w-3 h-3 inline mr-1" />Uptime: {Math.floor(status.server.uptime_seconds/60)}m</span>
         <span><Smartphone className="w-3 h-3 inline mr-1" />iPhone → Port 8888 → Hub turns GREEN</span>
       </div>

@@ -90,7 +90,7 @@ struct ShareToFeedView: View {
 
             HStack(spacing: 20) {
                 VStack(spacing: 4) {
-                    Text("\(Int(viewModel.effectiveMetrics.prqScore))")
+                    Text("\(Int(viewModel.competitivePRQScore))")
                         .font(.system(size: 40, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
                     Text("PRQ SCORE")
@@ -195,7 +195,7 @@ struct ShareToFeedView: View {
             .disabled(isCapturing)
 
             Button {
-                screenshot = UnityManager.shared.takeScreenshot()
+                screenshot = UnrealManager.shared.isUnrealLoaded ? UnrealManager.shared.takeScreenshot() : UnityManager.shared.takeScreenshot()
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "camera.viewfinder")
@@ -216,7 +216,7 @@ struct ShareToFeedView: View {
     private func captureAndShare() {
         isCapturing = true
         if screenshot == nil {
-            screenshot = UnityManager.shared.takeScreenshot()
+            screenshot = UnrealManager.shared.isUnrealLoaded ? UnrealManager.shared.takeScreenshot() : UnityManager.shared.takeScreenshot()
         }
         Task {
             try? await Task.sleep(for: .milliseconds(300))
@@ -228,8 +228,8 @@ struct ShareToFeedView: View {
     private var shareItems: [Any]? {
         var items: [Any] = []
         let text = captionText.isEmpty
-            ? "PRQ: \(Int(viewModel.effectiveMetrics.prqScore)) | \(viewModel.userPRQTier.rawValue) | Final Evolution Lab"
-            : "\(captionText)\n\nPRQ: \(Int(viewModel.effectiveMetrics.prqScore)) | \(viewModel.userPRQTier.rawValue)"
+            ? "Ranked PRQ: \(Int(viewModel.competitivePRQScore)) | \(viewModel.userPRQTier.rawValue) | Final Evolution Lab"
+            : "\(captionText)\n\nRanked PRQ: \(Int(viewModel.competitivePRQScore)) | \(viewModel.userPRQTier.rawValue)"
         items.append(text)
         if let screenshot {
             items.append(screenshot)

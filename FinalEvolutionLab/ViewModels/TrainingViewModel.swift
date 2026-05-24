@@ -103,6 +103,15 @@ class TrainingViewModel {
     func finishDay() {
         guard let day = activeDayWorkout else { return }
 
+        let completedCount = completedExerciseIds.count
+        guard completedCount > 0 else {
+            activeDayWorkout = nil
+            completedExerciseIds.removeAll()
+            isWorkoutActive = false
+            workoutTimer = 0
+            return
+        }
+
         progress.completedDayIds.insert(day.id)
         progress.lastWorkoutDate = Date()
 
@@ -112,7 +121,6 @@ class TrainingViewModel {
             progress.recoveryGateCleared = false
         }
 
-        let completedCount = completedExerciseIds.count
         let totalCount = day.totalExerciseCount
         let completionRate = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0
 
@@ -138,7 +146,7 @@ class TrainingViewModel {
         labViewModel.sessions.append(session)
 
         NotificationCenter.default.post(
-            name: NSNotification.Name("RorkScoreUpdated"),
+            name: NSNotification.Name("FELScoreUpdated"),
             object: nil,
             userInfo: ["score": Int(labViewModel.profile.metrics.prqScore)]
         )

@@ -17,28 +17,16 @@ export function registerSignedInUser(dcOrVars, vars) {
   return executeMutation(registerSignedInUserRef(dcInstance, inputVars));
 }
 
-export const linkUserToFirebaseAuthRef = (dcOrVars, vars) => {
+export const updateMyTrainingProfileRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'LinkUserToFirebaseAuth', inputVars);
+  return mutationRef(dcInstance, 'UpdateMyTrainingProfile', inputVars);
 }
-linkUserToFirebaseAuthRef.operationName = 'LinkUserToFirebaseAuth';
+updateMyTrainingProfileRef.operationName = 'UpdateMyTrainingProfile';
 
-export function linkUserToFirebaseAuth(dcOrVars, vars) {
+export function updateMyTrainingProfile(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(linkUserToFirebaseAuthRef(dcInstance, inputVars));
-}
-
-export const updateUserTrainingProfileRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'UpdateUserTrainingProfile', inputVars);
-}
-updateUserTrainingProfileRef.operationName = 'UpdateUserTrainingProfile';
-
-export function updateUserTrainingProfile(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(updateUserTrainingProfileRef(dcInstance, inputVars));
+  return executeMutation(updateMyTrainingProfileRef(dcInstance, inputVars));
 }
 
 export const createPostRef = (dcOrVars, vars) => {
@@ -113,6 +101,66 @@ export function deleteComment(dcOrVars, vars) {
   return executeMutation(deleteCommentRef(dcInstance, inputVars));
 }
 
+export const spendEvolutionShardsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SpendEvolutionShards', inputVars);
+}
+spendEvolutionShardsRef.operationName = 'SpendEvolutionShards';
+
+export function spendEvolutionShards(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(spendEvolutionShardsRef(dcInstance, inputVars));
+}
+
+export const claimCreatorCardOwnershipRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ClaimCreatorCardOwnership', inputVars);
+}
+claimCreatorCardOwnershipRef.operationName = 'ClaimCreatorCardOwnership';
+
+export function claimCreatorCardOwnership(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(claimCreatorCardOwnershipRef(dcInstance, inputVars));
+}
+
+export const createCritiqueRequestWithEscrowRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateCritiqueRequestWithEscrow', inputVars);
+}
+createCritiqueRequestWithEscrowRef.operationName = 'CreateCritiqueRequestWithEscrow';
+
+export function createCritiqueRequestWithEscrow(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createCritiqueRequestWithEscrowRef(dcInstance, inputVars));
+}
+
+export const createCardMarketListingRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateCardMarketListing', inputVars);
+}
+createCardMarketListingRef.operationName = 'CreateCardMarketListing';
+
+export function createCardMarketListing(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createCardMarketListingRef(dcInstance, inputVars));
+}
+
+export const deactivateCardMarketListingRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeactivateCardMarketListing', inputVars);
+}
+deactivateCardMarketListingRef.operationName = 'DeactivateCardMarketListing';
+
+export function deactivateCardMarketListing(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deactivateCardMarketListingRef(dcInstance, inputVars));
+}
+
 export const listRecentPostsRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
@@ -139,17 +187,30 @@ export function getPostWithThread(dcOrVars, varsOrOptions, options) {
   return executeQuery(getPostWithThreadRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
 }
 
-export const getUserByFirebaseUidRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+export const getUserByFirebaseUidRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetUserByFirebaseUid', inputVars);
+  return queryRef(dcInstance, 'GetUserByFirebaseUid');
 }
 getUserByFirebaseUidRef.operationName = 'GetUserByFirebaseUid';
 
-export function getUserByFirebaseUid(dcOrVars, varsOrOptions, options) {
+export function getUserByFirebaseUid(dcOrOptions, options) {
   
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(getUserByFirebaseUidRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+}
+
+export const getMyPrivateProfileRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetMyPrivateProfile');
+}
+getMyPrivateProfileRef.operationName = 'GetMyPrivateProfile';
+
+export function getMyPrivateProfile(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getMyPrivateProfileRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
 }
 
 export const getUserProfileRef = (dcOrVars, vars) => {
@@ -176,5 +237,44 @@ export function listCommentsForPost(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listCommentsForPostRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+}
+
+export const listShardLedgerForUserRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListShardLedgerForUser', inputVars);
+}
+listShardLedgerForUserRef.operationName = 'ListShardLedgerForUser';
+
+export function listShardLedgerForUser(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listShardLedgerForUserRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+}
+
+export const listCreatorCardsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListCreatorCards', inputVars);
+}
+listCreatorCardsRef.operationName = 'ListCreatorCards';
+
+export function listCreatorCards(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listCreatorCardsRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+}
+
+export const listActiveCardMarketListingsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListActiveCardMarketListings', inputVars);
+}
+listActiveCardMarketListingsRef.operationName = 'ListActiveCardMarketListings';
+
+export function listActiveCardMarketListings(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listActiveCardMarketListingsRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
 }
 

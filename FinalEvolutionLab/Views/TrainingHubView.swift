@@ -36,6 +36,7 @@ private struct TrainingHubContent: View {
                 headerSection
                 equipmentSelector
                 trackSelector
+                streamingPortalCard
                 progressCard
                 recoveryGateCard
                 nextWorkoutCard
@@ -48,6 +49,65 @@ private struct TrainingHubContent: View {
         .background(Theme.deepBlack)
         .sheet(item: $selectedDay) { day in
             WorkoutDayView(day: day, vm: vm)
+        }
+    }
+
+    private var streamingPortalCard: some View {
+        NavigationLink(destination: StreamingPortalView()) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.brandCyan.opacity(0.12))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: "video.badge.checkmark.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("STREAMING PORTAL")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(Theme.brandCyan)
+                            .tracking(2)
+                        
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 6, height: 6)
+                            .flashingEffect()
+                        
+                        Text("LIVE")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.red)
+                    }
+                    
+                    Text("Venice Beach Flight Session")
+                        .font(.system(.subheadline, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    
+                    Text("Join active session with live biomechanical leaderboard")
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "play.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.brandCyan)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
+                    )
+            )
         }
     }
 

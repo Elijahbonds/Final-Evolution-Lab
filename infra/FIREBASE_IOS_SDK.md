@@ -4,7 +4,7 @@ This is **not** [Firebase App Distribution](https://firebase.google.com/docs/app
 
 ## Repo Swift shell (`FinalEvolutionLab.xcodeproj`)
 
-1. In [Firebase Console](https://console.firebase.google.com/) → your project → **Add app** → **iOS** → register the **same bundle ID** as in Xcode (e.g. `Final-Evolution-x-Unreal`).
+1. In [Firebase Console](https://console.firebase.google.com/) → your project → **Add app** → **iOS** → register the **same bundle ID** as in Xcode (e.g. `com.finalevolutionlab.app`).
 2. Download **`GoogleService-Info.plist`** and save it as:
 
    `FinalEvolutionLab/GoogleService-Info.plist`

@@ -12,6 +12,7 @@ struct ArenaHubView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier("ArenaSegmentedControl")
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
 

@@ -19,6 +19,37 @@ nonisolated struct BiomechanicsAudit: Codable, Sendable {
     }
 
     static func fromScanResult(_ scan: SystemScanResult) -> BiomechanicsAudit {
+        guard scan.supportsBiomechanicalPrescription else {
+            return previewSafeAudit(for: scan)
+        }
+        return measuredAuditFromScan(scan)
+    }
+
+    /// Neutral chassis when no measured audit exists — avoids deficit ``empty`` leaking into Body IQ HUD.
+    static var previewNeutral: BiomechanicsAudit {
+        BiomechanicsAudit(
+            ankleDorsiflexion: JointScore(value: 55, status: .moderate),
+            kneeTracking: JointScore(value: 55, status: .moderate),
+            hipExtension: JointScore(value: 55, status: .moderate),
+            kineticLeakageZones: [],
+            overallGrade: .developing,
+            auditDate: Date()
+        )
+    }
+
+    /// Demo / low-confidence / non-measured scans: moderate joint placeholders, **no** kinetic leakage prescriptions (SCAN accuracy boundary).
+    private static func previewSafeAudit(for scan: SystemScanResult) -> BiomechanicsAudit {
+        BiomechanicsAudit(
+            ankleDorsiflexion: JointScore(value: 55, status: .moderate),
+            kneeTracking: JointScore(value: 55, status: .moderate),
+            hipExtension: JointScore(value: 55, status: .moderate),
+            kineticLeakageZones: [],
+            overallGrade: .developing,
+            auditDate: scan.date
+        )
+    }
+
+    private static func measuredAuditFromScan(_ scan: SystemScanResult) -> BiomechanicsAudit {
         let prq = scan.prqScore
         let vertical = scan.verticalEstimateInches
         let flight = scan.flightTimeSeconds
@@ -32,7 +63,14 @@ nonisolated struct BiomechanicsAudit: Codable, Sendable {
             leakageZones.append(LeakageZone(joint: .ankle, severity: (60 - ankleScore) / 60, description: "Ankle stiffness deficit — reduced ground contact efficiency"))
         }
         if kneeScore < 65 {
-            leakageZones.append(LeakageZone(joint: .knee, severity: (65 - kneeScore) / 65, description: "Knee valgus detected during load phase"))
+            // kneeScore is a PRQ/vertical composite — not frontal-plane knee geometry. Avoid "valgus" without pose evidence.
+            leakageZones.append(
+                LeakageZone(
+                    joint: .knee,
+                    severity: (65 - kneeScore) / 65,
+                    description: "Knee composite below target (PRQ/vertical proxy — not a frontal-plane valgus measurement)"
+                )
+            )
         }
         if hipScore < 55 {
             leakageZones.append(LeakageZone(joint: .hip, severity: (55 - hipScore) / 55, description: "Hip extension power below optimal threshold"))
@@ -56,6 +94,26 @@ nonisolated struct BiomechanicsAudit: Codable, Sendable {
             kineticLeakageZones: leakageZones,
             overallGrade: grade,
             auditDate: scan.date
+        )
+    }
+
+    /// HealthKit / avatar-only path: general coaching tier from readiness — **no** joint prescriptions from multipliers (SCAN-52 / PRQ-03).
+    static func coachingGuidanceFromAvatar(_ a: AvatarPerformanceAttributes, capturedAt: Date) -> BiomechanicsAudit {
+        let rs = a.readinessScore
+        let overall: BiomechanicsGrade
+        switch rs {
+        case 80...: overall = .elite
+        case 65..<80: overall = .primed
+        case 50..<65: overall = .developing
+        default: overall = .foundation
+        }
+        return BiomechanicsAudit(
+            ankleDorsiflexion: JointScore(value: 55, status: .moderate),
+            kneeTracking: JointScore(value: 55, status: .moderate),
+            hipExtension: JointScore(value: 55, status: .moderate),
+            kineticLeakageZones: [],
+            overallGrade: overall,
+            auditDate: capturedAt
         )
     }
 

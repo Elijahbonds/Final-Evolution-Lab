@@ -1,0 +1,1096 @@
+{
+  "summary": {
+    "total": 155,
+    "pass": 139,
+    "fail": 0,
+    "warn": 11,
+    "skip": 5
+  },
+  "gates": [
+    {
+      "category": "CI",
+      "id": "A1",
+      "desc": "Gate 1: production_modes >= 14",
+      "status": "PASS",
+      "detail": "prod=14"
+    },
+    {
+      "category": "CI",
+      "id": "A2",
+      "desc": "Gate 2: directory walk scope (manual confirm required)",
+      "status": "WARN",
+      "detail": "Verify walk restricted to [backend, FinalEvolutionLab, infra, UnrealIntegration]"
+    },
+    {
+      "category": "CI",
+      "id": "A3",
+      "desc": "Gate 3: skateboarding\u2192Skate_Park, snowboarding\u2192Mountain_Slope (not VeniceBeach)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "CI",
+      "id": "A4",
+      "desc": "Gate 4: GameMode.swift UTF-16 readable",
+      "status": "SKIP",
+      "detail": "Requires Windows bridge / Mac filesystem access \u2014 run manually"
+    },
+    {
+      "category": "CI",
+      "id": "A5",
+      "desc": "Gate 5: server.py UTF-16 readable",
+      "status": "SKIP",
+      "detail": "Requires Windows bridge / Mac filesystem access \u2014 run manually"
+    },
+    {
+      "category": "CI",
+      "id": "A6",
+      "desc": "Gate 6: MentalResiliencyEngine.swift + FELNeuroCognitiveSubsystem.h present",
+      "status": "SKIP",
+      "detail": "Requires Windows bridge / Mac filesystem access \u2014 run manually"
+    },
+    {
+      "category": "Registry",
+      "id": "B01a",
+      "desc": "basketball_h2h: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B01b",
+      "desc": "basketball_h2h: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B02a",
+      "desc": "basketball_dunk: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B02b",
+      "desc": "basketball_dunk: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B03a",
+      "desc": "basketball_3v3: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B03b",
+      "desc": "basketball_3v3: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B04a",
+      "desc": "karate_h2h: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B04b",
+      "desc": "karate_h2h: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B05a",
+      "desc": "karate_endless: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B05b",
+      "desc": "karate_endless: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B06a",
+      "desc": "baseball: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B06b",
+      "desc": "baseball: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B07a",
+      "desc": "football: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B07b",
+      "desc": "football: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B08a",
+      "desc": "soccer: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B08b",
+      "desc": "soccer: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B09a",
+      "desc": "golf: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B09b",
+      "desc": "golf: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B10a",
+      "desc": "tennis: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B10b",
+      "desc": "tennis: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B11a",
+      "desc": "volleyball: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B11b",
+      "desc": "volleyball: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B12a",
+      "desc": "surfing: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B12b",
+      "desc": "surfing: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B13a",
+      "desc": "gymnastics: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B13b",
+      "desc": "gymnastics: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B14a",
+      "desc": "brain_brawl: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B14b",
+      "desc": "brain_brawl: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B15a",
+      "desc": "who_scene_it: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B15b",
+      "desc": "who_scene_it: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B16a",
+      "desc": "court_carnival: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B16b",
+      "desc": "court_carnival: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B17a",
+      "desc": "skateboarding: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B17b",
+      "desc": "skateboarding: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B18a",
+      "desc": "snowboarding: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B18b",
+      "desc": "snowboarding: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B19a",
+      "desc": "market_browse: registered in ModeManager",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Registry",
+      "id": "B19b",
+      "desc": "market_browse: has venue route in DefaultGame.ini",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C01a",
+      "desc": "basketball_h2h: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_BasketballH2H"
+    },
+    {
+      "category": "C++",
+      "id": "C01b",
+      "desc": "basketball_h2h: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C01c",
+      "desc": "basketball_h2h: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateBasketballH2HOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C02a",
+      "desc": "basketball_dunk: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_BasketballDunk"
+    },
+    {
+      "category": "C++",
+      "id": "C02b",
+      "desc": "basketball_dunk: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C02c",
+      "desc": "basketball_dunk: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateBasketballDunkOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C03a",
+      "desc": "basketball_3v3: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Basketball3V3"
+    },
+    {
+      "category": "C++",
+      "id": "C03b",
+      "desc": "basketball_3v3: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C03c",
+      "desc": "basketball_3v3: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateBasketball3V3Outcome"
+    },
+    {
+      "category": "C++",
+      "id": "C04a",
+      "desc": "karate_h2h: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_KarateH2H"
+    },
+    {
+      "category": "C++",
+      "id": "C04b",
+      "desc": "karate_h2h: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C04c",
+      "desc": "karate_h2h: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateKarateH2HOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C05a",
+      "desc": "karate_endless: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_KarateEndless"
+    },
+    {
+      "category": "C++",
+      "id": "C05b",
+      "desc": "karate_endless: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C05c",
+      "desc": "karate_endless: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateKarateEndlessOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C06a",
+      "desc": "baseball: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Baseball"
+    },
+    {
+      "category": "C++",
+      "id": "C06b",
+      "desc": "baseball: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C06c",
+      "desc": "baseball: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateBaseballOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C07a",
+      "desc": "football: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Football"
+    },
+    {
+      "category": "C++",
+      "id": "C07b",
+      "desc": "football: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C07c",
+      "desc": "football: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateFootballOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C08a",
+      "desc": "soccer: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Soccer"
+    },
+    {
+      "category": "C++",
+      "id": "C08b",
+      "desc": "soccer: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C08c",
+      "desc": "soccer: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateSoccerOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C09a",
+      "desc": "golf: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Golf"
+    },
+    {
+      "category": "C++",
+      "id": "C09b",
+      "desc": "golf: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C09c",
+      "desc": "golf: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateGolfOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C10a",
+      "desc": "tennis: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Tennis"
+    },
+    {
+      "category": "C++",
+      "id": "C10b",
+      "desc": "tennis: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C10c",
+      "desc": "tennis: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateTennisOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C11a",
+      "desc": "volleyball: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Volleyball"
+    },
+    {
+      "category": "C++",
+      "id": "C11b",
+      "desc": "volleyball: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C11c",
+      "desc": "volleyball: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateVolleyballOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C12a",
+      "desc": "surfing: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Surfing"
+    },
+    {
+      "category": "C++",
+      "id": "C12b",
+      "desc": "surfing: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C12c",
+      "desc": "surfing: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateSurfingOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C13a",
+      "desc": "gymnastics: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Gymnastics"
+    },
+    {
+      "category": "C++",
+      "id": "C13b",
+      "desc": "gymnastics: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C13c",
+      "desc": "gymnastics: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateGymnasticsOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C14a",
+      "desc": "brain_brawl: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_BrainBrawl"
+    },
+    {
+      "category": "C++",
+      "id": "C14b",
+      "desc": "brain_brawl: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C14c",
+      "desc": "brain_brawl: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateBrainBrawlOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C15a",
+      "desc": "who_scene_it: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_WhoSceneIt"
+    },
+    {
+      "category": "C++",
+      "id": "C15b",
+      "desc": "who_scene_it: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C15c",
+      "desc": "who_scene_it: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateWhoSceneItOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C16a",
+      "desc": "court_carnival: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_CourtCarnival"
+    },
+    {
+      "category": "C++",
+      "id": "C16b",
+      "desc": "court_carnival: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C16c",
+      "desc": "court_carnival: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateCourtCarnivalOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C17a",
+      "desc": "skateboarding: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Skateboarding"
+    },
+    {
+      "category": "C++",
+      "id": "C17b",
+      "desc": "skateboarding: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C17c",
+      "desc": "skateboarding: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateSkateboardingOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C18a",
+      "desc": "snowboarding: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_Snowboarding"
+    },
+    {
+      "category": "C++",
+      "id": "C18b",
+      "desc": "snowboarding: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C18c",
+      "desc": "snowboarding: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateSnowboardingOutcome"
+    },
+    {
+      "category": "C++",
+      "id": "C19a",
+      "desc": "market_browse: UCLASS subclass in FELGameModeBase.h",
+      "status": "PASS",
+      "detail": "AFELGameMode_MarketBrowse"
+    },
+    {
+      "category": "C++",
+      "id": "C19b",
+      "desc": "market_browse: constructor implemented",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "C++",
+      "id": "C19c",
+      "desc": "market_browse: evaluator in FELGameplayManager",
+      "status": "PASS",
+      "detail": "EvaluateMarketBrowseOutcome"
+    },
+    {
+      "category": "Types",
+      "id": "D01",
+      "desc": "FELTypes.h exists",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Types",
+      "id": "D02",
+      "desc": "EFELMatchOutcome defined in FELTypes.h",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Types",
+      "id": "D03",
+      "desc": "FFELSessionResult defined in FELTypes.h",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Types",
+      "id": "D04",
+      "desc": "EFELOutcome typedef present (transition aid)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Types",
+      "id": "D05",
+      "desc": "Field names use *Candidate convention",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Types",
+      "id": "D06",
+      "desc": "FELGameplayManager.h includes FELTypes.h",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Types",
+      "id": "D07",
+      "desc": "FELGameModeBase.h removes inline EFELMatchOutcome/FFELSessionResult defs",
+      "status": "PASS",
+      "detail": "Inline definitions successfully removed"
+    },
+    {
+      "category": "Economy",
+      "id": "E01",
+      "desc": "PRQ_WIN = 2.0",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E02",
+      "desc": "PRQ_DRAW = 0.5",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E03",
+      "desc": "PRQ_LOSS = 0.2",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E04",
+      "desc": "SHARD_WIN = 50",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E05",
+      "desc": "SHARD_DRAW = 25",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E06",
+      "desc": "SHARD_LOSS = 15",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E07",
+      "desc": "XP_CAP = 500",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E08",
+      "desc": "football weight=1.5",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E09",
+      "desc": "karate_h2h weight=1.4",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E10",
+      "desc": "basketball_3v3 weight=1.3",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E11",
+      "desc": "market_browse weight=0.0",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E12",
+      "desc": "MRI formula: ARV\u00d70.40",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E13",
+      "desc": "MRI formula: (100-ESI)\u00d70.35",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E14",
+      "desc": "MRI formula: Pacing\u00d70.25",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E15",
+      "desc": "Pacing bonus: 5% at PacingScore>=75",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Economy",
+      "id": "E16",
+      "desc": "XP capped at XP_CAP",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Assets",
+      "id": "F01",
+      "desc": "Environment models: 13/13 venues generated",
+      "status": "PASS",
+      "detail": "All 13 venue environments confirmed in /assets/models/ (Seele workspace)"
+    },
+    {
+      "category": "Assets",
+      "id": "F02",
+      "desc": "BGM tracks: 13/13 confirmed",
+      "status": "PASS",
+      "detail": "All 13 BGM descriptors written to /assets/audio/"
+    },
+    {
+      "category": "Assets",
+      "id": "F03",
+      "desc": "SFX: 20/~91 confirmed (PARTIAL)",
+      "status": "WARN",
+      "detail": "~71 SFX/UI sounds still pending. Use search_external_asset category=sfx, \u226410 parallel per batch"
+    },
+    {
+      "category": "Assets",
+      "id": "F04",
+      "desc": "Animation clips: 22/22 confirmed",
+      "status": "PASS",
+      "detail": "All 22 anim descriptors in /assets/animations/"
+    },
+    {
+      "category": "Assets",
+      "id": "F05",
+      "desc": "Character models: 12+ mixamo_avatar FBX",
+      "status": "PASS",
+      "detail": "baseball_batter, football_player, golfer, gymnast, karate_fighter, soccer_player, tennis_player, volleyball_player, skater, snowboarder, surfer, male/female_base confirmed"
+    },
+    {
+      "category": "Dist",
+      "id": "G01",
+      "desc": "iOS shipping build script",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Dist",
+      "id": "G02",
+      "desc": "App Store Connect upload script",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Dist",
+      "id": "G03",
+      "desc": "Android shipping build script",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Dist",
+      "id": "G04",
+      "desc": "Google Play upload script",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Dist",
+      "id": "G05",
+      "desc": "Fastfile (6 lanes)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Dist",
+      "id": "G06",
+      "desc": "Distribution checklist",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Dist",
+      "id": "G07",
+      "desc": "Gate 1 fix script",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Dist",
+      "id": "G08",
+      "desc": "iOS xcarchive status: SUCCEEDED on M4 Pro Mac Mini",
+      "status": "WARN",
+      "detail": "ACTION: Run bash infra/ios/fel_reexport_ipa.sh on Mac Mini to produce IPA"
+    },
+    {
+      "category": "Dist",
+      "id": "G09",
+      "desc": "IPA export status: BLOCKED_PROVISIONING_PROFILE \u2192 fix ready",
+      "status": "WARN",
+      "detail": "Run fel_reexport_ipa.sh with -allowProvisioningUpdates; provisioning profile installed"
+    },
+    {
+      "category": "Dist",
+      "id": "G10",
+      "desc": "Android AAB: NOT YET BUILT",
+      "status": "WARN",
+      "detail": "Run infra/android/fel_android_shipping_build.sh to build AAB"
+    },
+    {
+      "category": "Dist",
+      "id": "G11",
+      "desc": "game json urls=[]: no live TestFlight/Play Store link yet",
+      "status": "WARN",
+      "detail": "Update final_evolution_lab.json urls[] once IPA uploaded to TestFlight"
+    },
+    {
+      "category": "Backend",
+      "id": "H01",
+      "desc": "DispatchSessionReceipt targets correct endpoint",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Backend",
+      "id": "H02",
+      "desc": "HTTP dispatch uses FHttpModule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Backend",
+      "id": "H03",
+      "desc": "Content-Type: application/json",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "category": "Backend",
+      "id": "H04",
+      "desc": "backend/server.py: 213 tests passing (prior confirmed)",
+      "status": "WARN",
+      "detail": "Re-run pytest on Mac clone to confirm tests still green after P1 economy changes"
+    },
+    {
+      "category": "Backend",
+      "id": "H05",
+      "desc": "SovereignBridge wss:// endpoint reachable",
+      "status": "SKIP",
+      "detail": "Network test \u2014 run manually: curl wss://finalevolutiongroup.com/ws/sovereign"
+    },
+    {
+      "category": "Backend",
+      "id": "H06",
+      "desc": "POST /games/session returns 200 for valid receipt",
+      "status": "SKIP",
+      "detail": "Integration test \u2014 requires live server + auth token"
+    },
+    {
+      "category": "Backend",
+      "id": "H07",
+      "desc": "GEMINI_API_KEY set in backend/core.py (not hardcoded)",
+      "status": "WARN",
+      "detail": "Confirm env var injection in production docker-compose / Firebase config"
+    },
+    {
+      "category": "Phases",
+      "id": "I01",
+      "desc": "Phase 1 complete",
+      "status": "PASS",
+      "detail": "CI subsystems, SovereignBridge, AES-256-GCM, FELFeatureFlags"
+    },
+    {
+      "category": "Phases",
+      "id": "I02",
+      "desc": "Phase 2 complete",
+      "status": "PASS",
+      "detail": "Planning docs"
+    },
+    {
+      "category": "Phases",
+      "id": "I03",
+      "desc": "Phase 3 complete",
+      "status": "PASS",
+      "detail": "9 venues + 13 characters + 8 prop pairs \u2014 all descriptors written"
+    },
+    {
+      "category": "Phases",
+      "id": "I04",
+      "desc": "Phase 4 complete",
+      "status": "PASS",
+      "detail": "22 animation clips written"
+    },
+    {
+      "category": "Phases",
+      "id": "I05",
+      "desc": "Phase 5 complete",
+      "status": "WARN",
+      "detail": "13 BGM done. 20/~91 SFX done \u2014 ~71 SFX/UI sounds pending"
+    },
+    {
+      "category": "Phases",
+      "id": "I06",
+      "desc": "Phase 6 complete",
+      "status": "WARN",
+      "detail": "HUD TSX + BPFL_HUDManager written to Seele workspace but NOT on Windows bridge partition"
+    },
+    {
+      "category": "Phases",
+      "id": "I07",
+      "desc": "Phase 7 complete",
+      "status": "PASS",
+      "detail": "FELGameplayManager.h/cpp + FELGameModeBase.h (19 subclasses) + FELSessionReceiptComponent.h"
+    },
+    {
+      "category": "Phases",
+      "id": "I08",
+      "desc": "Phase 8 complete",
+      "status": "WARN",
+      "detail": "Build scripts written. iOS xcarchive SUCCEEDED, IPA export pending on Mac Mini"
+    }
+  ]
+}

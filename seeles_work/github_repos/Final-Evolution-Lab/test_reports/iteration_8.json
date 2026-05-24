@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 8 — DB hardening + FEL OS Pass + iOS shipping handshake/verify + NASM-CNC Bio-Fuel Suite. 26/26 backend pytest passed including unique compound index on education_progress(user_id, track_id), 24h TTL on brain_brawl_launches.launched_at_ts, /api/sovereign/handshake/verify payload, 1200x630 PIL-decodable PNG pass + 404 for unknown user, all 5 biofuel intents + 5 seed recipes + 9-ingredient/4-step recipe detail, auth-gating across 6 endpoints, log→today reflection, both vision models (gemini-2.5-flash + gpt-5.2) on a real Unsplash food JPEG, Instacart deep-link, DoorDash macro-aware search, biofuel block in /api/system-scan/unified and /api/sovereign/status. Frontend e2e verified: BioFuelStripe above 4 quadrants (DOM idx 26 vs 45), 4 macro bars, 3 action buttons + Share Pass, Scanner modal (model picker + file input + submit), Cookbook modal (6 intent buttons incl 'all', 5 recipes, recipe detail + cart btn), DoorDash modal (3 matches with open + log per match), Share Pass modal (1200x630 PNG loaded), 4 quadrants render, track navigation regression green.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration8_biofuel_pass.py",
+    "/app/test_reports/pytest/pytest_iter8.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "biofuel.py _athlete_weight_kg() is hardcoded to 75.0kg — FIXME comment acknowledged; recommend capturing weight_kg on user profile so NASM-CNC macros are personalized.",
+    "biofuel.py _today_intent() is a static heuristic (basketball/football → post_dunk_recovery, else endurance_base). Worth driving from training-block schedule once available.",
+    "biofuel.scan endpoint base64 size is unbounded — consider a max-payload guard (e.g., 4MB) before forwarding to LLM to prevent abuse / 502s.",
+    "DoorDash matches are mutated in-place inside doordash_search (sets m['deep_link']); since DOORDASH_SEED is module-global, mutation persists across requests. Currently idempotent but fragile — copy before mutating.",
+    "pass_image.py does not cache PNGs — every share or refresh re-renders 1200x630 PIL. Acceptable for now (≤200ms), but caching to disk or Redis keyed by user_id+updated_at would help under load.",
+    "Frontend BioFuelStripe re-fetches /today + /cues on mount via biofuelKey bump rather than a websocket/event — works, but small race between scan auto-log and stripe refresh."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration8_biofuel_pass.py (new)"
+  ],
+  "success_rate": {"backend": "100% (26/26)", "frontend": "100% of specified testids verified end-to-end"},
+  "test_credentials": "Reused sess_1777957943281 (test-fel-os-1777957943281). Auth path: backend accepts both Authorization: Bearer header and session_token cookie — frontend tests must set the session_token COOKIE on the preview domain (not localStorage) because axios.defaults.withCredentials=true and there is no Authorization header injection in App.js.",
+  "seed_data_creation": "None — used the existing seeded session. Test added 1 fresh meal log entry (TEST_quickbar 220 kcal) and 2 vision scans (gemini + gpt-5.2) under the same user.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Auth gotcha: frontend uses cookie session_token (axios withCredentials), not localStorage — when scripting playwright auth, use page.context.add_cookies([{name:'session_token', value:'sess_...', domain: preview-domain, secure:True, sameSite:'None'}]). Iteration 8 added test_iteration8_biofuel_pass.py covering Mongo indexes, sovereign/handshake/verify, FEL OS pass png+meta, biofuel public + auth-gated + scan vision (both models), unified+status biofuel block — reuse for regression. Vision scan adds ~6-12s per model; total suite ~23s on Emergent LLM. /api/biofuel/scan auto-logs the meal AND awards 12 XP — be aware of cumulative state when re-running the log/today reflection test.",
+  "rca of the issue": "N/A — no issues found. All listed acceptance criteria for iteration 8 (DB indexes + FEL OS Pass + handshake/verify + Bio-Fuel Suite) verified green on backend and frontend."
+}

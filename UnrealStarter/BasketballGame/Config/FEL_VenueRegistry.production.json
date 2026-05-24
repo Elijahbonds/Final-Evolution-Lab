@@ -1,45 +1,157 @@
 {
-  "schema": "fel-venue-registry-2",
-  "notes": "Production venue registry — 19 modes (14 production, 4 staging, 2 preview). Aligned with FEL_ModeManager, GameMode.swift, DefaultGame.ini, and ArenaSettings.json.",
-  "modes": [
-    { "id": "basketball_h2h", "analyticsMode": "head_to_head", "venueKey": "venice_beach_court", "displayVenue": "Venice Beach Court" },
-    { "id": "basketball_dunk", "analyticsMode": "dunk_contest", "venueKey": "venice_beach_court_dunk", "displayVenue": "Venice Beach Court" },
-    { "id": "basketball_3v3", "analyticsMode": "streetball_3v3", "venueKey": "venice_beach_court_3v3", "displayVenue": "Venice Beach Court" },
-    { "id": "karate_h2h", "analyticsMode": "karate_sparring", "venueKey": "dojo_arena", "displayVenue": "Dojo Arena" },
-    { "id": "karate_endless", "analyticsMode": "karate_endless", "venueKey": "dojo_arena", "displayVenue": "Dojo Arena" },
-    { "id": "baseball", "analyticsMode": "home_run_derby", "venueKey": "stadium_diamond", "displayVenue": "Stadium Diamond" },
-    { "id": "football", "analyticsMode": "kick_return", "venueKey": "stadium_field", "displayVenue": "Stadium Field" },
-    { "id": "soccer", "analyticsMode": "penalty_shootout", "venueKey": "stadium_pitch", "displayVenue": "Stadium Pitch" },
-    { "id": "golf", "analyticsMode": "closest_to_pin", "venueKey": "golf_green", "displayVenue": "Golf Green" },
-    { "id": "tennis", "analyticsMode": "rally_ace_tennis", "venueKey": "venice_beach_court_tennis", "displayVenue": "Venice Beach Court" },
-    { "id": "volleyball", "analyticsMode": "rally_ace_volleyball", "venueKey": "beach_court", "displayVenue": "Beach Court" },
-    { "id": "surfing", "analyticsMode": "surf_line", "venueKey": "venice_beach_surf", "displayVenue": "Venice Beach Surf" },
-    { "id": "gymnastics", "analyticsMode": "gymnastics_routine", "venueKey": "arena_floor", "displayVenue": "Arena" },
-    { "id": "skateboarding", "analyticsMode": "skate_line", "venueKey": "skate_park", "displayVenue": "Skate Park" },
-    { "id": "snowboarding", "analyticsMode": "snow_line", "venueKey": "mountain_slope", "displayVenue": "Mountain Slope" },
-    { "id": "brain_brawl", "analyticsMode": "brain_brawl", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena" },
-    { "id": "who_scene_it", "analyticsMode": "who_scene_it", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena" },
-    { "id": "court_carnival", "analyticsMode": "court_carnival", "venueKey": "venice_beach_court", "displayVenue": "Venice Beach Court" },
-    { "id": "market_browse", "analyticsMode": "market_browse", "venueKey": "luma_venice_shop", "displayVenue": "Luma Venice Shop" }
-  ],
-  "venues": [
-    { "venueKey": "venice_beach_court", "analyticsPolicyName": "Venice Beach — H2H" },
-    { "venueKey": "venice_beach_court_dunk", "analyticsPolicyName": "Venice Beach — Dunk" },
-    { "venueKey": "venice_beach_court_3v3", "analyticsPolicyName": "Venice Beach — 3v3" },
-    { "venueKey": "venice_beach_court_tennis", "analyticsPolicyName": "Venice Beach — Tennis" },
-    { "venueKey": "venice_beach_surf", "analyticsPolicyName": "Venice Beach — Surf" },
-    { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
-    { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena" },
-    { "venueKey": "zen_dojo", "analyticsPolicyName": "Zen Dojo (UE map)" },
-    { "venueKey": "stadium_diamond", "analyticsPolicyName": "Stadium Diamond" },
-    { "venueKey": "stadium_field", "analyticsPolicyName": "Stadium Field" },
-    { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
-    { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
-    { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
-    { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },
-    { "venueKey": "mountain_slope", "analyticsPolicyName": "Mountain Slope" },
-    { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena" },
-    { "venueKey": "luma_venice_shop", "analyticsPolicyName": "Luma Venice Shop" },
-    { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
-  ]
+  "version": "1.0.0",
+  "generated": "2026-01-17",
+  "project": "Final Evolution Lab",
+  "engine": "Unreal Engine 5.7",
+  "streaming": "Eagle 3D Streaming (E3DS)",
+  "venues": {
+    "Venice_Beach_Court": {
+      "map_path": "/Game/FEL/Maps/Venice_Beach_Court",
+      "display_name": "Venice Beach Court",
+      "game_modes": ["basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival"],
+      "category": "Basketball",
+      "environment": "venice_beach_sunset",
+      "max_concurrent": 4,
+      "assets": 42,
+      "db_collection": "sessions_venice_beach"
+    },
+    "Zen_Dojo": {
+      "map_path": "/Game/FEL/Maps/Zen_Dojo",
+      "display_name": "Zen Dojo",
+      "game_modes": ["karate_h2h", "karate_endless"],
+      "category": "Combat",
+      "environment": "zen_dojo",
+      "max_concurrent": 4,
+      "assets": 42,
+      "db_collection": "sessions_zen_dojo"
+    },
+    "Baseball_Park": {
+      "map_path": "/Game/FEL/Maps/Baseball_Park",
+      "display_name": "Baseball Ballpark",
+      "game_modes": ["baseball"],
+      "category": "Field",
+      "environment": "stadium_night_game",
+      "max_concurrent": 2,
+      "assets": 42,
+      "db_collection": "sessions_baseball"
+    },
+    "Gridiron_Stadium": {
+      "map_path": "/Game/FEL/Maps/Gridiron_Stadium",
+      "display_name": "Gridiron Stadium",
+      "game_modes": ["football"],
+      "category": "Field",
+      "environment": "stadium_night_game",
+      "max_concurrent": 2,
+      "assets": 42,
+      "db_collection": "sessions_gridiron"
+    },
+    "Soccer_Stadium": {
+      "map_path": "/Game/FEL/Maps/Soccer_Stadium",
+      "display_name": "Soccer Stadium",
+      "game_modes": ["soccer"],
+      "category": "Field",
+      "environment": "classic_nba_arena",
+      "max_concurrent": 4,
+      "assets": 42,
+      "db_collection": "sessions_soccer"
+    },
+    "Links_Course": {
+      "map_path": "/Game/FEL/Maps/Links_Course",
+      "display_name": "Links Golf Course",
+      "game_modes": ["golf"],
+      "category": "Precision",
+      "environment": "beach_tropical",
+      "max_concurrent": 4,
+      "assets": 42,
+      "db_collection": "sessions_golf"
+    },
+    "Tennis_Court": {
+      "map_path": "/Game/FEL/Maps/Tennis_Court",
+      "display_name": "Tennis Court",
+      "game_modes": ["tennis"],
+      "category": "Court",
+      "environment": "rooftop_cityscape",
+      "max_concurrent": 2,
+      "assets": 42,
+      "db_collection": "sessions_tennis"
+    },
+    "Sand_Court": {
+      "map_path": "/Game/FEL/Maps/Sand_Court",
+      "display_name": "Sand Volleyball Court",
+      "game_modes": ["volleyball"],
+      "category": "Court",
+      "environment": "venice_beach_sunset",
+      "max_concurrent": 4,
+      "assets": 42,
+      "db_collection": "sessions_volleyball"
+    },
+    "Training_Floor": {
+      "map_path": "/Game/FEL/Maps/Training_Floor",
+      "display_name": "Training Floor",
+      "game_modes": ["gymnastics"],
+      "category": "Performance",
+      "environment": "cyberpunk_gym",
+      "max_concurrent": 2,
+      "assets": 42,
+      "db_collection": "sessions_gymnastics"
+    },
+    "Venice_Beach_Surf": {
+      "map_path": "/Game/FEL/Maps/Venice_Beach_Surf",
+      "display_name": "Venice Beach Surf",
+      "game_modes": ["surfing"],
+      "category": "Board",
+      "environment": "venice_beach_sunset",
+      "max_concurrent": 2,
+      "assets": 42,
+      "db_collection": "sessions_surfing"
+    },
+    "Skate_Park": {
+      "map_path": "/Game/FEL/Maps/Skate_Park",
+      "display_name": "Skate Park",
+      "game_modes": ["skateboarding"],
+      "category": "Board",
+      "environment": "neon_arcade",
+      "max_concurrent": 4,
+      "assets": 42,
+      "db_collection": "sessions_skateboarding"
+    },
+    "Mountain_Slope": {
+      "map_path": "/Game/FEL/Maps/Mountain_Slope",
+      "display_name": "Mountain Slope",
+      "game_modes": ["snowboarding"],
+      "category": "Board",
+      "environment": "winter_outdoor",
+      "max_concurrent": 4,
+      "assets": 42,
+      "db_collection": "sessions_snowboarding"
+    },
+    "Neuro_Arena": {
+      "map_path": "/Game/FEL/Maps/Neuro_Arena",
+      "display_name": "Neuro Arena",
+      "game_modes": ["brain_brawl", "who_scene_it"],
+      "category": "Academy",
+      "environment": "neon_arcade",
+      "max_concurrent": 8,
+      "assets": 42,
+      "db_collection": "sessions_brain_brawl"
+    },
+    "Sovereign_Shop": {
+      "map_path": "/Game/FEL/Maps/Sovereign_Shop",
+      "display_name": "Module Library",
+      "game_modes": ["market_browse"],
+      "category": "Dashboard",
+      "environment": "sovereign_shop",
+      "max_concurrent": 1,
+      "assets": 12,
+      "db_collection": "sessions_market_browse"
+    }
+  },
+  "total_venues": 14,
+  "total_game_modes": 19,
+  "sovereign_sync": {
+    "target": "M4 Pro Mac Mini",
+    "protocol": "WSS over Cloudflare Tunnel",
+    "encryption": "AES-256-GCM",
+    "signaling_server": "Private (local network)"
+  }
 }

@@ -130,7 +130,9 @@ nonisolated struct DynamicDifficulty: Sendable {
         case .volleyball: modeScale = 1.0
         case .gymnastics: modeScale = 0.8
         case .surfing, .skateboarding, .snowboarding: modeScale = 0.95
-        case .brainBrawl: modeScale = 0.85
+        case .brainBrawl, .whoSceneIt: modeScale = 0.85
+        case .courtCarnival: modeScale = 1.0
+        case .marketBrowse: modeScale = 0.5
         }
         let scaled = Double(maxPoints) * modeScale * (0.6 + normalized * 0.4)
         return max(1, Int(scaled.rounded()))

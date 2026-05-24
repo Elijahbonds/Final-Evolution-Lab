@@ -125,6 +125,9 @@ nonisolated enum DunkContestScoring {
 }
 
 struct DunkContestState {
+    /// Drives deterministic judge rolls and launch/landing windows for replay (GAME-29).
+    var sessionSeed: UInt64
+
     var phase: DunkPhase = .idle
     var round: Int = 1
     var totalRounds: Int = 3
@@ -168,6 +171,10 @@ struct DunkContestState {
     var styleLandingSuccess: Bool = false
     var totalFreestylePoints: Int = 0
     var rimDistortionAmount: Double = 0
+
+    init(sessionSeed: UInt64 = 0xD1CE_D001) {
+        self.sessionSeed = sessionSeed
+    }
 
     var isComplete: Bool {
         round > totalRounds
@@ -245,13 +252,14 @@ struct DunkContestState {
         }
     }
 
-    mutating func calculateDunkScore(prq: Double, neuralBurst: Bool) -> (total: Int, j1: Int, j2: Int, j3: Int, message: String) {
+    mutating func calculateDunkScore(prq: Double, neuralBurst: Bool, judgeRNG: inout SplitMix64) -> (total: Int, j1: Int, j2: Int, j3: Int, message: String) {
         let executionScore = ((launchQuality + landingQuality) / 2.0) * 20
         let spread = max(1, 5 - Int(executionScore / 8))
+        let span = UInt64(max(1, spread))
         let judgeOffsets = (
-            Int.random(in: 0..<spread),
-            Int.random(in: 0..<spread),
-            Int.random(in: 0..<spread)
+            Int(judgeRNG.next() % span),
+            Int(judgeRNG.next() % span),
+            Int(judgeRNG.next() % span)
         )
         let out = DunkContestScoring.calculate(
             jumpHeight: jumpHeight,
@@ -272,6 +280,7 @@ struct DunkContestState {
         impactIntensity = jumpHeight * landingQuality
         rimDistortionAmount = activeModifier == .power ? 0.15 : (activeModifier == .signature ? 0.2 : 0.08)
         trickHistory.append(selectedTrick)
+        totalScore += out.total
 
         return (out.total, out.j1, out.j2, out.j3, out.message)
     }
@@ -309,7 +318,8 @@ struct DunkContestState {
 
         let difficulty = selectedTrick.complexity
         let greenWidth = max(0.18, 0.38 - difficulty * 0.12)
-        let center = 0.5 + Double.random(in: -0.06...0.06)
+        var launchRNG = SplitMix64(seed: sessionSeed &+ UInt64(round) &+ 0x1A2B_3C4D)
+        let center = 0.5 + launchRNG.nextDouble(in: -0.06...0.06)
         launchGreenZone = max(0, center - greenWidth / 2)...min(1, center + greenWidth / 2)
         launchTimingSpeed = 2.0 + difficulty * 0.7
     }
@@ -324,7 +334,8 @@ struct DunkContestState {
         let difficulty = selectedTrick.complexity
         let dd = dunkDifficulty
         let landGreenWidth = max(0.14, 0.32 - dd * 0.07)
-        let landCenter = 0.5 + Double.random(in: -0.05...0.05)
+        var landRNG = SplitMix64(seed: sessionSeed &+ UInt64(round) &+ 0x5D5E_60FE)
+        let landCenter = 0.5 + landRNG.nextDouble(in: -0.05...0.05)
         landingGreenZone = max(0, landCenter - landGreenWidth / 2)...min(1, landCenter + landGreenWidth / 2)
         landingTimingSpeed = 2.4 + difficulty * 0.5
     }

@@ -10,7 +10,7 @@
 # Prerequisites:
 #   - Xcode installed; **Xcode → Settings → Accounts**: sign in with Apple ID (personal **Team** is OK for
 #     on-device testing; paid Apple Developer Program required for App Store / wider distribution).
-#   - **Signing:** After GenerateProjectFiles, open **FinalEvolutionLab (IOS).xcworkspace** → target
+#   - **Signing:** After GenerateProjectFiles, open **${PROJECT_NAME} (IOS).xcworkspace** → target
 #     **FinalEvolutionLab** → **Signing & Capabilities** → select **Team** and enable **Automatically manage
 #     signing**. Set **Bundle Identifier** in UE (Project Settings → iOS) so it matches the provisioning profile.
 #     Cursor/CLI cannot apply your Team ID without that UI step or matching UE iOS settings.
@@ -41,13 +41,14 @@
 #   ./fel_ue5_ios_shipping_package.sh --full-cook -map=VeniceBeach  # cook one map (e.g. Venice) instead of -allmaps
 #   ./fel_ue5_ios_shipping_package.sh --full-cook --allmaps   # explicit: cook all maps (default when -map is omitted)
 #   ./fel_ue5_ios_shipping_package.sh --full-cook --export-ipa   # after RunUAT: xcodebuild archive + export (method: app-store → TestFlight / Transporter)
-#   ./fel_ue5_ios_shipping_package.sh --full-cook --export-ipa-firebase   # same archive, second export: **ad-hoc** .ipa → Firebase App Distribution (FinalEvolutionLab-Firebase.ipa)
+#   ./fel_ue5_ios_shipping_package.sh --full-cook --export-ipa-firebase   # same archive, second export: **ad-hoc** .ipa → Firebase App Distribution (${PROJECT_NAME}-Firebase.ipa)
 #
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$SCRIPT_DIR"
+PROJECT_NAME="FinalEvolutionLab"
 
 LEGACY_UPROJECT="$REPO_ROOT/UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
 METAL_SNIPPET_REPO="$REPO_ROOT/UnrealStarter/BasketballGame/Config/DefaultEngine.ios_metal_mobile.snippet.ini"
@@ -137,6 +138,7 @@ resolve_project_paths() {
   [[ -f "$chosen" ]] || die "UPROJECT not found: $chosen"
   PROJECT_DIR="$(cd "$(dirname "$chosen")" && pwd)"
   UPROJECT="$PROJECT_DIR/$(basename "$chosen")"
+  PROJECT_NAME="$(basename "$UPROJECT" .uproject)"
   DEFAULT_ENGINE="$PROJECT_DIR/Config/DefaultEngine.ini"
   DEFAULT_GAME="$PROJECT_DIR/Config/DefaultGame.ini"
 
@@ -278,9 +280,9 @@ patch_ios_xcconfig_development_team() {
       echo ">>> Patched DEVELOPMENT_TEAM=$team in: $xc"
       n=$((n + 1))
     fi
-  done < <(find "$PROJECT_DIR/Intermediate" -path '*/XcconfigsIOS/FinalEvolutionLab.xcconfig' 2>/dev/null)
+  done < <(find "$PROJECT_DIR/Intermediate" -path "*/XcconfigsIOS/${PROJECT_NAME}.xcconfig" 2>/dev/null)
   if [[ "$n" -eq 0 ]]; then
-    echo "WARN: No XcconfigsIOS/FinalEvolutionLab.xcconfig found under $PROJECT_DIR/Intermediate — run GenerateProjectFiles first."
+    echo "WARN: No XcconfigsIOS/${PROJECT_NAME}.xcconfig found under $PROJECT_DIR/Intermediate — run GenerateProjectFiles first."
   fi
 }
 
@@ -303,7 +305,7 @@ patch_ios_pbxproj_development_team() {
       ' "$pb"
       echo ">>> Patched TargetAttributes DevelopmentTeam in: $pb"
     fi
-  done < <(find "$PROJECT_DIR/Intermediate" -path '*/FinalEvolutionLab (IOS).xcodeproj/project.pbxproj' 2>/dev/null)
+  done < <(find "$PROJECT_DIR/Intermediate" -path "*/${PROJECT_NAME} (IOS).xcodeproj/project.pbxproj" 2>/dev/null)
 }
 
 # UE iOS Xcode project: (1) Copy Runnable rsyncs staged data; (2) strip/ThinApp runs after Copy. Either can leave xattrs;
@@ -374,10 +376,10 @@ if text != text0:
     pb.write_text(text, encoding="utf-8")
     print(">>> Patched iOS pbxproj xattr strips (Copy + ThinApp phases):", pb)
 PY
-  done < <(find "$PROJECT_DIR/Intermediate" -path '*/FinalEvolutionLab (IOS).xcodeproj/project.pbxproj' 2>/dev/null)
+  done < <(find "$PROJECT_DIR/Intermediate" -path "*/${PROJECT_NAME} (IOS).xcodeproj/project.pbxproj" 2>/dev/null)
 }
 
-# RunUAT regenerates FinalEvolutionLab (IOS).xcodeproj mid-build (UBT calls xcodebuild via an absolute path; PATH hooks do not run).
+# RunUAT regenerates ${PROJECT_NAME} (IOS).xcodeproj mid-build (UBT calls xcodebuild via an absolute path; PATH hooks do not run).
 # While RunUAT is running, we periodically re-apply the Copy-phase xattr strip so the materialized Script-*.sh contains xattr -cr before CodeSign.
 IOS_XATTR_PATCH_PID=""
 
@@ -408,7 +410,10 @@ start_ios_xattr_patch_loop() {
     set +e
     while true; do
       patch_ios_pbxproj_copy_phase_xattr_strip
-      sleep "${IOS_XATTR_PATCH_INTERVAL:-0.35}"
+      if [[ -d "$PROJECT_DIR/Binaries/IOS" ]]; then
+        xattr -cr "$PROJECT_DIR/Binaries/IOS" 2>/dev/null || true
+      fi
+      sleep "${IOS_XATTR_PATCH_INTERVAL:-0.2}"
     done
   ) &
   IOS_XATTR_PATCH_PID=$!
@@ -416,7 +421,7 @@ start_ios_xattr_patch_loop() {
 
 # Opens the UE-generated iOS Xcode workspace (Signing & Capabilities lives here).
 open_ios_workspace_in_xcode() {
-  local ws="$PROJECT_DIR/FinalEvolutionLab (IOS).xcworkspace"
+  local ws="$PROJECT_DIR/${PROJECT_NAME} (IOS).xcworkspace"
   [[ -d "$ws" ]] || die "iOS workspace not found (run GenerateProjectFiles first): $ws"
   echo ">>> Opening in Xcode:"
   echo "    $ws"
@@ -460,7 +465,7 @@ verify_ios_app_bundle_plist() {
     fi
   else
     echo "WARN: Info.plist missing or empty — Xcode signing likely did not finalize: $app"
-    echo "      Open FinalEvolutionLab (IOS).xcworkspace → Signing & Capabilities → Team, then re-run or use --open-xcode."
+    echo "      Open ${PROJECT_NAME} (IOS).xcworkspace → Signing & Capabilities → Team, then re-run or use --open-xcode."
   fi
 }
 
@@ -475,17 +480,17 @@ copy_ios_deploy_artifacts() {
   local ipa=""
   ipa="$(find "$proj/Binaries/IOS" -maxdepth 1 -name '*.ipa' -print 2>/dev/null | head -1)"
   if [[ -z "$ipa" && -n "${IOS_ARCHIVE:-}" ]]; then
-    ipa="$(find "$IOS_ARCHIVE" -maxdepth 3 -name 'FinalEvolutionLab.ipa' -print 2>/dev/null | head -1)"
+    ipa="$(find "$IOS_ARCHIVE" -maxdepth 3 -name "${PROJECT_NAME}.ipa" -print 2>/dev/null | head -1)"
   fi
   if [[ -n "$ipa" && -f "$ipa" ]]; then
-    cp -f "$ipa" "$deploy/FinalEvolutionLab.ipa"
-    echo ">>> Copied $(basename "$ipa") → $deploy/FinalEvolutionLab.ipa"
+    cp -f "$ipa" "$deploy/${PROJECT_NAME}.ipa"
+    echo ">>> Copied $(basename "$ipa") → $deploy/${PROJECT_NAME}.ipa"
   else
-    echo ">>> NOTE: No FinalEvolutionLab.ipa found under Binaries/IOS or archive — export IPA from Xcode Organizer if needed."
+    echo ">>> NOTE: No ${PROJECT_NAME}.ipa found under Binaries/IOS or archive — export IPA from Xcode Organizer if needed."
   fi
-  if [[ -f "$proj/Binaries/IOS/FinalEvolutionLab-Firebase.ipa" ]]; then
-    cp -f "$proj/Binaries/IOS/FinalEvolutionLab-Firebase.ipa" "$deploy/FinalEvolutionLab-Firebase.ipa"
-    echo ">>> Copied FinalEvolutionLab-Firebase.ipa → $deploy/ (ad-hoc / Firebase App Distribution)"
+  if [[ -f "$proj/Binaries/IOS/${PROJECT_NAME}-Firebase.ipa" ]]; then
+    cp -f "$proj/Binaries/IOS/${PROJECT_NAME}-Firebase.ipa" "$deploy/${PROJECT_NAME}-Firebase.ipa"
+    echo ">>> Copied ${PROJECT_NAME}-Firebase.ipa → $deploy/ (ad-hoc / Firebase App Distribution)"
   fi
 }
 
@@ -493,8 +498,25 @@ repack_descriptor_safe_ipa_from_cooked_app() {
   local proj="${1:-}"
   [[ -z "$proj" ]] && return 0
 
-  local app="$proj/Binaries/IOS/FinalEvolutionLab.app"
-  local out="$proj/Binaries/IOS/FinalEvolutionLab.ipa"
+  local bin_ios="$proj/Binaries/IOS"
+  local app=""
+  local cand
+  if [[ -d "$bin_ios" ]]; then
+    while IFS= read -r cand; do
+      [[ -z "$cand" ]] && continue
+      if [[ -d "$cand/cookeddata" ]] || find "$cand" -maxdepth 8 -name '*.pak' -print -quit 2>/dev/null | grep -q .; then
+        app="$cand"
+        break
+      fi
+    done < <(find "$bin_ios" -maxdepth 1 -name "${PROJECT_NAME}*.app" -type d 2>/dev/null)
+  fi
+
+  # Fallback to standard check if no wildcards matched
+  if [[ -z "$app" ]]; then
+    app="$proj/Binaries/IOS/${PROJECT_NAME}.app"
+  fi
+
+  local out="$proj/Binaries/IOS/${PROJECT_NAME}.ipa"
   local deploy="$proj/Binaries/IOS/Deploy"
   if [[ ! -d "$app" ]]; then
     echo "WARN: Cannot repack descriptor-safe IPA; missing $app"
@@ -505,17 +527,26 @@ repack_descriptor_safe_ipa_from_cooked_app() {
     return 0
   fi
 
+  local app_basename
+  app_basename="$(basename "$app")"
+
   local tmp
   tmp="$(mktemp -d /tmp/fel-ipa.XXXXXX)"
   mkdir -p "$tmp/Payload" "$deploy"
-  ditto --norsrc "$app" "$tmp/Payload/FinalEvolutionLab.app"
+  # Copy the main app under its original name
+  ditto --norsrc "$app" "$tmp/Payload/$app_basename"
+  # Also copy as ${PROJECT_NAME}.app inside the zip payload so that it is uniform
+  if [[ "$app_basename" != "${PROJECT_NAME}.app" ]]; then
+    ditto --norsrc "$app" "$tmp/Payload/${PROJECT_NAME}.app"
+  fi
+
   rm -f "$out"
   (
     cd "$tmp"
     COPYFILE_DISABLE=1 /usr/bin/zip -qry "$out" Payload
   )
   rm -rf "$tmp"
-  cp -f "$out" "$deploy/FinalEvolutionLab.ipa"
+  cp -f "$out" "$deploy/${PROJECT_NAME}.ipa"
   echo ">>> Repacked descriptor-safe .ipa from cooked app: $out"
 }
 
@@ -533,19 +564,33 @@ promote_fully_staged_ios_app_from_internal_staging() {
       staged_app="$cand"
       break
     }
-  done < <(find "$staging_root" -name 'FinalEvolutionLab.app' -type d 2>/dev/null)
+  done < <(find "$staging_root" -name "${PROJECT_NAME}*.app" -type d 2>/dev/null)
   [[ -n "$staged_app" ]] || {
-    echo "WARN: No FinalEvolutionLab.app with cookeddata/ or .pak under $staging_root — cook/stage may have failed or paths differ."
+    echo "WARN: No ${PROJECT_NAME}*.app with cookeddata/ or .pak under $staging_root — cook/stage may have failed or paths differ."
     return 0
   }
-  local bin_app="$PROJECT_DIR/Binaries/IOS/FinalEvolutionLab.app"
-  local arch_app="$IOS_ARCHIVE/FinalEvolutionLab.app"
+
+  local app_basename
+  app_basename="$(basename "$staged_app")"
+
+  local bin_app="$PROJECT_DIR/Binaries/IOS/$app_basename"
+  local arch_app="$IOS_ARCHIVE/$app_basename"
   echo ">>> Promoting fully staged iOS .app (has cookeddata — fixes empty archive / descriptor errors):"
   echo "    $staged_app"
   mkdir -p "$(dirname "$bin_app")" "$(dirname "$arch_app")"
   rm -rf "$bin_app" "$arch_app"
   ditto "$staged_app" "$bin_app"
   ditto "$staged_app" "$arch_app"
+
+  # If the staged app has a config suffix, also promote it to ${PROJECT_NAME}.app for fallback
+  if [[ "$app_basename" != "${PROJECT_NAME}.app" ]]; then
+    local bin_fallback="$PROJECT_DIR/Binaries/IOS/${PROJECT_NAME}.app"
+    local arch_fallback="$IOS_ARCHIVE/${PROJECT_NAME}.app"
+    echo ">>> Also promoting as fallback: ${PROJECT_NAME}.app"
+    rm -rf "$bin_fallback" "$arch_fallback"
+    ditto "$staged_app" "$bin_fallback"
+    ditto "$staged_app" "$arch_fallback"
+  fi
 }
 
 run_ios_shipping_archive() {
@@ -685,8 +730,8 @@ run_ios_shipping_archive() {
   local bin_ios="$PROJECT_DIR/Binaries/IOS"
   [[ -d "$bin_ios" ]] && find "$bin_ios" -maxdepth 2 \( -name '*.ipa' -o -name '*.app' \) -print 2>/dev/null || true
   echo ">>> App Store / TestFlight: \`--export-ipa\` → infra/ue5_config/ExportOptions.plist (method app-store)."
-  echo ">>> Firebase App Distribution: \`--export-ipa-firebase\` → FinalEvolutionLab-Firebase.ipa (method **ad-hoc** — tester devices must be on your Ad Hoc profile)."
-  echo ">>> Emergent telemetry on device: set Config/DefaultGame.ini [Emergent] SovereignHubHost=<Mac Mini LAN IP>"
+  echo ">>> Firebase App Distribution: \`--export-ipa-firebase\` → ${PROJECT_NAME}-Firebase.ipa (method **ad-hoc** — tester devices must be on your Ad Hoc profile)."
+  echo ">>> Runtime telemetry on device: set Config/DefaultGame.ini [Emergent] SovereignHubHost=<Mac Mini LAN IP>"
   echo "    (GameWebSocketUrl may stay ws://127.0.0.1:PORT/... — the bridge rewrites localhost to the hub IP)."
   print_app_store_distribution_hint "$PROJECT_DIR"
 }
@@ -698,12 +743,12 @@ print_app_store_distribution_hint() {
   echo "1. Open Xcode → Window → Organizer → Archives → **Distribute App** (App Store Connect / TestFlight)."
   echo "2. CLI: re-run with **--export-ipa** to produce a signed .ipa via infra/ue5_config/ExportOptions.plist (app-store)."
   echo "3. Typical artifact after export:"
-  echo "   $proj/Binaries/IOS/FinalEvolutionLab.ipa"
+  echo "   $proj/Binaries/IOS/${PROJECT_NAME}.ipa"
   echo "4. Descriptor safety: staged .app should include cooked payload (cookeddata/ and/or .pak) — this script prints warnings during plist verification."
   local ipa_found
   ipa_found="$(find "$proj/Binaries/IOS" -maxdepth 1 -name '*.ipa' -print 2>/dev/null | head -3)"
   if [[ -z "$ipa_found" ]]; then
-    ipa_found="$(find "$proj" -maxdepth 7 -name 'FinalEvolutionLab.ipa' -print 2>/dev/null | head -3)"
+    ipa_found="$(find "$proj" -maxdepth 7 -name "${PROJECT_NAME}.ipa" -print 2>/dev/null | head -3)"
   fi
   if [[ -n "$ipa_found" ]]; then
     echo "   Found .ipa candidate(s):"
@@ -718,15 +763,15 @@ ensure_ios_xcarchive_for_export() {
   local proj="${1:-}"
   [[ -z "$proj" ]] && return 0
   [[ "$IOS_XCODE_ARCHIVE_BUILT" == "1" ]] && return 0
-  local ws="$proj/FinalEvolutionLab (IOS).xcworkspace"
+  local ws="$proj/${PROJECT_NAME} (IOS).xcworkspace"
   [[ -d "$ws" ]] || { echo "WARN: iOS workspace missing: $ws"; return 0; }
 
-  local xcarchive="$IOS_ARCHIVE/FinalEvolutionLab.xcarchive"
+  local xcarchive="$IOS_ARCHIVE/${PROJECT_NAME}.xcarchive"
   mkdir -p "$IOS_ARCHIVE"
 
   echo ""
   echo ">>> Xcode archive → $xcarchive"
-  xcodebuild -workspace "$ws" -scheme FinalEvolutionLab -configuration Shipping -destination "generic/platform=iOS" \
+  xcodebuild -workspace "$ws" -scheme "$PROJECT_NAME" -configuration Shipping -destination "generic/platform=iOS" \
     -archivePath "$xcarchive" archive || { echo "WARN: xcodebuild archive failed"; return 0; }
   IOS_XCODE_ARCHIVE_BUILT=1
 }
@@ -736,12 +781,12 @@ export_ipa_variant() {
   local proj="${1:-}"
   local variant="${2:-appstore}"
   [[ -z "$proj" ]] && return 0
-  local ws="$proj/FinalEvolutionLab (IOS).xcworkspace"
+  local ws="$proj/${PROJECT_NAME} (IOS).xcworkspace"
   [[ -d "$ws" ]] || { echo "WARN: iOS workspace missing: $ws"; return 0; }
 
   ensure_ios_xcarchive_for_export "$proj" || return 0
 
-  local xcarchive="$IOS_ARCHIVE/FinalEvolutionLab.xcarchive"
+  local xcarchive="$IOS_ARCHIVE/${PROJECT_NAME}.xcarchive"
   local opts=""
   local export_dir=""
   local out_ipa_name=""
@@ -751,13 +796,13 @@ export_ipa_variant() {
     firebase)
       opts="$REPO_ROOT/infra/ue5_config/ExportOptions.ad-hoc.plist"
       export_dir="$IOS_ARCHIVE/_ipa_export_firebase"
-      out_ipa_name="FinalEvolutionLab-Firebase.ipa"
+      out_ipa_name="${PROJECT_NAME}-Firebase.ipa"
       label="ad-hoc (Firebase App Distribution — testers need devices on Ad Hoc provisioning)"
       ;;
     appstore|*)
       opts="$REPO_ROOT/infra/ue5_config/ExportOptions.plist"
       export_dir="$IOS_ARCHIVE/_ipa_export_appstore"
-      out_ipa_name="FinalEvolutionLab.ipa"
+      out_ipa_name="${PROJECT_NAME}.ipa"
       label="app-store (TestFlight / App Store Connect)"
       ;;
   esac
@@ -816,7 +861,7 @@ main() {
     patch_ios_pbxproj_development_team
     patch_ios_pbxproj_copy_phase_xattr_strip
     open_ios_workspace_in_xcode
-    echo ">>> In Xcode: select target FinalEvolutionLab → Signing & Capabilities → Team, then Product → Archive if you ship from Xcode."
+    echo ">>> In Xcode: select target ${PROJECT_NAME} → Signing & Capabilities → Team, then Product → Archive if you ship from Xcode."
     exit 0
   fi
 

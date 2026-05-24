@@ -4,6 +4,10 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Engine/TimerHandle.h"
+#include "FELCreatorCardTypes.h"
+#include "FELVaultTypes.h"
+#include "FELPartyTypes.h"
+#include "FELEmergentSovereignDatabase.h"
 
 #include "FELEmergentBridgeSubsystem.generated.h"
 
@@ -51,6 +55,78 @@ public:
 	/** Deferred emit so GameState / arena id are populated after AFELBasketballGameMode::StartPlay. */
 	UFUNCTION(BlueprintCallable, Category = "Emergent")
 	void ScheduleSovereignSessionSnapshotDeferred(float DelaySeconds = 0.15f);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SendSceneItBuzzToHub(const FString& RoundId, const FString& ClipId, const FString& PlayerId, double ClientMonotonicMs);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SendSceneItAnswerToHub(const FString& RoundId, const FString& ClipId, const FString& PlayerId, bool bCorrect, int32 ChosenIndex, int32 EvolutionShardsAwarded, float DistorterResolveAtBuzz);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	bool TryQueryDraftActivations(int32 OptionalDraftYear, const FString& OptionalPathwaySubstring, int32 MaxRows, TArray<FFELDraftCardRow>& OutRows) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	bool TryQueryVaultRecentSessions(int32 MaxRows, TArray<FFELVaultRow>& OutRows) const;
+
+	UFUNCTION(BlueprintPure, Category = "Emergent")
+	bool TryGetLocalEvolutionShardTotal(int64& OutTotal) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	bool InsertLocalDraftActivation(const FString& CardId, int32 DraftYear, const FString& Pathway, const FString& SerialId, const FString& SignatureHex, bool bCommissionerMint);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	bool AddLocalEvolutionShards(int32 Delta, const FString& Reason, const FString& RefMealId, bool bRecommendedPick);
+
+	UFUNCTION(BlueprintPure, Category = "Emergent")
+	bool IsFullySecure() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SendFuelConciergeOrderToHub(const FString& MealIdOrdered, bool bOrderedRecommendedMeal, int32 Shards, int32 TrainingPhase, float PRQScore);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void GrantEvolutionShardsLocal(int32 Delta, const FString& Reason, const FString& RefMealId, bool bRecommendedPick);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SetCommissionerSessionActive(bool bActive);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SendCommissionerMintVerifyToHub(const FString& CardId, const FString& SerialId, int32 DraftYear, const FString& PathwayStr);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SendDraftOwnerCertifiedToHub(const FString& CardId, const FString& SerialId, int32 DraftYear, const FString& PathwayStr, bool bCommissionerOk);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SendJukeboxHostToHub(const FString& EquippedDjCardId, const FString& ActiveSpotifyPlaylistId, const FString& MenuPlaylistId);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SendDesignBlitzSubmitToHub(const FString& SessionId, int32 RoundIndex, const FString& JsonMetadataSnapshot);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void SendPartyBoardStateToHub(const FString& BoardId, int32 Phase, int32 SessionType, int32 ActivePlayerIndex, const TArray<FFELPartyPlayerSlot>& Players, const FString& PendingMinigameModeId, const FString& SubType);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void PersistDraftCardToVault(const FString& CardId, int32 DraftYear, const FString& PathwayStr, const FString& SerialId, const FString& Sig, bool bCommissionerOk);
+
+	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	void PersistMatchEndSample(const AFELBasketballGameState* GS);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Emergent")
+	bool bImuSensorReady = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Emergent")
+	bool bImuHudIntegrityOk = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Emergent")
+	bool bIsHardwareAuthenticated = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Emergent")
+	bool bMonotonicClockTrusted = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Emergent")
+	bool bIsCommissionerSessionActive = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Emergent")
+	float LastPlayerVertVelCm = 0.0f;
 
 	/** Raw UTF-8 text frame from server (JSON or plain text per your backend). */
 	UPROPERTY(BlueprintAssignable, Category = "Emergent")
@@ -109,4 +185,6 @@ private:
 
 	static constexpr int32 MaxPendingOutbound = 128;
 	TArray<FString> PendingOutboundMessages;
+
+	TUniquePtr<class FELEmergentSovereignDatabase> SovereignDb;
 };

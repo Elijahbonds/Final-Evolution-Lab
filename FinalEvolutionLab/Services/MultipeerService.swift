@@ -10,14 +10,23 @@ class MultipeerService: NSObject {
     var lastReceivedAction: String = ""
     var lastReceivedScore: Int = 0
 
+    /// Display name of a peer requesting join — accept/reject from UI.
+    var pendingInvitationPeerName: String?
+
     private var session: MCSession?
     private var advertiser: MCNearbyServiceAdvertiser?
     private var browser: MCNearbyServiceBrowser?
     private let peerId = MCPeerID(displayName: UIDevice.current.name)
     private let serviceType = "fel-arena"
 
+    /// Must match ``GameModeId/rawValue`` on both ends.
+    private(set) var activeGameId: String = ""
+
+    private var pendingInvitationHandler: ((Bool, MCSession?) -> Void)?
+
     func startHosting(gameId: String) {
-        setupSession()
+        activeGameId = gameId
+        rebuildSessionIfNeeded()
         advertiser?.stopAdvertisingPeer()
         advertiser = MCNearbyServiceAdvertiser(peer: peerId, discoveryInfo: ["game": gameId], serviceType: serviceType)
         advertiser?.delegate = self
@@ -25,7 +34,8 @@ class MultipeerService: NSObject {
     }
 
     func startBrowsing(gameId: String) {
-        setupSession()
+        activeGameId = gameId
+        rebuildSessionIfNeeded()
         browser?.stopBrowsingForPeers()
         browser = MCNearbyServiceBrowser(peer: peerId, serviceType: serviceType)
         browser?.delegate = self
@@ -33,11 +43,29 @@ class MultipeerService: NSObject {
     }
 
     func stop() {
+        pendingInvitationHandler = nil
+        pendingInvitationPeerName = nil
         advertiser?.stopAdvertisingPeer()
         browser?.stopBrowsingForPeers()
         session?.disconnect()
+        session = nil
         isConnected = false
         connectedPeerName = ""
+        activeGameId = ""
+    }
+
+    func acceptPendingInvitation() {
+        guard let handler = pendingInvitationHandler else { return }
+        handler(true, session)
+        pendingInvitationHandler = nil
+        pendingInvitationPeerName = nil
+    }
+
+    func rejectPendingInvitation() {
+        guard let handler = pendingInvitationHandler else { return }
+        handler(false, nil)
+        pendingInvitationHandler = nil
+        pendingInvitationPeerName = nil
     }
 
     func sendAction(_ action: String, score: Int) {
@@ -48,11 +76,11 @@ class MultipeerService: NSObject {
         }
     }
 
-    private func setupSession() {
-        if session == nil {
-            session = MCSession(peer: peerId, securityIdentity: nil, encryptionPreference: .none)
-            session?.delegate = self
-        }
+    private func rebuildSessionIfNeeded() {
+        session?.disconnect()
+        session = nil
+        session = MCSession(peer: peerId, securityIdentity: nil, encryptionPreference: .required)
+        session?.delegate = self
     }
 }
 
@@ -93,7 +121,8 @@ extension MultipeerService: MCSessionDelegate {
 extension MultipeerService: MCNearbyServiceAdvertiserDelegate {
     nonisolated func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
         Task { @MainActor in
-            invitationHandler(true, session)
+            pendingInvitationPeerName = peerID.displayName
+            pendingInvitationHandler = invitationHandler
         }
     }
 }
@@ -101,9 +130,9 @@ extension MultipeerService: MCNearbyServiceAdvertiserDelegate {
 extension MultipeerService: MCNearbyServiceBrowserDelegate {
     nonisolated func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {
         Task { @MainActor in
-            if let session {
-                browser.invitePeer(peerID, to: session, withContext: nil, timeout: 10)
-            }
+            guard let session, !activeGameId.isEmpty else { return }
+            guard info?["game"] == activeGameId else { return }
+            browser.invitePeer(peerID, to: session, withContext: nil, timeout: 10)
         }
     }
 

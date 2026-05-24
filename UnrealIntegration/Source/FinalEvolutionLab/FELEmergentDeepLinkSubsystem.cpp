@@ -43,30 +43,64 @@ const TMap<FString, FString>& GetModeToVenueMap()
 		T.Add(TEXT("brain_brawl"), TEXT("Neuro_Arena"));
 		T.Add(TEXT("market_browse"), TEXT("Sovereign_Shop"));
 		T.Add(TEXT("scene_it"), TEXT("Venice_Beach_Court"));
+		T.Add(TEXT("who_scene_it"), TEXT("Neuro_Arena"));
+		T.Add(TEXT("court_carnival"), TEXT("Venice_Beach_Court"));
 		return T;
 	}();
 	return M;
 }
 
-/** Logical venue tokens -> cooked map package paths (matches DefaultGame.ini MapsToCook). */
+/**
+ * Source of truth for **server travel** package paths (matches `backend/FEL_ModeManager.production.json` `map` field).
+ * Preferred over legacy `/Game/FEL/Venues/...` when resolving a **mode id** (e.g. iOS `arenaGameModeId`).
+ */
+const TMap<FString, FString>& GetProductionMapPathByModeId()
+{
+	static TMap<FString, FString> P = [] {
+		TMap<FString, FString> M;
+		M.Add(TEXT("basketball_h2h"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+		M.Add(TEXT("basketball_dunk"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+		M.Add(TEXT("basketball_3v3"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+		M.Add(TEXT("karate_h2h"), TEXT("/Game/FEL/Maps/Zen_Dojo"));
+		M.Add(TEXT("karate_endless"), TEXT("/Game/FEL/Maps/Zen_Dojo"));
+		M.Add(TEXT("baseball"), TEXT("/Game/FEL/Maps/Baseball_Park"));
+		M.Add(TEXT("football"), TEXT("/Game/FEL/Maps/Gridiron_Stadium"));
+		M.Add(TEXT("soccer"), TEXT("/Game/FEL/Maps/Soccer_Stadium"));
+		M.Add(TEXT("golf"), TEXT("/Game/FEL/Maps/Links_Course"));
+		M.Add(TEXT("tennis"), TEXT("/Game/FEL/Maps/Tennis_Court"));
+		M.Add(TEXT("volleyball"), TEXT("/Game/FEL/Maps/Sand_Court"));
+		M.Add(TEXT("gymnastics"), TEXT("/Game/FEL/Maps/Training_Floor"));
+		M.Add(TEXT("surfing"), TEXT("/Game/FEL/Maps/Venice_Beach_Surf"));
+		M.Add(TEXT("skateboarding"), TEXT("/Game/FEL/Maps/Skate_Park"));
+		M.Add(TEXT("snowboarding"), TEXT("/Game/FEL/Maps/Mountain_Slope"));
+		M.Add(TEXT("brain_brawl"), TEXT("/Game/FEL/Maps/Neuro_Arena"));
+		M.Add(TEXT("market_browse"), TEXT("/Game/FEL/Maps/Sovereign_Shop"));
+		M.Add(TEXT("who_scene_it"), TEXT("/Game/FEL/Maps/Neuro_Arena"));
+		M.Add(TEXT("court_carnival"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+		return M;
+	}();
+	return P;
+}
+
+/** Logical venue tokens -> production map packages (aligned with `backend/FEL_ModeManager.production.json` `map`). */
 const TMap<FString, FString>& GetVenueTokenToPackagePath()
 {
 	static TMap<FString, FString> T = [] {
 		TMap<FString, FString> M;
-		M.Add(TEXT("Venice_Beach_Court"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
-		M.Add(TEXT("Zen_Dojo"), TEXT("/Game/FEL/Venues/Dojo/Dojo"));
-		M.Add(TEXT("Baseball_Park"), TEXT("/Game/FEL/Venues/BaseballPark/BaseballPark"));
-		M.Add(TEXT("Gridiron_Stadium"), TEXT("/Game/FEL/Venues/Gridiron/Gridiron"));
-		M.Add(TEXT("Soccer_Stadium"), TEXT("/Game/FEL/Venues/SoccerStadium/SoccerStadium"));
-		M.Add(TEXT("Links_Course"), TEXT("/Game/FEL/Venues/Links/Links"));
-		M.Add(TEXT("Tennis_Court"), TEXT("/Game/FEL/Venues/TennisCourt/TennisCourt"));
-		M.Add(TEXT("Sand_Court"), TEXT("/Game/FEL/Venues/SandCourt/SandCourt"));
-		M.Add(TEXT("Training_Floor"), TEXT("/Game/FEL/Venues/TrainingFloor/TrainingFloor"));
-		M.Add(TEXT("Venice_Beach_Surf"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
-		M.Add(TEXT("Skate_Park"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
-		M.Add(TEXT("Mountain_Slope"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
-		M.Add(TEXT("Neuro_Arena"), TEXT("/Game/FEL/Venues/NeuroArena/NeuroArena"));
-		M.Add(TEXT("Sovereign_Shop"), TEXT("/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"));
+		M.Add(TEXT("Venice_Beach_Court"), TEXT("/Game/FEL/Maps/Venice_Beach_Court"));
+		M.Add(TEXT("Zen_Dojo"), TEXT("/Game/FEL/Maps/Zen_Dojo"));
+		M.Add(TEXT("Baseball_Park"), TEXT("/Game/FEL/Maps/Baseball_Park"));
+		M.Add(TEXT("Gridiron_Stadium"), TEXT("/Game/FEL/Maps/Gridiron_Stadium"));
+		M.Add(TEXT("Soccer_Stadium"), TEXT("/Game/FEL/Maps/Soccer_Stadium"));
+		M.Add(TEXT("Links_Course"), TEXT("/Game/FEL/Maps/Links_Course"));
+		M.Add(TEXT("Tennis_Court"), TEXT("/Game/FEL/Maps/Tennis_Court"));
+		M.Add(TEXT("Sand_Court"), TEXT("/Game/FEL/Maps/Sand_Court"));
+		M.Add(TEXT("Training_Floor"), TEXT("/Game/FEL/Maps/Training_Floor"));
+		M.Add(TEXT("Venice_Beach_Surf"), TEXT("/Game/FEL/Maps/Venice_Beach_Surf"));
+		M.Add(TEXT("Skate_Park"), TEXT("/Game/FEL/Maps/Skate_Park"));
+		M.Add(TEXT("Mountain_Slope"), TEXT("/Game/FEL/Maps/Mountain_Slope"));
+		M.Add(TEXT("Neuro_Arena"), TEXT("/Game/FEL/Maps/Neuro_Arena"));
+		M.Add(TEXT("Sovereign_Shop"), TEXT("/Game/FEL/Maps/Sovereign_Shop"));
 		return M;
 	}();
 	return T;
@@ -279,6 +313,12 @@ FString UFELEmergentDeepLinkSubsystem::ResolvePackagePathForPlayKey(const FStrin
 		return K;
 	}
 
+	// Mode id (e.g. `basketball_dunk`) -> production map from FEL_ModeManager JSON.
+	if (const FString* Prod = GetProductionMapPathByModeId().Find(K))
+	{
+		return *Prod;
+	}
+
 	if (const FString* VenuePath = GetVenueTokenToPackagePath().Find(K))
 	{
 		return *VenuePath;
@@ -382,6 +422,7 @@ void UFELEmergentDeepLinkSubsystem::RequestPlayFromEmergent(
 
 	FString MapTokenOrShort = PackagePath;
 	MapTokenOrShort.ReplaceInline(TEXT("/Game/FEL/Venues/"), TEXT(""));
+	MapTokenOrShort.ReplaceInline(TEXT("/Game/FEL/Maps/"), TEXT(""));
 	const int32 SlashIdx = MapTokenOrShort.Find(TEXT("/"));
 	if (SlashIdx != INDEX_NONE)
 	{
@@ -596,6 +637,8 @@ void UFELEmergentDeepLinkSubsystem::OnPostLoadMapWithWorld(UWorld* World)
 	const FString PayloadMode = LastRequestedModeId.IsEmpty() ? TEXT("") : LastRequestedModeId;
 
 	Bridge->BroadcastMapLoaded(PayloadMap, PayloadMode);
+
+	OnFELMapLoaded.Broadcast(PayloadMap, PayloadMode);
 
 	Bridge->ScheduleSovereignSessionSnapshotDeferred(0.15f);
 

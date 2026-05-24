@@ -11,7 +11,7 @@ An IPA exported with **App Store** method (`ExportOptions.plist` / `method: app-
 ```bash
 export UE_ROOT="/Users/Shared/Epic Games/UE_5.7"
 UPROJECT="/path/to/FinalEvolutionLab.uproject" \
-  /path/to/rork-final-evolution-lab/fel_ue5_ios_shipping_package.sh --full-cook --export-ipa-firebase
+  /path/to/final-evolution-lab/fel_ue5_ios_shipping_package.sh --full-cook --export-ipa-firebase
 ```
 
 Output: **`.../Binaries/IOS/FinalEvolutionLab-Firebase.ipa`**  

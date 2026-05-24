@@ -28,12 +28,31 @@ enum FirebaseBootstrap {
     static func configureIfNeeded() {
 #if canImport(FirebaseCore)
         guard FirebaseApp.app() == nil else { return }
-        guard Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil else {
+        
+        // Bypass if running under UI tests or screenshot harness
+        if CommandLine.arguments.contains("-UITestMode") || CommandLine.arguments.contains("-ScreenshotHarness") {
+#if DEBUG
+            print("[FirebaseBootstrap] Bypassing Firebase configuration for UI/Screenshot test mode.")
+#endif
+            return
+        }
+        
+        guard let plistPath = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") else {
 #if DEBUG
             print("[FirebaseBootstrap] GoogleService-Info.plist missing from bundle — Firebase disabled.")
 #endif
             return
         }
+        
+        if let plistDict = NSDictionary(contentsOfFile: plistPath),
+           let apiKey = plistDict["API_KEY"] as? String,
+           apiKey.contains("REPLACE_ME") {
+#if DEBUG
+            print("[FirebaseBootstrap] GoogleService-Info.plist contains placeholder API key — Firebase disabled.")
+#endif
+            return
+        }
+        
         FirebaseApp.configure()
         CrashReporter.configureIfAvailable()
 #if canImport(FirebaseFirestore)

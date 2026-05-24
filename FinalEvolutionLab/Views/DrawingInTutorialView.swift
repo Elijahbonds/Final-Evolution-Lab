@@ -8,6 +8,17 @@ struct DrawingInTutorialView: View {
     @State private var torqueProgress: Double = 0.35
     @State private var simulateKneeValgus = false
     @State private var torqueHapticTimer: Timer?
+    @State private var liveSensorEnabled = false
+
+    private var isKneeUnstable: Bool {
+        if liveSensorEnabled {
+            let motion = CoreMotionHelper.shared
+            let threshold = 1.2
+            return abs(motion.gyroX) > threshold || abs(motion.gyroY) > threshold || abs(motion.gyroZ) > threshold
+        } else {
+            return simulateKneeValgus
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -17,7 +28,7 @@ struct DrawingInTutorialView: View {
                 DrawingInSceneContainer(
                     stage: stage,
                     torqueProgress: torqueProgress,
-                    showKneeLeakage: simulateKneeValgus
+                    showKneeLeakage: isKneeUnstable
                 )
                 .frame(height: 340)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -40,16 +51,58 @@ struct DrawingInTutorialView: View {
 
                 cueCard
 
-                Toggle(isOn: $simulateKneeValgus) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Simulate front knee valgus (demo)")
-                            .font(.system(.subheadline, weight: .semibold))
-                        Text("Production: wire ARKit / Luma body pose to drive this warning.")
-                            .font(.system(.caption2, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.45))
+                VStack(alignment: .leading, spacing: 10) {
+                    Toggle(isOn: $liveSensorEnabled) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("LIVE SENSOR FEEDBACK")
+                                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                                .foregroundStyle(Theme.brandCyan)
+                            Text("Use device gyroscope for real-time knee instability warnings")
+                                .font(.system(.caption2, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
                     }
+                    .tint(Theme.brandCyan)
+                    
+                    if liveSensorEnabled {
+                        HStack {
+                            Text("Gyro rate (rad/s):")
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.5))
+                            Spacer()
+                            Text(String(format: "X: %.2f  Y: %.2f  Z: %.2f", CoreMotionHelper.shared.gyroX, CoreMotionHelper.shared.gyroY, CoreMotionHelper.shared.gyroZ))
+                                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                                .foregroundStyle(isKneeUnstable ? Color.red : Theme.brandCyan)
+                        }
+                    } else {
+                        Toggle(isOn: $simulateKneeValgus) {
+                            Text("Demo: manual knee valgus warning")
+                                .font(.system(.caption, design: .rounded))
+                        }
+                        .tint(Theme.brandCyan)
+                    }
+                    
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                    
+                    NavigationLink(destination: RealtimeMotionTrackerView()) {
+                        HStack {
+                            Image(systemName: "camera.viewfinder")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("LAUNCH KINECT AI TRACKER")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.black)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.brandCyan))
+                    }
+                    .padding(.top, 4)
                 }
-                .tint(Theme.brandCyan)
                 .padding(12)
                 .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground))
 
@@ -98,6 +151,22 @@ struct DrawingInTutorialView: View {
         .onDisappear {
             torqueHapticTimer?.invalidate()
             torqueHapticTimer = nil
+            if liveSensorEnabled {
+                CoreMotionHelper.shared.stopStreaming()
+            }
+        }
+        .onChange(of: liveSensorEnabled) { _, enabled in
+            if enabled {
+                CoreMotionHelper.shared.startStreaming()
+            } else {
+                CoreMotionHelper.shared.stopStreaming()
+            }
+        }
+        .onChange(of: isKneeUnstable) { _, newUnstable in
+            if newUnstable {
+                let gen = UINotificationFeedbackGenerator()
+                gen.notificationOccurred(.warning)
+            }
         }
     }
 

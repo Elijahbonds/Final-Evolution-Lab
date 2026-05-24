@@ -9,17 +9,41 @@ import {
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
-  Swords, Video, Palette, UserPlus, Gift
+  Swords, Video, Palette, UserPlus, Gift, Download, Smartphone
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
-import { SovereignDashboard } from "@/components/SovereignDashboard";
-import { FELOSDashboard } from "@/components/FELOSDashboard";
+import { HubDashboard } from "@/components/SovereignDashboard";
+import { FELOSDashboard, EducationTracksPortal } from "@/components/FELOSDashboard";
+import { LandingPage as RedesignedLandingPage } from "@/components/LandingPage";
+import DownloadPage from "@/components/DownloadPage";
+import { TriviaArenaView } from "@/components/TriviaArenaView";
+import FELHud from "@/components/hud/FELHud";
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
+
+// Initialize Firebase SDK
+const firebaseConfig = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyFakeKey-ForLocalTestingOnly",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "final-evolution-lab.firebaseapp.com",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "final-evolution-lab",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "final-evolution-lab.appspot.com",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:1234567890:web:fakeappid"
+};
+
+let firebaseApp, firebaseAuth;
+try {
+  firebaseApp = initializeApp(firebaseConfig);
+  firebaseAuth = getAuth(firebaseApp);
+} catch (e) {
+  console.error("Firebase initialization failed:", e);
+}
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
 // iOS Safari ITP and in-app WebViews (Instagram, Twitter, Messages)
@@ -38,6 +62,20 @@ axios.interceptors.request.use((config) => {
   } catch (_e) { /* localStorage unavailable in private mode — fall back to cookie */ }
   return config;
 });
+
+/** Dashboard embedded in Unreal iOS WKWebView — digital goods must use StoreKit, not PayPal web checkout. */
+function felIOSHostedWebView() {
+  if (typeof window === "undefined") return false;
+  // Fallback to User Agent detection to ensure StoreKit-only split for all iOS devices (preventing PayPal presentation on iOS)
+  const ua = window.navigator?.userAgent || "";
+  if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+    return true;
+  }
+  if (window.__FEL_BRIDGE_TOKEN__) return true;
+  const mh = window.webkit?.messageHandlers;
+  if (!mh) return false;
+  return !!(mh.FELBridge || mh.felNativeBridge || mh.FELNativeBridge);
+}
 
 // ===================== AUTH CONTEXT =====================
 const AuthContext = createContext(null);
@@ -98,82 +136,73 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   useEffect(() => { if (user) navigate('/dashboard'); }, [user, navigate]);
-  const handleLogin = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + '/dashboard';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
-  return (
-    <div className="min-h-screen" style={{background:'var(--bg-default)'}}>
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 to-transparent"></div>
-        <header className="relative z-10 flex items-center justify-between px-8 py-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-cyan-400 flex items-center justify-center"><Zap className="w-6 h-6 text-black" /></div>
-            <span className="text-xl font-bold tracking-tight" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION LAB</span>
-          </div>
-          <button data-testid="hero-login-btn" onClick={handleLogin} className="btn-primary">Enter Lab</button>
-        </header>
-        <div className="relative z-10 max-w-6xl mx-auto px-8 py-24 text-center">
-          <p className="overline mb-4">THE ATHLETE OPERATING SYSTEM</p>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6" style={{fontFamily:'Barlow Condensed'}}>YOUR MOVEMENT<br/><span className="text-cyan-400">AUDITED</span></h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
-            <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
-            {[{v:"17",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
-              <div key={i} className="text-center"><div className="metric-value text-cyan-400">{s.v}</div><div className="metric-label">{s.l}</div></div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="max-w-6xl mx-auto px-8 py-24">
-        <p className="overline text-center mb-4">CORE SYSTEMS</p>
-        <h2 className="text-4xl font-bold text-center mb-16" style={{fontFamily:'Barlow Condensed'}}>ONE SCAN. TOTAL INTEGRATION.</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            {icon:Activity,t:"System Scan",d:"Avatar, PRQ metrics, health signals, and workout plans unified"},
-            {icon:Users,t:"Creator Cards",d:"Digital collectibles from elite athletes and coaches"},
-            {icon:Gamepad2,t:"17 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
-            {icon:Trophy,t:"Coach Economy",d:"Instruction and critique as first-class currencies"},
-            {icon:Brain,t:"Brain Brawl",d:"Cognitive training for peak decision-making"},
-            {icon:GraduationCap,t:"Education",d:"Common Core to kinesiology certification"}
-          ].map((f,i) => (
-            <div key={i} className="surface-card p-6 card-hover">
-              <f.icon className="w-10 h-10 text-cyan-400 mb-4" /><h3 className="text-xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>{f.t}</h3><p className="text-zinc-400">{f.d}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="surface-glass py-16">
-        <div className="max-w-4xl mx-auto px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>READY TO EVOLVE?</h2>
-          <p className="text-zinc-400 mb-8">Join the lab. Train smarter. Compete harder.</p>
-          <button data-testid="footer-cta-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Enter Final Evolution Lab</button>
-        </div>
-      </div>
-    </div>
-  );
+  return <RedesignedLandingPage />;
 };
 
 const LoginPage = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
+  const [authError, setAuthError] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
   useEffect(() => { if (user) navigate('/dashboard'); }, [user, navigate]);
-  const handleLogin = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + '/dashboard';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+
+  const handleLogin = async () => {
+    if (!firebaseAuth) {
+      setAuthError("Firebase Auth is not properly initialized. Contact administration.");
+      return;
+    }
+    setIsAuthenticating(true);
+    setAuthError("");
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(firebaseAuth, provider);
+      const idToken = await result.user.getIdToken();
+      // Exchange token for backend session
+      const r = await axios.post(`${API}/auth/session`, { session_id: idToken });
+      if (r.data?.session_token) {
+        try { localStorage.setItem(FEL_TOKEN_KEY, r.data.session_token); } catch (_e) {}
+      }
+      setUser(r.data);
+      navigate('/dashboard', { replace: true, state: { user: r.data } });
+    } catch (error) {
+      console.error("Google Auth Sign-In failed:", error);
+      setAuthError(error.message || "Authentication failed. Please try again.");
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
+
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}>
-      <div className="surface-card p-8 w-full max-w-md text-center">
-        <div className="w-16 h-16 bg-cyan-400 flex items-center justify-center mx-auto mb-6"><Zap className="w-10 h-10 text-black" /></div>
-        <h1 className="text-3xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION LAB</h1>
-        <p className="text-zinc-400 mb-8">Sign in to access your training dashboard</p>
-        <button data-testid="login-google-btn" onClick={handleLogin} className="btn-primary w-full flex items-center justify-center gap-3">Continue with Google</button>
+    <div className="min-h-screen flex items-center justify-center bg-[#050505]" style={{background:'var(--bg-default)'}}>
+      <div className="surface-card p-8 w-full max-w-md text-center border border-white/10 rounded-sm">
+        <div className="w-16 h-16 bg-[#5ce1e6] flex items-center justify-center mx-auto mb-6 shadow-[0_0_15px_rgba(92,225,230,0.3)]">
+          <Zap className="w-10 h-10 text-black fill-current" />
+        </div>
+        <h1 className="text-3xl font-extrabold mb-2 text-white" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION LAB</h1>
+        <p className="text-zinc-400 mb-8 text-sm">Sign in using your Google credentials to enter the Athlete OS</p>
+        
+        {authError && (
+          <div className="mb-6 p-3 border border-red-500/30 bg-red-500/5 text-xs text-red-400 font-mono text-left">
+            {authError}
+          </div>
+        )}
+
+        <button 
+          data-testid="login-google-btn" 
+          onClick={handleLogin} 
+          disabled={isAuthenticating}
+          className="btn-primary w-full flex items-center justify-center gap-3 bg-[#5ce1e6] hover:bg-[#4dd0d5] text-black font-extrabold py-3.5 tracking-wider transition-all disabled:bg-zinc-800 disabled:text-zinc-500 rounded-none shadow-[0_0_20px_rgba(92,225,230,0.15)]"
+        >
+          {isAuthenticating ? (
+            <>
+              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+              <span>Securing Session...</span>
+            </>
+          ) : (
+            <span>Continue with Google</span>
+          )}
+        </button>
       </div>
     </div>
   );
@@ -195,8 +224,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {id:'tournaments',icon:Swords,label:'Tournaments'},{id:'avatar',icon:Palette,label:'Avatar'},
     {id:'critique',icon:Video,label:'Video Critique'},{id:'referral',icon:Gift,label:'Referrals'},
     {id:'analytics',icon:BarChart3,label:'Analytics'},
-    {id:'sovereign',icon:Shield,label:'Sovereign'},
-    {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Radio,label:'Pixel Stream'},
+    {id:'sovereign',icon:Shield,label:'Final Evolution Hub'},
+    {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Download,label:'Get App'},
     {id:'profile',icon:User,label:'Profile'},
   ];
   return (
@@ -379,8 +408,91 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
   const [gameActive, setGameActive] = useState(true);
   const [targets, setTargets] = useState([]);
   const [combo, setCombo] = useState(0);
-  const [highScore, setHighScore] = useState(0);
+  const [floaters, setFloaters] = useState([]);
+  const [bgLoaded, setBgLoaded] = useState(false);
   const timerRef = useRef(null);
+  const audioCtxRef = useRef(null);
+
+  // Dynamic asset loading & pre-caching (PS1 page/dump style)
+  useEffect(() => {
+    setBgLoaded(false);
+    const img = new Image();
+    img.src = mode.image_url;
+    img.onload = () => setBgLoaded(true);
+    
+    return () => {
+      // Evict asset from memory on unmount
+      img.onload = null;
+      img.src = '';
+    };
+  }, [mode.image_url]);
+
+  // Audio Context release (PS1 page/dump style)
+  useEffect(() => {
+    return () => {
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(console.error);
+        audioCtxRef.current = null;
+      }
+    };
+  }, []);
+
+  const getAudioContext = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  };
+
+  // Web Audio API Synthesis
+  const playSound = (type) => {
+    try {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'hit') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(450, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } else if (type === 'bonus') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(550, ctx.currentTime);
+        osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      } else if (type === 'miss') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(90, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+      } else if (type === 'gameover') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(500, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.4);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      }
+    } catch (e) {
+      console.warn("Web Audio API failed:", e);
+    }
+  };
 
   useEffect(() => {
     if (gameActive && timeLeft > 0) {
@@ -388,6 +500,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     } else if (timeLeft <= 0) {
       setGameActive(false);
       clearInterval(timerRef.current);
+      playSound('gameover');
     }
     return () => clearInterval(timerRef.current);
   }, [gameActive, timeLeft]);
@@ -396,33 +509,60 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     if (!gameActive) return;
     const spawn = setInterval(() => {
       setTargets(prev => [...prev, {
-        id: Date.now(), x: Math.random() * 80 + 10, y: Math.random() * 60 + 10,
-        size: Math.random() * 30 + 30, type: Math.random() > 0.3 ? 'target' : 'bonus',
+        id: Date.now() + Math.random(), x: Math.random() * 80 + 10, y: Math.random() * 60 + 10,
+        size: Math.random() * 20 + 35, type: Math.random() > 0.25 ? 'target' : 'bonus',
         created: Date.now()
-      }].slice(-8));
-    }, mode.game_type === 'precision' ? 1500 : 800);
+      }].slice(-6));
+    }, mode.game_type === 'precision' ? 1400 : 750);
     return () => clearInterval(spawn);
   }, [gameActive, mode.game_type]);
 
   useEffect(() => {
     const cleanup = setInterval(() => {
-      setTargets(prev => prev.filter(t => Date.now() - t.created < 3000));
-    }, 500);
+      setTargets(prev => prev.filter(t => Date.now() - t.created < 2500));
+    }, 400);
     return () => clearInterval(cleanup);
+  }, []);
+
+  useEffect(() => {
+    const floatCleanup = setInterval(() => {
+      setFloaters(prev => prev.filter(f => Date.now() - f.id < 800));
+    }, 100);
+    return () => clearInterval(floatCleanup);
   }, []);
 
   const hitTarget = (target) => {
     if (!gameActive) return;
     const points = target.type === 'bonus' ? 50 : 25;
     const comboBonus = combo > 2 ? combo * 5 : 0;
-    setScore(s => s + points + comboBonus);
+    const totalPoints = points + comboBonus;
+    
+    setScore(s => s + totalPoints);
     setCombo(c => c + 1);
     setTargets(prev => prev.filter(t => t.id !== target.id));
+    
+    // Add floating text
+    setFloaters(prev => [...prev, {
+      id: Date.now(),
+      x: target.x,
+      y: target.y,
+      text: `+${totalPoints}${comboBonus > 0 ? ` (Combo x${combo})` : ''}`,
+      type: target.type
+    }]);
+
+    playSound(target.type);
+  };
+
+  const handleMiss = () => {
+    if (!gameActive) return;
+    setCombo(0);
+    playSound('miss');
   };
 
   const endGame = () => {
     setGameActive(false);
     clearInterval(timerRef.current);
+    playSound('gameover');
     onComplete(score);
   };
 
@@ -439,19 +579,71 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     return titles[mode.game_type] || 'Challenge';
   };
 
+  const getTargetIcon = (type) => {
+    if (type === 'bonus') return Star;
+    
+    const category = (mode.category || '').toLowerCase();
+    const id = (mode.id || '').toLowerCase();
+    
+    if (category === 'basketball' || id.includes('basketball')) return Target;
+    if (category === 'combat' || id.includes('karate')) return Swords;
+    if (category === 'performance' || id.includes('gymnastics')) return Medal;
+    if (category === 'board' || id.includes('surf') || id.includes('skate') || id.includes('snow')) return Flame;
+    if (category === 'academy' || id.includes('brain') || id.includes('trivia')) return Brain;
+    return Crosshair;
+  };
+
+  const getTargetColors = () => {
+    const category = (mode.category || '').toLowerCase();
+    const id = (mode.id || '').toLowerCase();
+    
+    if (category === 'basketball' || id.includes('basketball')) {
+      return { bg: 'bg-orange-500/85', border: 'border-orange-400', glow: 'shadow-orange-500/60', text: 'text-orange-400' };
+    }
+    if (category === 'combat' || id.includes('karate')) {
+      return { bg: 'bg-red-600/85', border: 'border-red-400', glow: 'shadow-red-500/60', text: 'text-red-400' };
+    }
+    if (id.includes('soccer') || id.includes('golf') || id.includes('tennis')) {
+      return { bg: 'bg-emerald-500/85', border: 'border-emerald-400', glow: 'shadow-emerald-500/60', text: 'text-emerald-400' };
+    }
+    if (category === 'performance' || id.includes('gymnastics')) {
+      return { bg: 'bg-amber-500/85', border: 'border-amber-400', glow: 'shadow-amber-500/60', text: 'text-amber-400' };
+    }
+    if (category === 'board' || id.includes('surfing')) {
+      return { bg: 'bg-cyan-500/85', border: 'border-cyan-400', glow: 'shadow-cyan-500/60', text: 'text-cyan-400' };
+    }
+    if (category === 'academy' || id.includes('brain') || id.includes('trivia')) {
+      return { bg: 'bg-fuchsia-500/85', border: 'border-fuchsia-400', glow: 'shadow-fuchsia-500/60', text: 'text-fuchsia-400' };
+    }
+    return { bg: 'bg-cyan-400/85', border: 'border-cyan-300', glow: 'shadow-cyan-400/60', text: 'text-cyan-400' };
+  };
+
+  const colors = getTargetColors();
+
   if (!gameActive) {
     return (
-      <div className="max-w-xl mx-auto text-center space-y-6 fade-in" data-testid="game-results">
-        <Award className="w-20 h-20 text-cyan-400 mx-auto" />
-        <h2 className="text-4xl font-bold" style={{fontFamily:'Barlow Condensed'}}>GAME OVER</h2>
-        <div className="metric-value text-6xl text-cyan-400">{score}</div>
-        <div className="metric-label">FINAL SCORE</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="surface-card p-4"><div className="metric-value text-2xl">{combo}</div><div className="metric-label">MAX COMBO</div></div>
-          <div className="surface-card p-4"><div className="metric-value text-2xl">{mode.display_name}</div><div className="metric-label">MODE</div></div>
+      <div className="max-w-xl mx-auto text-center space-y-6 fade-in p-8 surface-card border border-white/10 rounded-2xl shadow-2xl relative overflow-hidden" data-testid="game-results">
+        <style>{`
+          @keyframes borderRotate {
+            0% { border-color: rgba(6, 182, 212, 0.2); }
+            50% { border-color: rgba(6, 182, 212, 0.8); }
+            100% { border-color: rgba(6, 182, 212, 0.2); }
+          }
+          .animate-border-glow {
+            animation: borderRotate 3s infinite;
+          }
+        `}</style>
+        <div className="absolute inset-0 bg-radial-gradient from-cyan-900/10 to-transparent pointer-events-none"></div>
+        <Award className="w-24 h-24 text-cyan-400 mx-auto animate-pulse" />
+        <h2 className="text-5xl font-black tracking-widest text-white" style={{fontFamily:'Barlow Condensed'}}>CHALLENGE COMPLETE</h2>
+        <div className="metric-value text-7xl text-cyan-400 drop-shadow-[0_0_15px_rgba(0,229,255,0.4)]">{score}</div>
+        <div className="metric-label text-zinc-400 tracking-wider">FINAL SCORE</div>
+        <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+          <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="metric-value text-3xl text-cyan-400 font-bold">{combo}</div><div className="metric-label text-xs">MAX COMBO</div></div>
+          <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="text-md font-bold text-white truncate">{mode.name}</div><div className="metric-label text-xs">MODE</div></div>
         </div>
-        <div className="flex gap-4">
-          <button data-testid="play-again-btn" onClick={() => {setScore(0);setTimeLeft(30);setCombo(0);setGameActive(true);}} className="btn-primary flex-1">Play Again</button>
+        <div className="flex gap-4 max-w-md mx-auto pt-4">
+          <button data-testid="play-again-btn" onClick={() => {setScore(0);setTimeLeft(30);setCombo(0);setGameActive(true);}} className="btn-primary flex-1 shadow-lg shadow-cyan-500/20">Play Again</button>
           <button data-testid="back-to-modes" onClick={onBack} className="btn-secondary flex-1">Back to Modes</button>
         </div>
       </div>
@@ -460,31 +652,131 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
 
   return (
     <div className="space-y-4 fade-in" data-testid="active-game">
+      <style>{`
+        @keyframes floatFade {
+          0% { transform: translate(-50%, -50%) scale(0.8) translateY(0); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(1.2) translateY(-50px); opacity: 0; }
+        }
+        .animate-float-fade {
+          animation: floatFade 0.8s forwards cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        @keyframes gridPulse {
+          0% { opacity: 0.05; }
+          50% { opacity: 0.15; }
+          100% { opacity: 0.05; }
+        }
+        .animate-grid-pulse {
+          animation: gridPulse 4s infinite ease-in-out;
+        }
+        .text-glow-cyan {
+          text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+        }
+      `}</style>
+      
       <div className="flex items-center justify-between">
-        <button onClick={onBack} className="btn-secondary text-sm px-4 py-2">Exit</button>
-        <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}: {getGameTitle()}</h2>
+        <button onClick={onBack} className="btn-secondary text-sm px-4 py-2 border border-white/10 hover:border-white/30 rounded-lg">Exit</button>
+        <h2 className="text-2xl font-black text-white tracking-wide" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}: {getGameTitle()}</h2>
         <div className="flex items-center gap-4">
-          <div className="text-center"><div className={`metric-value text-2xl ${timeLeft <= 10 ? 'text-red-400' : 'text-cyan-400'}`}>{timeLeft}</div><div className="metric-label">TIME</div></div>
+          <div className="text-center px-4 py-1 bg-black/40 border border-white/5 rounded-lg">
+            <div className={`metric-value text-2xl font-mono ${timeLeft <= 10 ? 'text-red-400 animate-pulse text-glow-red' : 'text-cyan-400 text-glow-cyan'}`}>
+              {timeLeft}s
+            </div>
+            <div className="metric-label text-[10px] text-zinc-500">TIME REMAINING</div>
+          </div>
         </div>
       </div>
-      <div className="flex items-center justify-between surface-card p-3">
-        <div className="flex items-center gap-4"><span className="font-mono text-lg">SCORE: <span className="text-cyan-400">{score}</span></span></div>
-        {combo > 1 && <div className="badge-clinical" style={{background:'rgba(255,184,0,0.1)',borderColor:'rgba(255,184,0,0.3)',color:'#FFB800'}}>COMBO x{combo}</div>}
+
+      <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl p-4 shadow-inner">
+        <div className="flex items-center gap-4">
+          <span className="font-mono text-xl text-zinc-300 font-semibold tracking-wide">
+            SCORE: <span className="text-cyan-400 text-glow-cyan font-bold">{score}</span>
+          </span>
+        </div>
+        {combo > 1 && (
+          <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border animate-pulse" 
+               style={{background:'rgba(255,184,0,0.1)',borderColor:'rgba(255,184,0,0.3)',color:'#FFB800'}}>
+            COMBO x{combo}
+          </div>
+        )}
       </div>
-      <div className="relative w-full bg-black/60 border border-white/10 overflow-hidden" style={{height:'400px',cursor:'crosshair'}} onClick={() => setCombo(0)}>
-        <div className="absolute inset-0" style={{backgroundImage:'radial-gradient(circle at 50% 50%, rgba(0,229,255,0.03) 0%, transparent 70%)'}}></div>
-        {targets.map(t => (
-          <button key={t.id} data-testid={`target-${t.id}`}
-            onClick={(e) => {e.stopPropagation(); hitTarget(t);}}
-            className="absolute transition-all duration-100"
-            style={{left:`${t.x}%`,top:`${t.y}%`,width:`${t.size}px`,height:`${t.size}px`,transform:'translate(-50%,-50%)'}}
-          >
-            <div className={`w-full h-full rounded-full flex items-center justify-center ${t.type === 'bonus' ? 'bg-yellow-400/80 border-2 border-yellow-300' : 'bg-cyan-400/80 border-2 border-cyan-300'} hover:scale-110 active:scale-90 transition-transform`}>
-              {t.type === 'bonus' ? <Star className="w-4 h-4 text-black" /> : <Crosshair className="w-4 h-4 text-black" />}
+
+      <div 
+        className="relative w-full border border-white/10 overflow-hidden rounded-2xl shadow-2xl transition-all duration-300 hover:border-white/20" 
+        style={{
+          height: '450px', 
+          cursor: 'crosshair',
+          backgroundImage: bgLoaded ? `url(${mode.image_url})` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} 
+        onClick={handleMiss}
+      >
+        {!bgLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
+            <div className="text-center space-y-3">
+              <div className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-xs text-zinc-500 font-mono tracking-widest uppercase">LOADING VENUE ASSETS...</p>
             </div>
-          </button>
+          </div>
+        )}
+        {/* Darkened overlay to showcase the high fidelity environment while keeping targets fully readable */}
+        <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px]"></div>
+        
+        {/* Dynamic scanning grid lines */}
+        <div className="absolute inset-0 opacity-10 animate-grid-pulse" style={{
+          backgroundImage: 'linear-gradient(rgba(18, 24, 38, 0.4) 2px, transparent 2px), linear-gradient(90deg, rgba(18, 24, 38, 0.4) 2px, transparent 2px)',
+          backgroundSize: '40px 40px'
+        }}></div>
+
+        {/* Dynamic target rendering with customized colors and shapes per environment */}
+        {targets.map(t => {
+          const Icon = getTargetIcon(t.type);
+          const tColors = t.type === 'bonus' 
+            ? { bg: 'bg-yellow-400/85', border: 'border-yellow-300', glow: 'shadow-yellow-400/60', text: 'text-yellow-400' }
+            : colors;
+
+          return (
+            <button key={t.id} data-testid={`target-${t.id}`}
+              onClick={(e) => {e.stopPropagation(); hitTarget(t);}}
+              className="absolute transition-transform duration-100 hover:scale-110 active:scale-95 group focus:outline-none"
+              style={{
+                left: `${t.x}%`,
+                top: `${t.y}%`,
+                width: `${t.size}px`,
+                height: `${t.size}px`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              {/* Outer glowing ring */}
+              <div className={`w-full h-full rounded-full flex items-center justify-center ${tColors.bg} border-2 ${tColors.border} shadow-lg ${tColors.glow} backdrop-blur-sm transition-all duration-150 group-hover:brightness-110`}>
+                <Icon className="w-5 h-5 text-black filter drop-shadow-sm transition-transform duration-200 group-hover:scale-110" />
+              </div>
+            </button>
+          );
+        })}
+
+        {/* Floating text elements */}
+        {floaters.map(f => (
+          <div key={f.id}
+            className={`absolute font-black text-2xl select-none pointer-events-none animate-float-fade drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] ${f.type === 'bonus' ? 'text-yellow-400' : colors.text}`}
+            style={{
+              left: `${f.x}%`,
+              top: `${f.y}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            {f.text}
+          </div>
         ))}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-zinc-600 text-sm">TAP TARGETS TO SCORE</div>
+        
+        {/* Environment identity badge */}
+        <div className="absolute bottom-4 left-4 bg-black/60 border border-white/10 px-3 py-1 rounded-full text-xs font-mono text-zinc-400 uppercase tracking-widest pointer-events-none select-none">
+          VENUE: {mode.venue}
+        </div>
+        
+        <div className="absolute bottom-4 right-1/2 translate-x-1/2 text-zinc-400 font-semibold tracking-wider text-xs uppercase animate-pulse pointer-events-none select-none">
+          TAP TARGETS TO SCORE
+        </div>
       </div>
     </div>
   );
@@ -507,7 +799,7 @@ const GameModesView = () => {
     setLaunchingMode(mode.id);
     setLaunchStatus('launching');
     try {
-      const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
+      const r = await axios.post(`${API}/hub/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
 
       // Deep link to UE5 native binary
@@ -517,7 +809,7 @@ const GameModesView = () => {
 
         // State-Aware Handshake: listen for MapLoaded via WebSocket
         // NOT a blind timeout — wait for actual bridge confirmation
-        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/hub`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
@@ -576,7 +868,7 @@ const GameModesView = () => {
               <Shield className="w-20 h-20 text-yellow-400 mx-auto mb-6" />
               <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>SYSTEM RE-AUTH REQUIRED</h2>
               <p className="text-zinc-400 mt-3">No MapLoaded signal received within 10s.</p>
-              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Sovereign Hub is reachable.</p>
+              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Final Evolution Hub is reachable.</p>
               <div className="flex gap-4 mt-6 justify-center">
                 <button onClick={() => {setLaunchStatus(null);setLaunchingMode(null);}} className="btn-secondary">Back to Modes</button>
                 <button onClick={() => launchNativeMode(modes.find(m => m.id === launchingMode) || modes[0])} className="btn-primary">Retry Launch</button>
@@ -588,7 +880,7 @@ const GameModesView = () => {
               <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING UE5 MODULE</h2>
               <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab.uproject → {(launchingMode || '').replace(/_/g,' ')}</p>
               <div className="mt-6 space-y-2 text-xs text-zinc-500 font-mono">
-                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Sovereign Hub</div>
+                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Final Evolution Hub</div>
                 <div className="flex items-center gap-2 justify-center"><div className={`w-2 h-2 rounded-full ${launchStatus === 'map_loading' ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'}`}></div>Awaiting MapLoaded handshake from bridge...</div>
                 <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-zinc-600 rounded-full"></div>Secure Enclave validated</div>
               </div>
@@ -601,6 +893,9 @@ const GameModesView = () => {
   }
 
   if (playingMode) {
+    if (playingMode.id === 'trivia_arena') {
+      return <TriviaArenaView onBack={() => setPlayingMode(null)} />;
+    }
     if (playingMode.game_type === 'quiz') {
       return <BrainBrawlView onBack={() => setPlayingMode(null)} />;
     }
@@ -663,11 +958,38 @@ const CreatorCardsView = () => {
               <div className="space-y-2 mb-6">{selected.challenges.map((c,i) => (
                 <div key={i} className="surface-card p-3 flex items-center justify-between"><div><div className="font-medium text-sm">{c.name}</div><div className="text-xs text-zinc-500">{c.description}</div></div><span className="text-cyan-400 font-mono">+{c.reward} XP</span></div>
               ))}</div>
-              <div className="flex items-center gap-4"><span className="metric-value text-3xl text-cyan-400">${selected.price}</span><button data-testid="purchase-card" className="btn-primary" onClick={() => {
-                axios.post(`${API}/payments/create-order`, {item_type: 'card', item_id: selected.id, amount: selected.price, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
-                  if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
-                }).catch(console.error);
-              }}>Purchase via PayPal</button></div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <span className="metric-value text-3xl text-cyan-400">${selected.price}</span>
+                {felIOSHostedWebView() ? (
+                  <div className="space-y-2 max-w-md">
+                    <p className="text-sm text-zinc-400">
+                      In the iOS game shell, creator cards use In-App Purchase (StoreKit). Web PayPal checkout is not used here.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-primary text-sm"
+                      data-testid="purchase-card-storekit"
+                      onClick={() => {
+                        try {
+                          window.webkit?.messageHandlers?.felNativeBridge?.postMessage({
+                            fel_action: "purchase_card",
+                            item_type: "card",
+                            item_id: selected.id,
+                          });
+                        } catch (_e) { /* no bridge */ }
+                      }}
+                    >
+                      Open in-app purchase
+                    </button>
+                  </div>
+                ) : (
+                  <button data-testid="purchase-card" className="btn-primary" onClick={() => {
+                    axios.post(`${API}/payments/create-order`, {item_type: 'card', item_id: selected.id, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
+                      if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
+                    }).catch(console.error);
+                  }}>Purchase via PayPal</button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -816,55 +1138,14 @@ const CoachHubView = () => {
   );
 };
 
-// ===================== EDUCATION =====================
-const EducationView = () => {
-  const [courses, setCourses] = useState([]);
-  const [filter, setFilter] = useState('all');
-  useEffect(() => { axios.get(`${API}/education/courses`).then(r => setCourses(r.data)).catch(console.error); }, []);
-  const categories = ['all','brain_brawl','kinesiology','stem','common_core'];
-  const filtered = filter === 'all' ? courses : courses.filter(c => c.category === filter);
-  return (
-    <div className="space-y-8 fade-in">
-      <div><p className="overline mb-1">ATHLETE ACADEMY</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>EDUCATION</h1></div>
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map(c => <button key={c} data-testid={`edu-filter-${c}`} onClick={() => setFilter(c)} className={`px-4 py-2 text-sm font-medium uppercase tracking-wide whitespace-nowrap transition-all ${filter===c?'bg-cyan-400 text-black':'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{c.replace('_',' ')}</button>)}
-      </div>
-      <div className="grid md:grid-cols-2 gap-6" data-testid="courses-grid">
-        {filtered.map(course => (
-          <div key={course.id} className="surface-card overflow-hidden card-hover" data-testid={`course-${course.id}`}>
-            <div className="aspect-video"><img src={course.image_url} alt={course.title} className="w-full h-full object-cover" loading="lazy" /></div>
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="badge-clinical">{course.category.replace('_',' ')}</span>
-                {course.is_certificate && <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>Certificate</span>}
-              </div>
-              <h3 className="text-xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>{course.title}</h3>
-              <p className="text-sm text-zinc-400 mb-4">{course.description}</p>
-              <div className="flex items-center gap-4 text-sm text-zinc-500 mb-4"><span className="flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration_hours}h</span><span>{course.level}</span><span>{course.instructor}</span></div>
-              <div className="flex items-center justify-between"><span className="font-mono text-xl text-cyan-400">{course.price===0?'FREE':`$${course.price}`}</span><button data-testid={`enroll-${course.id}`} className="btn-primary" onClick={() => {
-                if (course.price > 0) {
-                  axios.post(`${API}/payments/create-order`, {item_type: 'course', item_id: course.id, amount: course.price, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
-                    if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
-                  }).catch(console.error);
-                } else {
-                  axios.post(`${API}/education/enroll/${course.id}`).catch(console.error);
-                }
-              }}>Enroll{course.price > 0 ? ' via PayPal' : ''}</button></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // ===================== BRAIN BRAWL =====================
 const BrainBrawlView = ({ onBack }) => {
   const [questions, setQuestions] = useState([]);
+  const [sessionId, setSessionId] = useState(null);
+  const [picked, setPicked] = useState([]);
+  const [verified, setVerified] = useState(null);
   const [currentQ, setCurrentQ] = useState(0);
-  const [score, setScore] = useState(0);
   const [gameState, setGameState] = useState('menu');
-  const [answers, setAnswers] = useState([]);
   const [timeLeft, setTimeLeft] = useState(15);
   const [category, setCategory] = useState('all');
   const timerRef = useRef(null);
@@ -879,19 +1160,34 @@ const BrainBrawlView = ({ onBack }) => {
   }, [gameState, timeLeft]);
 
   const startGame = async () => {
-    try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
+    try {
+      const r = await axios.post(`${API}/brain-brawl/session/start`, { category, count: 10 });
+      setSessionId(r.data.session_id);
+      setQuestions(r.data.questions);
+      setCurrentQ(0);
+      setPicked([]);
+      setVerified(null);
+      setTimeLeft(15);
+      setGameState('playing');
+    } catch (e) { console.error(e); }
   };
 
   const answerQuestion = (index) => {
     clearTimeout(timerRef.current);
-    const isCorrect = index === questions[currentQ]?.correct;
-    const timeBonus = isCorrect ? timeLeft * 5 : 0;
-    if (isCorrect) setScore(s => s + 100 + timeBonus);
-    setAnswers(prev => [...prev, {q: currentQ, selected: index, correct: isCorrect}]);
+    const next = [...picked, index];
+    setPicked(next);
     if (currentQ + 1 >= questions.length) {
-      setGameState('results');
-      axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: answers.filter(a=>a.correct).length + (isCorrect?1:0), score: score + (isCorrect ? 100+timeBonus : 0), category}).catch(console.error);
-    } else { setCurrentQ(c => c + 1); setTimeLeft(15); }
+      axios
+        .post(`${API}/brain-brawl/session/submit`, { session_id: sessionId, answers: next })
+        .then((res) => {
+          setVerified(res.data);
+          setGameState('results');
+        })
+        .catch(console.error);
+    } else {
+      setCurrentQ((c) => c + 1);
+      setTimeLeft(15);
+    }
   };
 
   return (
@@ -919,9 +1215,9 @@ const BrainBrawlView = ({ onBack }) => {
       {gameState === 'playing' && questions.length > 0 && (
         <div className="max-w-3xl mx-auto" data-testid="brain-brawl-game">
           <div className="flex items-center justify-between mb-4">
-            <span className="font-mono text-zinc-400">Q{currentQ+1}/{questions.length}</span>
+            <span className="font-mono text-zinc-400">Q{currentQ + 1}/{questions.length}</span>
             <div className={`metric-value text-2xl ${timeLeft <= 5 ? 'text-red-400' : 'text-cyan-400'}`}>{timeLeft}s</div>
-            <span className="font-mono text-cyan-400">SCORE: {score}</span>
+            <span className="font-mono text-zinc-500 text-sm">Verified grading</span>
           </div>
           <div className="progress-bar mb-6"><div className="progress-fill" style={{width:`${((currentQ+1)/questions.length)*100}%`}}></div></div>
           <div className="surface-card p-8">
@@ -938,19 +1234,20 @@ const BrainBrawlView = ({ onBack }) => {
         </div>
       )}
 
-      {gameState === 'results' && (
+      {gameState === 'results' && verified && (
         <div className="max-w-2xl mx-auto text-center" data-testid="brain-brawl-results">
           <div className="surface-card p-12">
             <Award className="w-24 h-24 text-cyan-400 mx-auto mb-6" />
             <h2 className="text-3xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>CHALLENGE COMPLETE</h2>
-            <div className="metric-value text-6xl text-cyan-400 mb-2">{score}</div>
-            <div className="metric-label mb-8">FINAL SCORE</div>
+            <div className="metric-value text-6xl text-cyan-400 mb-2">{verified.score ?? 0}</div>
+            <div className="metric-label mb-2">SERVER-VERIFIED SCORE</div>
+            <div className="text-sm text-zinc-400 mb-8">+{verified.xp_earned ?? 0} XP · {verified.questions_correct ?? 0}/{verified.questions_total ?? 0} correct</div>
             <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-green-400">{answers.filter(a=>a.correct).length}</div><div className="metric-label">Correct</div></div>
-              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-red-400">{answers.filter(a=>!a.correct).length}</div><div className="metric-label">Wrong</div></div>
-              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl">{answers.length}</div><div className="metric-label">Total</div></div>
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-green-400">{verified.questions_correct}</div><div className="metric-label">Correct</div></div>
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl text-red-400">{(verified.questions_total ?? 0) - (verified.questions_correct ?? 0)}</div><div className="metric-label">Wrong</div></div>
+              <div className="bg-black/50 p-4 border border-white/5"><div className="metric-value text-2xl">{verified.questions_total}</div><div className="metric-label">Total</div></div>
             </div>
-            <button data-testid="play-again" onClick={() => setGameState('menu')} className="btn-primary text-lg px-12 py-4">Play Again</button>
+            <button data-testid="play-again" onClick={() => { setGameState('menu'); setVerified(null); }} className="btn-primary text-lg px-12 py-4">Play Again</button>
           </div>
         </div>
       )}
@@ -1003,125 +1300,70 @@ const LeaderboardView = () => {
   );
 };
 
-// ===================== PIXEL STREAMING =====================
-const PixelStreamingView = () => {
-  const [status, setStatus] = useState(null);
-  const [serverUrl, setServerUrl] = useState('');
-  const [connecting, setConnecting] = useState(false);
-  const [activeMode, setActiveMode] = useState(null);
-  const iframeRef = useRef(null);
-
-  useEffect(() => { axios.get(`${API}/streaming/status`).then(r => setStatus(r.data)).catch(console.error); }, []);
-
-  const handleConnect = async () => {
-    if (!serverUrl) return;
-    setConnecting(true);
-    try {
-      await axios.post(`${API}/streaming/connect`, {stream_url: serverUrl, iframe_url: serverUrl});
-      const r = await axios.get(`${API}/streaming/status`);
-      setStatus(r.data);
-    } catch {}
-    setConnecting(false);
-  };
-
-  const launchMode = async (modeId) => {
-    try {
-      const r = await axios.post(`${API}/streaming/launch-mode`, {mode_id: modeId});
-      setActiveMode(r.data);
-      if (iframeRef.current && r.data.command) {
-        iframeRef.current.contentWindow.postMessage(JSON.stringify(r.data.command), '*');
-      }
-    } catch (e) { console.error(e); }
-  };
-
-  useEffect(() => {
-    if (!status?.available) return;
-    const interval = setInterval(() => { if (iframeRef.current) iframeRef.current.focus(); }, 2000);
-    return () => clearInterval(interval);
-  }, [status?.available]);
-
-  const streamSrc = status?.iframe_url || status?.stream_url || '';
-
+// ===================== DOWNLOAD PORTAL =====================
+const DownloadPortalView = () => {
   return (
-    <div className="space-y-6 fade-in">
-      <div className="flex items-center justify-between">
-        <div><p className="overline mb-1">EAGLE 3D STREAMING · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
-        <div className="flex items-center gap-2">
-          {status?.available ? <Wifi className="w-5 h-5 text-green-400" /> : <WifiOff className="w-5 h-5 text-red-400" />}
-          <span className={`text-sm font-mono ${status?.available ? 'text-green-400' : 'text-red-400'}`}>{status?.available ? 'LIVE' : 'OFFLINE'}</span>
-        </div>
-      </div>
-
-      {!status?.available && (
-        <div className="surface-card p-6" data-testid="streaming-connect">
-          <div className="flex items-center gap-3 mb-4">
-            {status?.has_api_key ? <Wifi className="w-6 h-6 text-yellow-400" /> : <WifiOff className="w-6 h-6 text-red-400" />}
-            <div>
-              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.has_api_key ? 'E3DS API KEY CONFIGURED' : 'CONNECT E3DS STREAM'}</h3>
-              <p className="text-sm text-zinc-400">{status?.message}</p>
-            </div>
-          </div>
-          {status?.setup_steps?.length > 0 && (
-            <div className="bg-black/50 border border-white/5 p-4 mb-4">
-              <h4 className="metric-label mb-3">SETUP STEPS</h4>
-              {status.setup_steps.map((step, i) => (
-                <div key={i} className="text-sm text-zinc-400 py-1">{step}</div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-3 mb-3">
-            <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="https://stream.eagle3dstreaming.com/view/your-app-id" className="input-clinical flex-1" />
-            <button data-testid="connect-stream" onClick={handleConnect} disabled={connecting} className="btn-primary">{connecting ? 'Connecting...' : 'Connect'}</button>
-          </div>
-          <p className="text-xs text-zinc-600">Paste the iframe URL from the E3DS Control Panel after uploading your UE5 build.</p>
-        </div>
-      )}
-
-      <div className="surface-card overflow-hidden" data-testid="stream-viewer">
-        {status?.available && streamSrc ? (
-          <div className="relative">
-            <iframe ref={iframeRef} data-testid="e3ds-iframe" src={streamSrc} className="w-full border-0" style={{height:'540px'}} allow="xr-spatial-tracking *; camera *; microphone *; autoplay; fullscreen" allowFullScreen />
-            {activeMode && <div className="absolute top-3 left-3 badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}><Play className="w-3 h-3 inline mr-1" />{activeMode.mode_id.replace(/_/g,' ').toUpperCase()} — {activeMode.map}</div>}
-            <div className="absolute top-3 right-3 flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs text-green-400 font-mono">STREAMING</span></div>
-          </div>
-        ) : (
-          <div className="aspect-video bg-black flex items-center justify-center border border-white/5">
-            <div className="text-center">
-              <Radio className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>AWAITING E3DS STREAM</h3>
-              <p className="text-sm text-zinc-700 mt-2">Connect Eagle 3D Streaming to play UE5 game modes in high fidelity</p>
-              <div className="flex items-center justify-center gap-6 mt-6 text-zinc-700">
-                <div className="text-center"><div className="font-mono text-lg">RTX 4080</div><div className="text-xs">GPU</div></div>
-                <div className="text-center"><div className="font-mono text-lg">1080p60</div><div className="text-xs">Stream</div></div>
-                <div className="text-center"><div className="font-mono text-lg">WebRTC</div><div className="text-xs">Protocol</div></div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
+    <div className="space-y-8 fade-in">
       <div>
-        <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>LAUNCH GAME MODE</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="stream-modes">
-          {(status?.supported_modes || []).map(m => (
-            <button key={m} data-testid={`stream-${m}`} onClick={() => status?.available && launchMode(m)}
-              className={`surface-card p-4 text-center card-hover ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''} ${status?.available ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}>
-              <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{m.replace(/_/g,' ')}</div>
-              <div className="text-xs text-zinc-600 font-mono">{status?.mode_maps?.[m] || m}</div>
-            </button>
-          ))}
+        <p className="overline mb-1">LOCAL MOBILE BUILDS</p>
+        <h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>GET APP</h1>
+        <p className="text-zinc-400 text-sm max-w-xl mt-1">
+          Final Evolution utilizes a cloud-native architecture. You stream the simulation or download the early access builds below for your platform.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* iOS Card */}
+        <div className="surface-card p-6 flex flex-col justify-between border border-white/5 hover:border-cyan-400/20 transition-all duration-300 rounded-lg">
+          <div className="space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="w-10 h-10 bg-cyan-400/10 flex items-center justify-center text-cyan-400 rounded">
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] text-zinc-500 font-mono">TestFlight</span>
+            </div>
+            <h3 className="text-xl font-bold uppercase font-mono" style={{fontFamily:'Barlow Condensed'}}>iOS Client</h3>
+            <p className="text-zinc-400 text-sm leading-relaxed">
+              Install the mobile app via Apple TestFlight. Syncs your HealthKit biomechanics and physical sensors natively.
+            </p>
+          </div>
+          <div className="pt-6">
+            <a href="https://testflight.apple.com" target="_blank" rel="noreferrer" className="btn-primary w-full text-center flex items-center justify-center gap-2">
+              Request TestFlight Access <ChevronRight className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
+
+        {/* Android Card */}
+        <div className="surface-card p-6 flex flex-col justify-between border border-white/5 hover:border-cyan-400/20 transition-all duration-300 rounded-lg">
+          <div className="space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="w-10 h-10 bg-cyan-400/10 flex items-center justify-center text-cyan-400 rounded">
+                <Download className="w-6 h-6" />
+              </div>
+              <span className="text-[10px] text-zinc-500 font-mono">APK Sideload</span>
+            </div>
+            <h3 className="text-xl font-bold uppercase font-mono" style={{fontFamily:'Barlow Condensed'}}>Android Build</h3>
+            <p className="text-zinc-400 text-sm leading-relaxed">
+              Direct APK installer. Install on your Android mobile device or configure inside high-performance PC emulators.
+            </p>
+          </div>
+          <div className="pt-6">
+            <a href="/downloads/FinalEvolutionLab.apk" download className="btn-primary w-full text-center flex items-center justify-center gap-2">
+              <Download className="w-4 h-4" /> Download Direct APK
+            </a>
+          </div>
         </div>
       </div>
 
-      <div className="surface-card p-6" data-testid="deploy-instructions">
-        <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>PULUMI DEPLOY</h3>
-        <div className="bg-black/50 p-4 border border-white/5 font-mono text-sm text-zinc-400 overflow-x-auto">
-          <div className="text-zinc-600"># One-command Eagle 3D deployment</div>
-          <div>export E3DS_API_KEY="your-api-key"</div>
-          <div>export E3DS_ACCOUNT_ID="your-account-id"</div>
-          <div>export FEL_BUILD_URL="s3://bucket/FEL-Shipping.zip"</div>
-          <div className="text-cyan-400 mt-2">./infra/deploy_e3ds.sh</div>
-          <div className="text-zinc-600 mt-2"># Stream URL auto-injected into web portal</div>
+      <div className="surface-card p-6 rounded-lg">
+        <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>HOW TO ACCESS THE STREAM</h3>
+        <p className="text-zinc-400 text-sm leading-relaxed mb-4">
+          Final Evolution utilizes a cloud-native architecture. You don’t download the Lab; you stream the simulation. Our Unreal Engine 5.7 core runs on high-performance GPU instances and pipes the visual experience directly to your browser. This eliminates local hardware limitations and provides an industrial-grade digital twin experience.
+        </p>
+        <div className="bg-black/50 p-4 border border-white/5 font-mono text-xs text-zinc-400 rounded">
+          <div className="text-zinc-600 font-bold"># Start local client mapping</div>
+          <div>finalevolution://open-mode?id=basketball_dunk</div>
         </div>
       </div>
     </div>
@@ -1201,7 +1443,7 @@ const Dashboard = () => {
       case 'cards': return <CreatorCardsView />;
       case 'coach': return <CoachHubView />;
       case 'ai-coach': return <AICoachView />;
-      case 'education': return <EducationView />;
+      case 'education': return <EducationTracksPortal setActiveTab={setActiveTab} />;
       case 'brain-brawl': return <BrainBrawlView />;
       case 'streaks': return <StreaksView />;
       case 'social': return <SocialView />;
@@ -1211,9 +1453,9 @@ const Dashboard = () => {
       case 'multiplayer': return <MultiplayerView />;
       case 'referral': return <ReferralView />;
       case 'analytics': return <AnalyticsView />;
-      case 'sovereign': return <SovereignDashboard />;
+      case 'sovereign': return <HubDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <DownloadPortalView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }
@@ -1236,6 +1478,8 @@ function AppRouter() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/hud" element={<FELHud />} />
+      <Route path="/download" element={<DownloadPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

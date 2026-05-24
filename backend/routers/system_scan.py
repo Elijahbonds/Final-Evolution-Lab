@@ -101,7 +101,7 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
         "tracks": academy_tracks,
         "kinesiology_certificate": {
             "eligibility": kin_elig,
-            "issued": kin_elig["all_met"] and any(t["certificate_issued"] for t in academy_tracks if t["track_id"] == "kinesiology"),
+            "issued": any(t["certificate_issued"] for t in academy_tracks if t["track_id"] == "kinesiology"),
         },
         "bio_digital": {
             "modules_completed": bd_doc.get("modules_completed", []),

@@ -236,7 +236,7 @@ export const AnalyticsView = () => {
       <div className="flex items-center justify-between">
         <div><p className="overline mb-1">PERFORMANCE DATA</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>ANALYTICS</h1></div>
         <button data-testid="sovereign-sync" onClick={triggerSync} disabled={syncing} className="btn-secondary flex items-center gap-2">
-          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />{syncing ? 'Syncing...' : 'Sovereign Sync'}
+          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />{syncing ? 'Syncing...' : 'Performance Sync'}
         </button>
       </div>
 

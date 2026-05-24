@@ -1,0 +1,47 @@
+# Social + Training Lab (Firebase Data Connect / SQL Connect).
+# https://firebase.google.com/docs/data-connect/schemas-guide
+
+# User.social (SQL): one canonical row per Firebase Auth user when firebaseUid is set.
+# - anonymous → Apple/email link preserves Auth UID unless you intentionally sign out + new anon session.
+# - @unique on firebaseUid prevents two rows mapping to the same account (duplicate insert fails; client should re-query GetUserByFirebaseUid).
+type User @table {
+  id: UUID! @default(expr: "uuidV4()")
+  username: String! @col(dataType: "varchar(64)")
+  email: String! @col(dataType: "varchar(320)")
+  # Legacy / general profile image (e.g. Apple ID).
+  profilePictureUrl: String @col(dataType: "text")
+  # In-app / Unreal avatar render URL (can mirror Firestore avatar_performance art).
+  avatarUrl: String @col(dataType: "text")
+  # Best PRQ (or lab composite) for leaderboard + feed badges; update from System Scan pipeline.
+  topPRQScore: Float
+  # Nullable: reserved for seeded rows without Auth. Normal app users always set firebaseUid via mutations.
+  # Postgres UNIQUE treats NULL as distinct — avoid relying on uniqueness for multiple NULL firebaseUids when seeding test data.
+  firebaseUid: String @unique @col(dataType: "varchar(128)")
+}
+
+type Post @table {
+  id: UUID! @default(expr: "uuidV4()")
+  content: String! @col(dataType: "text")
+  createdAt: Timestamp! @default(expr: "request.time")
+  author: User!
+  # Unreal / Lab game mode key (e.g. dunk_contest) when post is a session result.
+  gameModeId: String @col(dataType: "varchar(64)")
+  trainingScore: Float
+  clipUrl: String @col(dataType: "text")
+  # "system_scan" | "game_mode" | "manual" — helps clients filter.
+  feedSource: String @col(dataType: "varchar(24)")
+}
+
+type Comment @table {
+  id: UUID! @default(expr: "uuidV4()")
+  content: String! @col(dataType: "text")
+  createdAt: Timestamp! @default(expr: "request.time")
+  post: Post!
+  author: User!
+}
+
+type PostLike @table(key: ["post", "user"]) {
+  post: Post!
+  user: User!
+  createdAt: Timestamp! @default(expr: "request.time")
+}

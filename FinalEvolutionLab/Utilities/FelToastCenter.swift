@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 /// Lightweight global toasts for sync / feed errors (Phase 7).

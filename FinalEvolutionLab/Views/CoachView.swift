@@ -214,9 +214,10 @@ struct CoachView: View {
             if viewModel.coachEconomy.clearedEarnings > 0 {
                 Button {
                     let claimed = viewModel.coachEconomy.claimEarnings()
-                    viewModel.profile.evolutionShards += claimed
+                    viewModel.profile.pendingUnverifiedShardCredits += claimed
                     SaveSystem.saveCoachEconomy(viewModel.coachEconomy)
                     SaveSystem.saveProfile(viewModel.profile)
+                    FelToastCenter.shared.show("Coach shards are pending verification—not spendable yet.")
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.down.circle.fill")

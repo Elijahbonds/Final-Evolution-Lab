@@ -13,19 +13,90 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isSmallNumber(n, lo, hi) {
+      return n is number && n >= lo && n <= hi;
+    }
+
+    // Optional numeric fields on a known-key map (vitals / stability).
+    function optionalFieldNum(m, field, lo, hi) {
+      return !(field in m) || m[field] == null || isSmallNumber(m[field], lo, hi);
+    }
+
+    function vitalsMapValid(v) {
+      return v.keys().hasOnly(['heartRateBpm', 'restingHeartRateBpm', 'hrvSdnnMs', 'activeKcal', 'weeklyHrvAverageMs', 'sleepHoursLastNight'])
+        && optionalFieldNum(v, 'heartRateBpm', 20, 240)
+        && optionalFieldNum(v, 'restingHeartRateBpm', 30, 140)
+        && optionalFieldNum(v, 'hrvSdnnMs', 0, 400)
+        && optionalFieldNum(v, 'activeKcal', 0, 50000)
+        && optionalFieldNum(v, 'weeklyHrvAverageMs', 0, 400)
+        && optionalFieldNum(v, 'sleepHoursLastNight', 0, 24);
+    }
+
+    function readinessMapValid(r) {
+      return r.keys().hasOnly(['neuralReadinessScore', 'grade', 'hrvTrend', 'recoveryEstimateHours'])
+        && isSmallNumber(r.neuralReadinessScore, 0, 100)
+        && r.grade is string && r.grade.size() <= 32
+        && r.hrvTrend is string && r.hrvTrend.size() <= 24
+        && isSmallNumber(r.recoveryEstimateHours, 0, 168);
+    }
+
+    // Partial maps allowed (Swift omits nil stability fields); reject unknown keys via diff from allow-list.
+    function stabilityMapValid(s) {
+      let allowed = [
+        'anteriorPelvicTiltEvidence01', 'ribFlareEvidence01', 'rearLegInternalRotation01',
+        'poseConfidence01', 'meshMemoryBudget01', 'pressureReleaseRaw'
+      ];
+      return s.size() <= 8
+        && s.keys().hasOnly(allowed)
+        && optionalFieldNum(s, 'anteriorPelvicTiltEvidence01', 0, 1)
+        && optionalFieldNum(s, 'ribFlareEvidence01', 0, 1)
+        && optionalFieldNum(s, 'rearLegInternalRotation01', 0, 1)
+        && optionalFieldNum(s, 'poseConfidence01', 0, 1)
+        && optionalFieldNum(s, 'meshMemoryBudget01', 0, 1)
+        && (!('pressureReleaseRaw' in s) || s.pressureReleaseRaw == null
+          || (s.pressureReleaseRaw is string && s.pressureReleaseRaw.size() <= 32));
+    }
+
+    function avatarPerfMapValid(a) {
+      return a.keys().hasOnly(['schemaVersion', 'updatedAt', 'explosiveness', 'endurance', 'recovery', 'neuralFocus', 'biomechanicalEfficiency', 'prqScore', 'readinessGrade', 'speedMultiplier', 'hangTimeBonus', 'isRecoveryMode'])
+        && a.schemaVersion is int && a.schemaVersion == 1
+        && a.updatedAt is timestamp
+        && isSmallNumber(a.explosiveness, 0, 1)
+        && isSmallNumber(a.endurance, 0, 1)
+        && isSmallNumber(a.recovery, 0, 1)
+        && isSmallNumber(a.neuralFocus, 0, 1)
+        && isSmallNumber(a.biomechanicalEfficiency, 0, 1)
+        && isSmallNumber(a.prqScore, 0, 100)
+        && a.readinessGrade is string && a.readinessGrade.size() <= 32
+        && isSmallNumber(a.speedMultiplier, 0.5, 2.0)
+        && isSmallNumber(a.hangTimeBonus, -1.0, 1.0)
+        && a.isRecoveryMode is bool;
+    }
+
+    function systemScanDocValid() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['schemaVersion', 'source', 'capturedAt', 'vitals', 'readiness', 'avatar', 'stability'])
+        && d.schemaVersion is int && d.schemaVersion == 1
+        && d.source is string && d.source.size() <= 128
+        && d.capturedAt is timestamp
+        && d.vitals is map && vitalsMapValid(d.vitals)
+        && d.readiness is map && readinessMapValid(d.readiness)
+        && d.avatar is map && avatarPerfMapValid(d.avatar)
+        && (!('stability' in d) || d.stability == null || (d.stability is map && stabilityMapValid(d.stability)));
+    }
+
     match /users/{userId} {
-      // Per-scan snapshots: `FinalEvolutionLab/Services/SystemScanFirestoreSync.swift`
       match /system_scans/{scanId} {
         allow read: if isOwner(userId);
-        // Append-only: new doc per sync (no edits to historical rows from the client).
-        allow create: if isOwner(userId);
+        allow create: if isOwner(userId) && systemScanDocValid();
         allow update, delete: if false;
       }
 
-      // Latest avatar/readiness vector shared with UE: doc id must be `current` only.
       match /avatar_performance/{docId} {
         allow read: if isOwner(userId);
-        allow create, update: if isOwner(userId) && docId == "current";
+        allow create, update: if isOwner(userId) && docId == "current"
+          && request.resource.data.keys().hasOnly(['schemaVersion', 'updatedAt', 'explosiveness', 'endurance', 'recovery', 'neuralFocus', 'biomechanicalEfficiency', 'prqScore', 'readinessGrade', 'speedMultiplier', 'hangTimeBonus', 'isRecoveryMode'])
+          && avatarPerfMapValid(request.resource.data);
         allow delete: if false;
       }
     }

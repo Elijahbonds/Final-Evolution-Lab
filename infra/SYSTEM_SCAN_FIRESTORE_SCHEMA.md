@@ -74,7 +74,7 @@ After each successful Firestore write, **`UnrealManager.deliverSystemScanJSON(_:
 
 on the **`UnrealFramework`** principal instance.
 
-### Emergent WebSocket
+### Runtime WebSocket
 
 When `EMERGENT_GAME_WS_URL` / `fel_emergent_game_ws_url` is set, Swift sends one text frame:
 

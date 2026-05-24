@@ -16,6 +16,88 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "TimerManager.h"
+#include "Misc/Guid.h"
+
+FString UFELOverlaySubsystem::HostFromHttpUrl(const FString& Url)
+{
+	FString U = Url.TrimStartAndEnd();
+	const int32 SchemeIdx = U.Find(TEXT("://"));
+	if (SchemeIdx == INDEX_NONE)
+	{
+		return FString();
+	}
+	FString Rest = U.Mid(SchemeIdx + 3);
+	int32 SlashIdx = INDEX_NONE;
+	if (Rest.FindChar(TEXT('/'), SlashIdx))
+	{
+		Rest = Rest.Left(SlashIdx);
+	}
+	int32 ColonIdx = INDEX_NONE;
+	if (Rest.FindChar(TEXT(':'), ColonIdx))
+	{
+		Rest = Rest.Left(ColonIdx);
+	}
+	FString H = Rest.ToLower();
+	if (H.StartsWith(TEXT("www.")))
+	{
+		H = H.Mid(4);
+	}
+	return H;
+}
+
+void UFELOverlaySubsystem::BuildAllowedHosts(TArray<FString>& OutHosts) const
+{
+	OutHosts.Reset();
+	auto AddUniqueNormalized = [&OutHosts](const FString& In)
+	{
+		FString H = In.TrimStartAndEnd().ToLower();
+		if (H.StartsWith(TEXT("www.")))
+		{
+			H = H.Mid(4);
+		}
+		if (H.IsEmpty())
+		{
+			return;
+		}
+		if (!OutHosts.Contains(H))
+		{
+			OutHosts.Add(H);
+		}
+	};
+
+	AddUniqueNormalized(HostFromHttpUrl(DashboardUrl));
+	AddUniqueNormalized(TEXT("finalevolutiongroup.com"));
+
+	FString Extra;
+	GConfig->GetString(TEXT("FELOverlay"), TEXT("AdditionalDashboardHosts"), Extra, GGameIni);
+	Extra.TrimStartAndEndInline();
+	if (!Extra.IsEmpty())
+	{
+		TArray<FString> Parts;
+		Extra.ParseIntoArray(Parts, TEXT(","));
+		for (const FString& P : Parts)
+		{
+			AddUniqueNormalized(P);
+		}
+	}
+
+	const FString DashboardHost = HostFromHttpUrl(DashboardUrl);
+	if (DashboardHost.Equals(TEXT("localhost")) || DashboardHost.Equals(TEXT("127.0.0.1")))
+	{
+		AddUniqueNormalized(TEXT("localhost"));
+		AddUniqueNormalized(TEXT("127.0.0.1"));
+	}
+}
+
+bool UFELOverlaySubsystem::IsHostAllowedForDashboard(const FString& Url) const
+{
+	const FString H = HostFromHttpUrl(Url);
+	if (H.IsEmpty())
+	{
+		return false;
+	}
+	return AllowedDashboardHosts.Contains(H);
+}
 
 void UFELOverlaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -25,14 +107,31 @@ void UFELOverlaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	GConfig->GetString(TEXT("FELOverlay"), TEXT("DashboardUrl"), DashboardUrl, GGameIni);
 	DashboardUrl.TrimStartAndEndInline();
 
+	OverlaySessionId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+	OverlayBridgeToken = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+
+	TArray<FString> HostList;
+	BuildAllowedHosts(HostList);
+	AllowedDashboardHosts.Empty();
+	for (const FString& H : HostList)
+	{
+		AllowedDashboardHosts.Add(H);
+	}
+
 	FELIOSWebOverlay::SetOnMessage(
 		[this](const FString& Payload)
 		{
 			HandleOverlayMessage(Payload);
 		});
 
+	TArray<FString> HostArray = AllowedDashboardHosts.Array();
+
 	// Create + load immediately; show overlay as the "instant start" curtain.
-	FELIOSWebOverlay::EnsureCreatedAndLoaded(DashboardUrl);
+	if (!IsHostAllowedForDashboard(DashboardUrl))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[FELOverlay] DashboardUrl host is not in allowed set — fix FELOverlay/DashboardUrl."));
+	}
+	FELIOSWebOverlay::EnsureCreatedAndLoadedWithSecurity(DashboardUrl, OverlayBridgeToken, HostArray);
 	FELIOSWebOverlay::Show();
 
 	// Hide only after the first map load when requested (prevents black-frame flashes).
@@ -44,10 +143,10 @@ void UFELOverlaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		}
 	}
 
-	// Optional: send a boot packet to the overlay for telemetry/debug.
 	const FString BootJson = FString::Printf(
-		TEXT("{\"type\":\"fel_boot\",\"device_id\":\"%s\"}"),
-		*FPlatformMisc::GetDeviceId());
+		TEXT("{\"type\":\"fel_boot\",\"session_id\":\"%s\",\"bridge_token\":\"%s\"}"),
+		*OverlaySessionId,
+		*OverlayBridgeToken);
 	SendJsonToOverlay(BootJson);
 
 	// Heartbeat to keep dashboard in sync (readiness / thermal bucket / overlay state).
@@ -84,7 +183,12 @@ void UFELOverlaySubsystem::LoadOverlayUrl(const FString& Url)
 	{
 		return;
 	}
-	FELIOSWebOverlay::EnsureCreatedAndLoaded(U);
+	if (!IsHostAllowedForDashboard(U))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[FELOverlay] Blocked LoadOverlayUrl — host not allowlisted."));
+		return;
+	}
+	FELIOSWebOverlay::EnsureCreatedAndLoadedWithSecurity(U, OverlayBridgeToken, AllowedDashboardHosts.Array());
 }
 
 void UFELOverlaySubsystem::EvalOverlayJS(const FString& JavaScript)
@@ -116,6 +220,8 @@ void UFELOverlaySubsystem::HandleOverlayMessage(const FString& Payload)
 		return;
 	}
 
+	OnOverlayMessageReceived.Broadcast(P);
+
 	// Try JSON first (recommended).
 	if (P.StartsWith(TEXT("{")))
 	{
@@ -127,24 +233,17 @@ void UFELOverlaySubsystem::HandleOverlayMessage(const FString& Payload)
 			return;
 		}
 	}
-
-	// Fallback: treat as a command string "launchGame:modeId"
-	if (P.StartsWith(TEXT("launchGame:"), ESearchCase::IgnoreCase))
-	{
-		const FString ModeId = P.Mid(10).TrimStartAndEnd();
-		if (UGameInstance* GI = GetGameInstance())
-		{
-			if (UFELEmergentDeepLinkSubsystem* DL = GI->GetSubsystem<UFELEmergentDeepLinkSubsystem>())
-			{
-				DL->RequestPlayFromEmergent(ModeId, FString(), ModeId);
-				FELIOSWebOverlay::Hide();
-			}
-		}
-	}
 }
 
 void UFELOverlaySubsystem::HandleOverlayJsonObject(const TSharedPtr<FJsonObject>& Root)
 {
+	const FString Tok = Root->HasField(TEXT("bridge_token")) ? Root->GetStringField(TEXT("bridge_token")) : FString();
+	if (!Tok.Equals(OverlayBridgeToken, ESearchCase::CaseSensitive))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[FELOverlay] Ignored bridge message (invalid bridge_token)."));
+		return;
+	}
+
 	const FString Action = Root->HasField(TEXT("action")) ? Root->GetStringField(TEXT("action")) : FString();
 	if (Action.Equals(TEXT("show"), ESearchCase::IgnoreCase))
 	{

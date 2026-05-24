@@ -1,4 +1,4 @@
-// Copy into your game's Source/FinalEvolutionLab/FinalEvolutionLab.Build.cs (or merge dependencies).
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -7,31 +7,32 @@ public class FinalEvolutionLab : ModuleRules
 	public FinalEvolutionLab(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-
-		PublicDependencyModuleNames.AddRange(new string[]
-		{
-			"Core",
-			"CoreUObject",
-			"Engine",
+	
+		PublicDependencyModuleNames.AddRange(new string[] {
+			"Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore", "Json", "JsonUtilities",
+			"Niagara",
+			"UMG",
+			"Slate",
+			"SlateCore",
+			"CommonUI",
+			"EnhancedInput",
+			"LiveLink",
+			"LiveLinkComponents",
+			"LiveLinkInterface",
+			"LiveLinkAnimationCore",
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[]
-		{
-			"Json",
-			"RHI",
-			"RenderCore",
+		PrivateDependencyModuleNames.AddRange(new string[] {
 			"WebSockets",
+			"SQLiteCore",
 			"Sockets",
+			"WebBrowser",
+			"WebBrowserWidget",
 		});
 
-		// iOS-only overlay (WKWebView) lives behind PLATFORM_IOS.
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			PrivateDependencyModuleNames.AddRange(new string[]
-			{
-				"WebKit",
-				"MetalRHI",
-			});
+			PublicFrameworks.AddRange(new string[] { "CoreMotion", "AudioToolbox", "CoreImage", "WebKit" });
 		}
 	}
 }

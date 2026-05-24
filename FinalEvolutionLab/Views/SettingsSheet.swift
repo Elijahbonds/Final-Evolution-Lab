@@ -63,6 +63,34 @@ struct SettingsSheet: View {
                     Text("Display")
                 }
 
+                if let vm = viewModel, let age = vm.profile.age, age < 18 {
+                    Section {
+                        Toggle(isOn: Binding(
+                            get: { vm.profile.guardianConsentForMinorFeatures },
+                            set: { newValue in
+                                vm.profile.guardianConsentForMinorFeatures = newValue
+                                SaveSystem.saveProfile(vm.profile)
+                            }
+                        )) {
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Guardian consent")
+                                        .font(.body.weight(.semibold))
+                                    Text("Required for community posts, HealthKit, and paid coach critiques.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } icon: {
+                                Image(systemName: "figure.and.child.holdinghands")
+                                    .foregroundStyle(Theme.brandBlue)
+                            }
+                        }
+                        .tint(Theme.brandBlue)
+                    } header: {
+                        Text("Safety (under 18)")
+                    }
+                }
+
                 if let vm = viewModel {
                     Section {
                         Button {

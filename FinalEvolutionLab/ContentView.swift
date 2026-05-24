@@ -111,6 +111,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            GameplaySessionReceiptCoordinator.shared.attach(viewModel)
             #if targetEnvironment(simulator)
             if !viewModel.profile.hasCompletedOnboarding {
                 viewModel.completeOnboarding(sport: "Basketball", age: 18, goal: "Jump Higher")
@@ -122,7 +123,7 @@ struct ContentView: View {
             #endif
         }
         .overlay(alignment: .topTrailing) {
-            RorkOverlayView()
+            FELOverlayView()
                 .padding(.top, 50)
         }
         .overlay {

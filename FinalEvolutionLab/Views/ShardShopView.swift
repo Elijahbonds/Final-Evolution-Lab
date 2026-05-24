@@ -9,6 +9,7 @@ struct ShardShopView: View {
     @State private var showPurchaseConfirm: ShopItem?
     @State private var showInsufficientShards = false
     @State private var appeared = false
+    @State private var isPurchasing = false
 
     var body: some View {
         NavigationStack {
@@ -17,6 +18,12 @@ struct ShardShopView: View {
                     balanceCard
                     categoryPicker
                     itemsGrid
+                    Text("Owned items are stored on this device. Shard spend is verified with the server; a cloud inventory table for shop cosmetics is not wired yet — reinstall can reset local ownership until that ships.")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 32)
@@ -42,6 +49,7 @@ struct ShardShopView: View {
                         completePurchase(item)
                     }
                 }
+                .disabled(isPurchasing)
             } message: {
                 if let item = showPurchaseConfirm {
                     Text("Spend \(item.cost) shards on \(item.name)?")
@@ -149,11 +157,36 @@ struct ShardShopView: View {
     }
 
     private func completePurchase(_ item: ShopItem) {
-        viewModel.profile.evolutionShards -= item.cost
-        purchasedIds.insert(item.id)
-        SaveSystem.saveProfile(viewModel.profile)
-        savePurchased()
-        showPurchaseConfirm = nil
+        Task { @MainActor in
+            await performVerifiedPurchase(item)
+        }
+    }
+
+    /// Spendable shards require a Data Connect ledger receipt (GAME-45).
+    private func performVerifiedPurchase(_ item: ShopItem) async {
+        isPurchasing = true
+        defer {
+            isPurchasing = false
+            showPurchaseConfirm = nil
+        }
+        TrainingLabSocialBridge.shared.configureConnectorIfNeeded()
+        guard FirebaseBootstrap.isConfigured else {
+            FelToastCenter.shared.show("Sign in with Firebase to verify shard purchases.", isError: true)
+            return
+        }
+        do {
+            try await TrainingLabSocialBridge.shared.recordShardLedgerDelta(
+                deltaShards: -item.cost,
+                reason: "shard_shop",
+                referenceId: item.id
+            )
+            viewModel.profile.evolutionShards -= item.cost
+            purchasedIds.insert(item.id)
+            SaveSystem.saveProfile(viewModel.profile)
+            savePurchased()
+        } catch {
+            FelToastCenter.shared.show("Could not verify purchase with the server.", isError: true)
+        }
     }
 
     private let purchasedKey = "finalEvolution_purchased"

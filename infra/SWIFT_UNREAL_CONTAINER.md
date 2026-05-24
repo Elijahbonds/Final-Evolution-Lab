@@ -6,8 +6,8 @@
 
 | Layer | Role |
 |--------|------|
-| **Swift** | Navigation, HealthKit System Scan, Firestore sync, commerce/education UI, optional Emergent WebSocket client |
-| **Unreal** | Game modes, Metal viewport, avatar visualization; receives performance attributes via Firestore listener and/or JSON bridge (Emergent / native) |
+| **Swift** | Navigation, HealthKit System Scan, Firestore sync, commerce/education UI, optional Sovereign WebSocket client |
+| **Unreal** | Game modes, Metal viewport, avatar visualization; receives performance attributes via Firestore listener and/or JSON bridge (runtime / native) |
 
 ## Unreal embedding
 

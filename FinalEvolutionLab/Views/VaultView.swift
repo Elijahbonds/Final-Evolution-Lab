@@ -428,6 +428,38 @@ struct AchievementBadge: View {
     }
 }
 
+private enum AthleteIdentityValidation {
+    static let reservedTagsLowercased: Set<String> = [
+        "admin", "administrator", "fel", "official", "support", "system", "moderator", "staff", "finalevolution", "root",
+    ]
+
+    static func trimmed(_ s: String) -> String {
+        s.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func displayNameError(_ raw: String) -> String? {
+        let n = trimmed(raw)
+        if n.isEmpty { return "Display name cannot be empty." }
+        if n.count > 40 { return "Use at most 40 characters." }
+        return nil
+    }
+
+    /// Client-side guardrails; public arena still needs server-side reserved-tag enforcement (GAME-48).
+    static func athleteTagError(_ raw: String) -> String? {
+        let t = trimmed(raw)
+        if t.isEmpty { return "Athlete tag cannot be empty." }
+        if t.count < 3 || t.count > 20 { return "Tag must be 3–20 characters." }
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
+        if !t.unicodeScalars.allSatisfy({ allowed.contains($0) }) {
+            return "Use letters, numbers, and underscores only."
+        }
+        if reservedTagsLowercased.contains(t.lowercased()) {
+            return "That tag is reserved."
+        }
+        return nil
+    }
+}
+
 struct EditProfileView: View {
     let viewModel: LabViewModel
     @Environment(\.dismiss) private var dismiss
@@ -453,8 +485,16 @@ struct EditProfileView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        viewModel.profile.displayName = name
-                        viewModel.profile.athleteTag = tag
+                        if let message = AthleteIdentityValidation.displayNameError(name) {
+                            FelToastCenter.shared.show(message, isError: true)
+                            return
+                        }
+                        if let message = AthleteIdentityValidation.athleteTagError(tag) {
+                            FelToastCenter.shared.show(message, isError: true)
+                            return
+                        }
+                        viewModel.profile.displayName = AthleteIdentityValidation.trimmed(name)
+                        viewModel.profile.athleteTag = AthleteIdentityValidation.trimmed(tag)
                         SaveSystem.saveProfile(viewModel.profile)
                         dismiss()
                     }

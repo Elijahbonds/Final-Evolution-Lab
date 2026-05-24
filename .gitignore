@@ -130,3 +130,16 @@ artifacts/
 Saved/
 Intermediate/
 DerivedDataCache/
+
+# Unity bridge leftovers (prototype/reference)
+FinalEvolutionLab/Services/UnityHostBridge.swift
+FinalEvolutionLab/Services/MovementSnack+UnityBridge.swift
+
+# Antigravity local caches and debug logs
+.config/
+.home/
+scratch/
+*.log
+dataconnect/.dataconnect/
+
+
