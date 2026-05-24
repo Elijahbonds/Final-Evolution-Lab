@@ -22,7 +22,8 @@
 import React, { useState, useEffect } from "react";
 import {
   Apple, Smartphone, Monitor, Globe, ArrowRight, Sparkles, Zap,
-  Download, ShieldCheck, Cpu, Wifi, Hourglass, ChevronDown
+  Download, ShieldCheck, Cpu, Wifi, Hourglass, ChevronDown,
+  Compass, Link2, FileText, Copy, CheckCircle2
 } from "lucide-react";
 
 // ──────────────────────────────────────────────────────────────
@@ -196,6 +197,7 @@ const Nav = ({ onLogin }) => {
           <a href="#platforms" className="hover:text-white transition-colors">Platforms</a>
           <a href="#guides" className="hover:text-white transition-colors">Install</a>
           <a href="#shell" className="hover:text-white transition-colors">Web Client</a>
+          <a href="#docs" className="hover:text-white transition-colors">Docs</a>
           <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
         </div>
         <button
@@ -561,6 +563,273 @@ const WebClientShell = () => {
   );
 };
 
+// ──────────────────────────────────────────────────────────────
+// TECHNICAL DOCUMENTATION
+//   3 subsections: CoreMotion calibration · Deep-link protocol · Release notes
+// ──────────────────────────────────────────────────────────────
+
+const TECH_DOCS = {
+  coremotion: {
+    label: "CoreMotion Calibration",
+    icon: Compass,
+    eyebrow: "Sensor pipeline",
+    headline: "Calibrate movement before you audit it.",
+    blurb: "FEL reads accelerometer, gyroscope, magnetometer, and (on supported devices) the device-motion attitude quaternion at 100 Hz. Bad calibration = bad PRQ. Do this once per device, after every iOS major-version upgrade, and any time you change cases.",
+    steps: [
+      { t: "Find a flat, level surface", b: "A table or floor — not your lap. Confirm with a spirit-level app if you're unsure." },
+      { t: "Open Settings → System Scan → Sensor Calibration", b: "From the FEL dashboard, tap the gear icon, then Sensor Calibration. The screen will prompt you to place the device face-up." },
+      { t: "Hold still for 3 seconds (zero-bias capture)", b: "FEL averages 300 samples to lock the accelerometer & gyroscope bias offsets. Don't touch the screen during the countdown." },
+      { t: "Rotate through 6 orientations", b: "Face-up, face-down, left edge, right edge, top edge, bottom edge — hold each for 2 seconds. This builds the magnetometer hard/soft-iron correction matrix." },
+      { t: "Walk a 10-step figure-8 loop", b: "Final stage: the AHRS fusion validates the quaternion path. Indoor walking is fine; avoid heavy metal interference (gym equipment, MRI rooms, you know the drill)." },
+      { t: "Re-calibrate after any drift warning", b: "If the dashboard's PRQ widget shows a 'Recalibrate' chip, repeat steps 1–5. Most athletes need this once every 4–6 weeks." },
+    ],
+    spec: {
+      "Sample rate": "100 Hz (sensor) → 50 Hz (PRQ pipeline)",
+      "Frame": "right-handed, x=right, y=up, z=toward user",
+      "Quaternion source": "CMDeviceMotion.attitude (iOS), Sensor.TYPE_ROTATION_VECTOR (Android)",
+      "Storage": "On-device only · raw streams never leave the phone unless exported",
+      "Drift recovery": "Magnetometer-aided AHRS · Madgwick filter, β=0.033",
+    },
+  },
+  deeplink: {
+    label: "Deep-Link Protocol",
+    icon: Link2,
+    eyebrow: "URI Scheme · v1.0",
+    headline: "finalevolution:// — the front door.",
+    blurb: "FEL exposes a single custom URI scheme that the iOS, macOS, and Android apps all respond to. Use this in marketing emails, web buttons, push notifications, and partner integrations to land athletes on a specific surface — bypassing the cold-launch home screen.",
+    schemes: [
+      { uri: "finalevolution://", label: "Open the app", description: "Launches FEL on the last-active screen. No-op if the app is already foregrounded." },
+      { uri: "finalevolution://system-scan", label: "Jump to system scan", description: "Boots straight into the PRQ scan flow." },
+      { uri: "finalevolution://brain-brawl/launch", label: "Brain Brawl arena", description: "Already in production — used by the cognitive mode briefing on the web dashboard." },
+      { uri: "finalevolution://mode/{modeId}", label: "Launch a specific game mode", description: "modeId is one of the 19 registered modes (basketball_h2h, brain_brawl, dunk_arena, etc.)." },
+      { uri: "finalevolution://creator-card/{cardId}", label: "Open a Creator Card", description: "Marketplace deep-link with PayPal-ready checkout state." },
+      { uri: "finalevolution://education/track/{trackId}", label: "Resume a track", description: "trackId ∈ {common_core, stem, kinesiology, brain_brawl}." },
+      { uri: "finalevolution://biofuel/scan", label: "Open the AI vision scanner", description: "Camera-ready · scoped permission prompt on first use." },
+      { uri: "finalevolution://auth/callback?session_token=…", label: "OAuth return", description: "Used by the Emergent Google auth handshake. Do NOT construct manually." },
+    ],
+    notes: [
+      "Universal Links (`https://finalevolutiongroup.com/u/...`) are also supported on iOS for shared messages — they redirect to the deep-link automatically.",
+      "If the FEL app isn't installed, the deep-link falls back to the platform's store listing (App Store / Play Store) via your phone's default handler.",
+      "Deep-link payloads are SIGNED — the URI must include a `&sig=` parameter for partner integrations. Marketing emails generated by FEL include the signature automatically.",
+    ],
+  },
+  releaseNotes: {
+    label: "Release Notes",
+    icon: FileText,
+    eyebrow: "Changelog · public",
+    headline: "What's new.",
+    blurb: "We ship small, often. Major versions land roughly quarterly; minor versions every 2–3 weeks. Subscribe to the in-app release feed for the full firehose, including dev-only flags.",
+    versions: [
+      {
+        v: "v2.0.0",
+        date: "Feb 2026",
+        tag: "current",
+        highlights: [
+          "FEL OS — unified 4-quadrant dashboard (System Scan · Cards · Arena · Academy)",
+          "Education tracks: Common Core, STEM, Applied Kinesiology Certificate, Brain Brawl",
+          "Bio-Fuel suite — NASM-CNC vision scanner (Gemini 2.5 Flash / GPT-5.2 athlete-pickable)",
+          "FEL OS Pass — shareable PNG card with PRQ + cert badge",
+          "Production hardening — K8s root /health, CORS regex, Bearer-fallback auth for in-app WebViews",
+        ],
+      },
+      {
+        v: "v1.8.0",
+        date: "Jan 2026",
+        tag: null,
+        highlights: [
+          "iOS native UE5 deep-link bridge — Brain Brawl Arena now playable via finalevolution://",
+          "19th game mode added: Court Carnival (renamed from mario_party)",
+          "Bio-Digital Masterclass anatomy overlays — 3D ghost-in-the-shell on real movement video",
+        ],
+      },
+      {
+        v: "v1.5.0",
+        date: "Nov 2025",
+        tag: null,
+        highlights: [
+          "Sovereign Hub WebSocket telemetry — sub-500 ms PRQ updates from the iOS bridge",
+          "Creator Card marketplace + PayPal sandbox integration",
+          "17-mode Venue Registry — first public mode count",
+        ],
+      },
+      {
+        v: "v1.0.0",
+        date: "Sep 2025",
+        tag: null,
+        highlights: [
+          "Public alpha launch — iOS only, 5 starter modes",
+          "Google Auth handshake, base PRQ scoring, initial avatar builder",
+        ],
+      },
+    ],
+  },
+};
+
+const CopyableUri = ({ uri }) => {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(uri);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (_e) { /* ignore */ }
+  };
+  return (
+    <button
+      data-testid={`deeplink-copy-${uri.replace(/[^a-z0-9]/gi, '-').slice(0, 40)}`}
+      onClick={onCopy}
+      className="group/copy inline-flex items-center gap-2 font-mono text-xs px-3 py-1.5 rounded border border-white/10 bg-black/40 hover:border-[#00E5FF]/40 hover:bg-[#00E5FF]/5 transition-colors min-w-0"
+    >
+      <code className="text-[#00E5FF] truncate">{uri}</code>
+      {copied ? (
+        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+      ) : (
+        <Copy className="w-3.5 h-3.5 text-white/40 group-hover/copy:text-white/80 shrink-0" />
+      )}
+    </button>
+  );
+};
+
+const TechDocs = () => {
+  const [active, setActive] = useState("coremotion");
+  const doc = TECH_DOCS[active];
+  const Icon = doc.icon;
+  return (
+    <section id="docs" className="relative max-w-7xl mx-auto px-6 py-20" data-testid="tech-docs">
+      <div className="max-w-2xl mb-10">
+        <div className="font-mono text-[10px] tracking-[0.4em] text-[#8B5CF6] uppercase mb-3">Technical Documentation</div>
+        <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight leading-[0.95]" style={{ fontFamily: "Barlow Condensed" }}>
+          Under the hood. <span className="text-[#8B5CF6]">Honest specs.</span>
+        </h2>
+      </div>
+      {/* Tabs */}
+      <div className="flex gap-2 flex-wrap mb-6" data-testid="docs-tabs">
+        {Object.entries(TECH_DOCS).map(([key, d]) => {
+          const DIcon = d.icon;
+          const isActive = key === active;
+          return (
+            <button
+              key={key}
+              data-testid={`docs-tab-${key}`}
+              onClick={() => setActive(key)}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-mono uppercase tracking-[0.15em] border transition-colors ${
+                isActive
+                  ? "bg-[#8B5CF6] text-black border-[#8B5CF6]"
+                  : "border-white/10 text-white/60 hover:border-white/30 hover:text-white"
+              }`}
+            >
+              <DIcon className="w-3.5 h-3.5" /> {d.label}
+            </button>
+          );
+        })}
+      </div>
+      {/* Body */}
+      <div
+        className="rounded-2xl bg-[#0A0A0A]/60 backdrop-blur-xl border border-white/10 p-6 lg:p-10"
+        data-testid={`docs-body-${active}`}
+      >
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-12 h-12 rounded-lg border border-[#8B5CF6]/40 bg-[#8B5CF6]/10 flex items-center justify-center">
+            <Icon className="w-6 h-6 text-[#8B5CF6]" />
+          </div>
+          <div>
+            <div className="text-xs font-mono uppercase tracking-[0.3em] text-white/40">{doc.eyebrow}</div>
+            <div className="text-xl font-bold" style={{ fontFamily: "Barlow Condensed" }}>{doc.headline}</div>
+          </div>
+        </div>
+        <p className="text-sm text-white/60 leading-relaxed mb-6">{doc.blurb}</p>
+
+        {/* CoreMotion subsection */}
+        {active === "coremotion" && (
+          <div className="space-y-6">
+            <ol className="space-y-4" data-testid="coremotion-steps">
+              {doc.steps.map((s, i) => (
+                <li key={i} className="flex items-start gap-4">
+                  <div
+                    className="shrink-0 w-9 h-9 rounded-full border-2 border-[#8B5CF6]/30 bg-black/40 flex items-center justify-center font-mono text-sm font-bold text-[#8B5CF6]"
+                    style={{ boxShadow: "0 0 12px rgba(139,92,246,0.15)" }}
+                  >
+                    {i + 1}
+                  </div>
+                  <div className="pt-1">
+                    <div className="font-semibold text-white">{s.t}</div>
+                    <div className="text-sm text-white/60 leading-relaxed mt-1">{s.b}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="border-t border-white/5 pt-5">
+              <div className="text-xs font-mono uppercase tracking-[0.3em] text-white/40 mb-3">Spec sheet</div>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                {Object.entries(doc.spec).map(([k, v]) => (
+                  <div key={k} className="flex items-baseline gap-3 border-b border-white/5 pb-1.5">
+                    <dt className="text-white/40 font-mono uppercase tracking-wider text-[10px] shrink-0">{k}</dt>
+                    <dd className="text-white/80 font-mono ml-auto text-right">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+        )}
+
+        {/* Deep-link subsection */}
+        {active === "deeplink" && (
+          <div className="space-y-5">
+            <div className="space-y-3" data-testid="deeplink-table">
+              {doc.schemes.map((s) => (
+                <div key={s.uri} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] gap-3 lg:gap-6 items-start py-3 border-b border-white/5 last:border-b-0">
+                  <CopyableUri uri={s.uri} />
+                  <div className="min-w-0">
+                    <div className="font-semibold text-white">{s.label}</div>
+                    <div className="text-xs text-white/55 leading-relaxed mt-0.5">{s.description}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-white/5 pt-5 space-y-2">
+              <div className="text-xs font-mono uppercase tracking-[0.3em] text-white/40 mb-2">Notes</div>
+              {doc.notes.map((n, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs text-white/55 leading-relaxed">
+                  <span className="text-[#8B5CF6] mt-1">▸</span>
+                  <span>{n}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Release notes subsection */}
+        {active === "releaseNotes" && (
+          <div className="space-y-5" data-testid="release-notes">
+            {doc.versions.map((v) => (
+              <div key={v.v} className="relative pl-6 border-l-2 border-white/10 pb-2 last:pb-0">
+                <div className="absolute -left-[7px] top-0 w-3 h-3 rounded-full border-2 border-[#8B5CF6] bg-[#050505]" style={{ boxShadow: v.tag ? "0 0 12px rgba(139,92,246,0.6)" : undefined }} />
+                <div className="flex items-baseline gap-3 mb-2 flex-wrap">
+                  <div className="text-xl font-black text-white" style={{ fontFamily: "Barlow Condensed" }}>{v.v}</div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">{v.date}</div>
+                  {v.tag && (
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] px-2 py-0.5 rounded bg-[#8B5CF6] text-black">
+                      {v.tag}
+                    </span>
+                  )}
+                </div>
+                <ul className="space-y-1.5">
+                  {v.highlights.map((h, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-white/65">
+                      <span className="text-[#00E5FF] mt-1">▸</span>
+                      <span>{h}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
 const FAQ = () => {
   const [open, setOpen] = useState(0);
   return (
@@ -655,6 +924,7 @@ export default function DistributionPage({ onLogin = () => {} }) {
       <PlatformGrid />
       <InstallGuides />
       <WebClientShell />
+      <TechDocs />
       <FAQ />
       <FooterCTA onLogin={onLogin} />
       <Footer />
