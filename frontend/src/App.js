@@ -9,7 +9,7 @@ import {
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
-  Swords, Video, Palette, UserPlus, Gift
+  Swords, Video, Palette, UserPlus, Gift, Download
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
@@ -196,7 +196,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {id:'critique',icon:Video,label:'Video Critique'},{id:'referral',icon:Gift,label:'Referrals'},
     {id:'analytics',icon:BarChart3,label:'Analytics'},
     {id:'sovereign',icon:Shield,label:'Sovereign'},
-    {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Radio,label:'Pixel Stream'},
+    {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'download',icon:Download,label:'Get App'},
     {id:'profile',icon:User,label:'Profile'},
   ];
   return (
@@ -507,7 +507,7 @@ const GameModesView = () => {
     setLaunchingMode(mode.id);
     setLaunchStatus('launching');
     try {
-      const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
+      const r = await axios.post(`${API}/sovereign/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
 
       // Deep link to UE5 native binary
@@ -1003,125 +1003,79 @@ const LeaderboardView = () => {
   );
 };
 
-// ===================== PIXEL STREAMING =====================
-const PixelStreamingView = () => {
+// ===================== DOWNLOAD PORTAL (replaced Pixel Streaming) =====================
+const DownloadPortalView = () => {
   const [status, setStatus] = useState(null);
-  const [serverUrl, setServerUrl] = useState('');
-  const [connecting, setConnecting] = useState(false);
-  const [activeMode, setActiveMode] = useState(null);
-  const iframeRef = useRef(null);
 
-  useEffect(() => { axios.get(`${API}/streaming/status`).then(r => setStatus(r.data)).catch(console.error); }, []);
-
-  const handleConnect = async () => {
-    if (!serverUrl) return;
-    setConnecting(true);
-    try {
-      await axios.post(`${API}/streaming/connect`, {stream_url: serverUrl, iframe_url: serverUrl});
-      const r = await axios.get(`${API}/streaming/status`);
-      setStatus(r.data);
-    } catch {}
-    setConnecting(false);
-  };
-
-  const launchMode = async (modeId) => {
-    try {
-      const r = await axios.post(`${API}/streaming/launch-mode`, {mode_id: modeId});
-      setActiveMode(r.data);
-      if (iframeRef.current && r.data.command) {
-        iframeRef.current.contentWindow.postMessage(JSON.stringify(r.data.command), '*');
-      }
-    } catch (e) { console.error(e); }
-  };
-
-  useEffect(() => {
-    if (!status?.available) return;
-    const interval = setInterval(() => { if (iframeRef.current) iframeRef.current.focus(); }, 2000);
-    return () => clearInterval(interval);
-  }, [status?.available]);
-
-  const streamSrc = status?.iframe_url || status?.stream_url || '';
+  useEffect(() => { axios.get(`${API}/sovereign/status`).then(r => setStatus(r.data)).catch(console.error); }, []);
 
   return (
     <div className="space-y-6 fade-in">
       <div className="flex items-center justify-between">
-        <div><p className="overline mb-1">EAGLE 3D STREAMING · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
+        <div><p className="overline mb-1">NATIVE APP · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>GET THE APP</h1></div>
         <div className="flex items-center gap-2">
-          {status?.available ? <Wifi className="w-5 h-5 text-green-400" /> : <WifiOff className="w-5 h-5 text-red-400" />}
-          <span className={`text-sm font-mono ${status?.available ? 'text-green-400' : 'text-red-400'}`}>{status?.available ? 'LIVE' : 'OFFLINE'}</span>
+          {status?.available ? <Wifi className="w-5 h-5 text-green-400" /> : <WifiOff className="w-5 h-5 text-zinc-500" />}
+          <span className={`text-sm font-mono ${status?.available ? 'text-green-400' : 'text-zinc-500'}`}>{status?.available ? 'HUB LIVE' : 'HUB OFFLINE'}</span>
         </div>
       </div>
 
-      {!status?.available && (
-        <div className="surface-card p-6" data-testid="streaming-connect">
-          <div className="flex items-center gap-3 mb-4">
-            {status?.has_api_key ? <Wifi className="w-6 h-6 text-yellow-400" /> : <WifiOff className="w-6 h-6 text-red-400" />}
-            <div>
-              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.has_api_key ? 'E3DS API KEY CONFIGURED' : 'CONNECT E3DS STREAM'}</h3>
-              <p className="text-sm text-zinc-400">{status?.message}</p>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="surface-card p-8 text-center card-hover" data-testid="download-ios">
+          <div className="w-16 h-16 mx-auto mb-4 bg-zinc-800 rounded-2xl flex items-center justify-center">
+            <Download className="w-8 h-8 text-cyan-400" />
           </div>
-          {status?.setup_steps?.length > 0 && (
-            <div className="bg-black/50 border border-white/5 p-4 mb-4">
-              <h4 className="metric-label mb-3">SETUP STEPS</h4>
-              {status.setup_steps.map((step, i) => (
-                <div key={i} className="text-sm text-zinc-400 py-1">{step}</div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-3 mb-3">
-            <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="https://stream.eagle3dstreaming.com/view/your-app-id" className="input-clinical flex-1" />
-            <button data-testid="connect-stream" onClick={handleConnect} disabled={connecting} className="btn-primary">{connecting ? 'Connecting...' : 'Connect'}</button>
-          </div>
-          <p className="text-xs text-zinc-600">Paste the iframe URL from the E3DS Control Panel after uploading your UE5 build.</p>
+          <h3 className="text-2xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>iOS — TestFlight</h3>
+          <p className="text-sm text-zinc-400 mb-6">Native Unreal Engine 5.7 rendering on device GPU (Metal). Embedded framework — no streaming required.</p>
+          <a href="https://testflight.apple.com/join/FinalEvolutionLab" target="_blank" rel="noopener noreferrer" className="btn-primary inline-block px-8 py-3">
+            JOIN TESTFLIGHT
+          </a>
+          <div className="mt-4 text-xs text-zinc-600 font-mono">Requires iOS 17+ · iPhone 12 or later</div>
         </div>
-      )}
 
-      <div className="surface-card overflow-hidden" data-testid="stream-viewer">
-        {status?.available && streamSrc ? (
-          <div className="relative">
-            <iframe ref={iframeRef} data-testid="e3ds-iframe" src={streamSrc} className="w-full border-0" style={{height:'540px'}} allow="xr-spatial-tracking *; camera *; microphone *; autoplay; fullscreen" allowFullScreen />
-            {activeMode && <div className="absolute top-3 left-3 badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}><Play className="w-3 h-3 inline mr-1" />{activeMode.mode_id.replace(/_/g,' ').toUpperCase()} — {activeMode.map}</div>}
-            <div className="absolute top-3 right-3 flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs text-green-400 font-mono">STREAMING</span></div>
+        <div className="surface-card p-8 text-center card-hover" data-testid="download-android">
+          <div className="w-16 h-16 mx-auto mb-4 bg-zinc-800 rounded-2xl flex items-center justify-center">
+            <Download className="w-8 h-8 text-green-400" />
           </div>
-        ) : (
-          <div className="aspect-video bg-black flex items-center justify-center border border-white/5">
-            <div className="text-center">
-              <Radio className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>AWAITING E3DS STREAM</h3>
-              <p className="text-sm text-zinc-700 mt-2">Connect Eagle 3D Streaming to play UE5 game modes in high fidelity</p>
-              <div className="flex items-center justify-center gap-6 mt-6 text-zinc-700">
-                <div className="text-center"><div className="font-mono text-lg">RTX 4080</div><div className="text-xs">GPU</div></div>
-                <div className="text-center"><div className="font-mono text-lg">1080p60</div><div className="text-xs">Stream</div></div>
-                <div className="text-center"><div className="font-mono text-lg">WebRTC</div><div className="text-xs">Protocol</div></div>
-              </div>
-            </div>
-          </div>
-        )}
+          <h3 className="text-2xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>Android — Google Play</h3>
+          <p className="text-sm text-zinc-400 mb-6">Native Unreal Engine 5.7 rendering on device GPU (Vulkan). ASTC textures — no streaming required.</p>
+          <a href="https://play.google.com/store/apps/details?id=com.antigravity.finalevolutionlab" target="_blank" rel="noopener noreferrer" className="btn-primary inline-block px-8 py-3" style={{background:'#34D399'}}>
+            GET ON GOOGLE PLAY
+          </a>
+          <div className="mt-4 text-xs text-zinc-600 font-mono">Requires Android 12+ · arm64-v8a</div>
+        </div>
       </div>
 
-      <div>
-        <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>LAUNCH GAME MODE</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="stream-modes">
+      <div className="surface-card p-6" data-testid="native-features">
+        <h3 className="text-lg font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>NATIVE BUILD FEATURES</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-black/30 border border-white/5">
+            <div className="font-mono text-xl text-cyan-400">Metal/Vulkan</div>
+            <div className="text-xs text-zinc-500 mt-1">Device GPU</div>
+          </div>
+          <div className="text-center p-4 bg-black/30 border border-white/5">
+            <div className="font-mono text-xl text-cyan-400">60 FPS</div>
+            <div className="text-xs text-zinc-500 mt-1">Native Render</div>
+          </div>
+          <div className="text-center p-4 bg-black/30 border border-white/5">
+            <div className="font-mono text-xl text-cyan-400">Zero Latency</div>
+            <div className="text-xs text-zinc-500 mt-1">No Cloud Dependency</div>
+          </div>
+          <div className="text-center p-4 bg-black/30 border border-white/5">
+            <div className="font-mono text-xl text-cyan-400">{status?.supported_modes?.length || 15} Modes</div>
+            <div className="text-xs text-zinc-500 mt-1">All On-Device</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="surface-card p-6">
+        <h3 className="text-lg font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>AVAILABLE GAME MODES</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="download-modes">
           {(status?.supported_modes || []).map(m => (
-            <button key={m} data-testid={`stream-${m}`} onClick={() => status?.available && launchMode(m)}
-              className={`surface-card p-4 text-center card-hover ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''} ${status?.available ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}>
+            <div key={m} className="surface-card p-4 text-center">
               <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{m.replace(/_/g,' ')}</div>
               <div className="text-xs text-zinc-600 font-mono">{status?.mode_maps?.[m] || m}</div>
-            </button>
+            </div>
           ))}
-        </div>
-      </div>
-
-      <div className="surface-card p-6" data-testid="deploy-instructions">
-        <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>PULUMI DEPLOY</h3>
-        <div className="bg-black/50 p-4 border border-white/5 font-mono text-sm text-zinc-400 overflow-x-auto">
-          <div className="text-zinc-600"># One-command Eagle 3D deployment</div>
-          <div>export E3DS_API_KEY="your-api-key"</div>
-          <div>export E3DS_ACCOUNT_ID="your-account-id"</div>
-          <div>export FEL_BUILD_URL="s3://bucket/FEL-Shipping.zip"</div>
-          <div className="text-cyan-400 mt-2">./infra/deploy_e3ds.sh</div>
-          <div className="text-zinc-600 mt-2"># Stream URL auto-injected into web portal</div>
         </div>
       </div>
     </div>
@@ -1213,7 +1167,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'download': return <DownloadPortalView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

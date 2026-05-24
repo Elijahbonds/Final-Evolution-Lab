@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
+# ⚠️  DEPRECATED — This script is for E3DS cloud streaming builds only.
+# The project has pivoted to native local builds (IPA/APK).
+# Use fel_ue5_ios_shipping_package.sh for iOS native builds instead.
+# Kept for reference. See docs/STREAMING_TO_LOCAL_AUDIT.md for details.
+# =============================================================================
 # fel_ue5_eagle3d_linux_package.sh
 # Eagle 3D (E3DS) — **Linux Shipping** streamer build from **macOS** (M4 Pro, etc.).
 #

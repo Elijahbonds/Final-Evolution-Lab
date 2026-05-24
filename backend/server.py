@@ -1292,8 +1292,13 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
         return {"response":"Connection issue. Please try again.","model":"fallback","conversation_id":cid}
 
 @api_router.get("/streaming/status")
-async def get_streaming_status():
-    """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
+async def get_streaming_status_legacy():
+    """Legacy redirect — kept for backward compatibility."""
+    return await get_sovereign_status()
+
+@api_router.get("/sovereign/status")
+async def get_sovereign_status():
+    """Local Sovereign Mode — native device rendering, biomechanical data feed."""
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
@@ -1310,25 +1315,33 @@ async def get_streaming_status():
     return {
         "available": ws_connected,
         "mode": "local_sovereign",
-        "cloud_streaming": False,
-        "e3ds_disabled": True,
         "provider": "local_sovereign",
         "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect.",
         "supported_modes": list(mode_maps.keys()),
         "mode_maps": mode_maps,
         "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
         "data_feed": True,
-        "video_feed": False
+        "native_rendering": True
     }
 
 @api_router.post("/streaming/connect")
-async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Local sovereign connect — no cloud URL needed"""
+async def connect_streaming_legacy(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Legacy redirect — kept for backward compatibility."""
+    return await connect_sovereign(data, user)
+
+@api_router.post("/sovereign/connect")
+async def connect_sovereign(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Local sovereign connect — native device rendering, no cloud URL needed."""
     return {"status": "local_sovereign", "ws_url": "wss://finalevolutiongroup.com/ws/sovereign", "mode": "biomechanical_data_feed"}
 
 @api_router.post("/streaming/launch-mode")
-async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Launch UE5 game mode via deep link — tracks session in Sovereign Hub"""
+async def launch_stream_mode_legacy(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Legacy redirect — kept for backward compatibility."""
+    return await launch_sovereign_mode(data, user)
+
+@api_router.post("/sovereign/launch-mode")
+async def launch_sovereign_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Launch UE5 game mode via deep link — tracks session in Sovereign Hub."""
     mode_id = data.get("mode_id")
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
@@ -1586,7 +1599,7 @@ async def create_multiplayer_room(data: Dict[str, Any], user: User = Depends(get
             "time_limit": data.get("time_limit", 60),
             "score_limit": data.get("score_limit", 100),
             "allow_spectators": data.get("allow_spectators", True),
-            "latency_mode": "low"  # E3DS optimized
+            "latency_mode": "low"  # Optimized for local sovereign
         },
         "spectators": [],
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -1729,7 +1742,7 @@ async def request_referral_payout(user: User = Depends(get_current_user)):
 
 @api_router.get("/tournaments/{tournament_id}/spectate")
 async def get_spectator_config(tournament_id: str):
-    """Get spectator camera config for tournament streams — prevents focus-loss in E3DS"""
+    """Get spectator camera config for tournament viewing."""
     t = None
     for st in get_seeded_tournaments():
         if st["id"] == tournament_id:
@@ -1753,7 +1766,7 @@ async def get_spectator_config(tournament_id: str):
         "spectator_config": {
             "camera_mode": "orbital",       # orbital, fixed, follow_player, free
             "auto_focus": True,             # Tracks active player
-            "focus_lock": True,             # CRITICAL: prevents E3DS focus-loss
+            "focus_lock": True,             # Keeps camera tracking active player
             "focus_lock_interval_ms": 500,  # Re-assert focus every 500ms
             "camera_distance": 800,
             "camera_height": 400,
@@ -1765,16 +1778,10 @@ async def get_spectator_config(tournament_id: str):
             "hud_overlay": True,            # Show scores, timer overlay
             "chat_enabled": True,
         },
-        "e3ds_commands": {
-            "start_spectate": {"cmd": "ueapp04", "value": {"SpectatorMode": True, "FocusLock": True}},
-            "switch_camera": {"cmd": "ueapp04", "value": {"CameraMode": "orbital"}},
-            "follow_player": {"cmd": "ueapp04", "value": {"FollowPlayer": "$PLAYER_ID"}},
-            "focus_keepalive": {"cmd": "ueapp04", "value": {"FocusKeepalive": True}},
-        },
-        "iframe_focus_fix": {
-            "description": "Auto-refocus iframe at 500ms intervals to prevent E3DS instance focus-loss during spectating",
-            "interval_ms": 500,
-            "method": "iframe.focus() + postMessage(FocusKeepalive)"
+        "sovereign_commands": {
+            "start_spectate": {"type": "spectator_mode", "payload": {"enabled": True, "focus_lock": True}},
+            "switch_camera": {"type": "camera_mode", "payload": {"mode": "orbital"}},
+            "follow_player": {"type": "follow_player", "payload": {"player_id": "$PLAYER_ID"}},
         }
     }
 
@@ -1999,7 +2006,7 @@ def encrypt_payload(data: dict, key_material: str = None) -> dict:
     # Generate IV and authentication tag
     iv = base64.b64encode(os.urandom(12)).decode('utf-8')
     tag = base64.b64encode(hmac.new(
-        (key_material or os.environ.get("E3DS_API_KEY", "fel-sovereign")[:32]).encode(),
+        (key_material or os.environ.get("FEL_SOVEREIGN_KEY", os.environ.get("E3DS_API_KEY", "fel-sovereign"))[:32]).encode(),
         payload_bytes, hashlib.sha256
     ).digest()[:16]).decode('utf-8')
     return {
@@ -2482,7 +2489,7 @@ async def get_handshake_log():
 
     log_entries = [
         {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": "Sovereign Hub v2.0.0 started (LOCAL SOVEREIGN MODE)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": "Cloud streaming: DISABLED (E3DS bypassed)"},
+        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": "Rendering: NATIVE LOCAL (device GPU — Metal/Vulkan)"},
         {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Sovereign Hub Listening on Port 8888"},
         {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues from FEL_VenueRegistry.production.json"},
         {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes from FEL_ModeManager.production.json"},
