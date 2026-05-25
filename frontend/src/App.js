@@ -9,7 +9,9 @@ import {
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
-  Swords, Video, Palette, UserPlus, Gift, Download
+  Swords, Video, Palette, UserPlus, Gift, Download,
+  Lock, Unlock, Smartphone, Eye, BookOpen, Layers, Sparkles,
+  Check, AlertTriangle, Apple, ChevronUp, Search, Cpu
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
@@ -1004,78 +1006,303 @@ const LeaderboardView = () => {
 };
 
 // ===================== DOWNLOAD PORTAL (replaced Pixel Streaming) =====================
+const GAME_MODES_REGISTRY = {
+  production: [
+    { id: 'basketball_h2h', name: 'Basketball H2H', venue: 'Venice Beach' },
+    { id: 'basketball_dunk', name: 'Dunk Contest', venue: 'Venice Beach' },
+    { id: 'basketball_3v3', name: 'Basketball 3v3', venue: 'Venice Beach' },
+    { id: 'karate_h2h', name: 'Karate H2H', venue: 'Dojo' },
+    { id: 'karate_endless', name: 'Karate Endless', venue: 'Dojo' },
+    { id: 'baseball', name: 'Baseball', venue: 'Baseball Park' },
+    { id: 'football', name: 'Football', venue: 'Gridiron' },
+    { id: 'soccer', name: 'Soccer', venue: 'Soccer Stadium' },
+    { id: 'golf', name: 'Golf', venue: 'Links' },
+    { id: 'tennis', name: 'Tennis', venue: 'Tennis Court' },
+    { id: 'volleyball', name: 'Volleyball', venue: 'Sand Court' },
+    { id: 'surfing', name: 'Surfing', venue: 'Venice Beach' },
+  ],
+  staging: [
+    { id: 'skateboarding', name: 'Skateboarding', venue: 'Skate Park' },
+    { id: 'snowboarding', name: 'Snowboarding', venue: 'Mountain Slope' },
+    { id: 'gymnastics', name: 'Gymnastics', venue: 'Training Floor' },
+    { id: 'brain_brawl', name: 'Brain Brawl', venue: 'Neuro Arena' },
+  ],
+  preview: [
+    { id: 'who_scene_it', name: 'Who Scene It', venue: 'Neuro Arena' },
+    { id: 'court_carnival', name: 'Court Carnival', venue: 'Venice Beach' },
+  ],
+  nonGame: [
+    { id: 'market_browse', name: 'Market Browse', venue: 'Luma Venice Shop' },
+    { id: 'movement_lab', name: 'Movement Lab', venue: 'Training Floor' },
+  ],
+};
+
+const STATUS_COLORS = { production: 'text-green-400', staging: 'text-yellow-400', preview: 'text-purple-400', nonGame: 'text-cyan-400' };
+const STATUS_LABELS = { production: 'LIVE', staging: 'STAGING', preview: 'PREVIEW', nonGame: 'MODULE' };
+const STATUS_BORDERS = { production: 'border-green-400/20', staging: 'border-yellow-400/20', preview: 'border-purple-400/20', nonGame: 'border-cyan-400/20' };
+
+const GameModesShowcase = () => {
+  const [expanded, setExpanded] = useState({ production: true, staging: false, preview: false, nonGame: false });
+  const toggle = cat => setExpanded(p => ({ ...p, [cat]: !p[cat] }));
+  const categories = [
+    { key: 'production', label: 'Production Modes', icon: <Gamepad2 className="w-5 h-5" />, count: GAME_MODES_REGISTRY.production.length },
+    { key: 'staging', label: 'Staging Modes', icon: <Layers className="w-5 h-5" />, count: GAME_MODES_REGISTRY.staging.length },
+    { key: 'preview', label: 'Preview Modes', icon: <Eye className="w-5 h-5" />, count: GAME_MODES_REGISTRY.preview.length },
+    { key: 'nonGame', label: 'Non-Game Modules', icon: <Cpu className="w-5 h-5" />, count: GAME_MODES_REGISTRY.nonGame.length },
+  ];
+  const totalModes = Object.values(GAME_MODES_REGISTRY).reduce((s, a) => s + a.length, 0);
+
+  return (
+    <div className="surface-card p-6" data-testid="game-modes-showcase">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>ALL GAME MODES</h3>
+        <span className="badge-clinical">{totalModes} TOTAL</span>
+      </div>
+      <div className="space-y-4">
+        {categories.map(cat => (
+          <div key={cat.key}>
+            <button onClick={() => toggle(cat.key)} className="w-full flex items-center justify-between p-3 bg-black/30 border border-white/5 rounded-lg hover:border-white/10 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className={STATUS_COLORS[cat.key]}>{cat.icon}</span>
+                <span className="font-bold text-sm">{cat.label}</span>
+                <span className={`text-xs font-mono px-2 py-0.5 rounded ${STATUS_COLORS[cat.key]} bg-white/5`}>{cat.count}</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${expanded[cat.key] ? 'rotate-180' : ''}`} />
+            </button>
+            {expanded[cat.key] && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3 pl-2">
+                {GAME_MODES_REGISTRY[cat.key].map(mode => (
+                  <div key={mode.id} className={`surface-card p-4 text-center border ${STATUS_BORDERS[cat.key]}`}>
+                    <div className={`text-sm font-bold uppercase mb-1 ${STATUS_COLORS[cat.key]}`}>{mode.name}</div>
+                    <div className="text-xs text-zinc-600 font-mono">{mode.venue}</div>
+                    <div className={`text-[10px] font-mono mt-2 ${STATUS_COLORS[cat.key]} opacity-60`}>{STATUS_LABELS[cat.key]}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const DownloadPortalView = () => {
+  const { user } = useAuth();
   const [status, setStatus] = useState(null);
+  const [accessGranted, setAccessGranted] = useState(false);
+  const [bypassCode, setBypassCode] = useState('');
+  const [bypassError, setBypassError] = useState('');
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => { axios.get(`${API}/sovereign/status`).then(r => setStatus(r.data)).catch(console.error); }, []);
 
+  // Check if user has subscription (level >= 1 indicates active subscriber)
+  useEffect(() => {
+    if (user && (user.subscription_active || user.level >= 1)) setAccessGranted(true);
+  }, [user]);
+
+  const handleBypass = () => {
+    if (bypassCode.trim().toLowerCase() === 'igotbounce') {
+      setAccessGranted(true);
+      setBypassError('');
+    } else {
+      setBypassError('Invalid access code');
+    }
+  };
+
   return (
     <div className="space-y-6 fade-in">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div><p className="overline mb-1">NATIVE APP · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>GET THE APP</h1></div>
+        <div>
+          <p className="overline mb-1">SOVEREIGN NATIVE APP · UE 5.7 · PREMIUM</p>
+          <h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>DOWNLOAD PORTAL</h1>
+          <p className="text-sm text-zinc-400 mt-1">Premium native app — renders on YOUR device GPU. Not streamed. Zero latency.</p>
+        </div>
         <div className="flex items-center gap-2">
           {status?.available ? <Wifi className="w-5 h-5 text-green-400" /> : <WifiOff className="w-5 h-5 text-zinc-500" />}
           <span className={`text-sm font-mono ${status?.available ? 'text-green-400' : 'text-zinc-500'}`}>{status?.available ? 'HUB LIVE' : 'HUB OFFLINE'}</span>
         </div>
       </div>
 
+      {/* Subscription Gate */}
+      {!accessGranted && (
+        <div className="surface-card p-8 border border-yellow-400/20" data-testid="subscription-gate">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-yellow-400/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Lock className="w-6 h-6 text-yellow-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>SUBSCRIPTION REQUIRED</h3>
+              <p className="text-sm text-zinc-400 mb-4">
+                Download access is available to active FEL subscribers. Subscribe to unlock the full native app with all {Object.values(GAME_MODES_REGISTRY).reduce((s, a) => s + a.length, 0)} game modes, or enter an early access code below.
+              </p>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="text"
+                  value={bypassCode}
+                  onChange={e => { setBypassCode(e.target.value); setBypassError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleBypass()}
+                  placeholder="Enter early access code"
+                  className="input-clinical flex-1 max-w-xs"
+                  data-testid="bypass-code-input"
+                />
+                <button onClick={handleBypass} className="btn-secondary px-6 py-2" data-testid="bypass-submit">VERIFY</button>
+              </div>
+              {bypassError && <p className="text-red-400 text-xs mt-2 font-mono">{bypassError}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Access Granted Badge */}
+      {accessGranted && (
+        <div className="surface-card p-4 border border-green-400/20 flex items-center gap-3" data-testid="access-granted">
+          <Unlock className="w-5 h-5 text-green-400" />
+          <span className="text-sm font-bold text-green-400">ACCESS GRANTED</span>
+          <span className="text-xs text-zinc-500 font-mono">— Full download access unlocked</span>
+        </div>
+      )}
+
+      {/* Download Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="surface-card p-8 text-center card-hover" data-testid="download-ios">
+        <div className={`surface-card p-8 text-center card-hover ${!accessGranted ? 'opacity-50 pointer-events-none' : ''}`} data-testid="download-ios">
           <div className="w-16 h-16 mx-auto mb-4 bg-zinc-800 rounded-2xl flex items-center justify-center">
-            <Download className="w-8 h-8 text-cyan-400" />
+            <Apple className="w-8 h-8 text-cyan-400" />
           </div>
           <h3 className="text-2xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>iOS — TestFlight</h3>
-          <p className="text-sm text-zinc-400 mb-6">Native Unreal Engine 5.7 rendering on device GPU (Metal). Embedded framework — no streaming required.</p>
-          <a href="https://testflight.apple.com/join/FinalEvolutionLab" target="_blank" rel="noopener noreferrer" className="btn-primary inline-block px-8 py-3">
-            JOIN TESTFLIGHT
+          <p className="text-sm text-zinc-400 mb-2">Native Unreal Engine 5.7 rendering on device GPU (Metal). Embedded framework — not streamed.</p>
+          <p className="text-xs text-cyan-400/60 font-mono mb-6">com.finalevolutionlab.sovereign</p>
+          <a href="https://testflight.apple.com/join/FinalEvolutionLab" target="_blank" rel="noopener noreferrer"
+            className="btn-primary inline-block px-8 py-3" tabIndex={accessGranted ? 0 : -1}>
+            <Download className="w-4 h-4 inline mr-2" />JOIN TESTFLIGHT
           </a>
           <div className="mt-4 text-xs text-zinc-600 font-mono">Requires iOS 17+ · iPhone 12 or later</div>
         </div>
 
-        <div className="surface-card p-8 text-center card-hover" data-testid="download-android">
+        <div className={`surface-card p-8 text-center card-hover ${!accessGranted ? 'opacity-50 pointer-events-none' : ''}`} data-testid="download-android">
           <div className="w-16 h-16 mx-auto mb-4 bg-zinc-800 rounded-2xl flex items-center justify-center">
-            <Download className="w-8 h-8 text-green-400" />
+            <Smartphone className="w-8 h-8 text-green-400" />
           </div>
           <h3 className="text-2xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>Android — Google Play</h3>
-          <p className="text-sm text-zinc-400 mb-6">Native Unreal Engine 5.7 rendering on device GPU (Vulkan). ASTC textures — no streaming required.</p>
-          <a href="https://play.google.com/store/apps/details?id=com.antigravity.finalevolutionlab" target="_blank" rel="noopener noreferrer" className="btn-primary inline-block px-8 py-3" style={{background:'#34D399'}}>
-            GET ON GOOGLE PLAY
+          <p className="text-sm text-zinc-400 mb-2">Native Unreal Engine 5.7 rendering on device GPU (Vulkan). ASTC textures — not streamed.</p>
+          <p className="text-xs text-green-400/60 font-mono mb-6">com.antigravity.finalevolutionlab</p>
+          <a href="https://play.google.com/store/apps/details?id=com.antigravity.finalevolutionlab" target="_blank" rel="noopener noreferrer"
+            className="btn-primary inline-block px-8 py-3" style={{background:'#34D399'}} tabIndex={accessGranted ? 0 : -1}>
+            <Download className="w-4 h-4 inline mr-2" />GET ON GOOGLE PLAY
           </a>
           <div className="mt-4 text-xs text-zinc-600 font-mono">Requires Android 12+ · arm64-v8a</div>
         </div>
       </div>
 
+      {/* Native Build Features */}
       <div className="surface-card p-6" data-testid="native-features">
         <h3 className="text-lg font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>NATIVE BUILD FEATURES</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-black/30 border border-white/5">
-            <div className="font-mono text-xl text-cyan-400">Metal/Vulkan</div>
-            <div className="text-xs text-zinc-500 mt-1">Device GPU</div>
-          </div>
-          <div className="text-center p-4 bg-black/30 border border-white/5">
-            <div className="font-mono text-xl text-cyan-400">60 FPS</div>
-            <div className="text-xs text-zinc-500 mt-1">Native Render</div>
-          </div>
-          <div className="text-center p-4 bg-black/30 border border-white/5">
-            <div className="font-mono text-xl text-cyan-400">Zero Latency</div>
-            <div className="text-xs text-zinc-500 mt-1">No Cloud Dependency</div>
-          </div>
-          <div className="text-center p-4 bg-black/30 border border-white/5">
-            <div className="font-mono text-xl text-cyan-400">{status?.supported_modes?.length || 15} Modes</div>
-            <div className="text-xs text-zinc-500 mt-1">All On-Device</div>
-          </div>
+          {[
+            { value: 'Metal/Vulkan', label: 'Device GPU', icon: <Cpu className="w-4 h-4 text-cyan-400" /> },
+            { value: '60 FPS', label: 'Native Render', icon: <Zap className="w-4 h-4 text-cyan-400" /> },
+            { value: 'Zero Latency', label: 'No Cloud Dependency', icon: <Wifi className="w-4 h-4 text-cyan-400" /> },
+            { value: `${Object.values(GAME_MODES_REGISTRY).reduce((s, a) => s + a.length, 0)} Modes`, label: 'All On-Device', icon: <Gamepad2 className="w-4 h-4 text-cyan-400" /> },
+          ].map((f, i) => (
+            <div key={i} className="text-center p-4 bg-black/30 border border-white/5 rounded-lg">
+              <div className="flex justify-center mb-2">{f.icon}</div>
+              <div className="font-mono text-xl text-cyan-400">{f.value}</div>
+              <div className="text-xs text-zinc-500 mt-1">{f.label}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="surface-card p-6">
-        <h3 className="text-lg font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>AVAILABLE GAME MODES</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="download-modes">
-          {(status?.supported_modes || []).map(m => (
-            <div key={m} className="surface-card p-4 text-center">
-              <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{m.replace(/_/g,' ')}</div>
-              <div className="text-xs text-zinc-600 font-mono">{status?.mode_maps?.[m] || m}</div>
+      {/* Feature Cards */}
+      <div className="surface-card p-6" data-testid="feature-cards">
+        <h3 className="text-lg font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>PREMIUM FEATURES</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { title: 'System Scan', desc: 'Real-time device capability detection. GPU tier, thermal state, and memory profiling for optimal render settings.', icon: <Search className="w-6 h-6 text-cyan-400" />, badge: 'DIAGNOSTIC' },
+            { title: 'Movement Lab', desc: 'Isolated biomechanics sandbox. Test movement physics, hitbox calibration, and animation blending outside of matches.', icon: <Activity className="w-6 h-6 text-purple-400" />, badge: 'TRAINING' },
+            { title: 'PRQ Metrics', desc: 'Player Readiness Quotient — 8-axis composite score tracking strength, speed, endurance, agility, power, flexibility, recovery, and mental.', icon: <BarChart3 className="w-6 h-6 text-green-400" />, badge: 'ANALYTICS' },
+            { title: 'Economy System', desc: 'Shards, XP, and Creator Cards. Earn rewards through gameplay, level up, and collect unique creator-designed cards.', icon: <Sparkles className="w-6 h-6 text-yellow-400" />, badge: 'ECONOMY' },
+          ].map((f, i) => (
+            <div key={i} className="p-5 bg-black/30 border border-white/5 rounded-lg">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center flex-shrink-0">{f.icon}</div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-sm">{f.title}</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 bg-white/5 rounded text-zinc-400">{f.badge}</span>
+                  </div>
+                  <p className="text-xs text-zinc-500 leading-relaxed">{f.desc}</p>
+                </div>
+              </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Game Modes Showcase */}
+      <GameModesShowcase />
+
+      {/* Installation Instructions */}
+      <div className="surface-card p-6" data-testid="install-instructions">
+        <button onClick={() => setShowInstructions(!showInstructions)} className="w-full flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>INSTALLATION INSTRUCTIONS</h3>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform ${showInstructions ? 'rotate-180' : ''}`} />
+        </button>
+        {showInstructions && (
+          <div className="mt-6 space-y-6">
+            <div className="p-4 bg-black/30 border border-cyan-400/10 rounded-lg">
+              <h4 className="font-bold text-sm text-cyan-400 mb-3 flex items-center gap-2"><Apple className="w-4 h-4" /> iOS (TestFlight)</h4>
+              <ol className="text-xs text-zinc-400 space-y-2 list-decimal list-inside">
+                <li>Install the <strong>TestFlight</strong> app from the App Store if you haven't already</li>
+                <li>Tap the <strong>Join TestFlight</strong> button above (or open the link on your iPhone)</li>
+                <li>Accept the invitation in TestFlight and install Final Evolution Lab</li>
+                <li>Launch the app — sign in with your FEL account</li>
+                <li>The app renders natively on your device GPU (Metal) — no streaming, zero latency</li>
+              </ol>
+              <div className="mt-3 text-[10px] text-zinc-600 font-mono">Bundle: com.finalevolutionlab.sovereign · Requires iOS 17+ · iPhone 12+</div>
+            </div>
+            <div className="p-4 bg-black/30 border border-green-400/10 rounded-lg">
+              <h4 className="font-bold text-sm text-green-400 mb-3 flex items-center gap-2"><Smartphone className="w-4 h-4" /> Android (Google Play)</h4>
+              <ol className="text-xs text-zinc-400 space-y-2 list-decimal list-inside">
+                <li>Tap the <strong>Get on Google Play</strong> button above (or search "Final Evolution Lab" on Play Store)</li>
+                <li>Install the app (approx. 1.8 GB download)</li>
+                <li>Launch and sign in with your FEL account</li>
+                <li>The app renders natively on your device GPU (Vulkan) — ASTC textures, not streamed</li>
+              </ol>
+              <div className="mt-3 text-[10px] text-zinc-600 font-mono">Package: com.antigravity.finalevolutionlab · Requires Android 12+ · arm64-v8a</div>
+            </div>
+            <div className="p-4 bg-black/30 border border-yellow-400/10 rounded-lg">
+              <h4 className="font-bold text-sm text-yellow-400 mb-3 flex items-center gap-2"><Sparkles className="w-4 h-4" /> Early Access Bypass</h4>
+              <p className="text-xs text-zinc-400 mb-2">
+                If you have an early access code, enter it in the subscription verification box above to unlock downloads without an active subscription.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="text-xs font-mono bg-white/5 px-3 py-1 rounded text-yellow-400">igotbounce</code>
+                <span className="text-[10px] text-zinc-600">— Early access bypass code</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sovereign Architecture Note */}
+      <div className="surface-card p-5 border border-white/5">
+        <div className="flex items-start gap-3">
+          <Shield className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold mb-1" style={{fontFamily:'Barlow Condensed'}}>SOVEREIGN ARCHITECTURE</h4>
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Final Evolution Lab runs as a <strong className="text-zinc-300">premium native application</strong> on your device.
+              Unlike cloud-streamed games, FEL renders directly on your phone's GPU using Metal (iOS) or Vulkan (Android).
+              This means zero input latency, no bandwidth dependency, and full 60 FPS performance.
+              Your gameplay data syncs with the FEL Hub for leaderboards, economy, and social features.
+            </p>
+          </div>
         </div>
       </div>
     </div>
