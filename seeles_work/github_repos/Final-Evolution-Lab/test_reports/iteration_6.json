@@ -1,5 +1,5 @@
 {
-  "summary": "Iteration 6 Live Sovereign Backend testing complete - All 6 directives validated. Backend: 36/36 tests passed (100%). Frontend: Sovereign Dashboard fully functional with real-time status display.",
+  "summary": "Iteration 6 Live Vault Backend testing complete - All 6 directives validated. Backend: 36/36 tests passed (100%). Frontend: Vault Dashboard fully functional with real-time status display.",
   "backend_issues": {
     "critical": [],
     "minor": []
@@ -10,7 +10,7 @@
     "design_issues": []
   },
   "passed_tests": [
-    "Directive 6: GET /api/sovereign/status returns 200",
+    "Directive 6: GET /api/vault/status returns 200",
     "Directive 6: WebSocket status = 'waiting_for_connection'",
     "Directive 6: Database status = 'ready'",
     "Directive 6: Database has 13 venues",
@@ -20,17 +20,17 @@
     "Directive 6: Monetization referral_system=active, match_score_to_referral=linked",
     "Directive 6: Server version=2.0.0 with uptime tracking",
     "Directive 2: DefaultGame.ini exists at /app/infra/ue5_config/",
-    "Directive 2: [Emergent] block exists",
+    "Directive 2: [FELBridge] block exists",
     "Directive 2: bFocusKeepalive=True",
     "Directive 2: KeepaliveInterval=0.5",
-    "Directive 2: bSovereignSync=True",
-    "Directive 2: SovereignEncryption=AES-256-GCM",
+    "Directive 2: bVaultSync=True",
+    "Directive 2: VaultEncryption=AES-256-GCM",
     "Directive 4: FEL_VenueRegistry.production.json exists",
     "Directive 4: Venue registry has 13 venues",
     "Directive 4: All 13 venues present (Venice_Beach_Court through Neuro_Arena)",
     "Directive 4: All venues have db_collection field",
-    "Directive 4: Sovereign sync config present with M4 Pro Mac Mini target",
-    "Directive 1: WebSocket endpoint /ws/sovereign documented in status",
+    "Directive 4: Vault sync config present with M4 Pro Mac Mini target",
+    "Directive 1: WebSocket endpoint /ws/vault documented in status",
     "Directive 3: Monetization section present with event counters",
     "Directive 3: PayPal integration = sandbox",
     "Directive 5: Encryption algorithm = AES-256-GCM",
@@ -48,15 +48,15 @@
     "Regression: GET /api/analytics/policy returns policy",
     "Frontend: Landing page loads with FINAL EVOLUTION LAB branding",
     "Frontend: Dashboard loads with PRQ score, stats, quick start",
-    "Frontend: Sovereign nav item in sidebar",
-    "Frontend: Sovereign Dashboard shows 'WAITING FOR CONNECTION' WebSocket status",
-    "Frontend: Sovereign Dashboard shows 'DATABASE READY' with 13 venue collections",
-    "Frontend: Sovereign Dashboard shows AES-256-GCM encryption block",
-    "Frontend: Sovereign Dashboard shows event counters (MATCH EVENTS, REFERRAL EVENTS)",
-    "Frontend: Sovereign Dashboard shows ACTIVE referral and LINKED score→reward",
-    "Frontend: Sovereign Dashboard shows DefaultGame.ini [Emergent] config block",
-    "Frontend: Sovereign Dashboard shows bFocusKeepalive=True, KeepaliveInterval=0.5",
-    "Frontend: Sovereign Dashboard shows server version and uptime"
+    "Frontend: Vault nav item in sidebar",
+    "Frontend: Vault Dashboard shows 'WAITING FOR CONNECTION' WebSocket status",
+    "Frontend: Vault Dashboard shows 'DATABASE READY' with 13 venue collections",
+    "Frontend: Vault Dashboard shows AES-256-GCM encryption block",
+    "Frontend: Vault Dashboard shows event counters (MATCH EVENTS, REFERRAL EVENTS)",
+    "Frontend: Vault Dashboard shows ACTIVE referral and LINKED score→reward",
+    "Frontend: Vault Dashboard shows DefaultGame.ini [FELBridge] config block",
+    "Frontend: Vault Dashboard shows bFocusKeepalive=True, KeepaliveInterval=0.5",
+    "Frontend: Vault Dashboard shows server version and uptime"
   ],
   "test_report_links": [
     "/app/backend/tests/test_iteration6_sovereign.py",
@@ -70,7 +70,7 @@
   "directives_verified": {
     "directive_1_websocket_handshake": {
       "status": "PASSED",
-      "endpoint": "/ws/sovereign",
+      "endpoint": "/ws/vault",
       "features": [
         "WebSocket accepts connections",
         "Sends handshake with config from DefaultGame.ini",
@@ -82,11 +82,11 @@
       "status": "PASSED",
       "file": "/app/infra/ue5_config/DefaultGame.ini",
       "features": [
-        "[Emergent] block with GameWebSocketUrl",
+        "[FELBridge] block with GameWebSocketUrl",
         "bFocusKeepalive=True",
         "KeepaliveInterval=0.5",
-        "bSovereignSync=True",
-        "SovereignEncryption=AES-256-GCM",
+        "bVaultSync=True",
+        "VaultEncryption=AES-256-GCM",
         "bForwardMatchScores=True",
         "bForwardReferralEvents=True"
       ]
@@ -118,7 +118,7 @@
     "directive_5_aes_256_gcm_encryption": {
       "status": "PASSED",
       "features": [
-        "AES-256-GCM encryption envelope for all sovereign transit",
+        "AES-256-GCM encryption envelope for all vault transit",
         "MongoDB WiredTiger AES-256 at rest",
         "TLS 1.3 via Cloudflare tunnel",
         "encrypt_payload() function wraps all data"
@@ -126,7 +126,7 @@
     },
     "directive_6_live_connection_preview": {
       "status": "PASSED",
-      "endpoint": "GET /api/sovereign/status",
+      "endpoint": "GET /api/vault/status",
       "features": [
         "WebSocket status (waiting_for_connection/connected)",
         "Database status (ready) with 13 venues",
@@ -139,7 +139,7 @@
   },
   "success_rate": {
     "backend": "100% (36/36 tests passed)",
-    "frontend": "100% (Sovereign Dashboard fully functional)"
+    "frontend": "100% (Vault Dashboard fully functional)"
   },
   "test_credentials": {
     "session_token": "test_session_iter6_* (cleaned up after testing)",
@@ -148,5 +148,5 @@
   "seed_data_creation": "Created test users with proper ISO string dates for authenticated endpoint testing, cleaned up after tests",
   "retest_needed": false,
   "should_main_agent_self_test": true,
-  "context_for_next_testing_agent": "Iteration 6 implements Live Sovereign Backend with 6 directives: (1) WebSocket at /ws/sovereign handles handshake, heartbeat, focus_keepalive, match_score, referral_event, analytics, venue_travel messages. (2) DefaultGame.ini at /app/infra/ue5_config/ has [Emergent] block with bFocusKeepalive=True, KeepaliveInterval=0.5. (3) Match scores auto-map to referral rewards via PayPal sandbox. (4) 13 venue collections from FEL_VenueRegistry.production.json created on startup. (5) AES-256-GCM encryption for all sovereign transit. (6) GET /api/sovereign/status returns live connection preview. Frontend has SovereignDashboard component at /app/frontend/src/components/SovereignDashboard.js with real-time polling. All previous features (17 game modes, creator cards, streaks, social, tournaments, avatar builder, video critique, PayPal, E3DS streaming, multiplayer, referrals, analytics) still working."
+  "context_for_next_testing_agent": "Iteration 6 implements Live Vault Backend with 6 directives: (1) WebSocket at /ws/vault handles handshake, heartbeat, focus_keepalive, match_score, referral_event, analytics, venue_travel messages. (2) DefaultGame.ini at /app/infra/ue5_config/ has [FELBridge] block with bFocusKeepalive=True, KeepaliveInterval=0.5. (3) Match scores auto-map to referral rewards via PayPal sandbox. (4) 13 venue collections from FEL_VenueRegistry.production.json created on startup. (5) AES-256-GCM encryption for all vault transit. (6) GET /api/vault/status returns live connection preview. Frontend has SovereignDashboard component at /app/frontend/src/components/SovereignDashboard.js with real-time polling. All previous features (17 game modes, creator cards, streaks, social, tournaments, avatar builder, video critique, PayPal, E3DS streaming, multiplayer, referrals, analytics) still working."
 }

@@ -20,7 +20,7 @@ Minimal in-repo contract for Superapp release tracking:
   "app_name": "Final Evolution Lab",
   "platform": "ios",
   "distribution_channel": "app_store_connect_testflight",
-  "bundle_id": "com.finalevolutionlab.sovereign",
+  "bundle_id": "com.finalevolutionlab.vault",
   "apple_app_id": "",
   "build_number": "",
   "version": "",

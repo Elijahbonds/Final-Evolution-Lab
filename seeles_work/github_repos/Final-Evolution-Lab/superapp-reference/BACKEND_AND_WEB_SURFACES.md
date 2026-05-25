@@ -3,12 +3,12 @@
 ## Backend (`backend/`)
 
 - **FastAPI** application (`server.py`, `core.py`, `routers/`).
-- Provides REST endpoints for modes, fitness, sovereign/session style flows, analytics—**exact routes evolve**; agents should search `backend/routers/` for current paths.
+- Provides REST endpoints for modes, fitness, vault/session style flows, analytics—**exact routes evolve**; agents should search `backend/routers/` for current paths.
 - Used together with **configured hub URLs** in game/server deployment (not hardcoded in this reference).
 
 ## Frontend (`frontend/`)
 
-- **React** SPA components (`frontend/src/`) — dashboards (e.g. sovereign/FEL OS–style UIs).
+- **React** SPA components (`frontend/src/`) — dashboards (e.g. vault/FEL OS–style UIs).
 - Conceptually aligns with content shown in **WKWebView** inside the Unreal iOS host; URLs and bundling depend on your overlay loader configuration.
 
 ## Superapp implication

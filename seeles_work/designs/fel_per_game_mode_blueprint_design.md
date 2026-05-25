@@ -7,7 +7,7 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 ## Goals
 
 - Assign definitive production status to all 19 modes: 12 production, 4 staging, 2 preview, 1 non-game module
-- Define cooked venue path (source of truth: [EmergentPlayMap] INI) for each mode
+- Define cooked venue path (source of truth: [FELPlayMap] INI) for each mode
 - Specify gameplay loop, win/loss/fail conditions, and scoring rules for each mode
 - Define session receipt event contract per mode
 - Specify required player inputs, interactables, spawn points, and camera zones
@@ -42,19 +42,19 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 | 2 | basketball_dunk | **production** | Full infra across all 6 registries |
 | 3 | basketball_3v3 | **production** | Full infra across all 6 registries |
 | 4 | karate_h2h | **production** | Full infra; `karate` is private alias |
-| 5 | karate_endless | **production** | Swift enum ✅, EmergentPlayMap ✅, ModeManager ✅; missing from VenueRegistry only (shares Dojo) |
+| 5 | karate_endless | **production** | Swift enum ✅, FELPlayMap ✅, ModeManager ✅; missing from VenueRegistry only (shares Dojo) |
 | 6 | baseball | **production** | Full infra |
 | 7 | football | **production** | Full infra |
 | 8 | soccer | **production** | Full infra |
 | 9 | golf | **production** | Full infra |
 | 10 | tennis | **production** | Full infra |
 | 11 | volleyball | **production** | Full infra |
-| 12 | surfing | **production** | Full infra; shares VeniceBeach map (confirmed in ArenaSettings + EmergentPlayMap) |
-| 13 | skateboarding | **staging** | Swift enum ✅ but map NOT in MapsToCook; EmergentPlayMap falsely routes to VeniceBeach |
-| 14 | snowboarding | **staging** | Swift enum ✅ but map NOT in MapsToCook; EmergentPlayMap falsely routes to VeniceBeach |
+| 12 | surfing | **production** | Full infra; shares VeniceBeach map (confirmed in ArenaSettings + FELPlayMap) |
+| 13 | skateboarding | **staging** | Swift enum ✅ but map NOT in MapsToCook; FELPlayMap falsely routes to VeniceBeach |
+| 14 | snowboarding | **staging** | Swift enum ✅ but map NOT in MapsToCook; FELPlayMap falsely routes to VeniceBeach |
 | 15 | gymnastics | **staging** | Swift enum ✅, map in MapsToCook (TrainingFloor); close to production but no dedicated venue map |
-| 16 | brain_brawl | **staging** | Swift enum ✅, dedicated backend endpoint, EmergentPlayMap ✅; but bScoringEnabled=false, different XP formula |
-| 17 | who_scene_it | **preview** | Missing: Swift enum, ue_mode_maps, VenueRegistry, standard session receipt, EmergentPlayMap (code-only hardcode) |
+| 16 | brain_brawl | **staging** | Swift enum ✅, dedicated backend endpoint, FELPlayMap ✅; but bScoringEnabled=false, different XP formula |
+| 17 | who_scene_it | **preview** | Missing: Swift enum, ue_mode_maps, VenueRegistry, standard session receipt, FELPlayMap (code-only hardcode) |
 | 18 | court_carnival | **preview** | Replaces mario_party_fever; missing: Swift enum, ue_mode_maps, VenueRegistry, standard session receipt |
 | 19 | market_browse | **non-game module** | 3D shop browser, no scoring, no session receipt, no PRQ. Module Library. |
 
@@ -295,7 +295,7 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 |-----------|-------|
 | Status | **staging** |
 | Venue path (target) | `/Game/FEL/Venues/Skate_Park/Skate_Park` (NOT in MapsToCook) |
-| Current bug | EmergentPlayMap routes to VeniceBeach (wrong map) |
+| Current bug | FELPlayMap routes to VeniceBeach (wrong map) |
 | Gameplay loop | Park lines. Rhythm-tap tricks on rails/ramps. Score-based. timeLimit=180s. walkScale 1.05, jumpScale 1.06. |
 | Win/loss/fail | Win = higher trick score. Loss = lower. Fail = bail. |
 | Scoring | Style × line multiplier. No targetScore. modeWeight TBD. |
@@ -305,15 +305,15 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 | Spawn points | 1 player park entrance |
 | Camera zones | Follow cam; trick close-up; overhead half-pipe |
 | PRQ boundaries | Attribute: "Line Control", base 0.36. |
-| Smoke test gate | Skate_Park in MapsToCook → EmergentPlayMap corrected → deep link → park loads → tricks → session receipt |
-| Missing registry | Map NOT in MapsToCook; EmergentPlayMap wrong venue; PRQ modeWeight undefined |
+| Smoke test gate | Skate_Park in MapsToCook → FELPlayMap corrected → deep link → park loads → tricks → session receipt |
+| Missing registry | Map NOT in MapsToCook; FELPlayMap wrong venue; PRQ modeWeight undefined |
 
 ### MODE 14: snowboarding
 | Attribute | Value |
 |-----------|-------|
 | Status | **staging** |
 | Venue path (target) | `/Game/FEL/Venues/Mountain_Slope/Mountain_Slope` (NOT in MapsToCook) |
-| Current bug | EmergentPlayMap→VeniceBeach (wrong). ArenaSettings→TrainingFloor (also wrong). |
+| Current bug | FELPlayMap→VeniceBeach (wrong). ArenaSettings→TrainingFloor (also wrong). |
 | Gameplay loop | Slope control. Downhill rhythm-tap. Score-based. timeLimit=180s. walkScale 1.04, jumpScale 1.05. |
 | Win/loss/fail | Win = higher score. Loss = lower. Fail = crash. |
 | Scoring | Style + speed points. No targetScore. |
@@ -323,8 +323,8 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 | Spawn points | 1 player slope top |
 | Camera zones | Behind-rider follow; aerial jump; finish-line |
 | PRQ boundaries | Attribute: "Edge Control", base 0.36. |
-| Smoke test gate | Mountain_Slope in MapsToCook → EmergentPlayMap corrected → ArenaSettings corrected → slope loads |
-| Missing registry | Map NOT in MapsToCook; EmergentPlayMap wrong; ArenaSettings wrong venue |
+| Smoke test gate | Mountain_Slope in MapsToCook → FELPlayMap corrected → ArenaSettings corrected → slope loads |
+| Missing registry | Map NOT in MapsToCook; FELPlayMap wrong; ArenaSettings wrong venue |
 
 ### MODE 15: gymnastics
 | Attribute | Value |
@@ -373,8 +373,8 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 | Session receipt | NONE (only config endpoint exists). |
 | Inputs | tap (identify scenes from choices) |
 | API deps | `GET /api/games/who-scene-it` (config only) |
-| Smoke test | CANNOT PASS — no Swift enum, no ue_mode_maps, no EmergentPlayMap, no session receipt |
-| Missing registry | Swift enum, ue_mode_maps, VenueRegistry, EmergentPlayMap, standard session receipt, scoring |
+| Smoke test | CANNOT PASS — no Swift enum, no ue_mode_maps, no FELPlayMap, no session receipt |
+| Missing registry | Swift enum, ue_mode_maps, VenueRegistry, FELPlayMap, standard session receipt, scoring |
 
 ### MODE 18: court_carnival
 | Attribute | Value |
@@ -388,7 +388,7 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 | Inputs | Mixed (tap, swipe, charge, rhythm per mini-game) |
 | API deps | `GET /api/games/mario-party`, `POST /api/games/mario-party/session` |
 | Smoke test | CANNOT PASS — no Swift enum, no ue_mode_maps, rename needed |
-| Missing registry | Swift enum, ue_mode_maps, VenueRegistry, EmergentPlayMap, rename mario_party_fever→court_carnival |
+| Missing registry | Swift enum, ue_mode_maps, VenueRegistry, FELPlayMap, rename mario_party_fever→court_carnival |
 
 ### MODE 19: market_browse
 | Attribute | Value |
@@ -435,8 +435,8 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 | 9 | Venice Beach | surfing | production | Verify surfing spawns in shared map |
 | 10 | Training Floor | gymnastics | staging | Need PRQ modeWeight |
 | 11 | Neuro Arena | brain_brawl | staging | Standard session receipt, shards |
-| 12 | Skate Park | skateboarding | staging | Map NOT in MapsToCook, EmergentPlayMap misrouted |
-| 13 | Mountain Slope | snowboarding | staging | Map NOT in MapsToCook, EmergentPlayMap + ArenaSettings wrong |
+| 12 | Skate Park | skateboarding | staging | Map NOT in MapsToCook, FELPlayMap misrouted |
+| 13 | Mountain Slope | snowboarding | staging | Map NOT in MapsToCook, FELPlayMap + ArenaSettings wrong |
 | 14 | Neuro Arena | who_scene_it | preview | All registries missing |
 | 15 | Venice Beach | court_carnival | preview | Rename + all registries |
 | 16 | Luma Venice Shop | market_browse | non-game | Swift enum + ue_mode_maps only |
@@ -460,9 +460,9 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 ### Patch 3: `backend/ue_mode_maps.json`
 - Add: `"who_scene_it": "Neuro_Arena"`
 - Add: `"court_carnival": "Venice_Beach_Court"`
-- Add: `"market_browse": "Sovereign_Shop"`
+- Add: `"market_browse": "Vault_Shop"`
 
-### Patch 4: `infra/ue5_config/DefaultGame.ini` [EmergentPlayMap]
+### Patch 4: `infra/ue5_config/DefaultGame.ini` [FELPlayMap]
 - REMOVE: `skateboarding=/Game/FEL/Venues/VeniceBeach/VeniceBeach` (wrong venue)
 - REMOVE: `snowboarding=/Game/FEL/Venues/VeniceBeach/VeniceBeach` (wrong venue)
 - ADD: `who_scene_it=/Game/FEL/Venues/NeuroArena/NeuroArena`
@@ -504,7 +504,7 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 | T5 | Shard reward | Correct shards (50/25/15 + bonuses) **BLOCKED: not implemented** |
 | T6 | PRQ delta | modeReward() applied **BLOCKED: not in backend** |
 | T7 | Activity feed | Entry with type=game |
-| T8 | Sovereign telemetry | JSON with correct arena_game_mode_id |
+| T8 | Vault telemetry | JSON with correct arena_game_mode_id |
 | T9 | E3DS travel | ue_mode_maps token → correct map |
 | T10 | Input scheme | Mode-specific input fires |
 
@@ -534,7 +534,7 @@ Definitive per-game-mode architecture blueprint for all 19 Final Evolution Lab m
 | G2 | All 12 production deep links resolve correctly | ⚠️ surfing sharing needs verify |
 | G3 | ModeManager total_modes matches entries | ❌ Says 17, has 19 |
 | G4 | who_scene_it + court_carnival NOT "production" | ❌ who_scene_it is "production" |
-| G5 | EmergentPlayMap no wrong-venue staging routes | ❌ skateboarding+snowboarding→VeniceBeach |
+| G5 | FELPlayMap no wrong-venue staging routes | ❌ skateboarding+snowboarding→VeniceBeach |
 | G6 | .app bundle has cookeddata/.pak | Must verify |
 | G7 | CFBundleIdentifier correct | ✅ |
 | G8 | URL scheme registered | ✅ |

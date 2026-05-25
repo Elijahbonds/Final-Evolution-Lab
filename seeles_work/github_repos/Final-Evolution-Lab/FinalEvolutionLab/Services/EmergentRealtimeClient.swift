@@ -1,7 +1,7 @@
 import Foundation
 
 /// WebSocket client for the Emergent-style game backend: applies inbound PRQ payloads to `RorkScoreManager`.
-/// URL: `EMERGENT_GAME_WS_URL` environment variable, then UserDefaults key `fel_emergent_game_ws_url`.
+/// URL: `FEL_GAME_WS_URL` environment variable, then UserDefaults key `fel_emergent_game_ws_url`.
 ///
 /// Supported JSON shapes (examples):
 /// - `{ "type": "prq_update", "prq": 72 }`

@@ -54,7 +54,7 @@ export default function DownloadPage() {
               LICENSE REQUIRED
             </h2>
             <p className="text-zinc-400 text-xs leading-relaxed font-light">
-              Final Evolution Lab standalone game clients and emulator builds are restricted to active Sovereign members. Please purchase a membership or complete a consultation to unlock direct APK/ZIP downloads.
+              Final Evolution Lab standalone game clients and emulator builds are restricted to active Vault members. Please purchase a membership or complete a consultation to unlock direct APK/ZIP downloads.
             </p>
           </div>
           
@@ -138,7 +138,7 @@ export default function DownloadPage() {
             <CheckCircle className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">SOVEREIGN LICENSE UNLOCKED & ACTIVE</div>
+            <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">VAULT LICENSE UNLOCKED & ACTIVE</div>
             <div className="text-[10px] text-zinc-500 font-mono">Your profile matches authenticated purchase signature · Sideloading enabled</div>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function DownloadPage() {
             Download Game Packages
           </h1>
           <p className="text-zinc-400 text-sm md:text-base max-w-2xl font-light">
-            Sovereign Membership is active. Download the standalone game packages below to install on your mobile device, emulator, or PC.
+            Vault Membership is active. Download the standalone game packages below to install on your mobile device, emulator, or PC.
           </p>
         </div>
 
@@ -359,8 +359,19 @@ export default function DownloadPage() {
               </p>
               <ol className="list-decimal list-inside space-y-2 text-xs text-zinc-400 font-mono">
                 <li>Download <code className="text-cyan-400">FinalEvolutionLab_Mac.zip</code>.</li>
-                <li>Double-click the zip file to extract <code className="text-white">FinalEvolutionLab.app</code>.</li>
-                <li>Because this is an unsigned early-access package, bypass Gatekeeper by <strong className="text-white">Control-clicking (or Right-clicking)</strong> the app, selecting <strong className="text-white">Open</strong>, and confirming the security prompt.</li>
+                <li>Double-click the zip file to extract <code className="text-white">FinalEvolutionLab.app</code> (or <code className="text-white">FinalEvolutionLab-Mac-Shipping.app</code>).</li>
+                <li>
+                  <strong className="text-white">Gatekeeper Bypass Options:</strong>
+                  <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-zinc-500">
+                    <li><strong className="text-zinc-300">Method 1 (Finder):</strong> Right-click (or Control-click) the app icon, choose <strong className="text-white">Open</strong> from the shortcut menu, and then click <strong className="text-white">Open</strong> in the confirmation dialog.</li>
+                    <li><strong className="text-zinc-300">Method 2 (Terminal CLI):</strong> Open your Terminal app and strip the quarantine attribute using:
+                      <pre className="mt-1 p-2 bg-black/40 border border-white/5 rounded text-cyan-400 text-[10px] select-all overflow-x-auto">
+                        xattr -d com.apple.quarantine FinalEvolutionLab.app
+                      </pre>
+                      (or <code className="text-cyan-300">xattr -d com.apple.quarantine FinalEvolutionLab-Mac-Shipping.app</code>)
+                    </li>
+                  </ul>
+                </li>
                 <li>Connect a controller (Mac-compatible Xbox/PlayStation controller supported) or use standard WASD keyboard mapping.</li>
               </ol>
             </div>
@@ -371,7 +382,7 @@ export default function DownloadPage() {
                 5. Deep Linking Integration
               </h3>
               <p className="text-zinc-400 text-sm leading-relaxed font-light">
-                Sovereign mobile clients map deep links to bypass standard lobbies and launch directly into target venues.
+                Vault mobile clients map deep links to bypass standard lobbies and launch directly into target venues.
               </p>
               
               <div className="space-y-2 font-mono text-xs">

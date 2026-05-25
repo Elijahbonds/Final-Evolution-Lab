@@ -1,10 +1,10 @@
 // Copy into your game's Source/FinalEvolutionLab/ module.
 
-#include "FELEmergentDeepLinkSubsystem.h"
+#include "FELDeepLinkSubsystem.h"
 
 #include "FELCardActivationSubsystem.h"
 #include "FELPartySubsystem.h"
-#include "FELEmergentBridgeSubsystem.h"
+#include "FELBridgeSubsystem.h"
 #include "FELReadinessArenaIni.h"
 
 #include "Engine/Engine.h"
@@ -41,7 +41,7 @@ const TMap<FString, FString>& GetModeToVenueMap()
 		T.Add(TEXT("skateboarding"), TEXT("Skate_Park"));
 		T.Add(TEXT("snowboarding"), TEXT("Mountain_Slope"));
 		T.Add(TEXT("brain_brawl"), TEXT("Neuro_Arena"));
-		T.Add(TEXT("market_browse"), TEXT("Sovereign_Shop"));
+		T.Add(TEXT("market_browse"), TEXT("Vault_Shop"));
 		T.Add(TEXT("scene_it"), TEXT("Venice_Beach_Court"));
 		return T;
 	}();
@@ -66,7 +66,7 @@ const TMap<FString, FString>& GetVenueTokenToPackagePath()
 		M.Add(TEXT("Skate_Park"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
 		M.Add(TEXT("Mountain_Slope"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
 		M.Add(TEXT("Neuro_Arena"), TEXT("/Game/FEL/Venues/NeuroArena/NeuroArena"));
-		M.Add(TEXT("Sovereign_Shop"), TEXT("/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"));
+		M.Add(TEXT("Vault_Shop"), TEXT("/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"));
 		return M;
 	}();
 	return T;
@@ -118,11 +118,11 @@ void MergeIniSectionIntoMap(const FString& IniPath, const TCHAR* SectionName, TM
 }
 } // namespace
 
-void UFELEmergentDeepLinkSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+void UFELDeepLinkSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	ReloadEmergentPlayMapsFromIni();
-	ReloadEmergentButtonArenaModesFromIni();
+	ReloadFELPlayMapsFromIni();
+	ReloadFELButtonArenaModesFromIni();
 	FELReadinessArenaIni::ReloadCacheFromIni();
 	BindDelegates();
 	TryConsumeLaunchURL();
@@ -132,27 +132,27 @@ void UFELEmergentDeepLinkSubsystem::Initialize(FSubsystemCollectionBase& Collect
 		GI->GetTimerManager().SetTimer(
 			RetryLaunchUrlTimer,
 			this,
-			&UFELEmergentDeepLinkSubsystem::TryConsumeLaunchURL,
+			&UFELDeepLinkSubsystem::TryConsumeLaunchURL,
 			0.75f,
 			false);
 	}
 }
 
-void UFELEmergentDeepLinkSubsystem::ReloadEmergentPlayMapsFromIni()
+void UFELDeepLinkSubsystem::ReloadFELPlayMapsFromIni()
 {
-	EmergentPlayMapIni.Reset();
+	FELPlayMapIni.Reset();
 	const FString Path = FPaths::ProjectConfigDir() / TEXT("DefaultGame.ini");
-	MergeIniSectionIntoMap(Path, TEXT("EmergentPlayMap"), EmergentPlayMapIni);
+	MergeIniSectionIntoMap(Path, TEXT("FELPlayMap"), FELPlayMapIni);
 }
 
-void UFELEmergentDeepLinkSubsystem::ReloadEmergentButtonArenaModesFromIni()
+void UFELDeepLinkSubsystem::ReloadFELButtonArenaModesFromIni()
 {
-	EmergentButtonArenaModeIni.Reset();
+	FELButtonArenaModeIni.Reset();
 	const FString Path = FPaths::ProjectConfigDir() / TEXT("DefaultGame.ini");
-	MergeIniSectionIntoMap(Path, TEXT("EmergentButtonArenaMode"), EmergentButtonArenaModeIni);
+	MergeIniSectionIntoMap(Path, TEXT("FELButtonArenaMode"), FELButtonArenaModeIni);
 }
 
-void UFELEmergentDeepLinkSubsystem::Deinitialize()
+void UFELDeepLinkSubsystem::Deinitialize()
 {
 	UnbindDelegates();
 	if (UGameInstance* GI = GetGameInstance())
@@ -163,16 +163,16 @@ void UFELEmergentDeepLinkSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UFELEmergentDeepLinkSubsystem::BindDelegates()
+void UFELDeepLinkSubsystem::BindDelegates()
 {
 	StartupArgumentsHandle = FCoreDelegates::ApplicationReceivedStartupArgumentsDelegate.AddUObject(
-		this, &UFELEmergentDeepLinkSubsystem::OnStartupArguments);
+		this, &UFELDeepLinkSubsystem::OnStartupArguments);
 
 	PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(
-		this, &UFELEmergentDeepLinkSubsystem::OnPostLoadMapWithWorld);
+		this, &UFELDeepLinkSubsystem::OnPostLoadMapWithWorld);
 }
 
-void UFELEmergentDeepLinkSubsystem::UnbindDelegates()
+void UFELDeepLinkSubsystem::UnbindDelegates()
 {
 	if (StartupArgumentsHandle.IsValid())
 	{
@@ -186,7 +186,7 @@ void UFELEmergentDeepLinkSubsystem::UnbindDelegates()
 	}
 }
 
-void UFELEmergentDeepLinkSubsystem::OnStartupArguments(const TArray<FString>& Args)
+void UFELDeepLinkSubsystem::OnStartupArguments(const TArray<FString>& Args)
 {
 	for (const FString& A : Args)
 	{
@@ -197,7 +197,7 @@ void UFELEmergentDeepLinkSubsystem::OnStartupArguments(const TArray<FString>& Ar
 	}
 }
 
-void UFELEmergentDeepLinkSubsystem::TryConsumeLaunchURL()
+void UFELDeepLinkSubsystem::TryConsumeLaunchURL()
 {
 	const FString Cmd = FCommandLine::Get();
 	if (!Cmd.Contains(TEXT("finalevolution://"), ESearchCase::IgnoreCase))
@@ -225,7 +225,7 @@ void UFELEmergentDeepLinkSubsystem::TryConsumeLaunchURL()
 	}
 }
 
-FString UFELEmergentDeepLinkSubsystem::StripSchemeAndHost(const FString& Url)
+FString UFELDeepLinkSubsystem::StripSchemeAndHost(const FString& Url)
 {
 	FString Rest = Url;
 	Rest.ReplaceInline(TEXT("finalevolution://"), TEXT(""));
@@ -237,7 +237,7 @@ FString UFELEmergentDeepLinkSubsystem::StripSchemeAndHost(const FString& Url)
 	return Rest;
 }
 
-void UFELEmergentDeepLinkSubsystem::ParseQueryString(const FString& Query, TMap<FString, FString>& OutParams)
+void UFELDeepLinkSubsystem::ParseQueryString(const FString& Query, TMap<FString, FString>& OutParams)
 {
 	TArray<FString> Pairs;
 	Query.ParseIntoArray(Pairs, TEXT("&"));
@@ -253,7 +253,7 @@ void UFELEmergentDeepLinkSubsystem::ParseQueryString(const FString& Query, TMap<
 	}
 }
 
-FString UFELEmergentDeepLinkSubsystem::ResolveModeToMapToken(const FString& ModeId)
+FString UFELDeepLinkSubsystem::ResolveModeToMapToken(const FString& ModeId)
 {
 	if (ModeId.Equals(TEXT("brain_brawl"), ESearchCase::IgnoreCase))
 	{
@@ -266,7 +266,7 @@ FString UFELEmergentDeepLinkSubsystem::ResolveModeToMapToken(const FString& Mode
 	return FString();
 }
 
-FString UFELEmergentDeepLinkSubsystem::ResolvePackagePathForPlayKey(const FString& MapOrButtonKey) const
+FString UFELDeepLinkSubsystem::ResolvePackagePathForPlayKey(const FString& MapOrButtonKey) const
 {
 	FString K = MapOrButtonKey.TrimStartAndEnd();
 	if (K.IsEmpty())
@@ -284,11 +284,11 @@ FString UFELEmergentDeepLinkSubsystem::ResolvePackagePathForPlayKey(const FStrin
 		return *VenuePath;
 	}
 
-	if (const FString* IniPath = EmergentPlayMapIni.Find(K))
+	if (const FString* IniPath = FELPlayMapIni.Find(K))
 	{
 		return *IniPath;
 	}
-	for (const auto& Pair : EmergentPlayMapIni)
+	for (const auto& Pair : FELPlayMapIni)
 	{
 		if (Pair.Key.Equals(K, ESearchCase::IgnoreCase))
 		{
@@ -298,7 +298,7 @@ FString UFELEmergentDeepLinkSubsystem::ResolvePackagePathForPlayKey(const FStrin
 
 	FString Normalized = K;
 	Normalized.ReplaceInline(TEXT("-"), TEXT(""));
-	for (const auto& Pair : EmergentPlayMapIni)
+	for (const auto& Pair : FELPlayMapIni)
 	{
 		FString KN = Pair.Key;
 		KN.ReplaceInline(TEXT("-"), TEXT(""));
@@ -328,7 +328,7 @@ FString UFELEmergentDeepLinkSubsystem::ResolvePackagePathForPlayKey(const FStrin
 	return FString();
 }
 
-FString UFELEmergentDeepLinkSubsystem::ResolveArenaModeForButton(
+FString UFELDeepLinkSubsystem::ResolveArenaModeForButton(
 	const FString& ButtonKey,
 	const FString& FallbackModeHint) const
 {
@@ -336,11 +336,11 @@ FString UFELEmergentDeepLinkSubsystem::ResolveArenaModeForButton(
 	{
 		return FallbackModeHint;
 	}
-	if (const FString* M = EmergentButtonArenaModeIni.Find(ButtonKey))
+	if (const FString* M = FELButtonArenaModeIni.Find(ButtonKey))
 	{
 		return *M;
 	}
-	for (const auto& Pair : EmergentButtonArenaModeIni)
+	for (const auto& Pair : FELButtonArenaModeIni)
 	{
 		if (Pair.Key.Equals(ButtonKey, ESearchCase::IgnoreCase))
 		{
@@ -354,7 +354,7 @@ FString UFELEmergentDeepLinkSubsystem::ResolveArenaModeForButton(
 	return FString();
 }
 
-void UFELEmergentDeepLinkSubsystem::RequestPlayFromEmergent(
+void UFELDeepLinkSubsystem::RequestPlayFromFEL(
 	const FString& ButtonOrModeKey,
 	const FString& OptionalExplicitPackagePath,
 	const FString& OptionalArenaGameMode)
@@ -374,7 +374,7 @@ void UFELEmergentDeepLinkSubsystem::RequestPlayFromEmergent(
 
 	if (PackagePath.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("FEL Emergent play: could not resolve map for '%s' — add [EmergentPlayMap] in DefaultGame.ini."), *Primary);
+		UE_LOG(LogTemp, Warning, TEXT("FEL Emergent play: could not resolve map for '%s' — add [FELPlayMap] in DefaultGame.ini."), *Primary);
 		return;
 	}
 
@@ -394,7 +394,7 @@ void UFELEmergentDeepLinkSubsystem::RequestPlayFromEmergent(
 	OpenMapFromTokens(PackagePath, ModeId);
 }
 
-void UFELEmergentDeepLinkSubsystem::ProcessDeepLinkUrl(const FString& Url)
+void UFELDeepLinkSubsystem::ProcessDeepLinkUrl(const FString& Url)
 {
 	if (!Url.Contains(TEXT("finalevolution://"), ESearchCase::IgnoreCase) && !Url.Contains(TEXT("://")))
 	{
@@ -473,7 +473,7 @@ void UFELEmergentDeepLinkSubsystem::ProcessDeepLinkUrl(const FString& Url)
 	OpenMapFromTokens(PackagePath, ModeId);
 }
 
-void UFELEmergentDeepLinkSubsystem::TryDeferredOpenLevel()
+void UFELDeepLinkSubsystem::TryDeferredOpenLevel()
 {
 	UGameInstance* GI = GetGameInstance();
 	if (!GI)
@@ -505,7 +505,7 @@ void UFELEmergentDeepLinkSubsystem::TryDeferredOpenLevel()
 	DeferredOpenAttempts = 0;
 }
 
-void UFELEmergentDeepLinkSubsystem::OpenMapFromTokens(const FString& MapPackagePathIn, const FString& ModeId)
+void UFELDeepLinkSubsystem::OpenMapFromTokens(const FString& MapPackagePathIn, const FString& ModeId)
 {
 	UGameInstance* GI = GetGameInstance();
 	if (!GI)
@@ -567,10 +567,10 @@ void UFELEmergentDeepLinkSubsystem::OpenMapFromTokens(const FString& MapPackageP
 		return;
 	}
 
-	GI->GetTimerManager().SetTimer(DeferredOpenTimer, this, &UFELEmergentDeepLinkSubsystem::TryDeferredOpenLevel, 0.1f, true);
+	GI->GetTimerManager().SetTimer(DeferredOpenTimer, this, &UFELDeepLinkSubsystem::TryDeferredOpenLevel, 0.1f, true);
 }
 
-void UFELEmergentDeepLinkSubsystem::OnPostLoadMapWithWorld(UWorld* World)
+void UFELDeepLinkSubsystem::OnPostLoadMapWithWorld(UWorld* World)
 {
 	if (!World || World->IsPreviewWorld())
 	{
@@ -583,7 +583,7 @@ void UFELEmergentDeepLinkSubsystem::OnPostLoadMapWithWorld(UWorld* World)
 		return;
 	}
 
-	UFELEmergentBridgeSubsystem* Bridge = GI->GetSubsystem<UFELEmergentBridgeSubsystem>();
+	UFELBridgeSubsystem* Bridge = GI->GetSubsystem<UFELBridgeSubsystem>();
 	if (!Bridge)
 	{
 		return;
@@ -597,7 +597,7 @@ void UFELEmergentDeepLinkSubsystem::OnPostLoadMapWithWorld(UWorld* World)
 
 	Bridge->BroadcastMapLoaded(PayloadMap, PayloadMode);
 
-	Bridge->ScheduleSovereignSessionSnapshotDeferred(0.15f);
+	Bridge->ScheduleVaultSessionSnapshotDeferred(0.15f);
 
 	UE_LOG(LogTemp, Log, TEXT("FEL DeepLink: map_loaded WS event map=%s mode=%s"), *PayloadMap, *PayloadMode);
 }

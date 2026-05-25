@@ -7,7 +7,7 @@ Athlete-first training platform: digital avatar, PRQ-oriented performance modeli
 Four pillars unified into a single dashboard:
 1. **SCAN** — PRQ + 8 biomechanical metrics + streak + last vertical jump
 2. **CARDS** — Creator Card portfolio + lifetime purchases (PayPal sandbox)
-3. **ARENA** — 19 UE5 game modes + sovereign sessions + iOS deep-link bridge
+3. **ARENA** — 19 UE5 game modes + vault sessions + iOS deep-link bridge
 4. **ACADEMY** — 4 education tracks (24 lessons total + 10-question final)
 
 ### Education Tracks (auto-graded quizzes)
@@ -64,12 +64,12 @@ Web exposes briefings/cooldowns. Live gameplay launches via `finalevolution://br
 - `POST /api/education/brain-brawl/launch` — returns UE5 deep link
 - `GET  /api/system-scan/unified` — 4-quadrant snapshot {scan, cards, arena, academy}
 
-(Existing endpoints preserved: auth, PayPal, sovereign WS, bio-digital overlay, registry/venues, multiplayer, referral, analytics, production/health, root /health.)
+(Existing endpoints preserved: auth, PayPal, vault WS, bio-digital overlay, registry/venues, multiplayer, referral, analytics, production/health, root /health.)
 
 ## Tech Stack
 - React 19, FastAPI, MongoDB, Motor
 - Lucide icons, shadcn/ui
-- WebSockets for live telemetry (Sovereign Hub at `wss://finalevolutiongroup.com/ws/sovereign`)
+- WebSockets for live telemetry (Vault Hub at `wss://finalevolutiongroup.com/ws/vault`)
 - PayPal SDK (sandbox)
 - Native iOS wrapper + UE5.7 deep linking (`finalevolution://`)
 - Emergent LLM key for AI Coach
@@ -82,7 +82,7 @@ Web exposes briefings/cooldowns. Live gameplay launches via `finalevolution://br
 ### P0
 - iOS shipping package: `./fel_ue5_ios_shipping_package.sh --shipping`
 ### P1
-- Full server.py refactor — break remaining ~2,400 LOC into routers/{auth,games,marketplace,sovereign,bio_digital,social,analytics}.py
+- Full server.py refactor — break remaining ~2,400 LOC into routers/{auth,games,marketplace,vault,bio_digital,social,analytics}.py
 - Add unique compound index on `(education_progress.user_id, track_id)` to harden cert idempotency
 - Cooldown/TTL on `brain_brawl_launches` collection
 ### P2

@@ -1,6 +1,6 @@
 // Copy into your game's Source/FinalEvolutionLab/ module.
 
-#include "FELEmergentBridgeSubsystem.h"
+#include "FELBridgeSubsystem.h"
 
 #include "FELBasketballGameState.h"
 #include "Dom/JsonObject.h"
@@ -21,7 +21,7 @@
 
 namespace
 {
-	FString SovereignVenueTokenForArena(const FString& ArenaId)
+	FString VaultVenueTokenForArena(const FString& ArenaId)
 	{
 		static const TMap<FString, FString> Map = [] {
 			TMap<FString, FString> M;
@@ -42,7 +42,7 @@ namespace
 			M.Add(TEXT("skateboarding"), TEXT("Skate_Park"));
 			M.Add(TEXT("snowboarding"), TEXT("Mountain_Slope"));
 			M.Add(TEXT("brain_brawl"), TEXT("Neuro_Arena"));
-			M.Add(TEXT("market_browse"), TEXT("Sovereign_Shop"));
+			M.Add(TEXT("market_browse"), TEXT("Vault_Shop"));
 			return M;
 		}();
 		if (const FString* Found = Map.Find(ArenaId))
@@ -52,7 +52,7 @@ namespace
 		return FString();
 	}
 
-	FString SovereignHandshakeDisplayMode(const FString& ArenaId)
+	FString VaultHandshakeDisplayMode(const FString& ArenaId)
 	{
 		if (ArenaId == TEXT("basketball_dunk"))
 		{
@@ -82,7 +82,7 @@ namespace
 	}
 }
 
-void UFELEmergentBridgeSubsystem::LoadEmergentDefaultsFromIni()
+void UFELBridgeSubsystem::LoadBridgeDefaultsFromIni()
 {
 	const FString GameIni = FPaths::ProjectConfigDir() / TEXT("DefaultGame.ini");
 	if (!FPaths::FileExists(GameIni))
@@ -90,7 +90,7 @@ void UFELEmergentBridgeSubsystem::LoadEmergentDefaultsFromIni()
 		return;
 	}
 	FString Url;
-	if (GConfig->GetString(TEXT("Emergent"), TEXT("GameWebSocketUrl"), Url, GameIni))
+	if (GConfig->GetString(TEXT("FELBridge"), TEXT("GameWebSocketUrl"), Url, GameIni))
 	{
 		Url = Url.TrimStartAndEnd();
 		if (!Url.IsEmpty())
@@ -99,38 +99,38 @@ void UFELEmergentBridgeSubsystem::LoadEmergentDefaultsFromIni()
 		}
 	}
 	bool bKa = bKeepaliveEnabled;
-	if (GConfig->GetBool(TEXT("Emergent"), TEXT("bFocusKeepalive"), bKa, GameIni))
+	if (GConfig->GetBool(TEXT("FELBridge"), TEXT("bFocusKeepalive"), bKa, GameIni))
 	{
 		bKeepaliveEnabled = bKa;
 	}
 	float KaInterval = KeepaliveInterval;
-	if (GConfig->GetFloat(TEXT("Emergent"), TEXT("KeepaliveInterval"), KaInterval, GameIni))
+	if (GConfig->GetFloat(TEXT("FELBridge"), TEXT("KeepaliveInterval"), KaInterval, GameIni))
 	{
 		KeepaliveInterval = FMath::Max(0.05f, KaInterval);
 	}
 
 	bool bAr = bAutoReconnect;
-	if (GConfig->GetBool(TEXT("Emergent"), TEXT("bAutoReconnect"), bAr, GameIni))
+	if (GConfig->GetBool(TEXT("FELBridge"), TEXT("bAutoReconnect"), bAr, GameIni))
 	{
 		bAutoReconnect = bAr;
 	}
 	float Rd = ReconnectDelaySeconds;
-	if (GConfig->GetFloat(TEXT("Emergent"), TEXT("ReconnectDelaySeconds"), Rd, GameIni))
+	if (GConfig->GetFloat(TEXT("FELBridge"), TEXT("ReconnectDelaySeconds"), Rd, GameIni))
 	{
 		ReconnectDelaySeconds = FMath::Max(0.5f, Rd);
 	}
 	int32 MaxRA = MaxReconnectAttempts;
-	if (GConfig->GetInt(TEXT("Emergent"), TEXT("MaxReconnectAttempts"), MaxRA, GameIni))
+	if (GConfig->GetInt(TEXT("FELBridge"), TEXT("MaxReconnectAttempts"), MaxRA, GameIni))
 	{
 		MaxReconnectAttempts = FMath::Max(0, MaxRA);
 	}
 
-	GConfig->GetString(TEXT("Emergent"), TEXT("SovereignHubHost"), SovereignHubHostIni, GameIni);
-	SovereignHubHostIni.TrimStartAndEndInline();
+	GConfig->GetString(TEXT("FELBridge"), TEXT("VaultHubHost"), VaultHubHostIni, GameIni);
+	VaultHubHostIni.TrimStartAndEndInline();
 
-	GConfig->GetBool(TEXT("EmergentHubDiscovery"), TEXT("bProbeCandidateHosts"), bProbeCandidateHosts, GameIni);
+	GConfig->GetBool(TEXT("FELHubDiscovery"), TEXT("bProbeCandidateHosts"), bProbeCandidateHosts, GameIni);
 	FString RawCandidates;
-	if (GConfig->GetString(TEXT("EmergentHubDiscovery"), TEXT("CandidateLanHosts"), RawCandidates, GameIni))
+	if (GConfig->GetString(TEXT("FELHubDiscovery"), TEXT("CandidateLanHosts"), RawCandidates, GameIni))
 	{
 		CandidateLanHosts.Reset();
 		TArray<FString> Parts;
@@ -144,11 +144,11 @@ void UFELEmergentBridgeSubsystem::LoadEmergentDefaultsFromIni()
 			}
 		}
 	}
-	GConfig->GetInt(TEXT("EmergentHubDiscovery"), TEXT("DiscoveryPort"), DiscoveryPortOverride, GameIni);
-	GConfig->GetBool(TEXT("EmergentHubDiscovery"), TEXT("bScanLocalSubnet"), bScanLocalSubnet, GameIni);
+	GConfig->GetInt(TEXT("FELHubDiscovery"), TEXT("DiscoveryPort"), DiscoveryPortOverride, GameIni);
+	GConfig->GetBool(TEXT("FELHubDiscovery"), TEXT("bScanLocalSubnet"), bScanLocalSubnet, GameIni);
 }
 
-void UFELEmergentBridgeSubsystem::ApplyDynamicHubResolution(FString& InOutUrl)
+void UFELBridgeSubsystem::ApplyDynamicHubResolution(FString& InOutUrl)
 {
 	if (InOutUrl.IsEmpty())
 	{
@@ -162,10 +162,10 @@ void UFELEmergentBridgeSubsystem::ApplyDynamicHubResolution(FString& InOutUrl)
 		return;
 	}
 
-	FString Hub = FPlatformMisc::GetEnvironmentVariable(TEXT("EMERGENT_SOVEREIGN_HOST")).TrimStartAndEnd();
+	FString Hub = FPlatformMisc::GetEnvironmentVariable(TEXT("FEL_HUB_HOST")).TrimStartAndEnd();
 	if (Hub.IsEmpty())
 	{
-		Hub = SovereignHubHostIni;
+		Hub = VaultHubHostIni;
 	}
 
 	if (!Hub.IsEmpty())
@@ -188,24 +188,24 @@ void UFELEmergentBridgeSubsystem::ApplyDynamicHubResolution(FString& InOutUrl)
 			}
 			InOutUrl.ReplaceInline(TEXT("127.0.0.1"), *H);
 			InOutUrl.ReplaceInline(TEXT("localhost"), *H, ESearchCase::IgnoreCase);
-			UE_LOG(LogTemp, Log, TEXT("[SovereignHub] Candidate LAN hub %s:%d (TCP probe OK)"), *H, Port);
+			UE_LOG(LogTemp, Log, TEXT("[VaultHub] Candidate LAN hub %s:%d (TCP probe OK)"), *H, Port);
 			return;
 		}
 	}
 
 	// IMPORTANT: Avoid full subnet scans on the game thread; blocking connects over a /24 can freeze startup on iOS.
 	// If you need LAN routing, set either:
-	//   - [Emergent] SovereignHubHost=192.168.x.y
-	//   - EMERGENT_SOVEREIGN_HOST env
-	//   - [EmergentHubDiscovery] CandidateLanHosts=192.168.x.y,192.168.x.z (with bProbeCandidateHosts=True)
+	//   - [FELBridge] VaultHubHost=192.168.x.y
+	//   - FEL_HUB_HOST env
+	//   - [FELHubDiscovery] CandidateLanHosts=192.168.x.y,192.168.x.z (with bProbeCandidateHosts=True)
 	if (bScanLocalSubnet)
 	{
 		UE_LOG(LogTemp, Warning,
-			TEXT("[SovereignHub] bScanLocalSubnet is enabled but full subnet scan is disabled for UX safety. Set SovereignHubHost or CandidateLanHosts instead."));
+			TEXT("[VaultHub] bScanLocalSubnet is enabled but full subnet scan is disabled for UX safety. Set VaultHubHost or CandidateLanHosts instead."));
 	}
 }
 
-bool UFELEmergentBridgeSubsystem::FelProbeTcpHost(const FString& Host, int32 Port) const
+bool UFELBridgeSubsystem::FelProbeTcpHost(const FString& Host, int32 Port) const
 {
 	if (Host.IsEmpty() || Port <= 0)
 	{
@@ -247,7 +247,7 @@ bool UFELEmergentBridgeSubsystem::FelProbeTcpHost(const FString& Host, int32 Por
 	return bConnected;
 }
 
-FString UFELEmergentBridgeSubsystem::FelDiscoverHubViaSubnetScan(int32 Port) const
+FString UFELBridgeSubsystem::FelDiscoverHubViaSubnetScan(int32 Port) const
 {
 	if (Port <= 0)
 	{
@@ -263,7 +263,7 @@ FString UFELEmergentBridgeSubsystem::FelDiscoverHubViaSubnetScan(int32 Port) con
 	TArray<TSharedPtr<FInternetAddr>> Adapters;
 	if (!SockSub->GetLocalAdapterAddresses(Adapters) || Adapters.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[SovereignHub] Subnet scan skipped (no local IPv4 adapters)."));
+		UE_LOG(LogTemp, Warning, TEXT("[VaultHub] Subnet scan skipped (no local IPv4 adapters)."));
 		return FString();
 	}
 
@@ -316,7 +316,7 @@ FString UFELEmergentBridgeSubsystem::FelDiscoverHubViaSubnetScan(int32 Port) con
 	return FString();
 }
 
-int32 UFELEmergentBridgeSubsystem::FelExtractPortFromWsUrl(const FString& Url) const
+int32 UFELBridgeSubsystem::FelExtractPortFromWsUrl(const FString& Url) const
 {
 	const int32 SchemeIdx = Url.Find(TEXT("://"));
 	if (SchemeIdx == INDEX_NONE)
@@ -339,7 +339,7 @@ int32 UFELEmergentBridgeSubsystem::FelExtractPortFromWsUrl(const FString& Url) c
 	return Parsed > 0 ? Parsed : ((DiscoveryPortOverride > 0) ? DiscoveryPortOverride : 8787);
 }
 
-void UFELEmergentBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+void UFELBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
@@ -347,9 +347,9 @@ void UFELEmergentBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 		FModuleManager::Get().LoadModule("WebSockets");
 	}
 
-	LoadEmergentDefaultsFromIni();
+	LoadBridgeDefaultsFromIni();
 
-	FString UrlToUse = FPlatformMisc::GetEnvironmentVariable(TEXT("EMERGENT_GAME_WS_URL")).TrimStartAndEnd();
+	FString UrlToUse = FPlatformMisc::GetEnvironmentVariable(TEXT("FEL_GAME_WS_URL")).TrimStartAndEnd();
 	if (UrlToUse.IsEmpty())
 	{
 		UrlToUse = CachedWsUrl;
@@ -361,15 +361,15 @@ void UFELEmergentBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 	}
 }
 
-void UFELEmergentBridgeSubsystem::Deinitialize()
+void UFELBridgeSubsystem::Deinitialize()
 {
 	bDeinitializing = true;
-	StopSovereignTelemetryTimer();
+	StopVaultTelemetryTimer();
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		GI->GetTimerManager().ClearTimer(FocusTimer);
 		GI->GetTimerManager().ClearTimer(ReconnectTimer);
-		GI->GetTimerManager().ClearTimer(SovereignDeferTimer);
+		GI->GetTimerManager().ClearTimer(VaultDeferTimer);
 	}
 	PendingOutboundMessages.Reset();
 	if (Socket.IsValid())
@@ -380,7 +380,7 @@ void UFELEmergentBridgeSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UFELEmergentBridgeSubsystem::SetGameWebSocketUrl(const FString& FullWsUrl)
+void UFELBridgeSubsystem::SetGameWebSocketUrl(const FString& FullWsUrl)
 {
 	PendingOutboundMessages.Reset();
 	ReconnectAttemptCount = 0;
@@ -410,7 +410,7 @@ void UFELEmergentBridgeSubsystem::SetGameWebSocketUrl(const FString& FullWsUrl)
 	EnsureSocketCreated();
 }
 
-void UFELEmergentBridgeSubsystem::EnsureSocketCreated()
+void UFELBridgeSubsystem::EnsureSocketCreated()
 {
 	if (CachedWsUrl.IsEmpty() || Socket.IsValid())
 	{
@@ -425,7 +425,7 @@ void UFELEmergentBridgeSubsystem::EnsureSocketCreated()
 	Socket->Connect();
 }
 
-void UFELEmergentBridgeSubsystem::BindSocketHandlers()
+void UFELBridgeSubsystem::BindSocketHandlers()
 {
 	if (!Socket.IsValid())
 	{
@@ -444,19 +444,19 @@ void UFELEmergentBridgeSubsystem::BindSocketHandlers()
 
 		FlushOutboundQueue();
 
-		TryStartSovereignTelemetryTimer();
+		TryStartVaultTelemetryTimer();
 
 		if (bKeepaliveEnabled && GetGameInstance())
 		{
 			GetGameInstance()->GetTimerManager().SetTimer(
-				FocusTimer, this, &UFELEmergentBridgeSubsystem::TickFocusKeepalive, KeepaliveInterval, true);
+				FocusTimer, this, &UFELBridgeSubsystem::TickFocusKeepalive, KeepaliveInterval, true);
 		}
 	});
 
 	Socket->OnMessage().AddLambda([this](const FString& Message)
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("Emergent WS inbound: %s"), *Message);
-		OnEmergentRawMessage.Broadcast(Message);
+		OnRawMessage.Broadcast(Message);
 	});
 
 	Socket->OnConnectionError().AddLambda([this](const FString& Err)
@@ -472,9 +472,9 @@ void UFELEmergentBridgeSubsystem::BindSocketHandlers()
 	});
 }
 
-void UFELEmergentBridgeSubsystem::HandleSocketClosedOrError()
+void UFELBridgeSubsystem::HandleSocketClosedOrError()
 {
-	StopSovereignTelemetryTimer();
+	StopVaultTelemetryTimer();
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		GI->GetTimerManager().ClearTimer(FocusTimer);
@@ -490,7 +490,7 @@ void UFELEmergentBridgeSubsystem::HandleSocketClosedOrError()
 	ScheduleReconnect();
 }
 
-void UFELEmergentBridgeSubsystem::ScheduleReconnect()
+void UFELBridgeSubsystem::ScheduleReconnect()
 {
 	if (bDeinitializing || !bAutoReconnect || CachedWsUrl.IsEmpty())
 	{
@@ -510,14 +510,14 @@ void UFELEmergentBridgeSubsystem::ScheduleReconnect()
 
 	GI->GetTimerManager().ClearTimer(ReconnectTimer);
 	GI->GetTimerManager().SetTimer(
-		ReconnectTimer, this, &UFELEmergentBridgeSubsystem::AttemptReconnect, ReconnectDelaySeconds, false);
+		ReconnectTimer, this, &UFELBridgeSubsystem::AttemptReconnect, ReconnectDelaySeconds, false);
 
 	UE_LOG(LogTemp, Log, TEXT("Emergent: reconnect scheduled in %.1fs (attempt next: %d)."),
 		ReconnectDelaySeconds,
 		ReconnectAttemptCount + 1);
 }
 
-void UFELEmergentBridgeSubsystem::AttemptReconnect()
+void UFELBridgeSubsystem::AttemptReconnect()
 {
 	if (bDeinitializing || CachedWsUrl.IsEmpty())
 	{
@@ -527,7 +527,7 @@ void UFELEmergentBridgeSubsystem::AttemptReconnect()
 	EnsureSocketCreated();
 }
 
-void UFELEmergentBridgeSubsystem::FlushOutboundQueue()
+void UFELBridgeSubsystem::FlushOutboundQueue()
 {
 	if (!Socket.IsValid() || !Socket->IsConnected())
 	{
@@ -540,7 +540,7 @@ void UFELEmergentBridgeSubsystem::FlushOutboundQueue()
 	PendingOutboundMessages.Reset();
 }
 
-void UFELEmergentBridgeSubsystem::SendMatchScoreToWebSocket(int32 ScoreA, int32 ScoreB, const FString& ExtraJsonFields)
+void UFELBridgeSubsystem::SendMatchScoreToWebSocket(int32 ScoreA, int32 ScoreB, const FString& ExtraJsonFields)
 {
 	EnsureSocketCreated();
 	TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
@@ -555,7 +555,7 @@ void UFELEmergentBridgeSubsystem::SendMatchScoreToWebSocket(int32 ScoreA, int32 
 	SendJsonObject(O);
 }
 
-void UFELEmergentBridgeSubsystem::SetFocusKeepaliveEnabled(bool bEnable, float IntervalSeconds)
+void UFELBridgeSubsystem::SetFocusKeepaliveEnabled(bool bEnable, float IntervalSeconds)
 {
 	bKeepaliveEnabled = bEnable;
 	KeepaliveInterval = FMath::Max(0.05f, IntervalSeconds);
@@ -570,12 +570,12 @@ void UFELEmergentBridgeSubsystem::SetFocusKeepaliveEnabled(bool bEnable, float I
 		if (Socket.IsValid() && Socket->IsConnected())
 		{
 			GetGameInstance()->GetTimerManager().SetTimer(
-				FocusTimer, this, &UFELEmergentBridgeSubsystem::TickFocusKeepalive, KeepaliveInterval, true);
+				FocusTimer, this, &UFELBridgeSubsystem::TickFocusKeepalive, KeepaliveInterval, true);
 		}
 	}
 }
 
-void UFELEmergentBridgeSubsystem::TickFocusKeepalive()
+void UFELBridgeSubsystem::TickFocusKeepalive()
 {
 	TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 	O->SetStringField(TEXT("type"), TEXT("focus_keepalive"));
@@ -584,9 +584,9 @@ void UFELEmergentBridgeSubsystem::TickFocusKeepalive()
 	SendJsonObject(O);
 }
 
-void UFELEmergentBridgeSubsystem::BroadcastMapLoaded(const FString& MapTokenOrPackage, const FString& ModeId)
+void UFELBridgeSubsystem::BroadcastMapLoaded(const FString& MapTokenOrPackage, const FString& ModeId)
 {
-	bSovereignHandshakeLoggedThisMap = false;
+	bVaultHandshakeLoggedThisMap = false;
 
 	TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
 	O->SetStringField(TEXT("type"), TEXT("map_loaded"));
@@ -600,8 +600,8 @@ void UFELEmergentBridgeSubsystem::BroadcastMapLoaded(const FString& MapTokenOrPa
 			{
 				const FString ArenaId = GS->GetArenaGameModeId();
 				O->SetStringField(TEXT("arena_game_mode_id"), ArenaId);
-				O->SetStringField(TEXT("venue_token"), SovereignVenueTokenForArena(ArenaId));
-				O->SetStringField(TEXT("sovereign_display_mode"), SovereignHandshakeDisplayMode(ArenaId));
+				O->SetStringField(TEXT("venue_token"), VaultVenueTokenForArena(ArenaId));
+				O->SetStringField(TEXT("vault_display_mode"), VaultHandshakeDisplayMode(ArenaId));
 				O->SetNumberField(TEXT("prq"), GS->GetReadinessSnapshot().PRQScore);
 				O->SetNumberField(TEXT("combo_meter"), GS->GetComboMeter01());
 			}
@@ -611,14 +611,14 @@ void UFELEmergentBridgeSubsystem::BroadcastMapLoaded(const FString& MapTokenOrPa
 	SendJsonObject(O);
 }
 
-void UFELEmergentBridgeSubsystem::EmitSovereignSessionSnapshot(UWorld* World)
+void UFELBridgeSubsystem::EmitVaultSessionSnapshot(UWorld* World)
 {
 	if (!World)
 	{
 		return;
 	}
 	TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
-	O->SetStringField(TEXT("type"), TEXT("sovereign_session"));
+	O->SetStringField(TEXT("type"), TEXT("vault_session"));
 	O->SetNumberField(TEXT("t"), FDateTime::UtcNow().ToUnixTimestamp());
 	FString MapName = World->GetMapName();
 	MapName.RemoveFromStart(World->StreamingLevelsPrefix);
@@ -628,44 +628,44 @@ void UFELEmergentBridgeSubsystem::EmitSovereignSessionSnapshot(UWorld* World)
 	{
 		const FString ArenaId = GS->GetArenaGameModeId();
 		O->SetStringField(TEXT("arena_game_mode_id"), ArenaId);
-		O->SetStringField(TEXT("venue_token"), SovereignVenueTokenForArena(ArenaId));
-		O->SetStringField(TEXT("sovereign_display_mode"), SovereignHandshakeDisplayMode(ArenaId));
+		O->SetStringField(TEXT("venue_token"), VaultVenueTokenForArena(ArenaId));
+		O->SetStringField(TEXT("vault_display_mode"), VaultHandshakeDisplayMode(ArenaId));
 		O->SetNumberField(TEXT("prq"), GS->GetReadinessSnapshot().PRQScore);
 		O->SetNumberField(TEXT("combo_streak"), GS->GetComboStreak());
 		O->SetNumberField(TEXT("combo_meter"), GS->GetComboMeter01());
 
-		if (!bSovereignHandshakeLoggedThisMap && !ArenaId.IsEmpty())
+		if (!bVaultHandshakeLoggedThisMap && !ArenaId.IsEmpty())
 		{
-			UE_LOG(LogTemp, Log, TEXT("[SovereignHub] Handshake Successful - Mode: %s"), *SovereignHandshakeDisplayMode(ArenaId));
-			bSovereignHandshakeLoggedThisMap = true;
+			UE_LOG(LogTemp, Log, TEXT("[VaultHub] Handshake Successful - Mode: %s"), *VaultHandshakeDisplayMode(ArenaId));
+			bVaultHandshakeLoggedThisMap = true;
 		}
 	}
 	SendJsonObject(O);
-	TryStartSovereignTelemetryTimer();
+	TryStartVaultTelemetryTimer();
 }
 
-void UFELEmergentBridgeSubsystem::ScheduleSovereignSessionSnapshotDeferred(float DelaySeconds)
+void UFELBridgeSubsystem::ScheduleVaultSessionSnapshotDeferred(float DelaySeconds)
 {
 	if (!GetGameInstance())
 	{
 		return;
 	}
 	UGameInstance* GI = GetGameInstance();
-	GI->GetTimerManager().ClearTimer(SovereignDeferTimer);
+	GI->GetTimerManager().ClearTimer(VaultDeferTimer);
 	GI->GetTimerManager().SetTimer(
-		SovereignDeferTimer,
+		VaultDeferTimer,
 		[this]()
 		{
 			if (UGameInstance* G = GetGameInstance())
 			{
-				EmitSovereignSessionSnapshot(G->GetWorld());
+				EmitVaultSessionSnapshot(G->GetWorld());
 			}
 		},
 		FMath::Max(0.02f, DelaySeconds),
 		false);
 }
 
-void UFELEmergentBridgeSubsystem::TickSovereignTelemetry()
+void UFELBridgeSubsystem::TickVaultTelemetry()
 {
 	if (!Socket.IsValid() || !Socket->IsConnected())
 	{
@@ -687,47 +687,47 @@ void UFELEmergentBridgeSubsystem::TickSovereignTelemetry()
 		return;
 	}
 	const FString ArenaId = GS->GetArenaGameModeId();
-	if (!bSovereignHandshakeLoggedThisMap && !ArenaId.IsEmpty())
+	if (!bVaultHandshakeLoggedThisMap && !ArenaId.IsEmpty())
 	{
-		UE_LOG(LogTemp, Log, TEXT("[SovereignHub] Handshake Successful - Mode: %s"), *SovereignHandshakeDisplayMode(ArenaId));
-		bSovereignHandshakeLoggedThisMap = true;
+		UE_LOG(LogTemp, Log, TEXT("[VaultHub] Handshake Successful - Mode: %s"), *VaultHandshakeDisplayMode(ArenaId));
+		bVaultHandshakeLoggedThisMap = true;
 	}
 	TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
-	O->SetStringField(TEXT("type"), TEXT("sovereign_telemetry"));
+	O->SetStringField(TEXT("type"), TEXT("vault_telemetry"));
 	O->SetNumberField(TEXT("prq"), GS->GetReadinessSnapshot().PRQScore);
 	O->SetNumberField(TEXT("combo_streak"), GS->GetComboStreak());
 	O->SetNumberField(TEXT("combo_meter"), GS->GetComboMeter01());
 	O->SetStringField(TEXT("arena_game_mode_id"), ArenaId);
-	O->SetStringField(TEXT("venue_token"), SovereignVenueTokenForArena(ArenaId));
-	O->SetStringField(TEXT("sovereign_display_mode"), SovereignHandshakeDisplayMode(ArenaId));
+	O->SetStringField(TEXT("venue_token"), VaultVenueTokenForArena(ArenaId));
+	O->SetStringField(TEXT("vault_display_mode"), VaultHandshakeDisplayMode(ArenaId));
 	O->SetNumberField(TEXT("t"), FDateTime::UtcNow().ToUnixTimestamp());
 	SendJsonObject(O);
 }
 
-void UFELEmergentBridgeSubsystem::TryStartSovereignTelemetryTimer()
+void UFELBridgeSubsystem::TryStartVaultTelemetryTimer()
 {
 	if (!GetGameInstance())
 	{
 		return;
 	}
-	GetGameInstance()->GetTimerManager().ClearTimer(SovereignTelemetryTimer);
+	GetGameInstance()->GetTimerManager().ClearTimer(VaultTelemetryTimer);
 	GetGameInstance()->GetTimerManager().SetTimer(
-		SovereignTelemetryTimer,
+		VaultTelemetryTimer,
 		this,
-		&UFELEmergentBridgeSubsystem::TickSovereignTelemetry,
-		SovereignTelemetryIntervalSeconds,
+		&UFELBridgeSubsystem::TickVaultTelemetry,
+		VaultTelemetryIntervalSeconds,
 		true);
 }
 
-void UFELEmergentBridgeSubsystem::StopSovereignTelemetryTimer()
+void UFELBridgeSubsystem::StopVaultTelemetryTimer()
 {
 	if (GetGameInstance())
 	{
-		GetGameInstance()->GetTimerManager().ClearTimer(SovereignTelemetryTimer);
+		GetGameInstance()->GetTimerManager().ClearTimer(VaultTelemetryTimer);
 	}
 }
 
-void UFELEmergentBridgeSubsystem::SendJsonObject(const TSharedPtr<FJsonObject>& Payload)
+void UFELBridgeSubsystem::SendJsonObject(const TSharedPtr<FJsonObject>& Payload)
 {
 	if (!Payload.IsValid())
 	{

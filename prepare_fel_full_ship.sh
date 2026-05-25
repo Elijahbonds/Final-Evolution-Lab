@@ -2,11 +2,11 @@
 # =============================================================================
 # prepare_fel_full_ship.sh
 # Merge **full Shipping cook + venue staging** defaults into a UE project's DefaultGame.ini:
-# bCookAll, MapsToCook, EmergentPlayMap, EmergentHubDiscovery, FELFeaturedMode.
+# bCookAll, MapsToCook, FELPlayMap, FELHubDiscovery, FELFeaturedMode.
 #
 # Uses infra/ue5_config/DefaultGame.ini as the canonical merged reference — copies the
 # shipment-specific sections into your live Config without overwriting an existing
-# [Emergent] block (your hub URL / secrets stay yours).
+# [FELBridge] block (your hub URL / secrets stay yours).
 #
 # Usage:
 #   PROJECT_DIR="/path/to/FinalEvolutionLab 5.7" ./prepare_fel_full_ship.sh
@@ -46,6 +46,6 @@ fi
   extract_ship_sections
 } >>"$DG"
 
-echo ">>> Appended full ship packaging + EmergentPlayMap + hub discovery + FELFeaturedMode to:"
+echo ">>> Appended full ship packaging + FELPlayMap + hub discovery + FELFeaturedMode to:"
 echo "    $DG"
 echo ">>> Next: open UE → Project Settings → Packaging (confirm), then iOS cook/archive."

@@ -5,7 +5,7 @@ Gate 1: DefaultEngine.ini for UE 5.7 Pixel Streaming 2 with E3DS iframe
 Gate 2: WebSocket Multiplayer UI with rooms/lobby
 Gate 3: Referral Reward System linked to PayPal
 Gate 4: Tournament Spectator Mode with focus-lock (500ms)
-Gate 5: Analytics data-tracking policy with Sovereign Sync to M4 Pro Mac Mini
+Gate 5: Analytics data-tracking policy with Vault Sync to M4 Pro Mac Mini
 """
 
 import pytest
@@ -321,8 +321,8 @@ class TestGate4SpectatorMode:
 
 # ===================== GATE 5: ANALYTICS & SOVEREIGN SYNC =====================
 
-class TestGate5AnalyticsSovereignSync:
-    """Gate 5: Analytics data-tracking policy with Sovereign Sync to M4 Pro Mac Mini"""
+class TestGate5AnalyticsVaultSync:
+    """Gate 5: Analytics data-tracking policy with Vault Sync to M4 Pro Mac Mini"""
     
     def test_get_analytics_policy(self):
         """GET /api/analytics/policy returns data tracking policy"""
@@ -331,7 +331,7 @@ class TestGate5AnalyticsSovereignSync:
         data = r.json()
         assert "policy_version" in data, "Missing policy_version"
         assert "tracked_metrics" in data, "Missing tracked_metrics"
-        assert "sovereign_sync_protocol" in data, "Missing sovereign_sync_protocol"
+        assert "vault_sync_protocol" in data, "Missing vault_sync_protocol"
     
     def test_analytics_policy_tracks_13_venues(self):
         """Analytics policy tracks 13 venues (Venice Beach through Neuro Arena)"""
@@ -346,11 +346,11 @@ class TestGate5AnalyticsSovereignSync:
         assert "Zen_Dojo" in venue_text, "Missing Zen Dojo venue"
         assert "Neuro_Arena" in venue_text, "Missing Neuro Arena venue"
     
-    def test_analytics_policy_sovereign_sync_m4_pro(self):
-        """Sovereign sync targets M4 Pro Mac Mini via private signaling server"""
+    def test_analytics_policy_vault_sync_m4_pro(self):
+        """Vault sync targets M4 Pro Mac Mini via private signaling server"""
         r = requests.get(f"{BASE_URL}/api/analytics/policy")
         data = r.json()
-        sync = data.get("sovereign_sync_protocol", {})
+        sync = data.get("vault_sync_protocol", {})
         assert "M4 Pro Mac Mini" in sync.get("description", ""), "Missing M4 Pro Mac Mini reference"
         assert "private signaling server" in sync.get("description", "").lower(), "Missing private signaling server"
         
@@ -379,7 +379,7 @@ class TestGate5AnalyticsSovereignSync:
         data = r.json()
         assert data["game_mode"] == "basketball_h2h", "Wrong game mode"
         assert data["sync_status"] == "pending", "Initial sync status should be pending"
-        assert "sovereign_sync" in data, "Missing sovereign_sync"
+        assert "vault_sync" in data, "Missing vault_sync"
     
     def test_get_analytics_dashboard_requires_auth(self):
         """GET /api/analytics/dashboard requires authentication"""
@@ -393,21 +393,21 @@ class TestGate5AnalyticsSovereignSync:
         data = r.json()
         assert "mode_stats" in data, "Missing mode_stats"
         assert "overview" in data, "Missing overview"
-        assert "sovereign_sync" in data, "Missing sovereign_sync"
+        assert "vault_sync" in data, "Missing vault_sync"
         
-        sync = data["sovereign_sync"]
+        sync = data["vault_sync"]
         assert "pending_sync" in sync, "Missing pending_sync count"
         assert "synced" in sync, "Missing synced count"
         assert "M4 Pro Mac Mini" in sync.get("sync_target", ""), "Missing M4 Pro Mac Mini target"
     
-    def test_trigger_sovereign_sync_requires_auth(self):
-        """POST /api/analytics/sovereign-sync requires authentication"""
-        r = requests.post(f"{BASE_URL}/api/analytics/sovereign-sync")
+    def test_trigger_vault_sync_requires_auth(self):
+        """POST /api/analytics/vault-sync requires authentication"""
+        r = requests.post(f"{BASE_URL}/api/analytics/vault-sync")
         assert r.status_code == 401, f"Expected 401, got {r.status_code}"
     
-    def test_trigger_sovereign_sync(self):
-        """POST /api/analytics/sovereign-sync triggers sync"""
-        r = requests.post(f"{BASE_URL}/api/analytics/sovereign-sync", headers=get_auth_headers())
+    def test_trigger_vault_sync(self):
+        """POST /api/analytics/vault-sync triggers sync"""
+        r = requests.post(f"{BASE_URL}/api/analytics/vault-sync", headers=get_auth_headers())
         assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
         data = r.json()
         assert "synced" in data or "message" in data, "Missing sync result"

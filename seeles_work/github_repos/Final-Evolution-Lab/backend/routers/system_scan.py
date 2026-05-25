@@ -62,11 +62,11 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
     # ---- 3. ARENA ----
     game_count = await db.game_sessions.count_documents({"user_id": user.user_id})
     last_game = await db.game_sessions.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(1).to_list(1)
-    sov_count = await db.sovereign_sessions.count_documents({"user_id": user.user_id}) if "sovereign_sessions" in await db.list_collection_names() else 0
+    sov_count = await db.vault_sessions.count_documents({"user_id": user.user_id}) if "vault_sessions" in await db.list_collection_names() else 0
     arena = {
         "modes_played": game_count,
         "last_session": last_game[0] if last_game else None,
-        "sovereign_sessions": sov_count,
+        "vault_sessions": sov_count,
         "ue5_bridge": "ready",  # native iOS deep-link bridge present
     }
 

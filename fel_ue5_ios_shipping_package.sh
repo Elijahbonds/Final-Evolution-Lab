@@ -731,7 +731,7 @@ run_ios_shipping_archive() {
   [[ -d "$bin_ios" ]] && find "$bin_ios" -maxdepth 2 \( -name '*.ipa' -o -name '*.app' \) -print 2>/dev/null || true
   echo ">>> App Store / TestFlight: \`--export-ipa\` → infra/ue5_config/ExportOptions.plist (method app-store)."
   echo ">>> Firebase App Distribution: \`--export-ipa-firebase\` → ${PROJECT_NAME}-Firebase.ipa (method **ad-hoc** — tester devices must be on your Ad Hoc profile)."
-  echo ">>> Runtime telemetry on device: set Config/DefaultGame.ini [Emergent] SovereignHubHost=<Mac Mini LAN IP>"
+  echo ">>> Runtime telemetry on device: set Config/DefaultGame.ini [FELBridge] VaultHubHost=<Mac Mini LAN IP>"
   echo "    (GameWebSocketUrl may stay ws://127.0.0.1:PORT/... — the bridge rewrites localhost to the hub IP)."
   print_app_store_distribution_hint "$PROJECT_DIR"
 }

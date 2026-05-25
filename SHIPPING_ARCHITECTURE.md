@@ -4,23 +4,27 @@
 
 This repo contains multiple shells and integrations. **Follow this lock when changing runtime wiring.**
 
-## Production shipping target (single path)
+## Production shipping target & Hybrid UI Architecture
 
-- **Game host:** Unreal Engine 5.7 project at `~/Developer/FinalEvolutionLab57/FinalEvolutionLab.uproject`.
-- **In-game OS / dashboard:** native iOS `WKWebView` overlay inside Unreal.
-- **Native iOS:** Swift/SwiftUI code is integration/reference support only unless explicitly wired into the Unreal-host build.
-- **Unity 6:** reference/prototype track only; not the production shipping host.
+We adopt a **hybrid UI design and runtime architecture** to decouple high-fidelity physics simulations from standard user administration interfaces:
 
-Do not treat Unity export, Swift-first navigation, Unreal-as-a-Library, or XCFramework embedding as the default shipping path.
+- **Core Simulation Engine (Canonical Host):** Unreal Engine 5.7 (`~/Developer/FinalEvolutionLab57/FinalEvolutionLab.uproject`) serves as the authoritative engine for physics, biotensegrity joint simulations, and direct low-latency hardware integration.
+- **Decoupled UI Layer:** A decoupled frontend shell (React-based HUD plugin or unified cross-platform Flutter/web frame) manages non-performance-critical flows: user profiles, streaks, coaching chat logs, and secondary HUD telemetry overlays.
+- **Low-Latency Telemetry Bridge:** Unreal Engine utilizes a high-frequency WebSocket and loopback IPC connection to synchronize physics results, joint-angle computations, and biometric events to the UI layer at >90Hz to prevent telemetry lag.
+- **Unified Deployment Path:** The decoupled UI and web shell target a single codebase that builds and deploys consistently across macOS Standalone, iOS, and Android, maintaining the **"arcade-technical"** aesthetic (translucent glassmorphism gauges, neon borders, and live console stream panels).
+- **Unity 6 & Swift-First Shells:** Deprecated/reference tracks only; not the active shipping hosts.
 
-**Branching:** Canonical integration branch per `infra/SHIPPING.md` — prefer **cherry-pick** over merging unrelated experiment branches. Agents (Cursor / Windsurf) should read this file before changing app shell, overlay, or commerce paths.
+## Cloud Infrastructure Transition
 
-**Doc consistency:** `release-reference/IOS_UNREAL_PIPE.md` describes packaging scripts and UE Xcode outputs; **shipping UX** is Unreal host + WKWebView overlay (not Swift-first). Conflicting older wiki pages should be treated as **legacy**.
+To maximize runtime efficiency and offload local hardware resources on playtest machines (e.g., Mac mini M4 Pro):
+- **Cloud-Native APIs:** Backend services and WebSocket nodes are migrated from local-only loopbacks to containerized **Google Cloud Run** instances.
+- **Database Scaling:** The backend pool points to a managed cloud PostgreSQL instance.
+- **Static Assets:** The production frontend builds compile to static assets hosted on **Firebase Hosting** (e.g., `https://final-evolution-lab.web.app`), which also hosts packaged mobile APKs and macOS universal zip packages.
 
 ## Distribution Architecture
 
-- **iOS Consumer Distribution:** Strictly through **Apple App Store Connect / TestFlight**. Alternate third-party stores (AltStore, SideStore), OTA manifest files, or direct public `.ipa` installers/downloads are prohibited.
-- **Android Consumer Distribution:** **Google Play Store** (Planned, once Android build target is active).
+- **iOS Consumer Distribution:** Strictly through **Apple App Store Connect / TestFlight**. Direct `.ipa` installers/downloads are prohibited.
+- **Android Consumer Distribution:** **Google Play Store** (via APK sideload for beta, direct release for production).
 - **Official Website:** **`finalevolutiongroup.com`** is the landing page and provides official store links, beta access, release notes, and supported non-iOS downloadable installers.
 
 ## Commerce

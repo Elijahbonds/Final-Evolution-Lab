@@ -76,7 +76,7 @@ on the **`UnrealFramework`** principal instance.
 
 ### Emergent WebSocket
 
-When `EMERGENT_GAME_WS_URL` / `fel_emergent_game_ws_url` is set, Swift sends one text frame:
+When `FEL_GAME_WS_URL` / `fel_emergent_game_ws_url` is set, Swift sends one text frame:
 
 `{ "type": "fel_system_scan", "scan": <UnrealSystemScanPayload as JSON object> }`
 

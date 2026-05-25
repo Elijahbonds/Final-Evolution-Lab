@@ -54,16 +54,16 @@ def validate_packaging_settings():
 
     print("  ✓ Packaging settings validated")
 
-# ── 2. Validate EmergentPlayMap completeness ─────────────────────────────────
-def validate_emergent_play_map():
+# ── 2. Validate FELPlayMap completeness ─────────────────────────────────
+def validate_fel_play_map():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
     content = ini_path.read_text()
 
-    # Parse [EmergentPlayMap] section
+    # Parse [FELPlayMap] section
     play_map_section = {}
     in_section = False
     for line in content.split("\n"):
-        if line.strip() == "[EmergentPlayMap]":
+        if line.strip() == "[FELPlayMap]":
             in_section = True
             continue
         if in_section:
@@ -79,8 +79,8 @@ def validate_emergent_play_map():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
         for mode_id in ue_maps:
             if mode_id not in play_map_section:
-                err(f"EmergentPlayMap missing mode: {mode_id}")
-    print("  ✓ EmergentPlayMap cross-reference validated")
+                err(f"FELPlayMap missing mode: {mode_id}")
+    print("  ✓ FELPlayMap cross-reference validated")
 
 # ── 3. Validate mode registry consistency ────────────────────────────────────
 def validate_mode_counts():
@@ -145,7 +145,7 @@ def validate_venue_registry():
 def main():
     print("═══ FEL iOS Build Descriptor Validation ═══\n")
     validate_packaging_settings()
-    validate_emergent_play_map()
+    validate_fel_play_map()
     validate_mode_counts()
     validate_arena_settings()
     validate_venue_registry()

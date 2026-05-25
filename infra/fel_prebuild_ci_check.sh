@@ -159,11 +159,11 @@ pass "Descriptor relative path: ../../../${INTERNAL_ID}/${INTERNAL_ID}.uproject 
 # ─── Check 6: Emergent bridge INI config ──────────────────────────
 echo "CHECK 6: Emergent bridge configuration"
 if [[ -f "$DG" ]] && grep -q "\[Emergent\]" "$DG" 2>/dev/null; then
-    pass "[Emergent] section in DefaultGame.ini"
+    pass "[FELBridge] section in DefaultGame.ini"
     if grep -q "GameWebSocketUrl" "$DG"; then
         pass "GameWebSocketUrl configured"
     else
-        warn "GameWebSocketUrl not set in [Emergent]"
+        warn "GameWebSocketUrl not set in [FELBridge]"
     fi
     if grep -q "bFocusKeepalive=True" "$DG"; then
         pass "bFocusKeepalive=True"
@@ -171,7 +171,7 @@ if [[ -f "$DG" ]] && grep -q "\[Emergent\]" "$DG" 2>/dev/null; then
         warn "bFocusKeepalive not set"
     fi
 else
-    warn "[Emergent] section not found in DefaultGame.ini"
+    warn "[FELBridge] section not found in DefaultGame.ini"
 fi
 
 # ─── Check 7: Registry & Architecture Validation (Seele's Gates) ─────

@@ -21,7 +21,7 @@ export const SovereignDashboard = () => {
   const fetchAll = async () => {
     try {
       const [s, h, hs, t] = await Promise.all([
-        axios.get(`${API}/sovereign/status`),
+        axios.get(`${API}/vault/status`),
         axios.get(`${API}/production/health`),
         axios.get(`${API}/production/handshake-log`),
         axios.get(`${API}/telemetry/live`).catch(() => ({data: null}))
@@ -41,7 +41,7 @@ export const SovereignDashboard = () => {
   }, []);
 
   if (loading || !status) {
-    return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="text-center"><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-zinc-400 font-mono text-sm">Initializing Sovereign Hub...</p></div></div>;
+    return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="text-center"><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-zinc-400 font-mono text-sm">Initializing Vault Hub...</p></div></div>;
   }
 
   const wsConnected = status.websocket.status === 'connected';
@@ -72,7 +72,7 @@ export const SovereignDashboard = () => {
             {wsConnected ? <Wifi className="w-8 h-8 text-green-400" /> : <Radio className="w-8 h-8 text-yellow-400 animate-pulse" />}
             <div>
               <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{wsConnected ? 'CONNECTED' : 'LISTENING'}</h3>
-              <p className="font-mono text-xs text-cyan-400">wss://finalevolutiongroup.com/ws/sovereign</p>
+              <p className="font-mono text-xs text-cyan-400">wss://finalevolutiongroup.com/ws/vault</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -155,7 +155,7 @@ export const SovereignDashboard = () => {
 
         {/* Data source confirmation */}
         <div className="bg-black/30 p-2 border border-white/5 text-xs text-zinc-600 font-mono text-center">
-          AFELBasketballGameState → wss://finalevolutiongroup.com/ws/sovereign → Local MongoDB · No cloud · No simulation
+          AFELBasketballGameState → wss://finalevolutiongroup.com/ws/vault → Local MongoDB · No cloud · No simulation
         </div>
       </div>
 
@@ -164,7 +164,7 @@ export const SovereignDashboard = () => {
         <div className="surface-card p-6" data-testid="active-creator-card">
           <div className="flex items-center gap-3 mb-3"><Award className="w-6 h-6 text-yellow-400" /><h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>ACTIVE CREATOR CARD</h2></div>
           <div className="badge-clinical inline-block">{card}</div>
-          <p className="text-xs text-zinc-500 mt-2">Loaded via StoodCardId from sovereign bridge</p>
+          <p className="text-xs text-zinc-500 mt-2">Loaded via StoodCardId from vault bridge</p>
         </div>
       )}
 
@@ -218,7 +218,7 @@ export const SovereignDashboard = () => {
 
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-zinc-600 font-mono">
-        <span><Server className="w-3 h-3 inline mr-1" />Sovereign Hub v{status.server.version} · LOCAL</span>
+        <span><Server className="w-3 h-3 inline mr-1" />Vault Hub v{status.server.version} · LOCAL</span>
         <span><Clock className="w-3 h-3 inline mr-1" />Uptime: {Math.floor(status.server.uptime_seconds/60)}m</span>
         <span><Smartphone className="w-3 h-3 inline mr-1" />iPhone → Port 8888 → Hub turns GREEN</span>
       </div>

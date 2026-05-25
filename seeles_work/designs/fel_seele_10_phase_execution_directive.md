@@ -15,7 +15,7 @@
 
 1. **Each phase MUST complete before starting the next.** No skipping.
 2. **Each phase ends with a QUALITY GATE.** If any gate check fails, fix before proceeding.
-3. **Do not invent environment layouts, venue names, or map paths.** Use only what exists in `[EmergentPlayMap]` section of `infra/ue5_config/DefaultGame.ini` as source of truth.
+3. **Do not invent environment layouts, venue names, or map paths.** Use only what exists in `[FELPlayMap]` section of `infra/ue5_config/DefaultGame.ini` as source of truth.
 4. **Cooked iOS path format is `/Game/FEL/Venues/{VenueName}/{VenueName}`.** The `/Game/FEL/Maps/` prefix in `FEL_ModeManager.production.json` is WRONG and must be corrected.
 5. **`karate` is a private alias for `karate_h2h`.** Do not expose it as a public mode.
 6. **`mario_party_fever` is renamed to `court_carnival`.** All references must be updated.
@@ -91,11 +91,11 @@
   ```json
   "who_scene_it": "Neuro_Arena",
   "court_carnival": "Venice_Beach_Court",
-  "market_browse": "Sovereign_Shop"
+  "market_browse": "Vault_Shop"
   ```
 
 ### 1.4 Fix `infra/ue5_config/DefaultGame.ini`
-- In `[EmergentPlayMap]` section:
+- In `[FELPlayMap]` section:
   - REMOVE: `skateboarding=/Game/FEL/Venues/VeniceBeach/VeniceBeach` (wrong venue — routes to basketball court instead of skate park)
   - REMOVE: `snowboarding=/Game/FEL/Venues/VeniceBeach/VeniceBeach` (wrong venue — routes to beach instead of mountain)
   - ADD: `who_scene_it=/Game/FEL/Venues/NeuroArena/NeuroArena`
@@ -147,7 +147,7 @@
 - Verify all 19 mode_id → venue_token mappings match the list in step 1.1
 
 ### 1.7 Fix VenueRegistry files
-- `backend/FEL_VenueRegistry.production.json`: Add `karate_endless` to Dojo venue's `game_modes` array. Add `who_scene_it` to Neuro_Arena. Add `court_carnival` to Venice_Beach_Court. Add `market_browse` to Sovereign_Shop (if missing).
+- `backend/FEL_VenueRegistry.production.json`: Add `karate_endless` to Dojo venue's `game_modes` array. Add `who_scene_it` to Neuro_Arena. Add `court_carnival` to Venice_Beach_Court. Add `market_browse` to Vault_Shop (if missing).
 - `UnrealStarter/BasketballGame/Config/FEL_VenueRegistry.production.json`: Add analytics entries for `karate_endless`, `who_scene_it`, `court_carnival`, `market_browse`.
 
 ### QUALITY GATE 1
@@ -156,10 +156,10 @@
 □ FEL_ModeManager.production.json total_modes == 19
 □ GameMode.swift GameModeId enum has exactly 19 cases
 □ ue_mode_maps.json has exactly 19 entries in mode_to_unreal_map
-□ DefaultGame.ini [EmergentPlayMap] has exactly 18 entries (19 minus skateboarding/snowboarding removed + who_scene_it/court_carnival added — net 18; scene_it handled in C++ hardcode)
+□ DefaultGame.ini [FELPlayMap] has exactly 18 entries (19 minus skateboarding/snowboarding removed + who_scene_it/court_carnival added — net 18; scene_it handled in C++ hardcode)
 □ ArenaSettings.json has karate_h2h AND karate_endless as separate entries (not unified "karate")
 □ ArenaSettings.json has who_scene_it and court_carnival entries
-□ No entry in [EmergentPlayMap] routes skateboarding or snowboarding to VeniceBeach
+□ No entry in [FELPlayMap] routes skateboarding or snowboarding to VeniceBeach
 □ who_scene_it status == "preview" in FEL_ModeManager
 □ court_carnival status == "preview" in FEL_ModeManager
 □ No reference to "mario_party_fever" remains anywhere in the codebase (grep -r "mario_party_fever" returns 0)
@@ -505,13 +505,13 @@ In `submit_bb` endpoint (POST /api/brain-brawl/submit), also write to `game_sess
 - File: `frontend/src/components/hud/Scoreboard.tsx`
 - Position: top-center, 10% from top, 60% viewport width
 - Shows: player score, mode display name, opponent score, time elapsed, venue name
-- Data source: WebSocket events from EmergentBridge (`match_score`, `session_state`)
+- Data source: WebSocket events from FELBridge (`match_score`, `session_state`)
 
 ### 6.2 Active Statistical Ticker
 - File: `frontend/src/components/hud/StatTicker.tsx`
 - Position: top-right, 20% width
 - Shows: PRQ (with grade), MRI (with grade), ARV, ESI, XP counter, shard counter
-- Data source: `sovereign_telemetry` WebSocket events (0.1s tick), session receipt for XP/shards
+- Data source: `vault_telemetry` WebSocket events (0.1s tick), session receipt for XP/shards
 - Colors: PRQ=#00E5FF, MRI=#A855F7, ARV=#22C55E, ESI=#F59E0B
 
 ### 6.3 Takeover Meter
@@ -519,7 +519,7 @@ In `submit_bb` endpoint (POST /api/brain-brawl/submit), also write to `game_sess
 - Position: left edge, vertical bar, 40% viewport height
 - Shows: NeuralDrive 0–100 as fill bar with aura color gradient
 - Glow: 4px bloom at fill level
-- Data source: `sovereign_telemetry` neural_drive field
+- Data source: `vault_telemetry` neural_drive field
 
 ### 6.4 Combo Multiplier / Focus Streak
 - File: `frontend/src/components/hud/ComboStreak.tsx`
@@ -533,7 +533,7 @@ In `submit_bb` endpoint (POST /api/brain-brawl/submit), also write to `game_sess
 - Position: bottom-left, 25% width
 - Shows: MRI bar (0–100), CSF/EEF/ILD dots (green ≥60, yellow 40–59, red <40), pacing grade
 - Visibility: fades in during active session, auto-hides in menus
-- Data source: `sovereign_telemetry` neurocognitive block
+- Data source: `vault_telemetry` neurocognitive block
 
 ### 6.6 Recovery Prompt
 - File: `frontend/src/components/hud/RecoveryPrompt.tsx`
@@ -600,7 +600,7 @@ private:
 - Default all values to no-op when neurocognitive block is missing
 
 ### 7.3 Wire into bridge
-In `UFELEmergentBridgeSubsystem`, when receiving system scan JSON, check for `"neurocognitive"` key and call `UFELNeuroCognitiveSubsystem::UpdateFromBridgePayload()`.
+In `UFELBridgeSubsystem`, when receiving system scan JSON, check for `"neurocognitive"` key and call `UFELNeuroCognitiveSubsystem::UpdateFromBridgePayload()`.
 
 ### 7.4 Add to Build.cs
 No new module dependencies needed (Json already included).
@@ -634,7 +634,7 @@ No new module dependencies needed (Json already included).
 
 ### 8.3 Skateboarding/Snowboarding routing fix
 - DO NOT add maps to MapsToCook yet (maps don't exist as dedicated assets)
-- Ensure [EmergentPlayMap] has no entries for skateboarding/snowboarding (removed in Phase 1)
+- Ensure [FELPlayMap] has no entries for skateboarding/snowboarding (removed in Phase 1)
 - Add staging gate: in `backend/server.py` `launch_stream_mode`, check mode status in ModeManager — reject launch if status != "production"
   ```python
   mode_entry = MODE_MANAGER["mode_registry"].get(mode_id)
@@ -679,7 +679,7 @@ For each mode in [basketball_h2h, basketball_dunk, basketball_3v3, karate_h2h, k
 | T5 | Shard reward | Correct shards (50/25/15 + bonuses) credited |
 | T6 | PRQ delta | prq_delta > 0 with correct mode weight |
 | T7 | Activity feed | Entry with type=game in activity_feed collection |
-| T8 | Sovereign telemetry | sovereign_telemetry JSON emitted with correct arena_game_mode_id |
+| T8 | Vault telemetry | vault_telemetry JSON emitted with correct arena_game_mode_id |
 | T9 | MRI data | neurocognitive block present in session receipt (or defaults if engine disabled) |
 | T10 | Input scheme | Mode-correct input (charge/swipe/etc.) registers |
 
@@ -743,10 +743,10 @@ For each mode in [basketball_h2h, basketball_dunk, basketball_3v3, karate_h2h, k
 # Must pass all 6 points:
 # 1. .uproject filename = FinalEvolutionLab
 # 2. Target.cs class name matches
-# 3. DefaultGame.ini BundleIdentifier = com.finalevolutionlab.sovereign
+# 3. DefaultGame.ini BundleIdentifier = com.finalevolutionlab.vault
 # 4. Info.plist UE_PROJECT_NAME = FinalEvolutionLab (case-sensitive)
 # 5. Directory paths match
-# 6. [Emergent] config section present
+# 6. [FELBridge] config section present
 ```
 
 ### 10.2 Registry Consistency Audit
@@ -755,7 +755,7 @@ For each mode in [basketball_h2h, basketball_dunk, basketball_3v3, karate_h2h, k
 □ GameMode.swift: 19 enum cases
 □ ue_mode_maps.json: 19 entries
 □ ArenaSettings.json: 19 mode entries (17 original + who_scene_it + court_carnival)
-□ DefaultGame.ini [EmergentPlayMap]: 18 entries (no skateboarding/snowboarding)
+□ DefaultGame.ini [FELPlayMap]: 18 entries (no skateboarding/snowboarding)
 □ GetModeToVenueMap() in C++: 19 entries (court_carnival, not mario_party_fever)
 □ All map paths use /Game/FEL/Venues/{Name}/{Name} format
 □ Zero references to "mario_party_fever" in codebase
@@ -788,7 +788,7 @@ For each mode in [basketball_h2h, basketball_dunk, basketball_3v3, karate_h2h, k
 ```
 □ iOS Shipping build: ./fel_ue5_ios_shipping_package.sh --full-cook --shipping --export-ipa
 □ .app bundle contains cookeddata/.pak (descriptor-safe)
-□ CFBundleIdentifier = com.finalevolutionlab.sovereign
+□ CFBundleIdentifier = com.finalevolutionlab.vault
 □ HealthKit usage strings in Info.plist
 □ finalevolution:// URL scheme registered
 □ Upload to App Store Connect / TestFlight

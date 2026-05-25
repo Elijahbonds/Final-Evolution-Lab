@@ -7,11 +7,11 @@ Use this when merging **this repo’s** Unreal snippets and tooling into your **
 ## Repo automation (Emergent)
 
 - From repo root, with `PROJECT_DIR` pointing at your UE game folder:
-  - `PROJECT_DIR="/path/to/your/project" ./prepare_fel_emergent.sh`
-  - Optional: `./prepare_fel_emergent.sh --copy-sources`
+  - `PROJECT_DIR="/path/to/your/project" ./prepare_fel_bridge.sh`
+  - Optional: `./prepare_fel_bridge.sh --copy-sources`
 - Runtime URL override (matches iOS `Config.resolvedEmergentGameWebSocketURL()`):
-  - `EMERGENT_GAME_WS_URL=wss://your-host/ws/game/room-id`
-- Merge `UnrealIntegration/Config/DefaultGame.FEL_Emergent.snippet.ini` into your **DefaultGame.ini** `[Emergent]` section.
+  - `FEL_GAME_WS_URL=wss://your-host/ws/game/room-id`
+- Merge `UnrealIntegration/Config/DefaultGame.FEL_Bridge.snippet.ini` into your **DefaultGame.ini** `[FELBridge]` section.
 
 ---
 
@@ -20,7 +20,7 @@ Use this when merging **this repo’s** Unreal snippets and tooling into your **
 - Copy `UnrealIntegration/Source/FinalEvolutionLab/*.h|*.cpp` into your game’s `Source/FinalEvolutionLab/` (or use `--copy-sources`).
 - **FinalEvolutionLab.Build.cs**: add `WebSockets`, `Json` to `PrivateDependencyModuleNames`.
 - Editor → Plugins → enable **WebSockets**.
-- Blueprint/C++: `UFELEmergentBridgeSubsystem` — `SetGameWebSocketUrl`, `SendMatchScoreToWebSocket`, optional focus keepalive (see `COPY_INTO_GAME_MODULE.txt`).
+- Blueprint/C++: `UFELBridgeSubsystem` — `SetGameWebSocketUrl`, `SendMatchScoreToWebSocket`, optional focus keepalive (see `COPY_INTO_GAME_MODULE.txt`).
 
 ---
 
@@ -49,7 +49,7 @@ Use this when merging **this repo’s** Unreal snippets and tooling into your **
 
 ## iOS companion app (Swift)
 
-- Emergent WebSocket URL: environment variable `EMERGENT_GAME_WS_URL`, or UserDefaults key `fel_emergent_game_ws_url` (see `Config.swift`).
+- Emergent WebSocket URL: environment variable `FEL_GAME_WS_URL`, or UserDefaults key `fel_emergent_game_ws_url` (see `Config.swift`).
 - **Inbound JSON** handled in `EmergentRealtimeClient.applyEmergentPayload` — align backend messages with documented `type` / `prq` / `delta` fields.
 
 ---

@@ -2,7 +2,7 @@
   "cooked_runtime_note": "FEL_ModeManager — 20 total modes (19 game + 1 education). Gate 1 fix applied: who_scene_it + court_carnival promoted to production. production_modes=14. movement_lab added as preview/non-scoring education module.",
   "mode_manager": {
     "total_modes": 20,
-    "production_modes": 14,
+    "production_modes": 12,
     "mode_registry": {
       "basketball_h2h": {
         "status": "production",
@@ -75,12 +75,12 @@
         "prq_weight": 1.0
       },
       "who_scene_it": {
-        "status": "production",
+        "status": "preview",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.1
       },
       "court_carnival": {
-        "status": "production",
+        "status": "preview",
         "venue_id": "VeniceBeach",
         "prq_weight": 1.0
       },
@@ -95,7 +95,7 @@
         "prq_weight": 0.9
       },
       "market_browse": {
-        "status": "non_game",
+        "status": "non-game-module",
         "venue_id": "Luma_Venice_Shop",
         "prq_weight": 0.0
       },
@@ -111,5 +111,33 @@
         "note": "Not a game module. Tutorial overlay only. Never claims PRQ medical truth."
       }
     }
+  },
+  "prq_calculator": {
+    "class": "UFELPRQCalculatorSubsystem",
+    "source": "cpp_bridge",
+    "scaling_formula": "weighted_composite",
+    "weights": {
+      "strength": 0.15,
+      "speed": 0.15,
+      "endurance": 0.12,
+      "agility": 0.12,
+      "power": 0.12,
+      "flexibility": 0.10,
+      "recovery": 0.12,
+      "mental": 0.12
+    },
+    "update_trigger": "on_session_complete",
+    "decay_rate_per_day": 0.5,
+    "boost_on_streak": true
+  },
+  "bridge_subsystem": {
+    "class": "UFELBridgeSubsystem",
+    "handshake_identifier": "FEL-VAULT-BRIDGE-v2",
+    "project_uuid": "FEL-5.7-PRODUCTION-2026",
+    "expected_binary_signatures": [
+      "FinalEvolutionLab-iOS-Shipping",
+      "FinalEvolutionLab-Linux-Shipping",
+      "FinalEvolutionLab-Mac-Shipping"
+    ]
   }
 }

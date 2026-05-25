@@ -127,7 +127,7 @@
 
 ---
 
-## Pillar: Realtime / social / sovereign bridge
+## Pillar: Realtime / social / vault bridge
 
 **Vision.** Trusted progression and identity on realtime paths.
 

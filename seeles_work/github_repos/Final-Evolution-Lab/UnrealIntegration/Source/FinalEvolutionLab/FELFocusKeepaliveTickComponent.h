@@ -15,13 +15,13 @@ class UFELFocusKeepaliveTickComponent : public UActorComponent
 public:
 	UFELFocusKeepaliveTickComponent();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emergent")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FELBridge")
 	float IntervalSeconds = 0.5f;
 
-	UPROPERTY(BlueprintAssignable, Category = "Emergent")
+	UPROPERTY(BlueprintAssignable, Category = "FELBridge")
 	FFELKeepalivePulse OnKeepalive;
 
-	UFUNCTION(BlueprintCallable, Category = "Emergent")
+	UFUNCTION(BlueprintCallable, Category = "FELBridge")
 	void SetKeepaliveEnabled(bool bEnable);
 
 protected:

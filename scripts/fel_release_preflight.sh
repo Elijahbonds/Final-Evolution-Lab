@@ -68,10 +68,10 @@ fi
 for f in infra/REALTIME_TRUST_CONTRACT.md; do
   if [[ ! -f "$ROOT/$f" ]]; then fail "missing $f"; else pass "$f"; fi
 done
-if [[ -f "$ROOT/backend/server.py" ]] && ! grep -q '_fel_sovereign_ws_require_auth' "$ROOT/backend/server.py"; then
-  fail "backend/server.py missing sovereign WS auth gate helper"
+if [[ -f "$ROOT/backend/server.py" ]] && ! grep -q '_fel_vault_ws_require_auth' "$ROOT/backend/server.py"; then
+  fail "backend/server.py missing vault WS auth gate helper"
 else
-  pass "Sovereign WS require-auth helper present"
+  pass "Vault WS require-auth helper present"
 fi
 
 # --- Scan trust ---

@@ -8,10 +8,10 @@ import Combine
 
 // MARK: - Mode Launch Protocol
 /// Handles the handoff between Swift UI navigation and UE5 renderer for each game mode.
-/// When an athlete taps a mode in the Sovereign Dashboard shell, this bridge:
+/// When an athlete taps a mode in the Vault Dashboard shell, this bridge:
 ///   1. Sends deep link to UE5 app: finalevolution://launch?map={venue}&mode={mode_id}&session={session_id}
 ///   2. Monitors app switch via UIApplication.didBecomeActiveNotification
-///   3. Establishes WebSocket to Sovereign Hub (wss://finalevolutiongroup.com/ws/sovereign) for telemetry
+///   3. Establishes WebSocket to Vault Hub (wss://finalevolutiongroup.com/ws/vault) for telemetry
 
 @objc class FELNativeSwiftBridge: NSObject {
 
@@ -25,7 +25,7 @@ import Combine
     private var currentSessionId: String?
     private var currentVenue: String?
 
-    let sovereignHubURL = URL(string: "wss://finalevolutiongroup.com/ws/sovereign")!
+    let sovereignHubURL = URL(string: "wss://finalevolutiongroup.com/ws/vault")!
     let deepLinkScheme = "finalevolution"
 
     // Production venue registry — matches FEL_VenueRegistry.production.json
@@ -46,10 +46,10 @@ import Combine
         "skateboarding":   VenueConfig(map: "Skate_Park", binary: "FEL-Skateboarding"),
         "snowboarding":    VenueConfig(map: "Mountain_Slope", binary: "FEL-Snowboarding"),
         "brain_brawl":     VenueConfig(map: "Neuro_Arena", binary: "FEL-BrainBrawl"),
-        "market_browse":   VenueConfig(map: "Sovereign_Shop", binary: "FEL-Market"),
+        "market_browse":   VenueConfig(map: "Vault_Shop", binary: "FEL-Market"),
     ]
 
-    // MARK: - Sovereign Hub Connection
+    // MARK: - Vault Hub Connection
     func connectToSovereignHub() {
         let config = URLSessionConfiguration.default
         config.waitsForConnectivity = true
@@ -92,7 +92,7 @@ import Combine
         let deepLink = "\(deepLinkScheme)://launch?map=\(config.map)&mode=\(modeId)&session=\(sessionId)"
         guard let url = URL(string: deepLink) else { return false }
 
-        // Notify sovereign hub that session is launching
+        // Notify vault hub that session is launching
         send([
             "type": "session_launch",
             "session_id": sessionId,
@@ -118,7 +118,7 @@ import Combine
     func sendTelemetry(prq: Float, comboStreak: Int, comboMeter: Float, buckets: Int, verticalJump: Float, velocity: SIMD3<Float>) {
         guard let sessionId = currentSessionId else { return }
         send([
-            "type": "sovereign_telemetry",
+            "type": "vault_telemetry",
             "session_id": sessionId,
             "prq": prq,
             "combo_streak": comboStreak,
@@ -128,7 +128,7 @@ import Combine
             "velocity_vectors": ["x": velocity.x, "y": velocity.y, "z": velocity.z],
             "arena_game_mode_id": currentVenue ?? "",
             "venue_token": currentVenue ?? "",
-            "sovereign_display_mode": "stadium_overlay",
+            "vault_display_mode": "stadium_overlay",
             "t": ISO8601DateFormatter().string(from: Date())
         ])
     }
@@ -186,7 +186,7 @@ import Combine
         guard let type = msg["type"] as? String else { return }
         switch type {
         case "sovereign_handshake":
-            print("[FEL Bridge] Handshake received from Sovereign Hub")
+            print("[FEL Bridge] Handshake received from Vault Hub")
             isConnected = true
         case "venue_travel":
             if let venue = msg["venue"] as? String {

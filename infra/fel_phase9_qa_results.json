@@ -1018,9 +1018,9 @@
     {
       "category": "Backend",
       "id": "H05",
-      "desc": "SovereignBridge wss:// endpoint reachable",
+      "desc": "VaultBridge wss:// endpoint reachable",
       "status": "SKIP",
-      "detail": "Network test \u2014 run manually: curl wss://finalevolutiongroup.com/ws/sovereign"
+      "detail": "Network test \u2014 run manually: curl wss://finalevolutiongroup.com/ws/vault"
     },
     {
       "category": "Backend",
@@ -1041,7 +1041,7 @@
       "id": "I01",
       "desc": "Phase 1 complete",
       "status": "PASS",
-      "detail": "CI subsystems, SovereignBridge, AES-256-GCM, FELFeatureFlags"
+      "detail": "CI subsystems, VaultBridge, AES-256-GCM, FELFeatureFlags"
     },
     {
       "category": "Phases",

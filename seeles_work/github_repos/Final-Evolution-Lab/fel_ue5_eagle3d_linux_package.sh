@@ -4,7 +4,7 @@
 # Eagle 3D (E3DS) — **Linux Shipping** streamer build from **macOS** (M4 Pro, etc.).
 #
 # Why Linux on a Mac: Epic does not ship a full **Windows cross-compile** stack for macOS the way
-# it does for **Linux**. For sovereign/local workflows without a Windows PC, **Linux Target +
+# it does for **Linux**. For vault/local workflows without a Windows PC, **Linux Target +
 # RunUAT -platform=Linux** is the standard cloud-streaming path (Pixel Streaming on Linux hosts).
 #
 # Prerequisites (macOS host running this script):
@@ -23,7 +23,7 @@
 #   artifacts/Linux/FEL_UE5_E3DS_Linux_Package.zip   — upload to E3DS Control Panel (override with ZIP_OUT)
 #   artifacts/Linux/eagle3d_build/                   — RunUAT -archive tree before zip
 #
-# Emergent / FELEmergentBridgeSubsystem: uses UE **WebSockets** + **Json** — supported on Linux
+# Emergent / FELFELBridgeSubsystem: uses UE **WebSockets** + **Json** — supported on Linux
 # Shipping builds (no Windows-specific APIs in that bridge).
 #
 # Usage:
@@ -136,7 +136,7 @@ Merge repo: UnrealStarter/BasketballGame/Config/DefaultEngine.pixelstreaming2.sn
 
 warn_emergent_bridge_sources() {
   local src="$PROJECT_DIR/Source"
-  if [[ -d "$src" ]] && grep -rqs "FELEmergentBridgeSubsystem\|WebSockets" "$src" 2>/dev/null; then
+  if [[ -d "$src" ]] && grep -rqs "FELFELBridgeSubsystem\|WebSockets" "$src" 2>/dev/null; then
     echo ">>> OK: Project Source mentions Emergent bridge / WebSockets — confirm module lists WebSockets + Json in *.Build.cs for Linux."
   else
     echo "WARN: Copy UnrealIntegration/* bridge sources into $src (see UnrealIntegration/COPY_INTO_GAME_MODULE.txt) before relying on ws:// scoring on Linux."
@@ -146,7 +146,7 @@ warn_emergent_bridge_sources() {
 verify_linux_ps_notes() {
   echo ">>> Linux Pixel Streaming runtime (Eagle VM / container — manual):"
   echo "    - Vulkan ICD + libvulkan1 (+ vendor drivers)"
-  echo "    - Launch streamer per Eagle docs; FELEmergentBridgeSubsystem uses plain UE WebSockets (Linux-safe)."
+  echo "    - Launch streamer per Eagle docs; FELFELBridgeSubsystem uses plain UE WebSockets (Linux-safe)."
 }
 
 verify_ue_matches_host_os() {

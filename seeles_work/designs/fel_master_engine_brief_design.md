@@ -21,8 +21,8 @@ Final Evolution Lab is a **3D Neuro-Athletic Performance Environment** built nat
 │  LAYER 0 — UE 5.7 NATIVE HOST (iOS Shipping / Linux E3DS)         │
 │  ┌───────────────────┐  ┌────────────────────────────────────────┐ │
 │  │ 19 Game Mode BPs  │  │ C++ Subsystems                        │ │
-│  │ (12 prod / 4 stg  │  │  UFELEmergentBridgeSubsystem          │ │
-│  │  2 preview / 1 mod)│  │  UFELEmergentDeepLinkSubsystem        │ │
+│  │ (12 prod / 4 stg  │  │  UFELBridgeSubsystem          │ │
+│  │  2 preview / 1 mod)│  │  UFELDeepLinkSubsystem        │ │
 │  │                    │  │  UFELPerformanceManagerSubsystem       │ │
 │  │                    │  │  UFELOverlaySubsystem                  │ │
 │  │                    │  │  UFELFocusKeepaliveTickComponent       │ │
@@ -41,7 +41,7 @@ Final Evolution Lab is a **3D Neuro-Athletic Performance Environment** built nat
 │  Real-time HUD: Scoreboard, Focus Streak, Takeover Meter *         │
 ├─────────────────────────────────────────────────────────────────────┤
 │  LAYER 3 — FASTAPI BACKEND (backend/)                              │
-│  Auth · Games · Education · BioFuel · Sovereign Bridge             │
+│  Auth · Games · Education · BioFuel · Vault Bridge             │
 │  Session receipts · PRQ delta · Shard economy · Referrals          │
 ├─────────────────────────────────────────────────────────────────────┤
 │  LAYER 4 — DATA LAYER                                              │
@@ -63,7 +63,7 @@ Final Evolution Lab is a **3D Neuro-Athletic Performance Environment** built nat
 | Infra | `infra/` | Pulumi, UE5 config, CI |
 | Data Connect | `dataconnect/` | GraphQL, PostgreSQL |
 
-## 1.3 Cooked Map Registry (Source of Truth: DefaultGame.ini [EmergentPlayMap])
+## 1.3 Cooked Map Registry (Source of Truth: DefaultGame.ini [FELPlayMap])
 
 | Map Token | Cooked Path | Modes Hosted | In MapsToCook |
 |-----------|-------------|-------------|---------------|
@@ -106,8 +106,8 @@ Final Evolution Lab is a **3D Neuro-Athletic Performance Environment** built nat
 
 | # | mode_id | Display | Venue | Input | Blocker |
 |---|---------|---------|-------|-------|---------|
-| 13 | skateboarding | Skate Line | Skate_Park | rhythmTap | Map not in MapsToCook; EmergentPlayMap misrouted |
-| 14 | snowboarding | Snow Line | Mountain_Slope | rhythmTap | Map not in MapsToCook; both EmergentPlayMap + ArenaSettings wrong |
+| 13 | skateboarding | Skate Line | Skate_Park | rhythmTap | Map not in MapsToCook; FELPlayMap misrouted |
+| 14 | snowboarding | Snow Line | Mountain_Slope | rhythmTap | Map not in MapsToCook; both FELPlayMap + ArenaSettings wrong |
 | 15 | gymnastics | Gymnastics | TrainingFloor | rhythmTap | PRQ modeWeight undefined |
 | 16 | brain_brawl | Brain Brawl | NeuroArena | tap | Non-standard session endpoint; no shards/PRQ delta |
 
@@ -115,7 +115,7 @@ Final Evolution Lab is a **3D Neuro-Athletic Performance Environment** built nat
 
 | # | mode_id | Display | Venue | Blocker |
 |---|---------|---------|-------|---------|
-| 17 | who_scene_it | Who Scene It | NeuroArena | Missing: Swift enum, ue_mode_maps, VenueRegistry, EmergentPlayMap, session receipt, scoring |
+| 17 | who_scene_it | Who Scene It | NeuroArena | Missing: Swift enum, ue_mode_maps, VenueRegistry, FELPlayMap, session receipt, scoring |
 | 18 | court_carnival | Court Carnival | VeniceBeach | Rename from mario_party_fever; all registries incomplete |
 
 ## 2.4 Non-Game Module (1)
@@ -939,10 +939,10 @@ final_score = totalStylePoints * (1.0 + PRQ_Normalized * 0.3) * (NeuralBurstActi
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/api/games/session` | POST | Session receipt: mode_id, score, duration, XP, shards, PRQ delta |
-| `/api/streaming/launch-mode` | POST | Deep link generation + live_sessions doc + sovereign broadcast |
+| `/api/streaming/launch-mode` | POST | Deep link generation + live_sessions doc + vault broadcast |
 | `/api/session/state` | POST | State machine: launching → map_loading → active → completed |
 | `/ws/game/{room_id}` | WS | Real-time multiplayer score sync (realtime modes) |
-| `/ws/sovereign` | WS | Sovereign bridge: telemetry, match_score, hardware_auth |
+| `/ws/vault` | WS | Vault bridge: telemetry, match_score, hardware_auth |
 
 ## 6.2 Mode-Specific Endpoints
 
@@ -971,7 +971,7 @@ final_score = totalStylePoints * (1.0 + PRQ_Normalized * 0.3) * (NeuralBurstActi
 |---|------|--------|
 | 1 | `backend/FEL_ModeManager.production.json` | Fix total_modes 17→19; fix map paths /Maps/→/Venues/; who_scene_it→preview; mario_party_fever→court_carnival (preview) |
 | 2 | `FinalEvolutionLab/Models/GameMode.swift` | Add enum cases: whoSceneIt, courtCarnival, marketBrowse + inputScheme + registry entries |
-| 3 | `backend/ue_mode_maps.json` | Add: who_scene_it→Neuro_Arena, court_carnival→Venice_Beach_Court, market_browse→Sovereign_Shop |
+| 3 | `backend/ue_mode_maps.json` | Add: who_scene_it→Neuro_Arena, court_carnival→Venice_Beach_Court, market_browse→Vault_Shop |
 | 4 | `infra/ue5_config/DefaultGame.ini` | Remove misrouted skateboarding/snowboarding entries; add who_scene_it + court_carnival |
 | 5 | `ArenaSettings.json` | Split karate→karate_h2h+karate_endless; add who_scene_it, court_carnival; fix snowboarding venue |
 | 6 | `FEL_VenueRegistry.production.json` (both) | Add karate_endless, who_scene_it, court_carnival, market_browse entries |
@@ -1004,7 +1004,7 @@ final_score = totalStylePoints * (1.0 + PRQ_Normalized * 0.3) * (NeuralBurstActi
 | G2 | All 12 production deep links resolve correctly | ⚠️ | Ship |
 | G3 | ModeManager total_modes matches entry count | ❌ 17≠19 | All builds |
 | G4 | who_scene_it + court_carnival NOT "production" | ❌ | Ship |
-| G5 | EmergentPlayMap no misrouted staging entries | ❌ | Ship |
+| G5 | FELPlayMap no misrouted staging entries | ❌ | Ship |
 | G6 | .app bundle has cookeddata/.pak | Verify | iOS |
 | G7 | CFBundleIdentifier correct | ✅ | iOS |
 | G8 | URL scheme registered | ✅ | iOS |

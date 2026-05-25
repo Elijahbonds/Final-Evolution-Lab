@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
 # =============================================================================
-# prepare_fel_emergent.sh
-# Merge Emergent DefaultGame snippet + optionally copy FELEmergentBridge sources into a UE project.
+# prepare_fel_bridge.sh
+# Merge Emergent DefaultGame snippet + optionally copy FELFELBridge sources into a UE project.
 #
 # Prerequisites: PROJECT_DIR = UE project folder (contains Config/DefaultGame.ini and .uproject).
 #
 # Usage:
-#   PROJECT_DIR="/path/to/FinalEvolutionLab 5.7" ./prepare_fel_emergent.sh
-#   PROJECT_DIR="..." ./prepare_fel_emergent.sh --copy-sources
+#   PROJECT_DIR="/path/to/FinalEvolutionLab 5.7" ./prepare_fel_bridge.sh
+#   PROJECT_DIR="..." ./prepare_fel_bridge.sh --copy-sources
 #
 # Env:
-#   EMERGENT_MERGE_SNIPPET=0   skip Appending DefaultGame.FEL_Emergent.snippet.ini (default: merge if [Emergent] absent)
+#   FEL_MERGE_SNIPPET=0   skip Appending DefaultGame.FEL_Bridge.snippet.ini (default: merge if [FELBridge] absent)
 #
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$SCRIPT_DIR"
-SNIPPET="$REPO_ROOT/UnrealIntegration/Config/DefaultGame.FEL_Emergent.snippet.ini"
+SNIPPET="$REPO_ROOT/UnrealIntegration/Config/DefaultGame.FEL_Bridge.snippet.ini"
 INTEGRATION_SRC="$REPO_ROOT/UnrealIntegration/Source/FinalEvolutionLab"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 COPY_SOURCES=0
-MERGE_SNIPPET="${EMERGENT_MERGE_SNIPPET:-1}"
+MERGE_SNIPPET="${FEL_MERGE_SNIPPET:-1}"
 
 for arg in "$@"; do
   [[ "$arg" == "--copy-sources" ]] && COPY_SOURCES=1
@@ -39,25 +39,25 @@ PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 
 merge_emergent_ini() {
   [[ "$MERGE_SNIPPET" == "1" ]] || {
-    echo "(EMERGENT_MERGE_SNIPPET=0 — skipping snippet merge)"
+    echo "(FEL_MERGE_SNIPPET=0 — skipping snippet merge)"
     return 0
   }
   local dg="$PROJECT_DIR/Config/DefaultGame.ini"
   [[ -f "$dg" ]] || touch "$dg"
 
   if grep -q '^\[Emergent\]' "$dg" 2>/dev/null; then
-    echo ">>> DefaultGame.ini already has [Emergent]; not appending snippet."
+    echo ">>> DefaultGame.ini already has [FELBridge]; not appending snippet."
     echo "    Compare with repo reference: $SNIPPET"
     return 0
   fi
 
   {
     echo ""
-    echo "; --- FEL Emergent — merged by prepare_fel_emergent.sh ($(date -u +%Y-%m-%dT%H:%MZ)) ---"
+    echo "; --- FEL Emergent — merged by prepare_fel_bridge.sh ($(date -u +%Y-%m-%dT%H:%MZ)) ---"
     cat "$SNIPPET"
   } >>"$dg"
 
-  echo ">>> Appended [Emergent] block to $dg"
+  echo ">>> Appended [FELBridge] block to $dg"
 }
 
 merge_emergent_ini
@@ -74,8 +74,8 @@ fi
 echo ""
 echo "=== Emergent checklist ==="
 echo "  • Full iOS cook (bCookAll + all venue maps): PROJECT_DIR=\"$PROJECT_DIR\" $REPO_ROOT/prepare_fel_full_ship.sh"
-echo "  • Config: $PROJECT_DIR/Config/DefaultGame.ini → [Emergent] GameWebSocketUrl (or leave empty)."
-echo "  • Runtime override: EMERGENT_GAME_WS_URL=wss://host/ws/game/roomId"
+echo "  • Config: $PROJECT_DIR/Config/DefaultGame.ini → [FELBridge] GameWebSocketUrl (or leave empty)."
+echo "  • Runtime override: FEL_GAME_WS_URL=wss://host/ws/game/roomId"
 echo "  • Pixel Streaming 2 (E3DS): merge UnrealStarter/BasketballGame/Config/DefaultEngine.pixelstreaming2.snippet.ini → DefaultEngine.ini"
 echo "  • Venue registry: copy UnrealStarter/BasketballGame/Config/FEL_VenueRegistry.production.json beside Config/"
 echo ""

@@ -57,8 +57,8 @@ async def handler(ws: WebSocketServerProtocol):
 
 
 async def main(port: int):
-    logger.info(f"FEL HUD WebSocket server starting on ws://localhost:{port}/ws/hud")
-    async with websockets.serve(handler, "localhost", port):
+    logger.info(f"FEL HUD WebSocket server starting on ws://0.0.0.0:{port}/ws/hud")
+    async with websockets.serve(handler, "0.0.0.0", port):
         await asyncio.Future()  # run forever
 
 

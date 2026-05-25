@@ -247,7 +247,7 @@ class TestUnifiedScan:
             assert k in d
         assert d["scan"]["prq_score"] == 82.0
         assert d["arena"]["ue5_bridge"] == "ready"
-        assert "sovereign_sessions" in d["arena"]
+        assert "vault_sessions" in d["arena"]
         assert "modes_played" in d["arena"]
         assert len(d["academy"]["tracks"]) == 4
         assert d["academy"]["bio_digital"]["modules_required"] == [
@@ -280,5 +280,5 @@ class TestRefactorRegression:
         assert r.status_code == 200
 
     def test_sovereign_status(self):
-        r = requests.get(f"{BASE_URL}/api/sovereign/status", headers=h(FRESH_TOKEN))
+        r = requests.get(f"{BASE_URL}/api/vault/status", headers=h(FRESH_TOKEN))
         assert r.status_code in (200, 401)  # depends on whether endpoint requires auth

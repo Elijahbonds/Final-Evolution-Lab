@@ -29,7 +29,7 @@ FEL is a polyglot monorepo with 5 runtime layers:
 │  UE 5.7 Native Host (iOS Shipping / Linux E3DS) │
 │  ┌──────────────┐  ┌──────────────────────────┐ │
 │  │ Game Modes   │  │ Subsystems               │ │
-│  │ (19 BPs)     │  │ EmergentBridge           │ │
+│  │ (19 BPs)     │  │ FELBridge           │ │
 │  │              │  │ DeepLink                 │ │
 │  │              │  │ PerformanceManager       │ │
 │  │              │  │ Overlay (WKWebView)      │ │
@@ -95,7 +95,7 @@ FEL is a polyglot monorepo with 5 runtime layers:
 | 16 | `snowboarding` | Snowboarding | Mountain_Slope | FEL-Snowboarding | rhythmTap | Board | Slope Control |
 | 17 | `gymnastics` | Gymnastics | Training_Floor | FEL-Gymnastics | rhythmTap | Precision | Olympic Routines |
 | 18 | `brain_brawl` | Brain Brawl | Neuro_Arena | FEL-BrainBrawl | — | Academy | Deep-link launch only: `finalevolution://brain-brawl/launch` |
-| 19 | `market_browse` | Market Browse | Sovereign_Shop | FEL-Market | — | Commerce | 3D shop browsing, no scoring |
+| 19 | `market_browse` | Market Browse | Vault_Shop | FEL-Market | — | Commerce | 3D shop browsing, no scoring |
 
 ### 2.3 ⚠️ Registry Discrepancies (Must Resolve Before Ship)
 
@@ -117,11 +117,11 @@ FEL is a polyglot monorepo with 5 runtime layers:
 **Layer 1 — Deep Link (iOS native):**
 ```
 finalevolution://launch?map={MapToken}&mode={mode_id}
-  → UFELEmergentDeepLinkSubsystem::ProcessDeepLinkUrl()
+  → UFELDeepLinkSubsystem::ProcessDeepLinkUrl()
   → ParseQueryString() extracts map + mode params
   → ResolveModeToMapToken() → /Game/FEL/Maps/{MapToken}
   → OpenMapFromTokens() → UGameplayStatics::OpenLevel()
-  → BroadcastMapLoaded() via EmergentBridge WebSocket
+  → BroadcastMapLoaded() via FELBridge WebSocket
 ```
 
 **Layer 2 — Dashboard WebSocket (WKWebView overlay):**
@@ -146,8 +146,8 @@ backend/ue_mode_maps.json (mode_id → UE map token)
 
 ### 3.2 Resolution Chain Priority
 
-1. `[EmergentPlayMap]` INI section (button_id → `/Game/FEL/Maps/...`)
-2. `[EmergentButtonArenaMode]` INI section (button_id → arena_mode_id)
+1. `[FELPlayMap]` INI section (button_id → `/Game/FEL/Maps/...`)
+2. `[FELButtonArenaMode]` INI section (button_id → arena_mode_id)
 3. Hardcoded `ResolveModeToMapToken()` C++ fallback
 4. `ue_mode_maps.json` for E3DS/backend routing
 
@@ -169,15 +169,15 @@ backend/ue_mode_maps.json (mode_id → UE map token)
 | Mountain_Slope | `/Game/FEL/Maps/Mountain_Slope` | snowboarding | 4 | winter_outdoor |
 | Neuro_Arena | `/Game/FEL/Maps/Neuro_Arena` | brain_brawl | 8 | neon_arcade |
 
-**Missing from VenueRegistry:** Sovereign_Shop (market_browse), Luma_Venice_Shop (in MapsToCook but no venue entry)
+**Missing from VenueRegistry:** Vault_Shop (market_browse), Luma_Venice_Shop (in MapsToCook but no venue entry)
 
-### 3.4 Sovereign Sync Protocol
+### 3.4 Vault Sync Protocol
 
 - Target: M4 Pro Mac Mini
 - Protocol: WSS over Cloudflare Tunnel
 - Encryption: AES-256-GCM
 - Signaling: Private (local network)
-- UE bridge: `UFELEmergentBridgeSubsystem` with auto-reconnect, bounded outbound queue (128 messages), LAN subnet scanning for hub discovery
+- UE bridge: `UFELBridgeSubsystem` with auto-reconnect, bounded outbound queue (128 messages), LAN subnet scanning for hub discovery
 
 ---
 
@@ -192,7 +192,7 @@ HealthKit (device sensors)
   → Firestore users/{uid}/system_scans/{docId} (append-only archive)
   → Firestore users/{uid}/avatar_performance/current (mutable latest)
   → UnrealSystemScanPayload (epoch-ms JSON for UE bridge)
-  → UE C++ FELEmergentBridgeSubsystem (WebSocket → game state)
+  → UE C++ FELFELBridgeSubsystem (WebSocket → game state)
 ```
 
 ### 4.2 Swift-Side PRQ (Neural Readiness Score)
@@ -586,7 +586,7 @@ service cloud.firestore {
 
 | Key | Value | Purpose |
 |-----|-------|---------|
-| `CFBundleIdentifier` | `com.finalevolutionlab.sovereign` | App Store record match |
+| `CFBundleIdentifier` | `com.finalevolutionlab.vault` | App Store record match |
 | `CFBundleURLTypes` | `finalevolution://` | Deep link scheme |
 | `NSHealthShareUsageDescription` | (present) | HealthKit read permission |
 | `NSHealthUpdateUsageDescription` | (present) | HealthKit write permission |
@@ -608,7 +608,7 @@ service cloud.firestore {
   "app_name": "Final Evolution Lab",
   "platform": "ios",
   "distribution_channel": "app_store_connect_testflight",
-  "bundle_id": "com.finalevolutionlab.sovereign",
+  "bundle_id": "com.finalevolutionlab.vault",
   "apple_app_id": "",
   "build_number": "",
   "version": "",
@@ -649,7 +649,7 @@ bCookAll=True
 |-----|------|--------|------------|
 | Skate_Park | skateboarding | staging | Add when promoting to production |
 | Mountain_Slope | snowboarding | staging | Add when promoting to production |
-| Sovereign_Shop | market_browse | staging | Add when promoting to production |
+| Vault_Shop | market_browse | staging | Add when promoting to production |
 | Venice_Beach_Surf | surfing | production | ⚠️ May share VeniceBeach token — verify |
 
 ### 10.3 Build Targets
@@ -701,13 +701,13 @@ bUseInternalSignalling=False  # E3DS manages signalling externally
 - [ ] `./infra/fel_prebuild_ci_check.sh --strict` — 6-point identifier alignment:
   1. .uproject filename = FinalEvolutionLab
   2. Target.cs class name matches
-  3. DefaultGame.ini BundleIdentifier = com.finalevolutionlab.sovereign
+  3. DefaultGame.ini BundleIdentifier = com.finalevolutionlab.vault
   4. Info.plist UE_PROJECT_NAME = FinalEvolutionLab (case-sensitive)
   5. Directory paths match
-  6. [Emergent] config section present
+  6. [FELBridge] config section present
 - [ ] Verify `backend/FEL_ModeManager.production.json` has ≥17 modes
 - [ ] `./prepare_fel_full_ship.sh` — merge shipping defaults into DefaultGame.ini
-- [ ] `./prepare_fel_emergent.sh` — merge Emergent bridge config
+- [ ] `./prepare_fel_bridge.sh` — merge Emergent bridge config
 
 ### 11.2 iOS Build
 
@@ -823,7 +823,7 @@ For each staging mode, before promotion to production:
 |------|--------|------------|
 | **No XP cap per session** | Exploitable high scores inflate levels | Add server-side cap (e.g., 500 XP/session) |
 | **PayPal sandbox hardcoded** | No real purchases in production | Environment variable swap; add CI check for prod creds |
-| **server.py monolith (2400 LOC)** | Hard to maintain/debug | Break into routers/ (auth, games, marketplace, sovereign, etc.) |
+| **server.py monolith (2400 LOC)** | Hard to maintain/debug | Break into routers/ (auth, games, marketplace, vault, etc.) |
 | **No compound index on education_progress** | Certificate idempotency race condition | Add (user_id, track_id) unique compound index |
 | **brain_brawl_launches no TTL** | Collection grows unbounded | Add MongoDB TTL index |
 
@@ -833,10 +833,10 @@ For each staging mode, before promotion to production:
 2. ✅ Mode registry validates ≥17 modes in CI
 3. ✅ .app bundle contains cookeddata/ or .pak (descriptor-safe)
 4. ✅ No AltStore/SideStore/OTA/sideload references in codebase
-5. ✅ CFBundleIdentifier = com.finalevolutionlab.sovereign
+5. ✅ CFBundleIdentifier = com.finalevolutionlab.vault
 6. ✅ HealthKit usage strings present in Info.plist
 7. ✅ `finalevolution://` URL scheme registered
-8. ✅ Emergent [Emergent] section present in DefaultGame.ini
+8. ✅ Emergent [FELBridge] section present in DefaultGame.ini
 9. ✅ All 14 production modes launch successfully via deep link
 10. ✅ Session receipts post correctly for all production modes
 
@@ -846,8 +846,8 @@ For each staging mode, before promotion to production:
 
 | Subsystem | Type | File | Purpose |
 |-----------|------|------|---------|
-| `UFELEmergentBridgeSubsystem` | GameInstanceSubsystem | FELEmergentBridgeSubsystem.h/.cpp | WebSocket bridge: match scores, focus keepalive, sovereign sync, hub discovery (subnet scan) |
-| `UFELEmergentDeepLinkSubsystem` | GameInstanceSubsystem | FELEmergentDeepLinkSubsystem.h/.cpp | `finalevolution://` deep link parsing, map travel, EmergentPlayMap INI resolution |
+| `UFELBridgeSubsystem` | GameInstanceSubsystem | FELBridgeSubsystem.h/.cpp | WebSocket bridge: match scores, focus keepalive, vault sync, hub discovery (subnet scan) |
+| `UFELDeepLinkSubsystem` | GameInstanceSubsystem | FELDeepLinkSubsystem.h/.cpp | `finalevolution://` deep link parsing, map travel, FELPlayMap INI resolution |
 | `UFELOverlaySubsystem` | GameInstanceSubsystem | FELOverlaySubsystem.h/.cpp | WKWebView overlay lifecycle, JSON bidirectional messaging, map-loaded handshake |
 | `UFELPerformanceManagerSubsystem` | GameInstanceSubsystem | FELPerformanceManagerSubsystem.h/.cpp | iOS thermal monitoring (30s poll), device tiering, dynamic resolution scaling |
 | `UFELFocusKeepaliveTickComponent` | ActorComponent | FELFocusKeepaliveTickComponent.h/.cpp | Pixel Streaming 2 focus keepalive for iframe bridging |

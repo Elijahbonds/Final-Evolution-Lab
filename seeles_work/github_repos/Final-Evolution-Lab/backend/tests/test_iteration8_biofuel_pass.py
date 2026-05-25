@@ -1,10 +1,10 @@
 """
 Iteration 8 backend tests:
 - DB indexes (education_progress unique compound, brain_brawl_launches TTL)
-- /api/sovereign/handshake/verify
+- /api/vault/handshake/verify
 - /api/system-scan/pass/{user_id}.png + /api/system-scan/pass-meta/{user_id}
 - /api/biofuel/* — recipes (public), today/cues/log/scan/instacart/doordash (auth)
-- system-scan/unified biofuel block, sovereign/status biofuel block
+- system-scan/unified biofuel block, vault/status biofuel block
 """
 import base64
 import io
@@ -65,11 +65,11 @@ class TestMongoIndexes:
 # ============ SOVEREIGN HANDSHAKE VERIFY ============
 class TestSovereignHandshake:
     def test_verify_returns_expected_payload(self):
-        r = requests.get(f"{BASE_URL}/api/sovereign/handshake/verify", timeout=10)
+        r = requests.get(f"{BASE_URL}/api/vault/handshake/verify", timeout=10)
         assert r.status_code == 200
         d = r.json()
         assert d["ok"] is True
-        assert d["expected_ws_url"] == "wss://finalevolutiongroup.com/ws/sovereign"
+        assert d["expected_ws_url"] == "wss://finalevolutiongroup.com/ws/vault"
         assert d["encryption"] == "AES-256-GCM"
         assert d["mode"] == "production"
         assert d["device_target"] == "iPhone16,2"
@@ -244,7 +244,7 @@ class TestUnifiedAndStatus:
             assert k in bf, f"biofuel.{k} missing"
 
     def test_sovereign_status_includes_biofuel_block(self):
-        r = requests.get(f"{BASE_URL}/api/sovereign/status", timeout=10)
+        r = requests.get(f"{BASE_URL}/api/vault/status", timeout=10)
         assert r.status_code == 200
         d = r.json()
         assert "biofuel" in d, f"biofuel block missing. keys: {list(d.keys())}"

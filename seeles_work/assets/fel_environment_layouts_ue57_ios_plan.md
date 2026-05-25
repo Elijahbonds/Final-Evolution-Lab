@@ -5,7 +5,7 @@
 - **User Fact**: Scope owned in this document includes 3D arena layouts, spawn points, player pathing, camera zones, collision volumes, interactable objects, mode-specific props, visual identity per venue, performance-safe asset budgets for iOS, and a map smoke checklist.
 - **User Fact**: Explicit exclusions are backend rules, PRQ truth, economy, App Store policy, and architecture target definition.
 - **User Fact**: The Abacus architecture blueprint is the source of truth.
-- **Research Finding**: The blueprint defines 13 active venue mappings plus noted gaps for Sovereign_Shop and Luma_Venice_Shop, with production focus centered on Venice_Beach_Court, Zen_Dojo, Baseball_Park, Gridiron_Stadium, Soccer_Stadium, Links_Course, Tennis_Court, Sand_Court, Training_Floor, Venice_Beach_Surf, Skate_Park, Mountain_Slope, and Neuro_Arena.
+- **Research Finding**: The blueprint defines 13 active venue mappings plus noted gaps for Vault_Shop and Luma_Venice_Shop, with production focus centered on Venice_Beach_Court, Zen_Dojo, Baseball_Park, Gridiron_Stadium, Soccer_Stadium, Links_Course, Tennis_Court, Sand_Court, Training_Floor, Venice_Beach_Surf, Skate_Park, Mountain_Slope, and Neuro_Arena.
 - **Research Finding**: The repository branch indicates a UE integration layer and a UE starter project, while the blueprint confirms UE 5.7 native host targets iOS Shipping and Linux streaming.
 - **Assumption**: Because the request is for environment layouts rather than implementation files, the most useful output is a production-ready level design specification that environment, lighting, gameplay, and technical art teams can execute directly in UE 5.7.
 - **Assumption**: iOS is the primary performance constraint, so each venue layout favors compact sightlines, aggressive occlusion, modular prop reuse, and low-overdraw composition.
@@ -400,8 +400,8 @@
 - **Interactables / Props**:
   - Answer terminals, countdown pillars, reveal screens, category totems.
 
-### 4.14 Sovereign_Shop / Market Browse
-- **Research Finding**: The blueprint lists market_browse in Sovereign_Shop but flags the venue as missing from the venue registry.
+### 4.14 Vault_Shop / Market Browse
+- **Research Finding**: The blueprint lists market_browse in Vault_Shop but flags the venue as missing from the venue registry.
 - **Assumption**: This venue should be treated as a low-action showcase environment rather than a dense retail maze.
 - **Visual Identity**: Premium dark-clinical commerce hall, reflective black floor accents, cyan shelf lighting, floating product plinths, restrained luxury tone.
 - **Arena Layout**:
@@ -518,7 +518,7 @@
 - **Skate_Park**: combo line is continuous and rails do not snag unexpectedly.
 - **Mountain_Slope**: gate sequence is readable at speed and berm recovery is forgiving.
 - **Neuro_Arena**: answer podium interactions are unambiguous and reveal screens are visible from contestant spawns.
-- **Sovereign_Shop**: browse loop is intuitive and featured items are visible from entry.
+- **Vault_Shop**: browse loop is intuitive and featured items are visible from entry.
 
 ## 8. Assumptions
 - **Assumption**: UE 5.7 venue production will rely on shared modular kits rather than bespoke full-map art for every mode.

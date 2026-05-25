@@ -35,7 +35,7 @@
     },
     "backend_api": {
       "path": "backend/",
-      "role": "FastAPI — sovereign hub, modes, fitness, analytics surfaces"
+      "role": "FastAPI — vault hub, modes, fitness, analytics surfaces"
     },
     "frontend_dashboard": {
       "path": "frontend/src/",

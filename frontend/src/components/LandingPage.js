@@ -442,7 +442,7 @@ export function LandingPage() {
               <div className="w-12 h-12 bg-blue-400/10 flex items-center justify-center text-blue-400 rounded mb-6 group-hover:scale-110 transition-transform">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold uppercase mb-2 font-mono">Sovereign Control</h3>
+              <h3 className="text-xl font-bold uppercase mb-2 font-mono">Vault Control</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">
                 Complete data custody. Verify game scores, session hashes, and critique logs cryptographically using standard cloud structures.
               </p>
@@ -798,7 +798,7 @@ export function LandingPage() {
               <div className="space-y-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-xl font-bold uppercase tracking-tight text-white">Sovereign Membership</h3>
+                    <h3 className="text-xl font-bold uppercase tracking-tight text-white">Vault Membership</h3>
                     <p className="text-[10px] text-zinc-500 font-mono mt-1">MONTHLY OS ACCESS</p>
                   </div>
                   <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-zinc-400 text-[9px] font-mono">POPULAR</span>
@@ -831,7 +831,7 @@ export function LandingPage() {
 
               <div className="pt-8">
                 <button 
-                  onClick={() => openBookingModal("Sovereign Membership Setup")}
+                  onClick={() => openBookingModal("Vault Membership Setup")}
                   className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs tracking-widest uppercase transition-all rounded-none"
                 >
                   Enroll Now
@@ -1180,7 +1180,7 @@ export function LandingPage() {
                   </h4>
                   <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
                     {!selectedPlanForBooking?.startsWith("RSVP:") 
-                      ? "Your Sovereign Game License is now active. You have been granted direct access to download the standalone APK (Android/emulator) and Win64 ZIP packages."
+                      ? "Your Vault Game License is now active. You have been granted direct access to download the standalone APK (Android/emulator) and Win64 ZIP packages."
                       : "Your spot has been reserved. You have also been granted trial access to the download portal."}
                   </p>
                 </div>
@@ -1532,7 +1532,7 @@ export function LandingPage() {
           </h2>
           
           <p className="text-zinc-400 text-lg max-w-xl mx-auto font-light">
-            Connect using your Google credentials to immediately load the Sovereign athlete dashboard and view your performance metrics.
+            Connect using your Google credentials to immediately load the Vault athlete dashboard and view your performance metrics.
           </p>
 
           <div className="pt-4">

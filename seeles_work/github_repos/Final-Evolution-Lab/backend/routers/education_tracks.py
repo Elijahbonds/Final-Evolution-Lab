@@ -159,7 +159,7 @@ TRACKS: Dict[str, Dict[str, Any]] = {
             },
             {
                 "id": "stem_tech_1", "title": "Wearables & Telemetry Pipelines",
-                "summary": "IMU, GPS, optical-tracking — and how they reach FEL's Sovereign Hub.",
+                "summary": "IMU, GPS, optical-tracking — and how they reach FEL's Vault Hub.",
                 "duration_min": 20,
                 "quiz": [
                     {"q": "IMU stands for:", "options": ["Inertial Measurement Unit", "Internal Motion Util", "Indoor Mapping Util", "Internet Move Unit"], "correct": 0},
@@ -175,7 +175,7 @@ TRACKS: Dict[str, Dict[str, Any]] = {
                 "quiz": [
                     {"q": "An outlier should usually be:", "options": ["Deleted silently", "Investigated, not erased", "Doubled", "Hidden"], "correct": 1},
                     {"q": "Z-score normalization shifts data to:", "options": ["mean=0, sd=1", "mean=1, sd=0", "min=0, max=100", "median=0"], "correct": 0},
-                    {"q": "Sovereign data means:", "options": ["Cloud only", "Athlete-owned & local-first", "Public domain", "Sold to ads"], "correct": 1},
+                    {"q": "Vault data means:", "options": ["Cloud only", "Athlete-owned & local-first", "Public domain", "Sold to ads"], "correct": 1},
                     {"q": "PII includes:", "options": ["Score totals", "Email + biometric ID", "Team logo", "Game time"], "correct": 1},
                 ],
             },
@@ -302,7 +302,7 @@ TRACKS: Dict[str, Dict[str, Any]] = {
                 {"q": "Periodization deload reduces:", "options": ["Sleep", "Volume ~40–50%", "Hydration", "Sport"], "correct": 1},
                 {"q": "Sample rate ≥200 Hz is needed for:", "options": ["Sleep tracking", "Jump-takeoff capture", "Step count", "Steps/day"], "correct": 1},
                 {"q": "FMS score of 0 indicates:", "options": ["Elite", "Pain — refer out", "Recovery", "Average"], "correct": 1},
-                {"q": "Sovereign data means athlete data is:", "options": ["Sold", "Athlete-owned, local-first", "Public", "Lost"], "correct": 1},
+                {"q": "Vault data means athlete data is:", "options": ["Sold", "Athlete-owned, local-first", "Public", "Lost"], "correct": 1},
                 {"q": "Type II muscle fibers favor:", "options": ["Marathon", "Power & speed", "Posture", "Digestion"], "correct": 1},
                 {"q": "Acute:Chronic workload safe band:", "options": ["0.5–0.7", "0.8–1.3", "1.5–2.5", "≥3.0"], "correct": 1},
                 {"q": "Adolescent athlete sleep target:", "options": ["6 h", "8–10 h", "12+ h", "4 h"], "correct": 1},

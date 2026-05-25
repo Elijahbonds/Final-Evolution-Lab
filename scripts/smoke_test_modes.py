@@ -56,7 +56,7 @@ def test_mode_manager_registry():
         if mode in registry:
             info = registry[mode]
             if info["status"] == "production":
-                ok(f"{mode} → production, map={info['map']}")
+                ok(f"{mode} → production, venue_id={info['venue_id']}")
             else:
                 fail(f"{mode} status={info['status']}, expected production")
         else:
@@ -145,16 +145,16 @@ def test_venue_registry():
             fail(f"{mode} missing from VenueRegistry")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Test 5: DefaultGame.ini EmergentPlayMap
+# Test 5: DefaultGame.ini FELPlayMap
 # ═══════════════════════════════════════════════════════════════════════════════
-def test_emergent_play_map():
-    print("\n── Test 5: EmergentPlayMap Deep Link Routing ──")
+def test_fel_play_map():
+    print("\n── Test 5: FELPlayMap Deep Link Routing ──")
     content = (REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini").read_text()
 
     play_map = {}
     in_section = False
     for line in content.split("\n"):
-        if line.strip() == "[EmergentPlayMap]":
+        if line.strip() == "[FELPlayMap]":
             in_section = True
             continue
         if in_section:
@@ -179,9 +179,9 @@ def test_emergent_play_map():
                 if mode in play_map:
                     ok(f"{mode} → {play_map[mode]}")
                 else:
-                    fail(f"{mode} missing from EmergentPlayMap")
+                    fail(f"{mode} missing from FELPlayMap")
             else:
-                fail(f"{mode} missing from EmergentPlayMap")
+                fail(f"{mode} missing from FELPlayMap")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 6: Swift GameMode Enum
@@ -262,7 +262,7 @@ def main():
     test_ue_mode_maps()
     test_arena_settings()
     test_venue_registry()
-    test_emergent_play_map()
+    test_fel_play_map()
     test_swift_enum()
     test_server_seeded_modes()
     test_economy_integration()

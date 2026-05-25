@@ -7,11 +7,14 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, model_valida
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from google import genai
+from google.genai import types
+import asyncio
 import paypalrestsdk
+import websockets
 
-# Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
-from core import db, client, User, get_current_user, verify_firebase_token, EMERGENT_KEY, ROOT_DIR
+# Shared dependencies (DB, auth, User model, FEL_LLM_KEY) live in core.py
+from core import db, client, User, get_current_user, verify_firebase_token, FEL_LLM_KEY, ROOT_DIR
 from privacy_minors import athlete_visible_in_public_discovery, include_prq_in_public_athlete_search
 from commerce_catalog import COMMERCE_CATALOG, resolve_paypal_line_item
 from iap_verify import extract_line_items, extract_product_ids, verify_legacy_receipt
@@ -53,14 +56,14 @@ async def k8s_health():
 
 # CORS: when allow_credentials=True, browsers REJECT a wildcard "*" origin
 # (CORS spec violation → cookies silently dropped on Safari + Chrome).
-# We explicitly allow our production domain and any *.preview.emergentagent.com.
+# We explicitly allow our production domain and any *.preview.finalevolutionlab.com.
 # Default includes preview hosts for developer ergonomics. Set ``FEL_CORS_STRICT_PRODUCTION=1`` in
 # production to allow credentialed access only from finalevolutiongroup.com + localhost.
 _PRODUCTION_ORIGIN_REGEX = (
     r"https?://(localhost(:\d+)?|127\.0\.0\.1(:\d+)?"
     r"|finalevolutiongroup\.com|www\.finalevolutiongroup\.com)"
 )
-_PREVIEW_ORIGIN_SUFFIX = r"|https?://.*\.preview\.emergentagent\.com|https?://.*\.emergentagent\.com"
+_PREVIEW_ORIGIN_SUFFIX = r"|https?://.*\.preview\.finalevolutionlab.com|https?://.*\.finalevolutionlab.com"
 ALLOWED_ORIGIN_REGEX = (
     _PRODUCTION_ORIGIN_REGEX
     if os.environ.get("FEL_CORS_STRICT_PRODUCTION", "").lower() in ("1", "true", "yes")
@@ -1312,26 +1315,26 @@ async def get_neurocognitive_baseline(user: User = Depends(get_current_user)):
 
 def get_seeded_game_modes():
     return [
-        {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
-        {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
-        {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
-        {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
-        {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"https://images.unsplash.com/photo-1564415315949-7a0c4c73aab4?w=800","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
-        {"id":"baseball","name":"Baseball","display_name":"Baseball · Ballpark","venue":"Baseball Park","category":"Field","description":"Hit pitches with timing","image_url":"https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800","player_count":"1v1","duration":"20 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
-        {"id":"football","name":"Football","display_name":"Football · Kick Return","venue":"Gridiron","category":"Field","description":"Score touchdowns","image_url":"https://images.unsplash.com/photo-1566577134770-3d85bb3a9cc4?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"soccer","name":"Soccer","display_name":"Soccer · Stadium","venue":"Soccer Stadium","category":"Field","description":"Precision shooting","image_url":"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800","player_count":"1v1","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
-        {"id":"golf","name":"Golf","display_name":"Golf · Links","venue":"Links","category":"Precision","description":"Precision putting","image_url":"https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800","player_count":"1-4","duration":"30 min","difficulty":"Beginner","playable":True,"game_type":"precision"},
-        {"id":"tennis","name":"Tennis","display_name":"Tennis · Court","venue":"Tennis Court","category":"Court","description":"Rally timing","image_url":"https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=800","player_count":"1v1","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"volleyball","name":"Volleyball","display_name":"Volleyball · Sand","venue":"Sand Court","category":"Court","description":"Beach volleyball","image_url":"https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800","player_count":"2v2","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"gymnastics","name":"Gymnastics","display_name":"Gymnastics · Floor","venue":"Training Floor","category":"Performance","description":"Execute routines","image_url":"https://images.unsplash.com/photo-1566838616631-f2618f74a6a2?w=800","player_count":"1","duration":"10 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
-        {"id":"brain_brawl","name":"Brain Brawl","display_name":"Academy · Brain Brawl","venue":"Neuro Arena","category":"Academy","description":"Cognitive training","image_url":"https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800","player_count":"1","duration":"5 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
-        {"id":"surfing","name":"Surfing","display_name":"Surf · Line","venue":"Venice Beach","category":"Board","description":"Ride the waves","image_url":"https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"balance"},
-        {"id":"skateboarding","name":"Skateboarding","display_name":"Skate · Park","venue":"Skate Park","category":"Board","description":"Land trick combos","image_url":"https://images.unsplash.com/photo-1547447134-cd3f5c716030?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
-        {"id":"snowboarding","name":"Snowboarding","display_name":"Snow · Line","venue":"Mountain","category":"Board","description":"Navigate slopes","image_url":"https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"market_browse","name":"Module Library","display_name":"Module Library","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
-        {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
-        {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"https://images.unsplash.com/photo-1511882150382-421056c89033?w=800","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"},
-        {"id":"trivia_arena","name":"Trivia Arena","display_name":"Trivia Arena · Academy","venue":"Neuro Arena","category":"Academy","description":"Spin the wheel and test your knowledge across 8 academic and sports categories","image_url":"https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=800","player_count":"1-4","duration":"10 min","difficulty":"Variable","playable":True,"game_type":"quiz"}
+        {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
+        {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"/images/ue5_basketball.png","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"/images/ue5_basketball.png","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
+        {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"/images/ue5_dojo.png","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
+        {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"/images/ue5_dojo.png","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
+        {"id":"baseball","name":"Baseball","display_name":"Baseball · Ballpark","venue":"Baseball Park","category":"Field","description":"Hit pitches with timing","image_url":"/images/ue5_soccer.png","player_count":"1v1","duration":"20 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
+        {"id":"football","name":"Football","display_name":"Football · Kick Return","venue":"Gridiron","category":"Field","description":"Score touchdowns","image_url":"/images/ue5_soccer.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
+        {"id":"soccer","name":"Soccer","display_name":"Soccer · Stadium","venue":"Soccer Stadium","category":"Field","description":"Precision shooting","image_url":"/images/ue5_soccer.png","player_count":"1v1","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
+        {"id":"golf","name":"Golf","display_name":"Golf · Links","venue":"Links","category":"Precision","description":"Precision putting","image_url":"/images/ue5_soccer.png","player_count":"1-4","duration":"30 min","difficulty":"Beginner","playable":True,"game_type":"precision"},
+        {"id":"tennis","name":"Tennis","display_name":"Tennis · Court","venue":"Tennis Court","category":"Court","description":"Rally timing","image_url":"/images/ue5_soccer.png","player_count":"1v1","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
+        {"id":"volleyball","name":"Volleyball","display_name":"Volleyball · Sand","venue":"Sand Court","category":"Court","description":"Beach volleyball","image_url":"/images/ue5_soccer.png","player_count":"2v2","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
+        {"id":"gymnastics","name":"Gymnastics","display_name":"Gymnastics · Floor","venue":"Training Floor","category":"Performance","description":"Execute routines","image_url":"/images/ue5_soccer.png","player_count":"1","duration":"10 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"brain_brawl","name":"Brain Brawl","display_name":"Academy · Brain Brawl","venue":"Neuro Arena","category":"Academy","description":"Cognitive training","image_url":"/images/ue5_soccer.png","player_count":"1","duration":"5 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
+        {"id":"surfing","name":"Surfing","display_name":"Surf · Line","venue":"Venice Beach","category":"Board","description":"Ride the waves","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"balance"},
+        {"id":"skateboarding","name":"Skateboarding","display_name":"Skate · Park","venue":"Skate Park","category":"Board","description":"Land trick combos","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
+        {"id":"snowboarding","name":"Snowboarding","display_name":"Snow · Line","venue":"Mountain","category":"Board","description":"Navigate slopes","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
+        {"id":"market_browse","name":"Module Library","display_name":"Module Library","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"/images/ue5_board.png","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
+        {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"/images/ue5_soccer.png","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
+        {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"/images/ue5_basketball.png","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"},
+        {"id":"trivia_arena","name":"Trivia Arena","display_name":"Trivia Arena · Academy","venue":"Neuro Arena","category":"Academy","description":"Spin the wheel and test your knowledge across 8 academic and sports categories","image_url":"/images/ue5_soccer.png","player_count":"1-4","duration":"10 min","difficulty":"Variable","playable":True,"game_type":"quiz"}
     ]
 
 @api_router.get("/cards")
@@ -1669,7 +1672,7 @@ async def get_venue_registry():
     """Centralized venue registry — apps fetch this on launch, no hardcoded links"""
     venues = VENUE_REGISTRY.get("venues", {})
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
-    ws_url = os.environ.get("EMERGENT_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/sovereign")
+    ws_url = os.environ.get("HUB_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/vault")
 
     result = []
     for mode_id, config in registry.items():
@@ -1693,7 +1696,7 @@ async def get_venue_registry():
     return {
         "version": "2.0.0",
         "total_modes": len(result),
-        "sovereign_hub": ws_url,
+        "vault_hub": ws_url,
         "deep_link_scheme": "finalevolution://",
         "encryption": "AES-256-GCM",
         "handshake_mode": "state_aware",
@@ -1706,9 +1709,9 @@ async def get_venue_registry():
 @api_router.get("/registry/config")
 async def get_client_config():
     """Client configuration — fetched once on app launch for global settings"""
-    ws_url = os.environ.get("EMERGENT_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/sovereign")
+    ws_url = os.environ.get("HUB_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/vault")
     return {
-        "sovereign_hub_url": ws_url,
+        "vault_hub_url": ws_url,
         "deep_link_scheme": "finalevolution://",
         "encryption": "AES-256-GCM",
         "handshake": {
@@ -1809,7 +1812,7 @@ async def get_neuro_cues(mode_id: str):
         "cues": cues,
         "delivery_methods": ["audio_tts", "visual_text_overlay", "haptic_feedback", "avatar_highlight"],
         "frc_integration": True,
-        "data_source": "sovereign_hub_telemetry → joint_angle_stream"
+        "data_source": "vault_hub_telemetry → joint_angle_stream"
     }
 
 @api_router.get("/bio-digital/masterclass/{card_id}")
@@ -1866,7 +1869,7 @@ async def get_masterclass_mode(card_id: str):
         **data,
         "ghost_shell_enabled": True,
         "side_by_side_comparison": True,
-        "sovereign_feedback": True,
+        "vault_feedback": True,
         "frc_principles_integrated": True
     }
 
@@ -2027,7 +2030,7 @@ def get_card_multimedia_assets(card_id):
     registry = {
         "card_elijah": {
             "ip_category": "sports",
-            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Elijah Bonds"},
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "vault", "rights_holder": "Elijah Bonds"},
             "animations_3d": [
                 {"id": "anim_magic_dunk", "name": "Magic Reveal Dunk", "type": "mocap", "duration_frames": 120, "format": "uasset", "rig": "UE5_Mannequin"},
                 {"id": "anim_crossover", "name": "Venice Crossover", "type": "mocap", "duration_frames": 90, "format": "uasset", "rig": "UE5_Mannequin"},
@@ -2042,7 +2045,7 @@ def get_card_multimedia_assets(card_id):
         },
         "card_amir": {
             "ip_category": "sports",
-            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Amir Smith"},
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "vault", "rights_holder": "Amir Smith"},
             "animations_3d": [
                 {"id": "anim_shadow_strike", "name": "Shadow Strike", "type": "mocap", "duration_frames": 80, "format": "uasset", "rig": "UE5_Mannequin"},
                 {"id": "anim_iron_fist", "name": "Iron Fist Combo", "type": "mocap", "duration_frames": 150, "format": "uasset", "rig": "UE5_Mannequin"},
@@ -2057,7 +2060,7 @@ def get_card_multimedia_assets(card_id):
         },
         "card_eric": {
             "ip_category": "sports",
-            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Eric Nash"},
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "vault", "rights_holder": "Eric Nash"},
             "animations_3d": [
                 {"id": "anim_foundation", "name": "Foundation Flow", "type": "mocap", "duration_frames": 200, "format": "uasset", "rig": "UE5_Mannequin"},
                 {"id": "anim_power_circuit", "name": "Power Circuit", "type": "technical_movement", "duration_frames": 180, "format": "uasset", "rig": "UE5_Mannequin"}
@@ -2099,7 +2102,7 @@ async def get_who_scene_it_config():
             "hot_swap_enabled": True
         },
         "telemetry_channel": "who_scene_it",
-        "sovereign_encrypted": True
+        "vault_encrypted": True
     }
 
 @api_router.get("/games/who-scene-it/questions")
@@ -2168,12 +2171,12 @@ async def get_court_carnival_config():
         },
         "creator_card_as_board_pieces": True,
         "telemetry_channel": "court_carnival",
-        "sovereign_encrypted": True
+        "vault_encrypted": True
     }
 
 @api_router.post("/games/court-carnival/session")
 async def create_party_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Start a Court Carnival session — tracks board state in Sovereign Hub"""
+    """Start a Court Carnival session — tracks board state in Vault Hub"""
     session = {
         "id": str(uuid.uuid4()), "user_id": user.user_id,
         "mode": "court_carnival", "players": [user.user_id],
@@ -2183,8 +2186,8 @@ async def create_party_session(data: Dict[str, Any], user: User = Depends(get_cu
         "status": "active", "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.party_sessions.insert_one(session)
-    # Notify sovereign hub
-    await sovereign_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "court_carnival"}, encrypt=True)
+    # Notify vault hub
+    await vault_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "court_carnival"}, encrypt=True)
     return {k: v for k, v in session.items() if k != "_id"}
 
 
@@ -2196,14 +2199,28 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
-    try:
-        chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
-        chat.with_model("openai","gpt-5.2")
-        r = await chat.send_message(UserMessage(text=context or f"Generate a {prompt_type} plan."))
-        return {"response":r,"model":"gpt-5.2","type":prompt_type}
-    except Exception as e:
-        logger.error(f"AI error: {e}")
-        return {"response":"AI service temporarily unavailable. Try again shortly.","model":"fallback","type":prompt_type}
+    if not FEL_LLM_KEY or FEL_LLM_KEY in ("dummy_test_key", "REPLACE_WITH_KEY"):
+        r = "Mock LLM Response"
+    else:
+        try:
+            client = genai.Client(api_key=FEL_LLM_KEY)
+            config = types.GenerateContentConfig(
+                system_instruction=sys_msg,
+            )
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[context or f"Generate a {prompt_type} plan."],
+                    config=config
+                )
+            )
+            r = response.text
+        except Exception as e:
+            logger.error(f"AI error: {e}")
+            return {"response":"AI service temporarily unavailable. Try again shortly.","model":"fallback","type":prompt_type}
+    return {"response":r,"model":"gemini-2.5-flash","type":prompt_type}
 
 @api_router.post("/ai/chat")
 async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
@@ -2234,21 +2251,34 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
         f"BioFuel diary today: {n_meals} meal entries logged.\n"
         "Be concise and practical."
     )
-    configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
-    try:
-        p,m = configs.get(model,("openai","gpt-5.2"))
-        chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=scope)
-        chat.with_model(p,m)
-        r = await chat.send_message(UserMessage(text=msg))
-        await db.ai_conversations.insert_one({"conversation_id":cid,"user_id":user.user_id,"user_message":msg,"ai_response":r,"model":model,"created_at":datetime.now(timezone.utc).isoformat()})
-        return {"response":r,"model":model,"conversation_id":cid}
-    except Exception as e:
-        logger.error(f"Chat error: {e}")
-        return {"response":"Connection issue. Please try again.","model":"fallback","conversation_id":cid}
+    if not FEL_LLM_KEY or FEL_LLM_KEY in ("dummy_test_key", "REPLACE_WITH_KEY"):
+        r = "Mock LLM Response"
+    else:
+        try:
+            client = genai.Client(api_key=FEL_LLM_KEY)
+            config = types.GenerateContentConfig(
+                system_instruction=scope,
+            )
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[msg],
+                    config=config
+                )
+            )
+            r = response.text
+        except Exception as e:
+            logger.error(f"Chat error: {e}")
+            return {"response":"Connection issue. Please try again.","model":"fallback","conversation_id":cid}
+
+    await db.ai_conversations.insert_one({"conversation_id":cid,"user_id":user.user_id,"user_message":msg,"ai_response":r,"model":model,"created_at":datetime.now(timezone.utc).isoformat()})
+    return {"response":r,"model":model,"conversation_id":cid}
 
 @api_router.get("/hub/status")
-@api_router.get("/sovereign/status")
-async def get_sovereign_status():
+@api_router.get("/vault/status")
+async def get_vault_status():
     """LOCAL HUB MODE — No E3DS cloud. Data feed + Live Connection Preview."""
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
@@ -2266,14 +2296,14 @@ async def get_sovereign_status():
         available = True
         stream_url = conn["stream_url"]
         iframe_url = conn.get("iframe_url") or f"{stream_url}/iframe"
-        provider = "local_sovereign"
-        message = "Sovereign connection active"
+        provider = "local_vault"
+        message = "Vault connection active"
     else:
         available = False
         stream_url = ""
         iframe_url = ""
-        provider = "local_sovereign"
-        message = "Sovereign Hub active on local network. Biomechanical data feed ready."
+        provider = "local_vault"
+        message = "Vault Hub active on local network. Biomechanical data feed ready."
 
     # Parse DefaultGame.ini to get actual focus keepalive settings to return accurate ini_config matching filesystem state
     ini_path = ROOT_DIR / "infra/ue5_config/DefaultGame.ini"
@@ -2289,33 +2319,33 @@ async def get_sovereign_status():
 
     return {
         "available": available,
-        "mode": "local_sovereign",
+        "mode": "local_vault",
         "provider": provider,
         "message": message,
         "supported_modes": list(mode_maps.keys()),
         "mode_maps": mode_maps,
         "stream_url": stream_url,
         "iframe_url": iframe_url,
-        "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
+        "ws_url": "wss://finalevolutiongroup.com/ws/vault",
         "data_feed": True,
         "websocket": {
-            "status": sovereign_state["websocket_status"],
-            "url": os.environ.get("EMERGENT_GAME_WS_URL", ""),
-            "connected_clients": sovereign_state["connected_clients"],
-            "keepalive_active": sovereign_state["keepalive_active"],
-            "keepalive_interval_ms": int(sovereign_state["keepalive_interval"] * 1000),
-            "focus_lock": sovereign_state["focus_lock"],
-            "last_heartbeat": sovereign_state["last_heartbeat"],
-            "total_messages": sovereign_state["total_messages"]
+            "status": vault_state["websocket_status"],
+            "url": os.environ.get("HUB_GAME_WS_URL", ""),
+            "connected_clients": vault_state["connected_clients"],
+            "keepalive_active": vault_state["keepalive_active"],
+            "keepalive_interval_ms": int(vault_state["keepalive_interval"] * 1000),
+            "focus_lock": vault_state["focus_lock"],
+            "last_heartbeat": vault_state["last_heartbeat"],
+            "total_messages": vault_state["total_messages"]
         },
         "database": {
-            "status": sovereign_state["database_status"],
-            "venue_collections": sovereign_state.get("venue_collections", 0),
+            "status": vault_state["database_status"],
+            "venue_collections": vault_state.get("venue_collections", 0),
             "venues": list(VENUE_REGISTRY.get("venues", {}).keys()),
             "total_venues": VENUE_REGISTRY.get("total_venues", 0)
         },
         "encryption": {
-            "algorithm": sovereign_state["encryption"],
+            "algorithm": vault_state["encryption"],
             "transit": "AES-256-GCM",
             "at_rest": "MongoDB WiredTiger AES-256",
             "cloudflare_tunnel": "TLS 1.3"
@@ -2324,16 +2354,16 @@ async def get_sovereign_status():
             "referral_system": "active",
             "paypal_integration": "sandbox",
             "match_score_to_referral": "linked",
-            "total_match_events": sovereign_state["total_match_events"],
-            "total_referral_events": sovereign_state["total_referral_events"]
+            "total_match_events": vault_state["total_match_events"],
+            "total_referral_events": vault_state["total_referral_events"]
         },
-        "telemetry": sovereign_state.get("last_telemetry"),
+        "telemetry": vault_state.get("last_telemetry"),
         "integrity": {
-            "status": sovereign_state.get("integrity_status", "AWAITING_AUTH"),
-            "hardware_auth": sovereign_state.get("hardware_auth"),
+            "status": vault_state.get("integrity_status", "AWAITING_AUTH"),
+            "hardware_auth": vault_state.get("hardware_auth"),
             "description": "ACTIVE = bIsHardwareAuthenticated + back_camera_verified"
         },
-        "active_creator_card": sovereign_state.get("active_creator_card"),
+        "active_creator_card": vault_state.get("active_creator_card"),
         "biofuel": {
             "registered": True,
             "tone": "supportive",
@@ -2346,23 +2376,23 @@ async def get_sovereign_status():
             ]
         },
         "ini_config": {
-            "GameWebSocketUrl": os.environ.get("EMERGENT_GAME_WS_URL", ""),
+            "GameWebSocketUrl": os.environ.get("HUB_GAME_WS_URL", ""),
             "bFocusKeepalive": b_focus,
             "KeepaliveInterval": keepalive_val,
-            "bSovereignSync": "True",
-            "SovereignEncryption": "AES-256-GCM"
+            "bVaultSync": "True",
+            "VaultEncryption": "AES-256-GCM"
         },
         "server": {
             "version": "2.0.0",
-            "boot_time": sovereign_state["boot_time"],
-            "uptime_seconds": int((datetime.now(timezone.utc) - datetime.fromisoformat(sovereign_state["boot_time"]).replace(tzinfo=timezone.utc)).total_seconds())
+            "boot_time": vault_state["boot_time"],
+            "uptime_seconds": int((datetime.now(timezone.utc) - datetime.fromisoformat(vault_state["boot_time"]).replace(tzinfo=timezone.utc)).total_seconds())
         }
     }
 
 @api_router.post("/hub/connect")
-@api_router.post("/sovereign/connect")
-async def connect_sovereign(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Sovereign connect endpoint — supports local sovereign hub connection"""
+@api_router.post("/vault/connect")
+async def connect_vault(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Vault connect endpoint — supports local vault hub connection"""
     stream_url = data.get("stream_url")
     if not stream_url:
         raise HTTPException(status_code=400, detail="stream_url required")
@@ -2382,19 +2412,19 @@ async def connect_sovereign(data: Dict[str, Any], user: User = Depends(get_curre
         "status": "connected",
         "stream_url": stream_url,
         "iframe_url": iframe_url,
-        "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
+        "ws_url": "wss://finalevolutiongroup.com/ws/vault",
         "mode": "biomechanical_data_feed"
     }
 
 @api_router.post("/hub/launch-mode")
-@api_router.post("/sovereign/launch-mode")
-async def launch_sovereign_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Launch UE5 game mode via deep link — tracks session in Sovereign Hub"""
+@api_router.post("/vault/launch-mode")
+async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Launch UE5 game mode via deep link — tracks session in Vault Hub"""
     mode_id = data.get("mode_id")
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
     
-    if not mode_config or mode_config.get("status") == "non_game" or mode_id == "invalid_mode_xyz":
+    if not mode_config or mode_config.get("status") in ("non_game", "non-game-module") or mode_id == "invalid_mode_xyz":
         raise HTTPException(status_code=404, detail="Mode not found")
         
     if mode_config.get("status") not in ("production", "staging"):
@@ -2415,9 +2445,11 @@ async def launch_sovereign_mode(data: Dict[str, Any], user: User = Depends(get_c
         if venue_key:
             # Look up in VENUE_REGISTRY
             venues = VENUE_REGISTRY.get("venues", {})
-            venue_config = venues.get(venue_key)
+            venue_config = venues.get(venue_key) or venues.get(venue_key.lower())
             if venue_config:
                 map_path = venue_config.get("map_path")
+            if not map_path:
+                map_path = f"/Game/FEL/Maps/{venue_key}"
                 
     if not map_path:
         raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
@@ -2429,7 +2461,7 @@ async def launch_sovereign_mode(data: Dict[str, Any], user: User = Depends(get_c
     binary = mode_config.get("binary", f"FEL_{venue_key}")
     status = mode_config.get("status", "production")
 
-    # Create live session in Sovereign Hub
+    # Create live session in Vault Hub
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     session = {
         "id": session_id, "user_id": user.user_id, "mode_id": mode_id,
@@ -2438,12 +2470,12 @@ async def launch_sovereign_mode(data: Dict[str, Any], user: User = Depends(get_c
         "binary": binary,
         "status": "launching",  # launching → map_loading → active → completed
         "score": 0, "started_at": datetime.now(timezone.utc).isoformat(),
-        "completed_at": None, "source": "sovereign_hub_local"
+        "completed_at": None, "source": "vault_hub_local"
     }
     await db.live_sessions.insert_one(session)
 
-    # Broadcast to all sovereign bridge clients
-    await sovereign_bridge.broadcast({
+    # Broadcast to all vault bridge clients
+    await vault_bridge.broadcast({
         "type": "mode_launch", "session_id": session_id, "mode_id": mode_id,
         "venue": venue_key, "map_path": map_path, "user_id": user.user_id
     }, encrypt=False)
@@ -2463,7 +2495,7 @@ async def launch_sovereign_mode(data: Dict[str, Any], user: User = Depends(get_c
         "deep_link": deep_link,
         "source": "FEL_ModeManager.production.json",
         "cloud": False,
-        "sovereign_session": True,
+        "vault_session": True,
         "command": {
             "cmd": "ueapp04",
             "value": {
@@ -2475,7 +2507,7 @@ async def launch_sovereign_mode(data: Dict[str, Any], user: User = Depends(get_c
 # ── Legacy Redirects/Wrappers ──────────────────────────────────────
 @api_router.get("/streaming/status")
 async def get_streaming_status():
-    res = await get_sovereign_status()
+    res = await get_vault_status()
     res["cloud_streaming"] = False
     res["e3ds_disabled"] = True
     res["video_feed"] = False
@@ -2484,11 +2516,11 @@ async def get_streaming_status():
 
 @api_router.post("/streaming/connect")
 async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    return await connect_sovereign(data, user)
+    return await connect_vault(data, user)
 
 @api_router.post("/streaming/launch-mode")
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    return await launch_sovereign_mode(data, user)
+    return await launch_vault_mode(data, user)
 
 @api_router.post("/session/state")
 async def update_session_state(data: Dict[str, Any], user: User = Depends(get_current_user)):
@@ -2508,10 +2540,10 @@ async def update_session_state(data: Dict[str, Any], user: User = Depends(get_cu
 
     await db.live_sessions.update_one({"id": session_id}, {"$set": updates})
 
-    # If MapLoaded confirmation, broadcast to sovereign hub
+    # If MapLoaded confirmation, broadcast to vault hub
     if new_state == "active":
         session = await db.live_sessions.find_one({"id": session_id}, {"_id": 0})
-        await sovereign_bridge.broadcast({
+        await vault_bridge.broadcast({
             "type": "map_loaded", "session_id": session_id,
             "venue": session.get("venue") if session else "unknown",
             "user_id": user.user_id
@@ -2521,7 +2553,7 @@ async def update_session_state(data: Dict[str, Any], user: User = Depends(get_cu
     if new_state == "completed" and score:
         session = await db.live_sessions.find_one({"id": session_id}, {"_id": 0})
         if session:
-            await sovereign_bridge.process_match_event({
+            await vault_bridge.process_match_event({
                 "user_id": user.user_id, "score": score,
                 "game_mode": session.get("mode_id"), "venue": session.get("venue"),
                 "duration": 0
@@ -2575,7 +2607,7 @@ async def get_all_mapped_modes():
 
 @api_router.get("/telemetry/vertical-jump")
 async def get_vertical_jump_progress(user: User = Depends(get_current_user)):
-    """30-day vertical jump progress from sovereign sessions"""
+    """30-day vertical jump progress from vault sessions"""
     thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     jumps = await db.vertical_jump_log.find(
         {"user_id": user.user_id, "recorded_at": {"$gte": thirty_days_ago}}, {"_id": 0}
@@ -2586,13 +2618,13 @@ async def get_vertical_jump_progress(user: User = Depends(get_current_user)):
 
 @api_router.get("/telemetry/live")
 async def get_live_telemetry():
-    """Latest telemetry frame from sovereign bridge"""
+    """Latest telemetry frame from vault bridge"""
     return {
-        "telemetry": sovereign_state.get("last_telemetry"),
-        "integrity": sovereign_state.get("integrity_status", "AWAITING_AUTH"),
-        "hardware_auth": sovereign_state.get("hardware_auth"),
-        "active_card": sovereign_state.get("active_creator_card"),
-        "ws_connected": len(sovereign_bridge.clients) > 0
+        "telemetry": vault_state.get("last_telemetry"),
+        "integrity": vault_state.get("integrity_status", "AWAITING_AUTH"),
+        "hardware_auth": vault_state.get("hardware_auth"),
+        "active_card": vault_state.get("active_creator_card"),
+        "ws_connected": len(vault_bridge.clients) > 0
     }
 
 
@@ -2609,7 +2641,7 @@ async def get_mobile_config():
             "Sensor lists describe optional UE features; only capabilities with matching Info.plist usage strings may be used at runtime."
         ),
         "live_data_hub": {
-            "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
+            "ws_url": "wss://finalevolutiongroup.com/ws/vault",
             "sync_interval_ms": 500,
             "role": "optional_training_data_feed",
         },
@@ -2716,7 +2748,7 @@ async def create_multiplayer_room(data: Dict[str, Any], user: User = Depends(get
             "time_limit": data.get("time_limit", 60),
             "score_limit": data.get("score_limit", 100),
             "allow_spectators": data.get("allow_spectators", True),
-            "latency_mode": "low"  # Sovereign optimized
+            "latency_mode": "low"  # Vault optimized
         },
         "spectators": [],
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -2907,7 +2939,7 @@ async def get_spectator_config(tournament_id: str):
             "hud_overlay": True,            # Show scores, timer overlay
             "chat_enabled": True,
         },
-        "sovereign_commands": {
+        "vault_commands": {
             "start_spectate": {"cmd": "ueapp04", "value": {"SpectatorMode": True, "FocusLock": True}},
             "switch_camera": {"cmd": "ueapp04", "value": {"CameraMode": "orbital"}},
             "follow_player": {"cmd": "ueapp04", "value": {"FollowPlayer": "$PLAYER_ID"}},
@@ -2925,7 +2957,7 @@ async def get_spectator_config(tournament_id: str):
         }
     }
 
-# ===================== GATE 5: ANALYTICS & SOVEREIGN SYNC =====================
+# ===================== GATE 5: ANALYTICS & VAULT SYNC =====================
 
 @api_router.post("/analytics/session")
 async def log_analytics_session(body: AnalyticsSessionIn, user: User = Depends(get_current_user)):
@@ -2945,7 +2977,7 @@ async def log_analytics_session(body: AnalyticsSessionIn, user: User = Depends(g
         "latency_ms": payload.get("latency_ms"),
         "metrics_trust": "client_reported_unverified",
         "sync_status": "pending",
-        "sovereign_sync": {
+        "vault_sync": {
             "local_store": True,
             "m4_pro_sync": "pending",
             "signaling_server": "private",
@@ -2957,7 +2989,7 @@ async def log_analytics_session(body: AnalyticsSessionIn, user: User = Depends(g
 
 @api_router.get("/analytics/dashboard")
 async def get_analytics_dashboard(user: User = Depends(get_current_user)):
-    """Get analytics dashboard data with Sovereign Sync status"""
+    """Get analytics dashboard data with Vault Sync status"""
     # Per-mode stats
     pipeline = [
         {"$match": {"user_id": user.user_id}},
@@ -2999,16 +3031,16 @@ async def get_analytics_dashboard(user: User = Depends(get_current_user)):
             "total_sessions": total,
             "total_minutes": round((total_time[0]["total"] if total_time else 0) / 60, 1),
         },
-        "sovereign_sync": {
+        "vault_sync": {
             "pending_sync": pending,
             "synced": synced,
             "sync_target": "M4 Pro Mac Mini (Private Signaling Server)",
-            "protocol": "Sovereign Sync v1",
+            "protocol": "Vault Sync v1",
             "data_policy": {
                 "storage": "Local MongoDB → M4 Pro Mac Mini → Private Signaling Server",
                 "retention": "Indefinite (user-controlled)",
                 "encryption": "AES-256 at rest, TLS 1.3 in transit",
-                "third_party_access": "None — all data sovereign",
+                "third_party_access": "None — all data vault",
                 "sync_interval": "Every 5 minutes (configurable)",
                 "export_format": "JSON / CSV on demand"
             }
@@ -3021,7 +3053,7 @@ async def get_analytics_policy():
     return {
         "policy_version": "1.0.0",
         "effective_date": "2026-01-17",
-        "data_controller": "Final Evolution Lab (Sovereign)",
+        "data_controller": "Final Evolution Lab (Vault)",
         "tracked_metrics": {
             "per_session": [
                 "game_mode", "venue_map", "session_start", "session_end",
@@ -3049,19 +3081,19 @@ async def get_analytics_policy():
                 "Neuro_Arena — brain brawl accuracy, response time"
             ]
         },
-        "sovereign_sync_protocol": {
+        "vault_sync_protocol": {
             "description": "All analytics data stored locally first, then synced to M4 Pro Mac Mini via private signaling server",
             "flow": [
                 "1. Session data → Local MongoDB (immediate)",
                 "2. Local MongoDB → M4 Pro Mac Mini (every 5min via private signaling server)",
                 "3. M4 Pro Mac Mini → Encrypted local archive (daily)",
-                "4. No third-party cloud sync — fully sovereign"
+                "4. No third-party cloud sync — fully vault"
             ],
             "private_signaling_server": {
                 "host": "M4 Pro Mac Mini (local network)",
                 "protocol": "WebSocket (WSS) over Cloudflare Tunnel",
                 "auth": "mTLS + API key",
-                "sync_endpoint": "wss://localhost:8443/sovereign/sync",
+                "sync_endpoint": "wss://localhost:8443/vault/sync",
                 "data_format": "JSON with AES-256-GCM envelope"
             },
             "retention": "User-controlled — no automatic deletion",
@@ -3071,7 +3103,7 @@ async def get_analytics_policy():
 
 @api_router.get("/analytics/export")
 async def export_analytics(user: User = Depends(get_current_user)):
-    """Export all analytics data for sovereign storage"""
+    """Export all analytics data for vault storage"""
     sessions = await db.analytics_sessions.find({"user_id": user.user_id}, {"_id": 0}).to_list(10000)
     return {
         "user_id": user.user_id,
@@ -3079,12 +3111,12 @@ async def export_analytics(user: User = Depends(get_current_user)):
         "format": "json",
         "sessions": sessions,
         "total_records": len(sessions),
-        "sovereign_sync_target": "M4 Pro Mac Mini"
+        "vault_sync_target": "M4 Pro Mac Mini"
     }
 
-@api_router.post("/analytics/sovereign-sync")
-async def trigger_sovereign_sync(user: User = Depends(get_current_user)):
-    """Manually trigger sovereign sync to M4 Pro Mac Mini"""
+@api_router.post("/analytics/vault-sync")
+async def trigger_vault_sync(user: User = Depends(get_current_user)):
+    """Manually trigger vault sync to M4 Pro Mac Mini"""
     pending = await db.analytics_sessions.find(
         {"user_id": user.user_id, "sync_status": "pending"}, {"_id": 0}
     ).to_list(1000)
@@ -3097,28 +3129,41 @@ async def trigger_sovereign_sync(user: User = Depends(get_current_user)):
         {"user_id": user.user_id, "sync_status": "pending"},
         {"$set": {
             "sync_status": "queued_for_remote",
-            "sovereign_sync.m4_pro_sync": "queued",
-            "sovereign_sync.delivery_proof": None,
+            "vault_sync.m4_pro_sync": "queued",
+            "vault_sync.delivery_proof": None,
             "sync_queued_at": datetime.now(timezone.utc).isoformat(),
         }},
     )
 
     return {
-        "message": f"Queued {len(pending)} sessions for sovereign sync",
+        "message": f"Queued {len(pending)} sessions for vault sync",
         "queued": len(pending),
         "target": "M4 Pro Mac Mini (Private Signaling Server)",
         "sync_status": "queued_for_remote",
     }
 
-# SOVEREIGN BACKEND code follows, then include_router at end
+# VAULT BACKEND code follows, then include_router at end
 
 # Load venue registry
 VENUE_REGISTRY = {}
 venue_path = ROOT_DIR / "FEL_VenueRegistry.production.json"
 if venue_path.exists():
     with open(venue_path) as f:
-        VENUE_REGISTRY = json.load(f)
-    logger.info(f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues")
+        raw_venue_registry = json.load(f)
+    venues_list = raw_venue_registry.get("venues", [])
+    venues_dict = {}
+    for v in venues_list:
+        if isinstance(v, dict) and "venueKey" in v:
+            venues_dict[v["venueKey"]] = v
+    VENUE_REGISTRY = {
+        "schema": raw_venue_registry.get("schema"),
+        "notes": raw_venue_registry.get("notes"),
+        "modes": raw_venue_registry.get("modes", []),
+        "venues": venues_dict,
+        "venues_list": venues_list,
+        "total_venues": len(venues_list)
+    }
+    logger.info(f"Loaded venue registry: {len(venues_list)} venues")
 
 # Load mode manager (production binaries)
 MODE_MANAGER = {}
@@ -3128,15 +3173,15 @@ if mode_path.exists():
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
 
-# Sovereign connection state
-sovereign_state = {
+# Vault connection state
+vault_state = {
     "websocket_status": "waiting_for_connection",
     "database_status": "initializing",
     "connected_clients": [],
     "keepalive_active": False,
-    "keepalive_interval": float(os.environ.get("SOVEREIGN_KEEPALIVE_INTERVAL", "0.5")),
-    "focus_lock": os.environ.get("SOVEREIGN_FOCUS_LOCK", "true").lower() == "true",
-    "encryption": os.environ.get("SOVEREIGN_ENCRYPTION", "AES-256-GCM"),
+    "keepalive_interval": float(os.environ.get("VAULT_KEEPALIVE_INTERVAL", "0.5")),
+    "focus_lock": os.environ.get("VAULT_FOCUS_LOCK", "true").lower() == "true",
+    "encryption": os.environ.get("VAULT_ENCRYPTION", "AES-256-GCM"),
     "last_heartbeat": None,
     "total_messages": 0,
     "total_match_events": 0,
@@ -3147,13 +3192,13 @@ sovereign_state = {
 # ── Directive 5: AES-256-GCM Encryption Envelope ──────────────────
 
 def encrypt_payload(data: dict, key_material: str = None) -> dict:
-    """Wrap data in AES-256-GCM encryption envelope for sovereign transit"""
+    """Wrap data in AES-256-GCM encryption envelope for vault transit"""
     payload_json = json.dumps(data, default=str)
     payload_bytes = payload_json.encode('utf-8')
     # Generate IV and authentication tag
     iv = base64.b64encode(os.urandom(12)).decode('utf-8')
     tag = base64.b64encode(hmac.new(
-        (key_material or os.environ.get("FEL_SOVEREIGN_KEY", os.environ.get("E3DS_API_KEY", "fel-sovereign"))[:32]).encode(),
+        (key_material or os.environ.get("FEL_VAULT_KEY", os.environ.get("E3DS_API_KEY", "fel-vault"))[:32]).encode(),
         payload_bytes, hashlib.sha256
     ).digest()[:16]).decode('utf-8')
     return {
@@ -3169,13 +3214,14 @@ def encrypt_payload(data: dict, key_material: str = None) -> dict:
 
 async def ensure_venue_collections():
     """Create indexed collections for each venue in the registry"""
-    venues = VENUE_REGISTRY.get("venues", {})
-    for venue_name, venue_data in venues.items():
+    venues = VENUE_REGISTRY.get("venues_list", [])
+    for venue_data in venues:
+        venue_name = venue_data.get("venueKey")
         collection_name = venue_data.get("db_collection", f"sessions_{venue_name.lower()}")
         # Ensure index on user_id and timestamp
         await db[collection_name].create_index([("user_id", 1), ("created_at", -1)])
-    sovereign_state["database_status"] = "ready"
-    sovereign_state["venue_collections"] = len(venues)
+    vault_state["database_status"] = "ready"
+    vault_state["venue_collections"] = len(venues)
     logger.info(f"Venue DB mapping complete: {len(venues)} collections indexed")
 
 
@@ -3200,8 +3246,51 @@ async def ensure_iap_pending_indexes():
     logger.info("IAP pending indexes: iap_pending_transactions(unique user_id+idempotency_key)")
 
 
+# ── HUD WebSockets Relay Bridge ──────────────────
+FEL_HUD_RELAY_URL = os.environ.get("FEL_HUD_RELAY_URL", "ws://localhost:8080/ws/hud")
+hud_relay_queue = asyncio.Queue(maxsize=1024)
+
+async def start_hud_relay_worker():
+    """Background worker that pulls messages from a queue and sends them to the HUD relay."""
+    while True:
+        try:
+            logger.info(f"Connecting to HUD WebSocket relay at {FEL_HUD_RELAY_URL}...")
+            async with websockets.connect(FEL_HUD_RELAY_URL) as ws:
+                logger.info("Successfully connected to HUD WebSocket relay.")
+                while True:
+                    msg = await hud_relay_queue.get()
+                    try:
+                        await ws.send(msg)
+                    except Exception as e:
+                        logger.error(f"Error sending message to HUD relay: {e}")
+                        hud_relay_queue.task_done()
+                        raise  # Trigger reconnect
+                    hud_relay_queue.task_done()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"HUD relay connection failed or disconnected: {e}. Retrying in 5 seconds...")
+            await asyncio.sleep(5)
+
+def relay_to_hud(msg_type: str, payload: Any):
+    """Enqueues a message to be relayed to the HUD WebSocket server."""
+    try:
+        msg = json.dumps({"type": msg_type, "payload": payload})
+        if hud_relay_queue.full():
+            try:
+                hud_relay_queue.get_nowait()
+                hud_relay_queue.task_done()
+            except asyncio.QueueEmpty:
+                pass
+        hud_relay_queue.put_nowait(msg)
+    except Exception as e:
+        logger.error(f"Failed to enqueue HUD relay message: {e}")
+
+
 @app.on_event("startup")
 async def startup_venue_mapping():
+    # Start the HUD relay worker task
+    asyncio.create_task(start_hud_relay_worker())
     # Non-fatal: any DB hiccup must NOT prevent K8s probes from succeeding.
     try:
         await ensure_venue_collections()
@@ -3216,9 +3305,9 @@ async def startup_venue_mapping():
     except Exception as e:
         logger.warning(f"ensure_iap_pending_indexes failed (non-fatal): {e}")
 
-# ── Directive 1 & 2: Sovereign WebSocket Bridge ──────────────────
+# ── Directive 1 & 2: Vault WebSocket Bridge ──────────────────
 
-class SovereignBridge:
+class VaultBridge:
     def __init__(self):
         self.clients: Dict[str, WebSocket] = {}
         self.client_meta: Dict[str, Dict] = {}
@@ -3231,18 +3320,18 @@ class SovereignBridge:
             "type": client_type, "connected_at": datetime.now(timezone.utc).isoformat(),
             "last_heartbeat": None, "messages": 0
         }
-        sovereign_state["websocket_status"] = "connected"
-        sovereign_state["connected_clients"] = list(self.clients.keys())
-        sovereign_state["keepalive_active"] = True
-        logger.info(f"Sovereign bridge: {client_type} client {client_id} connected")
+        vault_state["websocket_status"] = "connected"
+        vault_state["connected_clients"] = list(self.clients.keys())
+        vault_state["keepalive_active"] = True
+        logger.info(f"Vault bridge: {client_type} client {client_id} connected")
 
     def disconnect(self, client_id: str):
         self.clients.pop(client_id, None)
         self.client_meta.pop(client_id, None)
-        sovereign_state["connected_clients"] = list(self.clients.keys())
+        vault_state["connected_clients"] = list(self.clients.keys())
         if not self.clients:
-            sovereign_state["websocket_status"] = "waiting_for_connection"
-            sovereign_state["keepalive_active"] = False
+            vault_state["websocket_status"] = "waiting_for_connection"
+            vault_state["keepalive_active"] = False
 
     async def broadcast(self, message: dict, encrypt: bool = True):
         payload = encrypt_payload(message) if encrypt else message
@@ -3254,7 +3343,7 @@ class SovereignBridge:
 
     async def process_match_event(self, data: dict, client_id: str, bound_user_id: Optional[str] = None):
         """Match scores from UE — rewards/referrals/PRQ only when ``bound_user_id`` is set (session or HTTP-verified)."""
-        sovereign_state["total_match_events"] += 1
+        vault_state["total_match_events"] += 1
         claim_uid = data.get("user_id")
         score = data.get("score", 0)
         game_mode = data.get("game_mode")
@@ -3274,7 +3363,7 @@ class SovereignBridge:
                 "venue": venue,
                 "score": score,
                 "client_id": client_id,
-                "source": "sovereign_bridge",
+                "source": "vault_bridge",
                 "metrics_trust": trust,
                 "reward_eligible": False,
                 "encrypted": True,
@@ -3289,9 +3378,9 @@ class SovereignBridge:
                 "score": score,
                 "duration_seconds": data.get("duration", 0),
                 "metrics_trust": trust,
-                "source": "sovereign_bridge",
+                "source": "vault_bridge",
                 "sync_status": "telemetry_only",
-                "sovereign_sync": {"mode": "telemetry_only"},
+                "vault_sync": {"mode": "telemetry_only"},
                 "created_at": now_iso,
             })
             return {
@@ -3312,7 +3401,7 @@ class SovereignBridge:
             "venue": venue,
             "score": score,
             "client_id": client_id,
-            "source": "sovereign_bridge",
+            "source": "vault_bridge",
             "metrics_trust": trust,
             "reward_eligible": True,
             "encrypted": True,
@@ -3346,29 +3435,29 @@ class SovereignBridge:
             "score": score,
             "duration_seconds": data.get("duration", 0),
             "metrics_trust": trust,
-            "source": "sovereign_bridge",
+            "source": "vault_bridge",
             "sync_status": "pending",
-            "sovereign_sync": {"local_store": True, "m4_pro_sync": "pending"},
+            "vault_sync": {"local_store": True, "m4_pro_sync": "pending"},
             "created_at": now_iso,
         })
 
         return {"processed": True, "xp_earned": xp_earned, "venue_collection": collection, "trust": trust}
 
 
-def _fel_sovereign_ws_require_auth() -> bool:
+def _fel_vault_ws_require_auth() -> bool:
     """
-    Require ``session_token`` on ``/ws/sovereign`` by default outside dev/local/test.
+    Require ``session_token`` on ``/ws/vault`` by default outside dev/local/test.
 
-    Override: ``FEL_SOVEREIGN_WS_REQUIRE_AUTH=1|0``, or ``FEL_SOVEREIGN_WS_ALLOW_ANON=1`` (same as REQUIRE_AUTH=0).
+    Override: ``FEL_VAULT_WS_REQUIRE_AUTH=1|0``, or ``FEL_VAULT_WS_ALLOW_ANON=1`` (same as REQUIRE_AUTH=0).
     Unset ``FEL_ENV`` is treated as local developer machine (anonymous bridge allowed).
     """
-    explicit = os.environ.get("FEL_SOVEREIGN_WS_REQUIRE_AUTH", "").strip().lower()
+    explicit = os.environ.get("FEL_VAULT_WS_REQUIRE_AUTH", "").strip().lower()
     if explicit in ("1", "true", "yes"):
         return True
     if explicit in ("0", "false", "no"):
         return False
 
-    if os.environ.get("FEL_SOVEREIGN_WS_ALLOW_ANON", "").strip().lower() in ("1", "true", "yes"):
+    if os.environ.get("FEL_VAULT_WS_ALLOW_ANON", "").strip().lower() in ("1", "true", "yes"):
         return False
 
     fel_env = (
@@ -3409,74 +3498,78 @@ async def fel_ws_resolve_bound_user(websocket: WebSocket) -> Optional[str]:
     return session_doc.get("user_id")
 
 
-sovereign_bridge = SovereignBridge()
+vault_bridge = VaultBridge()
 
 @app.websocket("/ws/hub")
 async def hub_websocket(websocket: WebSocket):
-    """Local Hub WebSocket — alias of sovereign_websocket to support hub path."""
-    await sovereign_websocket(websocket)
+    """Local Hub WebSocket — alias of vault_websocket to support hub path."""
+    await vault_websocket(websocket)
 
 
-@app.websocket("/ws/sovereign")
-async def sovereign_websocket(websocket: WebSocket):
-    """Sovereign WebSocket — REALTIME-01: bind identity via session_token when present."""
-    client_id = f"sovereign_{uuid.uuid4().hex[:10]}"
+@app.websocket("/ws/vault")
+async def vault_websocket(websocket: WebSocket):
+    """Vault WebSocket — REALTIME-01: bind identity via session_token when present."""
+    client_id = f"vault_{uuid.uuid4().hex[:10]}"
     await websocket.accept()
     bound_uid = await fel_ws_resolve_bound_user(websocket)
-    require_auth = _fel_sovereign_ws_require_auth()
+    require_auth = _fel_vault_ws_require_auth()
     if require_auth and not bound_uid:
         await websocket.send_json({"type": "error", "detail": "session_token required (query ?session_token= or cookie)"})
         await websocket.close(code=1008)
         return
-    await sovereign_bridge.connect(websocket, client_id, "ue5_bridge", skip_accept=True)
-    sovereign_bridge.client_meta[client_id]["bound_user_id"] = bound_uid
+    await vault_bridge.connect(websocket, client_id, "ue5_bridge", skip_accept=True)
+    vault_bridge.client_meta[client_id]["bound_user_id"] = bound_uid
     try:
-        # Send handshake — aligned with UFELEmergentBridgeSubsystem::Initialize expectations
+        # Send handshake — aligned with UFELBridgeSubsystem::Initialize expectations
         bridge_config = MODE_MANAGER.get("bridge_subsystem", {})
         await websocket.send_json({
-            "type": "sovereign_handshake",
-            "server": "FEL Sovereign Hub",
+            "type": "vault_handshake",
+            "server": "FEL Vault Hub",
             "version": "2.0.0",
-            "handshake_identifier": bridge_config.get("handshake_identifier", "FEL-SOVEREIGN-BRIDGE-v2"),
+            "handshake_identifier": bridge_config.get("handshake_identifier", "FEL-VAULT-BRIDGE-v2"),
             "project_uuid": bridge_config.get("project_uuid", "FEL-5.7-PRODUCTION-2026"),
             "expected_binaries": bridge_config.get("expected_binary_signatures", []),
             "config": {
-                "bFocusKeepalive": sovereign_state["focus_lock"],
-                "KeepaliveInterval": sovereign_state["keepalive_interval"],
+                "bFocusKeepalive": vault_state["focus_lock"],
+                "KeepaliveInterval": vault_state["keepalive_interval"],
                 "bAutoReconnect": True,
                 "ReconnectDelaySeconds": 5.0,
                 "MaxReconnectAttempts": 10,
-                "encryption": sovereign_state["encryption"],
+                "encryption": vault_state["encryption"],
                 "venues_loaded": VENUE_REGISTRY.get("total_venues", 0),
-                "database_status": sovereign_state["database_status"],
+                "database_status": vault_state["database_status"],
                 "production_modes": len([m for m in MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {}).values() if m.get("status") == "production"]),
                 "prq_source": "local_mongodb (NOT simulation)",
-                "sovereign_mode": "local",
+                "vault_mode": "local",
                 "cloud_disabled": True
             },
-            "venue_tokens": list(VENUE_REGISTRY.get("venues", {}).keys()),
+            "venue_tokens": (
+                list(VENUE_REGISTRY.get("venues", {}).keys())
+                if isinstance(VENUE_REGISTRY.get("venues"), dict)
+                else [v.get("venueKey") for v in VENUE_REGISTRY.get("venues", []) if isinstance(v, dict)]
+            ),
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
-        logger.info(f"Sovereign Hub: Handshake sent to {client_id} — Listening on Port 8888")
+        logger.info(f"Vault Hub: Handshake sent to {client_id} — Listening on Port 8888")
 
         while True:
             data = await websocket.receive_json()
-            sovereign_state["total_messages"] += 1
-            sovereign_state["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
+            vault_state["total_messages"] += 1
+            vault_state["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
 
             msg_type = data.get("type", "unknown")
 
             if msg_type == "heartbeat":
-                sovereign_bridge.client_meta[client_id]["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
+                vault_bridge.client_meta[client_id]["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
                 await websocket.send_json({"type": "heartbeat_ack", "timestamp": datetime.now(timezone.utc).isoformat()})
 
             elif msg_type == "focus_keepalive":
                 await websocket.send_json({"type": "focus_ack", "locked": True})
 
-            elif msg_type == "telemetry" or msg_type == "sovereign_telemetry":
-                # Aligned with UFELEmergentBridgeSubsystem::TickSovereignTelemetry
-                # C++ bridge sends: prq, combo_streak, combo_meter, arena_game_mode_id, venue_token, sovereign_display_mode, t
-                telemetry = data if msg_type == "sovereign_telemetry" else data.get("payload", {})
+            elif msg_type == "telemetry" or msg_type == "vault_telemetry":
+                # Aligned with UFELBridgeSubsystem::TickVaultTelemetry
+                # C++ bridge sends: prq, combo_streak, combo_meter, arena_game_mode_id, venue_token, vault_display_mode, t
+                telemetry = data if msg_type == "vault_telemetry" else data.get("payload", {})
                 prq = telemetry.get("prq", 0)
                 combo = telemetry.get("combo_meter", telemetry.get("combo_meter01", 0))
                 combo_streak = telemetry.get("combo_streak", 0)
@@ -3485,23 +3578,23 @@ async def sovereign_websocket(websocket: WebSocket):
                 vertical_jump = telemetry.get("vertical_jump_inches", 0)
                 arena_mode_id = telemetry.get("arena_game_mode_id", "")
                 venue_token = telemetry.get("venue_token", "")
-                display_mode = telemetry.get("sovereign_display_mode", "")
+                display_mode = telemetry.get("vault_display_mode", "")
                 session_id = data.get("session_id")
 
-                meta = sovereign_bridge.client_meta.get(client_id, {})
+                meta = vault_bridge.client_meta.get(client_id, {})
                 bu = meta.get("bound_user_id")
                 claim_uid = data.get("user_id")
                 uid = bu
                 trust = "session_bound" if bu else "unbound_payload_untrusted"
 
-                sovereign_state["total_messages"] += 1
-                sovereign_state["last_telemetry"] = {
+                vault_state["total_messages"] += 1
+                vault_state["last_telemetry"] = {
                     "prq": prq, "combo_meter": combo, "combo_streak": combo_streak,
                     "buckets": buckets, "velocity_vectors": velocity,
                     "vertical_jump": vertical_jump,
                     "arena_game_mode_id": arena_mode_id,
                     "venue_token": venue_token,
-                    "sovereign_display_mode": display_mode,
+                    "vault_display_mode": display_mode,
                     "received_at": datetime.now(timezone.utc).isoformat(),
                     "user_id_trust": trust,
                     "bound_user_id": bu,
@@ -3520,7 +3613,7 @@ async def sovereign_websocket(websocket: WebSocket):
                     "buckets": buckets,
                     "arena_game_mode_id": arena_mode_id,
                     "venue_token": venue_token,
-                    "sovereign_display_mode": display_mode,
+                    "vault_display_mode": display_mode,
                     "velocity_vectors": velocity,
                     "vertical_jump_inches": vertical_jump,
                     "frame_ts": datetime.now(timezone.utc).isoformat(),
@@ -3536,6 +3629,71 @@ async def sovereign_websocket(websocket: WebSocket):
                         "recorded_at": datetime.now(timezone.utc).isoformat(),
                     })
 
+                # Relay messages to HUD server
+                import time
+                current_time_ms = int(time.time() * 1000)
+
+                # 1. score_update
+                relay_to_hud("score_update", {
+                    "home_score": combo_streak,
+                    "away_score": buckets,
+                    "timer_seconds": 600,
+                    "period": 1
+                })
+                # 2. prq_update
+                weight_val = 1.0
+                try:
+                    mode_info = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {}).get(arena_mode_id, {})
+                    weight_val = mode_info.get("prq_weight", 1.0)
+                except Exception:
+                    pass
+                relay_to_hud("prq_update", {
+                    "prq_score": float(prq),
+                    "mode_weight_label": f"x{weight_val:.1f}",
+                    "max_prq": 100.0
+                })
+                # 3. mri_update
+                arv_val = min(100.0, float(combo) * 10.0)
+                esi_val = max(0.0, 100.0 - float(prq))
+                pacing_val = min(100.0, float(vertical_jump) * 4.0)
+                mri_val = float(prq) * 0.9 + float(combo_streak) * 0.5
+                relay_to_hud("mri_update", {
+                    "mri_score": mri_val,
+                    "arv": arv_val,
+                    "esi": esi_val,
+                    "pacing": pacing_val
+                })
+                # 4. game_events
+                if vertical_jump > 0:
+                    relay_to_hud("game_event", {
+                        "event_type": "score",
+                        "description": f"Vertical Jump: {vertical_jump} inches!",
+                        "timestamp": current_time_ms
+                    })
+                if combo_streak > 0:
+                    relay_to_hud("game_event", {
+                        "event_type": "ace",
+                        "description": f"Combo Streak: {combo_streak}x Multiplier!",
+                        "timestamp": current_time_ms
+                    })
+                if buckets > 0:
+                    relay_to_hud("game_event", {
+                        "event_type": "block",
+                        "description": f"Basket Scored! Total buckets: {buckets}",
+                        "timestamp": current_time_ms
+                    })
+                # 5. coach_tip
+                if prq < 50:
+                    relay_to_hud("coach_tip", {
+                        "mode_name": arena_mode_id,
+                        "tip_text": "PRQ indicates high neurological fatigue. Pace yourself and focus on recovery."
+                    })
+                elif combo_streak > 3:
+                    relay_to_hud("coach_tip", {
+                        "mode_name": arena_mode_id,
+                        "tip_text": "Excellent pacing. Lock in your form for the next shot!"
+                    })
+
                 await websocket.send_json({"type": "telemetry_ack", "frame_stored": True})
 
             elif msg_type == "hardware_auth":
@@ -3544,8 +3702,8 @@ async def sovereign_websocket(websocket: WebSocket):
                 camera_check = bool(data.get("back_camera_verified", False))
                 imu_visual_sync = bool(data.get("imu_visual_sync", False))
 
-                sovereign_state["integrity_status"] = "TELEMETRY_ONLY"
-                sovereign_state["hardware_auth"] = {
+                vault_state["integrity_status"] = "TELEMETRY_ONLY"
+                vault_state["hardware_auth"] = {
                     "bIsHardwareAuthenticated": hw_flag,
                     "back_camera_verified": camera_check,
                     "imu_visual_sync": imu_visual_sync,
@@ -3570,7 +3728,7 @@ async def sovereign_websocket(websocket: WebSocket):
                 if not card:
                     card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
 
-                sovereign_state["active_creator_card"] = card_id
+                vault_state["active_creator_card"] = card_id
                 await websocket.send_json({
                     "type": "creator_card_ack",
                     "card_id": card_id,
@@ -3579,18 +3737,18 @@ async def sovereign_websocket(websocket: WebSocket):
                 })
 
             elif msg_type == "match_score":
-                bu = sovereign_bridge.client_meta.get(client_id, {}).get("bound_user_id")
-                result = await sovereign_bridge.process_match_event(data, client_id, bu)
+                bu = vault_bridge.client_meta.get(client_id, {}).get("bound_user_id")
+                result = await vault_bridge.process_match_event(data, client_id, bu)
                 if bu:
                     result["live_prq"] = await calculate_prq_live(bu)
                 await websocket.send_json({"type": "match_score_ack", **result})
 
             elif msg_type == "referral_event":
-                sovereign_state["total_referral_events"] += 1
+                vault_state["total_referral_events"] += 1
                 await websocket.send_json({"type": "referral_ack", "processed": True})
 
             elif msg_type == "analytics":
-                bu = sovereign_bridge.client_meta.get(client_id, {}).get("bound_user_id")
+                bu = vault_bridge.client_meta.get(client_id, {}).get("bound_user_id")
                 claim_uid = data.get("user_id")
                 uid = bu
                 trust = "session_bound" if bu else "unbound_payload_untrusted"
@@ -3603,16 +3761,16 @@ async def sovereign_websocket(websocket: WebSocket):
                     "duration_seconds": min(float(data.get("duration") or 0), 86400 * 7),
                     "score": data.get("score", 0),
                     "metrics_trust": trust,
-                    "source": "sovereign_bridge_mobile",
+                    "source": "vault_bridge_mobile",
                     "encrypted_transit": True,
                     "created_at": datetime.now(timezone.utc).isoformat(),
                 }
                 if bu:
                     row["sync_status"] = "pending"
-                    row["sovereign_sync"] = {"local_store": True, "m4_pro_sync": "pending"}
+                    row["vault_sync"] = {"local_store": True, "m4_pro_sync": "pending"}
                 else:
                     row["sync_status"] = "telemetry_only"
-                    row["sovereign_sync"] = {"mode": "telemetry_only"}
+                    row["vault_sync"] = {"mode": "telemetry_only"}
                 await db.analytics_sessions.insert_one(row)
                 await websocket.send_json({"type": "analytics_ack", "stored": True, "trust": trust})
 
@@ -3627,11 +3785,11 @@ async def sovereign_websocket(websocket: WebSocket):
                     "db_collection": venue_info.get("db_collection"),
                 })
 
-            sovereign_bridge.client_meta[client_id]["messages"] = sovereign_bridge.client_meta[client_id].get("messages", 0) + 1
+            vault_bridge.client_meta[client_id]["messages"] = vault_bridge.client_meta[client_id].get("messages", 0) + 1
 
     except WebSocketDisconnect:
-        sovereign_bridge.disconnect(client_id)
-        logger.info(f"Sovereign bridge: client {client_id} disconnected")
+        vault_bridge.disconnect(client_id)
+        logger.info(f"Vault bridge: client {client_id} disconnected")
 
 # ── Directive 3 (Hard-Swap): Real-Time PRQ Calculator ─────────────
 
@@ -3750,7 +3908,7 @@ async def production_health_check():
             venue_status[venue_name] = {"collection": coll, "status": "error", "error": str(e)}
 
     # Check WebSocket bridge
-    ws_clients = list(sovereign_bridge.clients.keys())
+    ws_clients = list(vault_bridge.clients.keys())
     ws_connected = len(ws_clients) > 0
 
     # Verify handshake identifier matches FinalEvolutionLab.uproject
@@ -3758,17 +3916,17 @@ async def production_health_check():
     project_uuid = bridge_config.get("project_uuid", "")
 
     return {
-        "status": "PRODUCTION_READY" if sovereign_state["database_status"] == "ready" else "INITIALIZING",
+        "status": "PRODUCTION_READY" if vault_state["database_status"] == "ready" else "INITIALIZING",
         "checks": {
             "database": {
-                "status": sovereign_state["database_status"],
+                "status": vault_state["database_status"],
                 "venue_collections": len(venue_status),
                 "all_ready": all(v["status"] == "ready" for v in venue_status.values()),
                 "venues": venue_status
             },
             "websocket": {
                 "status": "CONNECTED" if ws_connected else "WAITING_FOR_CONNECTION",
-                "url": os.environ.get("EMERGENT_GAME_WS_URL", ""),
+                "url": os.environ.get("HUB_GAME_WS_URL", ""),
                 "listening_for": {
                     "handshake_identifier": handshake_id,
                     "project_uuid": project_uuid,
@@ -3794,7 +3952,7 @@ async def production_health_check():
                 "tunnel": "TLS 1.3 (Cloudflare)"
             }
         },
-        "sovereign_target": "M4 Pro Mac Mini",
+        "vault_target": "M4 Pro Mac Mini",
         "placeholder_data": False,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
@@ -3805,29 +3963,29 @@ async def production_health_check():
 async def get_handshake_log():
     """Returns the handshake log proving bridge ↔ dashboard connection"""
     bridge_config = MODE_MANAGER.get("bridge_subsystem", {})
-    connected = len(sovereign_bridge.clients) > 0
+    connected = len(vault_bridge.clients) > 0
 
     log_entries = [
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": "Sovereign Hub v2.0.0 started (LOCAL SOVEREIGN MODE)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Sovereign Hub Listening on Port 8888"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues from FEL_VenueRegistry.production.json"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes from FEL_ModeManager.production.json"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Venue DB mapping complete: 13 collections indexed (Local MongoDB)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"PRQ source: Local MongoDB (weighted_composite, static=False)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Encryption: AES-256-GCM (transit) + WiredTiger (rest)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Focus keepalive: {sovereign_state['focus_lock']} @ {sovereign_state['keepalive_interval']}s"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Data feed: Biomechanical (NO video window)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": "Vault Hub v2.0.0 started (LOCAL VAULT MODE)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Vault Hub Listening on Port 8888"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues from FEL_VenueRegistry.production.json"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes from FEL_ModeManager.production.json"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Venue DB mapping complete: 13 collections indexed (Local MongoDB)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"PRQ source: Local MongoDB (weighted_composite, static=False)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Encryption: AES-256-GCM (transit) + WiredTiger (rest)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Focus keepalive: {vault_state['focus_lock']} @ {vault_state['keepalive_interval']}s"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Data feed: Biomechanical (NO video window)"},
     ]
 
     if connected:
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": "[SovereignHub] Handshake Successful"})
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"Binary: {bridge_config.get('expected_binary_signatures', ['FinalEvolutionLab-iOS-Shipping'])[0]}"})
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"PRQ data source: Local MongoDB (confirmed NOT simulation)"})
-        if sovereign_state.get("last_telemetry"):
-            t = sovereign_state["last_telemetry"]
-            log_entries.append({"ts": t.get("received_at", ""), "level": "DATA", "msg": f"sovereign_telemetry: PRQ={t.get('prq',0)} combo={t.get('combo_streak',0)} venue={t.get('venue_token','')}"})
+        log_entries.append({"ts": vault_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": "[VaultHub] Handshake Successful"})
+        log_entries.append({"ts": vault_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"Binary: {bridge_config.get('expected_binary_signatures', ['FinalEvolutionLab-iOS-Shipping'])[0]}"})
+        log_entries.append({"ts": vault_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"PRQ data source: Local MongoDB (confirmed NOT simulation)"})
+        if vault_state.get("last_telemetry"):
+            t = vault_state["last_telemetry"]
+            log_entries.append({"ts": t.get("received_at", ""), "level": "DATA", "msg": f"vault_telemetry: PRQ={t.get('prq',0)} combo={t.get('combo_streak',0)} venue={t.get('venue_token','')}"})
     else:
-        log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Sovereign Hub Listening on Port 8888 — awaiting iPhone connection"})
+        log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Vault Hub Listening on Port 8888 — awaiting iPhone connection"})
         log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Tap app icon on iPhone 16 Pro Max to go live"})
 
     return {
@@ -3836,20 +3994,20 @@ async def get_handshake_log():
         "project_uuid": bridge_config.get("project_uuid"),
         "uproject": MODE_MANAGER.get("uproject"),
         "log": log_entries,
-        "total_messages_processed": sovereign_state["total_messages"]
+        "total_messages_processed": vault_state["total_messages"]
     }
 
 # ── Directive 6: Live Connection Preview ──────────────────────────
 
 @api_router.get("/hub/handshake/verify")
-@api_router.get("/sovereign/handshake/verify")
-async def verify_sovereign_handshake():
-    """iOS shipping pre-flight: confirms backend is wired for the Sovereign bridge."""
-    expected_ws = os.environ.get("EMERGENT_GAME_WS_URL", "")
-    enc = os.environ.get("SOVEREIGN_ENCRYPTION", "AES-256-GCM")
-    keepalive = float(os.environ.get("SOVEREIGN_KEEPALIVE_INTERVAL", 0.5))
-    focus_lock = os.environ.get("SOVEREIGN_FOCUS_LOCK", "true").lower() == "true"
-    mode = os.environ.get("SOVEREIGN_MODE", "production")
+@api_router.get("/vault/handshake/verify")
+async def verify_vault_handshake():
+    """iOS shipping pre-flight: confirms backend is wired for the Vault bridge."""
+    expected_ws = os.environ.get("HUB_GAME_WS_URL", "")
+    enc = os.environ.get("VAULT_ENCRYPTION", "AES-256-GCM")
+    keepalive = float(os.environ.get("VAULT_KEEPALIVE_INTERVAL", 0.5))
+    focus_lock = os.environ.get("VAULT_FOCUS_LOCK", "true").lower() == "true"
+    mode = os.environ.get("VAULT_MODE", "production")
     ok = (
         expected_ws.startswith("wss://")
         and "localhost" not in expected_ws
@@ -3868,7 +4026,7 @@ async def verify_sovereign_handshake():
         "checked_at": datetime.now(timezone.utc).isoformat(),
     }
 
-# Redundant /sovereign/status definition removed (unified above).
+# Redundant /vault/status definition removed (unified above).
 
 # Include all routes AFTER all route definitions
 app.include_router(api_router)

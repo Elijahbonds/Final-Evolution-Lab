@@ -71,11 +71,11 @@ These 5 venues cover **8 production modes** and all have maps in MapsToCook.
 | Swift `GameModeId` enum | 16 cases | `FinalEvolutionLab/Models/GameMode.swift` |
 | `ue_mode_maps.json` | 16 mappings | `backend/ue_mode_maps.json` |
 | `FEL_VenueRegistry.production.json` | 12 entries (11 real + 1 placeholder) | `UnrealStarter/.../FEL_VenueRegistry.production.json` |
-| `EmergentPlayMap` INI section | 18 entries (includes `karate` alias) | `infra/ue5_config/DefaultGame.ini` |
+| `FELPlayMap` INI section | 18 entries (includes `karate` alias) | `infra/ue5_config/DefaultGame.ini` |
 
 ### First-5-Venue Mode IDs — Line-by-Line
 
-| mode_id | Blueprint | ModeManager JSON | Swift Enum | ue_mode_maps | VenueRegistry | EmergentPlayMap |
+| mode_id | Blueprint | ModeManager JSON | Swift Enum | ue_mode_maps | VenueRegistry | FELPlayMap |
 |---------|-----------|-----------------|------------|-------------|---------------|-----------------|
 | `basketball_h2h` | ✅ | ✅ | ✅ `basketballHeadToHead` | ✅ | ✅ | ✅ |
 | `basketball_dunk` | ✅ | ✅ | ✅ `basketballDunkContest` | ✅ | ✅ | ✅ |
@@ -91,15 +91,15 @@ These 5 venues cover **8 production modes** and all have maps in MapsToCook.
 | Issue | Severity | Detail |
 |-------|----------|--------|
 | `karate_endless` missing from VenueRegistry | **Medium** | VenueRegistry lists only `karate` (maps to `karate_h2h`); `karate_endless` shares the Dojo venue but has no VenueRegistry entry |
-| `karate` vs `karate_h2h` naming | **Low** | VenueRegistry uses `karate`, Swift uses `karate` with rawValue `karate_h2h`, EmergentPlayMap has both `karate_h2h` and `karate` alias — functional but inconsistent |
+| `karate` vs `karate_h2h` naming | **Low** | VenueRegistry uses `karate`, Swift uses `karate` with rawValue `karate_h2h`, FELPlayMap has both `karate_h2h` and `karate` alias — functional but inconsistent |
 | ModeManager `total_modes: 17` vs 19 entries | **High** | Metadata header is stale — declares 17 but contains 19 mode entries |
 
 ### Global Mode ID Gaps (Beyond First-5-Venue)
 
 | mode_id | Missing From |
 |---------|-------------|
-| `who_scene_it` | Swift enum, ue_mode_maps.json, VenueRegistry, EmergentPlayMap (not in INI) |
-| `mario_party_fever` | Swift enum, ue_mode_maps.json, VenueRegistry, EmergentPlayMap (not in INI) |
+| `who_scene_it` | Swift enum, ue_mode_maps.json, VenueRegistry, FELPlayMap (not in INI) |
+| `mario_party_fever` | Swift enum, ue_mode_maps.json, VenueRegistry, FELPlayMap (not in INI) |
 | `market_browse` | Swift enum, VenueRegistry |
 
 ---
@@ -124,11 +124,11 @@ The blueprint (§10.1) documents paths as `/Game/FEL/Maps/{token}`, but the **ac
 | TrainingFloor | `/Game/FEL/Maps/TrainingFloor` | `/Game/FEL/Venues/TrainingFloor/TrainingFloor` | ❌ Different prefix |
 | VeniceBeach | `/Game/FEL/Maps/VeniceBeach` | `/Game/FEL/Venues/VeniceBeach/VeniceBeach` | ❌ Different prefix |
 
-**Critical Finding:** The blueprint documents the path prefix as `/Game/FEL/Maps/` but the actual INI file uses `/Game/FEL/Venues/{Name}/{Name}`. The `EmergentPlayMap` section in the same INI also uses the `/Venues/` prefix. **The blueprint must be corrected to match the actual paths.**
+**Critical Finding:** The blueprint documents the path prefix as `/Game/FEL/Maps/` but the actual INI file uses `/Game/FEL/Venues/{Name}/{Name}`. The `FELPlayMap` section in the same INI also uses the `/Venues/` prefix. **The blueprint must be corrected to match the actual paths.**
 
 ### First-5-Venue Map Coverage
 
-| Venue | In MapsToCook? | EmergentPlayMap entries? | ue_mode_maps.json? |
+| Venue | In MapsToCook? | FELPlayMap entries? | ue_mode_maps.json? |
 |-------|---------------|------------------------|-------------------|
 | Venice Beach Court | ✅ (`VeniceBeach`) | ✅ (3 basketball modes) | ✅ (`Venice_Beach_Court`) |
 | Zen Dojo | ✅ (`Dojo`) | ✅ (karate_h2h, karate_endless, karate alias) | ✅ (`Zen_Dojo`) |
@@ -136,7 +136,7 @@ The blueprint (§10.1) documents paths as `/Game/FEL/Maps/{token}`, but the **ac
 | Gridiron Stadium | ✅ (`Gridiron`) | ✅ | ✅ (`Gridiron_Stadium`) |
 | Soccer Stadium | ✅ (`SoccerStadium`) | ✅ | ✅ (`Soccer_Stadium`) |
 
-**First-5-venue coverage: PASS** — All 5 venues have entries in MapsToCook, EmergentPlayMap, and ue_mode_maps.json.
+**First-5-venue coverage: PASS** — All 5 venues have entries in MapsToCook, FELPlayMap, and ue_mode_maps.json.
 
 ### Map Token Naming Inconsistency
 
@@ -145,21 +145,21 @@ The blueprint (§10.1) documents paths as `/Game/FEL/Maps/{token}`, but the **ac
 | Blueprint Venue Registry | `Venice_Beach_Court` | `Zen_Dojo` | `Baseball_Park` |
 | ue_mode_maps.json | `Venice_Beach_Court` | `Zen_Dojo` | `Baseball_Park` |
 | MapsToCook | `VeniceBeach` | `Dojo` | `BaseballPark` |
-| EmergentPlayMap | `VeniceBeach/VeniceBeach` | `Dojo/Dojo` | `BaseballPark/BaseballPark` |
+| FELPlayMap | `VeniceBeach/VeniceBeach` | `Dojo/Dojo` | `BaseballPark/BaseballPark` |
 | VenueRegistry JSON | `venice_beach_court` | `dojo_arena` | `stadium_diamond` |
 
 **Multiple naming conventions in play across layers.** While the deep link subsystem resolves tokens, this fragmentation risks routing errors.
 
 ### Staging Maps NOT in MapsToCook (Confirmed)
 
-| Map | Mode | In MapsToCook | EmergentPlayMap Fallback |
+| Map | Mode | In MapsToCook | FELPlayMap Fallback |
 |-----|------|--------------|------------------------|
 | Skate_Park | skateboarding | ❌ | ⚠️ Routes to `VeniceBeach` (fallback, not correct map) |
 | Mountain_Slope | snowboarding | ❌ | ⚠️ Routes to `VeniceBeach` (fallback, not correct map) |
-| Sovereign_Shop | market_browse | ❌ | ✅ Routes to `Luma_Venice_Shop` |
+| Vault_Shop | market_browse | ❌ | ✅ Routes to `Luma_Venice_Shop` |
 | Venice_Beach_Surf | surfing | ❌ (separate entry) | ⚠️ Routes to `VeniceBeach` (shared?) |
 
-**Note:** `skateboarding` and `snowboarding` have EmergentPlayMap entries pointing to `VeniceBeach/VeniceBeach`, **NOT** their dedicated maps (`Skate_Park`, `Mountain_Slope`). This is a misrouting problem — the EmergentPlayMap should either not list them (staging) or point to the correct map.
+**Note:** `skateboarding` and `snowboarding` have FELPlayMap entries pointing to `VeniceBeach/VeniceBeach`, **NOT** their dedicated maps (`Skate_Park`, `Mountain_Slope`). This is a misrouting problem — the FELPlayMap should either not list them (staging) or point to the correct map.
 
 ---
 
@@ -255,14 +255,14 @@ async def create_game_session(data, user):
 | MapsToCook exclusion | ✅ | Staging maps not in DefaultGame.ini `+MapsToCook` |
 | Swift enum exclusion | Partial | `who_scene_it`, `mario_party_fever`, `market_browse` not in enum |
 | Backend feature flag | ❌ | No server-side staging gate in `server.py` |
-| EmergentPlayMap INI exclusion | ❌ | `skateboarding` and `snowboarding` ARE listed in EmergentPlayMap (with wrong fallback maps) |
+| FELPlayMap INI exclusion | ❌ | `skateboarding` and `snowboarding` ARE listed in FELPlayMap (with wrong fallback maps) |
 | ue_mode_maps.json exclusion | Partial | `who_scene_it`, `mario_party_fever`, `market_browse` missing |
 | CI enforcement | Not verified | Blueprint mentions CI mode count threshold but no script found |
 
 ### Risk: Staging Modes Accidentally Accessible
 
-- `skateboarding` and `snowboarding` are in EmergentPlayMap pointing to `VeniceBeach` — a deep link `finalevolution://launch?mode=skateboarding` would **launch the wrong map** (VeniceBeach instead of Skate_Park)
-- `market_browse` is in EmergentPlayMap pointing to `Luma_Venice_Shop` which IS in MapsToCook — could accidentally launch
+- `skateboarding` and `snowboarding` are in FELPlayMap pointing to `VeniceBeach` — a deep link `finalevolution://launch?mode=skateboarding` would **launch the wrong map** (VeniceBeach instead of Skate_Park)
+- `market_browse` is in FELPlayMap pointing to `Luma_Venice_Shop` which IS in MapsToCook — could accidentally launch
 - **No runtime staging check** in the deep link subsystem or backend launch endpoint
 
 ---
@@ -328,7 +328,7 @@ async def create_game_session(data, user):
 | who_scene_it | NeuroArena | ✅ |
 | mario_party_fever | VeniceBeach | ✅ |
 
-**Note:** Surfing's dedicated map (`Venice_Beach_Surf` in blueprint) is NOT in MapsToCook as a separate entry. The EmergentPlayMap routes surfing to `VeniceBeach/VeniceBeach`. This may be intentional (shared venue) or a gap.
+**Note:** Surfing's dedicated map (`Venice_Beach_Surf` in blueprint) is NOT in MapsToCook as a separate entry. The FELPlayMap routes surfing to `VeniceBeach/VeniceBeach`. This may be intentional (shared venue) or a gap.
 
 ### Descriptor Safety Chain
 
@@ -385,7 +385,7 @@ For each of the 8 modes across the first 5 venues:
 | 1 | **Fix ModeManager metadata** — Update `total_modes: 17` → `19` and `production_modes: 12` → `14` | Backend | `backend/FEL_ModeManager.production.json` |
 | 2 | **Add missing Swift enum cases** — Add `whoSceneIt`, `marioPartyFever`, `marketBrowse` to `GameModeId` | iOS | `FinalEvolutionLab/Models/GameMode.swift` |
 | 3 | **Add missing ue_mode_maps entries** — Add `who_scene_it`, `mario_party_fever`, `market_browse` | Backend | `backend/ue_mode_maps.json` |
-| 4 | **Fix EmergentPlayMap staging fallbacks** — Remove or correct `skateboarding` and `snowboarding` entries that falsely route to VeniceBeach | Infra | `infra/ue5_config/DefaultGame.ini` |
+| 4 | **Fix FELPlayMap staging fallbacks** — Remove or correct `skateboarding` and `snowboarding` entries that falsely route to VeniceBeach | Infra | `infra/ue5_config/DefaultGame.ini` |
 | 5 | **Update blueprint MapsToCook paths** — Change `/Game/FEL/Maps/` to `/Game/FEL/Venues/{Name}/` to match actual INI | Docs | Blueprint design doc |
 
 ### P1 — Required for Quality
@@ -424,7 +424,7 @@ For each of the 8 modes across the first 5 venues:
 ## Recommendations
 
 1. **Create the "Seele's First-5-Venue" checklist** as an explicit document in `docs/` — this validation report can serve as the template
-2. **Run a single registry alignment pass** across all 5 sources (ModeManager JSON, Swift enum, ue_mode_maps.json, VenueRegistry, EmergentPlayMap INI) before any build attempt
+2. **Run a single registry alignment pass** across all 5 sources (ModeManager JSON, Swift enum, ue_mode_maps.json, VenueRegistry, FELPlayMap INI) before any build attempt
 3. **Add CI enforcement** — The blueprint references `fel_prebuild_ci_check.sh --strict` with 6-point alignment; extend it to validate mode count consistency across registries
 4. **Implement staging runtime gates** — The current architecture relies on Swift enum exclusion as an implicit gate, which is fragile; add explicit `status` checks in the deep link subsystem
 5. **Prioritize shard and PRQ integration** in the backend session handler — these are specified in the blueprint but not implemented, making the economy contract untestable

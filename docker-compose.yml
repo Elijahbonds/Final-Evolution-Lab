@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uvicorn server:app --host 0.0.0.0 --port 8888
+    ports:
+      - "8888:8888"
+    environment:
+      - PORT=8888
+      - DB_HOST=host.docker.internal
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - DB_PORT=5432
+      - DB_NAME=fdcdb
+      - GEMINI_API_KEY=dummy_test_key
+      - FEL_LLM_KEY=dummy_test_key
+      - FEL_PASS_SHARE_LEGACY_PUBLIC=true
+      - HUB_GAME_WS_URL=wss://finalevolutiongroup.com/ws/vault
+      - VAULT_ENCRYPTION=AES-256-GCM
+      - VAULT_MODE=production
+      - FEL_HUD_RELAY_URL=ws://hud_server:8080/ws/hud
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  hud_server:
+    build:
+      context: ./infra/hud
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:8888
+      - WDS_SOCKET_PORT=0

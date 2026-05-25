@@ -44,7 +44,7 @@ echo
 echo "Checking for legacy bundle ID occurrences..."
 legacy_ids=(
   Final-Evolution-x-Unreal
-  com.finalevolutionlab.sovereign
+  com.finalevolutionlab.vault
 )
 for id in "${legacy_ids[@]}"; do
   matches=$(grep -rni "$id" "$ROOT" \

@@ -15,7 +15,7 @@ enum AppRuntimeEnvironment: String, Sendable {
 }
 
 enum Config {
-    /// Runtime WebSocket URL for Emergent bridge (matches UE `EMERGENT_GAME_WS_URL` / DefaultGame.ini).
+    /// Runtime WebSocket URL for Emergent bridge (matches UE `FEL_GAME_WS_URL` / DefaultGame.ini).
     static let emergentGameWebSocketDefaultsKey = "fel_emergent_game_ws_url"
 
     /// UserDefaults key: route Firestore (and optional other Firebase clients) to local emulators.
@@ -75,9 +75,9 @@ enum Config {
     /// UE / server sets this to the active verified gameplay session id; inbound Emergent WS payloads must repeat it to mutate PRQ or surface ``fel_game_result``.
     static let trustedGameplaySessionDefaultsKey = "fel_trusted_ue_gameplay_session_id"
 
-    /// Non-empty URL from process environment `EMERGENT_GAME_WS_URL`, then UserDefaults ``emergentGameWebSocketDefaultsKey``.
+    /// Non-empty URL from process environment `FEL_GAME_WS_URL`, then UserDefaults ``emergentGameWebSocketDefaultsKey``.
     static func resolvedEmergentGameWebSocketURL() -> String? {
-        if let env = ProcessInfo.processInfo.environment["EMERGENT_GAME_WS_URL"],
+        if let env = ProcessInfo.processInfo.environment["FEL_GAME_WS_URL"],
            !env.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return env
         }

@@ -20,7 +20,7 @@ This verifies:
 
 - **`SHIPPING_ARCHITECTURE.md`** (architecture lock + App Store / IAP posture).
 - StoreKit **fail-closed** path markers (`backend/iap_verify.py`, IAP route in `server.py`).
-- **Realtime** trust contract + sovereign WebSocket auth helper.
+- **Realtime** trust contract + vault WebSocket auth helper.
 - **Scan**, **gameplay**, **education**, **BioFuel**, **economy**, **privacy/minor** contracts under **`infra/*CONTRACT*.md`**.
 - **`backend/privacy_minors.py`** and **`backend/routers/biofuel.py`** presence.
 

@@ -57,7 +57,7 @@ export const FELOSDashboard = ({ setActiveTab }) => {
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight" style={{fontFamily:'Barlow Condensed'}}>
             FINAL EVOLUTION <span className="text-cyan-400">/ OS</span>
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">One scan. Four pillars. Athlete-sovereign.</p>
+          <p className="text-sm text-zinc-400 mt-1">One scan. Four pillars. Athlete-vault.</p>
         </div>
         {scan && (
           <div className="flex items-center gap-3" data-testid="fel-os-header-prq">
@@ -190,7 +190,7 @@ const ArenaQuadrant = ({ arena, onOpen }) => (
   <QuadrantShell icon={Gamepad2} label="Arena · 19 Modes" accent="border-orange-400/30" onOpen={onOpen} testId="quadrant-arena">
     <div className="grid grid-cols-2 gap-3 text-sm">
       <Stat label="Modes Played" value={arena.modes_played} accent="text-orange-400" />
-      <Stat label="Sovereign Sess." value={arena.sovereign_sessions} />
+      <Stat label="Vault Sess." value={arena.vault_sessions} />
     </div>
     <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center justify-between text-xs">
       <span className="text-zinc-500">UE5 Bridge</span>

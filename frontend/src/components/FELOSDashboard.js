@@ -196,7 +196,7 @@ const ArenaQuadrant = ({ arena, onOpen }) => (
   <QuadrantShell icon={Gamepad2} label="Arena · 19 Modes" accent="border-orange-400/30" onOpen={onOpen} testId="quadrant-arena">
     <div className="grid grid-cols-2 gap-3 text-sm">
       <Stat label="Modes Played" value={arena.modes_played} accent="text-orange-400" />
-      <Stat label="Hub sessions" value={arena.sovereign_sessions} />
+      <Stat label="Hub sessions" value={arena.vault_sessions} />
     </div>
     <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center justify-between text-xs">
       <span className="text-zinc-500">UE5 Bridge</span>

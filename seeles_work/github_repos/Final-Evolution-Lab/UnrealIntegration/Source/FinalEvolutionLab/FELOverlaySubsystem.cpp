@@ -3,7 +3,7 @@
 #include "FELOverlaySubsystem.h"
 
 #include "FELIOSWebOverlay.h"
-#include "FELEmergentDeepLinkSubsystem.h"
+#include "FELDeepLinkSubsystem.h"
 #include "FELPerformanceManagerSubsystem.h"
 #include "FELSystemScanSubsystem.h"
 
@@ -38,7 +38,7 @@ void UFELOverlaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	// Hide only after the first map load when requested (prevents black-frame flashes).
 	if (UGameInstance* GI = GetGameInstance())
 	{
-		if (UFELEmergentDeepLinkSubsystem* DL = GI->GetSubsystem<UFELEmergentDeepLinkSubsystem>())
+		if (UFELDeepLinkSubsystem* DL = GI->GetSubsystem<UFELDeepLinkSubsystem>())
 		{
 			DL->OnFELMapLoaded.AddDynamic(this, &UFELOverlaySubsystem::HandleMapLoaded);
 		}
@@ -134,9 +134,9 @@ void UFELOverlaySubsystem::HandleOverlayMessage(const FString& Payload)
 		const FString ModeId = P.Mid(10).TrimStartAndEnd();
 		if (UGameInstance* GI = GetGameInstance())
 		{
-			if (UFELEmergentDeepLinkSubsystem* DL = GI->GetSubsystem<UFELEmergentDeepLinkSubsystem>())
+			if (UFELDeepLinkSubsystem* DL = GI->GetSubsystem<UFELDeepLinkSubsystem>())
 			{
-				DL->RequestPlayFromEmergent(ModeId, FString(), ModeId);
+				DL->RequestPlayFromFEL(ModeId, FString(), ModeId);
 				FELIOSWebOverlay::Hide();
 			}
 		}
@@ -182,9 +182,9 @@ void UFELOverlaySubsystem::HandleOverlayJsonObject(const TSharedPtr<FJsonObject>
 
 		if (UGameInstance* GI = GetGameInstance())
 		{
-			if (UFELEmergentDeepLinkSubsystem* DL = GI->GetSubsystem<UFELEmergentDeepLinkSubsystem>())
+			if (UFELDeepLinkSubsystem* DL = GI->GetSubsystem<UFELDeepLinkSubsystem>())
 			{
-				DL->RequestPlayFromEmergent(ModeId, PackagePath, ArenaMode);
+				DL->RequestPlayFromFEL(ModeId, PackagePath, ArenaMode);
 				// Keep overlay up until PostLoadMapWithWorld fires (avoid black frame on slower loads).
 				bPendingHideOnMapLoad = true;
 			}

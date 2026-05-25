@@ -208,7 +208,7 @@ check("application/json" in mgr_cpp, "Backend", "H03", "Content-Type: applicatio
 gate("Backend", "H04", "backend/server.py: 213 tests passing (prior confirmed)", WARN,
      "Re-run pytest on Mac clone to confirm tests still green after P1 economy changes")
 gate("Backend", "H05", "SovereignBridge wss:// endpoint reachable", SKIP,
-     "Network test — run manually: curl wss://finalevolutiongroup.com/ws/sovereign")
+     "Network test — run manually: curl wss://finalevolutiongroup.com/ws/vault")
 gate("Backend", "H06", "POST /games/session returns 200 for valid receipt", SKIP,
      "Integration test — requires live server + auth token")
 gate("Backend", "H07", "GEMINI_API_KEY set in backend/core.py (not hardcoded)", WARN,

@@ -6,7 +6,7 @@
 2. **WKWebView overlay** — dashboard / “superapp” web UI hosted inside or beside the native shell (implementation lives in Unreal integration + web assets; dashboard UX often mirrored in `frontend/` for development).
 3. **`finalevolution://` deep links** — parsed in-engine (Emergent/deep-link subsystem); URL scheme and plist fragments documented under `UnrealIntegration/Config/`.
 4. **Health / commerce surfaces** — **HealthKit** usage can live in the Swift shell (`FinalEvolutionLab/`) while gameplay stays Unreal-first; **StoreKit / IAP** product model is part of the native+iOS story when enabled (verify entitlements and ASC configuration).
-5. **Backend (`backend/`)** — REST/WebSocket-style sovereign hub, sessions, and mode metadata; device talks to configured hub URLs (see game ini / deployment).
+5. **Backend (`backend/`)** — REST/WebSocket-style vault hub, sessions, and mode metadata; device talks to configured hub URLs (see game ini / deployment).
 
 **Distribution:** consumer delivery through **Apple’s channels** (TestFlight → App Store). Internal references to “Superapp” mean **orchestrating** that delivery (build artifact → ASC → testers/users), not alternate store installers.
 

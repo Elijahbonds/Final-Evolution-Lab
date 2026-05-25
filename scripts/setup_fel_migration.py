@@ -120,14 +120,14 @@ def migrate(project_dir):
     # 7. Run prep scripts using subprocess with environment variables
     print("Running prep scripts...")
     os.environ["PROJECT_DIR"] = project_dir
-    os.environ["EMERGENT_MERGE_SNIPPET"] = "1"
+    os.environ["FEL_MERGE_SNIPPET"] = "1"
     
-    # Run prepare_fel_emergent.sh
-    emergent_script = os.path.join(repo_root, "prepare_fel_emergent.sh")
+    # Run prepare_fel_bridge.sh
+    emergent_script = os.path.join(repo_root, "prepare_fel_bridge.sh")
     print(f"Executing: PROJECT_DIR={project_dir} {emergent_script}")
     rc = os.system(f'"{emergent_script}"')
     if rc != 0:
-        print("ERROR: prepare_fel_emergent.sh failed!")
+        print("ERROR: prepare_fel_bridge.sh failed!")
         sys.exit(1)
         
     # Run prepare_fel_full_ship.sh

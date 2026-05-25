@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS public.game_sessions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 7. sovereign_sessions
-CREATE TABLE IF NOT EXISTS public.sovereign_sessions (
+-- 7. vault_sessions
+CREATE TABLE IF NOT EXISTS public.vault_sessions (
     id TEXT PRIMARY KEY,
     data JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()

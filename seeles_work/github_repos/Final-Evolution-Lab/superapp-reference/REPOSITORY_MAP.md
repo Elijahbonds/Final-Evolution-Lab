@@ -8,7 +8,7 @@ Paths are relative to repo root. Depth is intentional—open these folders, don�
 | `UnrealStarter/BasketballGame/` | **UE project mirror**: Content, Config, packaging snippets |
 | `FinalEvolutionLab/` | **Swift/Xcode shell** — SwiftUI, HealthKit services, native UX experiments |
 | `FinalEvolutionLab.xcodeproj/` | Xcode project for Swift shell (distinct from UE-generated `(IOS).xcworkspace` on disk) |
-| `backend/` | **Python FastAPI** — APIs, routers, sovereign/session concepts |
+| `backend/` | **Python FastAPI** — APIs, routers, vault/session concepts |
 | `frontend/` | **React** — dashboards and labs used for web parity / WKWebView targets |
 | `infra/` | **UE plist/export configs**, automation helpers (`infra/ue5_config/`) |
 | `Config/` | Repo-level iOS **capability checklist** text files |

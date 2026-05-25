@@ -221,8 +221,8 @@ check("FHttpModule" in mgr_cpp, "Backend", "H02", "HTTP dispatch uses FHttpModul
 check("application/json" in mgr_cpp, "Backend", "H03", "Content-Type: application/json")
 gate("Backend", "H04", "backend/server.py: 213 tests passing (prior confirmed)", WARN,
      "Re-run pytest on Mac clone to confirm tests still green after P1 economy changes")
-gate("Backend", "H05", "SovereignBridge wss:// endpoint reachable", SKIP,
-     "Network test — run manually: curl wss://finalevolutiongroup.com/ws/sovereign")
+gate("Backend", "H05", "VaultBridge wss:// endpoint reachable", SKIP,
+     "Network test — run manually: curl wss://finalevolutiongroup.com/ws/vault")
 gate("Backend", "H06", "POST /games/session returns 200 for valid receipt", SKIP,
      "Integration test — requires live server + auth token")
 gate("Backend", "H07", "GEMINI_API_KEY set in backend/core.py (not hardcoded)", WARN,
@@ -231,7 +231,7 @@ gate("Backend", "H07", "GEMINI_API_KEY set in backend/core.py (not hardcoded)", 
 # ─── Category I: Phase Completeness ──────────────────────────────────────────
 print("\n📋 Category I — Phase Completeness")
 for phase, status, detail in [
-    (1, PASS, "CI subsystems, SovereignBridge, AES-256-GCM, FELFeatureFlags"),
+    (1, PASS, "CI subsystems, VaultBridge, AES-256-GCM, FELFeatureFlags"),
     (2, PASS, "Planning docs"),
     (3, PASS, "9 venues + 13 characters + 8 prop pairs — all descriptors written"),
     (4, PASS, "22 animation clips written"),

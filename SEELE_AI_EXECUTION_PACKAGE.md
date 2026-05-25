@@ -52,7 +52,7 @@
 │  2. Wire assets into registries:                            │
 │     • FEL_ModeManager.production.json                       │
 │     • ue_mode_maps.json                                     │
-│     • DefaultGame.ini [EmergentPlayMap]                     │
+│     • DefaultGame.ini [FELPlayMap]                     │
 │     • ArenaSettings.json                                    │
 │     • FEL_VenueRegistry.production.json                     │
 │     • GameMode.swift                                        │
@@ -88,7 +88,7 @@ git checkout -b seele/<feature-name>
 |---|------|---------|--------|
 | 1 | `backend/FEL_ModeManager.production.json` | Master mode registry (19 modes) | JSON |
 | 2 | `backend/ue_mode_maps.json` | Mode→Unreal map token mapping | JSON |
-| 3 | `infra/ue5_config/DefaultGame.ini` | `[EmergentPlayMap]` cooked map paths | INI |
+| 3 | `infra/ue5_config/DefaultGame.ini` | `[FELPlayMap]` cooked map paths | INI |
 | 4 | `UnrealStarter/BasketballGame/Config/FEL_VenueRegistry.production.json` | Venue metadata (spawn, physics, audio) | JSON |
 | 5 | `UnrealStarter/BasketballGame/Content/FEL/Config/ArenaSettings.json` | Per-mode gameplay params (score, time, physics) | JSON |
 | 6 | `FinalEvolutionLab/Models/GameMode.swift` | iOS-side mode enum + UI metadata | Swift |
@@ -174,8 +174,8 @@ Asset Packs:
 | `fel_shard_pack_500` | $3.99 | Consumable |
 | `fel_shard_pack_2000` | $9.99 | Consumable |
 | `fel_creator_card_pack` | $4.99 | Consumable |
-| `fel_sovereign_pass_monthly` | $9.99 | Subscription |
-| `fel_sovereign_pass_yearly` | $79.99 | Subscription |
+| `fel_vault_pass_monthly` | $9.99 | Subscription |
+| `fel_vault_pass_yearly` | $79.99 | Subscription |
 
 ### 2.5 Firebase Integration
 
@@ -484,7 +484,7 @@ RunUAT BuildCookRun \
   -distribution \
   -nodebuginfo
 
-# Maps to cook (from DefaultGame.ini [EmergentPlayMap])
+# Maps to cook (from DefaultGame.ini [FELPlayMap])
 +MapsToCook=(FilePath="/Game/FEL/Venues/VeniceBeach/VeniceBeach")
 +MapsToCook=(FilePath="/Game/FEL/Venues/Dojo/Dojo")
 +MapsToCook=(FilePath="/Game/FEL/Venues/BaseballPark/BaseballPark")
@@ -535,7 +535,7 @@ Seele operates as an autonomous creator agent. These directives govern behavior:
 
 | # | Rule | Consequence of Violation |
 |---|------|------------------------|
-| 1 | **Never invent venue names or map paths.** Use `DefaultGame.ini [EmergentPlayMap]` as truth. | Routing crash at runtime |
+| 1 | **Never invent venue names or map paths.** Use `DefaultGame.ini [FELPlayMap]` as truth. | Routing crash at runtime |
 | 2 | **Cooked path format: `/Game/FEL/Venues/{VenueName}/{VenueName}`.** No `/Maps/` prefix. | Asset not found crash |
 | 3 | **`karate` is alias for `karate_h2h`.** Never expose as separate mode. | Duplicate mode in UI |
 | 4 | **`market_browse` is NOT a game mode.** No session receipt, no PRQ, no shards. | Economy corruption |
@@ -854,7 +854,7 @@ git push origin seele/<feature-name>
 | `backend/ue_mode_maps.json` | ~50 | Mode→UE map token |
 | `backend/server.py` | ~2400 | FastAPI backend (economy, sessions, matchmaking) |
 | `FinalEvolutionLab/Models/GameMode.swift` | ~150 | iOS mode enum + UI metadata |
-| `infra/ue5_config/DefaultGame.ini` | ~100 | UE5 config (EmergentPlayMap, MapsToCook) |
+| `infra/ue5_config/DefaultGame.ini` | ~100 | UE5 config (FELPlayMap, MapsToCook) |
 | `UnrealStarter/.../ArenaSettings.json` | ~300 | Per-mode gameplay parameters |
 | `UnrealStarter/.../FEL_VenueRegistry.production.json` | ~200 | Venue metadata |
 | `infra/distribution/google_play_distribution.json` | ~80 | Google Play Store config |
@@ -868,7 +868,7 @@ git push origin seele/<feature-name>
 | System | Endpoint |
 |--------|----------|
 | Backend API | `https://api.antigravity.io/fel/v1` |
-| Sovereign Hub (WebSocket) | `wss://readiness-stack.preview.emergentagent.com/ws/sovereign` |
+| Vault Hub (WebSocket) | `wss://readiness-stack.preview.emergentagent.com/ws/vault` |
 | Analytics | `https://analytics.antigravity.io/fel` |
 | Crash Reporting | Firebase Crashlytics |
 | Remote Config | Firebase Remote Config |

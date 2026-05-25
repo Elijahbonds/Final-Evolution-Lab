@@ -195,7 +195,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {id:'tournaments',icon:Swords,label:'Tournaments'},{id:'avatar',icon:Palette,label:'Avatar'},
     {id:'critique',icon:Video,label:'Video Critique'},{id:'referral',icon:Gift,label:'Referrals'},
     {id:'analytics',icon:BarChart3,label:'Analytics'},
-    {id:'sovereign',icon:Shield,label:'Sovereign'},
+    {id:'vault',icon:Shield,label:'Vault'},
     {id:'leaderboard',icon:Crown,label:'Leaderboard'},{id:'streaming',icon:Radio,label:'Pixel Stream'},
     {id:'profile',icon:User,label:'Profile'},
   ];
@@ -517,7 +517,7 @@ const GameModesView = () => {
 
         // State-Aware Handshake: listen for MapLoaded via WebSocket
         // NOT a blind timeout — wait for actual bridge confirmation
-        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/vault`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
@@ -526,7 +526,7 @@ const GameModesView = () => {
           try {
             const msg = JSON.parse(e.data);
             if (msg.type === 'sovereign_handshake' || msg.type === 'map_loaded') {
-              // MapLoaded signal received from UFELEmergentBridgeSubsystem
+              // MapLoaded signal received from UFELBridgeSubsystem
               setLaunchStatus(null);
               setLaunchingMode(null);
               ws.close();
@@ -576,7 +576,7 @@ const GameModesView = () => {
               <Shield className="w-20 h-20 text-yellow-400 mx-auto mb-6" />
               <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>SYSTEM RE-AUTH REQUIRED</h2>
               <p className="text-zinc-400 mt-3">No MapLoaded signal received within 10s.</p>
-              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Sovereign Hub is reachable.</p>
+              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Vault Hub is reachable.</p>
               <div className="flex gap-4 mt-6 justify-center">
                 <button onClick={() => {setLaunchStatus(null);setLaunchingMode(null);}} className="btn-secondary">Back to Modes</button>
                 <button onClick={() => launchNativeMode(modes.find(m => m.id === launchingMode) || modes[0])} className="btn-primary">Retry Launch</button>
@@ -588,7 +588,7 @@ const GameModesView = () => {
               <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING UE5 MODULE</h2>
               <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab.uproject → {(launchingMode || '').replace(/_/g,' ')}</p>
               <div className="mt-6 space-y-2 text-xs text-zinc-500 font-mono">
-                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Sovereign Hub</div>
+                <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Vault Hub</div>
                 <div className="flex items-center gap-2 justify-center"><div className={`w-2 h-2 rounded-full ${launchStatus === 'map_loading' ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'}`}></div>Awaiting MapLoaded handshake from bridge...</div>
                 <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-zinc-600 rounded-full"></div>Secure Enclave validated</div>
               </div>
@@ -1211,7 +1211,7 @@ const Dashboard = () => {
       case 'multiplayer': return <MultiplayerView />;
       case 'referral': return <ReferralView />;
       case 'analytics': return <AnalyticsView />;
-      case 'sovereign': return <SovereignDashboard />;
+      case 'vault': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
       case 'streaming': return <SovereignDashboard />;
       case 'profile': return <ProfileView />;

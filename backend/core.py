@@ -17,7 +17,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "final-evolution-lab")
-EMERGENT_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('EMERGENT_LLM_KEY', '')
+FEL_LLM_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('FEL_LLM_KEY', '')
 
 # Database Connection Pool Setup
 db_pool = None

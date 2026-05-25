@@ -13,7 +13,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from routers.education_tracks import TRACKS  # noqa: E402
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://readiness-stack.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://readiness-stack.preview.finalevolutionlab.com").rstrip("/")
 
 
 def _kin_perfect_answers(questions_payload):
@@ -305,7 +305,7 @@ class TestUnifiedScan:
             assert k in d
         assert d["scan"]["prq_score"] == 82.0
         assert d["arena"]["ue5_bridge"] == "ready"
-        assert "sovereign_sessions" in d["arena"]
+        assert "vault_sessions" in d["arena"]
         assert "modes_played" in d["arena"]
         assert len(d["academy"]["tracks"]) == 4
         assert d["academy"]["bio_digital"]["modules_required"] == [
@@ -337,6 +337,6 @@ class TestRefactorRegression:
         r = requests.get(f"{BASE_URL}/api/cards")
         assert r.status_code == 200
 
-    def test_sovereign_status(self):
-        r = requests.get(f"{BASE_URL}/api/sovereign/status", headers=h(FRESH_TOKEN))
+    def test_vault_status(self):
+        r = requests.get(f"{BASE_URL}/api/vault/status", headers=h(FRESH_TOKEN))
         assert r.status_code in (200, 401)  # depends on whether endpoint requires auth

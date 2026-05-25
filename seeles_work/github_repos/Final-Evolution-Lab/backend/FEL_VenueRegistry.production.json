@@ -138,7 +138,7 @@
   },
   "total_venues": 13,
   "total_game_modes": 16,
-  "sovereign_sync": {
+  "vault_sync": {
     "target": "M4 Pro Mac Mini",
     "protocol": "WSS over Cloudflare Tunnel",
     "encryption": "AES-256-GCM",
