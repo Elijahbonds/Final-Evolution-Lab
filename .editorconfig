@@ -1,0 +1,36 @@
+# EditorConfig for Unreal Engine C++ Coding Standards
+# For more info: https://dev.epicgames.com/documentation/unreal-engine/epic-cplusplus-coding-standard-for-unreal-engine
+
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+# C++ Source Code (*.cpp, *.h, *.cs)
+[*.{cpp,h,cs,inl}]
+indent_style = tab
+indent_size = 4
+tab_width = 4
+
+# Braces on new line (Allman style)
+cpp_indent_braces = false
+
+# Naming Conventions for Unreal Engine (PascalCase)
+# Class names: UObject derived starts with U, Actor derived with A, Structs with F, Enums with E, Interfaces with I
+# Variables: PascalCase
+# Functions: PascalCase
+
+# JSON and Config Files
+[*.{json,ini}]
+indent_style = space
+indent_size = 4
+tab_width = 4
+
+# Python Scripts (Backend / Automation)
+[*.py]
+indent_style = space
+indent_size = 4
+tab_width = 4

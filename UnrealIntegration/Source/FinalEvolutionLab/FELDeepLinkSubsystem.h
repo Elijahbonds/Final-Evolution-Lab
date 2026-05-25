@@ -22,13 +22,22 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	/** Parse and act on a full URL (e.g. finalevolution://launch?map=Zen_Dojo&mode=karate_h2h). Callable from Blueprint tests. */
+	/**
+	 * Parses and processes a deep link URL (e.g. finalevolution://launch?map=Zen_Dojo&mode=karate_h2h).
+	 * Triggers level load travel if the scheme is valid.
+	 *
+	 * @param Url The raw deep link URL to parse and process.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "FEL|DeepLink")
 	void ProcessDeepLinkUrl(const FString& Url);
 
 	/**
-	 * Dashboard / WebSocket “Play Now”: resolve FELBridge button id or native arena_mode (e.g. basketball_dunk) to a cooked map.
-	 * OptionalExplicitPackagePath — full /Game/FEL/Venues/... path if the server sends it directly.
+	 * Requests map travel from the FEL dashboard or play button. Resolves the play key / mode
+	 * to a packaged package path and initiates the travel sequence.
+	 *
+	 * @param ButtonOrModeKey The logical dashboard button key or game mode key.
+	 * @param OptionalExplicitPackagePath An optional explicit asset package path (/Game/FEL/Venues/...) to load.
+	 * @param OptionalArenaGameMode The target arena game mode ID to configure.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "FEL|DeepLink")
 	void RequestPlayFromFEL(
@@ -36,6 +45,7 @@ public:
 		const FString& OptionalExplicitPackagePath,
 		const FString& OptionalArenaGameMode);
 
+	/** Delegate broadcasted when a map finishes loading and registers with the deep link subsystem. */
 	UPROPERTY(BlueprintAssignable, Category = "FEL|DeepLink")
 	FFELMapLoadedSignature OnFELMapLoaded;
 
