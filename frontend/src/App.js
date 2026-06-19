@@ -17,9 +17,8 @@ import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/Quali
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
+import { API, toWebSocketUrl } from "@/config/api";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -128,13 +127,13 @@ const LandingPage = () => {
         <div className="relative z-10 max-w-6xl mx-auto px-8 py-24 text-center">
           <p className="overline mb-4">THE ATHLETE OPERATING SYSTEM</p>
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6" style={{fontFamily:'Barlow Condensed'}}>YOUR MOVEMENT<br/><span className="text-cyan-400">AUDITED</span></h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 19 game modes, AI coaching, and cognitive training.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
             <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
-            {[{v:"17",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
+            {[{v:"19",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
               <div key={i} className="text-center"><div className="metric-value text-cyan-400">{s.v}</div><div className="metric-label">{s.l}</div></div>
             ))}
           </div>
@@ -147,7 +146,7 @@ const LandingPage = () => {
           {[
             {icon:Activity,t:"System Scan",d:"Avatar, PRQ metrics, health signals, and workout plans unified"},
             {icon:Users,t:"Creator Cards",d:"Digital collectibles from elite athletes and coaches"},
-            {icon:Gamepad2,t:"17 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
+            {icon:Gamepad2,t:"19 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
             {icon:Trophy,t:"Coach Economy",d:"Instruction and critique as first-class currencies"},
             {icon:Brain,t:"Brain Brawl",d:"Cognitive training for peak decision-making"},
             {icon:GraduationCap,t:"Education",d:"Common Core to kinesiology certification"}
@@ -528,7 +527,7 @@ const GameModesView = () => {
 
         // State-Aware Handshake: listen for MapLoaded via WebSocket
         // NOT a blind timeout — wait for actual bridge confirmation
-        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const wsUrl = toWebSocketUrl('/ws/sovereign');
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
@@ -1224,7 +1223,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

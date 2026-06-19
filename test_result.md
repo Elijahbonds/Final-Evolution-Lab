@@ -101,3 +101,66 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## user_problem_statement: "Audit the app/game for completion, comprehensiveness, quality, and working status; take intuitive action to fix impediments."
+## backend: []
+## frontend:
+##   - task: "Centralize frontend backend and WebSocket URL handling"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/config/api.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Added shared API/BACKEND_URL/toWebSocketUrl helper and updated app modules so missing REACT_APP_BACKEND_URL no longer produces undefined/api or undefined WebSocket URLs."
+##   - task: "Expose Pixel Streaming screen from dashboard navigation"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/App.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Changed the streaming sidebar route to render the existing PixelStreamingView instead of duplicating the Sovereign dashboard."
+##   - task: "Make distribution/download claims truthful"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/components/DistributionPage.js"
+##     stuck_count: 0
+##     priority: "medium"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Replaced # store links with env-configurable public release URLs and disabled beta/internal badges when listings are not live."
+##   - task: "Restore npm install reproducibility"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/package.json"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Aligned packageManager with npm, upgraded react-day-picker to a React 19-compatible version, and generated a frontend package-lock.json."
+## metadata:
+##   created_by: "main_agent"
+##   version: "1.0"
+##   test_sequence: 1
+##   run_ui: false
+## test_plan:
+##   current_focus:
+##     - "Frontend production build"
+##     - "npm install reproducibility"
+##   stuck_tasks: []
+##   test_all: false
+##   test_priority: "high_first"
+## agent_communication:
+##   - agent: "main"
+##     message: "Ready for frontend install/build verification after committing this implementation checkpoint."

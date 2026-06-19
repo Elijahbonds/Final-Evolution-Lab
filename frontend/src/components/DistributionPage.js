@@ -16,8 +16,8 @@
  * Aesthetic matches LandingV2: obsidian (#050505) + neon cyan (#00E5FF) +
  * indigo-violet (#5E17EB). Pure SVG + CSS. Zero new npm deps.
  *
- * All store badges are visual placeholders (SVG composed in-component); swap
- * to the official PNGs at the URLs marked DISTRIBUTION_BADGE_REPLACE.
+ * Store badges are composed in-component so the page has no image dependency.
+ * Public download links can be enabled through REACT_APP_*_STORE_URL values.
  */
 import React, { useState, useEffect } from "react";
 import {
@@ -29,44 +29,53 @@ import {
 // ──────────────────────────────────────────────────────────────
 // PLATFORM CARDS
 // ──────────────────────────────────────────────────────────────
+const releaseUrl = (value) => {
+  if (!value || value === "#") return null;
+  return value;
+};
+
+const IOS_STORE_URL = releaseUrl(process.env.REACT_APP_IOS_STORE_URL);
+const MACOS_STORE_URL = releaseUrl(process.env.REACT_APP_MACOS_STORE_URL);
+const ANDROID_STORE_URL = releaseUrl(process.env.REACT_APP_ANDROID_STORE_URL);
+
 const PLATFORMS = [
   {
     id: "ios",
     name: "iPhone & iPad",
-    eyebrow: "App Store · iOS 17+",
+    eyebrow: IOS_STORE_URL ? "App Store · iOS 17+" : "TestFlight · iOS 17+",
     icon: Apple,
     accent: "#00E5FF",
-    status: "available",
-    statusLabel: "Available",
-    description: "Native UE5.7 host with the WKWebView dashboard overlay. iPhone 15 Pro / 16 Pro recommended for Metal 3 + 120 Hz.",
+    status: IOS_STORE_URL ? "available" : "private-beta",
+    statusLabel: IOS_STORE_URL ? "Available" : "Private beta",
+    description: "Native UE5.7 host with the WKWebView dashboard overlay. iPhone 15 Pro / 16 Pro recommended for Metal 3 + 120 Hz. Public App Store access appears here when the listing is live.",
     badge: "appstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — App Store listing
+    storeUrl: IOS_STORE_URL,
     secondaryLabel: "Read iOS install guide",
   },
   {
     id: "macos",
     name: "Mac",
-    eyebrow: "Mac App Store · macOS 14+",
+    eyebrow: MACOS_STORE_URL ? "Mac App Store · macOS 14+" : "Internal build · macOS 14+",
     icon: Monitor,
     accent: "#8B5CF6",
-    status: "available",
-    statusLabel: "Apple Silicon",
-    description: "Universal Mac binary for Apple Silicon (M1/M2/M3/M4). Intel Macs run in Rosetta — Metal 3 features disabled.",
+    status: MACOS_STORE_URL ? "available" : "internal",
+    statusLabel: MACOS_STORE_URL ? "Apple Silicon" : "Internal build",
+    description: "Universal Mac binary for Apple Silicon (M1/M2/M3/M4). Intel Macs run in Rosetta with Metal 3 features disabled. Public Mac distribution appears here when approved.",
     badge: "macappstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Mac App Store
+    storeUrl: MACOS_STORE_URL,
     secondaryLabel: "Read macOS install guide",
   },
   {
     id: "android",
     name: "Android",
-    eyebrow: "Google Play · Android 13+",
+    eyebrow: ANDROID_STORE_URL ? "Google Play · Android 13+" : "Play Console testing · Android 13+",
     icon: Smartphone,
     accent: "#34D399",
-    status: "available",
-    statusLabel: "Available",
-    description: "AAB-distributed via Play Console. Vulkan-capable device with ≥6 GB RAM recommended; Tensor / Snapdragon 8 Gen 2+.",
+    status: ANDROID_STORE_URL ? "available" : "internal-testing",
+    statusLabel: ANDROID_STORE_URL ? "Available" : "Internal test",
+    description: "AAB-distributed through Play Console testing until the public listing is live. Vulkan-capable device with >=6 GB RAM recommended; Tensor / Snapdragon 8 Gen 2+.",
     badge: "googleplay",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Google Play listing
+    storeUrl: ANDROID_STORE_URL,
     secondaryLabel: "Read Android install guide",
   },
   {
@@ -92,11 +101,11 @@ const GUIDES = {
     label: "iOS / iPadOS",
     icon: Apple,
     steps: [
-      { t: "Open the App Store", b: "On your iPhone or iPad, search for 'Final Evolution Lab'." },
-      { t: "Tap 'Get' and authenticate", b: "Use Face ID, Touch ID, or your Apple ID password. Download is ~620 MB; expect a one-time first-launch cook of 30–60 seconds." },
+      { t: "Open the release link", b: "Use the App Store or TestFlight link provided by the Final Evolution Lab release channel." },
+      { t: "Install and authenticate", b: "Use Face ID, Touch ID, or your Apple ID password. Download is ~620 MB; expect a one-time first-launch cook of 30-60 seconds." },
       { t: "Allow permissions on first launch", b: "Camera (for AI pose critique), Motion & Fitness (for the HealthKit bridge), and Notifications (for AI Coach neuro-cues)." },
       { t: "Sign in with Google", b: "Tap 'Enter Lab'. The OAuth handshake auto-creates your athlete profile and seeds your PRQ baseline at 75.0." },
-      { t: "Run your first System Scan", b: "Tap 'Start System Scan' on the dashboard. Hold your iPhone at eye-level and perform the prompted movement screen — ~90 seconds." },
+      { t: "Run your first System Scan", b: "Tap 'Start System Scan' on the dashboard. Hold your iPhone at eye-level and perform the prompted movement screen - about 90 seconds." },
     ],
     requirements: ["iOS 17.0+", "iPhone 13 / iPad Air (5th gen) or newer", "5 GB free storage", "Wi-Fi or 5G for first launch"],
   },
@@ -104,9 +113,9 @@ const GUIDES = {
     label: "macOS",
     icon: Monitor,
     steps: [
-      { t: "Open the Mac App Store", b: "Search for 'Final Evolution Lab' or tap the Mac badge above." },
-      { t: "Click 'Get' → 'Install'", b: "Authenticate with Touch ID or Apple ID. ~1.2 GB universal binary; Apple Silicon Macs run native arm64." },
-      { t: "Grant Camera + Microphone access", b: "System Settings → Privacy & Security → Camera / Microphone — toggle on for Final Evolution Lab." },
+      { t: "Open the Mac release link", b: "Use the Mac App Store or internal distribution link provided by the release channel." },
+      { t: "Install the app", b: "Authenticate with Touch ID or Apple ID. The universal binary is about 1.2 GB; Apple Silicon Macs run native arm64." },
+      { t: "Grant Camera + Microphone access", b: "System Settings > Privacy & Security > Camera / Microphone - toggle on for Final Evolution Lab." },
       { t: "Sign in with Google", b: "First launch opens the auth handshake in your default browser; the macOS app receives the session back via deep link." },
       { t: "Pair your iPhone (optional)", b: "On the dashboard, choose 'Pair iPhone' to mirror HealthKit data into the macOS app." },
     ],
@@ -116,9 +125,9 @@ const GUIDES = {
     label: "Android",
     icon: Smartphone,
     steps: [
-      { t: "Open Google Play", b: "Search 'Final Evolution Lab' or scan the QR code on this page." },
+      { t: "Open the Play release link", b: "Use the Google Play testing or public listing link provided by the release channel." },
       { t: "Tap 'Install'", b: "AAB delivers ~480 MB to your specific device variant. Vulkan + arm64-v8a required." },
-      { t: "Grant runtime permissions", b: "Camera, Motion sensors, and Notifications — toggle each on when first prompted by the app." },
+      { t: "Grant runtime permissions", b: "Camera, Motion sensors, and Notifications - toggle each on when first prompted by the app." },
       { t: "Sign in with Google", b: "The Play Services integration uses your device's Google account. Tap 'Continue as <you>' to bypass the password prompt." },
       { t: "First-time PRQ scan", b: "Hold your phone at eye-level, complete the 90-second movement screen, and your PRQ baseline locks in." },
     ],
@@ -348,6 +357,8 @@ const PlatformGrid = () => (
       {PLATFORMS.map((p) => {
         const Icon = p.icon;
         const comingSoon = p.status === "coming-soon";
+        const hasPublicDownload = Boolean(p.storeUrl);
+        const mutedStatus = comingSoon || !hasPublicDownload;
         return (
           <article
             key={p.id}
@@ -378,9 +389,9 @@ const PlatformGrid = () => (
               </div>
               <div
                 className={`text-[10px] font-mono uppercase tracking-[0.2em] px-2 py-1 rounded ${
-                  comingSoon ? "text-white/40 border border-white/15" : "text-black"
+                  mutedStatus ? "text-white/40 border border-white/15" : "text-black"
                 }`}
-                style={!comingSoon ? { background: p.accent } : {}}
+                style={!mutedStatus ? { background: p.accent } : {}}
               >
                 {p.statusLabel}
               </div>
@@ -392,7 +403,14 @@ const PlatformGrid = () => (
                   <StoreBadge kind={p.badge} />
                 </a>
               ) : (
-                <div className="opacity-70"><StoreBadge kind={p.badge} /></div>
+                <div
+                  data-testid={`platform-${p.id}-download-unavailable`}
+                  aria-disabled="true"
+                  title={comingSoon ? "Public web client is coming soon." : "Public store link is not live yet."}
+                  className="opacity-50 grayscale"
+                >
+                  <StoreBadge kind={p.badge} />
+                </div>
               )}
               <a href={`#guide-${p.id}`} data-testid={`platform-${p.id}-guide`} className="text-xs font-mono uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors flex items-center gap-1">
                 {p.secondaryLabel} <ArrowRight className="w-3 h-3" />
