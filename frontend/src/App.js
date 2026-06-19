@@ -392,6 +392,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
   const [combo, setCombo] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const timerRef = useRef(null);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     if (gameActive && timeLeft > 0) {
@@ -431,15 +432,14 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     setTargets(prev => prev.filter(t => t.id !== target.id));
   };
 
-  const endGame = () => {
-    setGameActive(false);
-    clearInterval(timerRef.current);
-    onComplete(score);
-  };
-
   useEffect(() => {
-    if (timeLeft <= 0 && score > 0) { endGame(); }
-  }, [timeLeft]);
+    if (timeLeft <= 0 && score > 0 && !completedRef.current) {
+      completedRef.current = true;
+      setGameActive(false);
+      clearInterval(timerRef.current);
+      onComplete(score);
+    }
+  }, [timeLeft, score, onComplete]);
 
   const getGameTitle = () => {
     const titles = {
@@ -462,7 +462,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
           <div className="surface-card p-4"><div className="metric-value text-2xl">{mode.display_name}</div><div className="metric-label">MODE</div></div>
         </div>
         <div className="flex gap-4">
-          <button data-testid="play-again-btn" onClick={() => {setScore(0);setTimeLeft(30);setCombo(0);setGameActive(true);}} className="btn-primary flex-1">Play Again</button>
+          <button data-testid="play-again-btn" onClick={() => {completedRef.current=false;setScore(0);setTimeLeft(30);setCombo(0);setGameActive(true);}} className="btn-primary flex-1">Play Again</button>
           <button data-testid="back-to-modes" onClick={onBack} className="btn-secondary flex-1">Back to Modes</button>
         </div>
       </div>
@@ -883,20 +883,7 @@ const BrainBrawlView = ({ onBack }) => {
   const [category, setCategory] = useState('all');
   const timerRef = useRef(null);
 
-  useEffect(() => {
-    if (gameState === 'playing' && timeLeft > 0) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    } else if (gameState === 'playing' && timeLeft <= 0) {
-      answerQuestion(-1); // Time's up
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft]);
-
-  const startGame = async () => {
-    try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
-  };
-
-  const answerQuestion = (index) => {
+  const answerQuestion = useCallback((index) => {
     clearTimeout(timerRef.current);
     const isCorrect = index === questions[currentQ]?.correct;
     const timeBonus = isCorrect ? timeLeft * 5 : 0;
@@ -906,6 +893,19 @@ const BrainBrawlView = ({ onBack }) => {
       setGameState('results');
       axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: answers.filter(a=>a.correct).length + (isCorrect?1:0), score: score + (isCorrect ? 100+timeBonus : 0), category}).catch(console.error);
     } else { setCurrentQ(c => c + 1); setTimeLeft(15); }
+  }, [answers, category, currentQ, questions, score, timeLeft]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === 'playing' && timeLeft <= 0) {
+      answerQuestion(-1); // Time's up
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [answerQuestion, gameState, timeLeft]);
+
+  const startGame = async () => {
+    try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
   };
 
   return (
