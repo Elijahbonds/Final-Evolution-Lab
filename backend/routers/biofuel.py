@@ -24,11 +24,29 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from core import EMERGENT_KEY, User, db, get_current_user
+
+try:
+    from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
+    EMERGENT_INTEGRATIONS_AVAILABLE = True
+except ImportError:
+    EMERGENT_INTEGRATIONS_AVAILABLE = False
+
+    class ImageContent:
+        def __init__(self, image_base64: str):
+            self.image_base64 = image_base64
+
+    class UserMessage:
+        def __init__(self, text: str, file_contents: Optional[List[Any]] = None):
+            self.text = text
+            self.file_contents = file_contents or []
+
+    class LlmChat:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("emergentintegrations package is not installed")
 
 router = APIRouter(prefix="/api/biofuel", tags=["biofuel"])
 
@@ -297,6 +315,8 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
     """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
+    if not EMERGENT_INTEGRATIONS_AVAILABLE:
+        raise HTTPException(status_code=500, detail="emergentintegrations package not installed")
     if not EMERGENT_KEY:
         raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
 
