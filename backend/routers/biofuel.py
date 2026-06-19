@@ -24,7 +24,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
+try:
+    from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
+except ModuleNotFoundError:
+    ImageContent = None
+    LlmChat = None
+    UserMessage = None
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -297,8 +302,8 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
     """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
-    if not EMERGENT_KEY:
-        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+    if not EMERGENT_KEY or not ImageContent or not LlmChat or not UserMessage:
+        raise HTTPException(status_code=503, detail="Vision provider not configured")
 
     provider = "gemini" if req.model.startswith("gemini") else "openai"
     session_id = f"biofuel-scan-{uuid.uuid4().hex[:10]}"

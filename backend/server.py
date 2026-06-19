@@ -1,14 +1,21 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
-import os, logging, uuid, random, json, aiofiles, hashlib, hmac, base64
+import os, logging, uuid, random, json, hashlib, hmac, base64
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-import paypalrestsdk
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ModuleNotFoundError:
+    LlmChat = None
+    UserMessage = None
+try:
+    import paypalrestsdk
+except ModuleNotFoundError:
+    paypalrestsdk = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -17,12 +24,14 @@ from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 
-# PayPal config
-paypalrestsdk.configure({
-    "mode": "sandbox",
-    "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
-})
+# PayPal config. The SDK is optional so non-payment routes can still boot in
+# local/cloud environments where partner integrations are intentionally absent.
+if paypalrestsdk:
+    paypalrestsdk.configure({
+        "mode": "sandbox",
+        "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
+        "client_secret": os.environ.get('PAYPAL_SECRET', '')
+    })
 
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -201,6 +210,9 @@ async def get_streak_rewards(user: User = Depends(get_current_user)):
 # ===================== PAYPAL =====================
 @api_router.post("/payments/create-order")
 async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    if not paypalrestsdk:
+        raise HTTPException(status_code=503, detail="PayPal integration not installed")
+
     item_type = data.get("item_type", "card")  # card, course
     item_id = data.get("item_id")
     amount = data.get("amount", 0)
@@ -244,6 +256,9 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
 
 @api_router.post("/payments/capture")
 async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    if not paypalrestsdk:
+        raise HTTPException(status_code=503, detail="PayPal integration not installed")
+
     payment_id = data.get("payment_id")
     payer_id = data.get("payer_id")
     if not payment_id or not payer_id:
@@ -411,9 +426,8 @@ async def upload_video(file: UploadFile = File(...), user: User = Depends(get_cu
     ext = file.filename.split(".")[-1] if "." in file.filename else "mp4"
     filepath = UPLOAD_DIR / f"{file_id}.{ext}"
 
-    async with aiofiles.open(filepath, 'wb') as f:
-        content = await file.read()
-        await f.write(content)
+    content = await file.read()
+    filepath.write_bytes(content)
 
     video_doc = {
         "id": file_id, "user_id": user.user_id, "filename": file.filename,
@@ -1264,6 +1278,8 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
+    if not EMERGENT_KEY or not LlmChat or not UserMessage:
+        return {"response":"AI service temporarily unavailable. Try again shortly.","model":"fallback","type":prompt_type}
     try:
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
         chat.with_model("openai","gpt-5.2")
@@ -1279,6 +1295,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     model = data.get("model","gpt-5.2")
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
+    if not EMERGENT_KEY or not LlmChat or not UserMessage:
+        return {"response":"Connection issue. Please try again.","model":"fallback","conversation_id":cid}
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))

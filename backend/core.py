@@ -11,9 +11,15 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+db_name = os.environ.get('DB_NAME', 'test_database')
+try:
+    mongo_timeout_ms = int(os.environ.get('MONGO_SERVER_SELECTION_TIMEOUT_MS', '2000'))
+except ValueError:
+    mongo_timeout_ms = 2000
+
+client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=mongo_timeout_ms)
+db = client[db_name]
 EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 
