@@ -32,7 +32,7 @@ class TestEducationTracks:
         assert by_id["kinesiology"]["lesson_count"] == 8
         assert by_id["brain_brawl"]["lesson_count"] == 4
         assert by_id["kinesiology"]["is_certificate"] is True
-        assert by_id["brain_brawl"]["ue5_deep_link"] == "finalevolution://brain-brawl/launch"
+        assert by_id["brain_brawl"]["ue5_deep_link"] == "finalevolution://launch?map=Neuro_Arena&mode=brain_brawl"
 
     def test_track_detail_no_answer_leak(self):
         r = requests.get(f"{BASE_URL}/api/education/tracks/kinesiology")
@@ -232,8 +232,8 @@ class TestBrainBrawl:
         r = requests.post(f"{BASE_URL}/api/education/brain-brawl/launch", headers=h(FRESH_TOKEN))
         assert r.status_code == 200
         d = r.json()
-        assert d["deep_link"] == "finalevolution://brain-brawl/launch"
-        assert d["ue5_mode_id"] == "brain_brawl_arena"
+        assert d["deep_link"].startswith("finalevolution://launch?map=Neuro_Arena&mode=brain_brawl&session=bb_")
+        assert d["ue5_mode_id"] == "brain_brawl"
         assert d["session_id"].startswith("bb_")
 
 

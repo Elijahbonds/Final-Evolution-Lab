@@ -11,15 +11,16 @@ import {
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
   Swords, Video, Palette, UserPlus, Gift
 } from "lucide-react";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+const BACKEND_CONFIGURED = Boolean(BACKEND_URL);
+const API = BACKEND_CONFIGURED ? `${BACKEND_URL}/api` : "/api";
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -48,6 +49,7 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const checkAuth = useCallback(async () => {
+    if (!BACKEND_CONFIGURED) { setUser(null); setLoading(false); return; }
     if (window.location.hash?.includes('session_id=')) { setLoading(false); return; }
     try { const r = await axios.get(`${API}/auth/me`); setUser(r.data); } catch { setUser(null); }
     finally { setLoading(false); }
@@ -69,6 +71,7 @@ const AuthCallback = () => {
     if (hasProcessed.current) return;
     hasProcessed.current = true;
     const process = async () => {
+      if (!BACKEND_CONFIGURED) { navigate('/login'); return; }
       const sid = window.location.hash.split('session_id=')[1]?.split('&')[0];
       if (!sid) { navigate('/login'); return; }
       try {
@@ -90,13 +93,27 @@ const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div></div>;
+  if (!BACKEND_CONFIGURED) return <BackendConfigNotice />;
   if (!user && !location.state?.user) return <Navigate to="/login" replace />;
   return children;
 };
 
+const BackendConfigNotice = () => (
+  <div className="min-h-screen flex items-center justify-center px-6" style={{background:'var(--bg-default)'}}>
+    <div className="surface-card max-w-xl p-8 text-center">
+      <Shield className="w-12 h-12 text-cyan-400 mx-auto mb-4" />
+      <p className="overline mb-2">CONFIGURATION REQUIRED</p>
+      <h1 className="text-3xl font-black mb-4" style={{fontFamily:'Barlow Condensed'}}>BACKEND URL NOT SET</h1>
+      <p className="text-zinc-400 mb-6">Set <span className="font-mono text-cyan-300">REACT_APP_BACKEND_URL</span> in the frontend environment so auth, dashboards, and game launch APIs can connect.</p>
+      <a href="/" className="btn-secondary inline-flex">Back to Landing</a>
+    </div>
+  </div>
+);
+
 // ===================== DOWNLOAD / DISTRIBUTION PAGE =====================
 const DownloadPage = () => {
   const handleLogin = () => {
+    if (!BACKEND_CONFIGURED) { window.location.href = '/login'; return; }
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
@@ -110,10 +127,12 @@ const LandingPage = () => {
   const { user } = useAuth();
   useEffect(() => { if (user) navigate('/dashboard'); }, [user, navigate]);
   const handleLogin = () => {
+    if (!BACKEND_CONFIGURED) { navigate('/login'); return; }
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
+  const handleDemo = () => navigate('/download');
   return (
     <div className="min-h-screen" style={{background:'var(--bg-default)'}}>
       <div className="relative overflow-hidden">
@@ -128,13 +147,13 @@ const LandingPage = () => {
         <div className="relative z-10 max-w-6xl mx-auto px-8 py-24 text-center">
           <p className="overline mb-4">THE ATHLETE OPERATING SYSTEM</p>
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6" style={{fontFamily:'Barlow Condensed'}}>YOUR MOVEMENT<br/><span className="text-cyan-400">AUDITED</span></h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 12 production game modes, 19 total game tracks, AI coaching, and cognitive training.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
-            <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
+            <button onClick={handleDemo} className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
-            {[{v:"17",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
+            {[{v:"12",l:"Prod Modes"},{v:"19",l:"Total Tracks"},{v:"54",l:"Animations"},{v:"13",l:"Venues"}].map((s,i) => (
               <div key={i} className="text-center"><div className="metric-value text-cyan-400">{s.v}</div><div className="metric-label">{s.l}</div></div>
             ))}
           </div>
@@ -147,7 +166,7 @@ const LandingPage = () => {
           {[
             {icon:Activity,t:"System Scan",d:"Avatar, PRQ metrics, health signals, and workout plans unified"},
             {icon:Users,t:"Creator Cards",d:"Digital collectibles from elite athletes and coaches"},
-            {icon:Gamepad2,t:"17 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
+            {icon:Gamepad2,t:"Production Game Modes",d:"12 production arenas plus staging and preview tracks across sport, board, and academy play"},
             {icon:Trophy,t:"Coach Economy",d:"Instruction and critique as first-class currencies"},
             {icon:Brain,t:"Brain Brawl",d:"Cognitive training for peak decision-making"},
             {icon:GraduationCap,t:"Education",d:"Common Core to kinesiology certification"}
@@ -174,6 +193,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   useEffect(() => { if (user) navigate('/dashboard'); }, [user, navigate]);
   const handleLogin = () => {
+    if (!BACKEND_CONFIGURED) return;
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
@@ -183,8 +203,19 @@ const LoginPage = () => {
       <div className="surface-card p-8 w-full max-w-md text-center">
         <div className="w-16 h-16 bg-cyan-400 flex items-center justify-center mx-auto mb-6"><Zap className="w-10 h-10 text-black" /></div>
         <h1 className="text-3xl font-bold mb-2" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION LAB</h1>
-        <p className="text-zinc-400 mb-8">Sign in to access your training dashboard</p>
-        <button data-testid="login-google-btn" onClick={handleLogin} className="btn-primary w-full flex items-center justify-center gap-3">Continue with Google</button>
+        {BACKEND_CONFIGURED ? (
+          <>
+            <p className="text-zinc-400 mb-8">Sign in to access your training dashboard</p>
+            <button data-testid="login-google-btn" onClick={handleLogin} className="btn-primary w-full flex items-center justify-center gap-3">Continue with Google</button>
+          </>
+        ) : (
+          <>
+            <p className="text-zinc-400 mb-4">Dashboard auth is waiting on frontend configuration.</p>
+            <div className="bg-black/40 border border-yellow-400/20 p-4 text-left text-sm text-zinc-300">
+              Set <span className="font-mono text-cyan-300">REACT_APP_BACKEND_URL</span> to the FastAPI origin, then rebuild the frontend.
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -275,7 +306,7 @@ const DashboardView = ({ setActiveTab }) => {
       <div>
         <h2 className="text-2xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>QUICK START</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[{t:'Play Game',d:'17 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
+          {[{t:'Play Game',d:'12 prod modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
             <button key={idx} data-testid={`quick-${i.a}`} onClick={()=>setActiveTab(i.a)} className="surface-card p-5 text-left card-hover flex items-center gap-4">
               <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center flex-shrink-0"><i.icon className="w-6 h-6 text-cyan-400" /></div>
               <div className="flex-1 min-w-0"><div className="font-bold">{i.t}</div><div className="text-sm text-zinc-500">{i.d}</div></div>
@@ -510,6 +541,11 @@ const GameModesView = () => {
   const [sessionState, setSessionState] = useState(null);
   const [launchStatus, setLaunchStatus] = useState(null); // null, 'launching', 'map_loading', 'timeout'
   const wsRef = useRef(null);
+  const launchStatusRef = useRef(null);
+  const launchingModeRef = useRef(null);
+
+  useEffect(() => { launchStatusRef.current = launchStatus; }, [launchStatus]);
+  useEffect(() => { launchingModeRef.current = launchingMode; }, [launchingMode]);
 
   // Fetch modes from centralized venue registry (not hardcoded)
   useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
@@ -517,6 +553,8 @@ const GameModesView = () => {
   const launchNativeMode = async (mode) => {
     setLaunchingMode(mode.id);
     setLaunchStatus('launching');
+    launchingModeRef.current = mode.id;
+    launchStatusRef.current = 'launching';
     try {
       const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
@@ -532,6 +570,7 @@ const GameModesView = () => {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
+        launchStatusRef.current = 'map_loading';
 
         ws.onmessage = (e) => {
           try {
@@ -540,6 +579,8 @@ const GameModesView = () => {
               // MapLoaded signal received from UFELEmergentBridgeSubsystem
               setLaunchStatus(null);
               setLaunchingMode(null);
+              launchStatusRef.current = null;
+              launchingModeRef.current = null;
               ws.close();
             }
           } catch {}
@@ -548,23 +589,29 @@ const GameModesView = () => {
         // 10s System Re-auth (NOT browser fallback)
         // If no MapLoaded signal, trigger re-auth instead of showing placeholder
         setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+          if (launchStatusRef.current === 'map_loading' || launchingModeRef.current === mode.id) {
             ws.close();
             setLaunchStatus('timeout');
+            launchStatusRef.current = 'timeout';
             // System Re-auth: re-verify session, do NOT fall back to browser game
             axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: 'timeout' }).catch(() => {});
             setLaunchingMode(null);
+            launchingModeRef.current = null;
           }
         }, 10000);
       } else {
         // No deep link available (desktop/web) — use browser version
         setLaunchingMode(null);
         setLaunchStatus(null);
+        launchingModeRef.current = null;
+        launchStatusRef.current = null;
         setPlayingMode(mode);
       }
     } catch {
       setLaunchingMode(null);
       setLaunchStatus(null);
+      launchingModeRef.current = null;
+      launchStatusRef.current = null;
       setPlayingMode(mode);
     }
   };
@@ -1056,7 +1103,7 @@ const PixelStreamingView = () => {
   return (
     <div className="space-y-6 fade-in">
       <div className="flex items-center justify-between">
-        <div><p className="overline mb-1">EAGLE 3D STREAMING · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
+        <div><p className="overline mb-1">LOCAL SOVEREIGN · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
         <div className="flex items-center gap-2">
           {status?.available ? <Wifi className="w-5 h-5 text-green-400" /> : <WifiOff className="w-5 h-5 text-red-400" />}
           <span className={`text-sm font-mono ${status?.available ? 'text-green-400' : 'text-red-400'}`}>{status?.available ? 'LIVE' : 'OFFLINE'}</span>
@@ -1068,7 +1115,7 @@ const PixelStreamingView = () => {
           <div className="flex items-center gap-3 mb-4">
             {status?.has_api_key ? <Wifi className="w-6 h-6 text-yellow-400" /> : <WifiOff className="w-6 h-6 text-red-400" />}
             <div>
-              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.has_api_key ? 'E3DS API KEY CONFIGURED' : 'CONNECT E3DS STREAM'}</h3>
+              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.available ? 'SOVEREIGN HUB CONNECTED' : 'AWAITING SOVEREIGN HUB'}</h3>
               <p className="text-sm text-zinc-400">{status?.message}</p>
             </div>
           </div>
@@ -1081,10 +1128,10 @@ const PixelStreamingView = () => {
             </div>
           )}
           <div className="flex gap-3 mb-3">
-            <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="https://stream.eagle3dstreaming.com/view/your-app-id" className="input-clinical flex-1" />
+            <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="Optional local stream or diagnostics URL" className="input-clinical flex-1" />
             <button data-testid="connect-stream" onClick={handleConnect} disabled={connecting} className="btn-primary">{connecting ? 'Connecting...' : 'Connect'}</button>
           </div>
-          <p className="text-xs text-zinc-600">Paste the iframe URL from the E3DS Control Panel after uploading your UE5 build.</p>
+          <p className="text-xs text-zinc-600">Use this for local stream diagnostics; gameplay launch uses the native finalevolution:// bridge.</p>
         </div>
       )}
 
@@ -1092,15 +1139,15 @@ const PixelStreamingView = () => {
         {status?.available && streamSrc ? (
           <div className="relative">
             <iframe ref={iframeRef} data-testid="e3ds-iframe" src={streamSrc} className="w-full border-0" style={{height:'540px'}} allow="xr-spatial-tracking *; camera *; microphone *; autoplay; fullscreen" allowFullScreen />
-            {activeMode && <div className="absolute top-3 left-3 badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}><Play className="w-3 h-3 inline mr-1" />{activeMode.mode_id.replace(/_/g,' ').toUpperCase()} — {activeMode.map}</div>}
+            {activeMode && <div className="absolute top-3 left-3 badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}><Play className="w-3 h-3 inline mr-1" />{activeMode.mode_id.replace(/_/g,' ').toUpperCase()} — {activeMode.venue}</div>}
             <div className="absolute top-3 right-3 flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs text-green-400 font-mono">STREAMING</span></div>
           </div>
         ) : (
           <div className="aspect-video bg-black flex items-center justify-center border border-white/5">
             <div className="text-center">
               <Radio className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>AWAITING E3DS STREAM</h3>
-              <p className="text-sm text-zinc-700 mt-2">Connect Eagle 3D Streaming to play UE5 game modes in high fidelity</p>
+              <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>AWAITING SOVEREIGN HUB</h3>
+              <p className="text-sm text-zinc-700 mt-2">Launch the native app or UE bridge to connect mode telemetry and launch confirmations.</p>
               <div className="flex items-center justify-center gap-6 mt-6 text-zinc-700">
                 <div className="text-center"><div className="font-mono text-lg">RTX 4080</div><div className="text-xs">GPU</div></div>
                 <div className="text-center"><div className="font-mono text-lg">1080p60</div><div className="text-xs">Stream</div></div>
@@ -1125,14 +1172,13 @@ const PixelStreamingView = () => {
       </div>
 
       <div className="surface-card p-6" data-testid="deploy-instructions">
-        <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>PULUMI DEPLOY</h3>
+        <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>LOCAL BRIDGE CHECKLIST</h3>
         <div className="bg-black/50 p-4 border border-white/5 font-mono text-sm text-zinc-400 overflow-x-auto">
-          <div className="text-zinc-600"># One-command Eagle 3D deployment</div>
-          <div>export E3DS_API_KEY="your-api-key"</div>
-          <div>export E3DS_ACCOUNT_ID="your-account-id"</div>
-          <div>export FEL_BUILD_URL="s3://bucket/FEL-Shipping.zip"</div>
-          <div className="text-cyan-400 mt-2">./infra/deploy_e3ds.sh</div>
-          <div className="text-zinc-600 mt-2"># Stream URL auto-injected into web portal</div>
+          <div className="text-zinc-600"># Native bridge launch contract</div>
+          <div>finalevolution://launch?map=Venice_Beach_Court&amp;mode=basketball_h2h</div>
+          <div>WebSocket: {status?.ws_url || 'wss://finalevolutiongroup.com/ws/sovereign'}</div>
+          <div className="text-cyan-400 mt-2">Confirm MapLoaded within 10 seconds</div>
+          <div className="text-zinc-600 mt-2"># No browser game fallback on failed native launch</div>
         </div>
       </div>
     </div>
@@ -1224,7 +1270,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }
@@ -1241,6 +1287,7 @@ const Dashboard = () => {
 // ===================== APP ROUTER =====================
 function AppRouter() {
   const location = useLocation();
+  if (location.hash?.includes('session_id=') && !BACKEND_CONFIGURED) return <BackendConfigNotice />;
   if (location.hash?.includes('session_id=')) return <AuthCallback />;
   return (
     <Routes>

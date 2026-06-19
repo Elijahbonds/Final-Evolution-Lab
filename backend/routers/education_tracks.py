@@ -17,9 +17,10 @@ Kinesiology Certificate is unlocked when:
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
+import json
 import uuid
 
-from core import db, get_current_user, User
+from core import db, get_current_user, User, ROOT_DIR
 
 router = APIRouter(prefix="/api/education", tags=["education"])
 
@@ -29,6 +30,20 @@ KINESIOLOGY_PRQ_GATE = 80.0
 BIO_DIGITAL_REQUIRED_MODULES = [
     "skeletal_basics", "muscular_chains", "kinetic_chain_pillars", "neural_priming"
 ]
+
+MODE_TO_UNREAL_MAP = {}
+mode_maps_path = ROOT_DIR / "ue_mode_maps.json"
+if mode_maps_path.exists():
+    with open(mode_maps_path) as f:
+        MODE_TO_UNREAL_MAP = json.load(f).get("mode_to_unreal_map", {})
+
+
+def _ue5_deep_link(mode_id: str, session_id: Optional[str] = None) -> str:
+    venue_token = MODE_TO_UNREAL_MAP.get(mode_id, mode_id)
+    deep_link = f"finalevolution://launch?map={venue_token}&mode={mode_id}"
+    if session_id:
+        deep_link = f"{deep_link}&session={session_id}"
+    return deep_link
 
 # ============================================================
 # SEED CONTENT — track lessons + quizzes
@@ -320,8 +335,8 @@ TRACKS: Dict[str, Dict[str, Any]] = {
         "level": "Adaptive",
         "icon": "Brain",
         "color": "fuchsia",
-        "ue5_deep_link": "finalevolution://brain-brawl/launch",
-        "ue5_mode_id": "brain_brawl_arena",
+        "ue5_deep_link": _ue5_deep_link("brain_brawl"),
+        "ue5_mode_id": "brain_brawl",
         "lessons": [
             {
                 "id": "bb_brief_1", "title": "Combat Briefing — Reaction Drills",
@@ -686,7 +701,7 @@ async def launch_brain_brawl(user: User = Depends(get_current_user)):
     })
     return {
         "session_id": session_id,
-        "deep_link": track["ue5_deep_link"],
+        "deep_link": _ue5_deep_link(track["ue5_mode_id"], session_id),
         "ue5_mode_id": track["ue5_mode_id"],
         "instructions": "Open in iOS — UE5 binary will launch the Brain Brawl Arena.",
     }

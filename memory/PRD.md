@@ -25,7 +25,7 @@ Four pillars unified into a single dashboard:
 4. Final assessment passed (≥80% on 10 questions)
 
 ### Brain Brawl
-Web exposes briefings/cooldowns. Live gameplay launches via `finalevolution://brain-brawl/launch` deep link to the iOS-wrapped UE5 binary.
+Web exposes briefings/cooldowns. Live gameplay launches via `finalevolution://launch?map=Neuro_Arena&mode=brain_brawl` deep link to the iOS-wrapped UE5 binary.
 
 ## Architecture
 ```

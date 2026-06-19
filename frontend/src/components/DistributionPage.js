@@ -600,8 +600,8 @@ const TECH_DOCS = {
     schemes: [
       { uri: "finalevolution://", label: "Open the app", description: "Launches FEL on the last-active screen. No-op if the app is already foregrounded." },
       { uri: "finalevolution://system-scan", label: "Jump to system scan", description: "Boots straight into the PRQ scan flow." },
-      { uri: "finalevolution://brain-brawl/launch", label: "Brain Brawl arena", description: "Already in production — used by the cognitive mode briefing on the web dashboard." },
-      { uri: "finalevolution://mode/{modeId}", label: "Launch a specific game mode", description: "modeId is one of the 19 registered modes (basketball_h2h, brain_brawl, dunk_arena, etc.)." },
+      { uri: "finalevolution://launch?map=Neuro_Arena&mode=brain_brawl", label: "Brain Brawl arena", description: "Used by the cognitive mode briefing on the web dashboard." },
+      { uri: "finalevolution://launch?map={venueToken}&mode={modeId}", label: "Launch a specific game mode", description: "modeId is one of the 19 registered modes and venueToken comes from the centralized registry." },
       { uri: "finalevolution://creator-card/{cardId}", label: "Open a Creator Card", description: "Marketplace deep-link with PayPal-ready checkout state." },
       { uri: "finalevolution://education/track/{trackId}", label: "Resume a track", description: "trackId ∈ {common_core, stem, kinesiology, brain_brawl}." },
       { uri: "finalevolution://biofuel/scan", label: "Open the AI vision scanner", description: "Camera-ready · scoped permission prompt on first use." },

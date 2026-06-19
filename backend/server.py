@@ -7,8 +7,15 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-import paypalrestsdk
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
+try:
+    import paypalrestsdk
+except ImportError:
+    paypalrestsdk = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -18,11 +25,12 @@ from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 
 # PayPal config
-paypalrestsdk.configure({
-    "mode": "sandbox",
-    "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
-})
+if paypalrestsdk:
+    paypalrestsdk.configure({
+        "mode": os.environ.get('PAYPAL_MODE', 'sandbox'),
+        "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
+        "client_secret": os.environ.get('PAYPAL_SECRET', '')
+    })
 
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -207,6 +215,10 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
 
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid amount")
+    if not paypalrestsdk:
+        raise HTTPException(status_code=503, detail="PayPal SDK is not installed on this deployment")
+    if not os.environ.get('PAYPAL_CLIENT_ID') or not os.environ.get('PAYPAL_SECRET'):
+        raise HTTPException(status_code=503, detail="PayPal credentials are not configured")
 
     payment = paypalrestsdk.Payment({
         "intent": "sale",
@@ -248,6 +260,10 @@ async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_
     payer_id = data.get("payer_id")
     if not payment_id or not payer_id:
         raise HTTPException(status_code=400, detail="payment_id and payer_id required")
+    if not paypalrestsdk:
+        raise HTTPException(status_code=503, detail="PayPal SDK is not installed on this deployment")
+    if not os.environ.get('PAYPAL_CLIENT_ID') or not os.environ.get('PAYPAL_SECRET'):
+        raise HTTPException(status_code=503, detail="PayPal credentials are not configured")
 
     payment = paypalrestsdk.Payment.find(payment_id)
     if payment.execute({"payer_id": payer_id}):
@@ -744,6 +760,16 @@ async def get_progress(user: User = Depends(get_current_user)):
     w = await db.workout_logs.count_documents({"user_id":user.user_id})
     g = await db.game_sessions.count_documents({"user_id":user.user_id})
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
+    return {
+        "total_workouts": w,
+        "total_games": g,
+        "total_brawls": b,
+        "xp": user.xp,
+        "level": user.level,
+        "prq_score": user.prq_score,
+        "streak_days": user.streak_days,
+        "coins": user.coins,
+    }
 
 # ===================== CENTRALIZED VENUE REGISTRY (Fetch on launch) =====================
 
@@ -756,7 +782,7 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_mode_venue_token(mode_id, config)
         venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
@@ -1264,6 +1290,8 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
+    if not LlmChat or not UserMessage or not EMERGENT_KEY:
+        return {"response":"AI provider is not configured. Baseline plan: train with quality reps, track PRQ after each session, prioritize sleep and hydration, and repeat the system scan before increasing load.","model":"fallback","type":prompt_type}
     try:
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
         chat.with_model("openai","gpt-5.2")
@@ -1280,6 +1308,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
+    if not LlmChat or not UserMessage or not EMERGENT_KEY:
+        return {"response":"AI provider is not configured yet. I can still help with baseline guidance: choose a training focus, log the session, recover, and retest PRQ before progressing intensity.","model":"fallback","conversation_id":cid}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=f"You are FEL AI Assistant. Help {user.name} with training, nutrition, recovery. PRQ: {user.prq_score}/100. Be concise.")
@@ -1294,16 +1324,7 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/streaming/status")
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
-    }
+    mode_maps = get_mode_map_tokens()
     
     ws_connected = len(sovereign_bridge.clients) > 0
     
@@ -1335,7 +1356,7 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     if not mode_config:
         raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
 
-    venue_key = mode_config["map"].split("/")[-1]
+    venue_key = get_mode_venue_token(mode_id, mode_config)
     venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
 
     # Create live session in Sovereign Hub
@@ -1426,11 +1447,11 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
-    """All 17 modes with deep links and venue mapping — confirms playability"""
+    """All registered modes with deep links and venue mapping — confirms playability"""
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_mode_venue_token(mode_id, config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
@@ -1974,6 +1995,27 @@ if mode_path.exists():
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
 
+MODE_TO_UNREAL_MAP = {}
+mode_maps_path = ROOT_DIR / "ue_mode_maps.json"
+if mode_maps_path.exists():
+    with open(mode_maps_path) as f:
+        MODE_TO_UNREAL_MAP = json.load(f).get("mode_to_unreal_map", {})
+    logger.info(f"Loaded UE mode map tokens: {len(MODE_TO_UNREAL_MAP)} mappings")
+
+def get_mode_venue_token(mode_id: str, config: Optional[Dict[str, Any]] = None) -> str:
+    """Resolve the token understood by the iOS/UE launch bridge."""
+    if mode_id in MODE_TO_UNREAL_MAP:
+        return MODE_TO_UNREAL_MAP[mode_id]
+    if config:
+        return config.get("venue_token") or config.get("map", "").split("/")[-1]
+    return mode_id
+
+def get_mode_map_tokens() -> Dict[str, str]:
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    if registry:
+        return {mode_id: get_mode_venue_token(mode_id, config) for mode_id, config in registry.items()}
+    return dict(MODE_TO_UNREAL_MAP)
+
 # Sovereign connection state
 sovereign_state = {
     "websocket_status": "waiting_for_connection",
@@ -2044,10 +2086,14 @@ async def startup_venue_mapping():
     try:
         await ensure_venue_collections()
     except Exception as e:
+        sovereign_state["database_status"] = "unavailable"
+        sovereign_state["database_error"] = str(e)
         logger.warning(f"ensure_venue_collections failed (non-fatal): {e}")
     try:
         await ensure_fel_os_indexes()
     except Exception as e:
+        sovereign_state.setdefault("database_status", "unavailable")
+        sovereign_state["index_error"] = str(e)
         logger.warning(f"ensure_fel_os_indexes failed (non-fatal): {e}")
 
 # ── Directive 1 & 2: Sovereign WebSocket Bridge ──────────────────
@@ -2355,7 +2401,7 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_mode_venue_token(mode_id, config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         # Check for live session data in venue collection
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
