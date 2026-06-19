@@ -1,0 +1,16 @@
+{
+  "short_name": "FEL",
+  "name": "Final Evolution Lab",
+  "description": "Athlete OS for system scans, game modes, coaching, Bio-Fuel nutrition, education, and sovereign performance tracking.",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#050505",
+  "background_color": "#050505",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

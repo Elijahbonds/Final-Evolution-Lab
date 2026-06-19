@@ -29,6 +29,7 @@ class User(BaseModel):
     role: str = "athlete"
     sport: str = "basketball"
     prq_score: float = 75.0
+    weight_kg: Optional[float] = None
     level: int = 1
     xp: int = 0
     streak_days: int = 0

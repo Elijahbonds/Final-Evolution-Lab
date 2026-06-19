@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Final Evolution Lab">
+  <rect width="64" height="64" rx="12" fill="#050505"/>
+  <path d="M34 6 12 36h17l-4 22 27-34H34l4-18Z" fill="#00E5FF"/>
+  <path d="M34 6 25 58l27-34H34l4-18h-4Z" fill="#5E17EB" fill-opacity=".75"/>
+</svg>

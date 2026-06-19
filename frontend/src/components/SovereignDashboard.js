@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { API } from "@/lib/api";
 import {
   Wifi, WifiOff, Database, Shield, Zap, Radio, RefreshCw,
   Check, Clock, Activity, Server, Lock, Globe, Smartphone,
   Heart, TrendingUp, Target, Flame, Brain, Dumbbell, Play,
   AlertTriangle, Eye, User, Award, ChevronUp
 } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 export const SovereignDashboard = () => {
   const [status, setStatus] = useState(null);

@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { API } from "@/lib/api";
 import {
   Wifi, Users, Gamepad2, Star, Crown, User, Copy, Check,
   Gift, Zap, Clock, BarChart3, Play, Pause, Eye, Radio,
   ArrowRight, Share2, DollarSign, Shield, Database, RefreshCw
 } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 // ===================== MULTIPLAYER LOBBY =====================
 export const MultiplayerView = () => {

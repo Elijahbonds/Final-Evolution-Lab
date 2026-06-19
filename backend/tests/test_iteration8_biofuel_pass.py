@@ -61,6 +61,14 @@ class TestMongoIndexes:
         assert any("launched_at_ts" in [k for k, _ in v["key"]] for v in ttl), \
             "TTL index not on launched_at_ts field"
 
+    def test_biofuel_logs_unique_daily_index(self, db):
+        idxs = db.biofuel_logs.index_information()
+        unique_daily = [
+            v for v in idxs.values()
+            if v.get("unique") and v["key"] == [("user_id", 1), ("day", 1)]
+        ]
+        assert unique_daily, f"unique (user_id,day) index missing on biofuel_logs. Found: {idxs}"
+
 
 # ============ SOVEREIGN HANDSHAKE VERIFY ============
 class TestSovereignHandshake:
@@ -184,6 +192,14 @@ class TestBiofuelAuthenticated:
         r = requests.post(f"{BASE_URL}/api/biofuel/scan", headers=hdr(),
                           json={"image_base64": "abc", "model": "gpt-3"}, timeout=10)
         assert r.status_code == 400
+
+    def test_scan_oversize_image_413(self):
+        oversized = base64.b64encode(b"x" * ((4 * 1024 * 1024) + 1)).decode()
+        r = requests.post(
+            f"{BASE_URL}/api/biofuel/scan", headers=hdr(),
+            json={"image_base64": oversized, "model": "gemini-2.5-flash"}, timeout=10,
+        )
+        assert r.status_code == 413
 
     @pytest.fixture(scope="class")
     def real_food_b64(self):

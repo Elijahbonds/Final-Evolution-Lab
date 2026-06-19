@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from core import EMERGENT_KEY, User, db, get_current_user
 
@@ -46,6 +46,7 @@ ATHLETIC_INTENTS = {
 }
 
 NUTRI_SHARDS_PER_SCAN = 12  # base award
+MAX_SCAN_IMAGE_BYTES = 4 * 1024 * 1024
 
 
 def nasm_macro_target(weight_kg: float, sport: str, intent: str) -> Dict[str, Any]:
@@ -239,10 +240,10 @@ class ScanRequest(BaseModel):
 
 class LogRequest(BaseModel):
     label: str
-    calories: float
-    protein_g: float
-    carbs_g: float
-    fats_g: float
+    calories: float = Field(ge=0)
+    protein_g: float = Field(ge=0)
+    carbs_g: float = Field(ge=0)
+    fats_g: float = Field(ge=0)
     intent: Optional[str] = None
     source: str = "scan"  # scan | recipe | manual | doordash | instacart
 
@@ -253,8 +254,8 @@ class CartRequest(BaseModel):
 
 class DoorDashRequest(BaseModel):
     intent: Optional[str] = None
-    max_calories: Optional[int] = None
-    min_protein_g: Optional[int] = None
+    max_calories: Optional[int] = Field(default=None, ge=0)
+    min_protein_g: Optional[int] = Field(default=None, ge=0)
 
 
 # ============================================================
@@ -292,11 +293,28 @@ def _extract_json(text: str) -> Dict[str, Any]:
     return json.loads(match.group(0))
 
 
+def _estimated_base64_payload_bytes(image_base64: str) -> int:
+    """Estimate decoded image size without allocating the decoded payload."""
+    payload = (image_base64 or "").strip()
+    if "," in payload and payload.lower().startswith("data:"):
+        payload = payload.split(",", 1)[1]
+    payload = "".join(payload.split())
+    if not payload:
+        return 0
+    padding = len(payload) - len(payload.rstrip("="))
+    return max(0, (len(payload) * 3) // 4 - padding)
+
+
 @router.post("/scan")
 async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
     """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
+    image_bytes = _estimated_base64_payload_bytes(req.image_base64)
+    if image_bytes <= 0:
+        raise HTTPException(status_code=400, detail="image_base64 is required")
+    if image_bytes > MAX_SCAN_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="image_base64 exceeds the 4 MB scan limit")
     if not EMERGENT_KEY:
         raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
 
@@ -416,11 +434,14 @@ def _consumed_totals(entries: List[Dict[str, Any]]) -> Dict[str, int]:
         "protein_g": int(sum((e.get("protein_g") or 0) for e in entries)),
         "carbs_g": int(sum((e.get("carbs_g") or 0) for e in entries)),
         "fats_g": int(sum((e.get("fats_g") or 0) for e in entries)),
+        "hydration_ml": int(sum((e.get("hydration_ml") or (e.get("micros") or {}).get("hydration_ml") or 0) for e in entries)),
     }
 
 
 def _athlete_weight_kg(user: User) -> float:
-    # Until a `weight_kg` field is captured, derive a reasonable default from PRQ (75kg baseline)
+    if user.weight_kg and 30 <= user.weight_kg <= 250:
+        return float(user.weight_kg)
+    # Fall back to a conservative adult-athlete default until profile capture is complete.
     return 75.0
 
 
@@ -583,7 +604,9 @@ async def doordash_search(req: DoorDashRequest, user: User = Depends(get_current
         p_ok = m["protein_g"] >= min_p
         return cal_ok and p_ok
 
-    matches = [m for m in pool if fit(m)] or pool[:3]
+    matches = [dict(m, macros=dict(m["macros"])) for m in pool if fit(m)]
+    if not matches:
+        matches = [dict(m, macros=dict(m["macros"])) for m in pool[:3]]
     for m in matches:
         m["deep_link"] = f"https://www.doordash.com/search/store/?query={urllib.parse.quote(m['city_query'])}"
     return {

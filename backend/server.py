@@ -2026,7 +2026,7 @@ async def ensure_venue_collections():
 
 
 async def ensure_fel_os_indexes():
-    """FEL OS hardening — cert integrity + brain-brawl spam control."""
+    """FEL OS hardening — cert integrity, daily trackers, and spam control."""
     # Unique compound index on education_progress to prevent duplicate cert rows
     await db.education_progress.create_index(
         [("user_id", 1), ("track_id", 1)], unique=True, name="uniq_user_track"
@@ -2035,7 +2035,10 @@ async def ensure_fel_os_indexes():
     await db.brain_brawl_launches.create_index(
         "launched_at_ts", expireAfterSeconds=86400, name="ttl_24h"
     )
-    logger.info("FEL OS indexes: education_progress(unique user_id+track_id), brain_brawl_launches(TTL 24h)")
+    await db.biofuel_logs.create_index(
+        [("user_id", 1), ("day", 1)], unique=True, name="uniq_biofuel_user_day"
+    )
+    logger.info("FEL OS indexes: education_progress(unique user_id+track_id), biofuel_logs(unique user_id+day), brain_brawl_launches(TTL 24h)")
 
 
 @app.on_event("startup")

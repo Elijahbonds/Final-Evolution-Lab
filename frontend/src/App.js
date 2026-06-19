@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, createContext, useCont
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { API } from "@/lib/api";
 import {
   Activity, Brain, Users, Gamepad2, GraduationCap, ShoppingBag,
   LogOut, Home, User, Trophy, Heart, Dumbbell,
@@ -18,8 +19,6 @@ import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -1224,7 +1223,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

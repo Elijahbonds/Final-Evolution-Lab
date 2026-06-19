@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { API } from "@/lib/api";
 import {
   Activity, ShoppingBag, Gamepad2, GraduationCap, Award, BookOpen,
   Atom, Brain, ChevronRight, ChevronLeft, CheckCircle2, Lock, Zap,
@@ -7,9 +8,6 @@ import {
   Share2, Download, Copy, X
 } from "lucide-react";
 import { BioFuelStripe, BioFuelScanner, BioFuelCookbook, BioFuelDoorDash } from "./BioFuel";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 const TRACK_ICON = { BookOpen, Atom, Award, Brain };
 const TRACK_GLOW = {

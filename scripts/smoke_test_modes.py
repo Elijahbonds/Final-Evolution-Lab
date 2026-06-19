@@ -7,6 +7,7 @@ Run against a live or mock FEL backend.
 import json
 import sys
 import os
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -252,6 +253,66 @@ def test_economy_integration():
             fail(f"PRQ weight missing for {mode}")
 
 
+def _parse_ini_section(path, section_name):
+    content = path.read_text()
+    parsed = {}
+    in_section = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped == f"[{section_name}]":
+            in_section = True
+            continue
+        if in_section and stripped.startswith("["):
+            break
+        if in_section and stripped and "=" in stripped and not stripped.startswith(";"):
+            k, v = stripped.split("=", 1)
+            parsed[k.strip()] = v.strip()
+    return parsed
+
+
+def _parse_cpp_text_map(content, function_name, next_marker):
+    start = content.index(function_name)
+    end = content.index(next_marker, start)
+    section = content[start:end]
+    return dict(re.findall(r'\.Add\(TEXT\("([^"]+)"\), TEXT\("([^"]+)"\)\);', section))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Test 9: UnrealIntegration C++ fallback deep-link maps
+# ═══════════════════════════════════════════════════════════════════════════════
+def test_unreal_integration_cpp_deeplink_maps():
+    print("\n── Test 9: UnrealIntegration C++ Deep Link Maps ──")
+    ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
+    expected_mode_tokens = ue_maps["mode_to_unreal_map"]
+    play_map = _parse_ini_section(REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini", "EmergentPlayMap")
+    cpp_path = REPO_ROOT / "UnrealIntegration" / "Source" / "FinalEvolutionLab" / "FELEmergentDeepLinkSubsystem.cpp"
+    content = cpp_path.read_text()
+
+    cpp_mode_tokens = _parse_cpp_text_map(content, "GetModeToVenueMap", "GetVenueTokenToPackagePath")
+    cpp_venue_paths = _parse_cpp_text_map(content, "GetVenueTokenToPackagePath", "MergeIniSectionIntoMap")
+
+    for mode, expected_token in expected_mode_tokens.items():
+        actual_token = cpp_mode_tokens.get(mode)
+        if actual_token == expected_token:
+            ok(f"C++ mode token {mode} → {actual_token}")
+        else:
+            fail(f"C++ mode token {mode}={actual_token}, expected {expected_token}")
+
+        expected_path = play_map.get(mode)
+        actual_path = cpp_venue_paths.get(expected_token)
+        if expected_path and actual_path == expected_path:
+            ok(f"C++ venue path {expected_token} → {actual_path}")
+        elif expected_path:
+            fail(f"C++ venue path {expected_token}={actual_path}, expected {expected_path}")
+        else:
+            skip(f"{mode} has no EmergentPlayMap entry to compare")
+
+    if "scene_it" in cpp_mode_tokens and cpp_mode_tokens["scene_it"] == expected_mode_tokens["who_scene_it"]:
+        ok("scene_it legacy alias resolves to who_scene_it venue")
+    else:
+        fail("scene_it legacy alias missing or not aligned with who_scene_it")
+
+
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
@@ -266,6 +327,7 @@ def main():
     test_swift_enum()
     test_server_seeded_modes()
     test_economy_integration()
+    test_unreal_integration_cpp_deeplink_maps()
 
     total = PASS + FAIL + SKIP
     print(f"\n{'═'*60}")
