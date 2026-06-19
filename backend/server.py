@@ -334,7 +334,7 @@ async def search_athletes(q: str = ""):
         query["name"] = {"$regex": q, "$options": "i"}
     try:
         athletes = await db.users.find(query, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "sport": 1, "prq_score": 1, "level": 1, "followers": 1}).limit(20).to_list(20)
-    except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
         logger.warning("Using seeded athlete search fallback: %s", e)
         athletes = []
     if not athletes:
@@ -351,7 +351,7 @@ async def search_athletes(q: str = ""):
 async def get_tournaments():
     try:
         tournaments = await db.tournaments.find({}, {"_id": 0}).sort("start_date", -1).limit(10).to_list(10)
-    except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
         logger.warning("Using seeded tournament fallback: %s", e)
         tournaments = []
     if not tournaments:
@@ -362,7 +362,7 @@ async def get_tournaments():
 async def get_tournament(tournament_id: str):
     try:
         t = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
-    except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
         logger.warning("Using seeded tournament detail fallback: %s", e)
         t = None
     if not t:
@@ -652,7 +652,7 @@ def get_seeded_game_modes():
 async def get_creator_cards(category: Optional[str] = None):
     try:
         cards = await db.creator_cards.find({} if not category else {"sport": category}, {"_id": 0}).to_list(100)
-    except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
         logger.warning("Using seeded creator card fallback: %s", e)
         cards = []
     if cards:
@@ -671,7 +671,7 @@ def get_seeded_creator_cards():
 async def get_available_coaches():
     try:
         coaches = await db.users.find({"role": "coach"}, {"_id": 0}).to_list(50)
-    except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
         logger.warning("Using seeded coach fallback: %s", e)
         coaches = []
     if not coaches:
@@ -750,7 +750,7 @@ def get_seeded_questions(category, count):
 async def get_leaderboard(limit: int = 20):
     try:
         leaders = await db.users.find({}, {"_id":0,"user_id":1,"name":1,"prq_score":1,"level":1,"xp":1,"sport":1,"picture":1,"streak_days":1}).sort("prq_score",-1).limit(limit).to_list(limit)
-    except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
         logger.warning("Using seeded leaderboard fallback: %s", e)
         leaders = []
     if not leaders:
@@ -1114,7 +1114,7 @@ async def get_card_multimedia(card_id: str):
     """Get multimedia assets for a Creator Card — 3D animations, masterclass video, IP permissions"""
     try:
         card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
-    except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
         logger.warning("Using seeded card multimedia fallback: %s", e)
         card = None
     if not card:
@@ -1651,7 +1651,7 @@ async def get_active_rooms():
         rooms = await db.multiplayer_rooms.find(
             {"status": {"$in": ["waiting", "in_progress"]}}, {"_id": 0}
         ).sort("created_at", -1).limit(20).to_list(20)
-    except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
         logger.warning("Using seeded multiplayer room fallback: %s", e)
         rooms = []
     if not rooms:
@@ -1792,7 +1792,7 @@ async def get_spectator_config(tournament_id: str):
     if not t:
         try:
             t = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
-        except PyMongoError as e:
+    except (PyMongoError, RuntimeError) as e:
             logger.warning("Using seeded spectator fallback: %s", e)
             t = None
     if not t:
