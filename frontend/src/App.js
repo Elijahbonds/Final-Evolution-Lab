@@ -18,8 +18,19 @@ import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const DEFAULT_BACKEND_URL = typeof window !== "undefined" ? window.location.origin : "";
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || DEFAULT_BACKEND_URL).replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
+
+const buildSovereignWebSocketUrl = () => {
+  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  const url = new URL(BACKEND_URL || origin, origin);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = "/ws/sovereign";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+};
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -507,15 +518,39 @@ const GameModesView = () => {
   const [filter, setFilter] = useState('all');
   const [playingMode, setPlayingMode] = useState(null);
   const [launchingMode, setLaunchingMode] = useState(null);
+  const [timeoutMode, setTimeoutMode] = useState(null);
   const [sessionState, setSessionState] = useState(null);
   const [launchStatus, setLaunchStatus] = useState(null); // null, 'launching', 'map_loading', 'timeout'
   const wsRef = useRef(null);
+  const launchTimeoutRef = useRef(null);
+
+  const clearLaunchTimeout = useCallback(() => {
+    if (launchTimeoutRef.current) {
+      clearTimeout(launchTimeoutRef.current);
+      launchTimeoutRef.current = null;
+    }
+  }, []);
 
   // Fetch modes from centralized venue registry (not hardcoded)
   useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
 
+  useEffect(() => () => {
+    clearLaunchTimeout();
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  }, [clearLaunchTimeout]);
+
   const launchNativeMode = async (mode) => {
+    if (!mode) return;
+    clearLaunchTimeout();
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
     setLaunchingMode(mode.id);
+    setTimeoutMode(null);
     setLaunchStatus('launching');
     try {
       const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
@@ -528,7 +563,7 @@ const GameModesView = () => {
 
         // State-Aware Handshake: listen for MapLoaded via WebSocket
         // NOT a blind timeout — wait for actual bridge confirmation
-        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const wsUrl = buildSovereignWebSocketUrl();
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
@@ -538,8 +573,11 @@ const GameModesView = () => {
             const msg = JSON.parse(e.data);
             if (msg.type === 'sovereign_handshake' || msg.type === 'map_loaded') {
               // MapLoaded signal received from UFELEmergentBridgeSubsystem
+              clearLaunchTimeout();
               setLaunchStatus(null);
               setLaunchingMode(null);
+              setTimeoutMode(null);
+              wsRef.current = null;
               ws.close();
             }
           } catch {}
@@ -547,14 +585,17 @@ const GameModesView = () => {
 
         // 10s System Re-auth (NOT browser fallback)
         // If no MapLoaded signal, trigger re-auth instead of showing placeholder
-        setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+        launchTimeoutRef.current = setTimeout(() => {
+          if (wsRef.current === ws) {
             ws.close();
-            setLaunchStatus('timeout');
-            // System Re-auth: re-verify session, do NOT fall back to browser game
-            axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: 'timeout' }).catch(() => {});
-            setLaunchingMode(null);
+            wsRef.current = null;
           }
+          setLaunchStatus('timeout');
+          setTimeoutMode(mode);
+          // System Re-auth: re-verify session, do NOT fall back to browser game
+          axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: 'timeout' }).catch(() => {});
+          setLaunchingMode(null);
+          launchTimeoutRef.current = null;
         }, 10000);
       } else {
         // No deep link available (desktop/web) — use browser version
@@ -589,8 +630,8 @@ const GameModesView = () => {
               <p className="text-zinc-400 mt-3">No MapLoaded signal received within 10s.</p>
               <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Sovereign Hub is reachable.</p>
               <div className="flex gap-4 mt-6 justify-center">
-                <button onClick={() => {setLaunchStatus(null);setLaunchingMode(null);}} className="btn-secondary">Back to Modes</button>
-                <button onClick={() => launchNativeMode(modes.find(m => m.id === launchingMode) || modes[0])} className="btn-primary">Retry Launch</button>
+                <button onClick={() => {setLaunchStatus(null);setLaunchingMode(null);setTimeoutMode(null);}} className="btn-secondary">Back to Modes</button>
+                <button onClick={() => launchNativeMode(timeoutMode || modes[0])} className="btn-primary">Retry Launch</button>
               </div>
             </>
           ) : (
@@ -631,7 +672,7 @@ const GameModesView = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="game-modes-grid">
         {filtered.map(mode => (
-          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && setPlayingMode(mode)}>
+          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && launchNativeMode(mode)}>
             <img src={mode.image_url} alt={mode.name} loading="lazy" />
             <div className="game-mode-overlay">
               <div className="flex items-center gap-2 mb-2">
@@ -1224,7 +1265,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }
