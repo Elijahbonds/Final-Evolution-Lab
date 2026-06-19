@@ -16,8 +16,7 @@
  * Aesthetic matches LandingV2: obsidian (#050505) + neon cyan (#00E5FF) +
  * indigo-violet (#5E17EB). Pure SVG + CSS. Zero new npm deps.
  *
- * All store badges are visual placeholders (SVG composed in-component); swap
- * to the official PNGs at the URLs marked DISTRIBUTION_BADGE_REPLACE.
+ * Store badges are visual placeholders until public listings are published.
  */
 import React, { useState, useEffect } from "react";
 import {
@@ -33,41 +32,41 @@ const PLATFORMS = [
   {
     id: "ios",
     name: "iPhone & iPad",
-    eyebrow: "App Store · iOS 17+",
+    eyebrow: "iOS 17+ · Private beta",
     icon: Apple,
     accent: "#00E5FF",
-    status: "available",
-    statusLabel: "Available",
+    status: "coming-soon",
+    statusLabel: "Private beta",
     description: "Native UE5.7 host with the WKWebView dashboard overlay. iPhone 15 Pro / 16 Pro recommended for Metal 3 + 120 Hz.",
     badge: "appstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — App Store listing
-    secondaryLabel: "Read iOS install guide",
+    storeUrl: null,
+    secondaryLabel: "Read iOS readiness guide",
   },
   {
     id: "macos",
     name: "Mac",
-    eyebrow: "Mac App Store · macOS 14+",
+    eyebrow: "macOS 14+ · Internal build",
     icon: Monitor,
     accent: "#8B5CF6",
-    status: "available",
-    statusLabel: "Apple Silicon",
+    status: "coming-soon",
+    statusLabel: "Apple Silicon beta",
     description: "Universal Mac binary for Apple Silicon (M1/M2/M3/M4). Intel Macs run in Rosetta — Metal 3 features disabled.",
     badge: "macappstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Mac App Store
-    secondaryLabel: "Read macOS install guide",
+    storeUrl: null,
+    secondaryLabel: "Read macOS readiness guide",
   },
   {
     id: "android",
     name: "Android",
-    eyebrow: "Google Play · Android 13+",
+    eyebrow: "Android 13+ · Private beta",
     icon: Smartphone,
     accent: "#34D399",
-    status: "available",
-    statusLabel: "Available",
+    status: "coming-soon",
+    statusLabel: "Private beta",
     description: "AAB-distributed via Play Console. Vulkan-capable device with ≥6 GB RAM recommended; Tensor / Snapdragon 8 Gen 2+.",
     badge: "googleplay",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Google Play listing
-    secondaryLabel: "Read Android install guide",
+    storeUrl: null,
+    secondaryLabel: "Read Android readiness guide",
   },
   {
     id: "web",
@@ -92,8 +91,8 @@ const GUIDES = {
     label: "iOS / iPadOS",
     icon: Apple,
     steps: [
-      { t: "Open the App Store", b: "On your iPhone or iPad, search for 'Final Evolution Lab'." },
-      { t: "Tap 'Get' and authenticate", b: "Use Face ID, Touch ID, or your Apple ID password. Download is ~620 MB; expect a one-time first-launch cook of 30–60 seconds." },
+      { t: "Join the private beta", b: "Sign in on this site and request access. Approved athletes receive the TestFlight or managed-distribution invite when their cohort opens." },
+      { t: "Install from the invite", b: "Use Face ID, Touch ID, or your Apple ID password. Download is ~620 MB; expect a one-time first-launch cook of 30–60 seconds." },
       { t: "Allow permissions on first launch", b: "Camera (for AI pose critique), Motion & Fitness (for the HealthKit bridge), and Notifications (for AI Coach neuro-cues)." },
       { t: "Sign in with Google", b: "Tap 'Enter Lab'. The OAuth handshake auto-creates your athlete profile and seeds your PRQ baseline at 75.0." },
       { t: "Run your first System Scan", b: "Tap 'Start System Scan' on the dashboard. Hold your iPhone at eye-level and perform the prompted movement screen — ~90 seconds." },
@@ -104,8 +103,8 @@ const GUIDES = {
     label: "macOS",
     icon: Monitor,
     steps: [
-      { t: "Open the Mac App Store", b: "Search for 'Final Evolution Lab' or tap the Mac badge above." },
-      { t: "Click 'Get' → 'Install'", b: "Authenticate with Touch ID or Apple ID. ~1.2 GB universal binary; Apple Silicon Macs run native arm64." },
+      { t: "Request the macOS beta", b: "Sign in on this site and request Mac access. Approved athletes receive a notarized build or store invite when the channel opens." },
+      { t: "Install the signed build", b: "Authenticate with Touch ID or Apple ID. ~1.2 GB universal binary; Apple Silicon Macs run native arm64." },
       { t: "Grant Camera + Microphone access", b: "System Settings → Privacy & Security → Camera / Microphone — toggle on for Final Evolution Lab." },
       { t: "Sign in with Google", b: "First launch opens the auth handshake in your default browser; the macOS app receives the session back via deep link." },
       { t: "Pair your iPhone (optional)", b: "On the dashboard, choose 'Pair iPhone' to mirror HealthKit data into the macOS app." },
@@ -116,8 +115,8 @@ const GUIDES = {
     label: "Android",
     icon: Smartphone,
     steps: [
-      { t: "Open Google Play", b: "Search 'Final Evolution Lab' or scan the QR code on this page." },
-      { t: "Tap 'Install'", b: "AAB delivers ~480 MB to your specific device variant. Vulkan + arm64-v8a required." },
+      { t: "Join the Android beta", b: "Sign in on this site and request Android access. Approved athletes receive a Play testing or managed-distribution invite." },
+      { t: "Install from the invite", b: "AAB delivers ~480 MB to your specific device variant. Vulkan + arm64-v8a required." },
       { t: "Grant runtime permissions", b: "Camera, Motion sensors, and Notifications — toggle each on when first prompted by the app." },
       { t: "Sign in with Google", b: "The Play Services integration uses your device's Google account. Tap 'Continue as <you>' to bypass the password prompt." },
       { t: "First-time PRQ scan", b: "Hold your phone at eye-level, complete the 90-second movement screen, and your PRQ baseline locks in." },
@@ -315,8 +314,8 @@ const Hero = ({ onLogin }) => (
         </span>
       </h1>
       <p className="text-base md:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed mb-8">
-        One download, four platforms. Live telemetry, 19 game modes, NASM-CNC nutrition,
-        and a sovereign performance ledger — fused into the only OS that audits your reps.
+        One athlete account, four platform paths. Live telemetry, 19 game modes, NASM-CNC nutrition,
+        and a sovereign performance ledger — fused into the OS that audits your reps.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
         <a href="#platforms" data-testid="dist-hero-platforms" className="group inline-flex items-center gap-2 px-7 py-3.5 bg-[#00E5FF] text-black font-bold uppercase tracking-[0.15em] text-sm hover:bg-white transition-all" style={{ boxShadow: "0 0 30px rgba(0,229,255,0.35)" }}>
@@ -879,7 +878,7 @@ const FooterCTA = ({ onLogin }) => (
           Download. <span className="text-[#00E5FF]">Audit.</span> Train.
         </h2>
         <p className="text-white/60 mb-8 max-w-xl">
-          Two minutes from store badge to system scan. No card required.
+          Sign in, request the right beta channel, and start with the web dashboard while native builds roll out.
         </p>
         <button
           data-testid="dist-footer-cta"

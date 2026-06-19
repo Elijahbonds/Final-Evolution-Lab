@@ -6,9 +6,7 @@ import {
   Heart, TrendingUp, Target, Flame, Brain, Dumbbell, Play,
   AlertTriangle, Eye, User, Award, ChevronUp
 } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "@/lib/api";
 
 export const SovereignDashboard = () => {
   const [status, setStatus] = useState(null);

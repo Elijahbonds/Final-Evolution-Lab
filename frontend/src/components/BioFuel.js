@@ -10,9 +10,7 @@ import {
   Camera, Soup, Truck, Sparkles, Loader2, X, ChefHat, Beef, Droplet,
   Moon, Wind, Scale, Apple, ChevronRight, Upload, ShoppingCart, Plus
 } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "@/lib/api";
 
 const CUE_ICON = { Beef, Droplet, Moon, Wind, Scale, Sparkles, Soup };
 

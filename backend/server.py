@@ -1,14 +1,21 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
-import os, logging, uuid, random, json, aiofiles, hashlib, hmac, base64
+import os, logging, uuid, random, json, hashlib, hmac, base64
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-import paypalrestsdk
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
+try:
+    import paypalrestsdk
+except ImportError:
+    paypalrestsdk = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -17,12 +24,15 @@ from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 
-# PayPal config
-paypalrestsdk.configure({
-    "mode": "sandbox",
-    "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
-})
+# PayPal config. Keep the API bootable when partner credentials/SDKs are absent.
+PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', '')
+PAYPAL_SECRET = os.environ.get('PAYPAL_SECRET', '')
+if paypalrestsdk and PAYPAL_CLIENT_ID and PAYPAL_SECRET:
+    paypalrestsdk.configure({
+        "mode": os.environ.get("PAYPAL_MODE", "sandbox"),
+        "client_id": PAYPAL_CLIENT_ID,
+        "client_secret": PAYPAL_SECRET,
+    })
 
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -58,6 +68,12 @@ app.add_middleware(
 api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def ensure_paypal_ready():
+    if paypalrestsdk is None:
+        raise HTTPException(status_code=503, detail="PayPal SDK is not installed")
+    if not PAYPAL_CLIENT_ID or not PAYPAL_SECRET:
+        raise HTTPException(status_code=503, detail="PayPal credentials are not configured")
 
 @api_router.post("/auth/session")
 async def create_session(request: Request, response: Response):
@@ -201,6 +217,7 @@ async def get_streak_rewards(user: User = Depends(get_current_user)):
 # ===================== PAYPAL =====================
 @api_router.post("/payments/create-order")
 async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    ensure_paypal_ready()
     item_type = data.get("item_type", "card")  # card, course
     item_id = data.get("item_id")
     amount = data.get("amount", 0)
@@ -244,6 +261,7 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
 
 @api_router.post("/payments/capture")
 async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    ensure_paypal_ready()
     payment_id = data.get("payment_id")
     payer_id = data.get("payer_id")
     if not payment_id or not payer_id:
@@ -411,9 +429,8 @@ async def upload_video(file: UploadFile = File(...), user: User = Depends(get_cu
     ext = file.filename.split(".")[-1] if "." in file.filename else "mp4"
     filepath = UPLOAD_DIR / f"{file_id}.{ext}"
 
-    async with aiofiles.open(filepath, 'wb') as f:
-        content = await file.read()
-        await f.write(content)
+    content = await file.read()
+    filepath.write_bytes(content)
 
     video_doc = {
         "id": file_id, "user_id": user.user_id, "filename": file.filename,
@@ -1261,6 +1278,8 @@ async def create_party_session(data: Dict[str, Any], user: User = Depends(get_cu
 async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user)):
     prompt_type = data.get("type","workout")
     context = data.get("context","")
+    if LlmChat is None or UserMessage is None or not EMERGENT_KEY:
+        return {"response":"AI service temporarily unavailable. Try again shortly.","model":"fallback","type":prompt_type}
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
@@ -1279,6 +1298,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     model = data.get("model","gpt-5.2")
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
+    if LlmChat is None or UserMessage is None or not EMERGENT_KEY:
+        return {"response":"Connection issue. Please try again.","model":"fallback","conversation_id":cid}
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
