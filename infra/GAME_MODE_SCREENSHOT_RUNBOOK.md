@@ -11,6 +11,8 @@ You cannot capture Simulator PNGs from a headless cloud agent. Use **Simulator o
    - Run **`GameModeScreenshotUITests`** from the Test navigator, or  
    - From repo root:  
      `chmod +x scripts/capture_game_mode_screenshots.sh && ./scripts/capture_game_mode_screenshots.sh`
+   - Or build + export + rename to `docs/audit/screenshots/`:  
+     `./scripts/export_audit_screenshots.sh`
 
 ### What gets captured
 
