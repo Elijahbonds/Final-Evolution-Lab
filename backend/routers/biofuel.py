@@ -24,11 +24,17 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from core import EMERGENT_KEY, User, db, get_current_user
+
+try:
+    from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
+except ImportError:
+    ImageContent = None
+    LlmChat = None
+    UserMessage = None
 
 router = APIRouter(prefix="/api/biofuel", tags=["biofuel"])
 
@@ -37,6 +43,7 @@ router = APIRouter(prefix="/api/biofuel", tags=["biofuel"])
 # ============================================================
 
 ALLOWED_MODELS = {"gemini-2.5-flash", "gpt-5.2"}
+MAX_SCAN_IMAGE_BASE64_BYTES = 4 * 1024 * 1024
 ATHLETIC_INTENTS = {
     "fascial_hydration": "Connective tissue hydration & joint resilience",
     "cns_ignition": "Pre-training neural priming",
@@ -297,6 +304,10 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
     """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
+    if len(req.image_base64.encode("utf-8")) > MAX_SCAN_IMAGE_BASE64_BYTES:
+        raise HTTPException(status_code=413, detail="image_base64 must be 4MB or smaller")
+    if not all((ImageContent, LlmChat, UserMessage)):
+        raise HTTPException(status_code=503, detail="Vision AI integration is not installed")
     if not EMERGENT_KEY:
         raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
 
@@ -583,9 +594,11 @@ async def doordash_search(req: DoorDashRequest, user: User = Depends(get_current
         p_ok = m["protein_g"] >= min_p
         return cal_ok and p_ok
 
-    matches = [m for m in pool if fit(m)] or pool[:3]
-    for m in matches:
-        m["deep_link"] = f"https://www.doordash.com/search/store/?query={urllib.parse.quote(m['city_query'])}"
+    matches = []
+    for meal in ([m for m in pool if fit(m)] or pool[:3]):
+        result = {**meal, "macros": {**meal["macros"]}}
+        result["deep_link"] = f"https://www.doordash.com/search/store/?query={urllib.parse.quote(result['city_query'])}"
+        matches.append(result)
     return {
         "intent": intent,
         "intent_label": ATHLETIC_INTENTS.get(intent, intent),

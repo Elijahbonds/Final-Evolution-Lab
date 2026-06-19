@@ -7,8 +7,13 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 import paypalrestsdk
+
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR

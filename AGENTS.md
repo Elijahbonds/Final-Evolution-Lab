@@ -52,5 +52,7 @@ timeout, and the frontend defaults to `http://localhost:8000`.
   `MONGO_SERVER_SELECTION_TIMEOUT_MS`, optional AI, and optional PayPal vars.
 - Frontend: see `frontend/.env.example` for `REACT_APP_BACKEND_URL` and the
   optional PayPal client ID.
+- AI coach/chat routes are designed to degrade gracefully when the optional
+  private AI SDK or `EMERGENT_LLM_KEY` is unavailable.
 - Do not run `npm install` at repo root; the web package lives in `frontend/`.
   Package manager is **npm** and `frontend/package-lock.json` is committed.

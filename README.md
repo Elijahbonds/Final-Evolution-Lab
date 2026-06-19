@@ -45,4 +45,5 @@ If no env files are present, the backend defaults to
   launchable game modes; `market_browse` is web-only shop navigation, and the
   newer `who_scene_it` and `court_carnival` modes are app/game experiences.
 - PayPal and AI integrations are optional for local development. Leave their
-  env vars blank unless exercising those flows.
+  env vars blank unless exercising those flows. AI coach/chat endpoints return
+  a fallback response when the optional private AI SDK or key is unavailable.
