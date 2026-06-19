@@ -75,6 +75,24 @@ enum Config {
     /// UE / server sets this to the active verified gameplay session id; inbound Emergent WS payloads must repeat it to mutate PRQ or surface ``fel_game_result``.
     static let trustedGameplaySessionDefaultsKey = "fel_trusted_ue_gameplay_session_id"
 
+    /// Production session receipt endpoint (matches UE ``FELGameplayManager`` / ``FEL_SESSION_RECEIPT_URL``).
+    static var gameplaySessionReceiptURL: String {
+        if let env = ProcessInfo.processInfo.environment["FEL_SESSION_RECEIPT_URL"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !env.isEmpty {
+            return env
+        }
+        return "https://finalevolutiongroup.com/api/games/session"
+    }
+
+    #if DEBUG
+    /// POST native Swift session results to ``gameplaySessionReceiptURL`` and ingest via ``GameplaySessionReceiptCoordinator`` when auth succeeds.
+    static var submitNativeGameplayReceiptsInDebug: Bool {
+        if ProcessInfo.processInfo.environment["FEL_SKIP_SESSION_RECEIPT"] == "1" { return false }
+        return true
+    }
+    #endif
+
     /// Non-empty URL from process environment `FEL_GAME_WS_URL`, then UserDefaults ``emergentGameWebSocketDefaultsKey``.
     static func resolvedEmergentGameWebSocketURL() -> String? {
         if let env = ProcessInfo.processInfo.environment["FEL_GAME_WS_URL"],

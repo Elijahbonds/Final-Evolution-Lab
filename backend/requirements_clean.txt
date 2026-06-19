@@ -121,3 +121,10 @@ websockets
 yarl
 zipp
 asyncpg
+SQLAlchemy
+alembic
+redis
+pydantic-settings
+pytest-asyncio
+structlog
+greenlet

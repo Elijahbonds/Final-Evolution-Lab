@@ -4,6 +4,7 @@
 //                 XPEarned/ShardsEarned/PRQDelta → XpCandidate/ShardsCandidate/PrqDeltaCandidate
 
 #include "FELGameplayManager.h"
+#include "FELBackendConfig.h"
 #include "HttpModule.h"
 #include "Http.h"
 #include "JsonObjectConverter.h"
@@ -76,7 +77,7 @@ void UFELGameplayManager::OnMatchEnd(
 
 void UFELGameplayManager::DispatchSessionReceipt(const FFELSessionResult& Result) {
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
-    Req->SetURL(TEXT("https://finalevolutiongroup.com/games/session"));
+    Req->SetURL(FELBackendConfig::ResolveSessionReceiptUrl());
     Req->SetVerb(TEXT("POST"));
     Req->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
 

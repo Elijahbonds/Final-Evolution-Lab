@@ -2,8 +2,15 @@ import SwiftUI
 
 @main
 struct FinalEvolutionLabApp: App {
-    /// `-ScreenshotHarness` — Arena grid + per-mode gameplay chrome for PR screenshots (see ``GameModeScreenshotHarnessView``).
-    private let screenshotHarness: Bool = ProcessInfo.processInfo.arguments.contains("-ScreenshotHarness")
+    /// `-ScreenshotHarness` — PR/docs only (DEBUG). Skips the tab shell and opens ``GameModeScreenshotHarnessView``.
+    /// Normal Run from Xcode must **not** pass this argument; shipping launch always uses ``ContentView``.
+    private var screenshotHarness: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-ScreenshotHarness")
+        #else
+        false
+        #endif
+    }
 
     init() {
         FirebaseBootstrap.configureIfNeeded()

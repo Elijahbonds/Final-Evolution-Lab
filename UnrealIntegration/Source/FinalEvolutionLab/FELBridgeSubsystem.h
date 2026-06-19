@@ -15,11 +15,16 @@ class IWebSocket;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFELWebSocketRawMessage, FString, Message);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFELActiveVenueChangedSignature, FString, NewVenueToken, FString, NewModeId);
+
 /**
  * FELBridge backend bridge: outbound JSON (match scores, focus keepalive) over WebSocket.
  *
- * Configure full URL (ws:// or wss:// + path + room id) via DefaultGame.ini [FELBridge] GameWebSocketUrl,
+ * Configure full URL (ws:// or wss:// + path) via DefaultGame.ini [FELBridge] GameWebSocketUrl,
  * FEL_GAME_WS_URL env (overrides ini), or SetGameWebSocketUrl from Blueprint/C++.
+ *
+ * Phase 1 backend: ws://host:8787/ws/vault (not /ws/game). Legacy sovereign hub accepts `type`;
+ * Phase 1 vault channel reads `event`. SendJsonObject emits both fields (see ApplyDualVaultEnvelope).
  *
  * While disconnected, outbound payloads are queued and flushed after OnConnected (bounded queue).
  * Optional auto-reconnect after close/error. Inbound text frames are logged (Verbose) and broadcast on OnRawMessage.
@@ -278,6 +283,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "FELBridge")
 	FFELWebSocketRawMessage OnRawMessage;
 
+	/** Broadcasts when the player transitions between training environments on the unified map. */
+	UPROPERTY(BlueprintAssignable, Category = "FELBridge")
+	FFELActiveVenueChangedSignature OnActiveVenueChanged;
+
+	/** Called by venue trigger volumes to initiate mode/UI travel transitions. */
+	UFUNCTION(BlueprintCallable, Category = "FELBridge")
+	void NotifyVenueTravel(const FString& VenueToken, const FString& ModeId);
+
+	UFUNCTION(BlueprintPure, Category = "FELBridge")
+	FString GetActiveVenueToken() const { return ActiveVenueToken; }
+
+	UFUNCTION(BlueprintPure, Category = "FELBridge")
+	FString GetActiveArenaGameModeId() const { return ActiveArenaGameModeId; }
+
 private:
 	void LoadBridgeDefaultsFromIni();
 
@@ -328,6 +347,9 @@ private:
 
 	bool bDeinitializing = false;
 	bool bVaultHandshakeLoggedThisMap = false;
+
+	FString ActiveVenueToken;
+	FString ActiveArenaGameModeId;
 
 	static constexpr int32 MaxPendingOutbound = 128;
 	TArray<FString> PendingOutboundMessages;

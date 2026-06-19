@@ -99,3 +99,4 @@ struct GameModeScreenshotHarnessView: View {
         .id(modes[modeIndex].id)
     }
 }
+

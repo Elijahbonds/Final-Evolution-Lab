@@ -1,12 +1,22 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var viewModel = LabViewModel()
+    @State private var viewModel: LabViewModel
     @State private var selectedTab: AppTab = .lab
     @State private var simpleMode: Bool = UserDefaults.standard.bool(forKey: "simpleMode")
     @State private var showSettings: Bool = false
-    @State private var showOnboarding: Bool = false
+    @State private var showOnboarding: Bool
     @ObservedObject private var shareCoordinator = SocialShareCoordinator.shared
+
+    init() {
+        let model = LabViewModel()
+        _viewModel = State(initialValue: model)
+        #if targetEnvironment(simulator)
+        _showOnboarding = State(initialValue: false)
+        #else
+        _showOnboarding = State(initialValue: !model.profile.hasCompletedOnboarding)
+        #endif
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -95,6 +105,7 @@ struct ContentView: View {
                 }
             }
         }
+        .accessibilityIdentifier("MainTabBar")
         .tint(Theme.brandBlue)
         .preferredColorScheme(.dark)
         .environment(\.simpleMode, simpleMode)
@@ -115,10 +126,6 @@ struct ContentView: View {
             #if targetEnvironment(simulator)
             if !viewModel.profile.hasCompletedOnboarding {
                 viewModel.completeOnboarding(sport: "Basketball", age: 18, goal: "Jump Higher")
-            }
-            #else
-            if !viewModel.profile.hasCompletedOnboarding {
-                showOnboarding = true
             }
             #endif
         }

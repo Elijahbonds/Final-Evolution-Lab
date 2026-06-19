@@ -5,6 +5,7 @@ struct GameSceneHostView: UIViewRepresentable {
     var gameMode: GameModeId = .basketballHeadToHead
     var neuralDrive: Double = 50
     var onAction: () -> Void = {}
+    var onViewportReady: () -> Void = {}
     var leftStickInput: CGPoint = .zero
     var rightStickInput: CGPoint = .zero
     var isMidAir: Bool = false
@@ -13,11 +14,19 @@ struct GameSceneHostView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
-        scnView.scene = GameSceneFactory.buildScene(for: gameMode)
+        let scene = GameSceneFactory.buildScene(for: gameMode)
+        GameSceneFactory.warmSceneForDisplay(scene)
+        scnView.scene = scene
         scnView.backgroundColor = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
         scnView.allowsCameraControl = false
         scnView.antialiasingMode = .multisampling4X
         scnView.isPlaying = true
+        scnView.rendersContinuously = true
+        if let cameraNode = scene.rootNode.childNode(withName: "mainCamera", recursively: true) {
+            scnView.pointOfView = cameraNode
+        }
+        scnView.accessibilityIdentifier = "GameSceneViewport"
+        scnView.accessibilityValue = "loading"
         let screenMax = UIScreen.main.maximumFramesPerSecond
         // SceneKit preview path: prefer device refresh up to 120Hz. Full-frame UE gameplay remains in the embedded host.
         scnView.preferredFramesPerSecond = screenMax > 0 ? min(120, screenMax) : 60
@@ -30,8 +39,10 @@ struct GameSceneHostView: UIViewRepresentable {
 
         context.coordinator.scnView = scnView
         context.coordinator.applyNeuralDriveTuning(in: scnView.scene)
+        context.coordinator.syncInitialCameraToPlayer(in: scnView.scene)
         context.coordinator.startCameraFollowLoop()
         context.coordinator.startPlayerMovementLoop()
+        scnView.prepare(scene, shouldAbortBlock: nil)
 
         return scnView
     }
@@ -51,11 +62,12 @@ struct GameSceneHostView: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onAction: onAction, gameMode: gameMode, neuralDrive: neuralDrive)
+        Coordinator(onAction: onAction, onViewportReady: onViewportReady, gameMode: gameMode, neuralDrive: neuralDrive)
     }
 
     class Coordinator: NSObject, SCNSceneRendererDelegate {
         let onAction: () -> Void
+        let onViewportReady: () -> Void
         let gameMode: GameModeId
         var neuralDrive: Double
         weak var scnView: SCNView?
@@ -81,6 +93,8 @@ struct GameSceneHostView: UIViewRepresentable {
         private var cinematicTransitionProgress: Float = 0
         private var playerVelocity: SCNVector3 = SCNVector3(0, 0, 0)
         private var lastPlayerY: Float = 0
+        private var renderedFrameCount = 0
+        private var didReportViewportReady = false
 
         private enum CinematicState: Equatable {
             case normal
@@ -182,8 +196,9 @@ struct GameSceneHostView: UIViewRepresentable {
             }
         }
 
-        init(onAction: @escaping () -> Void, gameMode: GameModeId, neuralDrive: Double) {
+        init(onAction: @escaping () -> Void, onViewportReady: @escaping () -> Void, gameMode: GameModeId, neuralDrive: Double) {
             self.onAction = onAction
+            self.onViewportReady = onViewportReady
             self.gameMode = gameMode
             self.neuralDrive = neuralDrive
             let config = GameSceneHostView.Coordinator.defaultCameraConfig(for: gameMode)
@@ -202,6 +217,27 @@ struct GameSceneHostView: UIViewRepresentable {
             default:
                 return CameraFollowConfig(offsetX: 1, offsetY: 4.5, offsetZ: 8, lookAtY: 1.0, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
             }
+        }
+
+        func syncInitialCameraToPlayer(in scene: SCNScene?) {
+            guard let scene,
+                  let camNode = scene.rootNode.childNode(withName: "mainCamera", recursively: false),
+                  let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true) else { return }
+
+            let config = cameraConfig
+            let playerPos = playerNode.position
+            smoothedCameraPosition = SCNVector3(
+                playerPos.x + config.offsetX,
+                playerPos.y + config.offsetY,
+                playerPos.z + config.offsetZ
+            )
+            smoothedCameraTarget = SCNVector3(
+                playerPos.x,
+                playerPos.y + config.lookAtY,
+                playerPos.z
+            )
+            camNode.position = smoothedCameraPosition
+            camNode.look(at: smoothedCameraTarget)
         }
 
         func startCameraFollowLoop() {
@@ -400,9 +436,30 @@ struct GameSceneHostView: UIViewRepresentable {
             }
         }
 
+        func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+            if let last = lastRendererTime {
+                latestFrameDelta = Float(max(time - last, 1.0 / 240.0))
+            }
+            lastRendererTime = time
+        }
+
+        func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
+            renderedFrameCount += 1
+            guard renderedFrameCount >= 2 else { return }
+            scnView?.accessibilityValue = "ready"
+            guard !didReportViewportReady else { return }
+            didReportViewportReady = true
+            Task { @MainActor in
+                onViewportReady()
+            }
+        }
+
         func teardown(view: SCNView) {
             view.delegate = nil
             lastRendererTime = nil
+            renderedFrameCount = 0
+            didReportViewportReady = false
+            view.accessibilityValue = "loading"
             if let g = tapGesture {
                 view.removeGestureRecognizer(g)
                 tapGesture = nil

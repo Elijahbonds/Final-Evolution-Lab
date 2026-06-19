@@ -9,11 +9,7 @@ struct GameModeSelectionView: View {
     @State private var sessionReadiness: Double = 50
     @State private var navigateToGame = false
     @State private var showMatchmaking = false
-    @State private var lastUnrealLaunchFailed = false
-    @State private var lastUnrealLaunchUrl: URL?
     @State private var showEmbeddedUnreal = false
-
-    @Environment(\.openURL) private var openURL
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -236,20 +232,8 @@ struct GameModeSelectionView: View {
             return
         }
 
-        // Super-app / App Store: never bounce out to a separate UE install — stay in SceneKit gameplay.
-        #if DEBUG
-        // Dev-only: optional standalone UE build via URL scheme when framework is absent.
-        let creatorId: String? = viewModel.profile.activeCreatorCard?.cardId
-        guard let url = FELNativeSwiftBridge.makeUnrealLaunchURL(modeId: mode.id.rawValue, creatorId: creatorId) else {
-            navigateToGame = true
-            return
-        }
-        lastUnrealLaunchUrl = url
-        lastUnrealLaunchFailed = false
-        openURL(url)
-        #else
+        // No embedded UE — SceneKit gameplay in ``GamePlayView`` (all build configs).
         navigateToGame = true
-        #endif
     }
 }
 

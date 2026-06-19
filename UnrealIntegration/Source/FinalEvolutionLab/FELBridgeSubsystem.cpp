@@ -125,6 +125,46 @@ namespace
 		}
 		return FString();
 	}
+
+	/** Dual envelope: legacy sovereign hub reads `type`; Phase 1 /ws/vault reads `event`. */
+	FString MapLegacyTypeToPhase1Event(const FString& LegacyType)
+	{
+		static const TMap<FString, FString> Map = [] {
+			TMap<FString, FString> M;
+			M.Add(TEXT("vault_session"), TEXT("session_start"));
+			M.Add(TEXT("match_score_final"), TEXT("session_end"));
+			M.Add(TEXT("focus_keepalive"), TEXT("ping"));
+			M.Add(TEXT("vault_telemetry"), TEXT("session_update"));
+			return M;
+		}();
+		if (const FString* Found = Map.Find(LegacyType))
+		{
+			return *Found;
+		}
+		return LegacyType;
+	}
+
+	void ApplyDualVaultEnvelope(const TSharedPtr<FJsonObject>& Payload)
+	{
+		if (!Payload.IsValid())
+		{
+			return;
+		}
+
+		FString TypeValue;
+		FString EventValue;
+		const bool bHasType = Payload->TryGetStringField(TEXT("type"), TypeValue);
+		const bool bHasEvent = Payload->TryGetStringField(TEXT("event"), EventValue);
+
+		if (bHasType && !bHasEvent)
+		{
+			Payload->SetStringField(TEXT("event"), MapLegacyTypeToPhase1Event(TypeValue));
+		}
+		else if (bHasEvent && !bHasType)
+		{
+			Payload->SetStringField(TEXT("type"), EventValue);
+		}
+	}
 }
 
 void UFELBridgeSubsystem::LoadBridgeDefaultsFromIni()
@@ -818,6 +858,8 @@ void UFELBridgeSubsystem::SendJsonObject(const TSharedPtr<FJsonObject>& Payload)
 		return;
 	}
 
+	ApplyDualVaultEnvelope(Payload);
+
 	FString Out;
 	TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> W =
 		TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Out);
@@ -1034,4 +1076,35 @@ void UFELBridgeSubsystem::PersistMatchEndSample(const AFELBasketballGameState* G
 		VaultDb->InsertSample(GS);
 	}
 }
+
+void UFELBridgeSubsystem::NotifyVenueTravel(const FString& VenueToken, const FString& ModeId)
+{
+	if (ActiveVenueToken == VenueToken && ActiveArenaGameModeId == ModeId)
+	{
+		return;
+	}
+
+	ActiveVenueToken = VenueToken;
+	ActiveArenaGameModeId = ModeId;
+
+	UE_LOG(LogTemp, Log, TEXT("[FELWorld] Player traveled to Venue: %s, Mode: %s"), *VenueToken, *ModeId);
+
+	// Stop current telemetry flow to switch active context
+	StopVaultTelemetryTimer();
+
+	// Broadcast transition to local HUD Managers & Blueprint widgets
+	OnActiveVenueChanged.Broadcast(VenueToken, ModeId);
+
+	// Notify Backend of travel sequence to bind active DB collections
+	TSharedPtr<FJsonObject> O = MakeShared<FJsonObject>();
+	O->SetStringField(TEXT("type"), TEXT("venue_travel"));
+	O->SetStringField(TEXT("venue"), VenueToken);
+	O->SetStringField(TEXT("mode"), ModeId);
+	O->SetNumberField(TEXT("t"), FDateTime::UtcNow().ToUnixTimestamp());
+	SendJsonObject(O);
+
+	// Restart telemetry loop matching the new environment
+	TryStartVaultTelemetryTimer();
+}
+
 

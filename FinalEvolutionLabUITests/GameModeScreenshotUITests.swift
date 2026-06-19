@@ -8,7 +8,7 @@ import XCTest
 final class GameModeScreenshotUITests: XCTestCase {
 
     /// Must match ``GameModeRegistry.all`` count (all modes including preview).
-    private let expectedModeCount = 18
+    private let expectedModeCount = 19
 
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -27,12 +27,26 @@ final class GameModeScreenshotUITests: XCTestCase {
         XCTAssert(app.buttons["ScreenshotHarnessNext"].waitForExistence(timeout: 5))
 
         for i in 0..<expectedModeCount {
+            waitForSceneViewportReady(from: app)
             attachScreenshot(from: app, name: String(format: "02_gameplay_%02d", i + 1))
             if i < expectedModeCount - 1 {
                 app.buttons["ScreenshotHarnessNext"].tap()
-                Thread.sleep(forTimeInterval: 0.25)
+                Thread.sleep(forTimeInterval: 0.15)
             }
         }
+    }
+
+    /// Waits for SceneKit warm-up (`GameSceneHostView` sets accessibilityValue to `ready` after first frames).
+    private func waitForSceneViewportReady(from app: XCUIApplication, timeout: TimeInterval = 4) {
+        let viewport = app.otherElements["GameSceneViewport"]
+        guard viewport.waitForExistence(timeout: timeout) else {
+            Thread.sleep(forTimeInterval: 0.75)
+            return
+        }
+        let ready = NSPredicate(format: "value == %@", "ready")
+        let expectation = XCTNSPredicateExpectation(predicate: ready, object: viewport)
+        _ = XCTWaiter.wait(for: [expectation], timeout: timeout)
+        Thread.sleep(forTimeInterval: 0.35)
     }
 
     /// Standard shell: Arena tab → **Modes** segment (Community/Modes picker).

@@ -17,13 +17,13 @@ class FINALEVOLUTIONLAB_API UBPFL_HUDManager : public UBlueprintFunctionLibrary
 
 public:
     /** Load the React FEL HUD overlay into a WebBrowserWidget.
-     *  URL defaults to the local HUD dev server (ws://localhost:8080/ws/hud).
-     *  In shipping builds, point this at the bundled HTML asset. */
+     *  Default page URL is http://localhost:3000/hud (WebBrowser cannot load ws://).
+     *  Live updates go through UFELHudRelaySubsystem → backend /ws/hud relay. */
     UFUNCTION(BlueprintCallable, Category = "FEL|HUD")
     static void LoadFELHud(UWebBrowser* WebBrowserWidget, const FString& HudUrl = TEXT("http://localhost:3000/hud"));
 
-    /** Send a JSON message to the HUD WebSocket server from C++.
-     *  Used by gameplay subsystems to push score/economy/MRI updates. */
+    /** Push a HUD frame to the backend /ws/hud relay (legacy type + phase1 event envelope).
+     *  Configure relay URL via [FELBackend] HudWebSocketUrl or FEL_HUD_WS_URL. */
     UFUNCTION(BlueprintCallable, Category = "FEL|HUD")
     static void BroadcastHUDMessage(const FString& MessageType, const FString& PayloadJson);
 

@@ -23,6 +23,7 @@ public class FinalEvolutionLab : ModuleRules
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
+			"HTTP",
 			"WebSockets",
 			"SQLiteCore",
 			"Sockets",

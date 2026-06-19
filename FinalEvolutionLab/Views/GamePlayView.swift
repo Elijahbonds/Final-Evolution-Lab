@@ -107,6 +107,7 @@ struct GamePlayView: View {
     @State private var pendingGoldenApex: PendingGoldenApexPayload?
     @State private var apexQTESessionGeneration: UInt64 = 0
     @State private var sessionStartedAt: Date?
+    @State private var sceneViewportReady = false
 
     // MARK: - Who Scene It (Film Quiz) State
     @State private var selectedFilmChoice: Int? = nil
@@ -441,6 +442,7 @@ struct GamePlayView: View {
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
+            sceneViewportReady = false
             if skipMatchLobbyForScreenshotHarness {
                 matchLobbyComplete = true
                 gameReady = true
@@ -453,6 +455,7 @@ struct GamePlayView: View {
             }
         }
         .onDisappear {
+            sceneViewportReady = false
             matchLobbyComplete = false
             multipeerService.stop()
             gameTimerTask?.cancel()
@@ -632,6 +635,7 @@ struct GamePlayView: View {
             GameSceneHostView(
                 gameMode: gameMode.id,
                 neuralDrive: viewModel.profile.metrics.neuralDrive,
+                onViewportReady: { sceneViewportReady = true },
                 leftStickInput: leftStickVector,
                 rightStickInput: rightStickVector,
                 isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
@@ -639,6 +643,10 @@ struct GamePlayView: View {
                 isSlowMotion: isSlowMo
             )
             .clipShape(.rect(cornerRadius: 0))
+
+            if !sceneViewportReady {
+                sceneViewportLoadingOverlay
+            }
 
             if combo > 1 {
                 VStack {
@@ -712,6 +720,28 @@ struct GamePlayView: View {
 
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var sceneViewportLoadingOverlay: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Theme.deepBlack.opacity(0.92),
+                    gameMode.accentColor.opacity(0.08)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            VStack(spacing: 10) {
+                ProgressView()
+                    .tint(gameMode.accentColor)
+                Text("Loading \(gameMode.name) arena…")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.75))
+            }
+        }
+        .allowsHitTesting(false)
+        .transition(.opacity)
     }
 
     // MARK: - Aim Crosshair (Volleyball)
@@ -4290,6 +4320,21 @@ struct GamePlayView: View {
         SaveSystem.saveProfile(viewModel.profile)
         SaveSystem.saveGameResult(result)
         viewModel.globalLeaderboard.refreshRankings(userProfile: viewModel.profile, sampleData: SampleData.leaderboard)
+
+#if DEBUG
+        Task {
+            await GameplaySessionReceiptCoordinator.shared.submitNativeSessionReceipt(
+                matchSessionId: matchSessionId,
+                gameModeId: gameMode.id.rawValue,
+                playerScore: score,
+                opponentScore: opponentScore,
+                durationSeconds: elapsedSeconds,
+                comboCount: maxCombo,
+                criticalCount: criticalHits,
+                pacingScore: min(100, max(0, Int(sessionReadiness.rounded())))
+            )
+        }
+#endif
 
         finalizedMatchSessionId = matchSessionId
     }

@@ -1,5 +1,9 @@
 import Foundation
 
+#if canImport(FirebaseAuth)
+import FirebaseAuth
+#endif
+
 /// Bridges UE / Emergent JSON into the same local receipt path as ``GamePlayView/finalizeResults()`` (GAME-33 / Phase 5).
 ///
 /// Use ``GameSessionTrustLevel``: default bridge payloads are ``sessionBound`` (history only in Release). Set ``fel_trust_level``
@@ -24,6 +28,116 @@ final class GameplaySessionReceiptCoordinator {
         }
         vm.ingestVerifiedGameplayReceipt(fromEmergentPayload: obj)
     }
+
+    #if DEBUG
+    /// POST Swift fallback session to ``Config/gameplaySessionReceiptURL``; on 200 ingests response as ``serverVerified``.
+    func submitNativeSessionReceipt(
+        matchSessionId: UUID,
+        gameModeId: String,
+        playerScore: Int,
+        opponentScore: Int,
+        durationSeconds: Int,
+        comboCount: Int,
+        criticalCount: Int,
+        pacingScore: Int
+    ) async {
+        guard Config.submitNativeGameplayReceiptsInDebug else { return }
+
+        let outcome: String = {
+            switch VersusMatchOutcome.winnerSide(playerScore: playerScore, opponentScore: opponentScore) {
+            case .playerWins: return "win"
+            case .opponentWins: return "loss"
+            case .draw: return "draw"
+            }
+        }()
+
+        let body: [String: Any] = [
+            "mode_id": gameModeId,
+            "score": playerScore,
+            "opponent_score": opponentScore,
+            "duration_seconds": max(1, durationSeconds),
+            "completed": true,
+            "outcome": outcome,
+            "combo_count": comboCount,
+            "critical_count": criticalCount,
+            "pacing_score": pacingScore,
+            "mri_score": 72.0,
+            "game_session_id": matchSessionId.uuidString,
+        ]
+
+        guard let payload = await Self.postSessionReceipt(body: body) else { return }
+        applyVerifiedPayload(payload)
+    }
+
+    private static func postSessionReceipt(body: [String: Any]) async -> [String: Any]? {
+        guard let url = URL(string: Config.gameplaySessionReceiptURL) else { return nil }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 12
+
+        do {
+            try await FirebaseIdentity.ensureUserSignedIn()
+        } catch {
+            return nil
+        }
+
+        #if canImport(FirebaseAuth)
+        guard let token = try? await Auth.auth().currentUser?.getIDToken() else { return nil }
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        #else
+        return nil
+        #endif
+
+        guard let httpBody = try? JSONSerialization.data(withJSONObject: body) else { return nil }
+        request.httpBody = httpBody
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return nil }
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+            return Self.nativeReceiptPayload(from: json, requestBody: body)
+        } catch {
+            return nil
+        }
+    }
+
+    private static func nativeReceiptPayload(from response: [String: Any], requestBody: [String: Any]) -> [String: Any] {
+        let session = response["session"] as? [String: Any] ?? [:]
+        let sessionId = (session["id"] as? String)
+            ?? (requestBody["game_session_id"] as? String)
+            ?? UUID().uuidString
+        let modeId = (session["mode_id"] as? String)
+            ?? (requestBody["mode_id"] as? String)
+            ?? "basketball_h2h"
+        let playerScore = (session["score"] as? Int)
+            ?? (requestBody["score"] as? Int)
+            ?? 0
+        let opponentScore = (requestBody["opponent_score"] as? Int) ?? 0
+        let duration = (session["duration_seconds"] as? Int)
+            ?? (requestBody["duration_seconds"] as? Int)
+            ?? 0
+        let prqDelta = (response["prq_delta"] as? Double)
+            ?? (response["prq_delta"] as? Int).map(Double.init)
+            ?? 0
+        let shardsEarned = (response["shards_earned"] as? Int) ?? 0
+        let isMultiplayer = (requestBody["is_multiplayer"] as? Bool) ?? false
+
+        return [
+            "fel_trust_level": "server_verified",
+            "fel_receipt_id": "srv:\(sessionId)",
+            "session_id": sessionId,
+            "game_mode_id": modeId,
+            "player_score": playerScore,
+            "opponent_score": opponentScore,
+            "duration_seconds": duration,
+            "prq_bonus": prqDelta,
+            "shards_earned": shardsEarned,
+            "is_multiplayer": isMultiplayer,
+            "verificationSeed": sessionId,
+        ]
+    }
+    #endif
 
     private static func persistReceiptWithoutViewModel(_ obj: [String: Any]) {
         guard let parsed = parseReceiptFields(obj) else { return }

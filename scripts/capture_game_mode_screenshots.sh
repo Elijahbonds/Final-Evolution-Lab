@@ -29,4 +29,4 @@ xcodebuild \
 
 echo
 echo "Done. In Xcode: Report navigator → Tests → open attachments for PNGs."
-echo "Or extract from xcresult: xcrun xcresulttool get --path <path>.xcresult ..."
+echo "Or export + rename: ./scripts/export_audit_screenshots.sh"

@@ -1669,6 +1669,28 @@ struct GameSceneFactory {
 
     // MARK: - Shared Builders
 
+    /// Reduces HDR/shadow cost so heavy arena scenes (dunk, 3v3, baseball, soccer) render on first frame in harness + device.
+    static func warmSceneForDisplay(_ scene: SCNScene) {
+        scene.rootNode.enumerateChildNodes { node, _ in
+            guard let light = node.light else { return }
+            if light.type == .ambient {
+                light.intensity = max(light.intensity, 650)
+            }
+            light.shadowMapSize = CGSize(width: 512, height: 512)
+            light.shadowSampleCount = 4
+            if light.type == .spot || light.type == .directional {
+                light.castsShadow = light.intensity > 900
+            }
+        }
+        if let camNode = scene.rootNode.childNode(withName: "mainCamera", recursively: true),
+           let camera = camNode.camera {
+            camera.wantsHDR = false
+            camera.exposureOffset = 0.35
+            camera.bloomIntensity = 0.25
+            camera.bloomBlurRadius = 6
+        }
+    }
+
     private static func addCamera(to scene: SCNScene, position: SCNVector3, lookAt: SCNVector3) {
         let node = SCNNode()
         node.camera = SCNCamera()

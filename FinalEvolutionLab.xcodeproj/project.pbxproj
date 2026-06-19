@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		DACE898A2FE4E326005B582D /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = FEFB00202E9EAD3100EA8BCF /* FirebaseCore */; };
+		DACE898B2FE4E326005B582D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FEFB00402E9EAD3100EA8BCF /* FirebaseFirestore */; };
+		DACE898C2FE4E326005B582D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FEFB00502E9EAD3100EA8BCF /* FirebaseAuth */; };
+		DACE898D2FE4E326005B582D /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = FEAA03002E9F200000EA8BCF /* FirebaseCrashlytics */; };
+		DACE898E2FE4E326005B582D /* SocialDataConnect in Frameworks */ = {isa = PBXBuildFile; productRef = FEAA01022E9F000000EA8BCF /* SocialDataConnect */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		105FC58A2E9EAD3200EA8BCF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +60,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DACE898E2FE4E326005B582D /* SocialDataConnect in Frameworks */,
+				DACE898D2FE4E326005B582D /* FirebaseCrashlytics in Frameworks */,
+				DACE898C2FE4E326005B582D /* FirebaseAuth in Frameworks */,
+				DACE898B2FE4E326005B582D /* FirebaseFirestore in Frameworks */,
+				DACE898A2FE4E326005B582D /* FirebaseCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -179,7 +192,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2600;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 2650;
 				ORGANIZATIONNAME = "Final Evolution LLC";
 				TargetAttributes = {
 					105FC5792E9EAD3100EA8BCF = {
@@ -204,14 +217,14 @@
 			);
 			mainGroup = 105FC5712E9EAD3100EA8BCF;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				FEAA01012E9F000000EA8BCF /* XCLocalSwiftPackageReference "FinalEvolutionLab/Generated/SocialDataConnect/SocialDataConnect" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 105FC57B2E9EAD3100EA8BCF /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			packageReferences = (
-				FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-				FEAA01012E9F000000EA8BCF /* XCLocalSwiftPackageReference "SocialDataConnect" */,
-			);
 			targets = (
 				105FC5792E9EAD3100EA8BCF /* FinalEvolutionLab */,
 				105FC5882E9EAD3200EA8BCF /* FinalEvolutionLabTests */,
@@ -264,25 +277,6 @@
 			shellPath = /bin/sh;
 			shellScript = "PLIST_PATH=\"${SRCROOT}/FinalEvolutionLab/GoogleService-Info.plist\"\nEXAMPLE_PATH=\"${SRCROOT}/FinalEvolutionLab/GoogleService-Info.example.plist\"\nif [ ! -f \"${PLIST_PATH}\" ]; then\n  if [ \"${ALLOW_GOOGLE_SERVICE_PLACEHOLDER:-}\" = \"1\" ] && [ -f \"${EXAMPLE_PATH}\" ]; then\n    cp \"${EXAMPLE_PATH}\" \"${PLIST_PATH}\"\n    echo \"warning: Copied GoogleService-Info.example.plist → GoogleService-Info.plist (ALLOW_GOOGLE_SERVICE_PLACEHOLDER=1). Replace with your Firebase plist before shipping.\"\n  elif [ \"${CONFIGURATION}\" = \"Release\" ]; then\n    echo \"error: Missing GoogleService-Info.plist at ${PLIST_PATH}. Add your Firebase plist beside GoogleService-Info.example.plist. For CI-only compile checks: ALLOW_GOOGLE_SERVICE_PLACEHOLDER=1.\"\n    exit 1\n  else\n    echo \"warning: Missing GoogleService-Info.plist at ${PLIST_PATH} (Firebase will be disabled in Debug).\"\n  fi\nfi\n";
 		};
-		FEFB00302E9EAD3100EA8BCF /* Embed Unreal Framework (optional) */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Embed Unreal Framework (optional)";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "SRC=\"${SRCROOT}/FinalEvolutionLab/EmbeddedFrameworks/UnrealFramework.framework\"\nDEST_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks\"\nFW_NAME=\"UnrealFramework\"\nif [ ! -d \"$SRC\" ]; then\n  echo \"note: Unreal framework not at $SRC — skipping embed.\"\n  exit 0\nfi\nmkdir -p \"${DEST_DIR}\"\nrm -rf \"${DEST_DIR}/UnrealFramework.framework\"\ncp -R \"${SRC}\" \"${DEST_DIR}/\"\nFW_BIN=\"${DEST_DIR}/${FW_NAME}.framework/${FW_NAME}\"\nif [ -f \"${FW_BIN}\" ]; then\n  echo \"UnrealFramework binary: ${FW_BIN}\"\n  echo \"Architectures before strip: $(/usr/bin/lipo -archs \\\"${FW_BIN}\\\" 2>/dev/null || echo unknown)\"\n  if [ \"${PLATFORM_NAME:-}\" = \"iphoneos\" ]; then\n    for arch in x86_64 i386; do\n      if /usr/bin/lipo -info \"${FW_BIN}\" 2>/dev/null | /usr/bin/grep -q \"${arch}\"; then\n        echo \"Stripping ${arch} slice for iphoneos…\"\n        /usr/bin/lipo -remove \"${arch}\" -output \"${FW_BIN}\" \"${FW_BIN}\" || true\n      fi\n    done\n  fi\n  echo \"Architectures after strip:  $(/usr/bin/lipo -archs \\\"${FW_BIN}\\\" 2>/dev/null || echo unknown)\"\nelse\n  echo \"warning: UnrealFramework binary not found at ${FW_BIN} (unexpected framework layout).\"\nfi\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ] && [ \"${EXPANDED_CODE_SIGN_IDENTITY}\" != \"-\" ]; then\n  /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der \"${DEST_DIR}/UnrealFramework.framework\"\nfi\n";
-		};
 		FEAA05002E9F500000EA8BCF /* Crashlytics upload symbols (Release) */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -302,6 +296,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "if [ \"${CONFIGURATION}\" != \"Release\" ]; then exit 0; fi\nSEARCH_ROOT=\"${BUILD_DIR}/../../..\"\nRUN=$(find \"$SEARCH_ROOT\" -path \"*/checkouts/firebase-ios-sdk/Crashlytics/run\" -type f 2>/dev/null | head -1)\nif [ -z \"$RUN\" ] || [ ! -f \"$RUN\" ]; then\n  echo \"warning: firebase-ios-sdk Crashlytics/run not found under ${SEARCH_ROOT}. Archive once after SPM resolves packages.\"\n  exit 0\nfi\nbash \"$RUN\"\n";
+		};
+		FEFB00302E9EAD3100EA8BCF /* Embed Unreal Framework (optional) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Unreal Framework (optional)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "SRC=\"${SRCROOT}/FinalEvolutionLab/EmbeddedFrameworks/UnrealFramework.framework\"\nDEST_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks\"\nFW_NAME=\"UnrealFramework\"\nif [ ! -d \"$SRC\" ]; then\n  echo \"note: Unreal framework not at $SRC — skipping embed.\"\n  exit 0\nfi\nmkdir -p \"${DEST_DIR}\"\nrm -rf \"${DEST_DIR}/UnrealFramework.framework\"\ncp -R \"${SRC}\" \"${DEST_DIR}/\"\nFW_BIN=\"${DEST_DIR}/${FW_NAME}.framework/${FW_NAME}\"\nif [ -f \"${FW_BIN}\" ]; then\n  echo \"UnrealFramework binary: ${FW_BIN}\"\n  echo \"Architectures before strip: $(/usr/bin/lipo -archs \\\"${FW_BIN}\\\" 2>/dev/null || echo unknown)\"\n  if [ \"${PLATFORM_NAME:-}\" = \"iphoneos\" ]; then\n    for arch in x86_64 i386; do\n      if /usr/bin/lipo -info \"${FW_BIN}\" 2>/dev/null | /usr/bin/grep -q \"${arch}\"; then\n        echo \"Stripping ${arch} slice for iphoneos…\"\n        /usr/bin/lipo -remove \"${arch}\" -output \"${FW_BIN}\" \"${FW_BIN}\" || true\n      fi\n    done\n  fi\n  echo \"Architectures after strip:  $(/usr/bin/lipo -archs \\\"${FW_BIN}\\\" 2>/dev/null || echo unknown)\"\nelse\n  echo \"warning: UnrealFramework binary not found at ${FW_BIN} (unexpected framework layout).\"\nfi\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ] && [ \"${EXPANDED_CODE_SIGN_IDENTITY}\" != \"-\" ]; then\n  /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --timestamp=none --preserve-metadata=identifier,entitlements,flags --generate-entitlement-der \"${DEST_DIR}/UnrealFramework.framework\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -378,7 +391,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 78L8GWA44F;
+				DEVELOPMENT_TEAM = 7KJ6G7HLL4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -402,6 +415,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -459,6 +473,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -470,17 +485,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FinalEvolutionLab/FinalEvolutionLab.entitlements;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 78L8GWA44F;
+				DEVELOPMENT_TEAM = 7KJ6G7HLL4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Record movement clips in the Lab when you choose the camera for analysis";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read your health data to calculate readiness and efficiency scores";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Save workout data to Apple Health";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Stream accelerometer and gyroscope data to power the training engine";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Upload jump and dunk videos for movement analysis and PRQ scoring";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Record movement clips in the Lab when you choose the camera for analysis";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -509,17 +524,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FinalEvolutionLab/FinalEvolutionLab.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 78L8GWA44F;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 7KJ6G7HLL4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Record movement clips in the Lab when you choose the camera for analysis";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read your health data to calculate readiness and efficiency scores";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Save workout data to Apple Health";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Stream accelerometer and gyroscope data to power the training engine";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Upload jump and dunk videos for movement analysis and PRQ scoring";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Record movement clips in the Lab when you choose the camera for analysis";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -532,6 +549,7 @@
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FEL_TestFlight_Distribution;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -552,7 +570,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.finalevolutionlab.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -574,7 +592,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.finalevolutionlab.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -594,7 +612,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.finalevolutionlab.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -614,7 +632,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.finalevolutionlab.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -667,6 +685,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		FEAA01012E9F000000EA8BCF /* XCLocalSwiftPackageReference "FinalEvolutionLab/Generated/SocialDataConnect/SocialDataConnect" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = FinalEvolutionLab/Generated/SocialDataConnect/SocialDataConnect;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -678,14 +703,17 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		FEAA01012E9F000000EA8BCF /* XCLocalSwiftPackageReference "SocialDataConnect" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = FinalEvolutionLab/Generated/SocialDataConnect/SocialDataConnect;
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
+		FEAA01022E9F000000EA8BCF /* SocialDataConnect */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FEAA01012E9F000000EA8BCF /* XCLocalSwiftPackageReference "FinalEvolutionLab/Generated/SocialDataConnect/SocialDataConnect" */;
+			productName = SocialDataConnect;
+		};
+		FEAA03002E9F200000EA8BCF /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
 		FEFB00202E9EAD3100EA8BCF /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -700,16 +728,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
-		};
-		FEAA03002E9F200000EA8BCF /* FirebaseCrashlytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCrashlytics;
-		};
-		FEAA01022E9F000000EA8BCF /* SocialDataConnect */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FEAA01012E9F000000EA8BCF /* XCLocalSwiftPackageReference "SocialDataConnect" */;
-			productName = SocialDataConnect;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
