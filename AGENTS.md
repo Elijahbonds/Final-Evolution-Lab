@@ -1,47 +1,43 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
+## Repository overview
 
-### Repository overview
+This branch of **Final Evolution Lab** is a React/FastAPI product repo with native and Unreal Engine integration artifacts.
 
-This is a polyglot monorepo for **Final Evolution Lab**, a sports-tech / athletic-optimization product. The primary shipping client targets Unreal Engine 5.7 (C++ / Blueprint); the web + backend layers are the parts runnable in a Cloud Agent VM. Key runnable sub-projects:
+| Area | Path | Stack | Dev command |
+| --- | --- | --- | --- |
+| Web dashboard | `frontend/` | React + CRACO + Tailwind | `yarn start` |
+| API backend | `backend/` | FastAPI + MongoDB | `uvicorn server:app --host 0.0.0.0 --port 8000` |
+| Mode registry smoke tests | `scripts/smoke_test_modes.py` | Python | `python3 scripts/smoke_test_modes.py` |
+| iOS shell | `FinalEvolutionLab/` | SwiftUI/WKWebView/UE framework host | Requires macOS + Xcode |
+| Unreal integration | `UnrealIntegration/`, `UnrealStarter/BasketballGame/` | UE 5.7 snippets/config | Requires full external UE project |
 
-| Sub-project | Path | Stack | Dev command |
-|---|---|---|---|
-| **New marketing site** (finalevolutiongroup.com) | `sites/finalevolutiongroup.com/` | React 18 + Vite 5 + TypeScript + Tailwind | `npm run dev` (port 5175) |
-| Main marketing/app site (legacy) | `sites/final-evolution-main-site/` | React 18 + Vite 5 + TypeScript + Tailwind + Three.js + Supabase JS | `npm run dev` (port 5173) |
-| Clinical Gate (medical disclaimer component) | `web/clinical-gate-react/` | React 18 + Vite 5 + TypeScript + Tailwind | `npm run dev` (port 5174) |
-| Static PWA web shell (gateway, shop, wallet, play) | `web/` | Vanilla HTML/CSS/JS (Tailwind CDN) | `npx serve web -l 8080` from repo root |
-| Supabase backend (DB + Edge Functions) | `supabase/` | PostgreSQL 17 + Deno Edge Functions | `supabase start` (requires Docker) |
+## Running locally
 
-### Running the web services
+1. Copy env templates:
+   - `cp backend/.env.example backend/.env`
+   - `cp frontend/.env.example frontend/.env`
+2. Backend:
+   - `cd backend`
+   - `pip install -r requirements.txt`
+   - `uvicorn server:app --host 0.0.0.0 --port 8000`
+3. Frontend:
+   - `cd frontend`
+   - `yarn install`
+   - `yarn start`
 
-1. **Install dependencies** — run `npm install` in `sites/finalevolutiongroup.com/`, `sites/final-evolution-main-site/`, and `web/clinical-gate-react/`. The root `package.json` has no dependencies.
-2. **New marketing site**: `npm run dev` in `sites/finalevolutiongroup.com/` → http://localhost:5175
-3. **Legacy main site**: `npm run dev` in `sites/final-evolution-main-site/` → http://localhost:5173
-4. **Clinical gate dev server**: `npm run dev` in `web/clinical-gate-react/` → http://localhost:5174
-5. **Static web shell**: `npx serve web -l 8080` from repo root → http://localhost:8080
+The frontend defaults to `http://localhost:8000` when `REACT_APP_BACKEND_URL` is unset.
 
-### Lint / Typecheck / Build
+## Verification
 
-- **New marketing site**: `npm run typecheck` / `npm run build` in `sites/finalevolutiongroup.com/`
-- **Legacy main site**: `npm run typecheck` / `npm run build` in `sites/final-evolution-main-site/`
-- **Clinical gate**: `npx tsc --noEmit` / `npm run build` in `web/clinical-gate-react/`
-- No ESLint is configured for any React app.
+- Frontend build: `cd frontend && yarn build`
+- Backend compile/import smoke: `cd backend && python -m compileall .`
+- Static mode alignment: `python3 scripts/smoke_test_modes.py`
 
-### Unreal Engine (not runnable in Cloud Agent VM)
+## Important notes
 
-- 12 fully wired game modes via `EFELArenaMode` enum + per-mode session subsystems
-- Pixel Streaming enabled (`PIXEL_STREAMING_ENABLED=1`), WebServers infra under `Samples/PixelStreaming/WebServers/`
-- Exercise demo pipeline: `UFELExerciseDemoPipelineSubsystem` maps each mode to Academy module montages (mod1-mod12)
-
-### Environment variables
-
-The main site reads Supabase and PayPal credentials from `.env` (Vite `VITE_` prefix). See `sites/final-evolution-main-site/.env.example`. The app runs without these env vars — features that depend on Supabase/PayPal gracefully degrade.
-
-### Non-obvious notes
-
-- The Unreal Engine project (`UnrealStarter/BasketballGame/`) and iOS app (`ios/FinalEvolutionLab/`) cannot be built in a Cloud Agent VM (requires UE 5.7 editor or Xcode on macOS).
-- Supabase local dev (`supabase start`) requires Docker. If Docker is not available, the web apps still run — they just won't have a local backend.
-- The root `package.json` is a shell with no `node_modules`; do not run `npm install` at root.
-- Package manager is **npm** (lockfiles are `package-lock.json`).
+- Do not run package-manager commands at the repository root; the runnable web package is `frontend/`.
+- `frontend/package.json` pins Yarn classic. Prefer `yarn install` and commit a `yarn.lock` when dependency resolution changes.
+- The backend can import with local Mongo defaults, but most authenticated routes require a running MongoDB and a valid session.
+- AI, Bio-Fuel vision, and PayPal routes intentionally degrade when provider keys/packages are not configured.
+- UE/iOS builds are not runnable in this Linux Cloud VM; inspect and update integration/config files only unless a macOS/UE environment is provided.

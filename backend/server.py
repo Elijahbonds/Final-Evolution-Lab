@@ -7,8 +7,15 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-import paypalrestsdk
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:  # Optional in local/dev environments; AI endpoints degrade below.
+    LlmChat = None
+    UserMessage = None
+try:
+    import paypalrestsdk
+except ImportError:  # Optional unless PayPal checkout is enabled.
+    paypalrestsdk = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -18,11 +25,12 @@ from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 
 # PayPal config
-paypalrestsdk.configure({
-    "mode": "sandbox",
-    "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
-})
+if paypalrestsdk:
+    paypalrestsdk.configure({
+        "mode": os.environ.get('PAYPAL_MODE', 'sandbox'),
+        "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
+        "client_secret": os.environ.get('PAYPAL_SECRET', '')
+    })
 
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -205,6 +213,8 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
     item_id = data.get("item_id")
     amount = data.get("amount", 0)
 
+    if not paypalrestsdk or not os.environ.get('PAYPAL_CLIENT_ID') or not os.environ.get('PAYPAL_SECRET'):
+        raise HTTPException(status_code=503, detail="PayPal checkout is not configured")
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid amount")
 
@@ -246,6 +256,8 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
 async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_current_user)):
     payment_id = data.get("payment_id")
     payer_id = data.get("payer_id")
+    if not paypalrestsdk or not os.environ.get('PAYPAL_CLIENT_ID') or not os.environ.get('PAYPAL_SECRET'):
+        raise HTTPException(status_code=503, detail="PayPal checkout is not configured")
     if not payment_id or not payer_id:
         raise HTTPException(status_code=400, detail="payment_id and payer_id required")
 
@@ -756,7 +768,7 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_deep_link_map_token(mode_id, config)
         venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
@@ -1293,49 +1305,73 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 
 @api_router.get("/streaming/status")
 async def get_streaming_status():
-    """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
-    }
-    
+    """Streaming readiness for local Sovereign Hub plus optional Eagle 3D iframe."""
+    mode_maps = get_streaming_mode_maps()
     ws_connected = len(sovereign_bridge.clients) > 0
+    stream_url = STREAMING_CONNECTION.get("stream_url", "")
+    iframe_url = STREAMING_CONNECTION.get("iframe_url", stream_url)
+    stream_connected = bool(stream_url)
+    available = ws_connected or stream_connected
+    provider = "local_sovereign" if ws_connected else "eagle3d" if stream_connected else "local_sovereign"
     
     return {
-        "available": ws_connected,
-        "mode": "local_sovereign",
-        "cloud_streaming": False,
-        "e3ds_disabled": True,
-        "provider": "local_sovereign",
-        "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect.",
+        "available": available,
+        "mode": provider,
+        "cloud_streaming": stream_connected,
+        "e3ds_disabled": not stream_connected,
+        "provider": provider,
+        "message": (
+            "Sovereign Hub active on local network. Biomechanical data feed ready."
+            if ws_connected else
+            "Eagle 3D stream connected. Launch a supported UE5 mode from the grid."
+            if stream_connected else
+            "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Paste an Eagle 3D iframe URL to enable browser streaming."
+        ),
         "supported_modes": list(mode_maps.keys()),
         "mode_maps": mode_maps,
+        "stream_url": stream_url,
+        "iframe_url": iframe_url,
+        "has_api_key": bool(os.environ.get("E3DS_API_KEY")),
+        "setup_steps": [
+            "Package the UE5 build with Pixel Streaming enabled.",
+            "Upload the build to Eagle 3D Streaming.",
+            "Paste the E3DS stream or iframe URL into this dashboard."
+        ],
         "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
         "data_feed": True,
-        "video_feed": False
+        "video_feed": stream_connected
     }
 
 @api_router.post("/streaming/connect")
 async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Local sovereign connect — no cloud URL needed"""
-    return {"status": "local_sovereign", "ws_url": "wss://finalevolutiongroup.com/ws/sovereign", "mode": "biomechanical_data_feed"}
+    """Connect an Eagle 3D iframe URL while keeping local Sovereign data feed active."""
+    stream_url = (data.get("stream_url") or "").strip()
+    iframe_url = (data.get("iframe_url") or stream_url).strip()
+    if not stream_url:
+        raise HTTPException(status_code=400, detail="stream_url required")
+    STREAMING_CONNECTION.update({"stream_url": stream_url, "iframe_url": iframe_url})
+    return {
+        "status": "connected",
+        "provider": "eagle3d",
+        "stream_url": stream_url,
+        "iframe_url": iframe_url,
+        "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
+        "mode": "hybrid_streaming"
+    }
 
 @api_router.post("/streaming/launch-mode")
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
     """Launch UE5 game mode via deep link — tracks session in Sovereign Hub"""
     mode_id = data.get("mode_id")
+    mode_maps = get_streaming_mode_maps()
+    if mode_id not in mode_maps:
+        raise HTTPException(status_code=404, detail=f"Mode {mode_id} is not available for UE5 streaming launch")
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
     if not mode_config:
         raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
 
-    venue_key = mode_config["map"].split("/")[-1]
+    venue_key = get_deep_link_map_token(mode_id, mode_config)
     venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
 
     # Create live session in Sovereign Hub
@@ -1364,6 +1400,8 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
         "session_id": session_id,
         "mode_id": mode_id,
         "venue": venue_key,
+        "map": venue_key,
+        "unreal_map_token": venue_key,
         "map_path": mode_config["map"],
         "gamemode_class": mode_config["gamemode_class"],
         "binary": mode_config["binary"],
@@ -1426,11 +1464,11 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
-    """All 17 modes with deep links and venue mapping — confirms playability"""
+    """All registered modes with deep links and venue mapping."""
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_deep_link_map_token(mode_id, config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
@@ -1973,6 +2011,33 @@ if mode_path.exists():
     with open(mode_path) as f:
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
+
+# Load canonical UE mode-token map used by web, backend, and native deep links.
+UE_MODE_MAPS = {}
+ue_mode_maps_path = ROOT_DIR / "ue_mode_maps.json"
+if ue_mode_maps_path.exists():
+    with open(ue_mode_maps_path) as f:
+        UE_MODE_MAPS = json.load(f).get("mode_to_unreal_map", {})
+    logger.info(f"Loaded UE mode map: {len(UE_MODE_MAPS)} mappings")
+
+STREAMING_STATUSES = {"production", "staging"}
+
+STREAMING_CONNECTION = {
+    "stream_url": os.environ.get("E3DS_STREAM_URL", ""),
+    "iframe_url": os.environ.get("E3DS_IFRAME_URL", os.environ.get("E3DS_STREAM_URL", "")),
+}
+
+def get_streaming_mode_maps() -> Dict[str, str]:
+    """Return launchable game modes only; preview and non-game modules stay out of streaming."""
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    return {
+        mode_id: UE_MODE_MAPS.get(mode_id, config.get("map", "").split("/")[-1])
+        for mode_id, config in registry.items()
+        if config.get("status") in STREAMING_STATUSES and mode_id in UE_MODE_MAPS
+    }
+
+def get_deep_link_map_token(mode_id: str, mode_config: Dict[str, Any]) -> str:
+    return UE_MODE_MAPS.get(mode_id, mode_config.get("map", "").split("/")[-1])
 
 # Sovereign connection state
 sovereign_state = {

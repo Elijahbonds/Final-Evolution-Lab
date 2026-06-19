@@ -33,40 +33,40 @@ const PLATFORMS = [
   {
     id: "ios",
     name: "iPhone & iPad",
-    eyebrow: "App Store · iOS 17+",
+    eyebrow: "iOS 17+ · Release channel",
     icon: Apple,
     accent: "#00E5FF",
     status: "available",
-    statusLabel: "Available",
+    statusLabel: "Listing Pending",
     description: "Native UE5.7 host with the WKWebView dashboard overlay. iPhone 15 Pro / 16 Pro recommended for Metal 3 + 120 Hz.",
     badge: "appstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — App Store listing
+    storeUrl: null, // DISTRIBUTION_LINK_REPLACE — App Store listing
     secondaryLabel: "Read iOS install guide",
   },
   {
     id: "macos",
     name: "Mac",
-    eyebrow: "Mac App Store · macOS 14+",
+    eyebrow: "macOS 14+ · Release channel",
     icon: Monitor,
     accent: "#8B5CF6",
     status: "available",
-    statusLabel: "Apple Silicon",
+    statusLabel: "Listing Pending",
     description: "Universal Mac binary for Apple Silicon (M1/M2/M3/M4). Intel Macs run in Rosetta — Metal 3 features disabled.",
     badge: "macappstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Mac App Store
+    storeUrl: null, // DISTRIBUTION_LINK_REPLACE — Mac App Store
     secondaryLabel: "Read macOS install guide",
   },
   {
     id: "android",
     name: "Android",
-    eyebrow: "Google Play · Android 13+",
+    eyebrow: "Android 13+ · Release channel",
     icon: Smartphone,
     accent: "#34D399",
     status: "available",
-    statusLabel: "Available",
+    statusLabel: "Listing Pending",
     description: "AAB-distributed via Play Console. Vulkan-capable device with ≥6 GB RAM recommended; Tensor / Snapdragon 8 Gen 2+.",
     badge: "googleplay",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Google Play listing
+    storeUrl: null, // DISTRIBUTION_LINK_REPLACE — Google Play listing
     secondaryLabel: "Read Android install guide",
   },
   {
@@ -902,8 +902,8 @@ const Footer = () => (
       </div>
       <div className="flex items-center gap-6 font-mono text-[10px] tracking-[0.3em] uppercase text-white/30">
         <a href="/" className="hover:text-white transition-colors">Home</a>
-        <a href="#" className="hover:text-white transition-colors">Privacy</a>
-        <a href="#" className="hover:text-white transition-colors">Terms</a>
+        <a href="mailto:legal@finalevolutiongroup.com?subject=Privacy%20Request" className="hover:text-white transition-colors">Privacy</a>
+        <a href="mailto:legal@finalevolutiongroup.com?subject=Terms%20Request" className="hover:text-white transition-colors">Terms</a>
       </div>
     </div>
   </footer>
