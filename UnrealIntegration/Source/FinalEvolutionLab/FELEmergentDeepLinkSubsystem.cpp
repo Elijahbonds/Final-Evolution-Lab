@@ -41,7 +41,7 @@ const TMap<FString, FString>& GetModeToVenueMap()
 		T.Add(TEXT("skateboarding"), TEXT("Skate_Park"));
 		T.Add(TEXT("snowboarding"), TEXT("Mountain_Slope"));
 		T.Add(TEXT("brain_brawl"), TEXT("Neuro_Arena"));
-		T.Add(TEXT("market_browse"), TEXT("Sovereign_Shop"));
+		T.Add(TEXT("market_browse"), TEXT("Luma_Venice_Shop"));
 		T.Add(TEXT("who_scene_it"), TEXT("Neuro_Arena"));
 		T.Add(TEXT("scene_it"), TEXT("Neuro_Arena")); // Backward-compatible alias for older preview links.
 		T.Add(TEXT("court_carnival"), TEXT("Venice_Beach_Court"));
@@ -68,7 +68,7 @@ const TMap<FString, FString>& GetVenueTokenToPackagePath()
 		M.Add(TEXT("Skate_Park"), TEXT("/Game/FEL/Venues/SkatePark/SkatePark"));
 		M.Add(TEXT("Mountain_Slope"), TEXT("/Game/FEL/Venues/MountainSlope/MountainSlope"));
 		M.Add(TEXT("Neuro_Arena"), TEXT("/Game/FEL/Venues/NeuroArena/NeuroArena"));
-		M.Add(TEXT("Sovereign_Shop"), TEXT("/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"));
+		M.Add(TEXT("Luma_Venice_Shop"), TEXT("/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"));
 		return M;
 	}();
 	return T;

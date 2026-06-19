@@ -316,7 +316,7 @@ def test_unreal_integration_cpp_deeplink_maps():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  19 modes · 9 test categories · Registry → C++ deep links")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
