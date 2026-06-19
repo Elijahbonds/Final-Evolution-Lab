@@ -120,7 +120,7 @@
     "Typography: Use Barlow Condensed for headings and IBM Plex Sans for body text. Install these via Google Fonts.",
     "Use purely HTML/Tailwind for structural bento grid layouts; rely on Shadcn for complex interactives (select, dialog).",
     "For the PRQ (Performance Readiness Quotient) metrics, use a large monospace font (JetBrains Mono) to look like clinical data readouts.",
-    "The 17 game modes can be presented in a horizontal scroll or a dense bento grid, avoiding generic lists.",
+    "The 19 game modes can be presented in a horizontal scroll or a dense bento grid, avoiding generic lists.",
     "All interactive elements must include a data-testid attribute formatted as kebab-case-role."
   ]
 }

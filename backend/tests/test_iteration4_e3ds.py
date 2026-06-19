@@ -39,7 +39,7 @@ class TestStreamingStatus:
         assert "supported_modes" in data
         
         mode_maps = data["mode_maps"]
-        assert len(mode_maps) == 16
+        assert len(mode_maps) == 18
 
         expected_mappings = {
             "basketball_h2h": "Venice_Beach_Court",
@@ -58,6 +58,8 @@ class TestStreamingStatus:
             "skateboarding": "Skate_Park",
             "snowboarding": "Mountain_Slope",
             "brain_brawl": "Neuro_Arena",
+            "who_scene_it": "Neuro_Arena",
+            "court_carnival": "Venice_Beach_Court",
         }
         
         for mode, expected_map in expected_mappings.items():
@@ -75,12 +77,12 @@ class TestStreamingStatus:
             assert field in data, f"Missing field: {field}"
     
     def test_streaming_status_supported_modes_count(self, api_client):
-        """Should have 16 supported Unreal / E3DS game modes (excludes web-only shop)"""
+        """Should have 18 supported Unreal / E3DS game modes (excludes web-only shop)"""
         response = api_client.get(f"{BASE_URL}/api/streaming/status")
         assert response.status_code == 200
         
         data = response.json()
-        assert len(data["supported_modes"]) == 16
+        assert len(data["supported_modes"]) == 18
 
 
 class TestStreamingConnect:
@@ -227,6 +229,8 @@ class TestStreamingLaunchMode:
             ("skateboarding", "Skate_Park"),
             ("snowboarding", "Mountain_Slope"),
             ("brain_brawl", "Neuro_Arena"),
+            ("who_scene_it", "Neuro_Arena"),
+            ("court_carnival", "Venice_Beach_Court"),
         ]
         
         for mode_id, expected_map in mode_map_pairs:
@@ -242,11 +246,11 @@ class TestPreviousFeaturesStillWorking:
     """Verify previous iteration features still work"""
     
     def test_game_modes_endpoint(self, api_client):
-        """Game modes should still return 17 modes"""
+        """Game modes should still return 19 modes"""
         response = api_client.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 17
+        assert len(data) == 19
     
     def test_creator_cards_endpoint(self, api_client):
         """Creator cards should still return cards"""

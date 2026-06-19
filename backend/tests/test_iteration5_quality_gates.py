@@ -425,11 +425,11 @@ class TestPreviousFeaturesRegression:
         assert r.json().get("status") == "healthy"
     
     def test_game_modes_still_working(self):
-        """GET /api/games/modes returns 17 modes"""
+        """GET /api/games/modes returns 19 modes"""
         r = requests.get(f"{BASE_URL}/api/games/modes")
         assert r.status_code == 200
         modes = r.json()
-        assert len(modes) >= 17, f"Expected 17+ modes, got {len(modes)}"
+        assert len(modes) == 19, f"Expected 19 modes, got {len(modes)}"
     
     def test_creator_cards_still_working(self):
         """GET /api/cards returns creator cards"""

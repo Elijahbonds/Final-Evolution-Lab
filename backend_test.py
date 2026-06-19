@@ -72,11 +72,11 @@ class FinalEvolutionLabTester:
                 data = response.json()
                 mode_count = len(data)
                 details += f", Modes: {mode_count}"
-                # Check if we have 17 game modes as expected
-                if mode_count == 17:
-                    details += " (Expected 17 ✓)"
+                # Check if we have the current 19 game modes as expected
+                if mode_count == 19:
+                    details += " (Expected 19 ✓)"
                 else:
-                    details += f" (Expected 17, got {mode_count})"
+                    details += f" (Expected 19, got {mode_count})"
             self.log_test("Game Modes Endpoint", success, details)
             return success
         except Exception as e:

@@ -18,7 +18,7 @@ import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
@@ -128,13 +128,13 @@ const LandingPage = () => {
         <div className="relative z-10 max-w-6xl mx-auto px-8 py-24 text-center">
           <p className="overline mb-4">THE ATHLETE OPERATING SYSTEM</p>
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6" style={{fontFamily:'Barlow Condensed'}}>YOUR MOVEMENT<br/><span className="text-cyan-400">AUDITED</span></h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 19 game modes, AI coaching, and cognitive training.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
-            <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
+            <button onClick={() => navigate('/download')} className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
-            {[{v:"17",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
+            {[{v:"19",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
               <div key={i} className="text-center"><div className="metric-value text-cyan-400">{s.v}</div><div className="metric-label">{s.l}</div></div>
             ))}
           </div>
@@ -147,7 +147,7 @@ const LandingPage = () => {
           {[
             {icon:Activity,t:"System Scan",d:"Avatar, PRQ metrics, health signals, and workout plans unified"},
             {icon:Users,t:"Creator Cards",d:"Digital collectibles from elite athletes and coaches"},
-            {icon:Gamepad2,t:"17 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
+            {icon:Gamepad2,t:"19 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
             {icon:Trophy,t:"Coach Economy",d:"Instruction and critique as first-class currencies"},
             {icon:Brain,t:"Brain Brawl",d:"Cognitive training for peak decision-making"},
             {icon:GraduationCap,t:"Education",d:"Common Core to kinesiology certification"}
@@ -275,7 +275,7 @@ const DashboardView = ({ setActiveTab }) => {
       <div>
         <h2 className="text-2xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>QUICK START</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[{t:'Play Game',d:'17 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
+          {[{t:'Play Game',d:'19 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
             <button key={idx} data-testid={`quick-${i.a}`} onClick={()=>setActiveTab(i.a)} className="surface-card p-5 text-left card-hover flex items-center gap-4">
               <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center flex-shrink-0"><i.icon className="w-6 h-6 text-cyan-400" /></div>
               <div className="flex-1 min-w-0"><div className="font-bold">{i.t}</div><div className="text-sm text-zinc-500">{i.d}</div></div>
@@ -510,6 +510,7 @@ const GameModesView = () => {
   const [sessionState, setSessionState] = useState(null);
   const [launchStatus, setLaunchStatus] = useState(null); // null, 'launching', 'map_loading', 'timeout'
   const wsRef = useRef(null);
+  const launchAttemptRef = useRef(null);
 
   // Fetch modes from centralized venue registry (not hardcoded)
   useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
@@ -517,6 +518,7 @@ const GameModesView = () => {
   const launchNativeMode = async (mode) => {
     setLaunchingMode(mode.id);
     setLaunchStatus('launching');
+    launchAttemptRef.current = mode.id;
     try {
       const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
@@ -538,6 +540,7 @@ const GameModesView = () => {
             const msg = JSON.parse(e.data);
             if (msg.type === 'sovereign_handshake' || msg.type === 'map_loaded') {
               // MapLoaded signal received from UFELEmergentBridgeSubsystem
+              launchAttemptRef.current = null;
               setLaunchStatus(null);
               setLaunchingMode(null);
               ws.close();
@@ -548,7 +551,8 @@ const GameModesView = () => {
         // 10s System Re-auth (NOT browser fallback)
         // If no MapLoaded signal, trigger re-auth instead of showing placeholder
         setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+          if (launchAttemptRef.current === mode.id) {
+            launchAttemptRef.current = null;
             ws.close();
             setLaunchStatus('timeout');
             // System Re-auth: re-verify session, do NOT fall back to browser game
@@ -558,11 +562,13 @@ const GameModesView = () => {
         }, 10000);
       } else {
         // No deep link available (desktop/web) — use browser version
+        launchAttemptRef.current = null;
         setLaunchingMode(null);
         setLaunchStatus(null);
         setPlayingMode(mode);
       }
     } catch {
+      launchAttemptRef.current = null;
       setLaunchingMode(null);
       setLaunchStatus(null);
       setPlayingMode(mode);
@@ -792,13 +798,41 @@ const AICoachView = () => {
 const CoachHubView = () => {
   const [coaches, setCoaches] = useState([]);
   const [sessions, setSessions] = useState([]);
-  useEffect(() => {
-    Promise.all([axios.get(`${API}/coach/available`), axios.get(`${API}/coach/sessions`)])
-      .then(([c,s]) => {setCoaches(c.data);setSessions(s.data);}).catch(console.error);
+  const [bookingCoachId, setBookingCoachId] = useState(null);
+  const [bookingError, setBookingError] = useState('');
+  const loadCoachData = useCallback(async () => {
+    try {
+      const [c, s] = await Promise.all([axios.get(`${API}/coach/available`), axios.get(`${API}/coach/sessions`)]);
+      setCoaches(c.data);
+      setSessions(s.data);
+    } catch (e) { console.error(e); }
   }, []);
+
+  useEffect(() => { loadCoachData(); }, [loadCoachData]);
+
+  const bookSession = async (coach) => {
+    const coachId = coach.user_id || coach.id;
+    setBookingCoachId(coachId);
+    setBookingError('');
+    try {
+      const r = await axios.post(`${API}/coach/sessions`, {
+        coach_id: coachId,
+        sport: coach.sport || 'training',
+        session_type: 'training'
+      });
+      setSessions(prev => [r.data, ...prev.filter(s => s.id !== r.data.id)]);
+    } catch (e) {
+      console.error(e);
+      setBookingError('Unable to book this session. Please verify your login and try again.');
+    } finally {
+      setBookingCoachId(null);
+    }
+  };
+
   return (
     <div className="space-y-8 fade-in">
       <div><p className="overline mb-1">TRAINING NETWORK</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>COACH HUB</h1></div>
+      {bookingError && <div className="surface-card p-4 border-l-2 border-red-400 text-red-300 text-sm">{bookingError}</div>}
       <div data-testid="available-coaches">
         <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>AVAILABLE COACHES</h2>
         <div className="grid md:grid-cols-2 gap-4">
@@ -810,7 +844,9 @@ const CoachHubView = () => {
                 <div className="text-right"><div className="font-mono text-lg text-cyan-400">${c.rate || 25}</div><div className="text-xs text-zinc-500">per session</div></div>
               </div>
               <div className="flex items-center gap-4 text-sm text-zinc-400 mb-4"><span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" />{c.rating}</span><span>{c.sessions} sessions</span></div>
-              <button data-testid={`book-coach-${i}`} className="btn-primary w-full">Book Session</button>
+              <button data-testid={`book-coach-${i}`} onClick={() => bookSession(c)} disabled={bookingCoachId === (c.user_id || c.id)} className="btn-primary w-full">
+                {bookingCoachId === (c.user_id || c.id) ? 'Booking...' : 'Book Session'}
+              </button>
             </div>
           ))}
         </div>
@@ -895,13 +931,18 @@ const BrainBrawlView = ({ onBack }) => {
 
   const answerQuestion = (index) => {
     clearTimeout(timerRef.current);
-    const isCorrect = index === questions[currentQ]?.correct;
+    const question = questions[currentQ];
+    if (!question) return;
+    const isCorrect = index === question.correct;
     const timeBonus = isCorrect ? timeLeft * 5 : 0;
-    if (isCorrect) setScore(s => s + 100 + timeBonus);
-    setAnswers(prev => [...prev, {q: currentQ, selected: index, correct: isCorrect}]);
+    const nextAnswer = {q: currentQ, selected: index, correct: isCorrect};
+    const nextAnswers = [...answers, nextAnswer];
+    const nextScore = score + (isCorrect ? 100 + timeBonus : 0);
+    setScore(nextScore);
+    setAnswers(nextAnswers);
     if (currentQ + 1 >= questions.length) {
       setGameState('results');
-      axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: answers.filter(a=>a.correct).length + (isCorrect?1:0), score: score + (isCorrect ? 100+timeBonus : 0), category}).catch(console.error);
+      axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: nextAnswers.filter(a=>a.correct).length, score: nextScore, category}).catch(console.error);
     } else { setCurrentQ(c => c + 1); setTimeLeft(15); }
   };
 
@@ -1224,7 +1265,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

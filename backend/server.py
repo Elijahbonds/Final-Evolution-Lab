@@ -1294,15 +1294,12 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/streaming/status")
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    canonical_maps = UE_MODE_MAPS.get("mode_to_unreal_map", {})
     mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        mode_id: canonical_maps.get(mode_id, config["map"].split("/")[-1])
+        for mode_id, config in registry.items()
+        if config.get("status") != "non-game-module"
     }
     
     ws_connected = len(sovereign_bridge.clients) > 0
@@ -1314,6 +1311,8 @@ async def get_streaming_status():
         "e3ds_disabled": True,
         "provider": "local_sovereign",
         "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect.",
+        "stream_url": "",
+        "iframe_url": "",
         "supported_modes": list(mode_maps.keys()),
         "mode_maps": mode_maps,
         "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
@@ -1333,9 +1332,12 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
     if not mode_config:
-        raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+        raise HTTPException(status_code=404, detail=f"Mode not found: {mode_id}")
+    if mode_config.get("status") == "non-game-module":
+        raise HTTPException(status_code=404, detail=f"Mode {mode_id} is not launchable")
 
     venue_key = mode_config["map"].split("/")[-1]
+    map_token = UE_MODE_MAPS.get("mode_to_unreal_map", {}).get(mode_id, venue_key)
     venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
 
     # Create live session in Sovereign Hub
@@ -1364,6 +1366,7 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
         "session_id": session_id,
         "mode_id": mode_id,
         "venue": venue_key,
+        "map": map_token,
         "map_path": mode_config["map"],
         "gamemode_class": mode_config["gamemode_class"],
         "binary": mode_config["binary"],
@@ -1426,7 +1429,7 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
-    """All 17 modes with deep links and venue mapping — confirms playability"""
+    """All 19 modes with deep links and venue mapping — confirms playability"""
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
@@ -1973,6 +1976,14 @@ if mode_path.exists():
     with open(mode_path) as f:
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
+
+# Canonical API/iOS mode id -> Unreal map token mapping.
+UE_MODE_MAPS = {}
+mode_map_path = ROOT_DIR / "ue_mode_maps.json"
+if mode_map_path.exists():
+    with open(mode_map_path) as f:
+        UE_MODE_MAPS = json.load(f)
+    logger.info(f"Loaded UE mode maps: {len(UE_MODE_MAPS.get('mode_to_unreal_map', {}))} modes")
 
 # Sovereign connection state
 sovereign_state = {

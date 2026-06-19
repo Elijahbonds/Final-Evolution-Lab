@@ -278,11 +278,11 @@ class TestRegressionPreviousFeatures:
         print("✅ Health endpoint working")
     
     def test_game_modes_endpoint(self):
-        """GET /api/games/modes returns 17+ modes"""
+        """GET /api/games/modes returns 19 modes"""
         response = requests.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         data = response.json()
-        assert len(data) >= 17, f"Expected 17+ game modes, got {len(data)}"
+        assert len(data) == 19, f"Expected 19 game modes, got {len(data)}"
         print(f"✅ Game modes: {len(data)} modes")
     
     def test_creator_cards_endpoint(self):
