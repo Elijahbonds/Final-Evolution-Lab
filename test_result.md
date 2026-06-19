@@ -115,6 +115,9 @@
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Removed unavailable emergentintegrations pin and made AI/Bio-Fuel provider imports optional so core API install/import is not blocked in clean environments."
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Added missing aiofiles dependency after server import verification exposed the undeclared import."
 ## frontend:
 ##   - task: "Centralize frontend backend and WebSocket URL handling"
 ##     implemented: true
