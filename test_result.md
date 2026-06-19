@@ -106,11 +106,11 @@
 ## backend:
 ##   - task: "Remove private package install blocker from backend"
 ##     implemented: true
-##     working: "NA"
+##     working: true
 ##     file: "backend/requirements.txt"
 ##     stuck_count: 0
 ##     priority: "high"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
 ##       - working: "NA"
 ##         agent: "main"
@@ -124,77 +124,91 @@
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Reduced Motor server-selection timeout via MONGO_SERVER_SELECTION_TIMEOUT_MS so startup hooks fail fast when MongoDB is unavailable instead of hanging health checks."
+##       - working: true
+##         agent: "main"
+##         comment: "Verified clean backend requirements install, server import, uvicorn startup without MongoDB, /health, /api/health, /api/games/modes, /api/streaming/status, and 19 returned game modes."
 ## frontend:
 ##   - task: "Centralize frontend backend and WebSocket URL handling"
 ##     implemented: true
-##     working: "NA"
+##     working: true
 ##     file: "frontend/src/config/api.js"
 ##     stuck_count: 0
 ##     priority: "high"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Added shared API/BACKEND_URL/toWebSocketUrl helper and updated app modules so missing REACT_APP_BACKEND_URL no longer produces undefined/api or undefined WebSocket URLs."
+##       - working: true
+##         agent: "main"
+##         comment: "Verified via frontend production build and backend smoke endpoints."
 ##   - task: "Expose Pixel Streaming screen from dashboard navigation"
 ##     implemented: true
-##     working: "NA"
+##     working: true
 ##     file: "frontend/src/App.js"
 ##     stuck_count: 0
 ##     priority: "high"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Changed the streaming sidebar route to render the existing PixelStreamingView instead of duplicating the Sovereign dashboard."
+##       - working: true
+##         agent: "main"
+##         comment: "Verified by successful frontend production build."
 ##   - task: "Make distribution/download claims truthful"
 ##     implemented: true
-##     working: "NA"
+##     working: true
 ##     file: "frontend/src/components/DistributionPage.js"
 ##     stuck_count: 0
 ##     priority: "medium"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Replaced # store links with env-configurable public release URLs and disabled beta/internal badges when listings are not live."
+##       - working: true
+##         agent: "main"
+##         comment: "Verified by successful frontend production build."
 ##   - task: "Restore npm install reproducibility"
 ##     implemented: true
-##     working: "NA"
+##     working: true
 ##     file: "frontend/package.json"
 ##     stuck_count: 0
 ##     priority: "high"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Aligned packageManager with npm, upgraded react-day-picker to a React 19-compatible version, and generated a frontend package-lock.json."
+##       - working: true
+##         agent: "main"
+##         comment: "Verified npm ci completes from package-lock.json. npm audit still reports pre-existing dependency vulnerabilities."
 ##   - task: "Resolve frontend build hook warnings in game timers"
 ##     implemented: true
-##     working: "NA"
+##     working: true
 ##     file: "frontend/src/App.js"
 ##     stuck_count: 0
 ##     priority: "medium"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Reworked the playable game timer and Brain Brawl timeout handler to avoid stale closures and submit final scores reliably."
+##       - working: true
+##         agent: "main"
+##         comment: "Verified npm run build compiles successfully with no warnings."
 ## metadata:
 ##   created_by: "main_agent"
 ##   version: "1.0"
-##   test_sequence: 1
+##   test_sequence: 2
 ##   run_ui: false
 ## test_plan:
 ##   current_focus:
-##     - "Backend dependency installation"
-##     - "Backend server import"
-##     - "Frontend production build"
-##     - "npm install reproducibility"
-##     - "Game timer hook warning regression"
+##     - "Frontend lacks committed test files; npm test requires --passWithNoTests."
 ##   stuck_tasks: []
 ##   test_all: false
 ##   test_priority: "high_first"
 ## agent_communication:
 ##   - agent: "main"
-##     message: "Ready for frontend install/build verification after committing this implementation checkpoint."
+##     message: "Verification complete: npm ci passed, npm run build passed without warnings, backend clean install/import passed, uvicorn health/static smoke endpoints passed. Standard npm test exits 1 because no frontend tests exist; rerun with --passWithNoTests exits 0."
