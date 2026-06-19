@@ -13,7 +13,7 @@
       "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/a10565a174954cb9915fbb8825a43cd6.fbx",
       "source_descriptor": "seeles_work/assets/models/venice_beach_court_model_fbx/venice_beach_court_model_fbx.json",
       "unreal_package": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
-      "imported_mesh": "demo_venue_marker.nexusmesh.json",
+      "imported_mesh": "venice_beach_court_model_fbx.nexusmesh.json",
       "fallback": "arena_grid",
       "generation_method": "tripo3D"
     },

@@ -10,18 +10,19 @@
 
 | Dimension | Estimate | Verdict |
 |-----------|----------|---------|
-| **Overall product completion** | **~58%** | Beta-ready iOS gameplay shell; full stack blocked on UE venues, asset import, NEXUS GPU runtime |
+| **Overall product completion** | **~65%** | Beta-ready iOS gameplay shell; NEXUS GPU runtime stable; UE venues + full asset import remain |
 | iOS Arena shell (19 modes) | ~85% | All modes routable; SceneKit + NEXUS bridge wired; receipt path in DEBUG |
 | NEXUS headless engine | ~78% | 3/3 unit tests pass; generative + asset pipeline coherent |
-| NEXUS GPU runtime | ~25% | `nexus_runtime` SIGSEGV on launch (MoltenVK) |
+| NEXUS GPU runtime | ~70% | `nexus_runtime` launches (MoltenVK loader fix); loads Venice Beach mesh (65k verts) |
 | UE 5.7 gameplay | ~62% | 14 production C++ modes; 5 registry stubs |
-| Content / assets | ~30% | 48 Seele descriptors; 0 binary meshes in git |
+| Content / assets | ~45% | 13 Seele FBX sources in git; Venice Beach real nexusmesh; 12 venue stubs |
 | GDD / spec coverage | ~70% | Protocol docs restored; venue sheets in design_reference |
 
 **Build status (this pass):**
 
 ```text
 ctest --test-dir build-headless     → 3/3 PASS (protocol, gameplay, generative)
+./build-full/nexus_runtime          → launches, loads venice_beach_court_model_fbx.nexusmesh.json
 xcodebuild FinalEvolutionLab (sim)  → BUILD SUCCEEDED (NexusGameplayBridge linked)
 ```
 
@@ -63,11 +64,11 @@ Prior audit: [READINESS_AUDIT_2026-06-19.md](./READINESS_AUDIT_2026-06-19.md)
 
 | Source | In repo | Imported to NEXUS | In UE cooked build |
 |--------|---------|-------------------|-------------------|
-| Seele environment FBX (17 CDN URLs) | descriptors only | pipeline ready | export required |
+| Seele environment FBX (17 CDN URLs) | **13 FBX in `assets/nexus/source/`** | **1 real mesh** (Venice Beach, 65k verts); 12 pyramid stubs | export required |
 | Luma Venice Shop | 2 refs | stub adapter | map path defined |
 | Meshy | 0 | drop zone documented | — |
 | NEXUS procedural arena | yes | `RenderScene::createProceduralArena` | — |
-| NEXUS demo mesh | 1 (`demo_venue_marker.nexusmesh.json`) | yes | — |
+| NEXUS imported meshes | 14 `.nexusmesh.json` | Venice Beach real; others stub until `--convert` | — |
 | UE `.uasset` / cooked iOS | 0 in monorepo | — | local Mac UE project |
 
 See [NEXUS_Asset_Pipeline.md](../architecture/NEXUS_Asset_Pipeline.md) and [NEXUS_Generative_Pipeline.md](../architecture/NEXUS_Generative_Pipeline.md).
@@ -96,6 +97,8 @@ See [NEXUS_Asset_Pipeline.md](../architecture/NEXUS_Asset_Pipeline.md) and [NEXU
 3. **NexusGameplayBridge** — ObjC++ bridge (`FinalEvolutionLab/Bridge/`) links headless `nexus_gameplay`; `GamePlayView` starts/stops `NexusGameplayEngine` session on appear/disappear; HUD shows NEXUS throw-catch phase when linked.
 4. **DEBUG session receipt** — `finalizeResults()` → `GameplaySessionReceiptCoordinator.submitNativeSessionReceipt` (guarded by `Config.submitNativeGameplayReceiptsInDebug`).
 5. **Headless tests** — Added `nexus_generative_test` to CI matrix (3 tests total).
+6. **FBX→nexusmesh conversion** — `scripts/nexus_import_assets.py` uses assimp CLI + trimesh (pyassimp/Blender fallback); Venice Beach court converted (65,884 verts).
+7. **MoltenVK SIGSEGV fix verified** — `SDL_Vulkan_LoadLibrary(nullptr)` in `vulkan_renderer.cpp`; `nexus_runtime` loads manifest mesh and runs orbit camera loop.
 
 ---
 
@@ -107,8 +110,8 @@ pie title Estimated completion by layer
     "NEXUS headless" : 78
     "GDD/spec docs" : 70
     "UE gameplay" : 62
-    "Assets/content" : 30
-    "NEXUS GPU runtime" : 25
+    "Assets/content" : 45
+    "NEXUS GPU runtime" : 70
 ```
 
 | Layer | % | Blocker to 100% |
@@ -116,19 +119,19 @@ pie title Estimated completion by layer
 | iOS navigation + mode chrome | 85 | UE embed, consistent SceneKit load |
 | NEXUS fel.* protocol | 78 | Live iOS biometric transport |
 | UE mode implementations | 62 | 5 stub modes, cooked iOS builds |
-| Asset pipeline | 30 | Download Seele FBX, import, UE re-export |
-| NEXUS Vulkan runtime | 25 | SIGSEGV at init |
+| Asset pipeline | 50 | Convert remaining 12 venues; mesh decimation for mobile |
+| NEXUS Vulkan runtime | 70 | iOS Metal renderer; mesh LOD; validation layers |
 
 ---
 
 ## Top blockers
 
-1. **NEXUS GPU runtime crash** — `build-full/nexus_runtime` exits SIGSEGV; blocks windowed audit and generative→renderer visual validation.
-2. **No cooked UE / venue meshes in repo** — True in-engine visuals require local UE 5.7 cook + iOS embed or Pixel Streaming runbook.
-3. **Seele CDN assets not downloaded** — 17 environment FBX URLs documented but not ingested into `assets/nexus/imported/`.
-4. **5 UE registry-only modes** — `skateboarding`, `snowboarding`, `who_scene_it`, `court_carnival` (+ `market_browse` non-game); Swift shell has UX stubs.
-5. **SceneKit viewport inconsistency** — Black viewports on dunk/soccer in harness (timing / scene init).
-6. **Backend mode count drift** — Backend lists 20 (incl. `movement_lab`); iOS ships 19 game modes; metadata `production_modes` header stale (12 vs 14).
+1. **No cooked UE / venue meshes in repo** — True in-engine visuals require local UE 5.7 cook + iOS embed or Pixel Streaming runbook.
+2. **12 venue meshes still stub pyramids** — Run `python3 scripts/nexus_import_assets.py --convert` (requires `assimp` + `trimesh`).
+3. **5 UE registry-only modes** — `skateboarding`, `snowboarding`, `who_scene_it`, `court_carnival` (+ `market_browse` non-game); Swift shell has UX stubs.
+4. **SceneKit viewport inconsistency** — Black viewports on dunk/soccer in harness (timing / scene init).
+5. **Backend mode count drift** — Backend lists 20 (incl. `movement_lab`); iOS ships 19 game modes; metadata `production_modes` header stale (12 vs 14).
+6. **GitHub Actions workflow blocked** — `.github/workflows/nexus-ci.yml` excluded from push (OAuth token lacks `workflow` scope).
 
 ---
 
@@ -136,8 +139,8 @@ pie title Estimated completion by layer
 
 | # | Task | Owner layer | Impact |
 |---|------|-------------|--------|
-| 1 | Debug `nexus_runtime` Vulkan/MoltenVK SIGSEGV | NEXUS engine | Unblocks GPU audit |
-| 2 | Download + import top 3 Seele venues (Venice, Dojo, Baseball) via `nexus_import_assets.py` | Assets | First real meshes |
+| 1 | Convert remaining 12 Seele venues via `nexus_import_assets.py --convert` | Assets | Full venue mesh set |
+| 2 | Add mesh decimation option for mobile/iOS (target &lt;10k verts) | Assets + NEXUS | Runtime perf |
 | 3 | Wire `fel.scan.import_environment` smoke test with Luma Venice stub | Generative | End-to-end pipeline proof |
 | 4 | Fix SceneKit black viewports (dunk, soccer) — defer screenshot until `sceneViewportReady` | iOS | Audit quality |
 | 5 | Re-run `./scripts/export_audit_screenshots.sh` for mode 19 (`market_browse`) | QA | Complete screenshot matrix |
@@ -145,7 +148,7 @@ pie title Estimated completion by layer
 | 7 | Connect HealthKit/pose stream → `NexusGameplayBridge` `fel.fitness.update` on device | iOS + NEXUS | Live coaching loop |
 | 8 | Cook + embed UnrealFramework for one venue (Venice H2H) | UE + iOS | True 3D gameplay |
 | 9 | Add `movement_lab` to iOS as non-scoring education tab OR document exclusion | Product | Backend/iOS alignment |
-| 10 | Add `nexus-ci.yml` generative test + iOS bridge compile to GitHub Actions | CI | Regression guard |
+| 10 | Push `nexus-ci.yml` with `workflow`-scoped token or manual workflow add | CI | Regression guard |
 
 ---
 
