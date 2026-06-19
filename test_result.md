@@ -118,6 +118,9 @@
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Added missing aiofiles dependency after server import verification exposed the undeclared import."
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Made paypalrestsdk optional because installing it conflicts with the pinned cryptography stack; payment endpoints now return 503 if the SDK is absent."
 ## frontend:
 ##   - task: "Centralize frontend backend and WebSocket URL handling"
 ##     implemented: true

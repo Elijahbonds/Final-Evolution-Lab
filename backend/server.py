@@ -7,13 +7,17 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-import paypalrestsdk
 
 try:
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 except ImportError:
     LlmChat = None
     UserMessage = None
+
+try:
+    import paypalrestsdk
+except ImportError:
+    paypalrestsdk = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -22,12 +26,14 @@ from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 
-# PayPal config
-paypalrestsdk.configure({
-    "mode": "sandbox",
-    "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
-})
+# PayPal config. The SDK is optional so the API can boot in environments that
+# do not ship payment dependencies; payment endpoints return 503 when missing.
+if paypalrestsdk is not None:
+    paypalrestsdk.configure({
+        "mode": "sandbox",
+        "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
+        "client_secret": os.environ.get('PAYPAL_SECRET', '')
+    })
 
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -206,6 +212,9 @@ async def get_streak_rewards(user: User = Depends(get_current_user)):
 # ===================== PAYPAL =====================
 @api_router.post("/payments/create-order")
 async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    if paypalrestsdk is None:
+        raise HTTPException(status_code=503, detail="PayPal SDK is not installed")
+
     item_type = data.get("item_type", "card")  # card, course
     item_id = data.get("item_id")
     amount = data.get("amount", 0)
@@ -249,6 +258,9 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
 
 @api_router.post("/payments/capture")
 async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    if paypalrestsdk is None:
+        raise HTTPException(status_code=503, detail="PayPal SDK is not installed")
+
     payment_id = data.get("payment_id")
     payer_id = data.get("payer_id")
     if not payment_id or not payer_id:
