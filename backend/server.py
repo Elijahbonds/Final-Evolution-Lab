@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
+from pymongo.errors import PyMongoError
 try:
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 except ModuleNotFoundError:
@@ -331,7 +332,11 @@ async def search_athletes(q: str = ""):
     query = {"role": {"$in": ["athlete", "coach"]}}
     if q:
         query["name"] = {"$regex": q, "$options": "i"}
-    athletes = await db.users.find(query, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "sport": 1, "prq_score": 1, "level": 1, "followers": 1}).limit(20).to_list(20)
+    try:
+        athletes = await db.users.find(query, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "sport": 1, "prq_score": 1, "level": 1, "followers": 1}).limit(20).to_list(20)
+    except PyMongoError as e:
+        logger.warning("Using seeded athlete search fallback: %s", e)
+        athletes = []
     if not athletes:
         return [
             {"user_id": "u1", "name": "Elijah Bonds", "sport": "basketball", "prq_score": 95.5, "level": 25, "followers": ["u2", "u3"]},
@@ -344,14 +349,22 @@ async def search_athletes(q: str = ""):
 # ===================== TOURNAMENTS =====================
 @api_router.get("/tournaments")
 async def get_tournaments():
-    tournaments = await db.tournaments.find({}, {"_id": 0}).sort("start_date", -1).limit(10).to_list(10)
+    try:
+        tournaments = await db.tournaments.find({}, {"_id": 0}).sort("start_date", -1).limit(10).to_list(10)
+    except PyMongoError as e:
+        logger.warning("Using seeded tournament fallback: %s", e)
+        tournaments = []
     if not tournaments:
         return get_seeded_tournaments()
     return tournaments
 
 @api_router.get("/tournaments/{tournament_id}")
 async def get_tournament(tournament_id: str):
-    t = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+    try:
+        t = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+    except PyMongoError as e:
+        logger.warning("Using seeded tournament detail fallback: %s", e)
+        t = None
     if not t:
         for st in get_seeded_tournaments():
             if st["id"] == tournament_id:
@@ -637,8 +650,15 @@ def get_seeded_game_modes():
 
 @api_router.get("/cards")
 async def get_creator_cards(category: Optional[str] = None):
-    cards = await db.creator_cards.find({} if not category else {"sport": category}, {"_id": 0}).to_list(100)
-    return cards if cards else get_seeded_creator_cards()
+    try:
+        cards = await db.creator_cards.find({} if not category else {"sport": category}, {"_id": 0}).to_list(100)
+    except PyMongoError as e:
+        logger.warning("Using seeded creator card fallback: %s", e)
+        cards = []
+    if cards:
+        return cards
+    seeded = get_seeded_creator_cards()
+    return [card for card in seeded if card["sport"] == category] if category else seeded
 
 def get_seeded_creator_cards():
     return [
@@ -649,7 +669,11 @@ def get_seeded_creator_cards():
 
 @api_router.get("/coach/available")
 async def get_available_coaches():
-    coaches = await db.users.find({"role": "coach"}, {"_id": 0}).to_list(50)
+    try:
+        coaches = await db.users.find({"role": "coach"}, {"_id": 0}).to_list(50)
+    except PyMongoError as e:
+        logger.warning("Using seeded coach fallback: %s", e)
+        coaches = []
     if not coaches:
         return [
             {"user_id":"coach_1","name":"Coach Williams","sport":"basketball","specialty":"Shooting & Ball Handling","rating":4.8,"sessions":250,"rate":25},
@@ -724,7 +748,11 @@ def get_seeded_questions(category, count):
 
 @api_router.get("/leaderboard")
 async def get_leaderboard(limit: int = 20):
-    leaders = await db.users.find({}, {"_id":0,"user_id":1,"name":1,"prq_score":1,"level":1,"xp":1,"sport":1,"picture":1,"streak_days":1}).sort("prq_score",-1).limit(limit).to_list(limit)
+    try:
+        leaders = await db.users.find({}, {"_id":0,"user_id":1,"name":1,"prq_score":1,"level":1,"xp":1,"sport":1,"picture":1,"streak_days":1}).sort("prq_score",-1).limit(limit).to_list(limit)
+    except PyMongoError as e:
+        logger.warning("Using seeded leaderboard fallback: %s", e)
+        leaders = []
     if not leaders:
         return [
             {"rank":1,"user_id":"u1","name":"Elijah Bonds","prq_score":95.5,"level":25,"xp":12500,"sport":"basketball","streak_days":30},
@@ -1084,7 +1112,11 @@ async def get_comparison(session_id: str, user: User = Depends(get_current_user)
 @api_router.get("/cards/multimedia/{card_id}")
 async def get_card_multimedia(card_id: str):
     """Get multimedia assets for a Creator Card — 3D animations, masterclass video, IP permissions"""
-    card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
+    try:
+        card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
+    except PyMongoError as e:
+        logger.warning("Using seeded card multimedia fallback: %s", e)
+        card = None
     if not card:
         for c in get_seeded_creator_cards():
             if c["id"] == card_id:
@@ -1615,9 +1647,13 @@ async def create_multiplayer_room(data: Dict[str, Any], user: User = Depends(get
 @api_router.get("/multiplayer/rooms")
 async def get_active_rooms():
     """List active multiplayer rooms"""
-    rooms = await db.multiplayer_rooms.find(
-        {"status": {"$in": ["waiting", "in_progress"]}}, {"_id": 0}
-    ).sort("created_at", -1).limit(20).to_list(20)
+    try:
+        rooms = await db.multiplayer_rooms.find(
+            {"status": {"$in": ["waiting", "in_progress"]}}, {"_id": 0}
+        ).sort("created_at", -1).limit(20).to_list(20)
+    except PyMongoError as e:
+        logger.warning("Using seeded multiplayer room fallback: %s", e)
+        rooms = []
     if not rooms:
         return [
             {"id": "room_demo1", "host_name": "Elijah B.", "game_mode": "basketball_h2h", "max_players": 2, "players": [{"name": "Elijah B.", "ready": True}], "status": "waiting", "settings": {"time_limit": 60, "allow_spectators": True}},
@@ -1754,7 +1790,11 @@ async def get_spectator_config(tournament_id: str):
             t = st
             break
     if not t:
-        t = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+        try:
+            t = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
+        except PyMongoError as e:
+            logger.warning("Using seeded spectator fallback: %s", e)
+            t = None
     if not t:
         raise HTTPException(status_code=404, detail="Tournament not found")
 
