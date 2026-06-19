@@ -7,9 +7,12 @@ FELBridge prep (automated):
     PROJECT_DIR="/path/to/your/project" ./prepare_fel_bridge.sh --copy-sources
 
   Optional env at runtime (overrides DefaultGame.ini GameWebSocketUrl):
-    FEL_GAME_WS_URL=wss://your-host/ws/game/room-id
+    FEL_GAME_WS_URL=wss://your-host/ws/vault
 
-  FELBridge Defaults live in DefaultGame.ini [FELBridge]; see UnrealIntegration/Config/DefaultGame.FEL_Bridge.snippet.ini
+  Optional HUD relay env (overrides [FELBackend] HudWebSocketUrl):
+    FEL_HUD_WS_URL=ws://127.0.0.1:8787/ws/hud?user_id=dev-athlete
+
+  FELBridge Defaults live in DefaultGame.ini [FELBridge] + [FELBackend]; see UnrealIntegration/Config/DefaultGame.FEL_Bridge.snippet.ini
 
 ---
 
@@ -32,7 +35,7 @@ FELBridge prep (automated):
 
      UFELBridgeSubsystem* B = GameInstance->GetSubsystem<UFELBridgeSubsystem>();
      // Optional if already set via ini/env:
-     B->SetGameWebSocketUrl(TEXT("wss://your-host/ws/game/YOUR_ROOM_ID"));
+     B->SetGameWebSocketUrl(TEXT("wss://your-host/ws/vault"));
      B->SetFocusKeepaliveEnabled(true, 0.5f);
      // ... end of match:
      B->SendMatchScoreToWebSocket(TeamA, TeamB, TEXT("{}"));
