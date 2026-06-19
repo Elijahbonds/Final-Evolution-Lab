@@ -10,6 +10,7 @@ import base64
 import io
 import os
 import time
+from pathlib import Path
 
 import pytest
 import requests
@@ -18,12 +19,13 @@ from pymongo import MongoClient
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 if not BASE_URL:
-    # fallback to frontend/.env
-    with open("/app/frontend/.env") as f:
-        for line in f:
+    env_path = Path(__file__).resolve().parents[2] / "frontend" / ".env"
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
             if line.startswith("REACT_APP_BACKEND_URL="):
                 BASE_URL = line.split("=", 1)[1].strip().rstrip("/")
                 break
+BASE_URL = BASE_URL or "http://localhost:8000"
 
 MONGO_URL = "mongodb://localhost:27017"
 DB_NAME = "test_database"

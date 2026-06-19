@@ -13,7 +13,7 @@ import requests
 import os
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8000').rstrip('/')
 
 # Test session token - will be created in setup
 TEST_SESSION_TOKEN = None
@@ -429,7 +429,7 @@ class TestPreviousFeaturesRegression:
         r = requests.get(f"{BASE_URL}/api/games/modes")
         assert r.status_code == 200
         modes = r.json()
-        assert len(modes) >= 17, f"Expected 17+ modes, got {len(modes)}"
+        assert len(modes) >= 19, f"Expected 19+ modes, got {len(modes)}"
     
     def test_creator_cards_still_working(self):
         """GET /api/cards returns creator cards"""

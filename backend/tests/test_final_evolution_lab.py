@@ -7,7 +7,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8000').rstrip('/')
 SESSION_TOKEN = os.environ.get('TEST_SESSION_TOKEN', '')
 
 @pytest.fixture(scope="module")
@@ -74,17 +74,17 @@ class TestAuthProtection:
         print("Auth protection working: /prq/metrics returns 401")
 
 
-# ===================== GAME MODES (17 modes) =====================
+# ===================== GAME MODES (19 modes) =====================
 class TestGameModes:
-    """Test all 17 game modes API"""
+    """Test all 19 game modes API"""
     
     def test_get_all_game_modes(self, api_client):
-        """Test /games/modes returns all 17 playable modes"""
+        """Test /games/modes returns all 19 registered modes"""
         response = api_client.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         modes = response.json()
         assert isinstance(modes, list)
-        assert len(modes) == 17, f"Expected 17 game modes, got {len(modes)}"
+        assert len(modes) == 19, f"Expected 19 game modes, got {len(modes)}"
         
         # Verify all modes have required fields
         for mode in modes:

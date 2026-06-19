@@ -15,7 +15,7 @@ import os
 import json
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8000').rstrip('/')
 
 class TestDirective6LiveConnectionPreview:
     """Directive 6: GET /api/sovereign/status returns live connection preview"""
@@ -282,7 +282,7 @@ class TestRegressionPreviousFeatures:
         response = requests.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         data = response.json()
-        assert len(data) >= 17, f"Expected 17+ game modes, got {len(data)}"
+        assert len(data) >= 19, f"Expected 19+ game modes, got {len(data)}"
         print(f"✅ Game modes: {len(data)} modes")
     
     def test_creator_cards_endpoint(self):
