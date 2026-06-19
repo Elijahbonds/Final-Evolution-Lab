@@ -103,7 +103,18 @@
 #====================================================================================================
 
 ## user_problem_statement: "Audit the app/game for completion, comprehensiveness, quality, and working status; take intuitive action to fix impediments."
-## backend: []
+## backend:
+##   - task: "Remove private package install blocker from backend"
+##     implemented: true
+##     working: "NA"
+##     file: "backend/requirements.txt"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Removed unavailable emergentintegrations pin and made AI/Bio-Fuel provider imports optional so core API install/import is not blocked in clean environments."
 ## frontend:
 ##   - task: "Centralize frontend backend and WebSocket URL handling"
 ##     implemented: true
@@ -167,6 +178,8 @@
 ##   run_ui: false
 ## test_plan:
 ##   current_focus:
+##     - "Backend dependency installation"
+##     - "Backend server import"
 ##     - "Frontend production build"
 ##     - "npm install reproducibility"
 ##     - "Game timer hook warning regression"
