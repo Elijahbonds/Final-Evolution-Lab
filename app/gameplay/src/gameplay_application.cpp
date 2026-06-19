@@ -5,6 +5,8 @@
 
 #include "nexus/creative/voxel_world.h"
 #include "nexus/core/log.h"
+#include "nexus/generative/generative_pipeline.h"
+#include "nexus/generative/generative_types.h"
 
 #include <algorithm>
 #include <span>
@@ -54,6 +56,11 @@ GameplayApplication::GameplayApplication(creative::WorldManipulator& manipulator
                                          const creative::VoxelWorld& voxelWorld)
     : m_voxelParser(manipulator, voxelWorld) {}
 
+void GameplayApplication::setGenerativePipeline(
+    generative::GenerativePipeline* generativePipeline) {
+  m_generativePipeline = generativePipeline;
+}
+
 void GameplayApplication::update(double deltaSeconds,
                                  physics::PhysicsWorld& physicsWorld,
                                  std::span<const ai::AgentResponse> agentResponses) {
@@ -89,9 +96,16 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
 auto GameplayApplication::handleGameplayQuery(std::string_view query,
                                               const nlohmann::json& payload,
                                               std::string_view id) -> ai::AgentResponse {
-  (void)payload;
   if (query == "fel.query.get_session_state") {
     return response(id, "ok", sessionStatePayload());
+  }
+
+  if (m_generativePipeline != nullptr && query.rfind("fel.generate.", 0) == 0) {
+    auto result = m_generativePipeline->handleQuery(query, payload);
+    if (result.isErr()) {
+      return response(id, "error", {}, result.error());
+    }
+    return response(id, "ok", result.value());
   }
 
   return response(id, "error", {}, "Unsupported gameplay query");
@@ -181,6 +195,15 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
 auto GameplayApplication::sessionStatePayload() const -> nlohmann::json {
   const auto fitness = m_fitnessData.snapshot();
   const auto& throwCatch = m_throwCatch.state();
+  nlohmann::json generativeSummary = nlohmann::json::object();
+  if (m_generativePipeline != nullptr) {
+    nlohmann::json jobs = nlohmann::json::array();
+    for (const generative::GenerativeJob& job : m_generativePipeline->modelGenerator().jobs()) {
+      jobs.push_back(generative::jobToJson(job));
+    }
+    generativeSummary = {{"jobs", std::move(jobs)}};
+  }
+
   return {
       {"fitness",
        {
@@ -209,6 +232,7 @@ auto GameplayApplication::sessionStatePayload() const -> nlohmann::json {
            {"processed_messages", m_stats.processedAgentMessages},
            {"latest_errors", m_stats.latestAgentErrors},
        }},
+      {"generative", std::move(generativeSummary)},
       {"updates_completed", m_stats.updatesCompleted},
   };
 }

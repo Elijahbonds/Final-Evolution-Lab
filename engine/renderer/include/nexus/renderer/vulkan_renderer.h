@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nexus/core/result.h"
+#include "nexus/renderer/scene.h"
 
 #include <vulkan/vulkan.h>
 
@@ -12,7 +13,7 @@ struct SDL_Window;
 namespace nexus::renderer {
 
 struct RendererConfig {
-  const char* title{"NEXUS Runtime (dev) — open FinalEvolutionLab on iPhone"};
+  const char* title{"NEXUS Runtime (dev) — 3D arena preview"};
   std::uint32_t width{1280};
   std::uint32_t height{720};
   bool enableValidation{true};
@@ -22,22 +23,39 @@ class VulkanRenderer {
 public:
   auto init(const RendererConfig& config) -> Result<void>;
   void pollInput();
+  void advanceScene(double deltaSeconds);
   void renderFrame();
   [[nodiscard]] auto shouldClose() const -> bool;
   void shutdown();
 
 private:
+  struct GpuMesh {
+    VkBuffer vertexBuffer{VK_NULL_HANDLE};
+    VkDeviceMemory vertexMemory{VK_NULL_HANDLE};
+    VkBuffer indexBuffer{VK_NULL_HANDLE};
+    VkDeviceMemory indexMemory{VK_NULL_HANDLE};
+    std::uint32_t indexCount{0};
+  };
+
   auto createDevice() -> Result<void>;
   auto createRenderPass() -> Result<void>;
   auto createPipelineResources() -> Result<void>;
   auto createSwapchainResources() -> Result<void>;
+  auto createDepthResources() -> Result<void>;
+  auto createDescriptorResources() -> Result<void>;
+  auto uploadSceneMeshes() -> Result<void>;
+  void updateUniformBuffer();
   void recreateSwapchain();
+  void destroyGpuMeshes();
   void destroyPipelineResources();
   void destroySwapchainResources();
+  void destroyDepthResources();
   void destroyDevice();
 
   auto createShaderModule(const std::uint8_t* code, std::size_t codeSize) -> Result<VkShaderModule>;
 
+  RenderScene m_scene{};
+  std::vector<GpuMesh> m_gpuMeshes;
   SDL_Window* m_window{nullptr};
   VkInstance m_instance{VK_NULL_HANDLE};
   VkSurfaceKHR m_surface{VK_NULL_HANDLE};
@@ -53,10 +71,17 @@ private:
   VkFormat m_swapchainImageFormat{VK_FORMAT_UNDEFINED};
   VkExtent2D m_swapchainExtent{};
   VkRenderPass m_renderPass{VK_NULL_HANDLE};
+  VkDescriptorSetLayout m_descriptorSetLayout{VK_NULL_HANDLE};
+  VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
+  VkDescriptorSet m_descriptorSet{VK_NULL_HANDLE};
   VkPipelineLayout m_pipelineLayout{VK_NULL_HANDLE};
   VkPipeline m_pipeline{VK_NULL_HANDLE};
-  VkBuffer m_vertexBuffer{VK_NULL_HANDLE};
-  VkDeviceMemory m_vertexBufferMemory{VK_NULL_HANDLE};
+  VkBuffer m_uniformBuffer{VK_NULL_HANDLE};
+  VkDeviceMemory m_uniformBufferMemory{VK_NULL_HANDLE};
+  void* m_uniformMapped{nullptr};
+  VkImage m_depthImage{VK_NULL_HANDLE};
+  VkDeviceMemory m_depthImageMemory{VK_NULL_HANDLE};
+  VkImageView m_depthImageView{VK_NULL_HANDLE};
   std::vector<VkFramebuffer> m_swapchainFramebuffers;
   VkCommandPool m_commandPool{VK_NULL_HANDLE};
   std::vector<VkCommandBuffer> m_commandBuffers;

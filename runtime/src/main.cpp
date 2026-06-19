@@ -8,8 +8,30 @@
 #include "nexus/creative/voxel_world.h"
 #include "nexus/creative/world_manipulator.h"
 #include "nexus/gameplay/gameplay_application.h"
+#include "nexus/generative/generative_pipeline.h"
 #include "nexus/physics/physics_world.h"
+#include "nexus/renderer/arena_scene.h"
 #include "nexus/renderer/vulkan_renderer.h"
+
+namespace {
+
+auto seedArenaVoxels(nexus::creative::VoxelWorld& voxelWorld) -> void {
+  using nexus::creative::Vec3i;
+  using nexus::creative::Voxel;
+  using nexus::renderer::arenaColumnHeightAt;
+  using nexus::renderer::kArenaGridRadius;
+
+  for (int gridX = -kArenaGridRadius; gridX <= kArenaGridRadius; ++gridX) {
+    for (int gridZ = -kArenaGridRadius; gridZ <= kArenaGridRadius; ++gridZ) {
+      const int height = arenaColumnHeightAt(gridX, gridZ);
+      for (int gridY = 0; gridY < height; ++gridY) {
+        (void)voxelWorld.setVoxel(Vec3i{gridX, gridY, gridZ}, Voxel{.material = 1, .solid = true});
+      }
+    }
+  }
+}
+
+} // namespace
 
 auto main() -> int {
   nexus::renderer::VulkanRenderer renderer;
@@ -28,10 +50,13 @@ auto main() -> int {
   }
 
   nexus::creative::VoxelWorld voxelWorld;
+  seedArenaVoxels(voxelWorld);
   nexus::creative::WorldManipulator manipulator(voxelWorld);
 
+  nexus::generative::GenerativePipeline generativePipeline;
+
   nexus::ai::CommandRouter router;
-  auto routerResult = router.init(&manipulator, &voxelWorld);
+  auto routerResult = router.init(&manipulator, &voxelWorld, &generativePipeline);
   if (routerResult.isErr()) {
     NEXUS_LOG_ERROR(nexus::LogChannel::kAI, routerResult.error());
     physics.shutdown();
@@ -40,6 +65,7 @@ auto main() -> int {
   }
 
   nexus::gameplay::GameplayApplication gameplay(manipulator, voxelWorld);
+  gameplay.setGenerativePipeline(&generativePipeline);
   router.setGameplayHandler(&gameplay);
 
   nexus::ai::AgentServer agentServer;
@@ -74,9 +100,9 @@ auto main() -> int {
   }
 
   std::cerr
-      << "\n[NEXUS] macOS dev runtime only — Vulkan swapchain test window (NOT the iOS app).\n"
-      << "[NEXUS] Product UI: open FinalEvolutionLab.xcodeproj → Run on iPhone/Simulator (no -ScreenshotHarness).\n"
-      << "[NEXUS] Web: sites/finalevolutiongroup.com or sites/final-evolution-main-site.\n\n";
+      << "\n[NEXUS] macOS dev runtime — 3D arena preview (orbit camera + cube field).\n"
+      << "[NEXUS] Agent TCP: localhost:9090 | Voxel world seeded to match rendered arena.\n"
+      << "[NEXUS] Product UI: open FinalEvolutionLab.xcodeproj → Run on iPhone/Simulator.\n\n";
 
   engine.run();
 

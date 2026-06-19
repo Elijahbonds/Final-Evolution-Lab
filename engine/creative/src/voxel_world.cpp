@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 
 namespace nexus::creative {
 
@@ -78,6 +79,33 @@ auto VoxelWorld::serializeDirtyChunks(std::size_t maxChunks) -> nlohmann::json {
 
 void VoxelWorld::clear() {
   m_chunks.clear();
+  m_environmentChunks.clear();
+}
+
+auto VoxelWorld::environmentChunkCount() const -> std::size_t {
+  return m_environmentChunks.size();
+}
+
+auto VoxelWorld::serializeEnvironmentChunks() const -> nlohmann::json {
+  nlohmann::json chunks = nlohmann::json::array();
+  for (const auto& [coord, ref] : m_environmentChunks) {
+    chunks.push_back({
+        {"coord", {coord.x, coord.y, coord.z}},
+        {"mesh", ref.meshPath},
+    });
+  }
+  return chunks;
+}
+
+auto VoxelWorld::registerEnvironmentChunk(Vec3i chunkCoord, std::string_view meshPath)
+    -> Result<void> {
+  if (meshPath.empty()) {
+    return Result<void>::err("environment chunk requires mesh path");
+  }
+  const ChunkCoord coord{chunkCoord.x, chunkCoord.y, chunkCoord.z};
+  m_environmentChunks[coord] = EnvironmentChunkRef{std::string(meshPath)};
+  markDirty(coord);
+  return Result<void>::ok();
 }
 
 auto VoxelWorld::chunkFor(Vec3i position) -> ChunkCoord {

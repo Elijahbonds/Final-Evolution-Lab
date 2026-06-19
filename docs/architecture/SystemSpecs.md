@@ -4,7 +4,7 @@
 
 ## Purpose
 
-NEXUS (Neural EXecution Unified System) is a C++20 engine with a JSON agent bridge for LLM-driven terrain editing and FEL gameplay hooks. Phase 1 delivers a runnable dev runtime (SDL3 + Vulkan smoke test), fixed-timestep loop, voxel creative mode, and headless protocol tests.
+NEXUS (Neural EXecution Unified System) is a C++20 engine with a JSON agent bridge for LLM-driven terrain editing and FEL gameplay hooks. Phase 1 delivers a runnable dev runtime (SDL3 + Vulkan 3D arena preview), fixed-timestep loop, voxel creative mode, and headless protocol tests.
 
 ## Project layout
 
@@ -17,7 +17,7 @@ Final-Evolution-Lab/
 │   ├── ai_interface/              # AgentServer, AgentTransport, CommandRouter
 │   ├── creative/                  # VoxelWorld, WorldManipulator
 │   ├── physics/                   # PhysicsWorld (intent-queue stub)
-│   └── renderer/                  # VulkanRenderer + embedded SPIR-V shaders
+│   └── renderer/                  # VulkanRenderer, Camera, Mesh, RenderScene
 ├── app/gameplay/                  # FEL app layer (fitness, throw-catch, creative parser)
 ├── tests/unit/
 │   ├── ai_interface/              # Protocol smoke test
@@ -25,7 +25,7 @@ Final-Evolution-Lab/
 └── docs/architecture/             # This folder
 ```
 
-Shaders live at `engine/renderer/shaders/` (`triangle.vert`, `triangle.frag`) with precompiled SPIR-V in `triangle_shader_spv.h`.
+Shaders live at `engine/renderer/shaders/` (`triangle.*` legacy, `arena.*` 3D scene) with precompiled SPIR-V in `*_shader_spv.h`. Rebuild via `scripts/compile_nexus_shaders.sh`.
 
 ## CMake targets
 
@@ -34,7 +34,9 @@ Shaders live at `engine/renderer/shaders/` (`triangle.vert`, `triangle.frag`) wi
 | `nexus_core` | `Result`, `Log` | — |
 | `nexus_physics` | Fixed-step intent queue stub | `nexus_core` |
 | `nexus_creative` | Voxel storage + terrain commands | `nexus_core`, `nlohmann_json` |
-| `nexus_ai_interface` | JSON queue, router, transport | `nexus_core`, `nexus_creative`, `nlohmann_json` |
+| `nexus_assets` | Asset manifest registry | `nexus_core`, `nlohmann_json` |
+| `nexus_ai_interface` | JSON queue, router, transport | `nexus_core`, `nexus_creative`, `nexus_generative`, `nlohmann_json` |
+| `nexus_generative` | Scan import, environment chunks, procedural mesh | `nexus_assets`, `nexus_creative`, `nexus_luma` |
 | `nexus_gameplay` | FEL fitness / throw-catch / creative parser | above + `nexus_physics` |
 | `nexus_renderer` | SDL3 window + Vulkan swapchain | `nexus_core`, `SDL3`, `Vulkan` |
 | `nexus_engine` | Main loop (`Engine::tick`) | `nexus_core`, `nexus_physics`, `nexus_renderer`, `nexus_ai_interface` |
@@ -67,7 +69,7 @@ Authoritative order in `engine/core/src/engine.cpp`:
 2. **Agent drain** — `AgentServer::processQueuedCommands(maxCommandsPerFrame)` *(before physics)*
 3. **Fixed-step physics** — accumulator at `fixedTimestepSeconds` (default 1/60 s)
 4. **Application hook** — `ApplicationUpdateHook::update()` (gameplay reads agent responses, queues physics intents)
-5. **Render** — `VulkanRenderer::renderFrame()`
+5. **Render** — `VulkanRenderer::advanceScene()` then `renderFrame()` (3D arena + orbit camera)
 
 **Default `EngineConfig`**
 
@@ -102,8 +104,10 @@ Shutdown reverses that order.
 | Terrain routing (`terrain.*`) | **Implemented** |
 | FEL gameplay commands (`fel.*`, `fitness.*`) | **Implemented** (app layer) |
 | Creative voxel storage + dirty chunks | **Implemented** |
-| Vulkan swapchain + triangle smoke test | **Implemented** |
+| Vulkan swapchain + 3D arena (depth, indexed meshes, orbit camera) | **Implemented** |
 | Physics | **Stub** (intent queue, no Jolt) |
+| Generative scan import (`fel.scan.*`, `fel.generate.*`) | **Implemented** |
+| Asset manifest + mesh importer | **Scaffold** (demo mesh only) |
 | Voxel meshing / GPU terrain | **Not started** |
 | ECS, undo/redo, chunk streaming | **Not started** |
 
@@ -121,4 +125,22 @@ cmake --build build-full
 ./build-full/nexus_runtime
 ```
 
-Expected: `ctest` reports 2/2 (`nexus_protocol_test`, `nexus_gameplay_test`).
+Expected: `ctest` reports 3/3 (`nexus_protocol_test`, `nexus_gameplay_test`, `nexus_generative_test`).
+
+## Completion status (2026-06-19)
+
+Synthesized from [GAME_COMPLETION_AUDIT.md](../audit/GAME_COMPLETION_AUDIT.md).
+
+| Area | Status | Notes |
+|------|--------|-------|
+| **Headless CI** | **Green** | 3/3 tests pass (`build-headless`) |
+| **iOS NEXUS bridge** | **Linked** | `NexusGameplayBridge.mm` + prebuilt `build-ios/*.a`; simulator build succeeds |
+| **Generative pipeline** | **Implemented** | `nexus_generative` wired into router + gameplay; environment scan + chunk merge |
+| **Asset pipeline** | **Scaffold** | Manifest + mesh importer; 1 demo mesh; Seele CDN not downloaded |
+| **Renderer (GPU)** | **Unstable** | 3D arena code present; `nexus_runtime` SIGSEGV on macOS launch |
+| **iOS product shell** | **Beta-ready** | 19 modes in `GameModeRegistry`; NEXUS session in `GamePlayView`; DEBUG receipt POST |
+| **UE 5.7 venues** | **Out of repo** | 14 production C++ modes per backend; cooked maps on local Mac only |
+
+**Estimated overall completion:** ~58% (iOS shell strongest; assets + GPU runtime weakest).
+
+**Top blockers:** NEXUS runtime crash, missing venue meshes, 5 UE stub modes, live biometric bridge not validated on device.

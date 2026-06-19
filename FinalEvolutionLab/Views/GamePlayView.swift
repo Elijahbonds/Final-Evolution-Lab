@@ -108,6 +108,7 @@ struct GamePlayView: View {
     @State private var apexQTESessionGeneration: UInt64 = 0
     @State private var sessionStartedAt: Date?
     @State private var sceneViewportReady = false
+    @State private var nexusEngine = NexusGameplayEngine()
 
     // MARK: - Who Scene It (Film Quiz) State
     @State private var selectedFilmChoice: Int? = nil
@@ -443,6 +444,7 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
+            nexusEngine.start(readiness: sessionReadiness)
             if skipMatchLobbyForScreenshotHarness {
                 matchLobbyComplete = true
                 gameReady = true
@@ -456,6 +458,7 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
+            nexusEngine.stop()
             matchLobbyComplete = false
             multipeerService.stop()
             gameTimerTask?.cancel()
@@ -539,6 +542,19 @@ struct GamePlayView: View {
                         }
                         .foregroundStyle(Theme.elitePurple)
                         .shadow(color: Theme.elitePurple.opacity(0.4), radius: 6)
+                    }
+
+                    if nexusEngine.isLinked {
+                        HStack(spacing: 3) {
+                            Circle()
+                                .fill(Theme.brandCyan)
+                                .frame(width: 5, height: 5)
+                            Text("NEXUS \(nexusEngine.throwCatchPhase.label)")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            Text(String(format: "%.2fx", nexusEngine.powerMultiplier))
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(Theme.brandCyan.opacity(0.85))
                     }
                 }
 

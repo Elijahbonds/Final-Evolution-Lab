@@ -13,6 +13,10 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
+namespace nexus::generative {
+class GenerativePipeline;
+}
+
 namespace nexus::creative {
 class VoxelWorld;
 class WorldManipulator;
@@ -34,6 +38,8 @@ class GameplayApplication final : public core::ApplicationUpdateHook,
 public:
   explicit GameplayApplication(creative::WorldManipulator& manipulator,
                                const creative::VoxelWorld& voxelWorld);
+
+  void setGenerativePipeline(generative::GenerativePipeline* generativePipeline);
 
   /// Runs app/gameplay updates after agent drain and fixed physics stepping.
   void update(double deltaSeconds,
@@ -68,6 +74,7 @@ private:
   ThreadSafeFitnessData m_fitnessData;
   ThrowCatchPhysicsController m_throwCatch;
   VoxelCommandParser m_voxelParser;
+  generative::GenerativePipeline* m_generativePipeline{nullptr};
   GameplayUpdateStats m_stats;
   std::vector<ai::AgentResponse> m_latestResponses;
 };

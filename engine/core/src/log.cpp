@@ -18,6 +18,8 @@ auto channelName(LogChannel channel) -> const char* {
     return "ai";
   case LogChannel::kCreative:
     return "creative";
+  case LogChannel::kGenerative:
+    return "generative";
   }
   return "unknown";
 }

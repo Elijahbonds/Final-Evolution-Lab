@@ -484,12 +484,42 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = FinalEvolutionLab/FinalEvolutionLab.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7KJ6G7HLL4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/engine/core/include",
+					"$(SRCROOT)/engine/physics/include",
+					"$(SRCROOT)/engine/creative/include",
+					"$(SRCROOT)/engine/ai_interface/include",
+					"$(SRCROOT)/app/gameplay/include",
+					"$(SRCROOT)/build-ios/_deps/nlohmann_json-src/include",
+					"$(TARGET_TEMP_DIR)/nexus-ios/_deps/nlohmann_json-src/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/build-ios",
+					"$(DERIVED_FILE_DIR)/nexus-ios",
+					"$(TARGET_TEMP_DIR)/nexus-ios",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lnexus_gameplay",
+					"-lnexus_ai_interface",
+					"-lnexus_generative",
+					"-lnexus_assets",
+					"-lnexus_luma",
+					"-lnexus_creative",
+					"-lnexus_physics",
+					"-lnexus_core",
+					"-lc++",
+				);
+				SWIFT_OBJC_BRIDGING_HEADER = "FinalEvolutionLab/Bridge/FinalEvolutionLab-Bridging-Header.h";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Record movement clips in the Lab when you choose the camera for analysis";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read your health data to calculate readiness and efficiency scores";
@@ -523,6 +553,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_ENTITLEMENTS = FinalEvolutionLab/FinalEvolutionLab.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
@@ -531,6 +562,35 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 7KJ6G7HLL4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/engine/core/include",
+					"$(SRCROOT)/engine/physics/include",
+					"$(SRCROOT)/engine/creative/include",
+					"$(SRCROOT)/engine/ai_interface/include",
+					"$(SRCROOT)/app/gameplay/include",
+					"$(SRCROOT)/build-ios/_deps/nlohmann_json-src/include",
+					"$(TARGET_TEMP_DIR)/nexus-ios/_deps/nlohmann_json-src/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/build-ios",
+					"$(DERIVED_FILE_DIR)/nexus-ios",
+					"$(TARGET_TEMP_DIR)/nexus-ios",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lnexus_gameplay",
+					"-lnexus_ai_interface",
+					"-lnexus_generative",
+					"-lnexus_assets",
+					"-lnexus_luma",
+					"-lnexus_creative",
+					"-lnexus_physics",
+					"-lnexus_core",
+					"-lc++",
+				);
+				SWIFT_OBJC_BRIDGING_HEADER = "FinalEvolutionLab/Bridge/FinalEvolutionLab-Bridging-Header.h";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Record movement clips in the Lab when you choose the camera for analysis";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read your health data to calculate readiness and efficiency scores";

@@ -15,7 +15,7 @@ Do **not** add `-ScreenshotHarness` under **Edit Scheme → Run → Arguments Pa
 
 ## NEXUS dev runtime (not the iOS app)
 
-`build-full/nexus_runtime` is a **macOS Vulkan/SDL experiment** (swapchain + triangle). It is **not** the shipping iPhone app. A blue or blank window there does not mean the iOS menu is broken.
+`build-full/nexus_runtime` is a **macOS Vulkan/SDL 3D arena preview** (orbit camera + cube field). It is **not** the shipping iPhone app. A blue or blank window there does not mean the iOS menu is broken.
 
 For the product experience, run **FinalEvolutionLab** from Xcode on device or Simulator.
 

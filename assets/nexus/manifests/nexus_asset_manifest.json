@@ -1,0 +1,321 @@
+{
+  "schema": "nexus-asset-manifest",
+  "version": "1.0",
+  "default_mode": "basketball_h2h",
+  "import_root": "assets/nexus/imported",
+  "source_root": "assets/nexus/source",
+  "assets": [
+    {
+      "id": "venice_beach_court_model_fbx",
+      "name": "Venice Beach Basketball Court Environment",
+      "source": "seele",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/a10565a174954cb9915fbb8825a43cd6.fbx",
+      "source_descriptor": "seeles_work/assets/models/venice_beach_court_model_fbx/venice_beach_court_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+      "imported_mesh": "demo_venue_marker.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": "tripo3D"
+    },
+    {
+      "id": "zen_dojo_environment_model_fbx",
+      "name": "Zen Dojo Environment (FBX)",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/deaa4aa3296b4be999cc1b8f54db3b22.fbx",
+      "source_descriptor": "seeles_work/assets/models/zen_dojo_environment_model_fbx/zen_dojo_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/Dojo/Dojo",
+      "imported_mesh": "zen_dojo_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "baseball_park_environment_model_fbx",
+      "name": "Baseball Park Stadium Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/23cce78717c1421a85eaf3f7c3d1fb1f.fbx",
+      "source_descriptor": "seeles_work/assets/models/baseball_park_environment_model_fbx/baseball_park_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/BaseballPark/BaseballPark",
+      "imported_mesh": "baseball_park_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "gridiron_stadium_environment_model_fbx",
+      "name": "Gridiron Stadium Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/f5ca6116a3ca40b9bb573605ff95ef60.fbx",
+      "source_descriptor": "seeles_work/assets/models/gridiron_stadium_environment_model_fbx/gridiron_stadium_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/GridironStadium/GridironStadium",
+      "imported_mesh": "gridiron_stadium_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "soccer_stadium_environment_model_fbx",
+      "name": "Soccer Stadium Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/21a699b22cec4c6a9f148b397c03b492.fbx",
+      "source_descriptor": "seeles_work/assets/models/soccer_stadium_environment_model_fbx/soccer_stadium_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/SoccerStadium/SoccerStadium",
+      "imported_mesh": "soccer_stadium_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "golf_course_environment_model_fbx",
+      "name": "Links Golf Course Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/973b3f663b68415d8de5d7238f8abf6f.fbx",
+      "source_descriptor": "seeles_work/assets/models/golf_course_environment_model_fbx/golf_course_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/GolfCourse/GolfCourse",
+      "imported_mesh": "golf_course_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "tennis_court_environment_model_fbx",
+      "name": "Tennis Court Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/f82b83e6e71949bbbf3dbcaa7a639bc6.fbx",
+      "source_descriptor": "seeles_work/assets/models/tennis_court_environment_model_fbx/tennis_court_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/TennisCourt/TennisCourt",
+      "imported_mesh": "tennis_court_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "volleyball_sand_court_environment_model_fbx",
+      "name": "Beach Volleyball Sand Court Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/c0e40af143b243eebea5fabf2fe4f1f8.fbx",
+      "source_descriptor": "seeles_work/assets/models/volleyball_sand_court_environment_model_fbx/volleyball_sand_court_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/SandCourt/SandCourt",
+      "imported_mesh": "volleyball_sand_court_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "skate_park_environment_model_fbx",
+      "name": "Skate Park Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/ae37defd09354867a8d360530f17f423.fbx",
+      "source_descriptor": "seeles_work/assets/models/skate_park_environment_model_fbx/skate_park_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/SkatePark/SkatePark",
+      "imported_mesh": "skate_park_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "mountain_slope_environment_model_fbx",
+      "name": "Mountain Slope Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/7c7ef0f3008d4283be92155dca194841.fbx",
+      "source_descriptor": "seeles_work/assets/models/mountain_slope_environment_model_fbx/mountain_slope_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/MountainSlope/MountainSlope",
+      "imported_mesh": "mountain_slope_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "gymnastics_floor_environment_model_fbx",
+      "name": "Gymnastics Training Floor Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/292a06ca9b374bde9924872573aab8df.fbx",
+      "source_descriptor": "seeles_work/assets/models/gymnastics_floor_environment_model_fbx/gymnastics_floor_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/TrainingFloor/TrainingFloor",
+      "imported_mesh": "gymnastics_floor_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "neuro_arena_environment_model_fbx",
+      "name": "Neuro Arena Environment",
+      "source": "procedural",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/4b0726f320b944b19c8461709b713bbd.fbx",
+      "source_descriptor": "seeles_work/assets/models/neuro_arena_environment_model_fbx/neuro_arena_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/NeuroArena/NeuroArena",
+      "imported_mesh": "neuro_arena_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "luma_venice_shop_environment_model_fbx",
+      "name": "Luma Venice Shop Environment",
+      "source": "luma",
+      "kind": "environment",
+      "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/025c7f0c371c45848b1f8d173fa45dd2.fbx",
+      "source_descriptor": "seeles_work/assets/models/luma_venice_shop_environment_model_fbx/luma_venice_shop_environment_model_fbx.json",
+      "unreal_package": "/Game/FEL/Venues/LumaVeniceShop/LumaVeniceShop",
+      "imported_mesh": "luma_venice_shop_environment_model_fbx.nexusmesh.json",
+      "fallback": "arena_grid",
+      "generation_method": ""
+    },
+    {
+      "id": "demo_venue_marker",
+      "name": "NEXUS pipeline demo marker",
+      "source": "procedural",
+      "kind": "marker",
+      "imported_mesh": "demo_venue_marker.nexusmesh.json",
+      "fallback": "none"
+    }
+  ],
+  "venues": [
+    {
+      "venue_key": "venice_beach_court",
+      "display_name": "Venice Beach Court",
+      "fel_venue_id": "Venice_Beach_Court",
+      "mode_ids": [
+        "basketball_h2h",
+        "basketball_dunk",
+        "basketball_3v3",
+        "court_carnival"
+      ],
+      "environment_asset_id": "venice_beach_court_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/VeniceBeach/VeniceBeach"
+    },
+    {
+      "venue_key": "venice_beach_surf",
+      "display_name": "Venice Beach Surf",
+      "fel_venue_id": "Venice_Beach_Surf",
+      "mode_ids": [
+        "surfing"
+      ],
+      "environment_asset_id": "venice_beach_court_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/VeniceBeach/VeniceBeach"
+    },
+    {
+      "venue_key": "dojo_arena",
+      "display_name": "Zen Dojo",
+      "fel_venue_id": "Zen_Dojo",
+      "mode_ids": [
+        "karate_h2h",
+        "karate_endless"
+      ],
+      "environment_asset_id": "zen_dojo_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/Dojo/Dojo"
+    },
+    {
+      "venue_key": "stadium_diamond",
+      "display_name": "Baseball Park",
+      "fel_venue_id": "Baseball_Park",
+      "mode_ids": [
+        "baseball"
+      ],
+      "environment_asset_id": "baseball_park_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/BaseballPark/BaseballPark"
+    },
+    {
+      "venue_key": "stadium_field",
+      "display_name": "Gridiron Stadium",
+      "fel_venue_id": "Gridiron_Stadium",
+      "mode_ids": [
+        "football"
+      ],
+      "environment_asset_id": "gridiron_stadium_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/GridironStadium/GridironStadium"
+    },
+    {
+      "venue_key": "stadium_pitch",
+      "display_name": "Soccer Stadium",
+      "fel_venue_id": "Soccer_Stadium",
+      "mode_ids": [
+        "soccer"
+      ],
+      "environment_asset_id": "soccer_stadium_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/SoccerStadium/SoccerStadium"
+    },
+    {
+      "venue_key": "golf_green",
+      "display_name": "Golf Course",
+      "fel_venue_id": "Links_Golf_Court",
+      "mode_ids": [
+        "golf"
+      ],
+      "environment_asset_id": "golf_course_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/GolfCourse/GolfCourse"
+    },
+    {
+      "venue_key": "venice_beach_court_tennis",
+      "display_name": "Tennis Court",
+      "fel_venue_id": "Tennis_Court",
+      "mode_ids": [
+        "tennis"
+      ],
+      "environment_asset_id": "tennis_court_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/TennisCourt/TennisCourt"
+    },
+    {
+      "venue_key": "beach_court",
+      "display_name": "Sand Volleyball Court",
+      "fel_venue_id": "Sand_Court",
+      "mode_ids": [
+        "volleyball"
+      ],
+      "environment_asset_id": "volleyball_sand_court_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/SandCourt/SandCourt"
+    },
+    {
+      "venue_key": "skate_park",
+      "display_name": "Skate Park",
+      "fel_venue_id": "Skate_Park",
+      "mode_ids": [
+        "skateboarding"
+      ],
+      "environment_asset_id": "skate_park_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/SkatePark/SkatePark"
+    },
+    {
+      "venue_key": "mountain_slope",
+      "display_name": "Mountain Slope",
+      "fel_venue_id": "Mountain_Slope",
+      "mode_ids": [
+        "snowboarding"
+      ],
+      "environment_asset_id": "mountain_slope_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/MountainSlope/MountainSlope"
+    },
+    {
+      "venue_key": "arena_floor",
+      "display_name": "Training Floor",
+      "fel_venue_id": "Training_Floor",
+      "mode_ids": [
+        "gymnastics"
+      ],
+      "environment_asset_id": "gymnastics_floor_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/TrainingFloor/TrainingFloor"
+    },
+    {
+      "venue_key": "neuro_arena",
+      "display_name": "Neuro Arena",
+      "fel_venue_id": "Neuro_Arena",
+      "mode_ids": [
+        "brain_brawl",
+        "who_scene_it"
+      ],
+      "environment_asset_id": "neuro_arena_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/NeuroArena/NeuroArena"
+    },
+    {
+      "venue_key": "vault_shop",
+      "display_name": "Luma Venice Shop",
+      "fel_venue_id": "Luma_Venice_Shop",
+      "mode_ids": [
+        "market_browse"
+      ],
+      "environment_asset_id": "luma_venice_shop_environment_model_fbx",
+      "unreal_open_level": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"
+    }
+  ],
+  "environment_scans": []
+}

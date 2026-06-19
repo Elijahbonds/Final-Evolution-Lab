@@ -49,6 +49,40 @@ add_library(nexus_creative
 target_include_directories(nexus_creative PUBLIC engine/creative/include)
 target_link_libraries(nexus_creative PUBLIC nexus_core nlohmann_json::nlohmann_json)
 
+add_library(nexus_assets
+  engine/assets/src/asset_manifest.cpp
+)
+target_include_directories(nexus_assets PUBLIC engine/assets/include)
+target_link_libraries(nexus_assets PUBLIC nexus_core nlohmann_json::nlohmann_json)
+
+add_library(nexus_luma
+  engine/luma/src/luma_adapter.cpp
+)
+target_include_directories(nexus_luma PUBLIC engine/luma/include)
+target_link_libraries(nexus_luma PUBLIC nexus_core nlohmann_json::nlohmann_json)
+
+add_library(nexus_generative
+  engine/generative/src/environment_chunk_index.cpp
+  engine/generative/src/environment_chunk_merger.cpp
+  engine/generative/src/environment_scan_importer.cpp
+  engine/generative/src/environment_scan_types.cpp
+  engine/generative/src/generative_adapter.cpp
+  engine/generative/src/generative_pipeline.cpp
+  engine/generative/src/generative_types.cpp
+  engine/generative/src/manifest_registrar.cpp
+  engine/generative/src/model_generator.cpp
+  engine/generative/src/procedural_mesh.cpp
+  engine/generative/src/scan_importer.cpp
+)
+target_include_directories(nexus_generative PUBLIC engine/generative/include)
+target_link_libraries(nexus_generative PUBLIC
+  nexus_assets
+  nexus_core
+  nexus_creative
+  nexus_luma
+  nlohmann_json::nlohmann_json
+)
+
 add_library(nexus_ai_interface
   engine/ai_interface/src/agent_server.cpp
   engine/ai_interface/src/agent_transport.cpp
@@ -56,7 +90,7 @@ add_library(nexus_ai_interface
   engine/ai_interface/src/command_schema.cpp
 )
 target_include_directories(nexus_ai_interface PUBLIC engine/ai_interface/include)
-target_link_libraries(nexus_ai_interface PUBLIC nexus_core nexus_creative nlohmann_json::nlohmann_json)
+target_link_libraries(nexus_ai_interface PUBLIC nexus_core nexus_creative nexus_generative nlohmann_json::nlohmann_json)
 if(UNIX AND NOT APPLE)
   target_link_libraries(nexus_ai_interface PUBLIC pthread)
 endif()
@@ -72,16 +106,22 @@ target_link_libraries(nexus_gameplay PUBLIC
   nexus_core
   nexus_ai_interface
   nexus_creative
+  nexus_generative
   nexus_physics
   nlohmann_json::nlohmann_json
 )
 
 if(NEXUS_ENABLE_RENDERER)
   add_library(nexus_renderer
+    engine/assets/src/mesh_importer.cpp
+    engine/renderer/src/arena_scene.cpp
+    engine/renderer/src/camera.cpp
+    engine/renderer/src/mesh.cpp
+    engine/renderer/src/scene.cpp
     engine/renderer/src/vulkan_renderer.cpp
   )
-  target_include_directories(nexus_renderer PUBLIC engine/renderer/include)
-  target_link_libraries(nexus_renderer PUBLIC nexus_core SDL3::SDL3 Vulkan::Vulkan)
+  target_include_directories(nexus_renderer PUBLIC engine/renderer/include engine/assets/include)
+  target_link_libraries(nexus_renderer PUBLIC nexus_core nexus_assets SDL3::SDL3 Vulkan::Vulkan)
 
   add_library(nexus_engine
     engine/core/src/engine.cpp
@@ -111,4 +151,9 @@ if(NEXUS_BUILD_TESTS)
   add_executable(nexus_gameplay_test tests/unit/gameplay/gameplay_test.cpp)
   target_link_libraries(nexus_gameplay_test PRIVATE nexus_gameplay)
   add_test(NAME nexus_gameplay_test COMMAND nexus_gameplay_test)
+
+  add_executable(nexus_generative_test tests/unit/generative/generative_test.cpp)
+  target_link_libraries(nexus_generative_test PRIVATE nexus_generative nexus_ai_interface)
+  add_test(NAME nexus_generative_test COMMAND nexus_generative_test)
+  set_tests_properties(nexus_generative_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()

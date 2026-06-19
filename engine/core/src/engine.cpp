@@ -70,6 +70,7 @@ void Engine::tick(double frameTimeSeconds) {
     m_applicationHook->update(frameTimeSeconds, *m_physics, m_latestAgentResponses);
   }
 
+  m_renderer->advanceScene(frameTimeSeconds);
   m_renderer->renderFrame();
 }
 

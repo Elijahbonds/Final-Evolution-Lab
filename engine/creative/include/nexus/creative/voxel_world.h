@@ -35,6 +35,9 @@ public:
   [[nodiscard]] auto voxelAt(Vec3i position) const -> Voxel;
   [[nodiscard]] auto dirtyChunkCount() const -> std::size_t;
   [[nodiscard]] auto serializeDirtyChunks(std::size_t maxChunks) -> nlohmann::json;
+  [[nodiscard]] auto environmentChunkCount() const -> std::size_t;
+  [[nodiscard]] auto serializeEnvironmentChunks() const -> nlohmann::json;
+  auto registerEnvironmentChunk(Vec3i chunkCoord, std::string_view meshPath) -> Result<void>;
   void clear();
 
 private:
@@ -62,7 +65,12 @@ private:
   auto getOrCreateChunk(ChunkCoord coord) -> Chunk&;
   void markDirty(ChunkCoord coord);
 
+  struct EnvironmentChunkRef {
+    std::string meshPath;
+  };
+
   std::unordered_map<ChunkCoord, Chunk, ChunkCoordHash> m_chunks;
+  std::unordered_map<ChunkCoord, EnvironmentChunkRef, ChunkCoordHash> m_environmentChunks;
 };
 
 } // namespace nexus::creative

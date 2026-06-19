@@ -4,6 +4,8 @@ Automated and manual readiness checks for the Final Evolution Lab product stack.
 
 ## Latest audit
 
+**[GAME_COMPLETION_AUDIT.md](./GAME_COMPLETION_AUDIT.md)** — Mode matrix, asset status, GDD coverage, ~58% completion estimate, next 10 tasks.
+
 **[READINESS_AUDIT_2026-06-19.md](./READINESS_AUDIT_2026-06-19.md)** — iOS screenshot harness, NEXUS headless tests, runtime GPU notes.
 
 ## Screenshot artifacts
@@ -37,7 +39,8 @@ cmake --build build-headless && ctest --test-dir build-headless --output-on-fail
 | iOS shell (`FinalEvolutionLab/`) | Beta-ready | Tab bar, onboarding, 19 game modes |
 | App gameplay (`app/gameplay/`) | Complete | `nexus_gameplay` + unit tests green |
 | Gameplay docs (`docs/gameplay_logic/`) | Restored | Integration manual + protocol specs |
-| NEXUS headless | Passing | `nexus_protocol_test`, `nexus_gameplay_test` |
+| NEXUS headless | Passing | `nexus_protocol_test`, `nexus_gameplay_test`, `nexus_generative_test` |
+| iOS NEXUS bridge | Linked | `NexusGameplayBridge` + simulator build green |
 | NEXUS runtime (Vulkan) | Failing | SIGSEGV on launch — see audit |
 | UE / Pixel Streaming | Not in scope | Separate capture runbook required |
 

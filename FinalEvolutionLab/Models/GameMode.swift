@@ -58,7 +58,7 @@ extension GameModeId {
             return .kickReturn
         case .soccer:
             return .penaltyKick
-        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl, .whoSceneIt:
+        case .gymnastics, .surfing, .skateboarding, .snowboarding, .brainBrawl:
             return .rhythmTap
         case .whoSceneIt:
             return .filmQuiz

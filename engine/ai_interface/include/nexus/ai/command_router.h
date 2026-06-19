@@ -10,6 +10,10 @@ class WorldManipulator;
 class VoxelWorld;
 }
 
+namespace nexus::generative {
+class GenerativePipeline;
+}
+
 namespace nexus::ai {
 
 class GameplayCommandHandler {
@@ -30,14 +34,17 @@ public:
 class CommandRouter {
 public:
   auto init(creative::WorldManipulator* creativeManipulator,
-            creative::VoxelWorld* voxelWorld) -> Result<void>;
+            creative::VoxelWorld* voxelWorld,
+            generative::GenerativePipeline* generativePipeline = nullptr) -> Result<void>;
   [[nodiscard]] auto route(const AgentMessage& message) -> AgentResponse;
   void setGameplayHandler(GameplayCommandHandler* gameplayHandler);
+  [[nodiscard]] auto generativePipeline() const -> generative::GenerativePipeline*;
   void shutdown();
 
 private:
   creative::WorldManipulator* m_creativeManipulator{nullptr};
   creative::VoxelWorld* m_voxelWorld{nullptr};
+  generative::GenerativePipeline* m_generativePipeline{nullptr};
   GameplayCommandHandler* m_gameplayHandler{nullptr};
 };
 

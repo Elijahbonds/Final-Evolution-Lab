@@ -63,8 +63,10 @@ Serialized by `AgentResponse::serialize()`.
 |---------------|---------|
 | `auth` | Always `ok` + `{ "authenticated": true }` |
 | `query: world.dirty_chunks` | `VoxelWorld::serializeDirtyChunks(8)` |
+| `query: fel.generate.*` / `fel.scan.*` | `GenerativePipeline::handleQuery` (if registered) |
 | `query: fel.*` | `GameplayCommandHandler::handleGameplayQuery` (if registered) |
 | `command: terrain.*` | `WorldManipulator::applyCommand` |
+| `command: fel.generate.*` / `fel.scan.*` | `GenerativePipeline::handleCommand` (if registered) |
 | `command: fel.*` or `fitness.*` | `GameplayCommandHandler::handleGameplayCommand` |
 | other | `error: "Unsupported command"` or `"Unsupported query"` |
 
@@ -142,6 +144,22 @@ All float scores clamped to `[0, 1]`; `breath_phase` to `[-1, 1]`.
 | `fel.creative.paint_terrain` | material swap on solid voxels |
 
 Params: `position` `[x,y,z]`, optional `radius` (≤ 16), `height`, `material`.
+
+### Generative / scan (engine layer)
+
+Registered when `CommandRouter::init(..., &generativePipeline)` receives a `GenerativePipeline`.
+
+| Command | Params |
+|---------|--------|
+| `fel.generate.create_model` | `prompt`, `asset_id`, optional `name`, `kind` |
+| `fel.scan.import_mesh` | `mesh_path`, `asset_id`, optional `name` |
+| `fel.scan.import_point_cloud` | `point_cloud_path`, `asset_id`, optional `name` |
+| `fel.scan.import_environment` | `input_path`, `venue_id`, `source` (`luma`\|`arkit`\|`photogrammetry`), optional `name`, `bounds`, `chunk_edge` |
+| `fel.scan.import_chunk` | `venue_id`, `coord` `[x,y,z]`, optional `mesh_path`, `source_format` |
+
+Queries: `fel.generate.job_status`, `fel.generate.list_jobs`.
+
+See [NEXUS_Generative_Pipeline.md](./NEXUS_Generative_Pipeline.md) for environment-scale Luma parity.
 
 ### Gameplay query
 

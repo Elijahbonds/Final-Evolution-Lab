@@ -10,6 +10,7 @@ enum class LogChannel {
   kPhysics,
   kAI,
   kCreative,
+  kGenerative,
 };
 
 class Log {
