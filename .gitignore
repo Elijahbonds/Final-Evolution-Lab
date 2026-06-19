@@ -118,9 +118,13 @@ scripts/emulator_seed/node_modules/
 # Mobile development
 android-sdk/
 
-# Build artifacts (UE + iOS)
-/artifacts/
-artifacts/
+# Build artifacts (UE + iOS) — playtest template dir is tracked (see artifacts/playtest/.gitignore)
+/artifacts/*
+!/artifacts/playtest/
+/artifacts/playtest/*
+!/artifacts/playtest/.gitkeep
+!/artifacts/playtest/latest.json.template
+!/artifacts/playtest/.gitignore
 *.ipa
 *.app
 *.dSYM
@@ -135,7 +139,13 @@ DerivedDataCache/
 FinalEvolutionLab/Services/UnityHostBridge.swift
 FinalEvolutionLab/Services/MovementSnack+UnityBridge.swift
 
-# Antigravity local caches and debug logs
+# NEXUS asset pipeline — full-res / desktop meshes (mobile LOD is committed instead)
+assets/nexus/imported/full/
+assets/nexus/imported/*_environment_model_fbx.nexusmesh.json
+!assets/nexus/imported/*_mobile.nexusmesh.json
+assets/nexus/source/*.fbx
+assets/nexus/source/*.glb
+
 .config/
 .home/
 scratch/

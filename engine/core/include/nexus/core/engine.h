@@ -1,10 +1,12 @@
 #pragma once
 
+#include "nexus/core/perf_monitor.h"
 #include "nexus/core/result.h"
 
 #include <chrono>
 #include <cstddef>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace nexus::ai {
@@ -59,6 +61,13 @@ private:
   physics::PhysicsWorld* m_physics{nullptr};
   ai::AgentServer* m_agentServer{nullptr};
   ApplicationUpdateHook* m_applicationHook{nullptr};
+  PerfMonitor m_perfMonitor{};
+  FramePacer m_framePacer{};
+  std::uint64_t m_devStatsLogCounter{0};
+  std::uint64_t m_devHudLogCounter{0};
+  std::uint64_t m_playtestFrameCounter{0};
+  std::string m_playtestModeId;
+  std::string m_playtestVenueId;
   std::vector<ai::AgentResponse> m_latestAgentResponses;
   bool m_running{false};
   double m_accumulatorSeconds{0.0};
