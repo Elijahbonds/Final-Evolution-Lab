@@ -114,6 +114,9 @@ const LandingPage = () => {
     const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
+  const handleDemo = () => {
+    navigate('/download#web-client');
+  };
   return (
     <div className="min-h-screen" style={{background:'var(--bg-default)'}}>
       <div className="relative overflow-hidden">
@@ -131,7 +134,7 @@ const LandingPage = () => {
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
-            <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
+            <button data-testid="watch-demo-btn" onClick={handleDemo} className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
             {[{v:"17",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
@@ -1042,6 +1045,9 @@ const PixelStreamingView = () => {
       if (iframeRef.current && r.data.command) {
         iframeRef.current.contentWindow.postMessage(JSON.stringify(r.data.command), '*');
       }
+      if (r.data.deep_link) {
+        window.location.href = r.data.deep_link;
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -1052,23 +1058,25 @@ const PixelStreamingView = () => {
   }, [status?.available]);
 
   const streamSrc = status?.iframe_url || status?.stream_url || '';
+  const hasCloudVideo = Boolean(streamSrc) && !status?.e3ds_disabled;
+  const bridgeConnected = Boolean(status?.sovereign_connected || status?.available);
 
   return (
     <div className="space-y-6 fade-in">
       <div className="flex items-center justify-between">
-        <div><p className="overline mb-1">EAGLE 3D STREAMING · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
+        <div><p className="overline mb-1">SOVEREIGN BRIDGE · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
         <div className="flex items-center gap-2">
-          {status?.available ? <Wifi className="w-5 h-5 text-green-400" /> : <WifiOff className="w-5 h-5 text-red-400" />}
-          <span className={`text-sm font-mono ${status?.available ? 'text-green-400' : 'text-red-400'}`}>{status?.available ? 'LIVE' : 'OFFLINE'}</span>
+          {bridgeConnected ? <Wifi className="w-5 h-5 text-green-400" /> : <WifiOff className="w-5 h-5 text-yellow-400" />}
+          <span className={`text-sm font-mono ${bridgeConnected ? 'text-green-400' : 'text-yellow-400'}`}>{bridgeConnected ? 'BRIDGE LIVE' : 'AWAITING BRIDGE'}</span>
         </div>
       </div>
 
-      {!status?.available && (
+      {!hasCloudVideo && (
         <div className="surface-card p-6" data-testid="streaming-connect">
           <div className="flex items-center gap-3 mb-4">
-            {status?.has_api_key ? <Wifi className="w-6 h-6 text-yellow-400" /> : <WifiOff className="w-6 h-6 text-red-400" />}
+            {bridgeConnected ? <Wifi className="w-6 h-6 text-green-400" /> : <WifiOff className="w-6 h-6 text-yellow-400" />}
             <div>
-              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.has_api_key ? 'E3DS API KEY CONFIGURED' : 'CONNECT E3DS STREAM'}</h3>
+              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.e3ds_disabled ? 'LOCAL SOVEREIGN MODE' : 'CONNECT E3DS STREAM'}</h3>
               <p className="text-sm text-zinc-400">{status?.message}</p>
             </div>
           </div>
@@ -1080,31 +1088,37 @@ const PixelStreamingView = () => {
               ))}
             </div>
           )}
-          <div className="flex gap-3 mb-3">
-            <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="https://stream.eagle3dstreaming.com/view/your-app-id" className="input-clinical flex-1" />
-            <button data-testid="connect-stream" onClick={handleConnect} disabled={connecting} className="btn-primary">{connecting ? 'Connecting...' : 'Connect'}</button>
-          </div>
-          <p className="text-xs text-zinc-600">Paste the iframe URL from the E3DS Control Panel after uploading your UE5 build.</p>
+          {status?.e3ds_disabled ? (
+            <p className="text-xs text-zinc-600">Native UE modes launch through finalevolution:// deep links and the Sovereign WebSocket bridge. Configure E3DS_STREAM_URL only when a cloud video build is available.</p>
+          ) : (
+            <>
+              <div className="flex gap-3 mb-3">
+                <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="https://stream.eagle3dstreaming.com/view/your-app-id" className="input-clinical flex-1" />
+                <button data-testid="connect-stream" onClick={handleConnect} disabled={connecting} className="btn-primary">{connecting ? 'Connecting...' : 'Connect'}</button>
+              </div>
+              <p className="text-xs text-zinc-600">Paste the iframe URL from the E3DS Control Panel after uploading your UE5 build.</p>
+            </>
+          )}
         </div>
       )}
 
       <div className="surface-card overflow-hidden" data-testid="stream-viewer">
-        {status?.available && streamSrc ? (
+        {hasCloudVideo ? (
           <div className="relative">
             <iframe ref={iframeRef} data-testid="e3ds-iframe" src={streamSrc} className="w-full border-0" style={{height:'540px'}} allow="xr-spatial-tracking *; camera *; microphone *; autoplay; fullscreen" allowFullScreen />
-            {activeMode && <div className="absolute top-3 left-3 badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}><Play className="w-3 h-3 inline mr-1" />{activeMode.mode_id.replace(/_/g,' ').toUpperCase()} — {activeMode.map}</div>}
+            {activeMode && <div className="absolute top-3 left-3 badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}><Play className="w-3 h-3 inline mr-1" />{activeMode.mode_id.replace(/_/g,' ').toUpperCase()} — {activeMode.venue || activeMode.map}</div>}
             <div className="absolute top-3 right-3 flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs text-green-400 font-mono">STREAMING</span></div>
           </div>
         ) : (
           <div className="aspect-video bg-black flex items-center justify-center border border-white/5">
             <div className="text-center">
               <Radio className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>AWAITING E3DS STREAM</h3>
-              <p className="text-sm text-zinc-700 mt-2">Connect Eagle 3D Streaming to play UE5 game modes in high fidelity</p>
+              <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>{bridgeConnected ? 'SOVEREIGN BRIDGE READY' : 'AWAITING SOVEREIGN BRIDGE'}</h3>
+              <p className="text-sm text-zinc-700 mt-2">Launch native UE5 modes below; cloud video appears here when a streaming URL is configured.</p>
               <div className="flex items-center justify-center gap-6 mt-6 text-zinc-700">
-                <div className="text-center"><div className="font-mono text-lg">RTX 4080</div><div className="text-xs">GPU</div></div>
-                <div className="text-center"><div className="font-mono text-lg">1080p60</div><div className="text-xs">Stream</div></div>
-                <div className="text-center"><div className="font-mono text-lg">WebRTC</div><div className="text-xs">Protocol</div></div>
+                <div className="text-center"><div className="font-mono text-lg">{status?.supported_modes?.length || 0}</div><div className="text-xs">Modes</div></div>
+                <div className="text-center"><div className="font-mono text-lg">UE5.7</div><div className="text-xs">Runtime</div></div>
+                <div className="text-center"><div className="font-mono text-lg">WS</div><div className="text-xs">Bridge</div></div>
               </div>
             </div>
           </div>
@@ -1115,8 +1129,8 @@ const PixelStreamingView = () => {
         <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>LAUNCH GAME MODE</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="stream-modes">
           {(status?.supported_modes || []).map(m => (
-            <button key={m} data-testid={`stream-${m}`} onClick={() => status?.available && launchMode(m)}
-              className={`surface-card p-4 text-center card-hover ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''} ${status?.available ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}>
+            <button key={m} data-testid={`stream-${m}`} onClick={() => launchMode(m)}
+              className={`surface-card p-4 text-center card-hover cursor-pointer ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''}`}>
               <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{m.replace(/_/g,' ')}</div>
               <div className="text-xs text-zinc-600 font-mono">{status?.mode_maps?.[m] || m}</div>
             </button>
@@ -1224,7 +1238,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

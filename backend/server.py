@@ -1293,32 +1293,40 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 
 @api_router.get("/streaming/status")
 async def get_streaming_status():
-    """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
-    }
-    
+    """LOCAL SOVEREIGN MODE — canonical UE launch maps with optional stream metadata."""
+    mode_map_path = ROOT_DIR / "ue_mode_maps.json"
+    mode_maps = {}
+    if mode_map_path.exists():
+        with open(mode_map_path) as f:
+            mode_maps = json.load(f).get("mode_to_unreal_map", {})
+
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    launchable_modes = [
+        mode_id for mode_id in mode_maps
+        if mode_id in registry and registry[mode_id].get("status") != "non-game-module"
+    ]
+    mode_maps = {mode_id: mode_maps[mode_id] for mode_id in launchable_modes}
+
+    stream_url = os.environ.get("E3DS_STREAM_URL", "")
+    iframe_url = os.environ.get("E3DS_IFRAME_URL", stream_url)
     ws_connected = len(sovereign_bridge.clients) > 0
+    cloud_streaming = bool(stream_url)
     
     return {
-        "available": ws_connected,
+        "available": cloud_streaming or ws_connected,
         "mode": "local_sovereign",
-        "cloud_streaming": False,
-        "e3ds_disabled": True,
-        "provider": "local_sovereign",
-        "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect.",
-        "supported_modes": list(mode_maps.keys()),
+        "cloud_streaming": cloud_streaming,
+        "e3ds_disabled": not cloud_streaming,
+        "provider": "eagle3d" if cloud_streaming else "local_sovereign",
+        "message": "Cloud video stream configured. Sovereign mode launch bridge remains active." if cloud_streaming else ("Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect."),
+        "supported_modes": launchable_modes,
         "mode_maps": mode_maps,
+        "stream_url": stream_url,
+        "iframe_url": iframe_url,
         "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
+        "sovereign_connected": ws_connected,
         "data_feed": True,
-        "video_feed": False
+        "video_feed": cloud_streaming
     }
 
 @api_router.post("/streaming/connect")

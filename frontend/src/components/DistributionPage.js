@@ -36,11 +36,11 @@ const PLATFORMS = [
     eyebrow: "App Store · iOS 17+",
     icon: Apple,
     accent: "#00E5FF",
-    status: "available",
-    statusLabel: "Available",
+    status: "guide",
+    statusLabel: "Install Guide",
     description: "Native UE5.7 host with the WKWebView dashboard overlay. iPhone 15 Pro / 16 Pro recommended for Metal 3 + 120 Hz.",
     badge: "appstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — App Store listing
+    storeUrl: null,
     secondaryLabel: "Read iOS install guide",
   },
   {
@@ -49,11 +49,11 @@ const PLATFORMS = [
     eyebrow: "Mac App Store · macOS 14+",
     icon: Monitor,
     accent: "#8B5CF6",
-    status: "available",
+    status: "guide",
     statusLabel: "Apple Silicon",
     description: "Universal Mac binary for Apple Silicon (M1/M2/M3/M4). Intel Macs run in Rosetta — Metal 3 features disabled.",
     badge: "macappstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Mac App Store
+    storeUrl: null,
     secondaryLabel: "Read macOS install guide",
   },
   {
@@ -62,11 +62,11 @@ const PLATFORMS = [
     eyebrow: "Google Play · Android 13+",
     icon: Smartphone,
     accent: "#34D399",
-    status: "available",
-    statusLabel: "Available",
+    status: "guide",
+    statusLabel: "Install Guide",
     description: "AAB-distributed via Play Console. Vulkan-capable device with ≥6 GB RAM recommended; Tensor / Snapdragon 8 Gen 2+.",
     badge: "googleplay",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Google Play listing
+    storeUrl: null,
     secondaryLabel: "Read Android install guide",
   },
   {
@@ -497,6 +497,7 @@ const WebClientShell = () => {
   ];
   return (
     <section id="shell" className="relative max-w-7xl mx-auto px-6 py-20" data-testid="web-client-shell">
+      <span id="web-client" className="block relative -top-24" aria-hidden="true" />
       <div className="max-w-2xl mb-10">
         <div className="font-mono text-[10px] tracking-[0.4em] text-[#5E17EB] uppercase mb-3">Web Game Client · Container Shell</div>
         <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight leading-[0.95]" style={{ fontFamily: "Barlow Condensed" }}>
@@ -902,8 +903,8 @@ const Footer = () => (
       </div>
       <div className="flex items-center gap-6 font-mono text-[10px] tracking-[0.3em] uppercase text-white/30">
         <a href="/" className="hover:text-white transition-colors">Home</a>
-        <a href="#" className="hover:text-white transition-colors">Privacy</a>
-        <a href="#" className="hover:text-white transition-colors">Terms</a>
+        <a href="mailto:privacy@finalevolutiongroup.com" className="hover:text-white transition-colors">Privacy</a>
+        <a href="mailto:legal@finalevolutiongroup.com" className="hover:text-white transition-colors">Terms</a>
       </div>
     </div>
   </footer>
