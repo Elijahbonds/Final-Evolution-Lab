@@ -1792,7 +1792,7 @@ async def get_spectator_config(tournament_id: str):
     if not t:
         try:
             t = await db.tournaments.find_one({"id": tournament_id}, {"_id": 0})
-    except (PyMongoError, RuntimeError) as e:
+        except (PyMongoError, RuntimeError) as e:
             logger.warning("Using seeded spectator fallback: %s", e)
             t = None
     if not t:
