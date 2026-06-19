@@ -7,8 +7,13 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 import paypalrestsdk
+
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -1264,6 +1269,8 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
+    if not EMERGENT_KEY or LlmChat is None or UserMessage is None:
+        return {"response":"AI Coach is offline until the private AI provider key is configured. Keep training with the dashboard plan and try again shortly.","model":"fallback","type":prompt_type}
     try:
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
         chat.with_model("openai","gpt-5.2")
@@ -1280,6 +1287,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
+    if not EMERGENT_KEY or LlmChat is None or UserMessage is None:
+        return {"response":"AI chat is offline until the private AI provider key is configured. Your profile and training data remain available.","model":"fallback","conversation_id":cid}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=f"You are FEL AI Assistant. Help {user.name} with training, nutrition, recovery. PRQ: {user.prq_score}/100. Be concise.")

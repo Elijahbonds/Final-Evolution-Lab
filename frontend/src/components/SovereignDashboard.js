@@ -6,9 +6,7 @@ import {
   Heart, TrendingUp, Target, Flame, Brain, Dumbbell, Play,
   AlertTriangle, Eye, User, Award, ChevronUp
 } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "@/config/api";
 
 export const SovereignDashboard = () => {
   const [status, setStatus] = useState(null);
@@ -185,7 +183,7 @@ export const SovereignDashboard = () => {
             <div className="flex items-center justify-between mb-3"><h3 className="font-bold" style={{fontFamily:'Barlow Condensed'}}>PRODUCTION HEALTH</h3><span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>{health.status}</span></div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">MODES</span><div className="font-mono">{health.checks?.mode_manager?.production_modes} prod</div></div>
-              <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">PLACEHOLDER</span><div className="font-mono text-green-400">NONE</div></div>
+              <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">CONTENT GAPS</span><div className="font-mono text-green-400">NONE</div></div>
             </div>
           </div>
         )}

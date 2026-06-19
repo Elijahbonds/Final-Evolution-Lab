@@ -5,9 +5,7 @@ import {
   Gift, Zap, Clock, BarChart3, Play, Pause, Eye, Radio,
   ArrowRight, Share2, DollarSign, Shield, Database, RefreshCw
 } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "@/config/api";
 
 // ===================== MULTIPLAYER LOBBY =====================
 export const MultiplayerView = () => {

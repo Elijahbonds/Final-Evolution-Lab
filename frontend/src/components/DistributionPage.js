@@ -16,8 +16,7 @@
  * Aesthetic matches LandingV2: obsidian (#050505) + neon cyan (#00E5FF) +
  * indigo-violet (#5E17EB). Pure SVG + CSS. Zero new npm deps.
  *
- * All store badges are visual placeholders (SVG composed in-component); swap
- * to the official PNGs at the URLs marked DISTRIBUTION_BADGE_REPLACE.
+ * Store badges are SVG approximations until official badge assets are added.
  */
 import React, { useState, useEffect } from "react";
 import {
@@ -40,7 +39,7 @@ const PLATFORMS = [
     statusLabel: "Available",
     description: "Native UE5.7 host with the WKWebView dashboard overlay. iPhone 15 Pro / 16 Pro recommended for Metal 3 + 120 Hz.",
     badge: "appstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — App Store listing
+    storeUrl: "https://apps.apple.com/us/search?term=Final%20Evolution%20Lab",
     secondaryLabel: "Read iOS install guide",
   },
   {
@@ -53,7 +52,7 @@ const PLATFORMS = [
     statusLabel: "Apple Silicon",
     description: "Universal Mac binary for Apple Silicon (M1/M2/M3/M4). Intel Macs run in Rosetta — Metal 3 features disabled.",
     badge: "macappstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Mac App Store
+    storeUrl: "https://apps.apple.com/us/search?term=Final%20Evolution%20Lab",
     secondaryLabel: "Read macOS install guide",
   },
   {
@@ -66,7 +65,7 @@ const PLATFORMS = [
     statusLabel: "Available",
     description: "AAB-distributed via Play Console. Vulkan-capable device with ≥6 GB RAM recommended; Tensor / Snapdragon 8 Gen 2+.",
     badge: "googleplay",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Google Play listing
+    storeUrl: "https://play.google.com/store/search?q=Final%20Evolution%20Lab&c=apps",
     secondaryLabel: "Read Android install guide",
   },
   {
@@ -902,8 +901,8 @@ const Footer = () => (
       </div>
       <div className="flex items-center gap-6 font-mono text-[10px] tracking-[0.3em] uppercase text-white/30">
         <a href="/" className="hover:text-white transition-colors">Home</a>
-        <a href="#" className="hover:text-white transition-colors">Privacy</a>
-        <a href="#" className="hover:text-white transition-colors">Terms</a>
+        <a href="https://finalevolutiongroup.com/privacy" className="hover:text-white transition-colors">Privacy</a>
+        <a href="https://finalevolutiongroup.com/terms" className="hover:text-white transition-colors">Terms</a>
       </div>
     </div>
   </footer>

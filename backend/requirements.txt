@@ -1,4 +1,5 @@
 aiohappyeyeballs==2.6.1
+aiofiles==25.1.0
 aiohttp==3.13.5
 aiosignal==1.4.0
 annotated-doc==0.0.4
@@ -67,6 +68,7 @@ openai==1.99.9
 packaging==26.0
 pandas==3.0.2
 passlib==1.7.4
+paypalrestsdk==1.13.3
 pathspec==1.0.4
 pillow==12.2.0
 platformdirs==4.9.6
