@@ -1,6 +1,6 @@
 """
-Iteration 4 Tests: Eagle 3D Streaming (E3DS) Integration
-Tests streaming status, connect, and launch-mode endpoints
+Iteration 4 Tests: Local Sovereign streaming / launch integration.
+Tests streaming status, connect, and launch-mode endpoints.
 """
 import pytest
 import requests
@@ -30,7 +30,7 @@ class TestStreamingStatus:
     """Tests for GET /api/streaming/status endpoint"""
     
     def test_streaming_status_returns_mode_maps(self, api_client):
-        """Streaming status should return E3DS configuration with full UE mode registry"""
+        """Streaming status should return local sovereign configuration with full UE mode registry"""
         response = api_client.get(f"{BASE_URL}/api/streaming/status")
         assert response.status_code == 200
         
@@ -93,37 +93,20 @@ class TestStreamingConnect:
         })
         assert response.status_code == 401
     
-    def test_connect_requires_stream_url(self, authenticated_client):
-        """Connect should require stream_url parameter"""
-        response = authenticated_client.post(f"{BASE_URL}/api/streaming/connect", json={})
-        assert response.status_code == 400
-        assert "stream_url required" in response.json().get("detail", "")
-    
-    def test_connect_persists_url_and_updates_status(self, authenticated_client, api_client):
-        """Connect should persist E3DS URL and update status to available"""
-        test_url = "https://stream.eagle3dstreaming.com/test-iter4-connect"
-        
-        # Connect with stream URL
+    def test_connect_returns_local_sovereign_status(self, authenticated_client):
+        """Connect should return local sovereign data-feed metadata"""
         response = authenticated_client.post(f"{BASE_URL}/api/streaming/connect", json={
-            "stream_url": test_url
+            "stream_url": "https://stream.eagle3dstreaming.com/test-iter4-connect"
         })
         assert response.status_code == 200
         
         data = response.json()
-        assert data["status"] == "connected"
-        assert data["stream_url"] == test_url
-        
-        # Verify status is now available
-        status_response = api_client.get(f"{BASE_URL}/api/streaming/status")
-        assert status_response.status_code == 200
-        
-        status_data = status_response.json()
-        assert status_data["available"] == True
-        assert status_data["stream_url"] == test_url
-        assert status_data["provider"] == "eagle3d"
+        assert data["status"] == "local_sovereign"
+        assert data["mode"] == "biomechanical_data_feed"
+        assert data["ws_url"].endswith("/ws/sovereign")
     
     def test_connect_with_iframe_url(self, authenticated_client):
-        """Connect should accept optional iframe_url"""
+        """Connect should accept optional iframe_url without switching out of local mode"""
         response = authenticated_client.post(f"{BASE_URL}/api/streaming/connect", json={
             "stream_url": "https://stream.eagle3dstreaming.com/app-123",
             "iframe_url": "https://stream.eagle3dstreaming.com/view/app-123"
@@ -131,8 +114,8 @@ class TestStreamingConnect:
         assert response.status_code == 200
         
         data = response.json()
-        assert data["status"] == "connected"
-        assert data["iframe_url"] == "https://stream.eagle3dstreaming.com/view/app-123"
+        assert data["status"] == "local_sovereign"
+        assert data["mode"] == "biomechanical_data_feed"
 
 
 class TestStreamingLaunchMode:
@@ -154,11 +137,9 @@ class TestStreamingLaunchMode:
         
         data = response.json()
         assert data["mode_id"] == "basketball_h2h"
-        assert data["map"] == "Venice_Beach_Court"
-        assert "command" in data
-        assert data["command"]["cmd"] == "ueapp04"
-        assert "ServerTravel" in data["command"]["value"]
-        assert "Venice_Beach_Court" in data["command"]["value"]["ServerTravel"]
+        assert data["venue"] == "Venice_Beach_Court"
+        assert data["deep_link"].startswith("finalevolution://launch")
+        assert "Venice_Beach_Court" in data["deep_link"]
     
     def test_launch_mode_returns_correct_map_karate(self, authenticated_client):
         """Launch mode should return correct map for karate_h2h"""
@@ -169,7 +150,7 @@ class TestStreamingLaunchMode:
         
         data = response.json()
         assert data["mode_id"] == "karate_h2h"
-        assert data["map"] == "Zen_Dojo"
+        assert data["venue"] == "Zen_Dojo"
     
     def test_launch_mode_returns_correct_map_soccer(self, authenticated_client):
         """Launch mode should return correct map for soccer"""
@@ -180,7 +161,7 @@ class TestStreamingLaunchMode:
         
         data = response.json()
         assert data["mode_id"] == "soccer"
-        assert data["map"] == "Soccer_Stadium"
+        assert data["venue"] == "Soccer_Stadium"
     
     def test_launch_mode_returns_correct_map_surfing(self, authenticated_client):
         """Launch mode should return correct map for surfing"""
@@ -191,7 +172,7 @@ class TestStreamingLaunchMode:
         
         data = response.json()
         assert data["mode_id"] == "surfing"
-        assert data["map"] == "Venice_Beach_Surf"
+        assert data["venue"] == "Venice_Beach_Surf"
     
     def test_launch_mode_returns_404_for_invalid_mode(self, authenticated_client):
         """Launch mode should return 404 for invalid mode"""
@@ -199,7 +180,7 @@ class TestStreamingLaunchMode:
             "mode_id": "invalid_mode_xyz"
         })
         assert response.status_code == 404
-        assert "Mode not found" in response.json().get("detail", "")
+        assert "not found" in response.json().get("detail", "").lower()
     
     def test_launch_mode_returns_404_for_shop_mode(self, authenticated_client):
         """Launch mode should return 404 for non-playable modes like market_browse"""
@@ -235,7 +216,7 @@ class TestStreamingLaunchMode:
             })
             assert response.status_code == 200, f"Failed for mode: {mode_id}"
             data = response.json()
-            assert data["map"] == expected_map, f"Wrong map for {mode_id}: expected {expected_map}, got {data['map']}"
+            assert data["venue"] == expected_map, f"Wrong map for {mode_id}: expected {expected_map}, got {data['venue']}"
 
 
 class TestPreviousFeaturesStillWorking:

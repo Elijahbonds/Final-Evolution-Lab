@@ -1307,13 +1307,15 @@ async def get_streaming_status():
         "golf": "Links_Course", "tennis": "Tennis_Court",
         "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
         "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena",
     }
     
     ws_connected = len(sovereign_bridge.clients) > 0
     
     return {
         "available": ws_connected,
+        "stream_url": "",
+        "iframe_url": "",
         "mode": "local_sovereign",
         "cloud_streaming": False,
         "e3ds_disabled": True,
