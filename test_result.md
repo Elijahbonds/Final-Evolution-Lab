@@ -149,6 +149,17 @@
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Aligned packageManager with npm, upgraded react-day-picker to a React 19-compatible version, and generated a frontend package-lock.json."
+##   - task: "Resolve frontend build hook warnings in game timers"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/App.js"
+##     stuck_count: 0
+##     priority: "medium"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Reworked the playable game timer and Brain Brawl timeout handler to avoid stale closures and submit final scores reliably."
 ## metadata:
 ##   created_by: "main_agent"
 ##   version: "1.0"
@@ -158,6 +169,7 @@
 ##   current_focus:
 ##     - "Frontend production build"
 ##     - "npm install reproducibility"
+##     - "Game timer hook warning regression"
 ##   stuck_tasks: []
 ##   test_all: false
 ##   test_priority: "high_first"
