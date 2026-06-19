@@ -121,6 +121,9 @@
 ##       - working: "NA"
 ##         agent: "main"
 ##         comment: "Made paypalrestsdk optional because installing it conflicts with the pinned cryptography stack; payment endpoints now return 503 if the SDK is absent."
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Reduced Motor server-selection timeout via MONGO_SERVER_SELECTION_TIMEOUT_MS so startup hooks fail fast when MongoDB is unavailable instead of hanging health checks."
 ## frontend:
 ##   - task: "Centralize frontend backend and WebSocket URL handling"
 ##     implemented: true

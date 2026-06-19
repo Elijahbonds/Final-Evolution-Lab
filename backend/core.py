@@ -12,7 +12,8 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+mongo_timeout_ms = int(os.environ.get('MONGO_SERVER_SELECTION_TIMEOUT_MS', '2000'))
+client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=mongo_timeout_ms)
 db = client[os.environ['DB_NAME']]
 EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
