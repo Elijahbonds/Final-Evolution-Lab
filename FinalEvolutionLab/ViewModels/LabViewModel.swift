@@ -23,6 +23,9 @@ class LabViewModel {
     var globalLeaderboard = GlobalLeaderboardService()
     var critiqueRequests: [CritiqueRequest] = SaveSystem.loadCritiqueRequests()
 
+    /// Shared orchestrator — exposes boot state, pillar navigation, and session lifecycle to the UI.
+    let nexus: NexusEngine = NexusEngine.shared
+
     init() {
         self.profile = SaveSystem.loadProfile()
         self.sessions = SaveSystem.loadSessions()
@@ -38,6 +41,10 @@ class LabViewModel {
                 await healthKit.fetchLatestData()
                 applyHealthKitData()
             }
+        }
+
+        Task {
+            await NexusEngine.shared.boot()
         }
     }
 
