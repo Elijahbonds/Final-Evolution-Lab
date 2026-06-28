@@ -734,8 +734,16 @@ async def get_stats(user: User = Depends(get_current_user)):
 
 @api_router.put("/profile")
 async def update_profile(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    allowed = {"name","bio","sport","avatar_url","avatar_config"}
+    allowed = {"name","bio","sport","avatar_url","avatar_config","weight_kg"}
     updates = {k:v for k,v in data.items() if k in allowed}
+    if "weight_kg" in updates:
+        try:
+            weight_kg = float(updates["weight_kg"])
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="weight_kg must be a number")
+        if weight_kg < 25 or weight_kg > 250:
+            raise HTTPException(status_code=400, detail="weight_kg must be between 25 and 250")
+        updates["weight_kg"] = weight_kg
     if updates: await db.users.update_one({"user_id":user.user_id}, {"$set":updates})
     return await db.users.find_one({"user_id":user.user_id}, {"_id":0})
 
@@ -744,6 +752,7 @@ async def get_progress(user: User = Depends(get_current_user)):
     w = await db.workout_logs.count_documents({"user_id":user.user_id})
     g = await db.game_sessions.count_documents({"user_id":user.user_id})
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
+    return {"total_workouts":w,"total_games":g,"total_brawls":b,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"prq_score":user.prq_score,"coins":user.coins}
 
 # ===================== CENTRALIZED VENUE REGISTRY (Fetch on launch) =====================
 
@@ -1060,10 +1069,6 @@ async def get_comparison(session_id: str, user: User = Depends(get_current_user)
     if not comp:
         raise HTTPException(status_code=404)
     return comp
-
-
-    return {"total_workouts":w,"total_games":g,"total_brawls":b,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"prq_score":user.prq_score,"coins":user.coins}
-
 
 # ===================== CREATOR CARD IP & MULTIMEDIA =====================
 

@@ -11,15 +11,14 @@ import {
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
   Swords, Video, Palette, UserPlus, Gift
 } from "lucide-react";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { API, toWebSocketUrl } from "@/config/api";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -131,7 +130,7 @@ const LandingPage = () => {
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
-            <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
+            <button data-testid="cta-demo-btn" onClick={() => navigate('/download')} className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
             {[{v:"17",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
@@ -510,6 +509,7 @@ const GameModesView = () => {
   const [sessionState, setSessionState] = useState(null);
   const [launchStatus, setLaunchStatus] = useState(null); // null, 'launching', 'map_loading', 'timeout'
   const wsRef = useRef(null);
+  const launchPhaseRef = useRef(null);
 
   // Fetch modes from centralized venue registry (not hardcoded)
   useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
@@ -517,6 +517,7 @@ const GameModesView = () => {
   const launchNativeMode = async (mode) => {
     setLaunchingMode(mode.id);
     setLaunchStatus('launching');
+    launchPhaseRef.current = { modeId: mode.id, phase: 'launching' };
     try {
       const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
@@ -528,16 +529,18 @@ const GameModesView = () => {
 
         // State-Aware Handshake: listen for MapLoaded via WebSocket
         // NOT a blind timeout — wait for actual bridge confirmation
-        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const wsUrl = toWebSocketUrl('/ws/sovereign');
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
+        launchPhaseRef.current = { modeId: mode.id, phase: 'map_loading' };
 
         ws.onmessage = (e) => {
           try {
             const msg = JSON.parse(e.data);
             if (msg.type === 'sovereign_handshake' || msg.type === 'map_loaded') {
               // MapLoaded signal received from UFELEmergentBridgeSubsystem
+              launchPhaseRef.current = null;
               setLaunchStatus(null);
               setLaunchingMode(null);
               ws.close();
@@ -548,8 +551,10 @@ const GameModesView = () => {
         // 10s System Re-auth (NOT browser fallback)
         // If no MapLoaded signal, trigger re-auth instead of showing placeholder
         setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
-            ws.close();
+          const activeLaunch = launchPhaseRef.current;
+          if (activeLaunch?.phase === 'map_loading' && activeLaunch.modeId === mode.id) {
+            wsRef.current?.close();
+            launchPhaseRef.current = null;
             setLaunchStatus('timeout');
             // System Re-auth: re-verify session, do NOT fall back to browser game
             axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: 'timeout' }).catch(() => {});
@@ -558,11 +563,13 @@ const GameModesView = () => {
         }, 10000);
       } else {
         // No deep link available (desktop/web) — use browser version
+        launchPhaseRef.current = null;
         setLaunchingMode(null);
         setLaunchStatus(null);
         setPlayingMode(mode);
       }
     } catch {
+      launchPhaseRef.current = null;
       setLaunchingMode(null);
       setLaunchStatus(null);
       setPlayingMode(mode);
@@ -1146,11 +1153,14 @@ const ProfileView = () => {
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState(user?.bio || '');
   const [sport, setSport] = useState(user?.sport || 'basketball');
+  const [weightKg, setWeightKg] = useState(user?.weight_kg || '');
 
   useEffect(() => { axios.get(`${API}/profile/progress`).then(r => setProgress(r.data)).catch(console.error); }, []);
 
   const saveProfile = async () => {
-    try { await axios.put(`${API}/profile`, {bio, sport}); setEditing(false); } catch (e) { console.error(e); }
+    const payload = { bio, sport };
+    if (weightKg !== '') payload.weight_kg = Number(weightKg);
+    try { await axios.put(`${API}/profile`, payload); setEditing(false); } catch (e) { console.error(e); }
   };
 
   return (
@@ -1180,6 +1190,7 @@ const ProfileView = () => {
                 {['basketball','karate','soccer','football','tennis','golf','surfing','skateboarding','snowboarding','training'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+            <div><label className="metric-label block mb-2">BODY WEIGHT (KG)</label><input data-testid="weight-input" type="number" min="25" max="250" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} className="input-clinical" placeholder="75" /></div>
             <button data-testid="save-profile" onClick={saveProfile} className="btn-primary">Save Changes</button>
           </div>
         )}
@@ -1224,7 +1235,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

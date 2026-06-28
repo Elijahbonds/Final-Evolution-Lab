@@ -420,7 +420,8 @@ def _consumed_totals(entries: List[Dict[str, Any]]) -> Dict[str, int]:
 
 
 def _athlete_weight_kg(user: User) -> float:
-    # Until a `weight_kg` field is captured, derive a reasonable default from PRQ (75kg baseline)
+    if user.weight_kg and 25 <= user.weight_kg <= 250:
+        return float(user.weight_kg)
     return 75.0
 
 

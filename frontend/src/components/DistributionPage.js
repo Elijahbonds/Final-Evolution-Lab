@@ -16,8 +16,8 @@
  * Aesthetic matches LandingV2: obsidian (#050505) + neon cyan (#00E5FF) +
  * indigo-violet (#5E17EB). Pure SVG + CSS. Zero new npm deps.
  *
- * All store badges are visual placeholders (SVG composed in-component); swap
- * to the official PNGs at the URLs marked DISTRIBUTION_BADGE_REPLACE.
+ * Store badges are compact SVG facsimiles composed in-component; replace them
+ * with official artwork when final store assets are approved.
  */
 import React, { useState, useEffect } from "react";
 import {
@@ -29,6 +29,17 @@ import {
 // ──────────────────────────────────────────────────────────────
 // PLATFORM CARDS
 // ──────────────────────────────────────────────────────────────
+const STORE_URLS = {
+  ios: process.env.REACT_APP_IOS_STORE_URL || "https://apps.apple.com/search?term=Final%20Evolution%20Lab",
+  macos: process.env.REACT_APP_MACOS_STORE_URL || "https://apps.apple.com/search?term=Final%20Evolution%20Lab",
+  android: process.env.REACT_APP_ANDROID_STORE_URL || "https://play.google.com/store/search?q=Final%20Evolution%20Lab&c=apps",
+};
+
+const LEGAL_URLS = {
+  privacy: process.env.REACT_APP_PRIVACY_URL || "https://finalevolutiongroup.com/privacy",
+  terms: process.env.REACT_APP_TERMS_URL || "https://finalevolutiongroup.com/terms",
+};
+
 const PLATFORMS = [
   {
     id: "ios",
@@ -40,7 +51,7 @@ const PLATFORMS = [
     statusLabel: "Available",
     description: "Native UE5.7 host with the WKWebView dashboard overlay. iPhone 15 Pro / 16 Pro recommended for Metal 3 + 120 Hz.",
     badge: "appstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — App Store listing
+    storeUrl: STORE_URLS.ios,
     secondaryLabel: "Read iOS install guide",
   },
   {
@@ -53,7 +64,7 @@ const PLATFORMS = [
     statusLabel: "Apple Silicon",
     description: "Universal Mac binary for Apple Silicon (M1/M2/M3/M4). Intel Macs run in Rosetta — Metal 3 features disabled.",
     badge: "macappstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Mac App Store
+    storeUrl: STORE_URLS.macos,
     secondaryLabel: "Read macOS install guide",
   },
   {
@@ -66,7 +77,7 @@ const PLATFORMS = [
     statusLabel: "Available",
     description: "AAB-distributed via Play Console. Vulkan-capable device with ≥6 GB RAM recommended; Tensor / Snapdragon 8 Gen 2+.",
     badge: "googleplay",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Google Play listing
+    storeUrl: STORE_URLS.android,
     secondaryLabel: "Read Android install guide",
   },
   {
@@ -902,8 +913,8 @@ const Footer = () => (
       </div>
       <div className="flex items-center gap-6 font-mono text-[10px] tracking-[0.3em] uppercase text-white/30">
         <a href="/" className="hover:text-white transition-colors">Home</a>
-        <a href="#" className="hover:text-white transition-colors">Privacy</a>
-        <a href="#" className="hover:text-white transition-colors">Terms</a>
+        <a href={LEGAL_URLS.privacy} className="hover:text-white transition-colors">Privacy</a>
+        <a href={LEGAL_URLS.terms} className="hover:text-white transition-colors">Terms</a>
       </div>
     </div>
   </footer>

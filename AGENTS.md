@@ -4,44 +4,44 @@
 
 ### Repository overview
 
-This is a polyglot monorepo for **Final Evolution Lab**, a sports-tech / athletic-optimization product. The primary shipping client targets Unreal Engine 5.7 (C++ / Blueprint); the web + backend layers are the parts runnable in a Cloud Agent VM. Key runnable sub-projects:
+This is a polyglot monorepo for **Final Evolution Lab**, a sports-tech / athletic-optimization product. The primary shipping client targets Unreal Engine 5.7 (C++ / Swift host shell); the Linux-runnable surfaces in this branch are the CRA frontend and FastAPI/MongoDB backend.
 
 | Sub-project | Path | Stack | Dev command |
 |---|---|---|---|
-| **New marketing site** (finalevolutiongroup.com) | `sites/finalevolutiongroup.com/` | React 18 + Vite 5 + TypeScript + Tailwind | `npm run dev` (port 5175) |
-| Main marketing/app site (legacy) | `sites/final-evolution-main-site/` | React 18 + Vite 5 + TypeScript + Tailwind + Three.js + Supabase JS | `npm run dev` (port 5173) |
-| Clinical Gate (medical disclaimer component) | `web/clinical-gate-react/` | React 18 + Vite 5 + TypeScript + Tailwind | `npm run dev` (port 5174) |
-| Static PWA web shell (gateway, shop, wallet, play) | `web/` | Vanilla HTML/CSS/JS (Tailwind CDN) | `npx serve web -l 8080` from repo root |
-| Supabase backend (DB + Edge Functions) | `supabase/` | PostgreSQL 17 + Deno Edge Functions | `supabase start` (requires Docker) |
+| Web app / athlete OS | `frontend/` | React 19 + CRA/CRACO + Tailwind | `npm start` (port 3000) |
+| API backend | `backend/` | FastAPI + MongoDB | `uvicorn server:app --reload --port 8000` |
+| Firebase Data Connect schema | `dataconnect/` | GraphQL schema/connectors for social surfaces | `firebase dataconnect:sdk:generate` |
+| iOS shell | `FinalEvolutionLab/` | Swift / SwiftUI host for web + Unreal surfaces | Requires Xcode on macOS |
+| Unreal integration snippets | `UnrealIntegration/`, `UnrealStarter/` | UE 5.7 C++/config snippets | Inspect-only in Linux |
 
 ### Running the web services
 
-1. **Install dependencies** — run `npm install` in `sites/finalevolutiongroup.com/`, `sites/final-evolution-main-site/`, and `web/clinical-gate-react/`. The root `package.json` has no dependencies.
-2. **New marketing site**: `npm run dev` in `sites/finalevolutiongroup.com/` → http://localhost:5175
-3. **Legacy main site**: `npm run dev` in `sites/final-evolution-main-site/` → http://localhost:5173
-4. **Clinical gate dev server**: `npm run dev` in `web/clinical-gate-react/` → http://localhost:5174
-5. **Static web shell**: `npx serve web -l 8080` from repo root → http://localhost:8080
+1. **Frontend** — run `npm install` in `frontend/`, then `npm start` → http://localhost:3000.
+2. **Backend** — install Python deps with `python3 -m pip install --user -r backend/requirements.txt`, copy `backend/.env.example` to `backend/.env` if you need non-default values, then run `uvicorn server:app --reload --port 8000` from `backend/`.
+3. **MongoDB** — defaults are `MONGO_URL=mongodb://localhost:27017` and `DB_NAME=final_evolution_lab`. Start a local MongoDB instance for authenticated API workflows.
+4. **Frontend env** — copy `frontend/.env.example` to `frontend/.env` when pointing at a non-default API or real PayPal/store URLs.
 
 ### Lint / Typecheck / Build
 
-- **New marketing site**: `npm run typecheck` / `npm run build` in `sites/finalevolutiongroup.com/`
-- **Legacy main site**: `npm run typecheck` / `npm run build` in `sites/final-evolution-main-site/`
-- **Clinical gate**: `npx tsc --noEmit` / `npm run build` in `web/clinical-gate-react/`
-- No ESLint is configured for any React app.
+- **Frontend build**: `npm run build` in `frontend/`.
+- **Frontend smoke tests**: `npm test -- --watchAll=false --passWithNoTests` in `frontend/`.
+- **Backend import/compile**: `python3 -m py_compile backend/core.py backend/server.py backend/routers/*.py` from repo root.
+- **Backend tests**: `python3 -m pytest backend/tests -q` when MongoDB/test services are available.
+- **Mode smoke test**: `python3 scripts/smoke_test_modes.py`.
 
 ### Unreal Engine (not runnable in Cloud Agent VM)
 
-- 12 fully wired game modes via `EFELArenaMode` enum + per-mode session subsystems
-- Pixel Streaming enabled (`PIXEL_STREAMING_ENABLED=1`), WebServers infra under `Samples/PixelStreaming/WebServers/`
-- Exercise demo pipeline: `UFELExerciseDemoPipelineSubsystem` maps each mode to Academy module montages (mod1-mod12)
+- Native UE compile/cook/package requires UE 5.7 outside this Linux VM.
+- Backend/native launch map tokens are coordinated through `backend/ue_mode_maps.json`, `backend/FEL_ModeManager.production.json`, and `UnrealStarter/BasketballGame/Config/FEL_VenueRegistry.production.json`.
+- Pixel Streaming/Eagle 3D integration is exposed through the frontend Pixel Stream tab and backend `/api/streaming/*` routes; real provider keys are optional env vars.
 
 ### Environment variables
 
-The main site reads Supabase and PayPal credentials from `.env` (Vite `VITE_` prefix). See `sites/final-evolution-main-site/.env.example`. The app runs without these env vars — features that depend on Supabase/PayPal gracefully degrade.
+The frontend reads `REACT_APP_*` variables from `frontend/.env`. The backend reads `backend/.env` via `python-dotenv`. See `frontend/.env.example` and `backend/.env.example`.
 
 ### Non-obvious notes
 
-- The Unreal Engine project (`UnrealStarter/BasketballGame/`) and iOS app (`ios/FinalEvolutionLab/`) cannot be built in a Cloud Agent VM (requires UE 5.7 editor or Xcode on macOS).
-- Supabase local dev (`supabase start`) requires Docker. If Docker is not available, the web apps still run — they just won't have a local backend.
-- The root `package.json` is a shell with no `node_modules`; do not run `npm install` at root.
-- Package manager is **npm** (lockfiles are `package-lock.json`).
+- The Unreal Engine and iOS app cannot be built in a Linux Cloud Agent VM; use inspection and validation scripts only.
+- Supabase is not present in this branch. Backend persistence is MongoDB, with Firebase Data Connect schema files for social surfaces.
+- The root has no frontend dependencies; do not run `npm install` at root.
+- Package manager is **npm** for `frontend/` and the committed lockfile is `frontend/package-lock.json`.
