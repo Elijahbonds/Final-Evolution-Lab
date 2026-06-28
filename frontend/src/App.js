@@ -17,9 +17,8 @@ import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/Quali
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
+import { API } from "@/config/api";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -1146,11 +1145,12 @@ const ProfileView = () => {
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState(user?.bio || '');
   const [sport, setSport] = useState(user?.sport || 'basketball');
+  const [weightKg, setWeightKg] = useState(user?.weight_kg || 75);
 
   useEffect(() => { axios.get(`${API}/profile/progress`).then(r => setProgress(r.data)).catch(console.error); }, []);
 
   const saveProfile = async () => {
-    try { await axios.put(`${API}/profile`, {bio, sport}); setEditing(false); } catch (e) { console.error(e); }
+    try { await axios.put(`${API}/profile`, {bio, sport, weight_kg: Number(weightKg)}); setEditing(false); } catch (e) { console.error(e); }
   };
 
   return (
@@ -1168,6 +1168,7 @@ const ProfileView = () => {
               <span className="badge-clinical">Level {user?.level || 1}</span>
               <span className="badge-clinical">{user?.role}</span>
               <span className="badge-clinical">{sport}</span>
+              <span className="badge-clinical">{weightKg} kg</span>
             </div>
           </div>
           <button data-testid="edit-profile" onClick={() => setEditing(!editing)} className="btn-secondary">{editing ? 'Cancel' : 'Edit'}</button>
@@ -1179,6 +1180,19 @@ const ProfileView = () => {
               <select data-testid="sport-select" value={sport} onChange={e => setSport(e.target.value)} className="input-clinical">
                 {['basketball','karate','soccer','football','tennis','golf','surfing','skateboarding','snowboarding','training'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
+            </div>
+            <div><label className="metric-label block mb-2">WEIGHT (KG)</label>
+              <input
+                data-testid="weight-input"
+                type="number"
+                min="30"
+                max="250"
+                value={weightKg}
+                onChange={e => setWeightKg(e.target.value)}
+                className="input-clinical"
+                placeholder="75"
+              />
+              <p className="text-xs text-zinc-500 mt-2">Used to personalize Bio-Fuel macro and hydration targets.</p>
             </div>
             <button data-testid="save-profile" onClick={saveProfile} className="btn-primary">Save Changes</button>
           </div>

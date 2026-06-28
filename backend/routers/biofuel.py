@@ -24,9 +24,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+try:
+    from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
+except ImportError:
+    ImageContent = None
+    LlmChat = None
+    UserMessage = None
 
 from core import EMERGENT_KEY, User, db, get_current_user
 
@@ -46,6 +51,7 @@ ATHLETIC_INTENTS = {
 }
 
 NUTRI_SHARDS_PER_SCAN = 12  # base award
+MAX_SCAN_IMAGE_BASE64_BYTES = 4 * 1024 * 1024
 
 
 def nasm_macro_target(weight_kg: float, sport: str, intent: str) -> Dict[str, Any]:
@@ -297,8 +303,10 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
     """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
-    if not EMERGENT_KEY:
-        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+    if len(req.image_base64.encode("utf-8")) > MAX_SCAN_IMAGE_BASE64_BYTES:
+        raise HTTPException(status_code=413, detail="image payload must be 4 MB or smaller")
+    if not EMERGENT_KEY or not LlmChat or not ImageContent or not UserMessage:
+        raise HTTPException(status_code=503, detail="Bio-Fuel vision scanning is not configured")
 
     provider = "gemini" if req.model.startswith("gemini") else "openai"
     session_id = f"biofuel-scan-{uuid.uuid4().hex[:10]}"
@@ -420,8 +428,8 @@ def _consumed_totals(entries: List[Dict[str, Any]]) -> Dict[str, int]:
 
 
 def _athlete_weight_kg(user: User) -> float:
-    # Until a `weight_kg` field is captured, derive a reasonable default from PRQ (75kg baseline)
-    return 75.0
+    weight = user.weight_kg or 75.0
+    return max(30.0, min(250.0, float(weight)))
 
 
 def _today_intent(user: User) -> str:
@@ -584,8 +592,10 @@ async def doordash_search(req: DoorDashRequest, user: User = Depends(get_current
         return cal_ok and p_ok
 
     matches = [m for m in pool if fit(m)] or pool[:3]
-    for m in matches:
-        m["deep_link"] = f"https://www.doordash.com/search/store/?query={urllib.parse.quote(m['city_query'])}"
+    matches = [
+        {**m, "deep_link": f"https://www.doordash.com/search/store/?query={urllib.parse.quote(m['city_query'])}"}
+        for m in matches
+    ]
     return {
         "intent": intent,
         "intent_label": ATHLETIC_INTENTS.get(intent, intent),
