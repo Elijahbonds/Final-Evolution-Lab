@@ -33,40 +33,40 @@ const PLATFORMS = [
   {
     id: "ios",
     name: "iPhone & iPad",
-    eyebrow: "App Store · iOS 17+",
+    eyebrow: "TestFlight / App Store · iOS 17+",
     icon: Apple,
     accent: "#00E5FF",
-    status: "available",
-    statusLabel: "Available",
+    status: "private-beta",
+    statusLabel: "Private Beta",
     description: "Native UE5.7 host with the WKWebView dashboard overlay. iPhone 15 Pro / 16 Pro recommended for Metal 3 + 120 Hz.",
     badge: "appstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — App Store listing
+    storeUrl: null, // Add App Store listing when public distribution opens.
     secondaryLabel: "Read iOS install guide",
   },
   {
     id: "macos",
     name: "Mac",
-    eyebrow: "Mac App Store · macOS 14+",
+    eyebrow: "Mac notarized beta · macOS 14+",
     icon: Monitor,
     accent: "#8B5CF6",
-    status: "available",
-    statusLabel: "Apple Silicon",
+    status: "private-beta",
+    statusLabel: "Private Beta",
     description: "Universal Mac binary for Apple Silicon (M1/M2/M3/M4). Intel Macs run in Rosetta — Metal 3 features disabled.",
     badge: "macappstore",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Mac App Store
+    storeUrl: null, // Add Mac App Store listing when public distribution opens.
     secondaryLabel: "Read macOS install guide",
   },
   {
     id: "android",
     name: "Android",
-    eyebrow: "Google Play · Android 13+",
+    eyebrow: "Play internal test · Android 13+",
     icon: Smartphone,
     accent: "#34D399",
-    status: "available",
-    statusLabel: "Available",
+    status: "private-beta",
+    statusLabel: "Private Beta",
     description: "AAB-distributed via Play Console. Vulkan-capable device with ≥6 GB RAM recommended; Tensor / Snapdragon 8 Gen 2+.",
     badge: "googleplay",
-    storeUrl: "#", // DISTRIBUTION_LINK_REPLACE — Google Play listing
+    storeUrl: null, // Add Google Play listing when public distribution opens.
     secondaryLabel: "Read Android install guide",
   },
   {
@@ -92,8 +92,8 @@ const GUIDES = {
     label: "iOS / iPadOS",
     icon: Apple,
     steps: [
-      { t: "Open the App Store", b: "On your iPhone or iPad, search for 'Final Evolution Lab'." },
-      { t: "Tap 'Get' and authenticate", b: "Use Face ID, Touch ID, or your Apple ID password. Download is ~620 MB; expect a one-time first-launch cook of 30–60 seconds." },
+      { t: "Open your TestFlight invite", b: "Public App Store links are not live yet. Use the beta invite provided by the Final Evolution Lab team." },
+      { t: "Install and authenticate", b: "Use Face ID, Touch ID, or your Apple ID password. Download is ~620 MB; expect a one-time first-launch cook of 30–60 seconds." },
       { t: "Allow permissions on first launch", b: "Camera (for AI pose critique), Motion & Fitness (for the HealthKit bridge), and Notifications (for AI Coach neuro-cues)." },
       { t: "Sign in with Google", b: "Tap 'Enter Lab'. The OAuth handshake auto-creates your athlete profile and seeds your PRQ baseline at 75.0." },
       { t: "Run your first System Scan", b: "Tap 'Start System Scan' on the dashboard. Hold your iPhone at eye-level and perform the prompted movement screen — ~90 seconds." },
@@ -104,8 +104,8 @@ const GUIDES = {
     label: "macOS",
     icon: Monitor,
     steps: [
-      { t: "Open the Mac App Store", b: "Search for 'Final Evolution Lab' or tap the Mac badge above." },
-      { t: "Click 'Get' → 'Install'", b: "Authenticate with Touch ID or Apple ID. ~1.2 GB universal binary; Apple Silicon Macs run native arm64." },
+      { t: "Open the notarized beta build", b: "Public Mac App Store links are not live yet. Use the signed package provided by the Final Evolution Lab team." },
+      { t: "Install the app", b: "Authenticate with Touch ID or Apple ID if prompted. ~1.2 GB universal binary; Apple Silicon Macs run native arm64." },
       { t: "Grant Camera + Microphone access", b: "System Settings → Privacy & Security → Camera / Microphone — toggle on for Final Evolution Lab." },
       { t: "Sign in with Google", b: "First launch opens the auth handshake in your default browser; the macOS app receives the session back via deep link." },
       { t: "Pair your iPhone (optional)", b: "On the dashboard, choose 'Pair iPhone' to mirror HealthKit data into the macOS app." },
@@ -116,8 +116,8 @@ const GUIDES = {
     label: "Android",
     icon: Smartphone,
     steps: [
-      { t: "Open Google Play", b: "Search 'Final Evolution Lab' or scan the QR code on this page." },
-      { t: "Tap 'Install'", b: "AAB delivers ~480 MB to your specific device variant. Vulkan + arm64-v8a required." },
+      { t: "Open your Play internal testing invite", b: "Public Google Play links are not live yet. Join the internal test track from the invite link." },
+      { t: "Tap 'Install'", b: "The AAB delivers ~480 MB to your specific device variant. Vulkan + arm64-v8a required." },
       { t: "Grant runtime permissions", b: "Camera, Motion sensors, and Notifications — toggle each on when first prompted by the app." },
       { t: "Sign in with Google", b: "The Play Services integration uses your device's Google account. Tap 'Continue as <you>' to bypass the password prompt." },
       { t: "First-time PRQ scan", b: "Hold your phone at eye-level, complete the 90-second movement screen, and your PRQ baseline locks in." },
@@ -131,7 +131,7 @@ const GUIDES = {
       { t: "The web client is in private alpha", b: "It will live at https://play.finalevolutiongroup.com once public alpha opens. WebGPU + WebTransport required." },
       { t: "Join the early-access list", b: "Sign in with Google on this site. Athletes with PRQ ≥ 80 get first invitations." },
       { t: "Expected requirements", b: "Chrome 121+, Edge 121+, or Safari 18+. WebGPU-capable GPU (M1+, RTX 20-series+, RX 6000+, or Adreno 730+)." },
-      { t: "Controller support", b: "Xbox / PlayStation / 8BitDo controllers via WebHID. Keyboard fallback for all 19 game modes." },
+      { t: "Controller support", b: "Xbox / PlayStation / 8BitDo controllers via WebHID. Keyboard fallback for all 18 playable modes." },
     ],
     requirements: ["TBD — Q3 2026", "WebGPU + WebTransport", "Modern Chromium-based browser", "Hardware-accelerated GPU"],
   },
@@ -155,7 +155,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What's the difference between FEL OS and the standalone game?",
-    a: "FEL OS is the unified athlete dashboard (system scan + 4 education tracks + creator cards + 19 game modes). The 'standalone game' is the embedded UE5 binary that the dashboard launches — they're shipped together in one package.",
+    a: "FEL OS is the unified athlete dashboard (system scan + 4 education tracks + creator cards + 18 playable modes plus the Sovereign Shop module). The 'standalone game' is the embedded UE5 binary that the dashboard launches — they're shipped together in one package.",
   },
   {
     q: "How do I get the Applied Kinesiology Certificate?",
@@ -315,7 +315,7 @@ const Hero = ({ onLogin }) => (
         </span>
       </h1>
       <p className="text-base md:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed mb-8">
-        One download, four platforms. Live telemetry, 19 game modes, NASM-CNC nutrition,
+        One download, four platforms. Live telemetry, 18 playable modes plus Sovereign Shop, NASM-CNC nutrition,
         and a sovereign performance ledger — fused into the only OS that audits your reps.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
@@ -601,7 +601,7 @@ const TECH_DOCS = {
       { uri: "finalevolution://", label: "Open the app", description: "Launches FEL on the last-active screen. No-op if the app is already foregrounded." },
       { uri: "finalevolution://system-scan", label: "Jump to system scan", description: "Boots straight into the PRQ scan flow." },
       { uri: "finalevolution://brain-brawl/launch", label: "Brain Brawl arena", description: "Already in production — used by the cognitive mode briefing on the web dashboard." },
-      { uri: "finalevolution://mode/{modeId}", label: "Launch a specific game mode", description: "modeId is one of the 19 registered modes (basketball_h2h, brain_brawl, dunk_arena, etc.)." },
+      { uri: "finalevolution://mode/{modeId}", label: "Launch a specific game mode", description: "modeId is one of the launchable registry entries (basketball_h2h, brain_brawl, court_carnival, etc.)." },
       { uri: "finalevolution://creator-card/{cardId}", label: "Open a Creator Card", description: "Marketplace deep-link with PayPal-ready checkout state." },
       { uri: "finalevolution://education/track/{trackId}", label: "Resume a track", description: "trackId ∈ {common_core, stem, kinesiology, brain_brawl}." },
       { uri: "finalevolution://biofuel/scan", label: "Open the AI vision scanner", description: "Camera-ready · scoped permission prompt on first use." },

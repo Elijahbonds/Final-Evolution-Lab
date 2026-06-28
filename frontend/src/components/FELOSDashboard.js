@@ -7,9 +7,7 @@ import {
   Share2, Download, Copy, X
 } from "lucide-react";
 import { BioFuelStripe, BioFuelScanner, BioFuelCookbook, BioFuelDoorDash } from "./BioFuel";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API, BACKEND_URL } from "@/config/api";
 
 const TRACK_ICON = { BookOpen, Atom, Award, Brain };
 const TRACK_GLOW = {
@@ -187,7 +185,7 @@ const CardsQuadrant = ({ cards, onOpen }) => (
 );
 
 const ArenaQuadrant = ({ arena, onOpen }) => (
-  <QuadrantShell icon={Gamepad2} label="Arena · 19 Modes" accent="border-orange-400/30" onOpen={onOpen} testId="quadrant-arena">
+  <QuadrantShell icon={Gamepad2} label="Arena · 18 Playable + Shop" accent="border-orange-400/30" onOpen={onOpen} testId="quadrant-arena">
     <div className="grid grid-cols-2 gap-3 text-sm">
       <Stat label="Modes Played" value={arena.modes_played} accent="text-orange-400" />
       <Stat label="Sovereign Sess." value={arena.sovereign_sessions} />

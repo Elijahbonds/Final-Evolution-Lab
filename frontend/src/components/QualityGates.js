@@ -5,9 +5,7 @@ import {
   Gift, Zap, Clock, BarChart3, Play, Pause, Eye, Radio,
   ArrowRight, Share2, DollarSign, Shield, Database, RefreshCw
 } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API, toWebSocketUrl } from "@/config/api";
 
 // ===================== MULTIPLAYER LOBBY =====================
 export const MultiplayerView = () => {
@@ -52,7 +50,7 @@ export const MultiplayerView = () => {
   };
 
   const connectWS = (roomId) => {
-    const wsUrl = `${BACKEND_URL.replace('https', 'wss').replace('http', 'ws')}/ws/game/${roomId}`;
+    const wsUrl = toWebSocketUrl(`/ws/game/${roomId}`);
     const socket = new WebSocket(wsUrl);
     socket.onmessage = (e) => {
       const data = JSON.parse(e.data);

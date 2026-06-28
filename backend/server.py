@@ -7,8 +7,13 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 import paypalrestsdk
+
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:  # Optional private SDK; AI endpoints degrade gracefully without it.
+    LlmChat = None
+    UserMessage = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -1264,6 +1269,8 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
+    if not EMERGENT_KEY or LlmChat is None or UserMessage is None:
+        return {"response":"AI Coach is in offline mode. Keep today's work focused: warm up thoroughly, train one primary quality, log your session, and prioritize recovery before adding volume.","model":"fallback","type":prompt_type}
     try:
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
         chat.with_model("openai","gpt-5.2")
@@ -1280,6 +1287,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
+    if not EMERGENT_KEY or LlmChat is None or UserMessage is None:
+        return {"response":"AI chat is offline in this environment. The rest of FEL OS remains available; set EMERGENT_LLM_KEY and install the optional Emergent SDK to enable live model responses.","model":"fallback","conversation_id":cid}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=f"You are FEL AI Assistant. Help {user.name} with training, nutrition, recovery. PRQ: {user.prq_score}/100. Be concise.")
@@ -1294,15 +1303,11 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/streaming/status")
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        mode_id: config.get("map", mode_id).split("/")[-1]
+        for mode_id, config in registry.items()
+        if config.get("status") != "non-game-module"
     }
     
     ws_connected = len(sovereign_bridge.clients) > 0
@@ -1316,6 +1321,8 @@ async def get_streaming_status():
         "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect.",
         "supported_modes": list(mode_maps.keys()),
         "mode_maps": mode_maps,
+        "total_registered_modes": len(registry),
+        "launchable_modes": len(mode_maps),
         "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
         "data_feed": True,
         "video_feed": False
