@@ -11,15 +11,14 @@ import {
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
   Swords, Video, Palette, UserPlus, Gift
 } from "lucide-react";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
+import { API, toWebSocketUrl } from "@/config/api";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -431,15 +430,15 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     setTargets(prev => prev.filter(t => t.id !== target.id));
   };
 
-  const endGame = () => {
+  const endGame = useCallback(() => {
     setGameActive(false);
     clearInterval(timerRef.current);
     onComplete(score);
-  };
+  }, [onComplete, score]);
 
   useEffect(() => {
-    if (timeLeft <= 0 && score > 0) { endGame(); }
-  }, [timeLeft]);
+    if (timeLeft <= 0 && gameActive) { endGame(); }
+  }, [timeLeft, gameActive, endGame]);
 
   const getGameTitle = () => {
     const titles = {
@@ -528,7 +527,7 @@ const GameModesView = () => {
 
         // State-Aware Handshake: listen for MapLoaded via WebSocket
         // NOT a blind timeout — wait for actual bridge confirmation
-        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const wsUrl = toWebSocketUrl('/ws/sovereign');
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
@@ -880,20 +879,11 @@ const BrainBrawlView = ({ onBack }) => {
   const [category, setCategory] = useState('all');
   const timerRef = useRef(null);
 
-  useEffect(() => {
-    if (gameState === 'playing' && timeLeft > 0) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    } else if (gameState === 'playing' && timeLeft <= 0) {
-      answerQuestion(-1); // Time's up
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft]);
-
   const startGame = async () => {
     try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
   };
 
-  const answerQuestion = (index) => {
+  const answerQuestion = useCallback((index) => {
     clearTimeout(timerRef.current);
     const isCorrect = index === questions[currentQ]?.correct;
     const timeBonus = isCorrect ? timeLeft * 5 : 0;
@@ -903,7 +893,16 @@ const BrainBrawlView = ({ onBack }) => {
       setGameState('results');
       axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: answers.filter(a=>a.correct).length + (isCorrect?1:0), score: score + (isCorrect ? 100+timeBonus : 0), category}).catch(console.error);
     } else { setCurrentQ(c => c + 1); setTimeLeft(15); }
-  };
+  }, [answers, category, currentQ, questions, score, timeLeft]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === 'playing' && timeLeft <= 0) {
+      answerQuestion(-1); // Time's up
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [gameState, timeLeft, answerQuestion]);
 
   return (
     <div className="space-y-8 fade-in">
@@ -1224,7 +1223,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }
