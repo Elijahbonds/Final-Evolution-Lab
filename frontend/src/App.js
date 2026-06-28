@@ -17,9 +17,8 @@ import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/Quali
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
+import { API, toWebSocketUrl } from "@/config/api";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -88,9 +87,8 @@ const AuthCallback = () => {
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const location = useLocation();
   if (loading) return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div></div>;
-  if (!user && !location.state?.user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   return children;
 };
 
@@ -528,16 +526,18 @@ const GameModesView = () => {
 
         // State-Aware Handshake: listen for MapLoaded via WebSocket
         // NOT a blind timeout — wait for actual bridge confirmation
-        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const wsUrl = toWebSocketUrl('/ws/sovereign');
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
+        let mapLoaded = false;
 
         ws.onmessage = (e) => {
           try {
             const msg = JSON.parse(e.data);
             if (msg.type === 'sovereign_handshake' || msg.type === 'map_loaded') {
               // MapLoaded signal received from UFELEmergentBridgeSubsystem
+              mapLoaded = true;
               setLaunchStatus(null);
               setLaunchingMode(null);
               ws.close();
@@ -548,12 +548,11 @@ const GameModesView = () => {
         // 10s System Re-auth (NOT browser fallback)
         // If no MapLoaded signal, trigger re-auth instead of showing placeholder
         setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+          if (!mapLoaded) {
             ws.close();
             setLaunchStatus('timeout');
             // System Re-auth: re-verify session, do NOT fall back to browser game
             axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: 'timeout' }).catch(() => {});
-            setLaunchingMode(null);
           }
         }, 10000);
       } else {
@@ -631,7 +630,7 @@ const GameModesView = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="game-modes-grid">
         {filtered.map(mode => (
-          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && setPlayingMode(mode)}>
+          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && launchNativeMode(mode)}>
             <img src={mode.image_url} alt={mode.name} loading="lazy" />
             <div className="game-mode-overlay">
               <div className="flex items-center gap-2 mb-2">
@@ -1224,7 +1223,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

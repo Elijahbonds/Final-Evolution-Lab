@@ -5,9 +5,7 @@ import {
   User, Heart, Search, Swords, Check, X as XIcon, Calendar,
   Gift, Zap, Upload, Video, MessageSquare, Palette, Shirt
 } from "lucide-react";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "@/config/api";
 
 // ===================== STREAKS & REWARDS =====================
 export const StreaksView = () => {

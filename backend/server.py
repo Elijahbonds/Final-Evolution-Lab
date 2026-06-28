@@ -7,8 +7,15 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-import paypalrestsdk
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
+try:
+    import paypalrestsdk
+except ImportError:
+    paypalrestsdk = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -18,11 +25,14 @@ from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 
 # PayPal config
-paypalrestsdk.configure({
-    "mode": "sandbox",
-    "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
-})
+PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', '')
+PAYPAL_SECRET = os.environ.get('PAYPAL_SECRET', '')
+if paypalrestsdk:
+    paypalrestsdk.configure({
+        "mode": os.environ.get('PAYPAL_MODE', "sandbox"),
+        "client_id": PAYPAL_CLIENT_ID,
+        "client_secret": PAYPAL_SECRET
+    })
 
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -142,8 +152,7 @@ async def get_streak(user: User = Depends(get_current_user)):
         await db.streaks.insert_one(streak_doc)
     return streak_doc
 
-@api_router.post("/streaks/checkin")
-async def streak_checkin(user: User = Depends(get_current_user)):
+async def apply_streak_checkin(user: User) -> Dict[str, Any]:
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     streak_doc = await db.streaks.find_one({"user_id": user.user_id}, {"_id": 0})
     if not streak_doc:
@@ -186,6 +195,10 @@ async def streak_checkin(user: User = Depends(get_current_user)):
     return {"current_streak": new_streak, "longest_streak": longest, "last_activity": today,
             "xp_earned": xp_bonus, "coins_earned": coin_bonus, "rewards": rewards, "daily_log": daily_log}
 
+@api_router.post("/streaks/checkin")
+async def streak_checkin(user: User = Depends(get_current_user)):
+    return await apply_streak_checkin(user)
+
 @api_router.get("/streaks/rewards")
 async def get_streak_rewards(user: User = Depends(get_current_user)):
     streak_doc = await db.streaks.find_one({"user_id": user.user_id}, {"_id": 0})
@@ -207,6 +220,8 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
 
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid amount")
+    if not paypalrestsdk or not PAYPAL_CLIENT_ID or not PAYPAL_SECRET:
+        raise HTTPException(status_code=503, detail="PayPal checkout is not configured")
 
     payment = paypalrestsdk.Payment({
         "intent": "sale",
@@ -248,6 +263,8 @@ async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_
     payer_id = data.get("payer_id")
     if not payment_id or not payer_id:
         raise HTTPException(status_code=400, detail="payment_id and payer_id required")
+    if not paypalrestsdk or not PAYPAL_CLIENT_ID or not PAYPAL_SECRET:
+        raise HTTPException(status_code=503, detail="PayPal checkout is not configured")
 
     payment = paypalrestsdk.Payment.find(payment_id)
     if payment.execute({"payer_id": payer_id}):
@@ -490,13 +507,29 @@ async def log_workout(data: Dict[str, Any], user: User = Depends(get_current_use
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     streak = await db.streaks.find_one({"user_id": user.user_id})
     if not streak or streak.get("last_activity") != today:
-        await streak_checkin.__wrapped__(user)
+        await apply_streak_checkin(user)
     await db.activity_feed.insert_one({"user_id": user.user_id, "type": "workout", "detail": data.get("workout_name","Custom"), "created_at": datetime.now(timezone.utc).isoformat()})
     return {k: v for k, v in log.items() if k != "_id"}
 
 @api_router.get("/games/modes")
 async def get_game_modes():
     return get_seeded_game_modes()
+
+@api_router.get("/games/modes/{mode_id}")
+async def get_game_mode(mode_id: str):
+    mode = next((m for m in get_seeded_game_modes() if m["id"] == mode_id), None)
+    if not mode:
+        raise HTTPException(status_code=404, detail=f"Game mode {mode_id} not found")
+    config = get_mode_registry().get(mode_id, {})
+    venue_token = get_venue_token(mode_id, config)
+    return {
+        **mode,
+        "venue_token": venue_token,
+        "map_path": config.get("map"),
+        "gamemode_class": config.get("gamemode_class"),
+        "binary": config.get("binary"),
+        "status": config.get("status"),
+    }
 
 ## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
 PRQ_MODE_WEIGHTS = {
@@ -564,7 +597,7 @@ async def create_game_session(data: Dict[str, Any], user: User = Depends(get_cur
     # Update user aggregates: XP, PRQ, shards
     await db.users.update_one(
         {"user_id": user.user_id},
-        {"$inc": {"xp": xp, "prq_rating": prq_delta, "shards": shards_earned}}
+        {"$inc": {"xp": xp, "prq_score": prq_delta, "shards": shards_earned}}
     )
 
     # Record shard ledger entry
@@ -625,6 +658,15 @@ def get_seeded_game_modes():
 async def get_creator_cards(category: Optional[str] = None):
     cards = await db.creator_cards.find({} if not category else {"sport": category}, {"_id": 0}).to_list(100)
     return cards if cards else get_seeded_creator_cards()
+
+@api_router.get("/cards/{card_id}")
+async def get_creator_card(card_id: str):
+    card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
+    if not card:
+        card = next((c for c in get_seeded_creator_cards() if c["id"] == card_id), None)
+    if not card:
+        raise HTTPException(status_code=404, detail=f"Creator card {card_id} not found")
+    return card
 
 def get_seeded_creator_cards():
     return [
@@ -744,6 +786,17 @@ async def get_progress(user: User = Depends(get_current_user)):
     w = await db.workout_logs.count_documents({"user_id":user.user_id})
     g = await db.game_sessions.count_documents({"user_id":user.user_id})
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
+    return {
+        "total_workouts": w,
+        "total_games": g,
+        "total_brawls": b,
+        "level": user.level,
+        "xp": user.xp,
+        "streak_days": user.streak_days,
+        "prq_score": user.prq_score,
+        "coins": user.coins,
+        "shards": user.shards,
+    }
 
 # ===================== CENTRALIZED VENUE REGISTRY (Fetch on launch) =====================
 
@@ -756,7 +809,7 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_venue_token(mode_id, config)
         venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
@@ -1062,9 +1115,6 @@ async def get_comparison(session_id: str, user: User = Depends(get_current_user)
     return comp
 
 
-    return {"total_workouts":w,"total_games":g,"total_brawls":b,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"prq_score":user.prq_score,"coins":user.coins}
-
-
 # ===================== CREATOR CARD IP & MULTIMEDIA =====================
 
 @api_router.get("/cards/multimedia/{card_id}")
@@ -1263,6 +1313,8 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     context = data.get("context","")
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
+    if not EMERGENT_KEY or not LlmChat or not UserMessage:
+        return {"response":"AI service temporarily unavailable. Try again shortly.","model":"fallback","type":prompt_type}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
     try:
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
@@ -1279,6 +1331,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     model = data.get("model","gpt-5.2")
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
+    if not EMERGENT_KEY or not LlmChat or not UserMessage:
+        return {"response":"Connection issue. Please try again.","model":"fallback","conversation_id":cid}
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
@@ -1294,16 +1348,7 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/streaming/status")
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
-    }
+    mode_maps = get_streamable_mode_maps()
     
     ws_connected = len(sovereign_bridge.clients) > 0
     
@@ -1330,13 +1375,12 @@ async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_curre
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
     """Launch UE5 game mode via deep link — tracks session in Sovereign Hub"""
     mode_id = data.get("mode_id")
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    registry = get_mode_registry()
     mode_config = registry.get(mode_id)
     if not mode_config:
         raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
 
-    venue_key = mode_config["map"].split("/")[-1]
-    venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+    venue_key = get_venue_token(mode_id, mode_config)
 
     # Create live session in Sovereign Hub
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
@@ -1426,11 +1470,11 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
-    """All 17 modes with deep links and venue mapping — confirms playability"""
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    """All registered modes with deep links and venue mapping — confirms playability"""
+    registry = get_mode_registry()
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_venue_token(mode_id, config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
@@ -1740,11 +1784,7 @@ async def get_spectator_config(tournament_id: str):
     if not t:
         raise HTTPException(status_code=404, detail="Tournament not found")
 
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "brain_brawl": "Neuro_Arena", "mixed": "Venice_Beach_Court"
-    }
-    venue = mode_maps.get(t.get("game_mode", ""), "Venice_Beach_Court")
+    venue = get_streamable_mode_maps().get(t.get("game_mode", ""), "Venice_Beach_Court")
 
     return {
         "tournament_id": tournament_id,
@@ -1974,6 +2014,34 @@ if mode_path.exists():
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
 
+# Load canonical API/iOS mode_id -> Unreal venue token mapping.
+UE_MODE_MAPS = {}
+ue_mode_path = ROOT_DIR / "ue_mode_maps.json"
+if ue_mode_path.exists():
+    with open(ue_mode_path) as f:
+        UE_MODE_MAPS = json.load(f).get("mode_to_unreal_map", {})
+    logger.info(f"Loaded UE mode map: {len(UE_MODE_MAPS)} mode tokens")
+
+def get_mode_registry() -> Dict[str, Dict[str, Any]]:
+    return MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+
+def get_venue_token(mode_id: str, config: Optional[Dict[str, Any]] = None) -> str:
+    if mode_id in UE_MODE_MAPS:
+        return UE_MODE_MAPS[mode_id]
+    if config and config.get("map"):
+        return config["map"].split("/")[-1]
+    return mode_id
+
+def get_venue_data(mode_id: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    return VENUE_REGISTRY.get("venues", {}).get(get_venue_token(mode_id, config), {})
+
+def get_streamable_mode_maps() -> Dict[str, str]:
+    return {
+        mode_id: get_venue_token(mode_id, config)
+        for mode_id, config in get_mode_registry().items()
+        if config.get("status") != "non-game-module"
+    }
+
 # Sovereign connection state
 sovereign_state = {
     "websocket_status": "waiting_for_connection",
@@ -2092,6 +2160,8 @@ class SovereignBridge:
         score = data.get("score", 0)
         game_mode = data.get("game_mode")
         venue = data.get("venue")
+        if venue not in VENUE_REGISTRY.get("venues", {}) and game_mode:
+            venue = get_venue_token(game_mode, get_mode_registry().get(game_mode))
 
         # Store in venue-specific collection (Directive 4)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue, {})
@@ -2352,10 +2422,10 @@ async def calculate_prq_live(user_id: str) -> float:
 @api_router.get("/production/modes")
 async def get_production_modes():
     """Production mode registry from FEL_ModeManager — NOT placeholder stubs"""
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    registry = get_mode_registry()
     modes = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_venue_token(mode_id, config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         # Check for live session data in venue collection
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
