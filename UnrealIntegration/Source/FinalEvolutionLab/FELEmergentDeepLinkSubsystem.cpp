@@ -42,7 +42,8 @@ const TMap<FString, FString>& GetModeToVenueMap()
 		T.Add(TEXT("snowboarding"), TEXT("Mountain_Slope"));
 		T.Add(TEXT("brain_brawl"), TEXT("Neuro_Arena"));
 		T.Add(TEXT("market_browse"), TEXT("Sovereign_Shop"));
-		T.Add(TEXT("scene_it"), TEXT("Venice_Beach_Court"));
+		T.Add(TEXT("who_scene_it"), TEXT("Neuro_Arena"));
+		T.Add(TEXT("court_carnival"), TEXT("Venice_Beach_Court"));
 		return T;
 	}();
 	return M;
@@ -63,8 +64,8 @@ const TMap<FString, FString>& GetVenueTokenToPackagePath()
 		M.Add(TEXT("Sand_Court"), TEXT("/Game/FEL/Venues/SandCourt/SandCourt"));
 		M.Add(TEXT("Training_Floor"), TEXT("/Game/FEL/Venues/TrainingFloor/TrainingFloor"));
 		M.Add(TEXT("Venice_Beach_Surf"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
-		M.Add(TEXT("Skate_Park"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
-		M.Add(TEXT("Mountain_Slope"), TEXT("/Game/FEL/Venues/VeniceBeach/VeniceBeach"));
+		M.Add(TEXT("Skate_Park"), TEXT("/Game/FEL/Venues/SkatePark/SkatePark"));
+		M.Add(TEXT("Mountain_Slope"), TEXT("/Game/FEL/Venues/MountainSlope/MountainSlope"));
 		M.Add(TEXT("Neuro_Arena"), TEXT("/Game/FEL/Venues/NeuroArena/NeuroArena"));
 		M.Add(TEXT("Sovereign_Shop"), TEXT("/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"));
 		return M;
@@ -545,7 +546,7 @@ void UFELEmergentDeepLinkSubsystem::OpenMapFromTokens(const FString& MapPackageP
 		Options.Append(ExtraOptions);
 	}
 
-	if (ModeId.Equals(TEXT("scene_it"), ESearchCase::IgnoreCase))
+	if (ModeId.Equals(TEXT("who_scene_it"), ESearchCase::IgnoreCase))
 	{
 		if (!Options.IsEmpty())
 		{

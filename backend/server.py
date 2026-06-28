@@ -19,7 +19,7 @@ from routers import biofuel as biofuel_router
 
 # PayPal config
 paypalrestsdk.configure({
-    "mode": "sandbox",
+    "mode": os.environ.get('PAYPAL_MODE', 'sandbox'),
     "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
     "client_secret": os.environ.get('PAYPAL_SECRET', '')
 })
@@ -58,6 +58,18 @@ app.add_middleware(
 api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+UE_MODE_MAPS = {}
+
+def _mode_to_venue_token(mode_id: str, mode_config: Dict[str, Any]) -> str:
+    """Resolve API/iOS mode IDs to Unreal deep-link map tokens."""
+    return (
+        UE_MODE_MAPS.get("mode_to_unreal_map", {}).get(mode_id)
+        or mode_config.get("map", "").rstrip("/").split("/")[-1]
+    )
+
+def _venue_metadata(venue_token: str) -> Dict[str, Any]:
+    return VENUE_REGISTRY.get("venues", {}).get(venue_token, {})
 
 @api_router.post("/auth/session")
 async def create_session(request: Request, response: Response):
@@ -744,6 +756,16 @@ async def get_progress(user: User = Depends(get_current_user)):
     w = await db.workout_logs.count_documents({"user_id":user.user_id})
     g = await db.game_sessions.count_documents({"user_id":user.user_id})
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
+    return {
+        "total_workouts": w,
+        "total_games": g,
+        "total_brawls": b,
+        "level": user.level,
+        "xp": user.xp,
+        "streak_days": user.streak_days,
+        "prq_score": user.prq_score,
+        "coins": user.coins,
+    }
 
 # ===================== CENTRALIZED VENUE REGISTRY (Fetch on launch) =====================
 
@@ -756,7 +778,7 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = _mode_to_venue_token(mode_id, config)
         venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
@@ -1062,9 +1084,6 @@ async def get_comparison(session_id: str, user: User = Depends(get_current_user)
     return comp
 
 
-    return {"total_workouts":w,"total_games":g,"total_brawls":b,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"prq_score":user.prq_score,"coins":user.coins}
-
-
 # ===================== CREATOR CARD IP & MULTIMEDIA =====================
 
 @api_router.get("/cards/multimedia/{card_id}")
@@ -1294,15 +1313,11 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/streaming/status")
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        mode_id: _mode_to_venue_token(mode_id, config)
+        for mode_id, config in registry.items()
+        if config.get("status") != "non-game-module"
     }
     
     ws_connected = len(sovereign_bridge.clients) > 0
@@ -1332,11 +1347,11 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     mode_id = data.get("mode_id")
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
-    if not mode_config:
+    if not mode_config or mode_config.get("status") == "non-game-module":
         raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
 
-    venue_key = mode_config["map"].split("/")[-1]
-    venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+    venue_key = _mode_to_venue_token(mode_id, mode_config)
+    venue_data = _venue_metadata(venue_key)
 
     # Create live session in Sovereign Hub
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
@@ -1363,6 +1378,7 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     return {
         "session_id": session_id,
         "mode_id": mode_id,
+        "map": venue_key,
         "venue": venue_key,
         "map_path": mode_config["map"],
         "gamemode_class": mode_config["gamemode_class"],
@@ -1430,8 +1446,8 @@ async def get_all_mapped_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        venue_key = _mode_to_venue_token(mode_id, config)
+        venue_data = _venue_metadata(venue_key)
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
             "mode_id": mode_id,
@@ -1974,6 +1990,13 @@ if mode_path.exists():
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
 
+# Load canonical mode_id -> Unreal map-token mapping for native deep links.
+ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
+if ue_maps_path.exists():
+    with open(ue_maps_path) as f:
+        UE_MODE_MAPS = json.load(f)
+    logger.info(f"Loaded UE mode maps: {len(UE_MODE_MAPS.get('mode_to_unreal_map', {}))} modes")
+
 # Sovereign connection state
 sovereign_state = {
     "websocket_status": "waiting_for_connection",
@@ -2355,8 +2378,8 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        venue_key = _mode_to_venue_token(mode_id, config)
+        venue_data = _venue_metadata(venue_key)
         # Check for live session data in venue collection
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
         live_sessions = await db[collection].count_documents({})

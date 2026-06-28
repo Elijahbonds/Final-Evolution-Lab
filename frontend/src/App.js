@@ -17,9 +17,8 @@ import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/Quali
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
+import { API, BACKEND_URL } from "@/config/api";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -88,9 +87,8 @@ const AuthCallback = () => {
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const location = useLocation();
   if (loading) return <div className="min-h-screen flex items-center justify-center" style={{background:'var(--bg-default)'}}><div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div></div>;
-  if (!user && !location.state?.user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   return children;
 };
 
@@ -212,7 +210,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   ];
   return (
     <>
-      <button data-testid="mobile-menu-btn" className="lg:hidden fixed top-4 left-4 z-[60] p-2 bg-zinc-900 border border-zinc-800" onClick={() => setMobileOpen(!mobileOpen)}>
+      <button data-testid="mobile-menu-btn" aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileOpen} className="lg:hidden fixed top-4 left-4 z-[60] p-2 bg-zinc-900 border border-zinc-800" onClick={() => setMobileOpen(!mobileOpen)}>
         {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
       <aside className={`sidebar ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} transition-transform`}>
@@ -231,7 +229,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         </nav>
         <div className="p-4 border-t border-white/5">
           <div className="flex items-center gap-3 mb-3">
-            {user?.picture ? <img src={user.picture} alt="" className="w-9 h-9 rounded-full" /> : <div className="w-9 h-9 bg-zinc-800 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-zinc-400" /></div>}
+            {user?.picture ? <img src={user.picture} alt={`${user?.name || 'Athlete'} avatar`} className="w-9 h-9 rounded-full" /> : <div className="w-9 h-9 bg-zinc-800 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-zinc-400" /></div>}
             <div className="flex-1 min-w-0"><div className="font-medium text-sm truncate">{user?.name || 'Athlete'}</div><div className="text-xs text-zinc-500">Lvl {user?.level || 1}</div></div>
           </div>
           <button data-testid="logout-btn" onClick={async () => {await logout();navigate('/');}} className="nav-item w-full text-red-400 hover:text-red-300"><LogOut className="w-5 h-5" />Sign Out</button>
@@ -540,6 +538,7 @@ const GameModesView = () => {
               // MapLoaded signal received from UFELEmergentBridgeSubsystem
               setLaunchStatus(null);
               setLaunchingMode(null);
+              wsRef.current = null;
               ws.close();
             }
           } catch {}
@@ -548,7 +547,8 @@ const GameModesView = () => {
         // 10s System Re-auth (NOT browser fallback)
         // If no MapLoaded signal, trigger re-auth instead of showing placeholder
         setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+          if (wsRef.current === ws) {
+            wsRef.current = null;
             ws.close();
             setLaunchStatus('timeout');
             // System Re-auth: re-verify session, do NOT fall back to browser game
@@ -897,11 +897,14 @@ const BrainBrawlView = ({ onBack }) => {
     clearTimeout(timerRef.current);
     const isCorrect = index === questions[currentQ]?.correct;
     const timeBonus = isCorrect ? timeLeft * 5 : 0;
-    if (isCorrect) setScore(s => s + 100 + timeBonus);
-    setAnswers(prev => [...prev, {q: currentQ, selected: index, correct: isCorrect}]);
+    const earned = isCorrect ? 100 + timeBonus : 0;
+    const nextScore = score + earned;
+    const nextAnswers = [...answers, {q: currentQ, selected: index, correct: isCorrect}];
+    if (isCorrect) setScore(nextScore);
+    setAnswers(nextAnswers);
     if (currentQ + 1 >= questions.length) {
       setGameState('results');
-      axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: answers.filter(a=>a.correct).length + (isCorrect?1:0), score: score + (isCorrect ? 100+timeBonus : 0), category}).catch(console.error);
+      axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: nextAnswers.filter(a=>a.correct).length, score: nextScore, category}).catch(console.error);
     } else { setCurrentQ(c => c + 1); setTimeLeft(15); }
   };
 
@@ -1159,7 +1162,7 @@ const ProfileView = () => {
       <div className="surface-card p-8" data-testid="profile-card">
         <div className="flex items-center gap-6 mb-6">
           <div className="w-24 h-24 bg-zinc-800 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-            {user?.picture ? <img src={user.picture} alt="" className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-zinc-400" />}
+            {user?.picture ? <img src={user.picture} alt={`${user?.name || 'Athlete'} profile avatar`} className="w-full h-full object-cover" /> : <User className="w-12 h-12 text-zinc-400" />}
           </div>
           <div className="flex-1">
             <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{user?.name}</h2>
@@ -1224,7 +1227,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }
