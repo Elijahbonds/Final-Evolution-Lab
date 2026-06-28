@@ -96,6 +96,40 @@ nonisolated struct DefensivePhysics: Sendable {
     }
 }
 
+// MARK: - DefenseGrade
+
+nonisolated enum DefenseGrade: String, Sendable, CaseIterable {
+    case a = "A"
+    case b = "B"
+    case c = "C"
+    case d = "D"
+    case f = "F"
+}
+
+// MARK: - HelpDefenseBreakdown
+
+/// Aggregates per-defender coverage scores (0–100) and derives
+/// a team help-rotation grade based on their average.
+nonisolated struct HelpDefenseBreakdown: Sendable {
+    /// Maps player ID to a coverage score in the range 0–100.
+    let defenderCoverageScores: [String: Double]
+
+    var averageCoverageScore: Double {
+        guard !defenderCoverageScores.isEmpty else { return 0.0 }
+        return defenderCoverageScores.values.reduce(0, +) / Double(defenderCoverageScores.count)
+    }
+
+    var helpRotationGrade: DefenseGrade {
+        switch averageCoverageScore {
+        case 90...100: return .a
+        case 80..<90:  return .b
+        case 70..<80:  return .c
+        case 60..<70:  return .d
+        default:       return .f
+        }
+    }
+}
+
 nonisolated enum ContestTier: String, Sendable {
     case smothered = "SMOTHERED"
     case heavy = "HEAVY CONTEST"

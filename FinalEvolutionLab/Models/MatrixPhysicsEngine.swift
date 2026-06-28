@@ -1,5 +1,69 @@
 import Foundation
 import QuartzCore
+import OSLog
+
+private let physicsLogger = Logger(subsystem: "com.finalevolutionlab", category: "MatrixPhysicsEngine")
+
+// MARK: - Delta-Time Tracking
+
+/// Lightweight tracker that computes frame-rate independent delta time.
+/// Wrap a var of this type and call update(currentTime:) each frame.
+nonisolated struct DeltaTimeTracker: Sendable {
+    var lastUpdateTime: CFTimeInterval = 0
+
+    /// Returns the elapsed time (in seconds) since the last update call.
+    /// Returns 0 on the very first call so physics don't spike on init.
+    mutating func update(currentTime: CFTimeInterval) -> CFTimeInterval {
+        let deltaTime: CFTimeInterval
+        if lastUpdateTime == 0 {
+            deltaTime = 0
+        } else {
+            deltaTime = currentTime - lastUpdateTime
+        }
+        lastUpdateTime = currentTime
+        physicsLogger.debug("DeltaTimeTracker: deltaTime=\(deltaTime, privacy: .public)")
+        return deltaTime
+    }
+}
+
+/// A mutable physics state whose position and velocity updates are
+/// multiplied by deltaTime so they remain frame-rate independent.
+nonisolated struct FrameIndependentPhysicsState: Sendable {
+    var position: SIMD3<Double>
+    var velocity: SIMD3<Double>
+    private(set) var lastUpdateTime: CFTimeInterval
+
+    init(position: SIMD3<Double> = .zero, velocity: SIMD3<Double> = .zero) {
+        self.position = position
+        self.velocity = velocity
+        self.lastUpdateTime = 0
+    }
+
+    /// Advances position by velocity * deltaTime computed from currentTime.
+    mutating func update(currentTime: CFTimeInterval) {
+        let deltaTime: Double
+        if lastUpdateTime == 0 {
+            deltaTime = 0
+        } else {
+            deltaTime = currentTime - lastUpdateTime
+        }
+        lastUpdateTime = currentTime
+
+        guard deltaTime > 0 else { return }
+
+        position.x += velocity.x * deltaTime
+        position.y += velocity.y * deltaTime
+        position.z += velocity.z * deltaTime
+    }
+
+    /// Applies an acceleration vector for an explicit deltaTime slice.
+    mutating func applyAcceleration(_ acceleration: SIMD3<Double>, deltaTime: Double) {
+        guard deltaTime > 0 else { return }
+        velocity.x += acceleration.x * deltaTime
+        velocity.y += acceleration.y * deltaTime
+        velocity.z += acceleration.z * deltaTime
+    }
+}
 
 nonisolated struct TimeScaleManager: Sendable {
     static let normalScale: Double = 1.0

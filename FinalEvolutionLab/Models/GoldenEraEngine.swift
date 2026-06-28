@@ -260,3 +260,32 @@ nonisolated struct GoldenEraComboEngine: Sendable {
         return Int(Double(totalStylePoints) * prqBonus * burstBonus)
     }
 }
+
+// MARK: - ComboChain
+// Tracks consecutive-trick score multiplier system (separate from GoldenEraComboEngine).
+// A chain stays alive when tricks are performed within 3 seconds of each other;
+// breaking that window resets the chain to length 1 at the new trick.
+
+nonisolated struct ComboChain: Sendable {
+    var chainLength: Int = 0
+    var lastTrickTime: CFTimeInterval = 0
+
+    var multiplier: Double {
+        guard chainLength > 0 else { return 1.0 }
+        return min(pow(1.1, Double(chainLength)), 5.0)
+    }
+
+    mutating func recordTrick(at time: CFTimeInterval) {
+        if chainLength == 0 || (time - lastTrickTime) <= 3.0 {
+            chainLength += 1
+        } else {
+            chainLength = 1
+        }
+        lastTrickTime = time
+    }
+
+    mutating func resetChain() {
+        chainLength = 0
+        lastTrickTime = 0
+    }
+}
