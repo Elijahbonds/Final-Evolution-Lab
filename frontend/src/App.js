@@ -9,13 +9,14 @@ import {
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
-  Swords, Video, Palette, UserPlus, Gift
+  Swords, Video, Palette, UserPlus, Gift, Cpu
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
 import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/QualityGates";
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
+import { NexusPage } from "@/components/NexusConsole";
 import DistributionPage from "@/components/DistributionPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -197,6 +198,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navItems = [
     {id:'fel-os',icon:Crosshair,label:'FEL OS'},
+    {id:'nexus',icon:Cpu,label:'Nexus Console'},
     {id:'dashboard',icon:Home,label:'Dashboard'},{id:'scan',icon:Activity,label:'System Scan'},
     {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'multiplayer',icon:Swords,label:'Multiplayer'},
     {id:'cards',icon:Users,label:'Creator Cards'},{id:'coach',icon:Trophy,label:'Coach Hub'},
@@ -1196,6 +1198,19 @@ const ProfileView = () => {
   );
 };
 
+// ===================== NEXUS VIEW =====================
+// Full-page tab view for the Nexus Console (non-modal layout via NexusPage)
+const NexusView = () => (
+  <div className="space-y-4 fade-in" data-testid="nexus-view">
+    <div>
+      <p className="overline mb-1">NEXUS ENGINE</p>
+      <h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>ENGINE STATUS</h1>
+      <p className="text-sm text-zinc-400 mt-1">Real-time subsystem health and boot diagnostics.</p>
+    </div>
+    <NexusPage />
+  </div>
+);
+
 // ===================== MAIN DASHBOARD =====================
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('fel-os');
@@ -1206,6 +1221,7 @@ const Dashboard = () => {
   const renderContent = () => {
     switch(activeTab) {
       case 'fel-os': return <FELOSDashboard setActiveTab={setActiveTab} />;
+      case 'nexus': return <NexusView />;
       case 'dashboard': return <DashboardView setActiveTab={setActiveTab} />;
       case 'scan': return <SystemScanView />;
       case 'games': return <GameModesView />;
