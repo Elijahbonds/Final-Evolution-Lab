@@ -898,7 +898,7 @@ const BrainBrawlView = ({ onBack }) => {
       answerQuestion(-1); // Time's up
     }
     return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft]);
+  }, [gameState, timeLeft, answerQuestion]);
 
   const startGame = async () => {
     try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
