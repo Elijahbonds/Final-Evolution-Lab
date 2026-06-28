@@ -7,8 +7,13 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 import paypalrestsdk
+
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ModuleNotFoundError:
+    LlmChat = None
+    UserMessage = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -19,9 +24,9 @@ from routers import biofuel as biofuel_router
 
 # PayPal config
 paypalrestsdk.configure({
-    "mode": "sandbox",
+    "mode": os.environ.get('PAYPAL_MODE', 'sandbox'),
     "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
+    "client_secret": os.environ.get('PAYPAL_CLIENT_SECRET') or os.environ.get('PAYPAL_SECRET', '')
 })
 
 # Upload dir
@@ -1269,6 +1274,12 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
+    if not EMERGENT_KEY or LlmChat is None:
+        return {
+            "response": f"AI Coach is offline, but your next best {prompt_type} move is to complete a system scan, train the recommended session for {user.sport}, log recovery, and check back once the AI key is configured.",
+            "model": "fallback",
+            "type": prompt_type
+        }
     try:
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
         chat.with_model("openai","gpt-5.2")
@@ -1284,6 +1295,10 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     model = data.get("model","gpt-5.2")
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
+    if not EMERGENT_KEY or LlmChat is None:
+        response = "AI chat is offline because the optional AI integration is not configured. Use FEL OS recommendations, Bio-Fuel targets, and game-mode progression while the service is unavailable."
+        await db.ai_conversations.insert_one({"conversation_id":cid,"user_id":user.user_id,"user_message":msg,"ai_response":response,"model":"fallback","created_at":datetime.now(timezone.utc).isoformat()})
+        return {"response":response,"model":"fallback","conversation_id":cid}
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
