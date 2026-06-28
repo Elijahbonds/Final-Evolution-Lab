@@ -67,6 +67,7 @@ openai==1.99.9
 packaging==26.0
 pandas==3.0.2
 passlib==1.7.4
+paypalrestsdk==1.13.3
 pathspec==1.0.4
 pillow==12.2.0
 platformdirs==4.9.6
