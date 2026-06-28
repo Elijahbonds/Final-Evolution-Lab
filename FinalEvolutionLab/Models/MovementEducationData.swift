@@ -1,5 +1,81 @@
 import Foundation
 
+nonisolated struct BioDigitalModule: Codable, Sendable, Identifiable {
+    let id: String
+    let title: String
+    let learningObjectives: [String]  // Exactly 5
+    let masteryThreshold: Double      // 0.80 for all modules
+    var isCompleted: Bool
+    var masteryScore: Double?         // Score when completed
+
+    init(id: String, title: String, learningObjectives: [String], masteryThreshold: Double = 0.80) {
+        self.id = id
+        self.title = title
+        self.learningObjectives = learningObjectives
+        self.masteryThreshold = masteryThreshold
+        self.isCompleted = false
+        self.masteryScore = nil
+    }
+}
+
+enum BioDigitalModuleLibrary {
+    static let skeletalBasics = BioDigitalModule(
+        id: "skeletal_basics",
+        title: "Skeletal Anatomy Fundamentals",
+        learningObjectives: [
+            "Identify the major bones of the axial and appendicular skeleton",
+            "Understand the role of bone density in athletic performance",
+            "Recognize common injury sites and their skeletal causes",
+            "Describe joint types and their range of motion characteristics",
+            "Apply skeletal anatomy knowledge to sport-specific movement analysis"
+        ]
+    )
+
+    static let muscularChains = BioDigitalModule(
+        id: "muscular_chains",
+        title: "Muscular Chain Systems",
+        learningObjectives: [
+            "Identify the anterior, posterior, lateral, and spiral muscular chains",
+            "Understand the principle of myofascial force transmission",
+            "Recognize how muscular imbalances affect movement efficiency",
+            "Apply chain activation sequencing to explosive athletic movements",
+            "Assess muscular chain integrity through functional movement screening"
+        ]
+    )
+
+    static let kineticChainPillars = BioDigitalModule(
+        id: "kinetic_chain_pillars",
+        title: "Kinetic Chain Pillars",
+        learningObjectives: [
+            "Define the open and closed kinetic chain concepts in sport",
+            "Explain proximal-to-distal sequencing in throwing and striking",
+            "Identify the three pillars: mobility, stability, and strength integration",
+            "Analyze kinetic chain breakdowns that lead to injury patterns",
+            "Design corrective exercises targeting specific kinetic chain weaknesses"
+        ]
+    )
+
+    static let neuralPriming = BioDigitalModule(
+        id: "neural_priming",
+        title: "Neural Priming Protocols",
+        learningObjectives: [
+            "Understand the role of the central nervous system in motor learning",
+            "Explain post-activation potentiation (PAP) and its training applications",
+            "Identify neural fatigue markers and recovery indicators",
+            "Apply pre-performance neural priming sequences for power output",
+            "Design warm-up protocols that optimize neural drive for competition"
+        ]
+    )
+
+    static let all: [BioDigitalModule] = [
+        skeletalBasics, muscularChains, kineticChainPillars, neuralPriming
+    ]
+
+    static func module(for id: String) -> BioDigitalModule? {
+        all.first { $0.id == id }
+    }
+}
+
 extension TrainingProgramData {
 
     // MARK: - Movement Education Programs
