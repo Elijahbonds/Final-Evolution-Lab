@@ -429,15 +429,15 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     setTargets(prev => prev.filter(t => t.id !== target.id));
   };
 
-  const endGame = () => {
+  const endGame = useCallback(() => {
     setGameActive(false);
     clearInterval(timerRef.current);
     onComplete(score);
-  };
+  }, [onComplete, score]);
 
   useEffect(() => {
     if (timeLeft <= 0 && score > 0) { endGame(); }
-  }, [timeLeft]);
+  }, [endGame, score, timeLeft]);
 
   const getGameTitle = () => {
     const titles = {
@@ -880,20 +880,7 @@ const BrainBrawlView = ({ onBack }) => {
   const [category, setCategory] = useState('all');
   const timerRef = useRef(null);
 
-  useEffect(() => {
-    if (gameState === 'playing' && timeLeft > 0) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    } else if (gameState === 'playing' && timeLeft <= 0) {
-      answerQuestion(-1); // Time's up
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft]);
-
-  const startGame = async () => {
-    try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
-  };
-
-  const answerQuestion = (index) => {
+  const answerQuestion = useCallback((index) => {
     clearTimeout(timerRef.current);
     const isCorrect = index === questions[currentQ]?.correct;
     const timeBonus = isCorrect ? timeLeft * 5 : 0;
@@ -906,6 +893,19 @@ const BrainBrawlView = ({ onBack }) => {
       setGameState('results');
       axios.post(`${API}/brain-brawl/submit`, {mode:'quick_fire', questions_total: questions.length, questions_correct: nextAnswers.filter(a=>a.correct).length, score: nextScore, category}).catch(console.error);
     } else { setCurrentQ(c => c + 1); setTimeLeft(15); }
+  }, [answers, category, currentQ, questions, score, timeLeft]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === 'playing' && timeLeft <= 0) {
+      answerQuestion(-1); // Time's up
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [answerQuestion, gameState, timeLeft]);
+
+  const startGame = async () => {
+    try { const r = await axios.get(`${API}/brain-brawl/questions?category=${category}&count=10`); setQuestions(r.data); setCurrentQ(0); setScore(0); setAnswers([]); setTimeLeft(15); setGameState('playing'); } catch (e) { console.error(e); }
   };
 
   return (
