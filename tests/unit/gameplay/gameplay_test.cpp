@@ -2,11 +2,13 @@
 #include "nexus/ai/command_router.h"
 #include "nexus/creative/voxel_world.h"
 #include "nexus/creative/world_manipulator.h"
+#include "nexus/gameplay/dunk_contest.h"
 #include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gameplay_application.h"
 #include "nexus/gameplay/voxel_command_parser.h"
 #include "nexus/physics/physics_world.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -298,6 +300,144 @@ void gameplay_update_drains_agent_commands_before_throw_catch() {
   physics.shutdown();
 }
 
+void dunk_contest_scores_attempts_deterministically() {
+  nexus::gameplay::DunkContest contest({2, 2, 5, "Venice_Beach_Court"});
+  require(contest.config().venueId == "Venice_Beach_Court", "default venue is Venice Beach");
+  require(contest.addContestant("aja").isOk(), "first contestant added");
+  require(contest.addContestant("zara").isOk(), "second contestant added");
+  require(contest.addContestant("third").isErr(), "head-to-head caps at two contestants");
+
+  auto completed = contest.scoreAttempt("aja", "between_the_legs", 1.0, true);
+  require(completed.isOk(), "high-difficulty completed dunk scores");
+  const auto& highScore = completed.value();
+  require(highScore.judgeScores.size() == 5, "five judges scored the attempt");
+  for (int judge : highScore.judgeScores) {
+    require(judge >= 1 && judge <= 10, "judge score within 1-10");
+  }
+  require(highScore.total > 0.0, "completed dunk earns a positive total");
+
+  auto missed = contest.scoreAttempt("zara", "between_the_legs", 1.0, false);
+  require(missed.isOk(), "missed dunk still records an attempt");
+  require(missed.value().total == 0.0, "missed dunk scores zero");
+  require(highScore.total > missed.value().total,
+          "completed high-difficulty dunk outscores a missed one");
+
+  // Determinism: a second identical contest yields identical judge scores.
+  nexus::gameplay::DunkContest replay({2, 2, 5, "Venice_Beach_Court"});
+  require(replay.addContestant("aja").isOk(), "replay contestant added");
+  auto replayed = replay.scoreAttempt("aja", "between_the_legs", 1.0, true);
+  require(replayed.isOk(), "replay attempt scores");
+  require(replayed.value().judgeScores == highScore.judgeScores,
+          "scoring is deterministic across instances");
+  require(replayed.value().total == highScore.total, "totals are deterministic");
+}
+
+void dunk_contest_accumulates_rounds_and_resolves_winner() {
+  nexus::gameplay::DunkContest contest({2, 2, 5, "Venice_Beach_Court"});
+  require(contest.addContestant("aja").isOk(), "winner-test contestant aja");
+  require(contest.addContestant("zara").isOk(), "winner-test contestant zara");
+
+  // Round 1 (two attempts each), then round 2 (two attempts each).
+  for (int round = 0; round < 2; ++round) {
+    for (int attempt = 0; attempt < 2; ++attempt) {
+      require(contest.scoreAttempt("aja", "360", 0.9, true).isOk(), "aja completes a dunk");
+      require(contest.scoreAttempt("zara", "reverse", 0.3, false).isOk(), "zara misses a dunk");
+    }
+  }
+
+  const auto rounds = contest.roundScores("aja");
+  require(rounds.size() == 2, "two rounds tracked");
+  require(rounds[0] > 0.0 && rounds[1] > 0.0, "per-round scores recorded");
+  const double total = contest.contestantTotal("aja");
+  require(total > rounds[0], "totals accumulate across rounds");
+  require(std::abs((rounds[0] + rounds[1]) - total) < 1e-9, "total equals sum of rounds");
+
+  const auto winner = contest.winner();
+  require(winner.decided, "winner is decided after scoring");
+  require(!winner.tie, "asymmetric scores produce a clear winner");
+  require(winner.contestantId == "aja", "higher aggregate wins");
+
+  const auto standings = contest.standings();
+  require(standings.size() == 2, "standings list both contestants");
+  require(standings.front().contestantId == "aja", "leader sorted first");
+  require(standings.front().total >= standings.back().total, "standings sorted by total desc");
+}
+
+void dunk_contest_reports_tie_for_equal_scores() {
+  nexus::gameplay::DunkContest contest({1, 1, 5, "Venice_Beach_Court"});
+  require(contest.addContestant("aja").isOk(), "tie-test contestant aja");
+  require(contest.addContestant("zara").isOk(), "tie-test contestant zara");
+
+  require(contest.scoreAttempt("aja", "windmill", 0.8, true).isOk(), "aja scores");
+  require(contest.scoreAttempt("zara", "windmill", 0.8, true).isOk(), "zara scores identically");
+
+  require(std::abs(contest.contestantTotal("aja") - contest.contestantTotal("zara")) < 1e-9,
+          "equal play yields equal totals");
+  const auto winner = contest.winner();
+  require(winner.decided, "tie is a decided outcome");
+  require(winner.tie, "equal scores produce a tie");
+  require(winner.contestantId.empty(), "tie has no single winner id");
+}
+
+void dunk_contest_drives_full_contest_through_command_interface() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  // Existing fitness command must keep working alongside the new dunk commands.
+  require(gameplay
+              .handleGameplayCommand("fel.fitness.update_frc", {{"frc_mobility", 0.5F}},
+                                     "fitness_alive")
+              .status == "ok",
+          "fitness command still works after wiring dunk mode");
+
+  auto start = gameplay.handleGameplayCommand(
+      "fel.game.dunk.start",
+      {{"rounds", 2}, {"attempts", 2}, {"judges", 5},
+       {"venue", "Venice_Beach_Court"},
+       {"contestants", {"aja", "zara"}}},
+      "dunk_start");
+  require(start.status == "ok", "dunk contest start ok");
+  require(start.payload["venue"] == "Venice_Beach_Court", "start echoes venue");
+
+  for (int round = 0; round < 2; ++round) {
+    for (int attempt = 0; attempt < 2; ++attempt) {
+      auto winnerScore = gameplay.handleGameplayCommand(
+          "fel.game.dunk.score",
+          {{"contestant", "aja"}, {"dunk_type", "between_the_legs"},
+           {"quality", 1.0F}, {"completed", true}},
+          "dunk_score_aja");
+      require(winnerScore.status == "ok", "scoring completed dunk ok");
+      for (const auto& judge : winnerScore.payload["judge_scores"]) {
+        const int value = judge.get<int>();
+        require(value >= 1 && value <= 10, "command judge score within 1-10");
+      }
+
+      auto loserScore = gameplay.handleGameplayCommand(
+          "fel.game.dunk.score",
+          {{"contestant", "zara"}, {"dunk_type", "reverse"},
+           {"quality", 0.2F}, {"completed", false}},
+          "dunk_score_zara");
+      require(loserScore.status == "ok", "scoring missed dunk ok");
+      require(loserScore.payload["total"].get<double>() == 0.0, "missed dunk scores zero");
+    }
+  }
+
+  auto state = gameplay.handleGameplayCommand("fel.game.dunk.state", {}, "dunk_state");
+  require(state.status == "ok", "dunk state query ok");
+  require(state.payload["winner"]["decided"].get<bool>(), "winner decided in state");
+  require(!state.payload["winner"]["tie"].get<bool>(), "no tie for asymmetric play");
+  require(state.payload["winner"]["contestant"] == "aja", "completed dunker wins");
+  require(state.payload["standings"][0]["id"] == "aja", "leader first in standings");
+  require(state.payload["standings"][0]["total"].get<double>() >
+              state.payload["standings"][1]["total"].get<double>(),
+          "winner total exceeds loser total");
+
+  // An unknown dunk command must report an error, leaving other commands intact.
+  require(gameplay.handleGameplayCommand("fel.game.dunk.bogus", {}, "bad").status == "error",
+          "unknown dunk command rejected");
+}
+
 void physics_intent_queue_is_consumed_on_step() {
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
@@ -330,6 +470,10 @@ auto main() -> int {
   voxel_parser_passes_through_set_voxels_and_fill_region();
   voxel_parser_rejects_invalid_creative_params();
   gameplay_session_state_query_returns_coherent_payload();
+  dunk_contest_scores_attempts_deterministically();
+  dunk_contest_accumulates_rounds_and_resolves_winner();
+  dunk_contest_reports_tie_for_equal_scores();
+  dunk_contest_drives_full_contest_through_command_interface();
   physics_intent_queue_is_consumed_on_step();
   gameplay_update_drains_agent_commands_before_throw_catch();
   return 0;

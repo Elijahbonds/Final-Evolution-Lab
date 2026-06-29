@@ -5,12 +5,14 @@
 
 #include "nexus/ai/command_router.h"
 #include "nexus/core/engine.h"
+#include "nexus/gameplay/dunk_contest.h"
 #include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/voxel_command_parser.h"
 
 #include <cstddef>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <vector>
 
 namespace nexus::generative {
@@ -62,6 +64,9 @@ public:
   /// Returns the current throw-catch controller state.
   [[nodiscard]] auto throw_catch_state() const -> const ThrowCatchState&;
 
+  /// Returns the active Basketball Dunk Contest, if one has been started.
+  [[nodiscard]] auto dunk_contest() const -> const DunkContest*;
+
   /// Returns latest update-loop counters for smoke tests and diagnostics.
   [[nodiscard]] auto stats() const -> const GameplayUpdateStats&;
 
@@ -69,11 +74,15 @@ private:
   auto applyFitnessCommand(std::string_view command,
                            const nlohmann::json& params,
                            std::string_view id) -> ai::AgentResponse;
+  auto applyDunkCommand(std::string_view command,
+                        const nlohmann::json& params,
+                        std::string_view id) -> ai::AgentResponse;
   [[nodiscard]] auto sessionStatePayload() const -> nlohmann::json;
 
   ThreadSafeFitnessData m_fitnessData;
   ThrowCatchPhysicsController m_throwCatch;
   VoxelCommandParser m_voxelParser;
+  std::optional<DunkContest> m_dunkContest;
   generative::GenerativePipeline* m_generativePipeline{nullptr};
   GameplayUpdateStats m_stats;
   std::vector<ai::AgentResponse> m_latestResponses;

@@ -50,6 +50,30 @@ auto response(std::string_view id,
   return {std::string(id), std::move(status), std::move(payload), std::move(error)};
 }
 
+auto boolParam(const nlohmann::json& params,
+               std::string_view name,
+               bool defaultValue) -> Result<bool> {
+  const auto found = params.find(std::string(name));
+  if (found == params.end()) {
+    return Result<bool>::ok(defaultValue);
+  }
+  if (!found->is_boolean()) {
+    return Result<bool>::err("dunk boolean parameter has invalid type");
+  }
+  return Result<bool>::ok(found->get<bool>());
+}
+
+auto stringParam(const nlohmann::json& params,
+                 std::string_view name,
+                 std::string& out) -> Result<void> {
+  const auto found = params.find(std::string(name));
+  if (found == params.end() || !found->is_string()) {
+    return Result<void>::err("dunk string parameter '" + std::string(name) + "' is required");
+  }
+  out = found->get<std::string>();
+  return Result<void>::ok();
+}
+
 } // namespace
 
 GameplayApplication::GameplayApplication(creative::WorldManipulator& manipulator,
@@ -90,6 +114,10 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
     return response(id, "ok", result.value());
   }
 
+  if (command.rfind("fel.game.dunk.", 0) == 0) {
+    return applyDunkCommand(command, params, id);
+  }
+
   return response(id, "error", {}, "Unsupported gameplay command");
 }
 
@@ -117,6 +145,10 @@ auto GameplayApplication::fitness_data() -> ThreadSafeFitnessData& {
 
 auto GameplayApplication::throw_catch_state() const -> const ThrowCatchState& {
   return m_throwCatch.state();
+}
+
+auto GameplayApplication::dunk_contest() const -> const DunkContest* {
+  return m_dunkContest.has_value() ? &m_dunkContest.value() : nullptr;
 }
 
 auto GameplayApplication::stats() const -> const GameplayUpdateStats& {
@@ -190,6 +222,107 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
 
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   return response(id, "ok", {{"fitness_revision", m_fitnessData.snapshot().revision}});
+}
+
+auto GameplayApplication::applyDunkCommand(std::string_view command,
+                                           const nlohmann::json& params,
+                                           std::string_view id) -> ai::AgentResponse {
+  if (command == "fel.game.dunk.start") {
+    DunkContestConfig config;
+    const auto rounds = integerParam(params, "rounds", config.rounds);
+    const auto attempts = integerParam(params, "attempts", config.attemptsPerRound);
+    const auto judges = integerParam(params, "judges", config.judges);
+    if (rounds.isErr()) {
+      return response(id, "error", {}, rounds.error());
+    }
+    if (attempts.isErr()) {
+      return response(id, "error", {}, attempts.error());
+    }
+    if (judges.isErr()) {
+      return response(id, "error", {}, judges.error());
+    }
+    config.rounds = rounds.value();
+    config.attemptsPerRound = attempts.value();
+    config.judges = judges.value();
+
+    const auto venue = params.find("venue");
+    if (venue != params.end()) {
+      if (!venue->is_string()) {
+        return response(id, "error", {}, "dunk venue must be a string");
+      }
+      config.venueId = venue->get<std::string>();
+    }
+
+    DunkContest contest(config);
+    const auto contestants = params.find("contestants");
+    if (contestants != params.end()) {
+      if (!contestants->is_array()) {
+        return response(id, "error", {}, "dunk contestants must be an array");
+      }
+      for (const auto& entry : *contestants) {
+        if (!entry.is_string()) {
+          return response(id, "error", {}, "dunk contestant ids must be strings");
+        }
+        auto added = contest.addContestant(entry.get<std::string>());
+        if (added.isErr()) {
+          return response(id, "error", {}, added.error());
+        }
+      }
+    }
+
+    m_dunkContest.emplace(std::move(contest));
+    NEXUS_LOG_INFO(LogChannel::kAI, "Basketball Dunk Contest started");
+    return response(id, "ok", m_dunkContest->toJson());
+  }
+
+  if (command == "fel.game.dunk.score") {
+    if (!m_dunkContest.has_value()) {
+      return response(id, "error", {}, "no dunk contest in progress");
+    }
+    std::string contestant;
+    std::string dunkType;
+    const auto contestantParam = stringParam(params, "contestant", contestant);
+    const auto dunkTypeParam = stringParam(params, "dunk_type", dunkType);
+    const auto quality = floatParam(params, "quality", 0.0F);
+    const auto completed = boolParam(params, "completed", true);
+    if (contestantParam.isErr()) {
+      return response(id, "error", {}, contestantParam.error());
+    }
+    if (dunkTypeParam.isErr()) {
+      return response(id, "error", {}, dunkTypeParam.error());
+    }
+    if (quality.isErr()) {
+      return response(id, "error", {}, quality.error());
+    }
+    if (completed.isErr()) {
+      return response(id, "error", {}, completed.error());
+    }
+
+    auto attempt = m_dunkContest->scoreAttempt(
+        contestant, dunkType, quality.value(), completed.value());
+    if (attempt.isErr()) {
+      return response(id, "error", {}, attempt.error());
+    }
+    const AttemptScore& scored = attempt.value();
+    return response(id, "ok",
+                    {
+                        {"contestant", contestant},
+                        {"dunk_type", scored.dunkTypeId},
+                        {"completed", scored.completed},
+                        {"judge_scores", scored.judgeScores},
+                        {"total", scored.total},
+                        {"contestant_total", m_dunkContest->contestantTotal(contestant)},
+                    });
+  }
+
+  if (command == "fel.game.dunk.state") {
+    if (!m_dunkContest.has_value()) {
+      return response(id, "error", {}, "no dunk contest in progress");
+    }
+    return response(id, "ok", m_dunkContest->toJson());
+  }
+
+  return response(id, "error", {}, "Unsupported dunk command");
 }
 
 auto GameplayApplication::sessionStatePayload() const -> nlohmann::json {
