@@ -96,6 +96,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 add_library(nexus_gameplay
+  app/gameplay/src/dunk_contest.cpp
   app/gameplay/src/fitness_data.cpp
   app/gameplay/src/gameplay_application.cpp
   app/gameplay/src/throw_catch_physics.cpp
@@ -156,4 +157,8 @@ if(NEXUS_BUILD_TESTS)
   target_link_libraries(nexus_generative_test PRIVATE nexus_generative nexus_ai_interface)
   add_test(NAME nexus_generative_test COMMAND nexus_generative_test)
   set_tests_properties(nexus_generative_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+  add_executable(nexus_physics_test tests/unit/physics/physics_test.cpp)
+  target_link_libraries(nexus_physics_test PRIVATE nexus_physics)
+  add_test(NAME nexus_physics_test COMMAND nexus_physics_test)
 endif()
