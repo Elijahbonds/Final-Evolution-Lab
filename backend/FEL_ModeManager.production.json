@@ -5,221 +5,454 @@
   "local_repo": "/Users/elijahbonds/Documents/rork-final-evolution-lab",
   "build_target": "FinalEvolutionLab-iOS-Shipping",
   "build_target_linux": "FinalEvolutionLab-Linux-Shipping",
+  "nexus_engine_version": "1.0.0",
   "mode_manager": {
     "class": "UFELModeManagerSubsystem",
     "total_modes": 19,
     "production_modes": 12,
     "staging_modes": 4,
     "preview_modes": 2,
+    "render_mode_breakdown": {
+      "3D_UE5": 17,
+      "2D": 1,
+      "IRL": 1
+    },
     "modes": [
       {
         "id": "basketball_h2h",
-        "map": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
-        "gamemode_class": "BP_BasketballH2H",
+        "map": null,
+        "render_mode": "IRL",
+        "irl_mode": true,
+        "healthkit_tracked": true,
+        "rim_height_inches": 120,
+        "venue_display": "Regulation Court (IRL)",
+        "mode_description": "Competitive H2H dunk contest on a 10-ft regulation rim. HealthKit PRQ scanning records real jump height, power output, and heart rate into the Nexus Engine avatar.",
+        "gamemode_class": "BP_BasketballH2H_IRL",
+        "nexus_engine_class": "BP_BasketballH2H_IRL",
         "binary": "basketball_h2h",
         "status": "production",
         "max_players": 2,
         "min_players": 2,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.2
+        "prq_weight": 1.2,
+        "meshy_asset_id": "MESHY_basketball_h2h",
+        "seele_assets": {
+          "note": "IRL mode: no UE5 venue map. Assets are HUD overlay only.",
+          "ui_hud": "WBP_HUD_IRL_Basketball",
+          "avatar_sync": "ABP_Athlete_IRL_Sync"
+        }
       },
       {
         "id": "basketball_dunk",
         "map": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Venice Beach Court (Outdoor)",
+        "mode_description": "3D Nexus Engine video game dunk contest at Venice Beach outdoor court. Aerial combos, judges scoring, cinematic UE5 environment.",
         "gamemode_class": "BP_BasketballDunk",
+        "nexus_engine_class": "BP_BasketballDunk",
         "binary": "basketball_dunk",
         "status": "production",
         "max_players": 4,
         "min_players": 1,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.0
+        "prq_weight": 1.0,
+        "meshy_asset_id": "MESHY_basketball_dunk",
+        "seele_assets": {
+          "venue_map": "VeniceBeach.umap",
+          "bp_gamemode": "BP_BasketballDunk.uasset",
+          "athlete_anim": "ABP_Basketball_Dunk.uasset",
+          "sfx": "SFX_Basketball_Dunk_Crowd.uasset",
+          "ambient": "AMB_VeniceBeach.uasset"
+        }
       },
       {
         "id": "basketball_3v3",
         "map": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Venice Beach Court",
         "gamemode_class": "BP_Basketball3v3",
+        "nexus_engine_class": "BP_Basketball3v3",
         "binary": "basketball_3v3",
         "status": "production",
         "max_players": 6,
         "min_players": 2,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.3
+        "prq_weight": 1.3,
+        "meshy_asset_id": "MESHY_basketball_3v3",
+        "seele_assets": {
+          "venue_map": "VeniceBeach.umap",
+          "bp_gamemode": "BP_Basketball3v3.uasset",
+          "athlete_anim": "ABP_Basketball_3v3.uasset",
+          "sfx": "SFX_Basketball_3v3.uasset",
+          "ambient": "AMB_VeniceBeach.uasset"
+        }
       },
       {
         "id": "karate_h2h",
         "map": "/Game/FEL/Venues/Dojo/Dojo",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Martial Arts Dojo",
         "gamemode_class": "BP_KarateH2H",
+        "nexus_engine_class": "BP_KarateH2H",
         "binary": "karate_h2h",
         "status": "production",
         "max_players": 2,
         "min_players": 2,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.4
+        "prq_weight": 1.4,
+        "meshy_asset_id": "MESHY_karate_h2h",
+        "seele_assets": {
+          "venue_map": "Dojo.umap",
+          "bp_gamemode": "BP_KarateH2H.uasset",
+          "athlete_anim": "ABP_Karate.uasset",
+          "sfx": "SFX_Karate_Impact.uasset",
+          "ambient": "AMB_Dojo.uasset"
+        }
       },
       {
         "id": "karate_endless",
         "map": "/Game/FEL/Venues/Dojo/Dojo",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Martial Arts Dojo",
         "gamemode_class": "BP_KarateEndless",
+        "nexus_engine_class": "BP_KarateEndless",
         "binary": "karate_endless",
         "status": "production",
         "max_players": 11,
         "min_players": 6,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.4
+        "prq_weight": 1.4,
+        "meshy_asset_id": "MESHY_karate_endless",
+        "seele_assets": {
+          "venue_map": "Dojo.umap",
+          "bp_gamemode": "BP_KarateEndless.uasset",
+          "athlete_anim": "ABP_Karate.uasset",
+          "enemy_variants": "SK_KarateEnemy_Variants.uasset",
+          "ambient": "AMB_Dojo.uasset"
+        }
       },
       {
         "id": "baseball",
         "map": "/Game/FEL/Venues/BaseballPark/BaseballPark",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Baseball Stadium",
         "gamemode_class": "BP_Baseball",
+        "nexus_engine_class": "BP_Baseball",
         "binary": "baseball",
         "status": "production",
         "max_players": 1,
         "min_players": 1,
         "session_timeout_seconds": 300,
-        "prq_weight": 1.1
+        "prq_weight": 1.1,
+        "meshy_asset_id": "MESHY_baseball",
+        "seele_assets": {
+          "venue_map": "BaseballPark.umap",
+          "bp_gamemode": "BP_Baseball.uasset",
+          "athlete_anim": "ABP_Baseball.uasset",
+          "sfx": "SFX_Baseball_Crack.uasset",
+          "ambient": "AMB_BaseballPark.uasset"
+        }
       },
       {
         "id": "football",
         "map": "/Game/FEL/Venues/Gridiron/Gridiron",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Gridiron Stadium",
         "gamemode_class": "BP_Football",
+        "nexus_engine_class": "BP_Football",
         "binary": "football",
         "status": "production",
         "max_players": 11,
         "min_players": 6,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.5
+        "prq_weight": 1.5,
+        "meshy_asset_id": "MESHY_football",
+        "seele_assets": {
+          "venue_map": "Gridiron.umap",
+          "bp_gamemode": "BP_Football.uasset",
+          "athlete_anim": "ABP_Football.uasset",
+          "sfx": "SFX_Football_Tackle.uasset",
+          "ambient": "AMB_Gridiron.uasset"
+        }
       },
       {
         "id": "soccer",
         "map": "/Game/FEL/Venues/SoccerStadium/SoccerStadium",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Soccer Stadium",
         "gamemode_class": "BP_Soccer",
+        "nexus_engine_class": "BP_Soccer",
         "binary": "soccer",
         "status": "production",
         "max_players": 11,
         "min_players": 6,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.1
+        "prq_weight": 1.1,
+        "meshy_asset_id": "MESHY_soccer",
+        "seele_assets": {
+          "venue_map": "SoccerStadium.umap",
+          "bp_gamemode": "BP_Soccer.uasset",
+          "athlete_anim": "ABP_Soccer.uasset",
+          "sfx": "SFX_Soccer_Kick.uasset",
+          "ambient": "AMB_SoccerStadium.uasset"
+        }
       },
       {
         "id": "golf",
         "map": "/Game/FEL/Venues/Links/Links",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Golf Links",
         "gamemode_class": "BP_Golf",
+        "nexus_engine_class": "BP_Golf",
         "binary": "golf",
         "status": "production",
         "max_players": 1,
         "min_players": 1,
         "session_timeout_seconds": 300,
-        "prq_weight": 0.9
+        "prq_weight": 0.9,
+        "meshy_asset_id": "MESHY_golf",
+        "seele_assets": {
+          "venue_map": "Links.umap",
+          "bp_gamemode": "BP_Golf.uasset",
+          "athlete_anim": "ABP_Golf.uasset",
+          "sfx": "SFX_Golf_Swing.uasset",
+          "ambient": "AMB_Links.uasset"
+        }
       },
       {
         "id": "tennis",
         "map": "/Game/FEL/Venues/TennisCourt/TennisCourt",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Tennis Court",
         "gamemode_class": "BP_Tennis",
+        "nexus_engine_class": "BP_Tennis",
         "binary": "tennis",
         "status": "production",
         "max_players": 4,
         "min_players": 4,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.1
+        "prq_weight": 1.1,
+        "meshy_asset_id": "MESHY_tennis",
+        "seele_assets": {
+          "venue_map": "TennisCourt.umap",
+          "bp_gamemode": "BP_Tennis.uasset",
+          "athlete_anim": "ABP_Tennis.uasset",
+          "sfx": "SFX_Tennis_Hit.uasset",
+          "ambient": "AMB_TennisCourt.uasset"
+        }
       },
       {
         "id": "volleyball",
         "map": "/Game/FEL/Venues/SandCourt/SandCourt",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Beach Volleyball Court",
         "gamemode_class": "BP_Volleyball",
+        "nexus_engine_class": "BP_Volleyball",
         "binary": "volleyball",
         "status": "production",
         "max_players": 4,
         "min_players": 4,
         "session_timeout_seconds": 600,
-        "prq_weight": 1.2
+        "prq_weight": 1.2,
+        "meshy_asset_id": "MESHY_volleyball",
+        "seele_assets": {
+          "venue_map": "SandCourt.umap",
+          "bp_gamemode": "BP_Volleyball.uasset",
+          "athlete_anim": "ABP_Volleyball.uasset",
+          "sfx": "SFX_Volleyball_Spike.uasset",
+          "ambient": "AMB_SandCourt.uasset"
+        }
       },
       {
         "id": "surfing",
         "map": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Venice Beach Surf Break",
         "gamemode_class": "BP_Surfing",
+        "nexus_engine_class": "BP_Surfing",
         "binary": "surfing",
         "status": "production",
         "max_players": 1,
         "min_players": 1,
         "session_timeout_seconds": 300,
-        "prq_weight": 1.05
+        "prq_weight": 1.05,
+        "meshy_asset_id": "MESHY_surfing",
+        "seele_assets": {
+          "venue_map": "VeniceBeach.umap",
+          "bp_gamemode": "BP_Surfing.uasset",
+          "athlete_anim": "ABP_Surfing.uasset",
+          "sfx": "SFX_Surfing_Wave.uasset",
+          "ambient": "AMB_VeniceBeach.uasset"
+        }
       },
       {
         "id": "skateboarding",
         "map": "/Game/FEL/Venues/SkatePark/SkatePark",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Skate Park",
         "gamemode_class": "BP_Skateboarding",
+        "nexus_engine_class": "BP_Skateboarding",
         "binary": "skateboarding",
         "status": "staging",
         "max_players": 1,
         "min_players": 1,
         "session_timeout_seconds": 300,
-        "prq_weight": 0
+        "prq_weight": 0,
+        "meshy_asset_id": "MESHY_skateboarding",
+        "seele_assets": {
+          "venue_map": "SkatePark.umap",
+          "bp_gamemode": "BP_Skateboarding.uasset",
+          "athlete_anim": "ABP_Skateboarding.uasset",
+          "sfx": "SFX_Skateboarding_Grind.uasset",
+          "ambient": "AMB_SkatePark.uasset"
+        }
       },
       {
         "id": "snowboarding",
         "map": "/Game/FEL/Venues/MountainSlope/MountainSlope",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Mountain Slope",
         "gamemode_class": "BP_Snowboarding",
+        "nexus_engine_class": "BP_Snowboarding",
         "binary": "snowboarding",
         "status": "staging",
         "max_players": 1,
         "min_players": 1,
         "session_timeout_seconds": 300,
-        "prq_weight": 0
+        "prq_weight": 0,
+        "meshy_asset_id": "MESHY_snowboarding",
+        "seele_assets": {
+          "venue_map": "MountainSlope.umap",
+          "bp_gamemode": "BP_Snowboarding.uasset",
+          "athlete_anim": "ABP_Snowboarding.uasset",
+          "sfx": "SFX_Snowboarding_Carve.uasset",
+          "ambient": "AMB_MountainSlope.uasset"
+        }
       },
       {
         "id": "gymnastics",
         "map": "/Game/FEL/Venues/TrainingFloor/TrainingFloor",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Gymnastics Training Floor",
         "gamemode_class": "BP_Gymnastics",
+        "nexus_engine_class": "BP_Gymnastics",
         "binary": "gymnastics",
         "status": "staging",
         "max_players": 1,
         "min_players": 1,
         "session_timeout_seconds": 300,
-        "prq_weight": 0
+        "prq_weight": 0,
+        "meshy_asset_id": "MESHY_gymnastics",
+        "seele_assets": {
+          "venue_map": "TrainingFloor.umap",
+          "bp_gamemode": "BP_Gymnastics.uasset",
+          "athlete_anim": "ABP_Gymnastics.uasset",
+          "apparatus": "SK_Gymnastics_Apparatus_Set.uasset",
+          "ambient": "AMB_TrainingFloor.uasset"
+        }
       },
       {
         "id": "brain_brawl",
         "map": "/Game/FEL/Venues/NeuroArena/NeuroArena",
-        "gamemode_class": "BP_BrainBrawl",
+        "render_mode": "2D",
+        "irl_mode": false,
+        "is_2d_mode": true,
+        "game_style": "quiz_battle",
+        "game_inspiration": ["Big Brain Academy", "Triumph", "Brain Age"],
+        "mode_description": "2D battle-of-wits quiz game. Sports knowledge, logic puzzles, and reaction challenges. Mirrors Big Brain Academy and Triumph game shows.",
+        "gamemode_class": "BP_BrainBrawl2D",
+        "nexus_engine_class": "BP_BrainBrawl2D",
         "binary": "brain_brawl",
         "status": "staging",
         "max_players": 4,
         "min_players": 1,
         "session_timeout_seconds": 600,
-        "prq_weight": 0
+        "prq_weight": 0,
+        "meshy_asset_id": "MESHY_brain_brawl",
+        "seele_assets": {
+          "venue_map": "NeuroArena.umap",
+          "bp_gamemode": "BP_BrainBrawl2D.uasset",
+          "ui_canvas": "WBP_BrainBrawl_2D_Canvas.uasset",
+          "avatar_icon": "T_BrainBrawl_AvatarIcon.uasset",
+          "sfx": "SFX_BrainBrawl_Correct.uasset"
+        }
       },
       {
         "id": "who_scene_it",
         "map": "/Game/FEL/Venues/NeuroArena/NeuroArena",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
         "gamemode_class": "BP_WhoSceneIt",
+        "nexus_engine_class": "BP_WhoSceneIt",
         "binary": "who_scene_it",
         "status": "preview",
         "max_players": 4,
         "min_players": 1,
         "session_timeout_seconds": 600,
-        "prq_weight": 0
+        "prq_weight": 0,
+        "meshy_asset_id": "MESHY_who_scene_it",
+        "seele_assets": {
+          "venue_map": "NeuroArena.umap",
+          "bp_gamemode": "BP_WhoSceneIt.uasset",
+          "stage_set": "SK_WhoSceneIt_Stage.uasset",
+          "sfx": "SFX_WhoSceneIt_Reveal.uasset"
+        }
       },
       {
         "id": "court_carnival",
         "map": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
         "gamemode_class": "BP_CourtCarnival",
+        "nexus_engine_class": "BP_CourtCarnival",
         "binary": "court_carnival",
         "status": "preview",
         "max_players": 4,
         "min_players": 1,
         "session_timeout_seconds": 600,
-        "prq_weight": 0
+        "prq_weight": 0,
+        "meshy_asset_id": "MESHY_court_carnival",
+        "seele_assets": {
+          "venue_map": "VeniceBeach.umap",
+          "bp_gamemode": "BP_CourtCarnival.uasset",
+          "board_pieces": "SK_CourtCarnival_BoardSet.uasset",
+          "sfx": "SFX_CourtCarnival_Fanfare.uasset"
+        }
       },
       {
         "id": "market_browse",
         "map": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
         "gamemode_class": "BP_MarketBrowse",
+        "nexus_engine_class": "BP_MarketBrowse",
         "binary": "market_browse",
         "status": "non-game-module",
         "max_players": 1,
         "min_players": 1,
         "session_timeout_seconds": 0,
-        "prq_weight": 0
+        "prq_weight": 0,
+        "meshy_asset_id": "MESHY_market_browse",
+        "seele_assets": {
+          "venue_map": "Luma_Venice_Shop.umap",
+          "bp_module": "BP_MarketBrowse.uasset",
+          "card_display": "SK_CreatorCard_3D_Display.uasset",
+          "shop_interior": "SK_LumaShop_Interior.uasset"
+        }
       }
     ]
   },
@@ -233,7 +466,8 @@
     },
     "update_trigger": "on_session_complete",
     "decay_rate_per_day": 0.5,
-    "boost_on_streak": true
+    "boost_on_streak": true,
+    "irl_modes_use_healthkit_data": true
   },
   "bridge_subsystem": {
     "class": "UFELEmergentBridgeSubsystem",

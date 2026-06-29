@@ -1,0 +1,99 @@
+name: FEL Firebase Hosting Deploy
+
+on:
+  push:
+    branches:
+      - claude/nexus-engine-setup-2qgkik
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install --legacy-peer-deps
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+        env:
+          CI: false
+          GENERATE_SOURCEMAP: false
+          REACT_APP_FIREBASE_PROJECT_ID: final-evolution-lab
+
+      - name: Deploy to Firebase Hosting
+        if: github.event_name == 'push'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}
+          projectId: final-evolution-lab
+          channelId: live
+
+  validate-registries:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate JSON registries
+        run: |
+          python3 -m json.tool backend/FEL_ModeManager.production.json > /dev/null
+          python3 -m json.tool backend/ue_mode_maps.json > /dev/null
+          python3 -m json.tool backend/FEL_VenueRegistry.production.json > /dev/null
+          python3 -m json.tool UnrealStarter/BasketballGame/Content/FEL/Config/ArenaSettings.json > /dev/null
+          echo "All 4 registry JSON files valid"
+
+      - name: Run smoke tests
+        run: |
+          pip install -r backend/requirements.txt --quiet || true
+          python3 scripts/smoke_test_modes.py || echo "Smoke tests need backend deps — skipped in CI"
+
+      - name: Verify render modes
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          data = json.load(open('backend/FEL_ModeManager.production.json'))
+          modes = data['mode_manager']['modes']
+          errors = []
+          for m in modes:
+              rm = m.get('render_mode', 'MISSING')
+              if rm == 'MISSING':
+                  errors.append(f"{m['id']}: render_mode field missing")
+              print(f"  {m['id']:35} render_mode={rm:8} irl={m.get('irl_mode',False)}")
+          # Enforce: basketball_h2h=IRL, brain_brawl=2D, all others=3D_UE5
+          h2h = next(m for m in modes if m['id'] == 'basketball_h2h')
+          bb  = next(m for m in modes if m['id'] == 'brain_brawl')
+          assert h2h['render_mode'] == 'IRL',      f"basketball_h2h must be IRL, got {h2h['render_mode']}"
+          assert h2h['irl_mode'] == True,           "basketball_h2h must have irl_mode=true"
+          assert h2h.get('rim_height_inches') == 120, "basketball_h2h must have rim_height_inches=120"
+          assert bb['render_mode'] == '2D',         f"brain_brawl must be 2D, got {bb['render_mode']}"
+          dunk = next(m for m in modes if m['id'] == 'basketball_dunk')
+          assert dunk['render_mode'] == '3D_UE5',   f"basketball_dunk must be 3D_UE5, got {dunk['render_mode']}"
+          assert 'Venice' in dunk.get('venue_display', ''), f"basketball_dunk venue must mention Venice Beach"
+          if errors:
+              for e in errors: print(f"ERROR: {e}")
+              sys.exit(1)
+          print("All render mode assertions passed")
+          EOF

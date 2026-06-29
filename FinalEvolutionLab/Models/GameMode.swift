@@ -36,6 +36,63 @@ nonisolated enum InputScheme: String, Sendable {
     case rhythmTap
 }
 
+/// How the Nexus Engine renders this mode.
+nonisolated enum RenderMode: String, Codable, Sendable {
+    /// Full 3D Unreal Engine 5.7 video game — Seele + Meshy assets
+    case ue3D = "3D_UE5"
+    /// 2D canvas battle-of-wits (Brain Brawl) — mirrors Big Brain Academy / Triumph
+    case ue2D = "2D"
+    /// Real-world IRL match tracked via HealthKit PRQ scanning (no UE level required)
+    case irl = "IRL"
+}
+
+extension GameModeId {
+    /// Nexus Engine render mode for this game mode.
+    var renderMode: RenderMode {
+        switch self {
+        case .brainBrawl:             return .ue2D
+        case .basketballHeadToHead:   return .irl
+        default:                      return .ue3D
+        }
+    }
+
+    /// Meshy.ai 3D asset slot identifier. Used by Seele to wire generated assets.
+    var meshyAssetSlotId: String {
+        "MESHY_\(rawValue)"
+    }
+
+    /// True for modes that track real-world physical performance via HealthKit.
+    var isIRLMode: Bool { renderMode == .irl }
+
+    /// True for modes rendered in Unreal Engine (3D or 2D canvas).
+    var isUnrealMode: Bool { renderMode != .irl }
+
+    /// Seele Blueprint class name for this mode.
+    var nexusEngineClass: String {
+        switch self {
+        case .basketballHeadToHead:   return "BP_BasketballH2H"
+        case .basketballDunkContest:  return "BP_BasketballDunk"
+        case .basketball3v3:          return "BP_Basketball3v3"
+        case .karate:                 return "BP_KarateH2H"
+        case .karateEndless:          return "BP_KarateEndless"
+        case .baseball:               return "BP_Baseball"
+        case .football:               return "BP_Football"
+        case .soccer:                 return "BP_Soccer"
+        case .golf:                   return "BP_Golf"
+        case .tennis:                 return "BP_Tennis"
+        case .volleyball:             return "BP_Volleyball"
+        case .gymnastics:             return "BP_Gymnastics"
+        case .surfing:                return "BP_Surfing"
+        case .skateboarding:          return "BP_Skateboarding"
+        case .snowboarding:           return "BP_Snowboarding"
+        case .brainBrawl:             return "BP_BrainBrawl2D"
+        case .whoSceneIt:             return "BP_WhoSceneIt"
+        case .courtCarnival:          return "BP_CourtCarnival"
+        case .marketBrowse:           return "BP_MarketBrowse"
+        }
+    }
+}
+
 extension GameModeId {
     var inputScheme: InputScheme {
         switch self {
@@ -94,25 +151,25 @@ struct GameModeRegistry {
     static let all: [GameMode] = [
         GameMode(
             id: .basketballHeadToHead,
-            name: "Head to Head",
-            subtitle: "1v1 Shootout",
+            name: "H2H Dunk Contest",
+            subtitle: "IRL · Regulation Rim · HealthKit",
             sport: .basketball,
             iconName: "figure.basketball",
             accentColor: Color(red: 1.0, green: 0.6, blue: 0.0),
             multiplayerType: .realtime,
-            environmentName: "Venice Beach Court",
-            hint: nil
+            environmentName: "Regulation Court (IRL)",
+            hint: "Compete IRL on a 10-ft regulation rim. HealthKit tracks your real jumps."
         ),
         GameMode(
             id: .basketballDunkContest,
             name: "Dunk Contest",
-            subtitle: "Venice Beach Showdown",
+            subtitle: "Venice Beach · 3D Video Game",
             sport: .basketball,
             iconName: "figure.highintensity.intervaltraining",
             accentColor: Color(red: 0, green: 0.83, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: nil
+            hint: "3D Nexus Engine dunk contest at Venice Beach outdoor court"
         ),
         GameMode(
             id: .basketball3v3,
@@ -260,13 +317,13 @@ struct GameModeRegistry {
         GameMode(
             id: .brainBrawl,
             name: "Brain Brawl",
-            subtitle: "Cognitive Arena",
+            subtitle: "2D Battle of Wits",
             sport: .academy,
             iconName: "brain.head.profile",
             accentColor: Color(red: 0.55, green: 0.35, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Neuro Arena",
-            hint: nil
+            hint: "2D quiz battle — Big Brain Academy × Triumph × Sports Knowledge"
         ),
         GameMode(
             id: .whoSceneIt,

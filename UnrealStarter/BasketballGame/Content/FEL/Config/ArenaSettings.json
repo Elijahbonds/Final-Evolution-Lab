@@ -1,25 +1,38 @@
 {
   "modes": {
     "basketball_h2h": {
-      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
-      "modeDisplayName": "Basketball H2H",
+      "unrealOpenLevelPackage": null,
+      "renderMode": "IRL",
+      "isIRLMode": true,
+      "healthKitTracked": true,
+      "rimHeightInches": 120,
+      "modeDisplayName": "H2H Dunk Contest (IRL)",
+      "modeDescription": "Competitive head-to-head dunk contest on a regulation 10-foot rim. HealthKit PRQ scanning records real jump height, power, and heart rate into your Nexus Engine avatar.",
       "unrealBasketballSlice": "basketball_h2h",
       "scoreTarget": 100,
       "timeLimit": 300,
-      "inputScheme": "swipe_gestures",
-      "physicsPreset": "standard",
-      "bStreetJamArcade": true,
+      "inputScheme": "healthkit_motion",
+      "physicsPreset": "irl_passthrough",
+      "bStreetJamArcade": false,
       "timeLimitSeconds": 0,
       "ballCount": 1,
       "targetScore": 3,
-      "physicsJumpScale": 1.03,
-      "physicsWalkScale": 1.045,
       "bScoringEnabled": true,
-      "bNeuroKineticLeakageForDunkParity": true
+      "bNeuroKineticLeakageForDunkParity": true,
+      "nexusEngineClass": "BP_BasketballH2H_IRL",
+      "meshyAssets": {
+        "note": "IRL mode — no UE5 venue map. HealthKit data drives PRQ avatar sync.",
+        "uiOverlay": "MESHY_hud_irl_basketball",
+        "avatarSlot": "MESHY_athlete_basketball_irl"
+      }
     },
     "basketball_dunk": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Dunk Contest",
+      "modeDescription": "3D Nexus Engine video game dunk contest at Venice Beach outdoor court. Perform aerial combos for judges in a cinematic UE5 environment.",
+      "venueDisplayName": "Venice Beach Court (Outdoor)",
       "unrealBasketballSlice": "basketball_dunk",
       "scoreTarget": 100,
       "timeLimit": 300,
@@ -33,10 +46,20 @@
       "physicsJumpScale": 1.0,
       "physicsWalkScale": 1.0,
       "bScoringEnabled": true,
-      "bNeuroKineticLeakageForDunkParity": true
+      "bNeuroKineticLeakageForDunkParity": true,
+      "nexusEngineClass": "BP_BasketballDunk",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_outdoor_court",
+        "backboard": "MESHY_regulation_backboard_venice",
+        "athlete_base": "MESHY_athlete_basketball_dunk",
+        "crowd": "MESHY_venice_beach_crowd",
+        "ball": "MESHY_basketball_official"
+      }
     },
     "basketball_3v3": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "3v3 Basketball",
       "unrealBasketballSlice": "basketball_3v3",
       "scoreTarget": 100,
@@ -50,10 +73,18 @@
       "physicsJumpScale": 1.035,
       "physicsWalkScale": 1.055,
       "bScoringEnabled": true,
-      "bNeuroKineticLeakageForDunkParity": true
+      "bNeuroKineticLeakageForDunkParity": true,
+      "nexusEngineClass": "BP_Basketball3v3",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_outdoor_court",
+        "athlete_base": "MESHY_athlete_basketball_3v3",
+        "ball": "MESHY_basketball_official"
+      }
     },
     "karate_h2h": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Karate Match",
       "unrealBasketballSlice": "karate_h2h",
       "scoreTarget": 100,
@@ -63,10 +94,18 @@
       "targetScore": 5,
       "timeLimitSeconds": 150,
       "ballCount": 1,
-      "bScoringEnabled": true
+      "bScoringEnabled": true,
+      "nexusEngineClass": "BP_KarateH2H",
+      "meshyAssets": {
+        "venue": "MESHY_martial_arts_dojo",
+        "athlete_base": "MESHY_athlete_karate",
+        "tatami": "MESHY_dojo_tatami_floor"
+      }
     },
     "karate_endless": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/Dojo/Dojo",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Karate Endless",
       "unrealBasketballSlice": "karate_endless",
       "scoreTarget": 100,
@@ -77,10 +116,18 @@
       "timeLimitSeconds": 0,
       "ballCount": 1,
       "bScoringEnabled": true,
-      "bEndlessMode": true
+      "bEndlessMode": true,
+      "nexusEngineClass": "BP_KarateEndless",
+      "meshyAssets": {
+        "venue": "MESHY_martial_arts_dojo",
+        "athlete_base": "MESHY_athlete_karate",
+        "enemy_waves": "MESHY_karate_opponent_variants"
+      }
     },
     "baseball": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/BaseballPark/BaseballPark",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Baseball",
       "unrealBasketballSlice": "baseball",
       "scoreTarget": 9,
@@ -89,10 +136,19 @@
       "physicsPreset": "standard",
       "targetScore": 6,
       "timeLimitSeconds": 300,
-      "ballCount": 1
+      "ballCount": 1,
+      "nexusEngineClass": "BP_Baseball",
+      "meshyAssets": {
+        "venue": "MESHY_baseball_stadium",
+        "athlete_batter": "MESHY_athlete_baseball_batter",
+        "athlete_pitcher": "MESHY_athlete_baseball_pitcher",
+        "ball": "MESHY_baseball_official"
+      }
     },
     "football": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/Gridiron/Gridiron",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Football",
       "unrealBasketballSlice": "football",
       "scoreTarget": 100,
@@ -102,10 +158,18 @@
       "targetScore": 3,
       "timeLimitSeconds": 240,
       "ballCount": 1,
-      "physicsWalkScale": 1.05
+      "physicsWalkScale": 1.05,
+      "nexusEngineClass": "BP_Football",
+      "meshyAssets": {
+        "venue": "MESHY_gridiron_stadium",
+        "athlete_base": "MESHY_athlete_football",
+        "ball": "MESHY_football_official"
+      }
     },
     "soccer": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/SoccerStadium/SoccerStadium",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Soccer",
       "unrealBasketballSlice": "soccer",
       "scoreTarget": 3,
@@ -114,10 +178,19 @@
       "physicsPreset": "standard",
       "targetScore": 5,
       "timeLimitSeconds": 180,
-      "ballCount": 1
+      "ballCount": 1,
+      "nexusEngineClass": "BP_Soccer",
+      "meshyAssets": {
+        "venue": "MESHY_soccer_stadium",
+        "athlete_base": "MESHY_athlete_soccer",
+        "ball": "MESHY_soccer_ball_official",
+        "goal": "MESHY_soccer_goal_net"
+      }
     },
     "golf": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/Links/Links",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Golf",
       "unrealBasketballSlice": "golf",
       "scoreTarget": 18,
@@ -126,10 +199,19 @@
       "physicsPreset": "precision",
       "targetScore": 5,
       "timeLimitSeconds": 300,
-      "ballCount": 1
+      "ballCount": 1,
+      "nexusEngineClass": "BP_Golf",
+      "meshyAssets": {
+        "venue": "MESHY_golf_links_course",
+        "athlete_base": "MESHY_athlete_golf",
+        "ball": "MESHY_golf_ball_official",
+        "clubs": "MESHY_golf_club_set"
+      }
     },
     "tennis": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/TennisCourt/TennisCourt",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Tennis",
       "unrealBasketballSlice": "tennis",
       "scoreTarget": 100,
@@ -139,10 +221,19 @@
       "timeLimitSeconds": 120,
       "targetScore": 5,
       "ballCount": 1,
-      "physicsWalkScale": 1.04
+      "physicsWalkScale": 1.04,
+      "nexusEngineClass": "BP_Tennis",
+      "meshyAssets": {
+        "venue": "MESHY_tennis_court_hard",
+        "athlete_base": "MESHY_athlete_tennis",
+        "ball": "MESHY_tennis_ball_official",
+        "racket": "MESHY_tennis_racket"
+      }
     },
     "volleyball": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/SandCourt/SandCourt",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Volleyball",
       "unrealBasketballSlice": "volleyball",
       "scoreTarget": 100,
@@ -152,10 +243,19 @@
       "timeLimitSeconds": 120,
       "targetScore": 5,
       "ballCount": 1,
-      "physicsWalkScale": 1.04
+      "physicsWalkScale": 1.04,
+      "nexusEngineClass": "BP_Volleyball",
+      "meshyAssets": {
+        "venue": "MESHY_beach_volleyball_sand_court",
+        "athlete_base": "MESHY_athlete_volleyball",
+        "ball": "MESHY_volleyball_official",
+        "net": "MESHY_volleyball_net"
+      }
     },
     "surfing": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Surfing",
       "unrealBasketballSlice": "surfing",
       "scoreTarget": 100,
@@ -169,10 +269,19 @@
       "timeLimitSeconds": 180,
       "bScoringEnabled": true,
       "physicsWalkScale": 1.06,
-      "physicsJumpScale": 1.04
+      "physicsJumpScale": 1.04,
+      "nexusEngineClass": "BP_Surfing",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_surf_break",
+        "athlete_base": "MESHY_athlete_surfing",
+        "surfboard": "MESHY_surfboard_shortboard",
+        "ocean_wave": "MESHY_ocean_wave_dynamic"
+      }
     },
     "skateboarding": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/SkatePark/SkatePark",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Skateboarding",
       "unrealBasketballSlice": "skateboarding",
       "scoreTarget": 100,
@@ -186,10 +295,19 @@
       "timeLimitSeconds": 180,
       "bScoringEnabled": true,
       "physicsWalkScale": 1.05,
-      "physicsJumpScale": 1.06
+      "physicsJumpScale": 1.06,
+      "nexusEngineClass": "BP_Skateboarding",
+      "meshyAssets": {
+        "venue": "MESHY_skate_park_outdoor",
+        "athlete_base": "MESHY_athlete_skateboarding",
+        "skateboard": "MESHY_skateboard_deck_complete",
+        "obstacles": "MESHY_skatepark_rails_ledges"
+      }
     },
     "snowboarding": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/MountainSlope/MountainSlope",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Snowboarding",
       "unrealBasketballSlice": "snowboarding",
       "scoreTarget": 100,
@@ -203,10 +321,19 @@
       "timeLimitSeconds": 180,
       "bScoringEnabled": true,
       "physicsWalkScale": 1.04,
-      "physicsJumpScale": 1.05
+      "physicsJumpScale": 1.05,
+      "nexusEngineClass": "BP_Snowboarding",
+      "meshyAssets": {
+        "venue": "MESHY_mountain_slope_halfpipe",
+        "athlete_base": "MESHY_athlete_snowboarding",
+        "snowboard": "MESHY_snowboard_park_deck",
+        "terrain": "MESHY_mountain_snow_terrain"
+      }
     },
     "gymnastics": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/TrainingFloor/TrainingFloor",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Gymnastics",
       "unrealBasketballSlice": "gymnastics",
       "scoreTarget": 100,
@@ -215,26 +342,48 @@
       "physicsPreset": "gymnastics",
       "targetScore": 5,
       "timeLimitSeconds": 240,
-      "ballCount": 1
+      "ballCount": 1,
+      "nexusEngineClass": "BP_Gymnastics",
+      "meshyAssets": {
+        "venue": "MESHY_gymnastics_training_floor",
+        "athlete_base": "MESHY_athlete_gymnastics",
+        "apparatus_vault": "MESHY_gymnastics_vault",
+        "apparatus_bars": "MESHY_gymnastics_parallel_bars",
+        "spring_floor": "MESHY_gymnastics_spring_floor"
+      }
     },
     "brain_brawl": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/NeuroArena/NeuroArena",
+      "renderMode": "2D",
+      "isIRLMode": false,
+      "bIs2DMode": true,
+      "bRenderAs2DCanvas": true,
       "modeDisplayName": "Brain Brawl",
+      "modeDescription": "2D battle-of-wits quiz game. Mirrors Big Brain Academy, Triumph, and Brain Age. Sports knowledge + logic puzzles + reaction challenges. No 3D physics.",
+      "gameStyle": "quiz_battle",
+      "gameInspiration": ["Big Brain Academy", "Triumph", "Brain Age", "Who Wants to Be a Millionaire"],
       "unrealBasketballSlice": "brain_brawl",
       "scoreTarget": 100,
       "timeLimit": 300,
-      "inputScheme": "swipe_gestures",
-      "physicsPreset": "standard",
+      "inputScheme": "tap_select",
+      "physicsPreset": "none",
       "ballSpawnType": "None",
       "bIsDunkContest": false,
       "ballCount": 0,
       "targetScore": 0,
       "timeLimitSeconds": 120,
       "bScoringEnabled": false,
-      "bNeuroKineticLeakageForDunkParity": true
+      "nexusEngineClass": "BP_BrainBrawl2D",
+      "meshyAssets": {
+        "ui_background": "MESHY_brain_brawl_2d_arena_bg",
+        "avatar_icon": "MESHY_brain_avatar_2d",
+        "question_card": "MESHY_brain_brawl_question_panel"
+      }
     },
     "who_scene_it": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/NeuroArena/NeuroArena",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Who Scene It",
       "unrealBasketballSlice": "who_scene_it",
       "scoreTarget": 100,
@@ -248,10 +397,18 @@
       "timeLimitSeconds": 900,
       "bScoringEnabled": true,
       "bNeuroKineticLeakageForDunkParity": false,
-      "maxPlayers": 8
+      "maxPlayers": 8,
+      "nexusEngineClass": "BP_WhoSceneIt",
+      "meshyAssets": {
+        "venue": "MESHY_neuro_arena_stage",
+        "host_avatar": "MESHY_who_scene_it_host",
+        "question_display": "MESHY_wsi_multimedia_panel"
+      }
     },
     "court_carnival": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Court Carnival",
       "unrealBasketballSlice": "court_carnival",
       "scoreTarget": 100,
@@ -265,10 +422,18 @@
       "timeLimitSeconds": 1800,
       "bScoringEnabled": true,
       "bNeuroKineticLeakageForDunkParity": false,
-      "maxPlayers": 4
+      "maxPlayers": 4,
+      "nexusEngineClass": "BP_CourtCarnival",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_carnival_board",
+        "board_pieces": "MESHY_carnival_board_game_pieces",
+        "minigame_props": "MESHY_carnival_sport_minigame_props"
+      }
     },
     "market_browse": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "modeDisplayName": "Market Browse",
       "unrealBasketballSlice": "market_browse",
       "scoreTarget": 100,
@@ -281,7 +446,13 @@
       "targetScore": 0,
       "timeLimitSeconds": 0,
       "bScoringEnabled": false,
-      "bNeuroKineticLeakageForDunkParity": false
+      "bNeuroKineticLeakageForDunkParity": false,
+      "nexusEngineClass": "BP_MarketBrowse",
+      "meshyAssets": {
+        "venue": "MESHY_luma_venice_shop_interior",
+        "card_display": "MESHY_creator_card_3d_display",
+        "card_holographic": "MESHY_creator_card_holo_shader"
+      }
     }
   }
 }

@@ -1,161 +1,450 @@
 {
   "version": "2.0.0",
-  "generated": "2026-06-28",
+  "generated": "2026-06-29",
   "project": "Final Evolution Lab",
   "engine": "Unreal Engine 5.7",
+  "nexus_engine_integration": true,
   "streaming": "Eagle 3D Streaming (E3DS)",
+  "asset_pipeline": {
+    "3d_generator": "Meshy.ai",
+    "asset_creator": "Seele AI",
+    "naming_convention": "MESHY_{mode_id}_{asset_type}",
+    "seele_blueprint_prefix": "BP_",
+    "seele_animation_prefix": "ABP_",
+    "seele_sfx_prefix": "SFX_",
+    "seele_ambient_prefix": "AMB_",
+    "seele_texture_prefix": "T_",
+    "seele_mesh_prefix": "SK_"
+  },
   "modes": [
     {
       "id": "basketball_h2h",
       "analyticsMode": "basketball_h2h",
-      "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach",
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach"
+      "venueKey": "regulation_court_irl",
+      "displayVenue": "Regulation Court (IRL)",
+      "renderMode": "IRL",
+      "isIRLMode": true,
+      "healthKitTracked": true,
+      "rimHeightInches": 120,
+      "spawnPoint": null,
+      "ambientSFX": null,
+      "modeNote": "IRL mode: no UE5 venue. HealthKit tracks real performance. Avatar PRQ synced after session.",
+      "meshyAssets": {
+        "uiHUD": "MESHY_hud_irl_basketball",
+        "avatarSlot": "MESHY_athlete_basketball_irl"
+      },
+      "seeleAssets": {
+        "widgetHUD": "WBP_HUD_IRL_Basketball.uasset",
+        "avatarSync": "ABP_Athlete_IRL_Sync.uasset"
+      }
     },
     {
       "id": "basketball_dunk",
       "analyticsMode": "basketball_dunk",
       "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach",
+      "displayVenue": "Venice Beach Court (Outdoor)",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
+      "modeNote": "3D Nexus Engine video game. Dunk contest at Venice Beach outdoor court.",
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach"
+      "ambientSFX": "AMB_VeniceBeach",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_outdoor_court",
+        "backboard": "MESHY_regulation_backboard_venice",
+        "athleteBase": "MESHY_athlete_basketball_dunk",
+        "crowd": "MESHY_venice_beach_crowd",
+        "ball": "MESHY_basketball_official"
+      },
+      "seeleAssets": {
+        "venueMap": "VeniceBeach.umap",
+        "bpGamemode": "BP_BasketballDunk.uasset",
+        "athleteAnim": "ABP_Basketball_Dunk.uasset",
+        "sfx": "SFX_Basketball_Dunk_Crowd.uasset",
+        "ambient": "AMB_VeniceBeach.uasset"
+      }
     },
     {
       "id": "basketball_3v3",
       "analyticsMode": "basketball_3v3",
       "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach",
+      "displayVenue": "Venice Beach Court",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach"
+      "ambientSFX": "AMB_VeniceBeach",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_outdoor_court",
+        "athleteBase": "MESHY_athlete_basketball_3v3",
+        "ball": "MESHY_basketball_official"
+      },
+      "seeleAssets": {
+        "venueMap": "VeniceBeach.umap",
+        "bpGamemode": "BP_Basketball3v3.uasset",
+        "athleteAnim": "ABP_Basketball_3v3.uasset",
+        "ambient": "AMB_VeniceBeach.uasset"
+      }
     },
     {
       "id": "karate_h2h",
       "analyticsMode": "karate_h2h",
       "venueKey": "dojo",
       "displayVenue": "Martial Arts Dojo",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_Dojo"
+      "ambientSFX": "AMB_Dojo",
+      "meshyAssets": {
+        "venue": "MESHY_martial_arts_dojo",
+        "athleteBase": "MESHY_athlete_karate",
+        "tatami": "MESHY_dojo_tatami_floor"
+      },
+      "seeleAssets": {
+        "venueMap": "Dojo.umap",
+        "bpGamemode": "BP_KarateH2H.uasset",
+        "athleteAnim": "ABP_Karate.uasset",
+        "sfx": "SFX_Karate_Impact.uasset",
+        "ambient": "AMB_Dojo.uasset"
+      }
     },
     {
       "id": "karate_endless",
       "analyticsMode": "karate_endless",
       "venueKey": "dojo",
       "displayVenue": "Martial Arts Dojo",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_Dojo"
+      "ambientSFX": "AMB_Dojo",
+      "meshyAssets": {
+        "venue": "MESHY_martial_arts_dojo",
+        "athleteBase": "MESHY_athlete_karate",
+        "enemyWaves": "MESHY_karate_opponent_variants"
+      },
+      "seeleAssets": {
+        "venueMap": "Dojo.umap",
+        "bpGamemode": "BP_KarateEndless.uasset",
+        "athleteAnim": "ABP_Karate.uasset",
+        "enemyVariants": "SK_KarateEnemy_Variants.uasset",
+        "ambient": "AMB_Dojo.uasset"
+      }
     },
     {
       "id": "baseball",
       "analyticsMode": "baseball",
       "venueKey": "baseball_park",
-      "displayVenue": "Baseball Park",
+      "displayVenue": "Baseball Stadium",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_BaseballPark"
+      "ambientSFX": "AMB_BaseballPark",
+      "meshyAssets": {
+        "venue": "MESHY_baseball_stadium",
+        "athleteBatter": "MESHY_athlete_baseball_batter",
+        "athletePitcher": "MESHY_athlete_baseball_pitcher",
+        "ball": "MESHY_baseball_official"
+      },
+      "seeleAssets": {
+        "venueMap": "BaseballPark.umap",
+        "bpGamemode": "BP_Baseball.uasset",
+        "athleteAnim": "ABP_Baseball.uasset",
+        "sfx": "SFX_Baseball_Crack.uasset",
+        "ambient": "AMB_BaseballPark.uasset"
+      }
     },
     {
       "id": "football",
       "analyticsMode": "football",
       "venueKey": "gridiron",
       "displayVenue": "Gridiron Stadium",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_Gridiron"
+      "ambientSFX": "AMB_Gridiron",
+      "meshyAssets": {
+        "venue": "MESHY_gridiron_stadium",
+        "athleteBase": "MESHY_athlete_football",
+        "ball": "MESHY_football_official"
+      },
+      "seeleAssets": {
+        "venueMap": "Gridiron.umap",
+        "bpGamemode": "BP_Football.uasset",
+        "athleteAnim": "ABP_Football.uasset",
+        "sfx": "SFX_Football_Tackle.uasset",
+        "ambient": "AMB_Gridiron.uasset"
+      }
     },
     {
       "id": "soccer",
       "analyticsMode": "soccer",
       "venueKey": "soccer_stadium",
       "displayVenue": "Soccer Stadium",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_SoccerStadium"
+      "ambientSFX": "AMB_SoccerStadium",
+      "meshyAssets": {
+        "venue": "MESHY_soccer_stadium",
+        "athleteBase": "MESHY_athlete_soccer",
+        "ball": "MESHY_soccer_ball_official",
+        "goal": "MESHY_soccer_goal_net"
+      },
+      "seeleAssets": {
+        "venueMap": "SoccerStadium.umap",
+        "bpGamemode": "BP_Soccer.uasset",
+        "athleteAnim": "ABP_Soccer.uasset",
+        "sfx": "SFX_Soccer_Kick.uasset",
+        "ambient": "AMB_SoccerStadium.uasset"
+      }
     },
     {
       "id": "golf",
       "analyticsMode": "golf",
       "venueKey": "links",
       "displayVenue": "Golf Links",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_Links"
+      "ambientSFX": "AMB_Links",
+      "meshyAssets": {
+        "venue": "MESHY_golf_links_course",
+        "athleteBase": "MESHY_athlete_golf",
+        "ball": "MESHY_golf_ball_official",
+        "clubs": "MESHY_golf_club_set"
+      },
+      "seeleAssets": {
+        "venueMap": "Links.umap",
+        "bpGamemode": "BP_Golf.uasset",
+        "athleteAnim": "ABP_Golf.uasset",
+        "sfx": "SFX_Golf_Swing.uasset",
+        "ambient": "AMB_Links.uasset"
+      }
     },
     {
       "id": "tennis",
       "analyticsMode": "tennis",
       "venueKey": "tennis_court",
       "displayVenue": "Tennis Court",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_TennisCourt"
+      "ambientSFX": "AMB_TennisCourt",
+      "meshyAssets": {
+        "venue": "MESHY_tennis_court_hard",
+        "athleteBase": "MESHY_athlete_tennis",
+        "ball": "MESHY_tennis_ball_official",
+        "racket": "MESHY_tennis_racket"
+      },
+      "seeleAssets": {
+        "venueMap": "TennisCourt.umap",
+        "bpGamemode": "BP_Tennis.uasset",
+        "athleteAnim": "ABP_Tennis.uasset",
+        "sfx": "SFX_Tennis_Hit.uasset",
+        "ambient": "AMB_TennisCourt.uasset"
+      }
     },
     {
       "id": "volleyball",
       "analyticsMode": "volleyball",
       "venueKey": "sand_court",
-      "displayVenue": "Sand Volleyball Court",
+      "displayVenue": "Beach Volleyball Court",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_SandCourt"
+      "ambientSFX": "AMB_SandCourt",
+      "meshyAssets": {
+        "venue": "MESHY_beach_volleyball_sand_court",
+        "athleteBase": "MESHY_athlete_volleyball",
+        "ball": "MESHY_volleyball_official",
+        "net": "MESHY_volleyball_net"
+      },
+      "seeleAssets": {
+        "venueMap": "SandCourt.umap",
+        "bpGamemode": "BP_Volleyball.uasset",
+        "athleteAnim": "ABP_Volleyball.uasset",
+        "sfx": "SFX_Volleyball_Spike.uasset",
+        "ambient": "AMB_SandCourt.uasset"
+      }
     },
     {
       "id": "surfing",
       "analyticsMode": "surfing",
       "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach",
+      "displayVenue": "Venice Beach Surf Break",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach"
+      "ambientSFX": "AMB_VeniceBeach",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_surf_break",
+        "athleteBase": "MESHY_athlete_surfing",
+        "surfboard": "MESHY_surfboard_shortboard",
+        "oceanWave": "MESHY_ocean_wave_dynamic"
+      },
+      "seeleAssets": {
+        "venueMap": "VeniceBeach.umap",
+        "bpGamemode": "BP_Surfing.uasset",
+        "athleteAnim": "ABP_Surfing.uasset",
+        "sfx": "SFX_Surfing_Wave.uasset",
+        "ambient": "AMB_VeniceBeach.uasset"
+      }
     },
     {
       "id": "skateboarding",
       "analyticsMode": "skateboarding",
       "venueKey": "skate_park",
       "displayVenue": "Skate Park",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_SkatePark"
+      "ambientSFX": "AMB_SkatePark",
+      "meshyAssets": {
+        "venue": "MESHY_skate_park_outdoor",
+        "athleteBase": "MESHY_athlete_skateboarding",
+        "skateboard": "MESHY_skateboard_deck_complete",
+        "obstacles": "MESHY_skatepark_rails_ledges"
+      },
+      "seeleAssets": {
+        "venueMap": "SkatePark.umap",
+        "bpGamemode": "BP_Skateboarding.uasset",
+        "athleteAnim": "ABP_Skateboarding.uasset",
+        "sfx": "SFX_Skateboarding_Grind.uasset",
+        "ambient": "AMB_SkatePark.uasset"
+      }
     },
     {
       "id": "snowboarding",
       "analyticsMode": "snowboarding",
       "venueKey": "mountain_slope",
       "displayVenue": "Mountain Slope",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_MountainSlope"
+      "ambientSFX": "AMB_MountainSlope",
+      "meshyAssets": {
+        "venue": "MESHY_mountain_slope_halfpipe",
+        "athleteBase": "MESHY_athlete_snowboarding",
+        "snowboard": "MESHY_snowboard_park_deck",
+        "terrain": "MESHY_mountain_snow_terrain"
+      },
+      "seeleAssets": {
+        "venueMap": "MountainSlope.umap",
+        "bpGamemode": "BP_Snowboarding.uasset",
+        "athleteAnim": "ABP_Snowboarding.uasset",
+        "sfx": "SFX_Snowboarding_Carve.uasset",
+        "ambient": "AMB_MountainSlope.uasset"
+      }
     },
     {
       "id": "gymnastics",
       "analyticsMode": "gymnastics",
       "venueKey": "training_floor",
-      "displayVenue": "Training Floor",
+      "displayVenue": "Gymnastics Training Floor",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_TrainingFloor"
+      "ambientSFX": "AMB_TrainingFloor",
+      "meshyAssets": {
+        "venue": "MESHY_gymnastics_training_floor",
+        "athleteBase": "MESHY_athlete_gymnastics",
+        "apparatusVault": "MESHY_gymnastics_vault",
+        "apparatusBars": "MESHY_gymnastics_parallel_bars",
+        "springFloor": "MESHY_gymnastics_spring_floor"
+      },
+      "seeleAssets": {
+        "venueMap": "TrainingFloor.umap",
+        "bpGamemode": "BP_Gymnastics.uasset",
+        "athleteAnim": "ABP_Gymnastics.uasset",
+        "apparatus": "SK_Gymnastics_Apparatus_Set.uasset",
+        "ambient": "AMB_TrainingFloor.uasset"
+      }
     },
     {
       "id": "brain_brawl",
       "analyticsMode": "brain_brawl",
       "venueKey": "neuro_arena",
       "displayVenue": "Neuro Arena",
+      "renderMode": "2D",
+      "isIRLMode": false,
+      "is2DMode": true,
+      "gameStyle": "quiz_battle",
+      "gameInspiration": ["Big Brain Academy", "Triumph", "Brain Age"],
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_NeuroArena"
+      "ambientSFX": "AMB_NeuroArena",
+      "meshyAssets": {
+        "uiBackground": "MESHY_brain_brawl_2d_arena_bg",
+        "avatarIcon": "MESHY_brain_avatar_2d",
+        "questionCard": "MESHY_brain_brawl_question_panel"
+      },
+      "seeleAssets": {
+        "venueMap": "NeuroArena.umap",
+        "bpGamemode": "BP_BrainBrawl2D.uasset",
+        "uiCanvas": "WBP_BrainBrawl_2D_Canvas.uasset",
+        "avatarIcon": "T_BrainBrawl_AvatarIcon.uasset",
+        "sfx": "SFX_BrainBrawl_Correct.uasset"
+      }
     },
     {
       "id": "who_scene_it",
       "analyticsMode": "who_scene_it",
       "venueKey": "neuro_arena",
       "displayVenue": "Neuro Arena",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_NeuroArena"
+      "ambientSFX": "AMB_NeuroArena",
+      "meshyAssets": {
+        "venue": "MESHY_neuro_arena_stage",
+        "hostAvatar": "MESHY_who_scene_it_host",
+        "questionDisplay": "MESHY_wsi_multimedia_panel"
+      },
+      "seeleAssets": {
+        "venueMap": "NeuroArena.umap",
+        "bpGamemode": "BP_WhoSceneIt.uasset",
+        "stageSet": "SK_WhoSceneIt_Stage.uasset",
+        "sfx": "SFX_WhoSceneIt_Reveal.uasset"
+      }
     },
     {
       "id": "court_carnival",
       "analyticsMode": "court_carnival",
       "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach",
+      "displayVenue": "Venice Beach Court",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach"
+      "ambientSFX": "AMB_VeniceBeach",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_carnival_board",
+        "boardPieces": "MESHY_carnival_board_game_pieces",
+        "minigameProps": "MESHY_carnival_sport_minigame_props"
+      },
+      "seeleAssets": {
+        "venueMap": "VeniceBeach.umap",
+        "bpGamemode": "BP_CourtCarnival.uasset",
+        "boardPieces": "SK_CourtCarnival_BoardSet.uasset",
+        "sfx": "SFX_CourtCarnival_Fanfare.uasset"
+      }
     },
     {
       "id": "market_browse",
       "analyticsMode": "market_browse",
       "venueKey": "luma_venice_shop",
       "displayVenue": "Luma Venice Shop",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_LumaVeniceShop"
+      "ambientSFX": "AMB_LumaVeniceShop",
+      "meshyAssets": {
+        "venue": "MESHY_luma_venice_shop_interior",
+        "cardDisplay": "MESHY_creator_card_3d_display",
+        "cardHolographic": "MESHY_creator_card_holo_shader"
+      },
+      "seeleAssets": {
+        "venueMap": "Luma_Venice_Shop.umap",
+        "bpModule": "BP_MarketBrowse.uasset",
+        "cardDisplay": "SK_CreatorCard_3D_Display.uasset",
+        "shopInterior": "SK_LumaShop_Interior.uasset"
+      }
     }
   ],
   "total_venues": 13,
