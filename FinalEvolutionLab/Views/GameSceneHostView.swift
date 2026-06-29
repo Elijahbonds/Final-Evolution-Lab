@@ -1,9 +1,96 @@
 import SwiftUI
 import SceneKit
+import MetalKit
+
+public enum ScenicCameraAngle: String, CaseIterable, Codable, Sendable {
+    case chase = "Chase Cam"
+    case broadcast = "Broadcast Cam"
+    case actionCloseUp = "Action Close-up"
+    case cinematicPan = "Cinematic Pan"
+
+    /// Baseline scenic angle per production mode — event cuts still override temporarily.
+    static func defaultForMode(_ mode: GameModeId) -> ScenicCameraAngle {
+        switch mode {
+        case .basketballDunkContest3D, .karate:
+            return .actionCloseUp
+        case .basketball3v3, .football, .soccer, .volleyball, .tennis, .karateEndless:
+            return .broadcast
+        case .golf, .courtCarnival, .whoSceneIt:
+            return .cinematicPan
+        default:
+            return .chase
+        }
+    }
+}
+
+/// Hosts Metal venue backdrop + transparent SceneKit gameplay overlay when bundled mesh is available.
+final class NexusHybridGameplayContainerView: UIView {
+    let metalView: MTKView
+    let overlayView: SCNView
+    /// Fired after Auto Layout assigns bounds so CAMetalLayer drawableSize is valid before first draw.
+    var onMetalViewLaidOut: ((MTKView) -> Void)?
+
+    init(metalView: MTKView, overlayView: SCNView) {
+        self.metalView = metalView
+        self.overlayView = overlayView
+        super.init(frame: .zero)
+        metalView.translatesAutoresizingMaskIntoConstraints = false
+        overlayView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(metalView)
+        addSubview(overlayView)
+        NSLayoutConstraint.activate([
+            metalView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            metalView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            metalView.topAnchor.constraint(equalTo: topAnchor),
+            metalView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            overlayView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            overlayView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            overlayView.topAnchor.constraint(equalTo: topAnchor),
+            overlayView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+        accessibilityIdentifier = "GameSceneViewport"
+        accessibilityValue = "loading"
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onMetalViewLaidOut?(metalView)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
 
 struct GameSceneHostView: UIViewRepresentable {
+    /// SceneKit when no bundled venue mesh or explicit opt-out. Metal when compile/env flag set,
+    /// or any production mode with bundled `.nexusmesh.json` (see `IOS_RUNBOOK.md` § Metal viewport).
+    static func prefersMetalRenderer(for gameMode: GameModeId) -> Bool {
+        let env = ProcessInfo.processInfo.environment
+        if env["NEXUS_USE_SCENEKIT"] == "1" || env["NEXUS_USE_METAL"] == "0" {
+            return false
+        }
+        #if NEXUS_USE_METAL
+        return true
+        #else
+        if env["NEXUS_USE_METAL"] == "1" {
+            return true
+        }
+        guard nexus_metal_bridge_is_linked() else {
+            return false
+        }
+        return gameMode.nexusRuntimeModeId.withCString { modeCStr in
+            nexus_metal_bridge_bundled_venue_mesh_loadable(modeCStr)
+        }
+        #endif
+    }
+
     var gameMode: GameModeId = .basketballHeadToHead
+    /// When true, routes through NEXUS 3D engine (hybrid Metal venue + SceneKit player, or full SceneKit rig).
+    var useNexus3DEngine: Bool = false
     var neuralDrive: Double = 50
+    var scenicCameraAngle: ScenicCameraAngle = .chase
     var onAction: () -> Void = {}
     var onViewportReady: () -> Void = {}
     var leftStickInput: CGPoint = .zero
@@ -11,67 +98,57 @@ struct GameSceneHostView: UIViewRepresentable {
     var isMidAir: Bool = false
     var isSpecialMove: Bool = false
     var isSlowMotion: Bool = false
+    var avatarAppearance: GameplayAvatarAppearance = .default
 
-    func makeUIView(context: Context) -> SCNView {
-        let scnView = SCNView()
-        let scene = GameSceneFactory.buildScene(for: gameMode)
-        GameSceneFactory.warmSceneForDisplay(scene)
-        scnView.scene = scene
-        scnView.backgroundColor = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
-        scnView.allowsCameraControl = false
-        scnView.antialiasingMode = .multisampling4X
-        scnView.isPlaying = true
-        scnView.rendersContinuously = true
-        if let cameraNode = scene.rootNode.childNode(withName: "mainCamera", recursively: true) {
-            scnView.pointOfView = cameraNode
+    func makeUIView(context: Context) -> UIView {
+        if Nexus3DGameplayCoordinator.shouldUseHybridMetal(for: gameMode, explicit3D: useNexus3DEngine) {
+            return context.coordinator.makeHybridView()
         }
-        scnView.accessibilityIdentifier = "GameSceneViewport"
-        scnView.accessibilityValue = "loading"
-        let screenMax = UIScreen.main.maximumFramesPerSecond
-        // SceneKit preview path: prefer device refresh up to 120Hz. Full-frame UE gameplay remains in the embedded host.
-        scnView.preferredFramesPerSecond = screenMax > 0 ? min(120, screenMax) : 60
-        scnView.showsStatistics = false
-
-        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
-        scnView.addGestureRecognizer(tap)
-        context.coordinator.tapGesture = tap
-        scnView.delegate = context.coordinator
-
-        context.coordinator.scnView = scnView
-        context.coordinator.applyNeuralDriveTuning(in: scnView.scene)
-        context.coordinator.syncInitialCameraToPlayer(in: scnView.scene)
-        context.coordinator.startCameraFollowLoop()
-        context.coordinator.startPlayerMovementLoop()
-        scnView.prepare(scene, shouldAbortBlock: nil)
-
-        return scnView
+        return context.coordinator.makeSceneKitView()
     }
 
-    static func dismantleUIView(_ uiView: SCNView, coordinator: Coordinator) {
+    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
         coordinator.teardown(view: uiView)
     }
 
-    func updateUIView(_ uiView: SCNView, context: Context) {
+    func updateUIView(_ uiView: UIView, context: Context) {
+        guard let scnView = context.coordinator.activeSceneKitView else { return }
         context.coordinator.neuralDrive = neuralDrive
         context.coordinator.leftStickInput = leftStickInput
         context.coordinator.rightStickInput = rightStickInput
         context.coordinator.isMidAir = isMidAir
         context.coordinator.isSpecialMove = isSpecialMove
         context.coordinator.isSlowMotion = isSlowMotion
-        context.coordinator.applyNeuralDriveTuning(in: uiView.scene)
+        context.coordinator.updateAvatarAppearanceIfNeeded(avatarAppearance, in: scnView.scene)
+        context.coordinator.applyNeuralDriveTuning(in: scnView.scene)
+        context.coordinator.setScenicCameraAngle(scenicCameraAngle)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onAction: onAction, onViewportReady: onViewportReady, gameMode: gameMode, neuralDrive: neuralDrive)
     }
 
-    class Coordinator: NSObject, SCNSceneRendererDelegate {
+    class Coordinator: NSObject, SCNSceneRendererDelegate, MTKViewDelegate {
         let onAction: () -> Void
         let onViewportReady: () -> Void
         let gameMode: GameModeId
         var neuralDrive: Double
+        var usesMetalPath = false
+        var usesHybridPath = false
+        var metalInitSucceeded = false
         weak var scnView: SCNView?
+        weak var hybridContainer: NexusHybridGameplayContainerView?
+        weak var mtkView: MTKView?
         weak var tapGesture: UITapGestureRecognizer?
+        var metalRendererHandle: NexusMetalRendererHandle?
+        private var lastMetalDrawableSize: CGSize = .zero
+
+        /// SceneKit view driving player/camera (full SceneKit path or hybrid overlay).
+        var activeSceneKitView: SCNView? {
+            if usesHybridPath { return hybridContainer?.overlayView }
+            if usesMetalPath { return nil }
+            return scnView
+        }
 
         /// Updated by ``SCNSceneRendererDelegate`` — drives camera smoothing at real frame deltas.
         var latestFrameDelta: Float = 1.0 / 60.0
@@ -82,6 +159,13 @@ struct GameSceneHostView: UIViewRepresentable {
         var isMidAir: Bool = false
         var isSpecialMove: Bool = false
         var isSlowMotion: Bool = false
+        private var lastAvatarAppearance: GameplayAvatarAppearance = .default
+
+        var currentScenicCameraAngle: ScenicCameraAngle = .chase
+        private var temporaryCameraAngleOverride: ScenicCameraAngle? = nil
+        private var overrideTimerTask: Task<Void, Never>? = nil
+        private var orbitAngle: Float = 0.0
+        private var jumpProgress: Float = 0.0
 
         private var smoothedCameraPosition = SCNVector3(0, 4, 8)
         private var smoothedCameraTarget = SCNVector3(0, 1.2, 0)
@@ -95,6 +179,7 @@ struct GameSceneHostView: UIViewRepresentable {
         private var lastPlayerY: Float = 0
         private var renderedFrameCount = 0
         private var didReportViewportReady = false
+        private var scenicCameraAngle: ScenicCameraAngle = .chase
 
         private enum CinematicState: Equatable {
             case normal
@@ -104,66 +189,49 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         private var playerNodeName: String {
-            switch gameMode {
-            case .basketballHeadToHead, .marketBrowse: return "player1"
-            case .basketballDunkContest: return "dunker"
-            case .basketball3v3: return "blue1"
-            case .karate, .karateEndless: return "fighter1"
-            case .baseball: return "batter"
-            case .soccer: return "kicker"
-            case .golf: return "golfer"
-            case .tennis: return "player"
-            case .volleyball: return "vPlayer1"
-            case .gymnastics: return "gymnast"
-            case .surfing: return "surfer"
-            case .skateboarding: return "skater"
-            case .snowboarding: return "rider"
-            case .brainBrawl, .whoSceneIt: return "cognitivePlayer"
-            case .courtCarnival: return "player1"
-            case .football: return "returner"
-            }
+            GameSceneFactory.primaryGameplayAvatarName(for: gameMode)
+        }
+
+        /// H2H dunk — temporarily tracks opponent during AI turn scenic cuts.
+        private var avatarFocusOverride: String?
+        private var opponentFocusTimerTask: Task<Void, Never>?
+
+        private var trackedAvatarName: String {
+            avatarFocusOverride ?? playerNodeName
+        }
+
+        func updateAvatarAppearanceIfNeeded(_ appearance: GameplayAvatarAppearance, in scene: SCNScene?) {
+            guard appearance != lastAvatarAppearance else { return }
+            lastAvatarAppearance = appearance
+            GameSceneFactory.replacePrimaryAvatar(
+                in: scene,
+                for: gameMode,
+                fallbackTint: UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1),
+                appearance: appearance
+            )
         }
 
         private var cameraConfig: CameraFollowConfig {
-            switch gameMode {
-            case .basketballHeadToHead, .basketball3v3, .marketBrowse:
-                return CameraFollowConfig(offsetX: 2, offsetY: 5, offsetZ: 8, lookAtY: 1.2, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
-            case .basketballDunkContest:
-                return CameraFollowConfig(offsetX: 1.5, offsetY: 5.5, offsetZ: 9, lookAtY: 2.0, followSpeed: 6, targetSpeed: 8, fovNormal: 48, fovAction: 35)
-            case .karate, .karateEndless:
-                return CameraFollowConfig(offsetX: 0, offsetY: 3.5, offsetZ: 6, lookAtY: 1.2, followSpeed: 7, targetSpeed: 9, fovNormal: 48, fovAction: 36)
-            case .football:
-                return CameraFollowConfig(offsetX: 0, offsetY: 6, offsetZ: 8, lookAtY: 1.0, followSpeed: 5, targetSpeed: 6, fovNormal: 52, fovAction: 42)
-            case .soccer:
-                return CameraFollowConfig(offsetX: 1, offsetY: 4, offsetZ: 7, lookAtY: 0.8, followSpeed: 5, targetSpeed: 7, fovNormal: 50, fovAction: 40)
-            case .baseball:
-                return CameraFollowConfig(offsetX: -2, offsetY: 3.5, offsetZ: 6, lookAtY: 1.5, followSpeed: 4, targetSpeed: 6, fovNormal: 48, fovAction: 38)
-            case .golf:
-                return CameraFollowConfig(offsetX: 2, offsetY: 3, offsetZ: 7, lookAtY: 1.0, followSpeed: 3, targetSpeed: 5, fovNormal: 46, fovAction: 36)
-            case .tennis:
-                return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 9, lookAtY: 1.0, followSpeed: 5, targetSpeed: 7, fovNormal: 50, fovAction: 40)
-            case .volleyball:
-                return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 8, lookAtY: 1.5, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
-            case .gymnastics:
-                return CameraFollowConfig(offsetX: 1, offsetY: 4, offsetZ: 8, lookAtY: 1.5, followSpeed: 4, targetSpeed: 6, fovNormal: 48, fovAction: 36)
-            case .surfing:
-                return CameraFollowConfig(offsetX: 2.4, offsetY: 4.6, offsetZ: 9.2, lookAtY: 1.45, followSpeed: 5, targetSpeed: 8, fovNormal: 50, fovAction: 38)
-            case .skateboarding:
-                return CameraFollowConfig(offsetX: 1.1, offsetY: 3.7, offsetZ: 7.4, lookAtY: 1.15, followSpeed: 6, targetSpeed: 9, fovNormal: 48, fovAction: 36)
-            case .snowboarding:
-                return CameraFollowConfig(offsetX: 1.8, offsetY: 5.1, offsetZ: 9, lookAtY: 1.55, followSpeed: 4, targetSpeed: 7, fovNormal: 52, fovAction: 40)
-            case .brainBrawl, .whoSceneIt:
-                return CameraFollowConfig(offsetX: 0.9, offsetY: 4.2, offsetZ: 7.2, lookAtY: 1.45, followSpeed: 3, targetSpeed: 5, fovNormal: 46, fovAction: 34)
-            case .courtCarnival:
-                return CameraFollowConfig(offsetX: 2, offsetY: 5, offsetZ: 8, lookAtY: 1.2, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
-            }
+            let premium = PremiumViewpointConfig.chaseCamera(for: gameMode)
+            return CameraFollowConfig(
+                offsetX: premium.offsetX,
+                offsetY: premium.offsetY,
+                offsetZ: premium.offsetZ,
+                lookAtY: premium.lookAtY,
+                followSpeed: premium.followSpeed,
+                targetSpeed: premium.targetSpeed,
+                fovNormal: premium.fovNormal,
+                fovAction: premium.fovAction
+            )
         }
 
         private var movementBounds: MovementBounds {
             switch gameMode {
-            case .basketballHeadToHead, .marketBrowse:
+            case .basketballHeadToHead, .venicePickup:
                 return MovementBounds(minX: -3.8, maxX: 3.8, minZ: -2.5, maxZ: 2.5, speed: 0.12)
-            case .basketballDunkContest:
+            case .marketBrowse:
+                return MovementBounds(minX: -2.6, maxX: 2.6, minZ: -2.8, maxZ: 2.4, speed: 0.08)
+            case .basketballDunkContest3D, .basketballDunkContestIRL:
                 return MovementBounds(minX: -5.0, maxX: 4.0, minZ: -3.5, maxZ: 3.5, speed: 0.14)
             case .basketball3v3:
                 return MovementBounds(minX: -4.5, maxX: 4.5, minZ: -2.8, maxZ: 2.8, speed: 0.12)
@@ -196,6 +264,218 @@ struct GameSceneHostView: UIViewRepresentable {
             }
         }
 
+        func makeSceneKitView() -> SCNView {
+            usesMetalPath = false
+            let scnView = SCNView()
+            let scene = GameSceneFactory.buildScene(for: gameMode)
+            GameSceneFactory.warmSceneForDisplay(scene)
+            scnView.scene = scene
+            scnView.backgroundColor = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
+            scnView.autoenablesDefaultLighting = true
+            scnView.allowsCameraControl = false
+            scnView.antialiasingMode = FELViewportRefreshPolicy.sceneKitAntialiasing
+            scnView.isPlaying = true
+            scnView.rendersContinuously = true
+            if let cameraNode = scene.rootNode.childNode(withName: "mainCamera", recursively: true) {
+                scnView.pointOfView = cameraNode
+            } else if let fallbackCamera = scene.rootNode.childNodes.first(where: { $0.camera != nil }) {
+                scnView.pointOfView = fallbackCamera
+            }
+            scnView.accessibilityIdentifier = "GameSceneViewport"
+            scnView.accessibilityValue = "loading"
+            scnView.preferredFramesPerSecond = FELViewportRefreshPolicy.sceneKitTargetFPS
+            scnView.showsStatistics = false
+
+            let tap = UITapGestureRecognizer(target: self, action: #selector(Coordinator.handleTap(_:)))
+            scnView.addGestureRecognizer(tap)
+            tapGesture = tap
+            scnView.delegate = self
+
+            self.scnView = scnView
+            applyNeuralDriveTuning(in: scnView.scene)
+            syncInitialCameraToPlayer(in: scnView.scene)
+            startCameraFollowLoop()
+            startPlayerMovementLoop()
+            applyPerformanceTier(FELPerformanceMonitor.shared.currentTier)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                self.reportViewportReadyIfNeeded()
+            }
+
+            return scnView
+        }
+
+        func makeHybridView() -> NexusHybridGameplayContainerView {
+            usesMetalPath = true
+            usesHybridPath = true
+            metalInitSucceeded = false
+
+            let metalView = MTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
+            metalView.delegate = self
+            metalView.isPaused = false
+            metalView.enableSetNeedsDisplay = false
+            metalView.preferredFramesPerSecond = FELViewportRefreshPolicy.metalTargetFPS
+            metalView.colorPixelFormat = .bgra8Unorm
+            metalView.framebufferOnly = true
+            metalView.autoResizeDrawable = true
+            metalView.isOpaque = true
+            metalView.backgroundColor = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
+            metalView.clearColor = MTLClearColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
+            Self.configureMetalLayer(for: metalView)
+            mtkView = metalView
+
+            if nexus_metal_bridge_is_linked() {
+                metalRendererHandle = nexus_metal_renderer_create()
+                if let handle = metalRendererHandle {
+                    gameMode.nexusRuntimeModeId.withCString { modeCStr in
+                        nexus_metal_renderer_set_mode_id(handle, modeCStr)
+                    }
+                    nexus_metal_renderer_set_orbit_rate(handle, 0)
+                }
+            }
+
+            let overlay = SCNView()
+            let scene = GameSceneFactory.buildGameplayOverlay(for: gameMode)
+            GameSceneFactory.warmSceneForDisplay(scene)
+            scene.background.contents = UIColor.clear
+            overlay.scene = scene
+            overlay.backgroundColor = .clear
+            overlay.isOpaque = false
+            overlay.layer.isOpaque = false
+            overlay.autoenablesDefaultLighting = true
+            overlay.allowsCameraControl = false
+            overlay.antialiasingMode = FELViewportRefreshPolicy.sceneKitAntialiasing
+            overlay.isPlaying = true
+            overlay.rendersContinuously = true
+            if let cameraNode = scene.rootNode.childNode(withName: "mainCamera", recursively: true) {
+                overlay.pointOfView = cameraNode
+            }
+            overlay.preferredFramesPerSecond = FELViewportRefreshPolicy.sceneKitTargetFPS
+            overlay.delegate = self
+
+            let tap = UITapGestureRecognizer(target: self, action: #selector(Coordinator.handleTap(_:)))
+            overlay.addGestureRecognizer(tap)
+            tapGesture = tap
+
+            scnView = overlay
+            let container = NexusHybridGameplayContainerView(metalView: metalView, overlayView: overlay)
+            container.onMetalViewLaidOut = { [weak self] view in
+                self?.syncMetalDrawableLayout(for: view)
+            }
+            hybridContainer = container
+
+            applyNeuralDriveTuning(in: overlay.scene)
+            syncInitialCameraToPlayer(in: overlay.scene)
+            startCameraFollowLoop()
+            startPlayerMovementLoop()
+            applyPerformanceTier(FELPerformanceMonitor.shared.currentTier)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                self.reportViewportReadyIfNeeded()
+            }
+
+            return container
+        }
+
+        func makeMetalView() -> MTKView {
+            usesMetalPath = true
+            metalInitSucceeded = false
+            let view = MTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
+            view.delegate = self
+            view.isPaused = false
+            view.enableSetNeedsDisplay = false
+            view.preferredFramesPerSecond = FELViewportRefreshPolicy.metalTargetFPS
+            view.colorPixelFormat = .bgra8Unorm
+            view.framebufferOnly = true
+            view.clearColor = MTLClearColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
+            view.accessibilityIdentifier = "GameSceneViewport"
+            view.accessibilityValue = "loading"
+            mtkView = view
+
+            if nexus_metal_bridge_is_linked() {
+                metalRendererHandle = nexus_metal_renderer_create()
+                if let handle = metalRendererHandle {
+                    gameMode.nexusRuntimeModeId.withCString { modeCStr in
+                        nexus_metal_renderer_set_mode_id(handle, modeCStr)
+                    }
+                }
+            }
+
+            return view
+        }
+
+        private static func configureMetalLayer(for view: MTKView) {
+            guard let layer = view.layer as? CAMetalLayer else { return }
+            layer.pixelFormat = .bgra8Unorm
+            layer.framebufferOnly = true
+            layer.contentsScale = view.contentScaleFactor
+            syncMetalDrawableSize(for: view)
+        }
+
+        private static func syncMetalDrawableSize(for view: MTKView) {
+            guard let layer = view.layer as? CAMetalLayer else { return }
+            let scale = view.contentScaleFactor
+            let width = max(view.bounds.width * scale, 1)
+            let height = max(view.bounds.height * scale, 1)
+            guard width > 1, height > 1 else { return }
+            layer.drawableSize = CGSize(width: width, height: height)
+        }
+
+        private func syncMetalDrawableLayout(for view: MTKView) {
+            Self.configureMetalLayer(for: view)
+            guard usesMetalPath, let handle = metalRendererHandle else { return }
+            let size = view.drawableSize
+            guard size.width > 1, size.height > 1 else { return }
+            if metalInitSucceeded, size == lastMetalDrawableSize { return }
+            if metalInitSucceeded {
+                nexus_metal_renderer_shutdown(handle)
+                metalInitSucceeded = false
+            }
+            lastMetalDrawableSize = size
+            guard let layer = view.layer as? CAMetalLayer else { return }
+            let width = max(UInt32(size.width.rounded()), 1)
+            let height = max(UInt32(size.height.rounded()), 1)
+            metalInitSucceeded = nexus_metal_renderer_initialize(handle, layer, width, height)
+            if !metalInitSucceeded {
+                lastMetalDrawableSize = .zero
+            }
+        }
+
+        private func ensureMetalRendererInitialized(for view: MTKView) -> Bool {
+            guard usesMetalPath, let handle = metalRendererHandle,
+                  let layer = view.layer as? CAMetalLayer else { return metalInitSucceeded }
+            if metalInitSucceeded { return true }
+            Self.syncMetalDrawableSize(for: view)
+            let width = max(UInt32(view.drawableSize.width.rounded()), 1)
+            let height = max(UInt32(view.drawableSize.height.rounded()), 1)
+            guard width > 1, height > 1 else { return false }
+            metalInitSucceeded = nexus_metal_renderer_initialize(handle, layer, width, height)
+            if metalInitSucceeded {
+                lastMetalDrawableSize = view.drawableSize
+            }
+            return metalInitSucceeded
+        }
+
+        func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+            guard usesMetalPath else { return }
+            guard size.width > 1, size.height > 1 else { return }
+            syncMetalDrawableLayout(for: view)
+        }
+
+        func draw(in view: MTKView) {
+            guard usesMetalPath, let handle = metalRendererHandle else { return }
+            guard ensureMetalRendererInitialized(for: view) else {
+                view.accessibilityValue = "metal_init_pending"
+                return
+            }
+            let drew = nexus_metal_renderer_render(handle)
+            if drew {
+                view.accessibilityValue = "ready"
+                hybridContainer?.accessibilityValue = "ready"
+                reportViewportReadyIfNeeded()
+            } else if let err = nexus_metal_renderer_last_error(handle) {
+                view.accessibilityValue = "metal_error:\(String(cString: err))"
+            }
+        }
+
         init(onAction: @escaping () -> Void, onViewportReady: @escaping () -> Void, gameMode: GameModeId, neuralDrive: Double) {
             self.onAction = onAction
             self.onViewportReady = onViewportReady
@@ -204,18 +484,124 @@ struct GameSceneHostView: UIViewRepresentable {
             let config = GameSceneHostView.Coordinator.defaultCameraConfig(for: gameMode)
             self.smoothedCameraPosition = SCNVector3(config.offsetX, config.offsetY, config.offsetZ)
             self.smoothedCameraTarget = SCNVector3(0, config.lookAtY, 0)
+            super.init()
+            
+            // Register event listener for event-triggered camera cuts
+            NotificationCenter.default.addObserver(
+                forName: .felGameplayScored,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.triggerTemporaryCameraCut(to: .actionCloseUp, duration: 2.0)
+                self?.triggerCinematicShake(intensity: 0.5)
+            }
+            
+            NotificationCenter.default.addObserver(
+                forName: .felGameplayBuzzIn,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.triggerTemporaryCameraCut(to: .actionCloseUp, duration: 1.5)
+            }
+            
+            NotificationCenter.default.addObserver(
+                forName: .felGameplayPenalty,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.triggerTemporaryCameraCut(to: .broadcast, duration: 1.5)
+                self?.triggerCinematicShake(intensity: 0.3)
+            }
+            
+            NotificationCenter.default.addObserver(
+                forName: .felGameplayKarateBlock,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.triggerTemporaryCameraCut(to: .actionCloseUp, duration: 1.0)
+                self?.triggerCinematicShake(intensity: 0.4)
+            }
+            
+            NotificationCenter.default.addObserver(
+                forName: .felGameplayWaveCompleted,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.triggerTemporaryCameraCut(to: .cinematicPan, duration: 3.5)
+            }
+
+            NotificationCenter.default.addObserver(
+                forName: .felGameplayOpponentScored,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                guard let self else { return }
+                self.avatarFocusOverride = "opponent"
+                self.triggerTemporaryCameraCut(to: .broadcast, duration: 3.5)
+                self.triggerCinematicShake(intensity: 0.35)
+                self.triggerAvatarAction(named: "opponent")
+                self.opponentFocusTimerTask?.cancel()
+                self.opponentFocusTimerTask = Task { [weak self] in
+                    try? await Task.sleep(for: .seconds(3.5))
+                    guard let self, !Task.isCancelled else { return }
+                    self.avatarFocusOverride = nil
+                }
+            }
+
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("FELPerformanceTierChanged"),
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                guard let self = self else { return }
+                if let rawValue = notification.userInfo?["tier"] as? Int,
+                   let tier = FELPerformanceTier(rawValue: rawValue) {
+                    self.applyPerformanceTier(tier)
+                }
+            }
         }
 
         private static func defaultCameraConfig(for mode: GameModeId) -> CameraFollowConfig {
-            switch mode {
-            case .basketballHeadToHead, .basketball3v3:
-                return CameraFollowConfig(offsetX: 2, offsetY: 5, offsetZ: 8, lookAtY: 1.2, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
-            case .basketballDunkContest:
-                return CameraFollowConfig(offsetX: 1.5, offsetY: 5.5, offsetZ: 9, lookAtY: 2.0, followSpeed: 6, targetSpeed: 8, fovNormal: 48, fovAction: 35)
-            case .karate, .karateEndless:
-                return CameraFollowConfig(offsetX: 0, offsetY: 3.5, offsetZ: 6, lookAtY: 1.2, followSpeed: 7, targetSpeed: 9, fovNormal: 48, fovAction: 36)
-            default:
-                return CameraFollowConfig(offsetX: 1, offsetY: 4.5, offsetZ: 8, lookAtY: 1.0, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
+            let premium = PremiumViewpointConfig.chaseCamera(for: mode)
+            return CameraFollowConfig(
+                offsetX: premium.offsetX,
+                offsetY: premium.offsetY,
+                offsetZ: premium.offsetZ,
+                lookAtY: premium.lookAtY,
+                followSpeed: premium.followSpeed,
+                targetSpeed: premium.targetSpeed,
+                fovNormal: premium.fovNormal,
+                fovAction: premium.fovAction
+            )
+        }
+
+        func applyPerformanceTier(_ tier: FELPerformanceTier) {
+            scnView?.preferredFramesPerSecond = FELViewportRefreshPolicy.sceneKitTargetFPS(for: tier)
+            mtkView?.preferredFramesPerSecond = FELViewportRefreshPolicy.metalTargetFPS(for: tier)
+            scnView?.antialiasingMode = FELViewportRefreshPolicy.sceneKitAntialiasing(for: tier)
+
+            if let scene = scnView?.scene {
+                GameSceneFactory.adjustSceneQuality(scene, for: tier)
+            }
+        }
+
+        func setScenicCameraAngle(_ angle: ScenicCameraAngle) {
+            if currentScenicCameraAngle != angle {
+                currentScenicCameraAngle = angle
+                cinematicTransitionProgress = 0
+            }
+        }
+
+        func triggerTemporaryCameraCut(to angle: ScenicCameraAngle, duration: Double) {
+            overrideTimerTask?.cancel()
+            temporaryCameraAngleOverride = angle
+            cinematicTransitionProgress = 0
+            
+            overrideTimerTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(duration))
+                guard let self else { return }
+                self.temporaryCameraAngleOverride = nil
+                self.cinematicTransitionProgress = 0
             }
         }
 
@@ -241,7 +627,7 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         func startCameraFollowLoop() {
-            guard let scene = scnView?.scene else { return }
+            guard let scene = activeSceneKitView?.scene else { return }
             let cameraAction = SCNAction.customAction(duration: 100000) { [weak self] _, _ in
                 self?.updateCameraFollow()
             }
@@ -249,7 +635,7 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         func startPlayerMovementLoop() {
-            guard let scene = scnView?.scene else { return }
+            guard let scene = activeSceneKitView?.scene else { return }
             let moveAction = SCNAction.customAction(duration: 100000) { [weak self] _, _ in
                 self?.updatePlayerMovement()
             }
@@ -257,79 +643,140 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         private func updateCameraFollow() {
-            guard let scene = scnView?.scene,
+            guard let scene = activeSceneKitView?.scene,
                   let camNode = scene.rootNode.childNode(withName: "mainCamera", recursively: false) else { return }
 
-            let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true)
+            let playerNode = scene.rootNode.childNode(withName: trackedAvatarName, recursively: true)
             let playerPos = playerNode?.presentation.position ?? SCNVector3(0, 0, 0)
 
             let delta = max(latestFrameDelta, 1.0 / 240.0)
             let config = cameraConfig
 
-            let currentState = determineCinematicState()
-            if currentState != lastCinematicState {
-                cinematicTransitionProgress = 0
-                lastCinematicState = currentState
-            }
-            cinematicTransitionProgress = min(1.0, cinematicTransitionProgress + delta * 3.0)
-            let t = easeInOut(cinematicTransitionProgress)
-
-            var targetZoomOffset: Float = 0
-            var targetHeightOffset: Float = 0
-            var targetAngleOffset: Float = 0
+            let activeAngle = temporaryCameraAngleOverride ?? currentScenicCameraAngle
+            
+            var desiredCamPos = SCNVector3(0, 0, 0)
+            var desiredLookAt = SCNVector3(0, 0, 0)
             var targetFOV: CGFloat = config.fovNormal
             var followSpeedMult: Float = 1.0
             var targetSpeedMult: Float = 1.0
 
-            switch currentState {
-            case .midAir:
-                targetZoomOffset = -2.5
-                targetHeightOffset = 1.5
-                targetAngleOffset = -0.3
-                targetFOV = config.fovAction
-                followSpeedMult = 1.8
-                targetSpeedMult = 2.0
-                if cameraShakeIntensity < 0.1 {
-                    cameraShakeIntensity = 0.15
+            switch activeAngle {
+            case .chase:
+                let currentState = determineCinematicState()
+                if currentState != lastCinematicState {
+                    cinematicTransitionProgress = 0
+                    lastCinematicState = currentState
                 }
-            case .specialMove:
-                targetZoomOffset = -3.5
-                targetHeightOffset = 0.8
-                targetAngleOffset = 0.2
-                targetFOV = config.fovAction - 4
-                followSpeedMult = 2.5
-                targetSpeedMult = 3.0
-                if cameraShakeIntensity < 0.3 {
-                    cameraShakeIntensity = 0.4
-                }
-            case .landing:
-                targetZoomOffset = -1.0
-                targetHeightOffset = -0.5
-                targetFOV = config.fovNormal + 3
-                followSpeedMult = 1.5
-                targetSpeedMult = 1.5
-                cameraShakeIntensity = max(cameraShakeIntensity, 0.5)
-            case .normal:
-                break
-            }
+                cinematicTransitionProgress = min(1.0, cinematicTransitionProgress + delta * 3.0)
+                let t = easeInOut(cinematicTransitionProgress)
 
-            cinematicZoomOffset += (targetZoomOffset - cinematicZoomOffset) * t
-            cinematicHeightOffset += (targetHeightOffset - cinematicHeightOffset) * t
-            cinematicAngleOffset += (targetAngleOffset - cinematicAngleOffset) * t
+                var targetZoomOffset: Float = 0
+                var targetHeightOffset: Float = 0
+                var targetAngleOffset: Float = 0
+                targetFOV = config.fovNormal
+                followSpeedMult = 1.0
+                targetSpeedMult = 1.0
+
+                switch currentState {
+                case .midAir:
+                    targetZoomOffset = -2.5
+                    targetHeightOffset = 1.5
+                    targetAngleOffset = -0.3
+                    targetFOV = config.fovAction
+                    followSpeedMult = 1.8
+                    targetSpeedMult = 2.0
+                    if cameraShakeIntensity < 0.1 {
+                        cameraShakeIntensity = 0.15
+                    }
+                case .specialMove:
+                    targetZoomOffset = -3.5
+                    targetHeightOffset = 0.8
+                    targetAngleOffset = 0.2
+                    targetFOV = config.fovAction - 4
+                    followSpeedMult = 2.5
+                    targetSpeedMult = 3.0
+                    if cameraShakeIntensity < 0.3 {
+                        cameraShakeIntensity = 0.4
+                    }
+                case .landing:
+                    targetZoomOffset = -1.0
+                    targetHeightOffset = -0.5
+                    targetFOV = config.fovNormal + 3
+                    followSpeedMult = 1.5
+                    targetSpeedMult = 1.5
+                    cameraShakeIntensity = max(cameraShakeIntensity, 0.5)
+                case .normal:
+                    break
+                }
+
+                cinematicZoomOffset += (targetZoomOffset - cinematicZoomOffset) * t
+                cinematicHeightOffset += (targetHeightOffset - cinematicHeightOffset) * t
+                cinematicAngleOffset += (targetAngleOffset - cinematicAngleOffset) * t
+
+                desiredCamPos = SCNVector3(
+                    playerPos.x + config.offsetX + cinematicAngleOffset * 3,
+                    playerPos.y + config.offsetY + cinematicHeightOffset,
+                    playerPos.z + config.offsetZ + cinematicZoomOffset
+                )
+                desiredLookAt = SCNVector3(
+                    playerPos.x,
+                    playerPos.y + config.lookAtY + cinematicHeightOffset * 0.4,
+                    playerPos.z
+                )
+
+            case .broadcast:
+                // High wide static angle tracking the action
+                desiredCamPos = SCNVector3(
+                    playerPos.x * 0.25,
+                    playerPos.y + 11.0,
+                    playerPos.z + 15.0
+                )
+                desiredLookAt = SCNVector3(
+                    playerPos.x,
+                    playerPos.y + config.lookAtY,
+                    playerPos.z
+                )
+                targetFOV = 55.0
+                followSpeedMult = 0.8
+                targetSpeedMult = 1.2
+
+            case .actionCloseUp:
+                // Zoomed-in dramatic angle on the active player
+                desiredCamPos = SCNVector3(
+                    playerPos.x + config.offsetX * 0.32,
+                    playerPos.y + config.offsetY * 0.32 + 1.1,
+                    playerPos.z + config.offsetZ * 0.32
+                )
+                desiredLookAt = SCNVector3(
+                    playerPos.x,
+                    playerPos.y + config.lookAtY,
+                    playerPos.z
+                )
+                targetFOV = 22.0
+                followSpeedMult = 2.0
+                targetSpeedMult = 2.2
+
+            case .cinematicPan:
+                // Slow orbit around the player / venue
+                orbitAngle += delta * 0.22
+                let radius: Float = 8.5
+                desiredCamPos = SCNVector3(
+                    playerPos.x + radius * sin(orbitAngle),
+                    playerPos.y + 4.2,
+                    playerPos.z + radius * cos(orbitAngle)
+                )
+                desiredLookAt = SCNVector3(
+                    playerPos.x,
+                    playerPos.y + config.lookAtY,
+                    playerPos.z
+                )
+                targetFOV = 44.0
+                followSpeedMult = 1.6
+                targetSpeedMult = 2.0
+            }
 
             let cameraLerp = 1.0 - exp(-config.followSpeed * followSpeedMult * delta)
             let targetLerp = 1.0 - exp(-config.targetSpeed * targetSpeedMult * delta)
-
-            let desiredCamPos = SCNVector3(
-                playerPos.x + config.offsetX + cinematicAngleOffset * 3,
-                playerPos.y + config.offsetY + cinematicHeightOffset,
-                playerPos.z + config.offsetZ + cinematicZoomOffset
-            )
-            let desiredLookAt = SCNVector3(
-                playerPos.x,
-                playerPos.y + config.lookAtY + cinematicHeightOffset * 0.4,
-                playerPos.z
-            )
 
             smoothedCameraPosition = lerpVec3(smoothedCameraPosition, desiredCamPos, t: cameraLerp)
             smoothedCameraTarget = lerpVec3(smoothedCameraTarget, desiredLookAt, t: targetLerp)
@@ -363,7 +810,7 @@ struct GameSceneHostView: UIViewRepresentable {
             if isSpecialMove { return .specialMove }
             if isMidAir { return .midAir }
 
-            guard let scene = scnView?.scene,
+            guard let scene = activeSceneKitView?.scene,
                   let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true) else {
                 return .normal
             }
@@ -384,7 +831,7 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         private func updatePlayerMovement() {
-            guard let scene = scnView?.scene,
+            guard let scene = activeSceneKitView?.scene,
                   let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true) else { return }
 
             let stickX = Float(leftStickInput.x)
@@ -445,8 +892,12 @@ struct GameSceneHostView: UIViewRepresentable {
 
         func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
             renderedFrameCount += 1
-            guard renderedFrameCount >= 2 else { return }
+            guard renderedFrameCount >= 1 else { return }
             scnView?.accessibilityValue = "ready"
+            reportViewportReadyIfNeeded()
+        }
+
+        func reportViewportReadyIfNeeded() {
             guard !didReportViewportReady else { return }
             didReportViewportReady = true
             Task { @MainActor in
@@ -454,20 +905,75 @@ struct GameSceneHostView: UIViewRepresentable {
             }
         }
 
-        func teardown(view: SCNView) {
-            view.delegate = nil
-            lastRendererTime = nil
-            renderedFrameCount = 0
-            didReportViewportReady = false
-            view.accessibilityValue = "loading"
-            if let g = tapGesture {
-                view.removeGestureRecognizer(g)
-                tapGesture = nil
+        func teardown(view: UIView) {
+            NotificationCenter.default.removeObserver(self)
+            overrideTimerTask?.cancel()
+            opponentFocusTimerTask?.cancel()
+            avatarFocusOverride = nil
+            if let container = view as? NexusHybridGameplayContainerView {
+                container.overlayView.delegate = nil
+                lastRendererTime = nil
+                renderedFrameCount = 0
+                didReportViewportReady = false
+                container.accessibilityValue = "loading"
+                container.overlayView.accessibilityValue = "loading"
+                if let g = tapGesture {
+                    container.overlayView.removeGestureRecognizer(g)
+                    tapGesture = nil
+                }
+                container.overlayView.scene?.rootNode.removeAction(forKey: "cameraFollowLoop")
+                container.overlayView.scene?.rootNode.removeAction(forKey: "playerMoveLoop")
+                container.overlayView.isPlaying = false
+                container.overlayView.scene = nil
+                container.metalView.isPaused = true
+                container.metalView.delegate = nil
+                if let handle = metalRendererHandle {
+                    nexus_metal_renderer_shutdown(handle)
+                    nexus_metal_renderer_destroy(handle)
+                    metalRendererHandle = nil
+                }
+                mtkView = nil
+                scnView = nil
+                hybridContainer = nil
+                usesMetalPath = false
+                usesHybridPath = false
+                metalInitSucceeded = false
+                lastMetalDrawableSize = .zero
+                return
             }
-            view.scene?.rootNode.removeAction(forKey: "cameraFollowLoop")
-            view.scene?.rootNode.removeAction(forKey: "playerMoveLoop")
-            view.scene = nil
-            scnView = nil
+
+            if let scnView = view as? SCNView {
+                scnView.delegate = nil
+                lastRendererTime = nil
+                renderedFrameCount = 0
+                didReportViewportReady = false
+                scnView.accessibilityValue = "loading"
+                if let g = tapGesture {
+                    scnView.removeGestureRecognizer(g)
+                    tapGesture = nil
+                }
+                scnView.scene?.rootNode.removeAction(forKey: "cameraFollowLoop")
+                scnView.scene?.rootNode.removeAction(forKey: "playerMoveLoop")
+                scnView.isPlaying = false
+                scnView.scene = nil
+                self.scnView = nil
+            }
+
+            if let mtkView = view as? MTKView {
+                mtkView.isPaused = true
+                mtkView.delegate = nil
+                mtkView.accessibilityValue = "loading"
+                if let handle = metalRendererHandle {
+                    nexus_metal_renderer_shutdown(handle)
+                    nexus_metal_renderer_destroy(handle)
+                    metalRendererHandle = nil
+                }
+                self.mtkView = nil
+                lastMetalDrawableSize = .zero
+                usesMetalPath = false
+                metalInitSucceeded = false
+                didReportViewportReady = false
+            }
         }
 
         private func animateRunState(_ node: SCNNode, speed: Float) {
@@ -552,7 +1058,7 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
-            guard let scnView else { return }
+            guard let scnView = activeSceneKitView else { return }
             let location = gesture.location(in: scnView)
             let hitResults = scnView.hitTest(location, options: [.searchMode: NSNumber(value: SCNHitTestSearchMode.closest.rawValue)])
 
@@ -572,8 +1078,13 @@ struct GameSceneHostView: UIViewRepresentable {
         }
 
         private func triggerPlayerAction(in scene: SCNScene?) {
+            triggerAvatarAction(named: playerNodeName, in: scene)
+        }
+
+        private func triggerAvatarAction(named avatarName: String, in scene: SCNScene? = nil) {
+            let scene = scene ?? activeSceneKitView?.scene
             guard let scene else { return }
-            guard let node = scene.rootNode.childNode(withName: playerNodeName, recursively: true) else { return }
+            guard let node = scene.rootNode.childNode(withName: avatarName, recursively: true) else { return }
             let speedMultiplier = actionSpeedMultiplier()
             let actionPulse = SCNAction.sequence([
                 SCNAction.scale(to: 1.12, duration: 0.06 / speedMultiplier),

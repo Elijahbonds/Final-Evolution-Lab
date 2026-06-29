@@ -12,6 +12,8 @@ struct GamePlayView: View {
     let viewModel: LabViewModel
     let gameMode: GameMode
     let sessionReadiness: Double
+    /// HUD theme from NEXUS Game Generator customizer — flows into live gameplay chrome.
+    var generatorHudTheme: NexusGeneratorHudTheme? = nil
     /// When true (screenshot harness only), skips multiplayer lobby + countdown so START MATCH + scene chrome are visible immediately.
     var skipMatchLobbyForScreenshotHarness: Bool = false
 
@@ -148,7 +150,7 @@ struct GamePlayView: View {
         default: false
         }
     }
-    private var supportsTricks: Bool { gameMode.id == .basketballDunkContest || gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3 || isKarate }
+    private var supportsTricks: Bool { gameMode.id.is3DDunkContest || gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3 || isKarate }
     private var specialMeterFull: Bool { specialMeter >= 100 }
 
     private var playerPRQ: Double { viewModel.effectiveMetrics.prqScore }
@@ -178,12 +180,26 @@ struct GamePlayView: View {
         GameModeRules.forMode(gameMode.id)
     }
 
+    /// Generator customizer overrides mode accent when present.
+    private var effectiveHudAccent: Color {
+        generatorHudTheme?.accentColor ?? gameMode.accentColor
+    }
+
+    private var effectiveHudPrimary: Color {
+        generatorHudTheme?.primaryColor ?? gameMode.accentColor
+    }
+
+    private var generatorHudBadge: String? {
+        guard let theme = generatorHudTheme, !theme.badgeLabel.isEmpty else { return nil }
+        return theme.badgeLabel.uppercased()
+    }
+
     private var isTimerBased: Bool {
         gameRules.useMatchCountdown
     }
 
     private var isDunkContest: Bool {
-        gameMode.id == .basketballDunkContest
+        gameMode.id.is3DDunkContest
     }
 
     private var isBlacktop: Bool {
@@ -191,7 +207,7 @@ struct GamePlayView: View {
     }
 
     private var isBasketball: Bool {
-        gameMode.id == .basketballHeadToHead || gameMode.id == .basketballDunkContest || gameMode.id == .basketball3v3
+        gameMode.id == .basketballHeadToHead || gameMode.id.is3DDunkContest || gameMode.id == .basketball3v3
     }
 
     private var supportsDefense: Bool {
@@ -409,6 +425,7 @@ struct GamePlayView: View {
                     }
                     .foregroundStyle(gameMode.accentColor)
                 }
+                .accessibilityIdentifier("GameplayExitButton")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 8) {
@@ -444,7 +461,9 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(readiness: sessionReadiness)
+            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            FELSoundscapeEngine.shared.start(for: gameMode.id)
+            FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {
                 matchLobbyComplete = true
                 gameReady = true
@@ -456,9 +475,15 @@ struct GamePlayView: View {
                 opponentScore = newScore
             }
         }
+        .onChange(of: nexusEngine.hud.karateWave) { oldWave, newWave in
+            if gameMode.id == .karateEndless, newWave > oldWave, oldWave > 0 {
+                FELGameplayEventBus.postWaveCompleted()
+            }
+        }
         .onDisappear {
             sceneViewportReady = false
             nexusEngine.stop()
+            FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
             gameTimerTask?.cancel()
@@ -481,17 +506,27 @@ struct GamePlayView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(gameMode.accentColor)
+                            .fill(effectiveHudPrimary)
                             .frame(width: 5, height: 5)
                         Text("YOU")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(gameMode.accentColor.opacity(0.8))
+                            .foregroundStyle(effectiveHudAccent.opacity(0.8))
+                    }
+                    if let badge = generatorHudBadge {
+                        Text(badge)
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .foregroundStyle(effectiveHudAccent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(effectiveHudAccent.opacity(0.12))
+                            .clipShape(Capsule())
+                            .accessibilityIdentifier("GeneratorHudBadgeLabel")
                     }
                     Text("\(score)")
                         .font(.system(size: 36, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
-                        .shadow(color: gameMode.accentColor.opacity(0.3), radius: 8)
+                        .shadow(color: effectiveHudAccent.opacity(0.3), radius: 8)
                     HStack(spacing: 3) {
                         Image(systemName: "brain.head.profile.fill")
                             .font(.system(size: 7))
@@ -650,13 +685,16 @@ struct GamePlayView: View {
         ZStack {
             GameSceneHostView(
                 gameMode: gameMode.id,
+                useNexus3DEngine: Config.useNexus3DGameplay,
                 neuralDrive: viewModel.profile.metrics.neuralDrive,
+                scenicCameraAngle: ScenicCameraAngle.defaultForMode(gameMode.id),
                 onViewportReady: { sceneViewportReady = true },
                 leftStickInput: leftStickVector,
                 rightStickInput: rightStickVector,
                 isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
                 isSpecialMove: isSlowMo || showVanishFlash || showPerfectGuard,
-                isSlowMotion: isSlowMo
+                isSlowMotion: isSlowMo,
+                avatarAppearance: GameplayAvatarAppearance.fromProfile(viewModel.profile)
             )
             .clipShape(.rect(cornerRadius: 0))
 
@@ -849,7 +887,7 @@ struct GamePlayView: View {
 
     private func dunkJudgeOverlay(j1: Int, j2: Int, j3: Int) -> some View {
         let total = j1 + j2 + j3
-        let isElite = total >= 140
+        let isElite = total >= 42
         return VStack(spacing: 8) {
             Spacer()
 
@@ -1914,6 +1952,7 @@ struct GamePlayView: View {
         filmTimerTask = nil
         
         selectedFilmChoice = index
+        FELGameplayEventBus.postBuzzIn()
         let question = FilmQuestion.filmQuestions[min(roundNumber - 1, 5)]
         let isCorrect = index == question.correctIndex
         
@@ -3152,8 +3191,8 @@ struct GamePlayView: View {
 
     private var actionsForMode: [String] {
         switch gameMode.id {
-        case .basketballHeadToHead: ["Shoot", "Drive", "Crossover"]
-        case .basketballDunkContest: ["Power Dunk", "360 Dunk", "Windmill"]
+        case .basketballHeadToHead, .venicePickup: ["Shoot", "Drive", "Crossover"]
+        case .basketballDunkContest3D, .basketballDunkContestIRL: ["Power Dunk", "360 Dunk", "Windmill"]
         case .basketball3v3: ["Pass", "Shoot", "Drive"]
         case .karate, .karateEndless: ["Punch", "Kick", "Block"]
         case .baseball: ["Swing", "Bunt"]
@@ -3168,8 +3207,8 @@ struct GamePlayView: View {
         case .snowboarding: ["Carve", "Jump", "Butter"]
         case .brainBrawl: ["Focus", "Pattern", "Counter"]
         case .whoSceneIt: ["Freeze", "Spot Star", "Recall"]
-        case .courtCarnival: ["Mini", "Roll", "Boost"]
-        case .marketBrowse: ["Browse", "Details"]
+        case .courtCarnival: ["Pad Hit", "Dice Roll", "Mini Win"]
+        case .marketBrowse: ["Browse", "Scan", "Vault"]
         }
     }
 
@@ -3562,6 +3601,9 @@ struct GamePlayView: View {
             triggerImpactFlash()
             resetStreakTimer()
             hapticSuccess(isCritical: isCritical)
+            FELGameplayEventBus.postScored()
+            FELSoundscapeEngine.shared.triggerCheer(intensity: isCritical ? 1.0 : 0.65)
+            FELSoundscapeEngine.shared.combo = combo
 
         } else {
             withAnimation(.spring(response: 0.3)) {
@@ -3574,6 +3616,9 @@ struct GamePlayView: View {
                 }
                 lastActionIsCritical = false
                 lastActionIsBurst = false
+            }
+            if gameMode.id == .soccer {
+                FELGameplayEventBus.postPenalty()
             }
             hapticFail()
         }
@@ -3742,6 +3787,7 @@ struct GamePlayView: View {
             lastAction = inGreen ? "PERFECT LAUNCH!" : "LAUNCHED"
         }
         triggerScreenShake(intensity: inGreen ? 0.4 : 0.2)
+        FELGameplayEventBus.postScored()
 
         dunkTimerTask = Task {
             while !Task.isCancelled && (dunkEngine.phase == .airborne || dunkEngine.phase == .landing) {
@@ -3801,10 +3847,12 @@ struct GamePlayView: View {
         let impactLevel = dunkEngine.impactIntensity
         triggerScreenShake(intensity: 0.5 + impactLevel * 0.5)
         triggerImpactFlash()
-        if result.total >= 138 {
+        FELGameplayEventBus.postScored()
+        FELSoundscapeEngine.shared.triggerCheer(intensity: result.total >= 138 ? 1.0 : 0.75)
+        if result.total >= 45 {
             triggerCriticalFlash()
             triggerSlowMo(duration: 1.5)
-        } else if result.total >= 120 {
+        } else if result.total >= 38 {
             triggerFlash()
         }
 
@@ -3858,31 +3906,28 @@ struct GamePlayView: View {
 
         let aiHeight = rng.nextDouble(in: 0.4...0.85) * aggression
         let aiExecution = rng.nextDouble(in: 0.5...0.9) * aggression
-        let aiTrick = rng.nextDouble(in: 0.5...0.8)
+        let aiTrickRoll = rng.nextDouble(in: 0.5...0.8)
 
-        let rawScore = (aiHeight * 20 + aiTrick * 25 + aiExecution * 20 + 15) * (0.85 + aiNormalized * 0.15)
-        let base = min(50, Int(rawScore / 3.0) + 28)
-        let spread = max(1, 4)
-        let span = UInt64(spread)
-        let j1 = min(50, base + Int(rng.next() % span))
-        let j2 = min(50, base + Int(rng.next() % span))
-        let j3 = min(50, base + Int(rng.next() % span))
-        let total = j1 + j2 + j3
-
-        let message: String
-        if total >= 140 { message = "AI: LEGENDARY!" }
-        else if total >= 130 { message = "AI: ELECTRIFYING!" }
-        else if total >= 120 { message = "AI: POWERFUL!" }
-        else if total >= 110 { message = "AI: SOLID DUNK" }
-        else { message = "AI: NEEDS WORK" }
+        let input = DunkEngine3DScoringInput(
+            jumpHeight: aiHeight,
+            launchQuality: aiExecution,
+            landingQuality: aiExecution * 0.95,
+            completedRotation: aiTrickRoll,
+            trick: aiTrickRoll > 0.75 ? .windmill : .rimGrazer,
+            modifierScoreMultiplier: 0.85 + aiNormalized * 0.15
+        )
+        let wda = WDAScoringEngine.shared.scoreEngine3DDunk(input: input)
+        let panel = wda.judgePanelScores
+        let total = Int(wda.totalScore.rounded(.toNearestOrAwayFromZero))
 
         withAnimation(.spring(response: 0.3)) {
             opponentScore += total
-            lastJudgeScores = (j1, j2, j3)
-            crowdMessage = message
+            lastJudgeScores = (panel.j1, panel.j2, panel.j3)
+            crowdMessage = "AI: \(wda.wdaCrowdMessage)"
             lastAction = "OPPONENT: +\(total)"
         }
         triggerScreenShake(intensity: 0.3)
+        FELGameplayEventBus.postOpponentScored()
     }
 
 
@@ -3931,9 +3976,9 @@ struct GamePlayView: View {
     private func pointsForAction(_ action: String, success: Bool) -> Int {
         guard success else { return 0 }
         switch gameMode.id {
-        case .basketballHeadToHead:
+        case .basketballHeadToHead, .venicePickup:
             return action == "Shoot" ? 3 : 2
-        case .basketballDunkContest:
+        case .basketballDunkContest3D, .basketballDunkContestIRL:
             switch action {
             case "360 Dunk": return 10
             case "Windmill": return 9
@@ -5009,6 +5054,7 @@ struct GamePlayView: View {
     }
 
     private func triggerPerfectGuard() {
+        FELGameplayEventBus.postKarateBlock()
         withAnimation(.easeOut(duration: 0.1)) {
             showPerfectGuard = true
             lastAction = "PERFECT GUARD!"

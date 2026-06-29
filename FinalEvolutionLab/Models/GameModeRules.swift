@@ -14,7 +14,7 @@ nonisolated struct GameModeRules: Sendable {
 
     static func forMode(_ mode: GameModeId) -> GameModeRules {
         switch mode {
-        case .basketballHeadToHead:
+        case .basketballHeadToHead, .venicePickup:
             return GameModeRules(
                 useMatchCountdown: false,
                 matchDurationSeconds: 0,
@@ -29,10 +29,10 @@ nonisolated struct GameModeRules: Sendable {
                 matchDurationSeconds: 120,
                 roundLimit: 24,
                 usesTargetScoreWin: true,
-                targetScore: 15,
+                targetScore: 21,
                 rewardEligibleMinActions: 6
             )
-        case .basketballDunkContest:
+        case .basketballDunkContestIRL, .basketballDunkContest3D:
             return GameModeRules(
                 useMatchCountdown: false,
                 matchDurationSeconds: 0,
@@ -59,11 +59,20 @@ nonisolated struct GameModeRules: Sendable {
                 targetScore: 0,
                 rewardEligibleMinActions: 8
             )
-        case .brainBrawl, .whoSceneIt:
+        case .brainBrawl:
             return GameModeRules(
                 useMatchCountdown: false,
                 matchDurationSeconds: 0,
-                roundLimit: 6,
+                roundLimit: 10,
+                usesTargetScoreWin: false,
+                targetScore: 0,
+                rewardEligibleMinActions: 5
+            )
+        case .whoSceneIt:
+            return GameModeRules(
+                useMatchCountdown: false,
+                matchDurationSeconds: 0,
+                roundLimit: 7,
                 usesTargetScoreWin: false,
                 targetScore: 0,
                 rewardEligibleMinActions: 5
@@ -72,9 +81,9 @@ nonisolated struct GameModeRules: Sendable {
             return GameModeRules(
                 useMatchCountdown: false,
                 matchDurationSeconds: 0,
-                roundLimit: 8,
-                usesTargetScoreWin: false,
-                targetScore: 0,
+                roundLimit: 5,
+                usesTargetScoreWin: true,
+                targetScore: 15,
                 rewardEligibleMinActions: 6
             )
         case .surfing, .skateboarding, .snowboarding, .gymnastics:

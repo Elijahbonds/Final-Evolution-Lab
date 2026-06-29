@@ -10,19 +10,206 @@ struct GameSceneFactory {
 
     /// Production SceneKit fallback reduces per-capsule animations and particle load (GAME-22).
     private static var useDetailedCrowdEffects: Bool {
+        let tier = FELPerformanceMonitor.shared.currentTier
+        if tier == .lowPower {
+            return false
+        }
         #if DEBUG
-        return true
+        return tier == .high
         #else
         return false
         #endif
     }
 
-    static func buildScene(for mode: GameModeId) -> SCNScene {
+    static func adjustSceneQuality(_ scene: SCNScene, for tier: FELPerformanceTier) {
+        scene.rootNode.enumerateChildNodes { node, _ in
+            // 1. Adjust light shadows
+            if let light = node.light {
+                switch tier {
+                case .high:
+                    if light.type == .spot || light.type == .directional {
+                        light.castsShadow = true
+                    }
+                case .balanced:
+                    if light.type == .directional {
+                        light.castsShadow = true
+                    } else {
+                        light.castsShadow = false
+                    }
+                case .lowPower:
+                    light.castsShadow = false
+                }
+            }
+            
+            // 2. Adjust particle systems
+            for particleSystem in node.particleSystems ?? [] {
+                switch tier {
+                case .high:
+                    particleSystem.birthRate = 8
+                case .balanced:
+                    particleSystem.birthRate = 4
+                case .lowPower:
+                    particleSystem.birthRate = 0
+                }
+            }
+            
+            // 3. Adjust crowd effects / animations if applicable
+            if let name = node.name, name.contains("crowd") || name.contains("spectator") {
+                switch tier {
+                case .high:
+                    node.isHidden = false
+                case .balanced:
+                    node.isHidden = false
+                case .lowPower:
+                    node.isHidden = true
+                }
+            }
+        }
+    }
+
+
+    static func isGameplayAvatarNodeName(_ name: String) -> Bool {
+        if name == "avatar" { return true }
+        if name.hasPrefix("blue") || name.hasPrefix("red") { return true }
+        if name.hasPrefix("fighter") || name.hasPrefix("def") || name.hasPrefix("vPlayer") || name.hasPrefix("judge") {
+            return true
+        }
+        let known: Set<String> = [
+            "player", "player1", "opponent", "dunker", "batter", "pitcher", "catcher",
+            "returner", "kicker", "goalkeeper", "golfer", "surfer", "skater", "rider",
+            "cognitivePlayer", "filmQuizPlayer", "partyBoardPlayer", "gymnast"
+        ]
+        return known.contains(name)
+    }
+
+    static func primaryGameplayAvatarName(for mode: GameModeId) -> String {
         switch mode {
-        case .basketballHeadToHead:
+        case .basketballHeadToHead, .venicePickup, .marketBrowse: return "player1"
+        case .basketballDunkContest3D, .basketballDunkContestIRL: return "dunker"
+        case .basketball3v3: return "blue1"
+        case .karate, .karateEndless: return "fighter1"
+        case .baseball: return "batter"
+        case .football: return "returner"
+        case .soccer: return "kicker"
+        case .golf: return "golfer"
+        case .tennis: return "player"
+        case .volleyball: return "vPlayer1"
+        case .gymnastics: return "gymnast"
+        case .surfing: return "surfer"
+        case .skateboarding: return "skater"
+        case .snowboarding: return "rider"
+        case .brainBrawl: return "cognitivePlayer"
+        case .whoSceneIt: return "filmQuizPlayer"
+        case .courtCarnival: return "partyBoardPlayer"
+        }
+    }
+
+    static func buildGameplayOverlay(for mode: GameModeId) -> SCNScene {
+        let scene = buildScene(for: mode)
+        cleanProceduralEnvironment(in: scene, hybridOverlay: true)
+        attachHybridSceneKitBackdrop(for: mode, to: scene)
+        PremiumViewpointConfig.configureHybridOverlay(scene, for: mode)
+        return scene
+    }
+
+    static func buildScene(for mode: GameModeId) -> SCNScene {
+        NexusGameplayAvatarContext.refreshFromProfile()
+        let scene = buildSceneCore(for: mode)
+        finalizeSceneEnvironment(scene, for: mode)
+        return scene
+    }
+
+    private static func isGameplayPropNodeName(_ name: String) -> Bool {
+        if ["ball", "basketball", "soccerball", "baseball", "golfball", "tennisball", "volleyball", "football"].contains(name) {
+            return true
+        }
+        if name.hasPrefix("derbyBall-") || ["bat", "pitcherHand", "ballFlight"].contains(name) {
+            return true
+        }
+        return false
+    }
+
+    private static func isEnvironmentBackdropNodeName(_ name: String) -> Bool {
+        name.hasPrefix("atmosphericBackdrop")
+            || name == "veniceLumaBackdrop"
+            || name == "venueSky"
+    }
+
+    private static func isBundledVenueNodeName(_ name: String) -> Bool {
+        name == "bundledVenueBackdrop" || name == "bundledVenueEnvironment"
+    }
+
+    /// Process-of-elimination keep-list: cameras, lights, avatars, balls, bundled meshes (SceneKit-only), hybrid sky backdrops.
+    static func isGameplayCritical(_ node: SCNNode, hybridOverlay: Bool = false) -> Bool {
+        if node.camera != nil || node.light != nil { return true }
+        let name = node.name ?? ""
+        if name == "avatarFillLight" || name == "venueFillLight" || name == "mainCamera" { return true }
+        if isGameplayAvatarNodeName(name) || isGameplayPropNodeName(name) { return true }
+        if hybridOverlay {
+            if isEnvironmentBackdropNodeName(name) { return true }
+            if isBundledVenueNodeName(name) { return false }
+        } else if isBundledVenueNodeName(name) {
+            return true
+        }
+        for child in node.childNodes where isGameplayCritical(child, hybridOverlay: hybridOverlay) {
+            return true
+        }
+        return false
+    }
+
+    /// Strips procedural venue geometry; hybrid keeps distant sky backdrops for Metal/SceneKit depth composite.
+    static func cleanProceduralEnvironment(in scene: SCNScene, hybridOverlay: Bool = false) {
+        var remove: [SCNNode] = []
+        scene.rootNode.enumerateChildNodes { node, _ in
+            if !isGameplayCritical(node, hybridOverlay: hybridOverlay) {
+                remove.append(node)
+            }
+        }
+        for node in remove { node.removeFromParentNode() }
+    }
+
+    /// SceneKit depth layer behind avatars when Metal owns the playable venue mesh.
+    static func attachHybridSceneKitBackdrop(for mode: GameModeId, to scene: SCNScene) {
+        let hasBackdrop = scene.rootNode.childNodes.contains { node in
+            let name = node.name ?? ""
+            return isEnvironmentBackdropNodeName(name) || isBundledVenueNodeName(name)
+        }
+        guard !hasBackdrop else { return }
+
+        switch PremiumViewpointConfig.cluster(for: mode) {
+        case .basketball:
+            if !NexusBundledMeshLoader.attachBackdropFromManifest(for: mode, to: scene) {
+                addVeniceLumaBackdrop(to: scene)
+            }
+        case .dojo:
+            addAtmosphericBackdropDojo(to: scene)
+        case .stadium:
+            addAtmosphericBackdropStadium(to: scene)
+        case .outdoor, .indoor:
+            addAtmosphericBackdropHorizon(to: scene, for: mode)
+        }
+    }
+
+    /// Bundled mesh priority + procedural cleanup + cluster lighting for production scenes.
+    static func finalizeSceneEnvironment(_ scene: SCNScene, for mode: GameModeId) {
+        let hasBundled = NexusBundledMeshLoader.attachBackdropFromManifest(for: mode, to: scene)
+            || NexusBundledMeshLoader.attachEnvironmentBackdrop(for: mode, to: scene)
+        if hasBundled {
+            cleanProceduralEnvironment(in: scene, hybridOverlay: false)
+        }
+        PremiumViewpointConfig.applyToScene(scene, for: mode)
+        adjustSceneQuality(scene, for: FELPerformanceMonitor.shared.currentTier)
+    }
+
+    private static func buildSceneCore(for mode: GameModeId) -> SCNScene {
+        switch mode {
+        case .basketballHeadToHead, .venicePickup:
             return buildBasketballScene(mode: mode)
-        case .basketballDunkContest:
+        case .basketballDunkContest3D:
             return buildDunkContestScene()
+        case .basketballDunkContestIRL:
+            // IRL uses DunkRecordingTrackerView — no 3D venue shell if routed here accidentally.
+            return SCNScene()
         case .basketball3v3:
             return build3v3Scene()
         case .karate:
@@ -56,8 +243,28 @@ struct GameSceneFactory {
         case .courtCarnival:
             return buildCourtCarnivalScene()
         case .marketBrowse:
-            return buildBasketballScene(mode: .basketballHeadToHead)
+            return buildMarketBrowseScene()
         }
+    }
+
+    // MARK: - Luma Venice Shop (market browse)
+
+    private static func buildMarketBrowseScene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.02, green: 0.025, blue: 0.04, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(0.4, 2.6, 5.2), lookAt: SCNVector3(0, 1.4, 0))
+        addLighting(to: scene, tint: brandCyan)
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0.5), color: brandCyan, name: "player1")
+
+        let hasBundled = NexusBundledMeshLoader.attachBackdropFromManifest(for: .marketBrowse, to: scene)
+            || NexusBundledMeshLoader.attachEnvironmentBackdrop(for: .marketBrowse, to: scene)
+        if !hasBundled {
+            addFloor(to: scene, color: UIColor(red: 0.06, green: 0.05, blue: 0.08, alpha: 1), reflectivity: 0.12)
+        }
+
+        PremiumViewpointConfig.applyToScene(scene, for: .marketBrowse)
+        return scene
     }
 
     // MARK: - Basketball (Venice Beach Court)
@@ -83,7 +290,7 @@ struct GameSceneFactory {
         addCourtLines(to: scene)
         addHoop(to: scene, x: 3.5)
         addHoop(to: scene, x: -3.5, flip: true)
-        addAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
+        addPlayerAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
         addAvatar(to: scene, at: SCNVector3(1.5, 0, 0), color: UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1), name: "opponent")
         addBall(to: scene, at: SCNVector3(-1.5, 1.4, 0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
         addVeniceBeachWalls(to: scene)
@@ -127,11 +334,12 @@ struct GameSceneFactory {
         spotRim.look(at: SCNVector3(2.5, 3, -1))
         scene.rootNode.addChildNode(spotRim)
 
-        addFloor(to: scene, color: UIColor(red: 0.05, green: 0.04, blue: 0.02, alpha: 1), reflectivity: 0.25)
+        addFloor(to: scene, color: UIColor(red: 0.05, green: 0.28, blue: 0.55, alpha: 0.35), reflectivity: 0.25)
 
         let court = SCNBox(width: 12, height: 0.02, length: 8, chamferRadius: 0)
         let courtMat = SCNMaterial()
-        courtMat.diffuse.contents = UIColor(red: 0.10, green: 0.06, blue: 0.03, alpha: 1)
+        // Venice Beach blue concrete — matches FEL_VenueRegistry courtColor venice_blue
+        courtMat.diffuse.contents = UIColor(red: 0.05, green: 0.28, blue: 0.55, alpha: 1)
         courtMat.roughness.contents = 0.85
         court.materials = [courtMat]
         let courtNode = SCNNode(geometry: court)
@@ -162,7 +370,9 @@ struct GameSceneFactory {
         addHoop(to: scene, x: -4.5, flip: true)
 
         let dunker = brandBlue
-        addAvatar(to: scene, at: SCNVector3(0, 0, 4), color: dunker, name: "dunker")
+        let opponentColor = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4), color: dunker, name: "dunker")
+        addAvatar(to: scene, at: SCNVector3(2.8, 0, 2.5), color: opponentColor, name: "opponent")
         addBall(to: scene, at: SCNVector3(0, 1.4, 4), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
 
         let judgeColor = UIColor(white: 0.45, alpha: 1)
@@ -241,7 +451,11 @@ struct GameSceneFactory {
         ]
 
         for index in 0..<threeVThreeTeamSize {
-            addAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue\(index + 1)")
+            if index == 0 {
+                addPlayerAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue1")
+            } else {
+                addAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue\(index + 1)")
+            }
             addAvatar(to: scene, at: teamBStart[index], color: teamRed, name: "red\(index + 1)")
         }
 
@@ -362,7 +576,7 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(toriiNode)
 
         let redTint = UIColor(red: 1.0, green: 0.15, blue: 0.1, alpha: 1)
-        addAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
+        addPlayerAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
         addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan, name: "fighter2")
 
         addKarateAnimations(to: scene)
@@ -505,7 +719,7 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(line2Node)
 
         let batterColor = UIColor(red: 0.1, green: 0.5, blue: 0.9, alpha: 1)
-        addAvatar(to: scene, at: SCNVector3(0.4, 0, 2.8), color: batterColor, name: "batter")
+        addPlayerAvatar(to: scene, at: SCNVector3(0.4, 0, 2.8), color: batterColor, name: "batter")
 
         let pitcherColor = UIColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1)
         addAvatar(to: scene, at: SCNVector3(0, 0.25, -1.0), color: pitcherColor, name: "pitcher")
@@ -632,7 +846,7 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(cbNode)
 
         let returnerColor = UIColor(red: 0.1, green: 0.4, blue: 0.9, alpha: 1)
-        addAvatar(to: scene, at: SCNVector3(0, 0, 5), color: returnerColor, name: "returner")
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 5), color: returnerColor, name: "returner")
 
         let football = SCNSphere(radius: 0.09)
         let fbMat = SCNMaterial()
@@ -757,7 +971,7 @@ struct GameSceneFactory {
         buildGoalNet(in: scene, at: SCNVector3(0, 0, -3.5))
 
         let kickerColor = UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1)
-        addAvatar(to: scene, at: SCNVector3(0, 0, 3.5), color: kickerColor, name: "kicker")
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3.5), color: kickerColor, name: "kicker")
 
         let gkColor = UIColor(red: 0.9, green: 0.8, blue: 0.1, alpha: 1)
         addAvatar(to: scene, at: SCNVector3(0, 0, -3.2), color: gkColor, name: "goalkeeper")
@@ -868,7 +1082,7 @@ struct GameSceneFactory {
         holeNode.position = SCNVector3(0, 0.025, -2)
         scene.rootNode.addChildNode(holeNode)
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
 
         let club = SCNCylinder(radius: 0.012, height: 1.0)
         let clubMat = SCNMaterial()
@@ -1025,7 +1239,7 @@ struct GameSceneFactory {
         nbNode.position = SCNVector3(0, 1.3, 0)
         scene.rootNode.addChildNode(nbNode)
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 4.5), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), name: "player")
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4.5), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), name: "player")
         addAvatar(to: scene, at: SCNVector3(0, 0, -4.5), color: brandCyan, name: "opponent")
 
         let ball = SCNSphere(radius: 0.035)
@@ -1153,7 +1367,7 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(nbNode)
 
         let playerColor = UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1)
-        addAvatar(to: scene, at: SCNVector3(-1.0, 0, 2.5), color: playerColor, name: "vPlayer1")
+        addPlayerAvatar(to: scene, at: SCNVector3(-1.0, 0, 2.5), color: playerColor, name: "vPlayer1")
         addAvatar(to: scene, at: SCNVector3(1.5, 0, 3.5), color: playerColor, name: "vPlayer2")
 
         let oppColor = brandCyan
@@ -1447,7 +1661,7 @@ struct GameSceneFactory {
             scene.rootNode.addChildNode(podiumNode)
         }
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: avatarName)
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: avatarName)
         addExtremeRhythmIdleMotion(playerName: avatarName, to: scene)
 
         addStadiumStands(to: scene, depth: 14)
@@ -1575,7 +1789,7 @@ struct GameSceneFactory {
             }
         }
 
-        addAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: "gymnast")
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: "gymnast")
 
         let judges: [(Float, Float)] = [(-3, 4), (0, 4), (3, 4)]
         for (i, (jx, jz)) in judges.enumerated() {
@@ -1773,6 +1987,32 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(SCNNode(geometry: floor))
     }
 
+    static func replacePrimaryAvatar(
+        in scene: SCNScene?,
+        for mode: GameModeId,
+        fallbackTint: UIColor,
+        appearance: GameplayAvatarAppearance
+    ) {
+        guard let scene else { return }
+        let name = primaryGameplayAvatarName(for: mode)
+        guard let existing = scene.rootNode.childNode(withName: name, recursively: true) else { return }
+        let position = existing.position
+        existing.removeFromParentNode()
+        NexusGameplayAvatarContext.refresh(from: appearance)
+        let node = NexusGameplayAvatarLoader.makeAvatarNode(
+            name: name,
+            position: position,
+            fallbackTint: fallbackTint,
+            appearance: appearance
+        )
+        scene.rootNode.addChildNode(node)
+    }
+
+    private static func addPlayerAvatar(to scene: SCNScene, at position: SCNVector3, color: UIColor, name: String) {
+        let node = NexusGameplayAvatarLoader.makeAvatarNode(name: name, position: position, fallbackTint: color)
+        scene.rootNode.addChildNode(node)
+    }
+
     private static func addAvatar(to scene: SCNScene, at position: SCNVector3, color: UIColor, name: String = "avatar") {
         let root = SCNNode()
         root.position = position
@@ -1818,6 +2058,23 @@ struct GameSceneFactory {
         headMat.fresnelExponent = 2.0
         headSphere.materials = [headMat]
         head.geometry = headSphere
+        
+        // Add procedural facial features
+        NexusFaceAnimationMapper.addFacialFeatures(to: head)
+        
+        // Animate facial expressions dynamically from the latest recorded face scan
+        let faceAnimateAction = SCNAction.customAction(duration: 1000) { node, elapsed in
+            if let activeScan = NexusFaceScanAssetPipeline.shared.recordedFaceScans.first {
+                let duration = activeScan.header.duration
+                if duration > 0 {
+                    let sampleTime = Double(elapsed).truncatingRemainder(dividingBy: duration)
+                    if let closestKeyframe = activeScan.keyframes.min(by: { abs($0.timestamp - sampleTime) < abs($1.timestamp - sampleTime) }) {
+                        NexusFaceAnimationMapper.applyBlendshapes(closestKeyframe.blendshapes, to: node)
+                    }
+                }
+            }
+        }
+        head.runAction(SCNAction.repeatForever(faceAnimateAction), forKey: "facialAnimation")
 
         let visor = SCNBox(width: 0.16, height: 0.04, length: 0.02, chamferRadius: 0.01)
         let visorMat = SCNMaterial()
@@ -1945,6 +2202,7 @@ struct GameSceneFactory {
         geo.materials = [mat]
         let node = SCNNode(geometry: geo)
         node.position = position
+        node.name = "ball"
         scene.rootNode.addChildNode(node)
 
         let bob = SCNAction.sequence([
@@ -1957,7 +2215,17 @@ struct GameSceneFactory {
     private static func addParticles(to scene: SCNScene, color: UIColor, area: SCNVector3) {
         let emitter = SCNNode()
         let particles = SCNParticleSystem()
-        particles.birthRate = 8
+        
+        let tier = FELPerformanceMonitor.shared.currentTier
+        switch tier {
+        case .high:
+            particles.birthRate = 8
+        case .balanced:
+            particles.birthRate = 4
+        case .lowPower:
+            particles.birthRate = 0
+        }
+        
         particles.particleLifeSpan = 4
         particles.particleSize = 0.012
         particles.particleSizeVariation = 0.008
@@ -2122,6 +2390,120 @@ struct GameSceneFactory {
         let rightNode = SCNNode(geometry: rightWall)
         rightNode.position = SCNVector3(halfW, halfH, 0)
         scene.rootNode.addChildNode(rightNode)
+    }
+
+    // MARK: - Hybrid / SceneKit atmospheric backdrops (Metal owns playable venue)
+
+    private static func addVeniceLumaBackdrop(to scene: SCNScene) {
+        let root = SCNNode()
+        root.name = "veniceLumaBackdrop"
+        root.renderingOrder = -100
+
+        let sky = SCNSphere(radius: 42)
+        sky.segmentCount = 24
+        let skyMat = SCNMaterial()
+        skyMat.diffuse.contents = UIColor(red: 0.12, green: 0.28, blue: 0.52, alpha: 1)
+        skyMat.emission.contents = UIColor(red: 0.18, green: 0.38, blue: 0.62, alpha: 0.35)
+        skyMat.isDoubleSided = true
+        skyMat.lightingModel = .constant
+        sky.materials = [skyMat]
+        let skyNode = SCNNode(geometry: sky)
+        skyNode.position = SCNVector3(0, 8, -18)
+        root.addChildNode(skyNode)
+
+        let sunset = SCNBox(width: 36, height: 4, length: 0.05, chamferRadius: 0)
+        let sunsetMat = SCNMaterial()
+        sunsetMat.diffuse.contents = UIColor(red: 0.95, green: 0.45, blue: 0.18, alpha: 0.55)
+        sunsetMat.emission.contents = UIColor(red: 1.0, green: 0.5, blue: 0.2, alpha: 0.25)
+        sunsetMat.lightingModel = .constant
+        sunset.materials = [sunsetMat]
+        let sunsetNode = SCNNode(geometry: sunset)
+        sunsetNode.position = SCNVector3(0, 6, -14)
+        root.addChildNode(sunsetNode)
+
+        let shopColor = UIColor(red: 0.22, green: 0.18, blue: 0.14, alpha: 0.85)
+        for (index, x) in stride(from: -12.0, through: 12.0, by: 4.0).enumerated() {
+            let h = CGFloat(2.2 + Double(index % 3) * 0.6)
+            let shop = SCNBox(width: 2.8, height: h, length: 1.2, chamferRadius: 0.04)
+            let mat = SCNMaterial()
+            mat.diffuse.contents = shopColor
+            mat.lightingModel = .constant
+            shop.materials = [mat]
+            let shopNode = SCNNode(geometry: shop)
+            shopNode.position = SCNVector3(Float(x), Float(h / 2), -11.5)
+            root.addChildNode(shopNode)
+        }
+
+        scene.rootNode.addChildNode(root)
+    }
+
+    private static func addAtmosphericBackdropDojo(to scene: SCNScene) {
+        let root = SCNNode()
+        root.name = "atmosphericBackdrop_dojo"
+        root.renderingOrder = -100
+
+        let sky = SCNSphere(radius: 38)
+        sky.segmentCount = 20
+        let skyMat = SCNMaterial()
+        skyMat.diffuse.contents = UIColor(red: 0.14, green: 0.06, blue: 0.08, alpha: 1)
+        skyMat.emission.contents = UIColor(red: 0.28, green: 0.1, blue: 0.12, alpha: 0.4)
+        skyMat.isDoubleSided = true
+        skyMat.lightingModel = .constant
+        sky.materials = [skyMat]
+        let skyNode = SCNNode(geometry: sky)
+        skyNode.position = SCNVector3(0, 6, -16)
+        root.addChildNode(skyNode)
+
+        scene.rootNode.addChildNode(root)
+    }
+
+    private static func addAtmosphericBackdropStadium(to scene: SCNScene) {
+        let root = SCNNode()
+        root.name = "atmosphericBackdrop_stadium"
+        root.renderingOrder = -100
+
+        let sky = SCNSphere(radius: 44)
+        sky.segmentCount = 20
+        let skyMat = SCNMaterial()
+        skyMat.diffuse.contents = UIColor(red: 0.04, green: 0.1, blue: 0.2, alpha: 1)
+        skyMat.emission.contents = UIColor(red: 0.08, green: 0.18, blue: 0.32, alpha: 0.35)
+        skyMat.isDoubleSided = true
+        skyMat.lightingModel = .constant
+        sky.materials = [skyMat]
+        let skyNode = SCNNode(geometry: sky)
+        skyNode.position = SCNVector3(0, 10, -20)
+        root.addChildNode(skyNode)
+
+        scene.rootNode.addChildNode(root)
+    }
+
+    private static func addAtmosphericBackdropHorizon(to scene: SCNScene, for mode: GameModeId) {
+        let cluster = PremiumViewpointConfig.cluster(for: mode)
+        let root = SCNNode()
+        root.name = "atmosphericBackdrop_\(cluster.rawValue)"
+        root.renderingOrder = -100
+
+        let sky = SCNSphere(radius: 40)
+        sky.segmentCount = 18
+        let skyMat = SCNMaterial()
+        switch cluster {
+        case .outdoor:
+            skyMat.diffuse.contents = UIColor(red: 0.08, green: 0.22, blue: 0.38, alpha: 1)
+            skyMat.emission.contents = UIColor(red: 0.12, green: 0.32, blue: 0.48, alpha: 0.3)
+        case .indoor:
+            skyMat.diffuse.contents = UIColor(red: 0.06, green: 0.05, blue: 0.12, alpha: 1)
+            skyMat.emission.contents = UIColor(red: 0.14, green: 0.1, blue: 0.22, alpha: 0.35)
+        default:
+            skyMat.diffuse.contents = UIColor(red: 0.05, green: 0.08, blue: 0.14, alpha: 1)
+        }
+        skyMat.isDoubleSided = true
+        skyMat.lightingModel = .constant
+        sky.materials = [skyMat]
+        let skyNode = SCNNode(geometry: sky)
+        skyNode.position = SCNVector3(0, 7, -17)
+        root.addChildNode(skyNode)
+
+        scene.rootNode.addChildNode(root)
     }
 
     private static func addVeniceBeachWalls(to scene: SCNScene) {

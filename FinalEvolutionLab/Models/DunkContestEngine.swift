@@ -58,9 +58,22 @@ nonisolated enum DunkTrickSlot: String, Sendable, CaseIterable {
         case .freeThrowLine: return .cross
         }
     }
+
+    var wdaComplexity: DunkTrickComplexity {
+        switch self {
+        case .windmill: return .windmill
+        case .betweenLegs: return .betweenTheLegs
+        case .tomahawk: return .rimGrazer
+        case .threeSixty: return .threeSixty
+        case .reverseJam: return .behindTheBack
+        case .elbowHang: return .honeyDip
+        case .freeThrowLine: return .freeThrowLine
+        case .doubleClutch: return .doubleClutch
+        }
+    }
 }
 
-/// Deterministic dunk math for production and tests; judge rolls are injected for `0..<spread`.
+/// Deterministic dunk math for production and tests; delegates to ``WDAScoringEngine`` (WDA/FIBA rubric).
 /// Uses scalar inputs only so scoring stays **`nonisolated`** and avoids MainActor isolation on ``DunkContestState`` (Swift 6–friendly).
 nonisolated enum DunkContestScoring {
     static func calculate(
@@ -78,49 +91,25 @@ nonisolated enum DunkContestScoring {
         neuralBurst: Bool,
         judgeOffsets: (Int, Int, Int)
     ) -> (total: Int, j1: Int, j2: Int, j3: Int, message: String) {
-        let normalized = min(max(prq / 100.0, 0), 1)
+        _ = trickHistory
+        _ = prq
+        _ = neuralBurst
+        _ = judgeOffsets
 
-        let heightScore = jumpHeight * 20
-        let trickScore = selectedTrick.complexity * 25
-        let executionScore = ((launchQuality + landingQuality) / 2.0) * 20
-        let rotationScore = completedRotation * 8
-
-        var originalityBonus: Double = 0
-        let previousCount = trickHistory.filter { $0 == selectedTrick }.count
-        if previousCount == 0 { originalityBonus = 12 }
-        else if previousCount == 1 { originalityBonus = 5 }
-
-        let freestyleBonus = Double(min(totalFreestylePoints, 30))
-        let chainBonus = Double(midAirBranchCount) * 5
-        let modifierBonus = (activeModifier.scoreMultiplier - 1.0) * 15
-
-        let styleLandingBonus: Double = styleLandingSuccess ? 8 : 0
-
-        var rawScore = heightScore + trickScore + executionScore + rotationScore +
-            originalityBonus + freestyleBonus + chainBonus + modifierBonus + styleLandingBonus
-        rawScore *= (0.85 + normalized * 0.15)
-        if neuralBurst { rawScore *= 1.12 }
-
-        let base = min(50, Int(rawScore / 3.0) + 30)
-        let spread = max(1, 5 - Int(executionScore / 8))
-        let o1 = judgeOffsets.0 % spread
-        let o2 = judgeOffsets.1 % spread
-        let o3 = judgeOffsets.2 % spread
-        let j1 = min(50, base + o1)
-        let j2 = min(50, base + o2)
-        let j3 = min(50, base + o3)
-        let total = j1 + j2 + j3
-
-        let message: String
-        if total >= 145 { message = "PERFECT DUNK!" }
-        else if total >= 140 { message = "LEGENDARY!" }
-        else if total >= 135 { message = "CROWD GOES WILD!" }
-        else if total >= 130 { message = "ELECTRIFYING!" }
-        else if total >= 120 { message = "POWERFUL!" }
-        else if total >= 110 { message = "SOLID DUNK" }
-        else { message = "NEEDS WORK" }
-
-        return (total, j1, j2, j3, message)
+        let input = DunkEngine3DScoringInput(
+            jumpHeight: jumpHeight,
+            launchQuality: launchQuality,
+            landingQuality: landingQuality,
+            completedRotation: completedRotation,
+            trick: selectedTrick.wdaComplexity,
+            freestylePoints: totalFreestylePoints,
+            midAirBranchCount: midAirBranchCount,
+            styleLandingSuccess: styleLandingSuccess,
+            modifierScoreMultiplier: activeModifier.scoreMultiplier
+        )
+        let wda = WDAScoringEngine.shared.scoreEngine3DDunk(input: input)
+        let panel = wda.judgePanelScores
+        return (Int(wda.totalScore.rounded(.toNearestOrAwayFromZero)), panel.j1, panel.j2, panel.j3, wda.wdaCrowdMessage)
     }
 }
 
@@ -253,36 +242,33 @@ struct DunkContestState {
     }
 
     mutating func calculateDunkScore(prq: Double, neuralBurst: Bool, judgeRNG: inout SplitMix64) -> (total: Int, j1: Int, j2: Int, j3: Int, message: String) {
-        let executionScore = ((launchQuality + landingQuality) / 2.0) * 20
-        let spread = max(1, 5 - Int(executionScore / 8))
-        let span = UInt64(max(1, spread))
-        let judgeOffsets = (
-            Int(judgeRNG.next() % span),
-            Int(judgeRNG.next() % span),
-            Int(judgeRNG.next() % span)
-        )
-        let out = DunkContestScoring.calculate(
+        _ = prq
+        _ = neuralBurst
+        _ = judgeRNG
+
+        let input = DunkEngine3DScoringInput(
             jumpHeight: jumpHeight,
             launchQuality: launchQuality,
             landingQuality: landingQuality,
             completedRotation: completedRotation,
-            selectedTrick: selectedTrick,
-            trickHistory: trickHistory,
-            totalFreestylePoints: totalFreestylePoints,
+            trick: selectedTrick.wdaComplexity,
+            flightHangTimeSeconds: airTime,
+            attemptsCount: 1,
+            freestylePoints: totalFreestylePoints,
             midAirBranchCount: midAirState.branchCount,
-            activeModifier: activeModifier,
             styleLandingSuccess: styleLandingSuccess,
-            prq: prq,
-            neuralBurst: neuralBurst,
-            judgeOffsets: judgeOffsets
+            modifierScoreMultiplier: activeModifier.scoreMultiplier
         )
+        let wda = WDAScoringEngine.shared.scoreEngine3DDunk(input: input)
+        let panel = wda.judgePanelScores
+        let total = Int(wda.totalScore.rounded(.toNearestOrAwayFromZero))
 
         impactIntensity = jumpHeight * landingQuality
         rimDistortionAmount = activeModifier == .power ? 0.15 : (activeModifier == .signature ? 0.2 : 0.08)
         trickHistory.append(selectedTrick)
-        totalScore += out.total
+        totalScore += total
 
-        return (out.total, out.j1, out.j2, out.j3, out.message)
+        return (total, panel.j1, panel.j2, panel.j3, wda.wdaCrowdMessage)
     }
 
     mutating func startApproach() {
