@@ -11,9 +11,9 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ.get('DB_NAME', 'final_evolution_lab')]
 EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 
@@ -37,6 +37,7 @@ class User(BaseModel):
     followers: List[str] = []
     following: List[str] = []
     coins: int = 100
+    weight_kg: Optional[float] = None
 
 
 async def get_current_user(request: Request) -> User:

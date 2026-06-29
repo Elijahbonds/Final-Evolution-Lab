@@ -7,8 +7,12 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 import paypalrestsdk
+
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = UserMessage = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -598,8 +602,16 @@ async def create_game_session(data: Dict[str, Any], user: User = Depends(get_cur
         "xp_capped": raw_xp > XP_CAP_PER_SESSION
     }
 
+LAUNCHABLE_MODE_STATUSES = {"production", "staging"}
+
+def _registry_config_for_mode(mode_id: str) -> Dict[str, Any]:
+    return globals().get("MODE_MANAGER", {}).get("mode_manager", {}).get("mode_registry", {}).get(mode_id, {})
+
+def _is_launchable_mode(mode_config: Dict[str, Any]) -> bool:
+    return mode_config.get("status") in LAUNCHABLE_MODE_STATUSES
+
 def get_seeded_game_modes():
-    return [
+    modes = [
         {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
         {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
         {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
@@ -620,6 +632,23 @@ def get_seeded_game_modes():
         {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
         {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Board-style arcade with Creator Card avatars and mini-games across all venues","image_url":"https://images.unsplash.com/photo-1511882150382-421056c89033?w=800","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"}
     ]
+    for mode in modes:
+        registry_config = _registry_config_for_mode(mode["id"])
+        if not registry_config:
+            continue
+        status = registry_config.get("status", "unknown")
+        mode["production_status"] = status
+        mode["map_path"] = registry_config.get("map")
+        mode["binary"] = registry_config.get("binary")
+        mode["playable"] = _is_launchable_mode(registry_config)
+        if status == "preview":
+            mode["availability_label"] = "Preview"
+            mode["description"] = f"{mode['description']} — preview build, launch disabled until production-ready."
+        elif status == "non-game-module":
+            mode["availability_label"] = "Module"
+        else:
+            mode["availability_label"] = status.title()
+    return modes
 
 @api_router.get("/cards")
 async def get_creator_cards(category: Optional[str] = None):
@@ -1264,6 +1293,8 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
+    if not EMERGENT_KEY or not all((LlmChat, UserMessage)):
+        return {"response":"AI service is not configured in this environment. Keep the session focused: warm up, train with clean reps, hydrate, and log recovery after.","model":"fallback","type":prompt_type}
     try:
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
         chat.with_model("openai","gpt-5.2")
@@ -1280,6 +1311,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
+    if not EMERGENT_KEY or not all((LlmChat, UserMessage)):
+        return {"response":"AI service is not configured in this environment, but the training system is online. Ask again after EMERGENT_LLM_KEY and the AI SDK are installed.","model":"fallback","conversation_id":cid}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=f"You are FEL AI Assistant. Help {user.name} with training, nutrition, recovery. PRQ: {user.prq_score}/100. Be concise.")
@@ -1294,17 +1327,13 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/streaming/status")
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        mode_id: config.get("map", "").split("/")[-1]
+        for mode_id, config in registry.items()
+        if _is_launchable_mode(config)
     }
-    
+
     ws_connected = len(sovereign_bridge.clients) > 0
     
     return {
@@ -1334,6 +1363,8 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     mode_config = registry.get(mode_id)
     if not mode_config:
         raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+    if not _is_launchable_mode(mode_config):
+        raise HTTPException(status_code=404, detail=f"Mode {mode_id} is {mode_config.get('status', 'unavailable')} and not launchable")
 
     venue_key = mode_config["map"].split("/")[-1]
     venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
@@ -1426,7 +1457,7 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
-    """All 17 modes with deep links and venue mapping — confirms playability"""
+    """Mode registry with venue mapping and launchability flags."""
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
@@ -1441,14 +1472,17 @@ async def get_all_mapped_modes():
             "gamemode_class": config["gamemode_class"],
             "binary": config["binary"],
             "production_status": config["status"],
+            "launchable": _is_launchable_mode(config),
             "venue_display": venue_data.get("display_name", venue_key),
             "category": venue_data.get("category", "Unknown"),
             "db_collection": venue_data.get("db_collection", ""),
-            "linked": True
+            "linked": _is_launchable_mode(config)
         })
     return {
         "total_modes": len(mapped),
-        "all_linked": all(m["linked"] for m in mapped),
+        "launchable_modes": len([m for m in mapped if m["launchable"]]),
+        "all_launchable_modes_linked": all(m["linked"] for m in mapped if m["launchable"]),
+        "all_linked": all(m["linked"] for m in mapped if m["launchable"]),
         "deep_link_scheme": "finalevolution://",
         "modes": mapped
     }

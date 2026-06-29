@@ -17,9 +17,8 @@ import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/Quali
 import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import DistributionPage from "@/components/DistributionPage";
+import { API, toWebSocketUrl } from "@/config/api";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────
@@ -128,7 +127,7 @@ const LandingPage = () => {
         <div className="relative z-10 max-w-6xl mx-auto px-8 py-24 text-center">
           <p className="overline mb-4">THE ATHLETE OPERATING SYSTEM</p>
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6" style={{fontFamily:'Barlow Condensed'}}>YOUR MOVEMENT<br/><span className="text-cyan-400">AUDITED</span></h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. Production-ready game modes, preview labs, AI coaching, and cognitive training.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
             <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
@@ -147,7 +146,7 @@ const LandingPage = () => {
           {[
             {icon:Activity,t:"System Scan",d:"Avatar, PRQ metrics, health signals, and workout plans unified"},
             {icon:Users,t:"Creator Cards",d:"Digital collectibles from elite athletes and coaches"},
-            {icon:Gamepad2,t:"17 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
+            {icon:Gamepad2,t:"Game Mode Registry",d:"Launch production/staging modes while previews stay safely gated"},
             {icon:Trophy,t:"Coach Economy",d:"Instruction and critique as first-class currencies"},
             {icon:Brain,t:"Brain Brawl",d:"Cognitive training for peak decision-making"},
             {icon:GraduationCap,t:"Education",d:"Common Core to kinesiology certification"}
@@ -515,6 +514,11 @@ const GameModesView = () => {
   useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
 
   const launchNativeMode = async (mode) => {
+    if (!mode?.playable) {
+      setLaunchStatus(null);
+      setLaunchingMode(null);
+      return;
+    }
     setLaunchingMode(mode.id);
     setLaunchStatus('launching');
     try {
@@ -528,7 +532,7 @@ const GameModesView = () => {
 
         // State-Aware Handshake: listen for MapLoaded via WebSocket
         // NOT a blind timeout — wait for actual bridge confirmation
-        const wsUrl = `${BACKEND_URL.replace('https','wss').replace('http','ws')}/ws/sovereign`;
+        const wsUrl = toWebSocketUrl("/ws/sovereign");
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
@@ -631,12 +635,13 @@ const GameModesView = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="game-modes-grid">
         {filtered.map(mode => (
-          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && setPlayingMode(mode)}>
+          <div key={mode.id} className={`game-mode-card surface-card card-hover ${mode.playable ? 'cursor-pointer' : 'cursor-default opacity-80'}`} data-testid={`game-${mode.id}`} onClick={() => mode.playable && setPlayingMode(mode)}>
             <img src={mode.image_url} alt={mode.name} loading="lazy" />
             <div className="game-mode-overlay">
               <div className="flex items-center gap-2 mb-2">
                 <span className="badge-clinical">{mode.category}</span>
                 {mode.playable && <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>PLAYABLE</span>}
+                {!mode.playable && <span className="badge-clinical" style={{background:'rgba(250,204,21,0.1)',borderColor:'rgba(250,204,21,0.35)',color:'#FACC15'}}>{mode.availability_label || 'LOCKED'}</span>}
               </div>
               <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
               <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
@@ -1224,7 +1229,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

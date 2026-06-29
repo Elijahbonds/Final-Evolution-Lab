@@ -24,11 +24,15 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from core import EMERGENT_KEY, User, db, get_current_user
+
+try:
+    from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
+except ImportError:
+    ImageContent = LlmChat = UserMessage = None
 
 router = APIRouter(prefix="/api/biofuel", tags=["biofuel"])
 
@@ -37,6 +41,7 @@ router = APIRouter(prefix="/api/biofuel", tags=["biofuel"])
 # ============================================================
 
 ALLOWED_MODELS = {"gemini-2.5-flash", "gpt-5.2"}
+MAX_SCAN_IMAGE_BASE64_BYTES = 4 * 1024 * 1024
 ATHLETIC_INTENTS = {
     "fascial_hydration": "Connective tissue hydration & joint resilience",
     "cns_ignition": "Pre-training neural priming",
@@ -297,8 +302,12 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
     """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
+    if len(req.image_base64.encode("utf-8")) > MAX_SCAN_IMAGE_BASE64_BYTES:
+        raise HTTPException(status_code=413, detail="image_base64 exceeds 4MB limit")
     if not EMERGENT_KEY:
-        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+        raise HTTPException(status_code=503, detail="EMERGENT_LLM_KEY not configured")
+    if not all((ImageContent, LlmChat, UserMessage)):
+        raise HTTPException(status_code=503, detail="Vision scanner SDK is not installed")
 
     provider = "gemini" if req.model.startswith("gemini") else "openai"
     session_id = f"biofuel-scan-{uuid.uuid4().hex[:10]}"
@@ -420,7 +429,8 @@ def _consumed_totals(entries: List[Dict[str, Any]]) -> Dict[str, int]:
 
 
 def _athlete_weight_kg(user: User) -> float:
-    # Until a `weight_kg` field is captured, derive a reasonable default from PRQ (75kg baseline)
+    if user.weight_kg and 35 <= user.weight_kg <= 250:
+        return round(float(user.weight_kg), 1)
     return 75.0
 
 
@@ -583,7 +593,7 @@ async def doordash_search(req: DoorDashRequest, user: User = Depends(get_current
         p_ok = m["protein_g"] >= min_p
         return cal_ok and p_ok
 
-    matches = [m for m in pool if fit(m)] or pool[:3]
+    matches = [dict(m) for m in pool if fit(m)] or [dict(m) for m in pool[:3]]
     for m in matches:
         m["deep_link"] = f"https://www.doordash.com/search/store/?query={urllib.parse.quote(m['city_query'])}"
     return {
