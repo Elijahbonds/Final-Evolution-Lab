@@ -1,9 +1,12 @@
 #pragma once
 
+#include "nexus/ai/command_schema.h"
 #include "nexus/core/result.h"
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
+#include <mutex>
 #include <thread>
 
 namespace nexus::ai {
@@ -32,9 +35,20 @@ public:
   [[nodiscard]] auto isRunning() const -> bool;
 
 private:
+  /// Shared, mutex-guarded handle to a client socket so a response sink can
+  /// safely write back from the render loop thread even after the reader thread
+  /// has observed a disconnect and closed the socket.
+  struct ClientConnection {
+    std::mutex mutex;
+    int fd{-1};
+    bool open{false};
+  };
+
   void stdinLoop();
   void tcpAcceptLoop();
   void handleClient(int clientFd);
+  static void sendResponseLine(const std::shared_ptr<ClientConnection>& connection,
+                               const AgentResponse& response);
 
   AgentServer& m_server;
   AgentTransportConfig m_config{};

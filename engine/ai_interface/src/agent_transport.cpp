@@ -94,7 +94,11 @@ void AgentTransport::stdinLoop() {
       continue;
     }
 
-    const auto result = m_server.receiveJson(line);
+    // stdin-origin responses are emitted to stdout, newline-delimited JSON.
+    const auto result = m_server.receiveJson(line, [](const AgentResponse& response) {
+      std::cout << response.serialize().dump() << '\n';
+      std::cout.flush();
+    });
     if (result.isErr()) {
       NEXUS_LOG_WARN(LogChannel::kAI, "Stdin agent message rejected: " + result.error());
     }
@@ -173,15 +177,55 @@ void AgentTransport::tcpAcceptLoop() {
       continue;
     }
 
+    // handleClient owns the client socket lifetime (it closes the fd under the
+    // connection lock once the peer disconnects), so it is not closed here.
     handleClient(clientFd);
-    closeFd(clientFd);
   }
 
   closeFd(m_listenFd);
   m_listenFd = -1;
 }
 
+void AgentTransport::sendResponseLine(const std::shared_ptr<ClientConnection>& connection,
+                                      const AgentResponse& response) {
+  if (!connection) {
+    return;
+  }
+
+  const std::string line = response.serialize().dump() + "\n";
+
+  std::scoped_lock lock(connection->mutex);
+  if (!connection->open || connection->fd < 0) {
+    // Peer disconnected before we could answer; drop the response gracefully.
+    return;
+  }
+
+  std::size_t totalSent = 0;
+  while (totalSent < line.size()) {
+    // MSG_NOSIGNAL keeps a disconnected peer from raising SIGPIPE and killing
+    // the process; we handle the error locally instead.
+    const ssize_t sent = send(connection->fd, line.data() + totalSent,
+                              line.size() - totalSent, MSG_NOSIGNAL);
+    if (sent < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      // Broken pipe / reset / would-block: stop writing this response. The
+      // reader loop will observe the disconnect and tear the socket down.
+      break;
+    }
+    if (sent == 0) {
+      break;
+    }
+    totalSent += static_cast<std::size_t>(sent);
+  }
+}
+
 void AgentTransport::handleClient(int clientFd) {
+  auto connection = std::make_shared<ClientConnection>();
+  connection->fd = clientFd;
+  connection->open = true;
+
   std::string buffer;
   char chunk[512];
   while (m_running.load()) {
@@ -214,13 +258,28 @@ void AgentTransport::handleClient(int clientFd) {
         continue;
       }
 
-      const auto result = m_server.receiveJson(line);
+      // TCP-origin responses are written back over this same socket. The sink
+      // captures a shared handle so it stays valid even if the peer drops after
+      // the command is queued but before it is processed.
+      const auto result = m_server.receiveJson(line, [connection](const AgentResponse& response) {
+        sendResponseLine(connection, response);
+      });
       if (result.isErr()) {
         NEXUS_LOG_WARN(LogChannel::kAI, "TCP agent message rejected: " + result.error());
       } else {
         NEXUS_LOG_INFO(LogChannel::kAI, "TCP agent message queued");
       }
     }
+  }
+
+  // Mark the connection closed under lock before closing the fd so any pending
+  // response sink running on another thread becomes a graceful no-op rather
+  // than writing to a closed (and possibly recycled) descriptor.
+  {
+    std::scoped_lock lock(connection->mutex);
+    connection->open = false;
+    closeFd(connection->fd);
+    connection->fd = -1;
   }
 }
 

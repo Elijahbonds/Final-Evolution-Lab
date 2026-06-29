@@ -16,6 +16,10 @@ auto AgentServer::init(CommandRouter* router) -> Result<void> {
 }
 
 auto AgentServer::receiveJson(std::string_view jsonText) -> Result<void> {
+  return receiveJson(jsonText, ResponseSink{});
+}
+
+auto AgentServer::receiveJson(std::string_view jsonText, ResponseSink sink) -> Result<void> {
   nlohmann::json json = nlohmann::json::parse(jsonText, nullptr, false);
   if (json.is_discarded()) {
     return Result<void>::err("Invalid JSON");
@@ -27,7 +31,7 @@ auto AgentServer::receiveJson(std::string_view jsonText) -> Result<void> {
   }
 
   std::scoped_lock lock(m_mutex);
-  m_queue.push(std::move(message.value()));
+  m_queue.push(QueuedCommand{std::move(message.value()), std::move(sink)});
   return Result<void>::ok();
 }
 
@@ -36,17 +40,24 @@ auto AgentServer::processQueuedCommands(std::size_t maxCommands) -> std::vector<
   responses.reserve(maxCommands);
 
   for (std::size_t processed = 0; processed < maxCommands; ++processed) {
-    AgentMessage message;
+    QueuedCommand command;
     {
       std::scoped_lock lock(m_mutex);
       if (m_queue.empty()) {
         break;
       }
-      message = std::move(m_queue.front());
+      command = std::move(m_queue.front());
       m_queue.pop();
     }
 
-    responses.push_back(m_router->route(message));
+    AgentResponse response = m_router->route(command.message);
+    if (command.sink) {
+      // Route the response back to its origin. The sink runs outside the queue
+      // lock and must never throw/crash the caller (transport thread or render
+      // loop) on a dead connection.
+      command.sink(response);
+    }
+    responses.push_back(std::move(response));
   }
 
   return responses;
@@ -77,7 +88,7 @@ void AgentServer::shutdown() {
   stopTransport();
   {
     std::scoped_lock lock(m_mutex);
-    std::queue<AgentMessage> empty;
+    std::queue<QueuedCommand> empty;
     m_queue.swap(empty);
   }
   m_router = nullptr;
