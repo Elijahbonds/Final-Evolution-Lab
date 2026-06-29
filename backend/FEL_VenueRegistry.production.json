@@ -16,6 +16,17 @@
     "seele_texture_prefix": "T_",
     "seele_mesh_prefix": "SK_"
   },
+  "luma_scan_pipeline": {
+    "tool": "Luma AI",
+    "export_format": "GLTF_USD",
+    "ue5_import_path_root": "Content/FEL/Venues/",
+    "scan_subfolder": "LumaScans/",
+    "workflow": "Luma AI capture → export GLTF/USD → import UE5 Static Mesh → place in .umap as base geometry → fill gaps with Meshy/Seele generated assets",
+    "confirmed_scans": ["venice_beach", "luma_venice_shop", "dojo"],
+    "extension_strategy": "Venice Beach scan is the primary world anchor. Any modes without a dedicated scan (e.g. baseball_park, gridiron) use Meshy/Seele generated venues. All scan-based venues include a lumaAssets block.",
+    "venice_beach_notes": "Single large Venice Beach scan covers: basketball court (h2h / dunk / 3v3), surf break (surfing), carnival area (court_carnival). Extend with Meshy fill assets where scan geometry ends.",
+    "luma_asset_naming": "T_LumaScan_{venue_key}_Albedo, SM_LumaScan_{venue_key}_Mesh"
+  },
   "modes": [
     {
       "id": "basketball_h2h",
@@ -24,6 +35,13 @@
       "displayVenue": "Venice Beach Court",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
+      "lumaScanSource": "venice_beach",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
+        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
+        "notes": "Primary Luma scan anchor for VeniceBeach.umap. Covers basketball court, boardwalk edge, surf break, and carnival zone. Fill remaining geometry with Meshy/Seele assets."
+      },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_VeniceBeach",
       "meshyAssets": {
@@ -67,6 +85,13 @@
       "renderMode": "3D_UE5",
       "isIRLMode": false,
       "modeNote": "3D Nexus Engine video game. NBA Live 07-style dunk contest at Venice Beach outdoor court.",
+      "lumaScanSource": "venice_beach",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
+        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
+        "notes": "Shares VeniceBeach Luma scan base. Seele adds crowd, backboard, judge panel overlays on top."
+      },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_VeniceBeach",
       "meshyAssets": {
@@ -91,6 +116,13 @@
       "displayVenue": "Venice Beach Court",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
+      "lumaScanSource": "venice_beach",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
+        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
+        "notes": "Shares VeniceBeach Luma scan base. Seele populates 6 character spawn points across the court area."
+      },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_VeniceBeach",
       "meshyAssets": {
@@ -112,6 +144,13 @@
       "displayVenue": "Martial Arts Dojo",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
+      "lumaScanSource": "dojo",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_Dojo_Mesh",
+        "albedoTexture": "T_LumaScan_Dojo_Albedo",
+        "importPath": "Content/FEL/Venues/Dojo/LumaScans/",
+        "notes": "Luma AI scan of the martial arts dojo. Used for both karate_h2h and karate_endless. Seele adds tatami decals, hit VFX, and fighter spawn points."
+      },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_Dojo",
       "meshyAssets": {
@@ -134,6 +173,13 @@
       "displayVenue": "Martial Arts Dojo",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
+      "lumaScanSource": "dojo",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_Dojo_Mesh",
+        "albedoTexture": "T_LumaScan_Dojo_Albedo",
+        "importPath": "Content/FEL/Venues/Dojo/LumaScans/",
+        "notes": "Shares Dojo Luma scan. Wave spawn points added by Seele in radial pattern around center mat."
+      },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_Dojo",
       "meshyAssets": {
@@ -293,6 +339,13 @@
       "displayVenue": "Venice Beach Surf Break",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
+      "lumaScanSource": "venice_beach",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
+        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
+        "notes": "Uses Venice Beach scan waterline zone. Meshy dynamic wave geometry layered on top of scan shoreline."
+      },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_VeniceBeach",
       "meshyAssets": {
@@ -432,6 +485,13 @@
       "displayVenue": "Venice Beach Court",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
+      "lumaScanSource": "venice_beach",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
+        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
+        "notes": "Uses the full Venice Beach scan as the board game world. Carnival board overlaid on top via BP_CourtCarnival procedural layout."
+      },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_VeniceBeach",
       "meshyAssets": {
@@ -453,6 +513,13 @@
       "displayVenue": "Luma Venice Shop",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
+      "lumaScanSource": "luma_venice_shop",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_LumaVeniceShop_Mesh",
+        "albedoTexture": "T_LumaScan_LumaVeniceShop_Albedo",
+        "importPath": "Content/FEL/Venues/Luma_Venice_Shop/LumaScans/",
+        "notes": "Direct Luma AI scan of the Venice shop interior. Seele adds Creator Card display stands and holographic card shader on top of scan geometry."
+      },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_LumaVeniceShop",
       "meshyAssets": {

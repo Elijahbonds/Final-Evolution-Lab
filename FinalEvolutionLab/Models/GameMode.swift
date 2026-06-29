@@ -94,6 +94,32 @@ extension GameModeId {
         case .marketBrowse:           return "BP_MarketBrowse"
         }
     }
+
+    /// Inspirator game reference — shown on mode card and Get Ready screen.
+    var inspirationTag: String {
+        switch self {
+        case .basketballHeadToHead:   return "NBA Street style"
+        case .basketballDunkContest:  return "NBA Live 07 style"
+        case .basketball3v3:          return "NBA Street style"
+        case .basketballIRL:          return "IRL · HealthKit"
+        case .karate:                 return "Storm × Matrix style"
+        case .karateEndless:          return "Naruto Storm survival"
+        case .baseball:               return "Wii Sports style"
+        case .football:               return "NFL Street style"
+        case .soccer:                 return "FIFA Street style"
+        case .golf:                   return "Wii Sports style"
+        case .tennis:                 return "Wii Resort style"
+        case .volleyball:             return "Wii Resort style"
+        case .gymnastics:             return "Olympics style"
+        case .surfing:                return "Wii Resort style"
+        case .skateboarding:          return "THPS2 style"
+        case .snowboarding:           return "SSX style"
+        case .brainBrawl:             return "Big Brain Academy style"
+        case .whoSceneIt:             return "Scene It style"
+        case .courtCarnival:          return "Mario Party style"
+        case .marketBrowse:           return "Sovereign Shop"
+        }
+    }
 }
 
 extension GameModeId {
@@ -163,7 +189,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 1.0, green: 0.6, blue: 0.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: nil
+            hint: "1v1 iso — shot timing window, contest phase. NBA Street rules."
         ),
         GameMode(
             id: .basketballDunkContest,
@@ -185,7 +211,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.2, green: 0.8, blue: 0.4),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: nil
+            hint: "Run the court. Three on three. Six avatars, possession, street moves — NBA Street rules."
         ),
         GameMode(
             id: .basketballIRL,
@@ -207,7 +233,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 1.0, green: 0.2, blue: 0.2),
             multiplayerType: .realtime,
             environmentName: "Dojo Arena",
-            hint: nil
+            hint: "Combo chains, block window, cinematic finishers. Storm × Matrix style."
         ),
         GameMode(
             id: .karateEndless,
@@ -218,7 +244,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 1.0, green: 0.35, blue: 0.1),
             multiplayerType: .realtime,
             environmentName: "Dojo Arena",
-            hint: nil
+            hint: "Survive the waves. Every five waves a boss. Combo or get overwhelmed."
         ),
         GameMode(
             id: .baseball,
@@ -273,7 +299,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.85, green: 0.75, blue: 0.1),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: nil
+            hint: "Drag to aim, tap to hit. Keep the rally alive — Wii Resort style."
         ),
         GameMode(
             id: .volleyball,
@@ -295,7 +321,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.39, green: 0.4, blue: 0.95),
             multiplayerType: .turnBased,
             environmentName: "Arena",
-            hint: nil
+            hint: "Rhythm tap the sequence. Nail the dismount window. Judges are watching — Olympics style."
         ),
         GameMode(
             id: .surfing,
@@ -306,7 +332,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.2, green: 0.75, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Surf",
-            hint: nil
+            hint: "Balance the wave, chain the tricks, score the run — Wii Resort style."
         ),
         GameMode(
             id: .skateboarding,
@@ -317,7 +343,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.95, green: 0.45, blue: 0.12),
             multiplayerType: .realtime,
             environmentName: "Skate Park",
-            hint: nil
+            hint: "Two minutes. Score attack. Chain combos, manual into grinds — THPS2 style."
         ),
         GameMode(
             id: .snowboarding,
@@ -328,7 +354,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.85, green: 0.9, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Mountain Slope",
-            hint: nil
+            hint: "Hit the halfpipe, grab, spin, boost — SSX style."
         ),
         GameMode(
             id: .brainBrawl,
