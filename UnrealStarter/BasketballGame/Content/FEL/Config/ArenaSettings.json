@@ -1,29 +1,29 @@
 {
   "modes": {
     "basketball_h2h": {
-      "unrealOpenLevelPackage": null,
-      "renderMode": "IRL",
-      "isIRLMode": true,
-      "healthKitTracked": true,
-      "rimHeightInches": 120,
-      "modeDisplayName": "H2H Dunk Contest (IRL)",
-      "modeDescription": "Competitive head-to-head dunk contest on a regulation 10-foot rim. HealthKit PRQ scanning records real jump height, power, and heart rate into your Nexus Engine avatar.",
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
+      "modeDisplayName": "Head to Head",
+      "modeDescription": "3D Nexus Engine 1v1 basketball shootout at Venice Beach. Classic H2H street basketball.",
       "unrealBasketballSlice": "basketball_h2h",
       "scoreTarget": 100,
       "timeLimit": 300,
-      "inputScheme": "healthkit_motion",
-      "physicsPreset": "irl_passthrough",
-      "bStreetJamArcade": false,
+      "inputScheme": "swipe_gestures",
+      "physicsPreset": "standard",
+      "bStreetJamArcade": true,
       "timeLimitSeconds": 0,
       "ballCount": 1,
       "targetScore": 3,
+      "physicsJumpScale": 1.03,
+      "physicsWalkScale": 1.045,
       "bScoringEnabled": true,
       "bNeuroKineticLeakageForDunkParity": true,
-      "nexusEngineClass": "BP_BasketballH2H_IRL",
+      "nexusEngineClass": "BP_BasketballH2H",
       "meshyAssets": {
-        "note": "IRL mode — no UE5 venue map. HealthKit data drives PRQ avatar sync.",
-        "uiOverlay": "MESHY_hud_irl_basketball",
-        "avatarSlot": "MESHY_athlete_basketball_irl"
+        "venue": "MESHY_venice_beach_outdoor_court",
+        "athleteBase": "MESHY_athlete_basketball_h2h",
+        "ball": "MESHY_basketball_official"
       }
     },
     "basketball_dunk": {
@@ -31,9 +31,10 @@
       "renderMode": "3D_UE5",
       "isIRLMode": false,
       "modeDisplayName": "Dunk Contest",
-      "modeDescription": "3D Nexus Engine video game dunk contest at Venice Beach outdoor court. Perform aerial combos for judges in a cinematic UE5 environment.",
+      "modeDescription": "3D Nexus Engine video game dunk contest at Venice Beach outdoor court. NBA Live 07-style: select your dunk package, execute swipe combos in the timing window, earn judge scores.",
       "venueDisplayName": "Venice Beach Court (Outdoor)",
       "unrealBasketballSlice": "basketball_dunk",
+      "gameInspiration": ["NBA Live 07 Dunk Contest"],
       "scoreTarget": 100,
       "timeLimit": 300,
       "inputScheme": "swipe_gestures",
@@ -48,12 +49,55 @@
       "bScoringEnabled": true,
       "bNeuroKineticLeakageForDunkParity": true,
       "nexusEngineClass": "BP_BasketballDunk",
+      "nbaLive07Mechanics": {
+        "dunkSelectionPhase": true,
+        "dunkCatalogSlots": 6,
+        "executionSystem": "swipe_combo_timing",
+        "judgePanelCount": 3,
+        "maxScorePerJudge": 10,
+        "maxScorePerAttempt": 30,
+        "attemptsPerRound": 2,
+        "roundCount": 2,
+        "perfectTimingWindow_ms": 150,
+        "timingPenaltyMultiplier": 0.6,
+        "crowdMomentumMeter": true,
+        "signatureDunksUnlockedByPRQ": true,
+        "signatureDunks": [
+          "windmill", "between_the_legs", "reverse_360", "alley_oop_self", "tomahawk", "eastbay"
+        ]
+      },
       "meshyAssets": {
         "venue": "MESHY_venice_beach_outdoor_court",
         "backboard": "MESHY_regulation_backboard_venice",
-        "athlete_base": "MESHY_athlete_basketball_dunk",
+        "athleteBase": "MESHY_athlete_basketball_dunk",
         "crowd": "MESHY_venice_beach_crowd",
         "ball": "MESHY_basketball_official"
+      }
+    },
+    "basketball_irl": {
+      "unrealOpenLevelPackage": null,
+      "renderMode": "IRL",
+      "isIRLMode": true,
+      "healthKitTracked": true,
+      "rimHeightInches": 120,
+      "modeDisplayName": "IRL Dunk Contest",
+      "modeDescription": "Real-world competitive dunk contest on a regulation 10-foot rim. HealthKit PRQ scanning records real jump height, power output, and heart rate into the Nexus Engine avatar. New addition to the game.",
+      "unrealBasketballSlice": "basketball_irl",
+      "scoreTarget": 100,
+      "timeLimit": 300,
+      "inputScheme": "healthkit_motion",
+      "physicsPreset": "irl_passthrough",
+      "bStreetJamArcade": false,
+      "timeLimitSeconds": 0,
+      "ballCount": 1,
+      "targetScore": 3,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": true,
+      "nexusEngineClass": "BP_BasketballIRL",
+      "meshyAssets": {
+        "note": "IRL mode — no UE5 venue map. HealthKit data drives PRQ avatar sync.",
+        "uiOverlay": "MESHY_hud_irl_basketball",
+        "avatarSlot": "MESHY_athlete_basketball_irl"
       }
     },
     "basketball_3v3": {

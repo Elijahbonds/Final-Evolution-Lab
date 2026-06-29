@@ -25,33 +25,53 @@ This manifest defines every 3D model, animation, UI widget, audio asset, and Blu
 ## Game Mode Render Architecture
 
 ```
-19 Total Modes
-├── 3D_UE5 (17 modes) — Full Nexus Engine video games with Meshy + Seele assets
-│   ├── Production (11): basketball_dunk, basketball_3v3, karate_h2h, karate_endless,
-│   │                     baseball, football, soccer, golf, tennis, volleyball, surfing
+20 Total Modes
+├── 3D_UE5 (18 modes) — Full Nexus Engine video games with Meshy + Seele assets
+│   ├── Production (13): basketball_h2h, basketball_dunk, basketball_3v3,
+│   │                     karate_h2h, karate_endless, baseball, football, soccer,
+│   │                     golf, tennis, volleyball, surfing
 │   ├── Staging (3):      skateboarding, snowboarding, gymnastics
 │   ├── Preview (2):      who_scene_it, court_carnival
 │   └── Non-game (1):     market_browse
 ├── 2D (1 mode)
 │   └── Staging:          brain_brawl — Big Brain Academy × Triumph quiz battle
 └── IRL (1 mode)
-    └── Production:       basketball_h2h — Regulation rim, HealthKit PRQ tracking
+    └── Production:       basketball_irl — NEW: Regulation rim, HealthKit PRQ tracking
 ```
+
+**Important:** `basketball_h2h` is a **3D Nexus Engine video game** (1v1 street basketball at Venice Beach). `basketball_irl` is a **separate new mode** for real-world HealthKit-tracked play on a regulation rim.
 
 ---
 
-## Basketball H2H — IRL Competitive Mode
+## Basketball H2H — 3D Video Game (Venice Beach)
 
 **Mode ID:** `basketball_h2h`  
+**Render Mode:** `3D_UE5`  
+**Venue:** Venice Beach Court — `/Game/FEL/Venues/VeniceBeach/VeniceBeach`  
+**Description:** Classic 3D Nexus Engine 1v1 basketball shootout at Venice Beach. Street basketball head-to-head — existing production mode.
+
+### Meshy Assets
+| Slot ID | Type | Description |
+|---------|------|-------------|
+| `MESHY_venice_beach_outdoor_court` | Venue | Venice Beach outdoor court (shared with dunk contest) |
+| `MESHY_athlete_basketball_h2h` | Character | Athlete with H2H basketball outfit |
+| `MESHY_basketball_official` | Prop | Official basketball |
+
+---
+
+## Basketball IRL — Real-World HealthKit Mode (NEW)
+
+**Mode ID:** `basketball_irl`  
 **Render Mode:** `IRL` — No UE5 venue map required  
 **Venue:** Regulation Court (any real-world court)  
 **Rim Height:** 10 feet / 120 inches (regulation NBA/FIBA/NCAA)  
-**Description:** Competitive head-to-head dunk contest on a regulation rim. This is FEL's flagship SCAN pillar mode — real-world athletic performance is tracked via HealthKit and fed into the Nexus Engine PRQ avatar system.
+**Status:** New addition — production mode  
+**Description:** Competitive IRL dunk contest on a regulation rim. FEL's SCAN pillar mode — real-world athletic performance tracked via HealthKit and fed into the Nexus Engine PRQ avatar system.
 
 ### How It Works
-1. Player opens FEL on iOS, starts `basketball_h2h` session
+1. Player opens FEL on iOS, starts `basketball_irl` session
 2. Apple Watch / iPhone HealthKit records: jump height, heart rate, power output, movement speed
-3. NexusEngine receives PRQ scan data via `HealthKitService.swift`
+3. `NexusEngine` receives PRQ scan data via `HealthKitService.swift`
 4. Session ends → `NexusEngine.syncPRQToAvatar()` updates digital avatar stats
 5. PRQ delta computed from real athletic performance, not simulated gameplay
 
@@ -65,12 +85,26 @@ This manifest defines every 3D model, animation, UI widget, audio asset, and Blu
 
 ---
 
-## Basketball Dunk Contest — Venice Beach Video Game
+## Basketball Dunk Contest — Venice Beach 3D Video Game
 
 **Mode ID:** `basketball_dunk`  
 **Render Mode:** `3D_UE5`  
 **Venue:** Venice Beach Court (Outdoor) — `/Game/FEL/Venues/VeniceBeach/VeniceBeach`  
-**Description:** 3D Nexus Engine video game dunk contest at the iconic Venice Beach outdoor basketball court. Players perform aerial combos for a judging panel in a cinematic UE5 environment. Distinct from basketball_h2h (which is IRL).
+**Inspiration:** NBA Live 07 Dunk Contest  
+**Description:** 3D Nexus Engine video game dunk contest at the iconic Venice Beach outdoor basketball court. Mechanics mirror NBA Live 07's dunk contest — pre-contest dunk selection, swipe-combo timing windows, 3-judge panel scoring, crowd momentum.
+
+### NBA Live 07 Mechanics
+
+| Parameter | Value |
+|-----------|-------|
+| Dunk Selection Phase | Yes — choose 1 of 6 dunk catalog slots before contest |
+| Execution | Swipe combo + timing window (150ms perfect window) |
+| Judges | 3 judges × max 10 pts each = 30 per attempt |
+| Attempts per round | 2 (miss first → attempt again, score penalty) |
+| Rounds | 2 rounds per player |
+| Miss penalty | `score × 0.6` multiplier |
+| Crowd momentum meter | Yes — crowd energy builds with successive high scores |
+| Signature dunks (PRQ-locked) | windmill, between-the-legs, reverse 360, alley-oop self, tomahawk, eastbay |
 
 ### Meshy Assets
 | Slot ID | Type | Description |

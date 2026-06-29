@@ -20,6 +20,27 @@
     {
       "id": "basketball_h2h",
       "analyticsMode": "basketball_h2h",
+      "venueKey": "venice_beach",
+      "displayVenue": "Venice Beach Court",
+      "renderMode": "3D_UE5",
+      "isIRLMode": false,
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_VeniceBeach",
+      "meshyAssets": {
+        "venue": "MESHY_venice_beach_outdoor_court",
+        "athleteBase": "MESHY_athlete_basketball_h2h",
+        "ball": "MESHY_basketball_official"
+      },
+      "seeleAssets": {
+        "venueMap": "VeniceBeach.umap",
+        "bpGamemode": "BP_BasketballH2H.uasset",
+        "athleteAnim": "ABP_Basketball_H2H.uasset",
+        "ambient": "AMB_VeniceBeach.uasset"
+      }
+    },
+    {
+      "id": "basketball_irl",
+      "analyticsMode": "basketball_irl",
       "venueKey": "regulation_court_irl",
       "displayVenue": "Regulation Court (IRL)",
       "renderMode": "IRL",
@@ -28,7 +49,7 @@
       "rimHeightInches": 120,
       "spawnPoint": null,
       "ambientSFX": null,
-      "modeNote": "IRL mode: no UE5 venue. HealthKit tracks real performance. Avatar PRQ synced after session.",
+      "modeNote": "New addition. IRL mode: no UE5 venue map. HealthKit tracks real jump height, power, HR. Avatar PRQ synced after session.",
       "meshyAssets": {
         "uiHUD": "MESHY_hud_irl_basketball",
         "avatarSlot": "MESHY_athlete_basketball_irl"
@@ -45,7 +66,7 @@
       "displayVenue": "Venice Beach Court (Outdoor)",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
-      "modeNote": "3D Nexus Engine video game. Dunk contest at Venice Beach outdoor court.",
+      "modeNote": "3D Nexus Engine video game. NBA Live 07-style dunk contest at Venice Beach outdoor court.",
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_VeniceBeach",
       "meshyAssets": {
@@ -447,8 +468,8 @@
       }
     }
   ],
-  "total_venues": 13,
-  "total_game_modes": 19,
+  "total_venues": 14,
+  "total_game_modes": 20,
   "sovereign_sync": {
     "target": "M4 Pro Mac Mini",
     "protocol": "WSS over Cloudflare Tunnel",

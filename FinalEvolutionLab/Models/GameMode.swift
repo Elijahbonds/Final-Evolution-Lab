@@ -4,6 +4,8 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case basketballHeadToHead = "basketball_h2h"
     case basketballDunkContest = "basketball_dunk"
     case basketball3v3 = "basketball_3v3"
+    /// IRL competitive mode: HealthKit-tracked real-world dunk contest on regulation rim
+    case basketballIRL = "basketball_irl"
     /// Matches backend `karate_h2h` / UE Zen_Dojo
     case karate = "karate_h2h"
     case karateEndless = "karate_endless"
@@ -50,9 +52,9 @@ extension GameModeId {
     /// Nexus Engine render mode for this game mode.
     var renderMode: RenderMode {
         switch self {
-        case .brainBrawl:             return .ue2D
-        case .basketballHeadToHead:   return .irl
-        default:                      return .ue3D
+        case .brainBrawl:    return .ue2D
+        case .basketballIRL: return .irl
+        default:             return .ue3D
         }
     }
 
@@ -73,6 +75,7 @@ extension GameModeId {
         case .basketballHeadToHead:   return "BP_BasketballH2H"
         case .basketballDunkContest:  return "BP_BasketballDunk"
         case .basketball3v3:          return "BP_Basketball3v3"
+        case .basketballIRL:          return "BP_BasketballIRL"
         case .karate:                 return "BP_KarateH2H"
         case .karateEndless:          return "BP_KarateEndless"
         case .baseball:               return "BP_Baseball"
@@ -98,6 +101,8 @@ extension GameModeId {
         switch self {
         case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .karate, .karateEndless:
             return .charge
+        case .basketballIRL:
+            return .rhythmTap
         case .baseball:
             return .swipe
         case .golf:
@@ -151,25 +156,25 @@ struct GameModeRegistry {
     static let all: [GameMode] = [
         GameMode(
             id: .basketballHeadToHead,
-            name: "H2H Dunk Contest",
-            subtitle: "IRL · Regulation Rim · HealthKit",
+            name: "Head to Head",
+            subtitle: "1v1 Shootout",
             sport: .basketball,
             iconName: "figure.basketball",
             accentColor: Color(red: 1.0, green: 0.6, blue: 0.0),
             multiplayerType: .realtime,
-            environmentName: "Regulation Court (IRL)",
-            hint: "Compete IRL on a 10-ft regulation rim. HealthKit tracks your real jumps."
+            environmentName: "Venice Beach Court",
+            hint: nil
         ),
         GameMode(
             id: .basketballDunkContest,
             name: "Dunk Contest",
-            subtitle: "Venice Beach · 3D Video Game",
+            subtitle: "Venice Beach Showdown",
             sport: .basketball,
             iconName: "figure.highintensity.intervaltraining",
             accentColor: Color(red: 0, green: 0.83, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: "3D Nexus Engine dunk contest at Venice Beach outdoor court"
+            hint: "Select your dunk, nail the timing window, impress the judges — NBA Live 07 style"
         ),
         GameMode(
             id: .basketball3v3,
@@ -181,6 +186,17 @@ struct GameModeRegistry {
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
             hint: nil
+        ),
+        GameMode(
+            id: .basketballIRL,
+            name: "IRL Dunk Contest",
+            subtitle: "Regulation Rim · HealthKit",
+            sport: .basketball,
+            iconName: "basketball.fill",
+            accentColor: Color(red: 1.0, green: 0.4, blue: 0.1),
+            multiplayerType: .realtime,
+            environmentName: "Regulation Court (IRL)",
+            hint: "Compete on a real 10-ft rim. HealthKit tracks your jumps, power, and heart rate."
         ),
         GameMode(
             id: .karate,

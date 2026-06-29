@@ -8,8 +8,8 @@
   "nexus_engine_version": "1.0.0",
   "mode_manager": {
     "class": "UFELModeManagerSubsystem",
-    "total_modes": 19,
-    "production_modes": 12,
+    "total_modes": 20,
+    "production_modes": 13,
     "staging_modes": 4,
     "preview_modes": 2,
     "render_mode_breakdown": {
@@ -20,15 +20,13 @@
     "modes": [
       {
         "id": "basketball_h2h",
-        "map": null,
-        "render_mode": "IRL",
-        "irl_mode": true,
-        "healthkit_tracked": true,
-        "rim_height_inches": 120,
-        "venue_display": "Regulation Court (IRL)",
-        "mode_description": "Competitive H2H dunk contest on a 10-ft regulation rim. HealthKit PRQ scanning records real jump height, power output, and heart rate into the Nexus Engine avatar.",
-        "gamemode_class": "BP_BasketballH2H_IRL",
-        "nexus_engine_class": "BP_BasketballH2H_IRL",
+        "map": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+        "render_mode": "3D_UE5",
+        "irl_mode": false,
+        "venue_display": "Venice Beach Court",
+        "mode_description": "3D Nexus Engine 1v1 basketball shootout at Venice Beach. Classic head-to-head street basketball.",
+        "gamemode_class": "BP_BasketballH2H",
+        "nexus_engine_class": "BP_BasketballH2H",
         "binary": "basketball_h2h",
         "status": "production",
         "max_players": 2,
@@ -37,9 +35,11 @@
         "prq_weight": 1.2,
         "meshy_asset_id": "MESHY_basketball_h2h",
         "seele_assets": {
-          "note": "IRL mode: no UE5 venue map. Assets are HUD overlay only.",
-          "ui_hud": "WBP_HUD_IRL_Basketball",
-          "avatar_sync": "ABP_Athlete_IRL_Sync"
+          "venue_map": "VeniceBeach.umap",
+          "bp_gamemode": "BP_BasketballH2H.uasset",
+          "athlete_anim": "ABP_Basketball_H2H.uasset",
+          "sfx": "SFX_Basketball_H2H.uasset",
+          "ambient": "AMB_VeniceBeach.uasset"
         }
       },
       {
@@ -48,7 +48,23 @@
         "render_mode": "3D_UE5",
         "irl_mode": false,
         "venue_display": "Venice Beach Court (Outdoor)",
-        "mode_description": "3D Nexus Engine video game dunk contest at Venice Beach outdoor court. Aerial combos, judges scoring, cinematic UE5 environment.",
+        "mode_description": "3D Nexus Engine video game dunk contest at Venice Beach. NBA Live 07-style: choose your dunk package, hit swipe combo timing windows, earn judge scores from a 3-judge panel.",
+        "game_inspiration": ["NBA Live 07 Dunk Contest"],
+        "nba_live_07_mechanics": {
+          "dunk_selection_phase": true,
+          "dunk_catalog_slots": 6,
+          "execution_system": "swipe_combo_timing",
+          "judge_panel_count": 3,
+          "max_score_per_judge": 10,
+          "max_score_per_attempt": 30,
+          "attempts_per_round": 2,
+          "round_count": 2,
+          "perfect_timing_window_ms": 150,
+          "timing_penalty_multiplier": 0.6,
+          "crowd_momentum_meter": true,
+          "signature_dunks_unlocked_by_prq": true,
+          "signature_dunks": ["windmill", "between_the_legs", "reverse_360", "alley_oop_self", "tomahawk", "eastbay"]
+        },
         "gamemode_class": "BP_BasketballDunk",
         "nexus_engine_class": "BP_BasketballDunk",
         "binary": "basketball_dunk",
@@ -64,6 +80,30 @@
           "athlete_anim": "ABP_Basketball_Dunk.uasset",
           "sfx": "SFX_Basketball_Dunk_Crowd.uasset",
           "ambient": "AMB_VeniceBeach.uasset"
+        }
+      },
+      {
+        "id": "basketball_irl",
+        "map": null,
+        "render_mode": "IRL",
+        "irl_mode": true,
+        "healthkit_tracked": true,
+        "rim_height_inches": 120,
+        "venue_display": "Regulation Court (IRL)",
+        "mode_description": "New addition. Real-world competitive dunk contest on a regulation 10-ft rim. HealthKit PRQ scanning records real jump height, power output, and heart rate into the Nexus Engine avatar.",
+        "gamemode_class": "BP_BasketballIRL",
+        "nexus_engine_class": "BP_BasketballIRL",
+        "binary": "basketball_irl",
+        "status": "production",
+        "max_players": 2,
+        "min_players": 1,
+        "session_timeout_seconds": 600,
+        "prq_weight": 1.5,
+        "meshy_asset_id": "MESHY_basketball_irl",
+        "seele_assets": {
+          "note": "IRL mode: no UE5 venue map. HealthKit session — HUD overlay + PRQ sync only.",
+          "ui_hud": "WBP_HUD_IRL_Basketball.uasset",
+          "avatar_sync": "ABP_Athlete_IRL_Sync.uasset"
         }
       },
       {

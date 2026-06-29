@@ -1,8 +1,9 @@
 {
-  "description": "Single source of truth: FEL mode_id (API / iOS rawValue) → Unreal map token for E3DS launch / Pixel Streaming",
+  "description": "Single source of truth: FEL mode_id (API / iOS rawValue) → Unreal map token for E3DS launch / Pixel Streaming. IRL modes have null map (HealthKit session, no UE5 level).",
   "mode_to_unreal_map": {
     "basketball_h2h": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
     "basketball_dunk": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+    "basketball_irl": null,
     "basketball_3v3": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
     "karate_h2h": "/Game/FEL/Venues/Dojo/Dojo",
     "karate_endless": "/Game/FEL/Venues/Dojo/Dojo",
