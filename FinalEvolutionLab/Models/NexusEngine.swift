@@ -108,7 +108,7 @@ final class NexusEngine {
     private(set) var firestoreReady: Bool = false
     private(set) var healthKitAuthorized: Bool = false
     private(set) var emergentConnected: Bool = false
-    private(set) var unrealLoaded: Bool = false
+    private(set) var nexusEngineReady: Bool = false
 
     enum NexusHealth {
         case optimal
@@ -117,7 +117,7 @@ final class NexusEngine {
     }
 
     var overallHealth: NexusHealth {
-        let readyCount = [firestoreReady, healthKitAuthorized, emergentConnected, unrealLoaded]
+        let readyCount = [firestoreReady, healthKitAuthorized, emergentConnected, nexusEngineReady]
             .filter { $0 }.count
         switch readyCount {
         case 4:       return .optimal
@@ -186,7 +186,7 @@ final class NexusEngine {
         emergentConnected = Config.resolvedEmergentGameWebSocketURL() != nil
         Self.log.info("Emergent step complete — connected=\(self.emergentConnected).")
 
-        unrealLoaded = UnrealManager.shared.isUnrealLoaded
+        nexusEngineReady = NexusBridge.shared.isUnrealLoaded
         bootState = .ready
         Self.log.info("NexusEngine boot complete. health=\(String(describing: self.overallHealth)).")
     }
@@ -195,7 +195,7 @@ final class NexusEngine {
 
     /// Initiates matchmaking then transitions to a live session inside Unreal.
     ///
-    /// Throws `sessionConflict` when a session is already active and `unrealNotLoaded` when
+    /// Throws `sessionConflict` when a session is already active and `nexusNotReady` when
     /// the Unreal framework has not finished loading.
     func launchMode(_ id: GameModeId, readiness: Double, profile: UserProfile) async throws {
         switch sessionState {
@@ -318,7 +318,7 @@ final class NexusEngine {
 
         do {
             let data = try record.unrealBridgeJSON()
-            UnrealManager.shared.deliverSystemScanJSON(data)
+            NexusBridge.shared.deliverSystemScanJSON(data)
         } catch {
             Self.log.error("deliverScanToUnreal: JSON encode failed: \(error.localizedDescription, privacy: .public)")
         }
@@ -340,7 +340,7 @@ enum NexusError: LocalizedError, Equatable {
     case firebaseFailed
     case healthKitDenied
     case sessionConflict
-    case unrealNotLoaded
+    case nexusNotReady
 
     var errorDescription: String? {
         switch self {
@@ -350,7 +350,7 @@ enum NexusError: LocalizedError, Equatable {
             return "HealthKit access was denied. Enable it in Settings > Privacy & Security > Health."
         case .sessionConflict:
             return "A game session is already active. End the current session before launching a new one."
-        case .unrealNotLoaded:
+        case .nexusNotReady:
             return "The Unreal runtime is not loaded. Ensure the embedded framework is present in the app bundle."
         }
     }

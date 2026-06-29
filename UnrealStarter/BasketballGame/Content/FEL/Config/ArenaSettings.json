@@ -7,8 +7,6 @@
       "modeDisplayName": "Head to Head",
       "modeDescription": "3D Nexus Engine 1v1 basketball shootout at Venice Beach. Classic H2H street basketball.",
       "unrealBasketballSlice": "basketball_h2h",
-      "gameInspiration": ["NBA 2K", "NBA Street"],
-      "inspirationTag": "NBA Street style",
       "mechanicsSpec": {
         "format": "1v1_halfcourt",
         "avatarsOnCourt": 2,
@@ -16,10 +14,21 @@
         "contestPhaseEnabled": true,
         "contestWindow_ms": 300,
         "contestReducesMakeChance": true,
-        "dribbleMoveSet": ["crossover", "between_legs", "spin", "stepback"],
+        "dribbleMoveSet": [
+          "crossover",
+          "between_legs",
+          "spin",
+          "stepback"
+        ],
         "streetMovesEnabled": true,
         "targetScore": 21,
-        "sceneAssets": ["player1_avatar", "player2_avatar", "hoop", "ball", "venice_court"],
+        "sceneAssets": [
+          "player1_avatar",
+          "player2_avatar",
+          "hoop",
+          "ball",
+          "venice_court"
+        ],
         "inputStyle": "charge_face_buttons"
       },
       "scoreTarget": 100,
@@ -49,8 +58,6 @@
       "modeDescription": "3D Nexus Engine video game dunk contest on the iconic blue concrete court at Venice Beach, CA. NBA Live 07-style: select your dunk package, execute swipe combos in the timing window, earn judge scores.",
       "venueDisplayName": "Venice Beach Blue Court",
       "unrealBasketballSlice": "basketball_dunk",
-      "gameInspiration": ["NBA Live 07 Dunk Contest", "NBA Street"],
-      "inspirationTag": "NBA Live 07 style",
       "courtVisuals": {
         "courtColor": "venice_blue",
         "courtSurface": "painted_concrete_weathered",
@@ -89,7 +96,12 @@
         "crowdMomentumMeter": true,
         "signatureDunksUnlockedByPRQ": true,
         "signatureDunks": [
-          "windmill", "between_the_legs", "reverse_360", "alley_oop_self", "tomahawk", "eastbay"
+          "windmill",
+          "between_the_legs",
+          "reverse_360",
+          "alley_oop_self",
+          "tomahawk",
+          "eastbay"
         ]
       },
       "meshyAssets": {
@@ -112,14 +124,19 @@
       "modeDisplayName": "IRL Dunk Contest",
       "modeDescription": "Real-world competitive dunk contest on a regulation 10-foot rim. HealthKit PRQ scanning records real jump height, power output, and heart rate into the Nexus Engine avatar. New addition to the game.",
       "unrealBasketballSlice": "basketball_irl",
-      "gameInspiration": ["Real World Athletics"],
-      "inspirationTag": "IRL · HealthKit",
       "mechanicsSpec": {
         "format": "irl_dunk_contest",
         "rimHeightInches": 120,
-        "healthKitMetrics": ["jump_height", "power_output", "heart_rate"],
+        "healthKitMetrics": [
+          "jump_height",
+          "power_output",
+          "heart_rate"
+        ],
         "prqWeight": 1.5,
-        "sceneAssets": ["hud_overlay_irl", "avatar_prq_sync"]
+        "sceneAssets": [
+          "hud_overlay_irl",
+          "avatar_prq_sync"
+        ]
       },
       "scoreTarget": 100,
       "timeLimit": 300,
@@ -133,7 +150,7 @@
       "bNeuroKineticLeakageForDunkParity": true,
       "nexusEngineClass": "BP_BasketballIRL",
       "meshyAssets": {
-        "note": "IRL mode — no UE5 venue map. HealthKit data drives PRQ avatar sync.",
+        "note": "IRL mode \u2014 no UE5 venue map. HealthKit data drives PRQ avatar sync.",
         "uiOverlay": "MESHY_hud_irl_basketball",
         "avatarSlot": "MESHY_athlete_basketball_irl"
       }
@@ -144,19 +161,29 @@
       "isIRLMode": false,
       "modeDisplayName": "3v3 Basketball",
       "unrealBasketballSlice": "basketball_3v3",
-      "gameInspiration": ["NBA Street"],
-      "inspirationTag": "NBA Street style",
       "mechanicsSpec": {
         "format": "3v3_halfcourt",
         "avatarsPerTeam": 3,
         "totalAvatarsOnCourt": 6,
-        "teamIds": ["blue1", "blue2", "blue3", "red1", "red2", "red3"],
+        "teamIds": [
+          "blue1",
+          "blue2",
+          "blue3",
+          "red1",
+          "red2",
+          "red3"
+        ],
         "possessionSystem": true,
         "passEnabled": true,
         "streetMovesEnabled": true,
         "defenseAI": "homing_soft",
         "targetScore": 11,
-        "sceneAssets": ["6_avatars", "2_hoops", "ball", "venice_court_walls"],
+        "sceneAssets": [
+          "6_avatars",
+          "2_hoops",
+          "ball",
+          "venice_court_walls"
+        ],
         "inputStyle": "charge_face_buttons"
       },
       "scoreTarget": 100,
@@ -184,8 +211,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Karate Match",
       "unrealBasketballSlice": "karate_h2h",
-      "gameInspiration": ["Naruto Shippuden: Ultimate Ninja Storm", "Enter the Matrix"],
-      "inspirationTag": "Storm × Matrix style",
       "mechanicsSpec": {
         "format": "point_sparring",
         "targetPoints": 5,
@@ -197,8 +222,19 @@
         "specialChargeEnabled": true,
         "specialMoveCost": 1,
         "cinematicFinishersEnabled": true,
-        "strikeTypes": ["jab", "cross", "roundhouse_kick", "spinning_kick", "palm_strike"],
-        "sceneAssets": ["fighter1_avatar", "fighter2_avatar", "dojo_mat", "hit_vfx"],
+        "strikeTypes": [
+          "jab",
+          "cross",
+          "roundhouse_kick",
+          "spinning_kick",
+          "palm_strike"
+        ],
+        "sceneAssets": [
+          "fighter1_avatar",
+          "fighter2_avatar",
+          "dojo_mat",
+          "hit_vfx"
+        ],
         "inputStyle": "charge_face_buttons"
       },
       "scoreTarget": 100,
@@ -222,8 +258,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Karate Endless",
       "unrealBasketballSlice": "karate_endless",
-      "gameInspiration": ["Naruto Shippuden: Ultimate Ninja Storm"],
-      "inspirationTag": "Naruto Storm survival",
       "mechanicsSpec": {
         "format": "wave_survival",
         "waveCount": "endless",
@@ -232,8 +266,17 @@
         "specialPoolSize": 3,
         "specialRechargeOnKill": true,
         "bossWaveInterval": 5,
-        "enemyVariants": ["grunt", "heavy", "speed", "boss"],
-        "sceneAssets": ["player_avatar", "enemy_wave_variants", "dojo_mat"],
+        "enemyVariants": [
+          "grunt",
+          "heavy",
+          "speed",
+          "boss"
+        ],
+        "sceneAssets": [
+          "player_avatar",
+          "enemy_wave_variants",
+          "dojo_mat"
+        ],
         "inputStyle": "charge_face_buttons"
       },
       "scoreTarget": 100,
@@ -258,8 +301,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Baseball",
       "unrealBasketballSlice": "baseball",
-      "gameInspiration": ["Wii Sports Baseball"],
-      "inspirationTag": "Wii Sports style",
       "mechanicsSpec": {
         "format": "home_run_derby",
         "pitchesPerAt_bat": 10,
@@ -269,7 +310,15 @@
         "timingWindowPerfect_ms": 150,
         "timingWindowGood_ms": 300,
         "homePlateToFenceDistance_m": 122,
-        "sceneAssets": ["batter_avatar", "pitcher_avatar", "catcher_avatar", "mound", "home_plate", "stadium_stands", "ball"],
+        "sceneAssets": [
+          "batter_avatar",
+          "pitcher_avatar",
+          "catcher_avatar",
+          "mound",
+          "home_plate",
+          "stadium_stands",
+          "ball"
+        ],
         "inputStyle": "swipe"
       },
       "scoreTarget": 9,
@@ -293,8 +342,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Football",
       "unrealBasketballSlice": "football",
-      "gameInspiration": ["NFL Street"],
-      "inspirationTag": "NFL Street style",
       "mechanicsSpec": {
         "format": "kick_return_sudden_death",
         "defendersOnField": 11,
@@ -305,7 +352,13 @@
         "houseCallWin": true,
         "blockerAssist": true,
         "kickArcOnStart": true,
-        "sceneAssets": ["returner_avatar", "11_defender_avatars", "kick_arc_ball", "field_yard_lines", "end_zones"],
+        "sceneAssets": [
+          "returner_avatar",
+          "11_defender_avatars",
+          "kick_arc_ball",
+          "field_yard_lines",
+          "end_zones"
+        ],
         "inputStyle": "kickReturn"
       },
       "scoreTarget": 100,
@@ -329,8 +382,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Soccer",
       "unrealBasketballSlice": "soccer",
-      "gameInspiration": ["FIFA Street", "Wii Sports Resort"],
-      "inspirationTag": "FIFA Street style",
       "mechanicsSpec": {
         "format": "penalty_shootout",
         "roundCount": 5,
@@ -339,7 +390,14 @@
         "keeperAI": "read_and_dive",
         "ballCurveEnabled": true,
         "keeperReactionDelay_ms": 300,
-        "sceneAssets": ["kicker_avatar", "goalkeeper_avatar", "goal_net", "penalty_spot", "pitch_stripes", "soccer_ball"],
+        "sceneAssets": [
+          "kicker_avatar",
+          "goalkeeper_avatar",
+          "goal_net",
+          "penalty_spot",
+          "pitch_stripes",
+          "soccer_ball"
+        ],
         "inputStyle": "penaltyKick"
       },
       "scoreTarget": 3,
@@ -363,8 +421,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Golf",
       "unrealBasketballSlice": "golf",
-      "gameInspiration": ["Wii Sports Golf"],
-      "inspirationTag": "Wii Sports style",
       "mechanicsSpec": {
         "format": "closest_to_pin",
         "holeCount": 3,
@@ -373,8 +429,20 @@
         "windVariableEnabled": true,
         "greenVisualization": true,
         "pinDistanceTarget_m": 0.5,
-        "clubTypes": ["driver", "iron", "wedge", "putter"],
-        "sceneAssets": ["golfer_avatar", "green", "pin_flag", "ball", "club_set", "sand_bunker"],
+        "clubTypes": [
+          "driver",
+          "iron",
+          "wedge",
+          "putter"
+        ],
+        "sceneAssets": [
+          "golfer_avatar",
+          "green",
+          "pin_flag",
+          "ball",
+          "club_set",
+          "sand_bunker"
+        ],
         "inputStyle": "swipeGolf"
       },
       "scoreTarget": 18,
@@ -398,8 +466,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Tennis",
       "unrealBasketballSlice": "tennis",
-      "gameInspiration": ["Wii Sports Resort"],
-      "inspirationTag": "Wii Resort style",
       "mechanicsSpec": {
         "format": "rally_ace",
         "serveInput": "swipe_up",
@@ -407,8 +473,19 @@
         "hitInput": "tap_timing",
         "rallyCounter": true,
         "serveQualityBonus": true,
-        "spinTypes": ["flat", "topspin", "slice"],
-        "sceneAssets": ["player1_avatar", "player2_avatar", "net", "tennis_ball", "court_lines", "racket"],
+        "spinTypes": [
+          "flat",
+          "topspin",
+          "slice"
+        ],
+        "sceneAssets": [
+          "player1_avatar",
+          "player2_avatar",
+          "net",
+          "tennis_ball",
+          "court_lines",
+          "racket"
+        ],
         "inputStyle": "rallyAce"
       },
       "scoreTarget": 100,
@@ -433,8 +510,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Volleyball",
       "unrealBasketballSlice": "volleyball",
-      "gameInspiration": ["Wii Sports Resort"],
-      "inspirationTag": "Wii Resort style",
       "mechanicsSpec": {
         "format": "rally_ace_spike",
         "serveInput": "swipe_up",
@@ -444,7 +519,13 @@
         "blockWindow_ms": 400,
         "rallyCounter": true,
         "digEnabled": true,
-        "sceneAssets": ["team1_avatars_2", "team2_avatars_2", "net", "volleyball", "sand_court"],
+        "sceneAssets": [
+          "team1_avatars_2",
+          "team2_avatars_2",
+          "net",
+          "volleyball",
+          "sand_court"
+        ],
         "inputStyle": "rallyAce"
       },
       "scoreTarget": 100,
@@ -469,8 +550,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Surfing",
       "unrealBasketballSlice": "surfing",
-      "gameInspiration": ["Wii Sports Resort", "Tony Hawk's Pro Skater"],
-      "inspirationTag": "Wii Resort style",
       "mechanicsSpec": {
         "format": "wave_score_attack",
         "balanceMechanic": "tilt_drag",
@@ -478,9 +557,25 @@
         "waveQualityMultiplier": true,
         "trickComboChain": true,
         "wipeout_resets_combo": true,
-        "trickTypes": ["cutback", "floater", "aerial_grab", "tube_ride", "snap"],
-        "scoreComponents": ["balance_score", "trick_score", "wave_quality_bonus"],
-        "sceneAssets": ["surfer_avatar", "surfboard", "dynamic_wave", "beach_backdrop", "ocean_particles"],
+        "trickTypes": [
+          "cutback",
+          "floater",
+          "aerial_grab",
+          "tube_ride",
+          "snap"
+        ],
+        "scoreComponents": [
+          "balance_score",
+          "trick_score",
+          "wave_quality_bonus"
+        ],
+        "sceneAssets": [
+          "surfer_avatar",
+          "surfboard",
+          "dynamic_wave",
+          "beach_backdrop",
+          "ocean_particles"
+        ],
         "inputStyle": "rhythmTap"
       },
       "scoreTarget": 100,
@@ -509,23 +604,51 @@
       "isIRLMode": false,
       "modeDisplayName": "Skateboarding",
       "unrealBasketballSlice": "skateboarding",
-      "gameInspiration": ["Tony Hawk's Pro Skater 2"],
-      "inspirationTag": "THPS2 style",
       "mechanicsSpec": {
         "format": "score_attack_2min",
         "specialMeter": true,
         "specialMeterFillSource": "combo_chains",
         "specialMovesUnlockByPRQ": true,
-        "signatureTricks": ["900", "kickflip_mctwist", "benihana", "varial_heelflip", "nollie_nosegrind"],
+        "signatureTricks": [
+          "900",
+          "kickflip_mctwist",
+          "benihana",
+          "varial_heelflip",
+          "nollie_nosegrind"
+        ],
         "comboChainEnabled": true,
         "manualChainEnabled": true,
-        "grindTypes": ["50-50", "nosegrind", "5-0", "smith_grind", "crooked_grind"],
-        "lipTricks": ["bluntslide", "nosestall", "tailstall", "noseblunt"],
-        "flatgroundTricks": ["kickflip", "heelflip", "hardflip", "tre_flip", "varial_flip"],
+        "grindTypes": [
+          "50-50",
+          "nosegrind",
+          "5-0",
+          "smith_grind",
+          "crooked_grind"
+        ],
+        "lipTricks": [
+          "bluntslide",
+          "nosestall",
+          "tailstall",
+          "noseblunt"
+        ],
+        "flatgroundTricks": [
+          "kickflip",
+          "heelflip",
+          "hardflip",
+          "tre_flip",
+          "varial_flip"
+        ],
         "trickNamingOverlay": true,
         "multiplierBuildsOnChain": true,
         "crashResetsMultiplier": true,
-        "sceneAssets": ["skater_avatar", "skateboard_deck", "rails", "ledges", "halfpipe", "kicker_ramps"],
+        "sceneAssets": [
+          "skater_avatar",
+          "skateboard_deck",
+          "rails",
+          "ledges",
+          "halfpipe",
+          "kicker_ramps"
+        ],
         "inputStyle": "analog_stick"
       },
       "scoreTarget": 100,
@@ -554,20 +677,42 @@
       "isIRLMode": false,
       "modeDisplayName": "Snowboarding",
       "unrealBasketballSlice": "snowboarding",
-      "gameInspiration": ["SSX", "Mario & Sonic at the Olympic Games"],
-      "inspirationTag": "SSX style",
       "mechanicsSpec": {
         "format": "halfpipe_score_attack",
         "boostMeter": true,
         "boostSource": "trick_combos_and_air",
-        "grabTricks": ["indy", "stalefish", "melon", "mute", "tail_grab", "rocket"],
+        "grabTricks": [
+          "indy",
+          "stalefish",
+          "melon",
+          "mute",
+          "tail_grab",
+          "rocket"
+        ],
         "spinMultiplier": true,
-        "spinTypes": ["180", "360", "540", "720", "900"],
+        "spinTypes": [
+          "180",
+          "360",
+          "540",
+          "720",
+          "900"
+        ],
         "crashResetsCombo": true,
         "ubertrickEnabled": true,
         "ubertrickUnlockByPRQ": true,
-        "scoreComponents": ["air_height_bonus", "spin_degrees_bonus", "grab_quality", "combo_chain"],
-        "sceneAssets": ["snowboarder_avatar", "snowboard_deck", "halfpipe", "mountain_terrain", "snow_particles"],
+        "scoreComponents": [
+          "air_height_bonus",
+          "spin_degrees_bonus",
+          "grab_quality",
+          "combo_chain"
+        ],
+        "sceneAssets": [
+          "snowboarder_avatar",
+          "snowboard_deck",
+          "halfpipe",
+          "mountain_terrain",
+          "snow_particles"
+        ],
         "inputStyle": "analog_stick"
       },
       "scoreTarget": 100,
@@ -596,19 +741,37 @@
       "isIRLMode": false,
       "modeDisplayName": "Gymnastics",
       "unrealBasketballSlice": "gymnastics",
-      "gameInspiration": ["Mario & Sonic at the Olympic Games"],
-      "inspirationTag": "Olympics style",
       "mechanicsSpec": {
         "format": "routine_and_dismount",
-        "apparatusOptions": ["floor_exercise", "vault", "parallel_bars", "balance_beam"],
-        "rhythmTapSequenceLength": [3, 5, 7],
+        "apparatusOptions": [
+          "floor_exercise",
+          "vault",
+          "parallel_bars",
+          "balance_beam"
+        ],
+        "rhythmTapSequenceLength": [
+          3,
+          5,
+          7
+        ],
         "dismountTimingWindow_ms": 200,
         "formScore": "tap_accuracy_percentage",
         "executionScore": "timing_precision",
-        "difficultyTiers": ["B", "C", "D", "E"],
+        "difficultyTiers": [
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
         "judgePanelCount": 3,
         "prqBoostsStartingDifficulty": true,
-        "sceneAssets": ["gymnast_avatar", "apparatus_set", "spring_floor", "landing_mat", "judge_panel"],
+        "sceneAssets": [
+          "gymnast_avatar",
+          "apparatus_set",
+          "spring_floor",
+          "landing_mat",
+          "judge_panel"
+        ],
         "inputStyle": "rhythmTap"
       },
       "scoreTarget": 100,
@@ -636,15 +799,24 @@
       "modeDisplayName": "Brain Brawl",
       "modeDescription": "2D battle-of-wits quiz game. Mirrors Big Brain Academy, Triumph, and Brain Age. Sports knowledge + logic puzzles + reaction challenges. No 3D physics.",
       "unrealBasketballSlice": "brain_brawl",
-      "gameInspiration": ["Big Brain Academy", "Triumph", "Brain Age", "Who Wants to Be a Millionaire"],
-      "inspirationTag": "Big Brain Academy style",
       "mechanicsSpec": {
         "format": "quiz_battle_2d",
         "questionsPerMatch": 5,
         "firstCorrectWins": true,
         "questionTimeLimitSecs": 10,
-        "categories": ["sports_knowledge", "biomechanics", "creator_cards", "logic_puzzles", "reaction_challenges"],
-        "difficultyTiers": ["rookie", "pro", "elite", "nexus"],
+        "categories": [
+          "sports_knowledge",
+          "biomechanics",
+          "creator_cards",
+          "logic_puzzles",
+          "reaction_challenges"
+        ],
+        "difficultyTiers": [
+          "rookie",
+          "pro",
+          "elite",
+          "nexus"
+        ],
         "prqUnlocksHigherDifficulty": true,
         "opponentAI": true,
         "aiDifficultyScalesWithPRQ": true,
@@ -674,8 +846,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Who Scene It",
       "unrealBasketballSlice": "who_scene_it",
-      "gameInspiration": ["Scene It?", "Trivial Pursuit", "HQ Trivia"],
-      "inspirationTag": "Scene It style",
       "mechanicsSpec": {
         "format": "multimedia_trivia",
         "clipSource": "creator_cards",
@@ -709,8 +879,6 @@
       "isIRLMode": false,
       "modeDisplayName": "Court Carnival",
       "unrealBasketballSlice": "court_carnival",
-      "gameInspiration": ["Mario Party"],
-      "inspirationTag": "Mario Party style",
       "mechanicsSpec": {
         "format": "board_game_4player",
         "boardSpaces": 40,
@@ -726,8 +894,18 @@
           "brain_brawl_speed_round"
         ],
         "rotatingTurnOrder": true,
-        "itemSpaces": ["boost", "swap", "steal", "star_zone"],
-        "sceneAssets": ["board_set_4player", "4_player_piece_avatars", "minigame_props", "carnival_backdrop_venice"],
+        "itemSpaces": [
+          "boost",
+          "swap",
+          "steal",
+          "star_zone"
+        ],
+        "sceneAssets": [
+          "board_set_4player",
+          "4_player_piece_avatars",
+          "minigame_props",
+          "carnival_backdrop_venice"
+        ],
         "inputStyle": "dragTap"
       },
       "scoreTarget": 100,

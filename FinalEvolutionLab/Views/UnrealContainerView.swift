@@ -1,20 +1,22 @@
 import SwiftUI
 import UIKit
 
-struct UnrealContainerView: View {
-    @State private var unrealManager = UnrealManager.shared
+// Legacy container kept for compatibility — game modes now route directly to GamePlayView.
+// This view is wired to the optional NexusBridge external rendering framework if present.
+struct NexusContainerView: View {
+    @State private var bridge = NexusBridge.shared
 
     var body: some View {
         ZStack {
-            if unrealManager.isUnrealActive && unrealManager.isUnrealLoaded {
-                UnrealContainerRepresentable()
+            if bridge.isUnrealActive && bridge.isUnrealLoaded {
+                NexusContainerRepresentable()
                     .ignoresSafeArea()
-            } else if unrealManager.isUnrealActive && !unrealManager.isUnrealLoaded && unrealManager.isFrameworkPresent {
+            } else if bridge.isUnrealActive && !bridge.isUnrealLoaded {
                 VStack(spacing: 16) {
                     ProgressView()
                         .tint(Theme.brandCyan)
                         .scaleEffect(1.2)
-                    Text("LOADING ARENA RUNTIME…")
+                    Text("LOADING NEXUS RUNTIME…")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(Theme.brandCyan)
                         .tracking(3)
@@ -22,16 +24,16 @@ struct UnrealContainerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.deepBlack)
             } else {
-                placeholder
+                nexusPlaceholder
             }
 
             VStack {
                 HStack {
                     Spacer()
-                    if unrealManager.isUnrealActive {
+                    if bridge.isUnrealActive {
                         Button {
                             withAnimation(.spring(duration: 0.35)) {
-                                unrealManager.isUnrealActive = false
+                                bridge.isUnrealActive = false
                             }
                         } label: {
                             Image(systemName: "power")
@@ -50,84 +52,60 @@ struct UnrealContainerView: View {
         }
     }
 
-    private var placeholder: some View {
+    private var nexusPlaceholder: some View {
         VStack(spacing: 18) {
             ZStack {
                 Circle()
                     .fill(Theme.brandCyan.opacity(0.08))
                     .frame(width: 120, height: 120)
-
                 Circle()
                     .strokeBorder(Theme.brandCyan.opacity(0.3), lineWidth: 2)
                     .frame(width: 120, height: 120)
-
                 Image(systemName: "cube.transparent.fill")
                     .font(.system(size: 44, weight: .medium))
                     .foregroundStyle(Theme.brandCyan)
             }
 
             VStack(spacing: 6) {
-                Text("UNREAL ENGINE")
+                Text("NEXUS ENGINE")
                     .font(.system(size: 11, weight: .black, design: .monospaced))
                     .foregroundStyle(Theme.brandCyan)
                     .tracking(4)
-
-                Text(unrealManager.isFrameworkPresent ? "Tap to activate the Unreal runtime" : "UnrealFramework.framework not embedded yet")
+                Text("External rendering framework not embedded")
                     .font(.system(.subheadline))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
             }
-
-            Button {
-                guard unrealManager.isFrameworkPresent else { return }
-                withAnimation(.spring(duration: 0.4)) {
-                    unrealManager.isUnrealActive = true
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 14, weight: .bold))
-                    Text("START UNREAL")
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
-                        .tracking(2)
-                }
-                .foregroundStyle(.black)
-                .padding(.horizontal, 28)
-                .padding(.vertical, 14)
-                .background(unrealManager.isFrameworkPresent ? Theme.brandCyan : Theme.brandCyan.opacity(0.25))
-                .clipShape(Capsule())
-            }
-            .disabled(!unrealManager.isFrameworkPresent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.deepBlack)
     }
 }
 
-struct UnrealContainerRepresentable: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UnrealHostViewController {
-        UnrealHostViewController()
-    }
+// Backward-compat alias so any stale references compile.
+typealias UnrealContainerView = NexusContainerView
 
-    func updateUIViewController(_ uiViewController: UnrealHostViewController, context: Context) {}
+struct NexusContainerRepresentable: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> NexusHostViewController {
+        NexusHostViewController()
+    }
+    func updateUIViewController(_ uiViewController: NexusHostViewController, context: Context) {}
 }
 
-final class UnrealHostViewController: UIViewController {
+final class NexusHostViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
-
-        if let unrealView = UnrealManager.shared.unrealView {
-            unrealView.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(unrealView)
+        if let nexusView = NexusBridge.shared.unrealView {
+            nexusView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(nexusView)
             NSLayoutConstraint.activate([
-                unrealView.topAnchor.constraint(equalTo: view.topAnchor),
-                unrealView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                unrealView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                unrealView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                nexusView.topAnchor.constraint(equalTo: view.topAnchor),
+                nexusView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                nexusView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                nexusView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             ])
         }
     }
 }
-

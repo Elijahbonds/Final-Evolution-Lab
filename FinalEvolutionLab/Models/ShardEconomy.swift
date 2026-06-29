@@ -62,9 +62,10 @@ nonisolated struct ShopItem: Identifiable, Sendable {
     let iconName: String
 
     nonisolated enum ShopCategory: String, Sendable, CaseIterable {
-        case outfit = "Outfits"
-        case blueprint = "Blueprints"
-        case critique = "Coaching"
+        case outfit      = "Outfits"
+        case blueprint   = "Blueprints"
+        case critique    = "Coaching"
+        case creatorCard = "Creator Cards"
     }
 }
 

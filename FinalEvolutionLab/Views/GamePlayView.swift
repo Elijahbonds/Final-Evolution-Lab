@@ -446,6 +446,18 @@ struct GamePlayView: View {
                         .foregroundStyle(Theme.elitePurple)
                         .shadow(color: Theme.elitePurple.opacity(0.4), radius: 6)
                     }
+                    // Creator card active indicator
+                    if let state = viewModel.profile.activeCreatorCard,
+                       let card = CreatorCard.catalog.first(where: { $0.id == state.cardId }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: card.iconName)
+                                .font(.system(size: 7))
+                            Text("+\(Int(card.metricsBoost.prqScore))%")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(card.accentColor)
+                        .shadow(color: card.accentColor.opacity(0.4), radius: 4)
+                    }
                 }
 
                 VStack(alignment: .trailing, spacing: 2) {
@@ -2144,6 +2156,22 @@ struct GamePlayView: View {
         shardRewards.reduce(0) { $0 + $1.amount }
     }
 
+    /// Multiplicative score bonus from the active creator card. Max 15% boost.
+    private var creatorCardScoreMultiplier: Double {
+        guard let state = viewModel.profile.activeCreatorCard,
+              let card = CreatorCard.catalog.first(where: { $0.id == state.cardId }) else {
+            return 1.0
+        }
+        let boost = min(card.metricsBoost.prqScore / 100.0, 0.15)
+        return 1.0 + boost
+    }
+
+    /// Returns adjusted points including creator card bonus.
+    private func applyCreatorCardBonus(_ basePoints: Int) -> Int {
+        guard creatorCardScoreMultiplier > 1.0 else { return basePoints }
+        return Int(Double(basePoints) * creatorCardScoreMultiplier)
+    }
+
     private var prqReward: Double {
         let flags = VersusMatchOutcome.rewardFlags(playerScore: score, opponentScore: opponentScore)
         return PRQ.modeReward(
@@ -2266,7 +2294,8 @@ struct GamePlayView: View {
         let success = Double.random(in: 0...1) < effectiveChance
         let isCritical = success && Double.random(in: 0...1) < physics.criticalHitChance
         let basePoints = pointsForAction(action, success: success)
-        let finalPoints = success ? physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical) : 0
+        let rawPoints = success ? physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical) : 0
+        let finalPoints = success ? applyCreatorCardBonus(rawPoints) : 0
 
         if success {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {

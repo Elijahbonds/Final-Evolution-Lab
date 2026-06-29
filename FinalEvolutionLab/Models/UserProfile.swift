@@ -19,6 +19,7 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var systemScan: SystemScanResult?
     var activeCreatorCard: CreatorCardState?
     var ownedCardIds: [String]
+    var playerAvatarConfig: PlayerAvatarConfig?
 
     func ownsCard(_ cardId: String) -> Bool {
         ownedCardIds.contains(cardId)
@@ -45,6 +46,16 @@ extension UserProfile: Codable {
         systemScan = try container.decodeIfPresent(SystemScanResult.self, forKey: .systemScan)
         activeCreatorCard = try container.decodeIfPresent(CreatorCardState.self, forKey: .activeCreatorCard)
         ownedCardIds = (try? container.decode([String].self, forKey: .ownedCardIds)) ?? []
+        playerAvatarConfig = try container.decodeIfPresent(PlayerAvatarConfig.self, forKey: .playerAvatarConfig)
+    }
+
+    /// The avatar config to use in-game: saved custom config, scan-derived default, or a factory default.
+    func effectiveAvatarConfig() -> PlayerAvatarConfig {
+        if let saved = playerAvatarConfig { return saved }
+        if let scan = systemScan {
+            return PlayerAvatarConfig.fromScan(scan, userId: id, displayName: displayName)
+        }
+        return PlayerAvatarConfig.makeDefault(userId: id, displayName: displayName)
     }
 
     static let guest = UserProfile(
@@ -64,7 +75,8 @@ extension UserProfile: Codable {
         hasCompletedOnboarding: false,
         systemScan: nil,
         activeCreatorCard: nil,
-        ownedCardIds: []
+        ownedCardIds: [],
+        playerAvatarConfig: nil
     )
 }
 

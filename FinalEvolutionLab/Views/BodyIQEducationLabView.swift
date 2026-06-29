@@ -157,7 +157,7 @@ struct BodyIQEducationLabView: View {
 
             HStack(spacing: 10) {
                 Button {
-                    UnrealManager.shared.deliverBodyIQSnackJSON(snack)
+                    NexusBridge.shared.deliverBodyIQSnackJSON(snack)
                     FelToastCenter.shared.show("Cue stack sent to Unreal bridge", isError: false)
                 } label: {
                     Text("SEND TO UNREAL")

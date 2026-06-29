@@ -9,11 +9,6 @@ struct GameModeSelectionView: View {
     @State private var sessionReadiness: Double = 50
     @State private var navigateToGame = false
     @State private var showMatchmaking = false
-    @State private var lastUnrealLaunchFailed = false
-    @State private var lastUnrealLaunchUrl: URL?
-    @State private var showEmbeddedUnreal = false
-
-    @Environment(\.openURL) private var openURL
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -45,7 +40,7 @@ struct GameModeSelectionView: View {
                 showNeuralScan = false
                 Task {
                     try? await Task.sleep(for: .milliseconds(300))
-                    await launchUnrealIfAvailableOrFallback()
+                    await launchGame()
                 }
             }
         }
@@ -56,19 +51,9 @@ struct GameModeSelectionView: View {
                     showMatchmaking = false
                     Task {
                         try? await Task.sleep(for: .milliseconds(300))
-                        await launchUnrealIfAvailableOrFallback()
+                        await launchGame()
                     }
                 }
-            }
-        }
-        .fullScreenCover(isPresented: $showEmbeddedUnreal, onDismiss: {
-            UnrealManager.shared.isUnrealActive = false
-        }) {
-            UnrealContainerView()
-        }
-        .onChange(of: showEmbeddedUnreal) { _, open in
-            if open {
-                UnrealManager.shared.isUnrealActive = true
             }
         }
         .onAppear {
@@ -97,6 +82,34 @@ struct GameModeSelectionView: View {
                 )
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 15)
+
+            // Active creator card pill
+            if let active = viewModel.profile.activeCreatorCard,
+               let card = CreatorCard.catalog.first(where: { $0.id == active.cardId }) {
+                HStack(spacing: 6) {
+                    Image(systemName: card.iconName)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(card.accentColor)
+                    Text(card.title)
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(card.accentColor)
+                    Text("ACTIVE")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(.green)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.green.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule().fill(card.accentColor.opacity(0.08))
+                        .overlay(Capsule().stroke(card.accentColor.opacity(0.2), lineWidth: 0.5))
+                )
+                .opacity(appeared ? 1 : 0)
+                .transition(.scale.combined(with: .opacity))
+            }
 
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
@@ -208,27 +221,8 @@ struct GameModeSelectionView: View {
     }
 
     @MainActor
-    private func launchUnrealIfAvailableOrFallback() async {
-        guard let mode = pendingMode else {
-            navigateToGame = true
-            return
-        }
-
-        // Option A: embedded Unreal (preferred if framework is present).
-        if UnrealManager.shared.isFrameworkPresent {
-            showEmbeddedUnreal = true
-            return
-        }
-
-        // Option B fallback: launch standalone UE app if installed.
-        let creatorId: String? = viewModel.profile.activeCreatorCard?.cardId
-        guard let url = FELNativeSwiftBridge.makeUnrealLaunchURL(modeId: mode.id.rawValue, creatorId: creatorId) else {
-            navigateToGame = true
-            return
-        }
-        lastUnrealLaunchUrl = url
-        lastUnrealLaunchFailed = false
-        openURL(url)
+    private func launchGame() async {
+        navigateToGame = true
     }
 }
 

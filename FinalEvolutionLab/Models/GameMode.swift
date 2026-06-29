@@ -6,7 +6,6 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case basketball3v3 = "basketball_3v3"
     /// IRL competitive mode: HealthKit-tracked real-world dunk contest on regulation rim
     case basketballIRL = "basketball_irl"
-    /// Matches backend `karate_h2h` / UE Zen_Dojo
     case karate = "karate_h2h"
     case karateEndless = "karate_endless"
     case baseball = "baseball"
@@ -40,7 +39,7 @@ nonisolated enum InputScheme: String, Sendable {
 
 /// How the Nexus Engine renders this mode.
 nonisolated enum RenderMode: String, Codable, Sendable {
-    /// Full 3D Unreal Engine 5.7 video game — Seele + Meshy assets
+    /// Full 3D Nexus Engine video game — Seele + Meshy assets
     case ue3D = "3D_UE5"
     /// 2D canvas battle-of-wits (Brain Brawl) — mirrors Big Brain Academy / Triumph
     case ue2D = "2D"
@@ -66,7 +65,7 @@ extension GameModeId {
     /// True for modes that track real-world physical performance via HealthKit.
     var isIRLMode: Bool { renderMode == .irl }
 
-    /// True for modes rendered in Unreal Engine (3D or 2D canvas).
+    /// True for modes rendered by the Nexus Engine (3D or 2D canvas).
     var isUnrealMode: Bool { renderMode != .irl }
 
     /// Seele Blueprint class name for this mode.
@@ -95,31 +94,6 @@ extension GameModeId {
         }
     }
 
-    /// Inspirator game reference — shown on mode card and Get Ready screen.
-    var inspirationTag: String {
-        switch self {
-        case .basketballHeadToHead:   return "NBA Street style"
-        case .basketballDunkContest:  return "NBA Live 07 style"
-        case .basketball3v3:          return "NBA Street style"
-        case .basketballIRL:          return "IRL · HealthKit"
-        case .karate:                 return "Storm × Matrix style"
-        case .karateEndless:          return "Naruto Storm survival"
-        case .baseball:               return "Wii Sports style"
-        case .football:               return "NFL Street style"
-        case .soccer:                 return "FIFA Street style"
-        case .golf:                   return "Wii Sports style"
-        case .tennis:                 return "Wii Resort style"
-        case .volleyball:             return "Wii Resort style"
-        case .gymnastics:             return "Olympics style"
-        case .surfing:                return "Wii Resort style"
-        case .skateboarding:          return "THPS2 style"
-        case .snowboarding:           return "SSX style"
-        case .brainBrawl:             return "Big Brain Academy style"
-        case .whoSceneIt:             return "Scene It style"
-        case .courtCarnival:          return "Mario Party style"
-        case .marketBrowse:           return "Sovereign Shop"
-        }
-    }
 }
 
 extension GameModeId {
@@ -189,7 +163,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 1.0, green: 0.6, blue: 0.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: "1v1 iso — shot timing window, contest phase. NBA Street rules."
+            hint: "1v1 iso — shot timing window, contest phase. Street rules."
         ),
         GameMode(
             id: .basketballDunkContest,
@@ -200,7 +174,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0, green: 0.83, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Blue Court",
-            hint: "On the blue court. Select your dunk, hit the timing window, impress the judges — NBA Live 07 style."
+            hint: "On the blue court. Select your dunk, nail the timing window, impress the judges."
         ),
         GameMode(
             id: .basketball3v3,
@@ -211,7 +185,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.2, green: 0.8, blue: 0.4),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: "Run the court. Three on three. Six avatars, possession, street moves — NBA Street rules."
+            hint: "Run the court. Three on three. Six avatars, possession, street moves."
         ),
         GameMode(
             id: .basketballIRL,
@@ -233,7 +207,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 1.0, green: 0.2, blue: 0.2),
             multiplayerType: .realtime,
             environmentName: "Dojo Arena",
-            hint: "Combo chains, block window, cinematic finishers. Storm × Matrix style."
+            hint: "Combo chains, block windows, cinematic finishers."
         ),
         GameMode(
             id: .karateEndless,
@@ -249,13 +223,13 @@ struct GameModeRegistry {
         GameMode(
             id: .baseball,
             name: "Home Run Derby",
-            subtitle: "Wii-Style Swing",
+            subtitle: "Swing for the Fences",
             sport: .field,
             iconName: "figure.baseball",
             accentColor: Color(red: 0.1, green: 0.5, blue: 0.9),
             multiplayerType: .turnBased,
             environmentName: "Stadium Diamond",
-            hint: "Home Run Derby • Swipe or tap"
+            hint: "Home Run Derby — swipe or tap to swing."
         ),
         GameMode(
             id: .football,
@@ -282,13 +256,13 @@ struct GameModeRegistry {
         GameMode(
             id: .golf,
             name: "Closest to Pin",
-            subtitle: "Wii-Style Swing",
+            subtitle: "Precision Swing",
             sport: .precision,
             iconName: "figure.golf",
             accentColor: Color(red: 0.3, green: 0.7, blue: 0.4),
             multiplayerType: .turnBased,
             environmentName: "Golf Green",
-            hint: "Closest to the Pin • Wii-style swipe"
+            hint: "Closest to the Pin — drag and release to swing."
         ),
         GameMode(
             id: .tennis,
@@ -299,7 +273,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.85, green: 0.75, blue: 0.1),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Court",
-            hint: "Drag to aim, tap to hit. Keep the rally alive — Wii Resort style."
+            hint: "Drag to aim, tap to hit. Keep the rally alive."
         ),
         GameMode(
             id: .volleyball,
@@ -321,7 +295,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.39, green: 0.4, blue: 0.95),
             multiplayerType: .turnBased,
             environmentName: "Arena",
-            hint: "Rhythm tap the sequence. Nail the dismount window. Judges are watching — Olympics style."
+            hint: "Rhythm tap the sequence. Nail the dismount window. Judges are watching."
         ),
         GameMode(
             id: .surfing,
@@ -332,7 +306,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.2, green: 0.75, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Surf",
-            hint: "Balance the wave, chain the tricks, score the run — Wii Resort style."
+            hint: "Balance the wave, chain the tricks, score the run."
         ),
         GameMode(
             id: .skateboarding,
@@ -343,7 +317,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.95, green: 0.45, blue: 0.12),
             multiplayerType: .realtime,
             environmentName: "Skate Park",
-            hint: "Two minutes. Score attack. Chain combos, manual into grinds — THPS2 style."
+            hint: "Two minutes. Score attack. Chain combos, manual into grinds."
         ),
         GameMode(
             id: .snowboarding,
@@ -354,7 +328,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.85, green: 0.9, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Mountain Slope",
-            hint: "Hit the halfpipe, grab, spin, boost — SSX style."
+            hint: "Hit the halfpipe, grab, spin, boost."
         ),
         GameMode(
             id: .brainBrawl,
@@ -365,7 +339,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0.55, green: 0.35, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Neuro Arena",
-            hint: "2D quiz battle — Big Brain Academy × Triumph × Sports Knowledge"
+            hint: "2D quiz battle — sports knowledge, speed, and smarts."
         ),
         GameMode(
             id: .whoSceneIt,

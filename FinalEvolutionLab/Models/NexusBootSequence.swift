@@ -62,7 +62,7 @@ struct NexusBootSequence {
     /// Non-throwing: any failure is logged and silently swallowed so it never blocks boot.
     @MainActor
     static func primeAvatar(profile: UserProfile) async {
-        UnrealManager.shared.startFirebaseIdentityObservation()
+        NexusBridge.shared.startFirebaseIdentityObservation()
 
         guard let scan = profile.systemScan else {
             log.notice("No system scan in profile — avatar prime skipped.")
@@ -111,7 +111,7 @@ struct NexusBootSequence {
 
         do {
             let data = try record.unrealBridgeJSON()
-            UnrealManager.shared.deliverSystemScanJSON(data)
+            NexusBridge.shared.deliverSystemScanJSON(data)
             log.info("Avatar prime: scan JSON delivered to Unreal bridge.")
         } catch {
             log.error("Avatar prime: unrealBridgeJSON encode failed: \(error.localizedDescription, privacy: .public)")

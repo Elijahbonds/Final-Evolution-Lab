@@ -6,7 +6,7 @@ struct FinalEvolutionLabApp: App {
         FirebaseBootstrap.configureIfNeeded()
         Task { @MainActor in
             TrainingLabSocialBridge.shared.configureConnectorIfNeeded()
-            UnrealManager.shared.startFirebaseIdentityObservation()
+            NexusBridge.shared.startFirebaseIdentityObservation()
         }
         _ = RorkScoreManager.shared
         EmergentRealtimeClient.shared.startIfConfigured()
