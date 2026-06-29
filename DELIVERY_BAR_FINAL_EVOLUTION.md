@@ -4,7 +4,7 @@
 
 **Philosophy.**
 
-- **Do not compromise the roadmap.** All pillars remain in scope: System Scan, avatar/PRQ, arena/game modes, Creator Cards, coach economy, education, BioFuel, privacy, Unreal host, super-app distribution.
+- **Do not compromise the roadmap.** All pillars remain in scope: System Scan, avatar/PRQ, arena/game modes, Creator Cards, coach economy, education, BioFuel, privacy, NEXUS engine host, super-app distribution.
 - **Do compromise claims.** Anything not yet meeting this bar must be **labeled accurately** in UI and marketing copy (preview, beta, estimate, demo pipeline, pending verification)—never presented as clinical truth, finished gameplay, or money-good economy until the bar is met.
 - **The bar rises until the app catches it.** Each pillar graduates from preview → verified when its acceptance criteria below are satisfied.
 
@@ -16,7 +16,7 @@
 
 | Requirement | Bar |
 |-------------|-----|
-| Architecture | Unreal host + WKWebView overlay for shipped athlete OS UX unless product explicitly ships Swift-first; see **`SHIPPING_ARCHITECTURE.md`**. |
+| Architecture | NEXUS C++20 engine + Swift iOS app for shipped athlete OS UX; see **`SHIPPING_ARCHITECTURE.md`**. UE/Unity paths are legacy reference only. |
 | Commerce truth | No digital entitlements without server-verified StoreKit path; fail-closed IAP per **`SHIPPING_ARCHITECTURE.md`**. |
 | Agent hygiene | Phase cleanup patches applied; contracts present; no drift against **`fel_release_preflight`**. |
 | Honest labeling | No surface implies capabilities the implementation does not provide (biomechanics, clinical nutrition, full MMO depth, liquid economy) until the pillar section below is satisfied. |
@@ -51,30 +51,30 @@
 
 ---
 
-## Pillar: Gameplay / arena / Unreal
+## Pillar: Gameplay / arena / NEXUS
 
 **Vision.** Deep, mode-distinct arena experiences with authoritative progression where claimed.
 
 **Production bar**
 
 - Per-mode **playability and reward authority** match **`infra/GAMEPLAY_RECEIPT_CONTRACT.md`** and server/session truth where applicable.
-- Unreal-hosted modes: **device-validated** cook/install path documented in **`infra/SHIPPING.md`**; modes claimed as “shipped” are verified on target hardware.
+- NEXUS-hosted modes: **device-validated** build/install path documented in **`infra/SHIPPING.md`** and **`NEXUS_DELIVERY_MATRIX.md`**; modes claimed as “shipped” are verified on target hardware.
 - Modes not yet meeting depth/receipt rules remain **preview modules** in UX—not silently marketed as finished titles.
 
 **Until the bar:** **Arena modules and previews**; mode count can be broad **internally** without implying equal depth for every slot.
 
 ---
 
-## Pillar: Unreal integration & super-app shell
+## Pillar: NEXUS integration & super-app shell
 
-**Vision.** Single athlete OS: UE binary + WKWebView dashboard shell.
+**Vision.** Single athlete OS: NEXUS engine embed + Swift dashboard shell.
 
 **Production bar**
 
-- Overlay URL, packaging, and reference docs consistent with **`SHIPPING_ARCHITECTURE.md`** and **`release-reference/`**.
-- Local UE build/cook/install executed on Apple Silicon host per **`infra/SHIPPING.md`** before claiming “shipped to device.”
+- Native bridge, packaging, and reference docs consistent with **`SHIPPING_ARCHITECTURE.md`** and **`NEXUS_RESUME.md`**.
+- NEXUS iOS build/archive executed on Apple Silicon host per **`infra/SHIPPING.md`** before claiming “shipped to device.”
 
-**Until the bar:** **Shipping path prepared** / **integration validated locally**—not “every user has the full UE build in hand” until proven.
+**Until the bar:** **Shipping path prepared** / **integration validated locally** — label **preview/beta** until signed TestFlight artifact exists (see **`NEXUS_DELIVERY_MATRIX.md`** Phase 8 gaps).
 
 ---
 

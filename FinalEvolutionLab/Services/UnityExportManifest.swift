@@ -245,7 +245,7 @@ struct UnityExportBuilder {
             stateMachineBlendDuration: MatrixStateMachine.blendDuration
         )
 
-        let dda = PRQDrivenDDA(playerPRQ: metrics.prqScore, neuralDrive: metrics.neuralDrive, mode: .basketballDunkContest)
+        let dda = PRQDrivenDDA(playerPRQ: metrics.prqScore, neuralDrive: metrics.neuralDrive, mode: .basketballDunkContest3D)
         let ddaExport = UnityExportManifest.DDAExport(
             difficultyTier: dda.difficultyTier.rawValue,
             aiAggressionFloor: dda.aiAggressionFloor,
