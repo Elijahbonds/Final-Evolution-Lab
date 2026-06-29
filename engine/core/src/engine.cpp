@@ -3,6 +3,7 @@
 #include "nexus/ai/agent_server.h"
 #include "nexus/ai/command_schema.h"
 #include "nexus/core/dev_stats.h"
+#include "nexus/core/engine_scale_policy.h"
 #include "nexus/core/log.h"
 #include "nexus/physics/physics_world.h"
 #include "nexus/renderer/vulkan_renderer.h"
@@ -39,6 +40,10 @@ auto Engine::init(EngineConfig config,
   m_latestAgentResponses.clear();
   m_playtestFrameCounter = 0;
   g_playtestAgentResponses.clear();
+  m_physics->attachJobSystem(&m_jobSystem);
+  NEXUS_LOG_INFO(LogChannel::kCore,
+                 "Job system attached to physics (workers=" +
+                     std::to_string(m_jobSystem.workerCount()) + ")");
   if (const char* mode = std::getenv("NEXUS_PLAYTEST_MODE"); mode != nullptr && mode[0] != '\0') {
     m_playtestModeId = mode;
   }
@@ -74,6 +79,7 @@ void Engine::shutdown() {
 }
 
 void Engine::tick(double frameTimeSeconds) {
+  m_jobSystem.waitIdle();
   m_perfMonitor.beginFrame();
   m_renderer->pollInput();
 

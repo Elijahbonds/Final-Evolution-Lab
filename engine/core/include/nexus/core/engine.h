@@ -1,5 +1,6 @@
 #pragma once
 
+#include "nexus/core/job_system.h"
 #include "nexus/core/perf_monitor.h"
 #include "nexus/core/result.h"
 
@@ -51,6 +52,9 @@ public:
   void requestStop();
   void shutdown();
 
+  /// Work-stealing scheduler shared by physics integration and future render prep.
+  [[nodiscard]] auto jobSystem() -> JobSystem& { return m_jobSystem; }
+
 private:
   using Clock = std::chrono::steady_clock;
 
@@ -61,6 +65,7 @@ private:
   physics::PhysicsWorld* m_physics{nullptr};
   ai::AgentServer* m_agentServer{nullptr};
   ApplicationUpdateHook* m_applicationHook{nullptr};
+  JobSystem m_jobSystem{};
   PerfMonitor m_perfMonitor{};
   FramePacer m_framePacer{};
   std::uint64_t m_devStatsLogCounter{0};

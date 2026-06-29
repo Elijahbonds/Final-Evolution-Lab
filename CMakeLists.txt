@@ -9,6 +9,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(NEXUS_BUILD_TESTS "Build NEXUS tests" ON)
 option(NEXUS_BUILD_RUNTIME "Build the NEXUS runtime executable" ON)
 option(NEXUS_BUILD_AGENT_CLI "Build headless nexus_agent_cli for external agents" ON)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+  set(NEXUS_BUILD_AGENT_CLI OFF CACHE BOOL "Build headless nexus_agent_cli for external agents" FORCE)
+endif()
 option(NEXUS_ENABLE_RENDERER "Build SDL3/Vulkan renderer targets" ON)
 option(NEXUS_ENABLE_METAL_RENDERER "Build Metal-only renderer for iOS embed (no Vulkan/SDL)" OFF)
 
@@ -38,15 +41,27 @@ if(NOT nlohmann_json_FOUND)
   FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
+# FetchContent INTERFACE includes do not always propagate under iOS cross-compile.
+if(DEFINED nlohmann_json_SOURCE_DIR)
+  include_directories(BEFORE SYSTEM "${nlohmann_json_SOURCE_DIR}/include")
+elseif(EXISTS "${CMAKE_BINARY_DIR}/_deps/nlohmann_json-src/include")
+  include_directories(BEFORE SYSTEM "${CMAKE_BINARY_DIR}/_deps/nlohmann_json-src/include")
+endif()
+
 add_library(nexus_core
   engine/core/src/log.cpp
+  engine/core/src/env_flag.cpp
   engine/core/src/dev_stats.cpp
   engine/core/src/perf_monitor.cpp
+  engine/core/src/engine_scale_policy.cpp
+  engine/core/src/job_system.cpp
+  engine/core/src/nexus_cartridge_runtime.cpp
   engine/core/src/http_client.cpp
   engine/core/src/websocket_client.cpp
 )
+find_package(Threads REQUIRED)
 target_include_directories(nexus_core PUBLIC engine/core/include)
-target_link_libraries(nexus_core PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(nexus_core PUBLIC nlohmann_json::nlohmann_json Threads::Threads)
 
 add_library(nexus_physics
   engine/physics/src/physics_world.cpp
@@ -100,6 +115,8 @@ add_library(nexus_ai_interface
   engine/ai_interface/src/agent_transport.cpp
   engine/ai_interface/src/command_router.cpp
   engine/ai_interface/src/command_schema.cpp
+  engine/ai_interface/src/gemini_game_prompt_client.cpp
+  engine/ai_interface/src/nexus_ai_studio_config.cpp
   engine/ai_interface/src/text_prompt_adapter.cpp
 )
 target_include_directories(nexus_ai_interface PUBLIC engine/ai_interface/include)
@@ -121,6 +138,7 @@ add_library(nexus_gameplay
   app/gameplay/src/fel_bridge_service.cpp
   app/gameplay/src/fel_session_types.cpp
   app/gameplay/src/fitness_data.cpp
+  app/gameplay/src/game_prompt_adapter.cpp
   app/gameplay/src/gameplay_application.cpp
   app/gameplay/src/gameplay_manager.cpp
   app/gameplay/src/gymnastics_mode.cpp
@@ -128,16 +146,20 @@ add_library(nexus_gameplay
   app/gameplay/src/hud_relay_service.cpp
   app/gameplay/src/karate_endless_mode.cpp
   app/gameplay/src/mode_runtime.cpp
+  app/gameplay/src/outcome_sport_mode.cpp
   app/gameplay/src/prq_engine.cpp
   app/gameplay/src/qte_system.cpp
   app/gameplay/src/scan_envelope_mapper.cpp
   app/gameplay/src/session_receipt_client.cpp
   app/gameplay/src/skateboarding_mode.cpp
+  app/gameplay/src/snowboarding_mode.cpp
+  app/gameplay/src/surfing_mode.cpp
   app/gameplay/src/throw_catch_physics.cpp
   app/gameplay/src/venue_volume_registry.cpp
   app/gameplay/src/venice_pickup_mode.cpp
   app/gameplay/src/voxel_command_parser.cpp
   app/gameplay/src/wave_spawner.cpp
+  app/gameplay/src/who_scene_it_mode.cpp
 )
 target_include_directories(nexus_gameplay PUBLIC app/gameplay/include)
 target_link_libraries(nexus_gameplay PUBLIC
@@ -164,6 +186,7 @@ if(NEXUS_BUILD_ANY_RENDERER)
     engine/renderer/src/scene.cpp
     engine/renderer/src/shadow_runtime.cpp
     engine/renderer/src/bloom_runtime.cpp
+    engine/renderer/src/console_tier_lod.cpp
   )
   if(NEXUS_ENABLE_RENDERER AND NOT NEXUS_ENABLE_METAL_RENDERER)
     list(APPEND NEXUS_RENDERER_SOURCES engine/renderer/src/vulkan_renderer.cpp)
@@ -176,7 +199,7 @@ if(NEXUS_BUILD_ANY_RENDERER)
 
   add_library(nexus_renderer ${NEXUS_RENDERER_SOURCES})
   target_include_directories(nexus_renderer PUBLIC engine/renderer/include engine/assets/include)
-  target_link_libraries(nexus_renderer PUBLIC nexus_core nexus_assets)
+  target_link_libraries(nexus_renderer PUBLIC nexus_core nexus_assets nlohmann_json::nlohmann_json)
   if(NEXUS_ENABLE_RENDERER AND NOT NEXUS_ENABLE_METAL_RENDERER)
     target_link_libraries(nexus_renderer PUBLIC SDL3::SDL3 Vulkan::Vulkan)
   endif()
@@ -231,10 +254,18 @@ if(NEXUS_BUILD_TESTS)
 
   add_executable(nexus_gameplay_test tests/unit/gameplay/gameplay_test.cpp)
   target_link_libraries(nexus_gameplay_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_gameplay_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
   add_test(NAME nexus_gameplay_test COMMAND nexus_gameplay_test)
 
   add_executable(nexus_scan_envelope_test tests/unit/gameplay/scan_envelope_test.cpp)
   target_link_libraries(nexus_scan_envelope_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_scan_envelope_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
   add_test(NAME nexus_scan_envelope_test COMMAND nexus_scan_envelope_test)
 
   add_executable(nexus_generative_test tests/unit/generative/generative_test.cpp)
@@ -246,6 +277,22 @@ if(NEXUS_BUILD_TESTS)
   target_link_libraries(nexus_physics_test PRIVATE nexus_physics)
   add_test(NAME nexus_physics_test COMMAND nexus_physics_test)
 
+  add_executable(nexus_physics_advanced_test tests/unit/physics/physics_advanced_test.cpp)
+  target_link_libraries(nexus_physics_advanced_test PRIVATE nexus_physics)
+  add_test(NAME nexus_physics_advanced_test COMMAND nexus_physics_advanced_test)
+
+  add_executable(nexus_job_system_test tests/unit/core/job_system_test.cpp)
+  target_link_libraries(nexus_job_system_test PRIVATE nexus_core)
+  add_test(NAME nexus_job_system_test COMMAND nexus_job_system_test)
+
+  add_executable(nexus_cartridge_test tests/unit/core/cartridge_runtime_test.cpp)
+  target_link_libraries(nexus_cartridge_test PRIVATE nexus_core)
+  add_test(NAME nexus_cartridge_test COMMAND nexus_cartridge_test)
+
+  add_executable(nexus_scale_policy_test tests/unit/core/engine_scale_policy_test.cpp)
+  target_link_libraries(nexus_scale_policy_test PRIVATE nexus_core)
+  add_test(NAME nexus_scale_policy_test COMMAND nexus_scale_policy_test)
+
   add_executable(nexus_realtime_test tests/unit/core/websocket_test.cpp)
   target_link_libraries(nexus_realtime_test PRIVATE nexus_core)
   add_test(NAME nexus_realtime_test COMMAND nexus_realtime_test)
@@ -255,5 +302,10 @@ if(NEXUS_BUILD_TESTS)
     target_link_libraries(nexus_renderer_test PRIVATE nexus_renderer)
     add_test(NAME nexus_renderer_test COMMAND nexus_renderer_test)
     set_tests_properties(nexus_renderer_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+    add_executable(nexus_console_tier_test tests/unit/renderer/console_tier_test.cpp)
+    target_link_libraries(nexus_console_tier_test PRIVATE nexus_renderer nexus_core)
+    add_test(NAME nexus_console_tier_test COMMAND nexus_console_tier_test)
+    set_tests_properties(nexus_console_tier_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   endif()
 endif()
