@@ -81,16 +81,18 @@
       "id": "basketball_dunk",
       "analyticsMode": "basketball_dunk",
       "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach Court (Outdoor)",
+      "displayVenue": "Venice Beach Blue Court",
       "renderMode": "3D_UE5",
       "isIRLMode": false,
-      "modeNote": "3D Nexus Engine video game. NBA Live 07-style dunk contest at Venice Beach outdoor court.",
+      "modeNote": "3D Nexus Engine video game. NBA Live 07-style dunk contest on the iconic blue concrete court at Venice Beach.",
       "lumaScanSource": "venice_beach",
+      "courtColor": "venice_blue",
       "lumaAssets": {
         "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
         "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
         "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
-        "notes": "Shares VeniceBeach Luma scan base. Seele adds crowd, backboard, judge panel overlays on top."
+        "courtSurfaceOverride": "T_VeniceBlue_ConcreteCourtSurface",
+        "notes": "Luma scan base. Court surface overridden with blue painted concrete material. Seele adds crowd ring, backboard, judge panel overlay, palm trees, boardwalk backdrop."
       },
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_VeniceBeach",

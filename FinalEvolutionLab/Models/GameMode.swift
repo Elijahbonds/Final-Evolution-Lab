@@ -194,13 +194,13 @@ struct GameModeRegistry {
         GameMode(
             id: .basketballDunkContest,
             name: "Dunk Contest",
-            subtitle: "Venice Beach Showdown",
+            subtitle: "Venice Beach Blue Court",
             sport: .basketball,
             iconName: "figure.highintensity.intervaltraining",
             accentColor: Color(red: 0, green: 0.83, blue: 1.0),
             multiplayerType: .realtime,
-            environmentName: "Venice Beach Court",
-            hint: "Select your dunk, nail the timing window, impress the judges — NBA Live 07 style"
+            environmentName: "Venice Beach Blue Court",
+            hint: "On the blue court. Select your dunk, hit the timing window, impress the judges — NBA Live 07 style."
         ),
         GameMode(
             id: .basketball3v3,

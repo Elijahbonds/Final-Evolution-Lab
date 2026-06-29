@@ -46,11 +46,21 @@
       "renderMode": "3D_UE5",
       "isIRLMode": false,
       "modeDisplayName": "Dunk Contest",
-      "modeDescription": "3D Nexus Engine video game dunk contest at Venice Beach outdoor court. NBA Live 07-style: select your dunk package, execute swipe combos in the timing window, earn judge scores.",
-      "venueDisplayName": "Venice Beach Court (Outdoor)",
+      "modeDescription": "3D Nexus Engine video game dunk contest on the iconic blue concrete court at Venice Beach, CA. NBA Live 07-style: select your dunk package, execute swipe combos in the timing window, earn judge scores.",
+      "venueDisplayName": "Venice Beach Blue Court",
       "unrealBasketballSlice": "basketball_dunk",
       "gameInspiration": ["NBA Live 07 Dunk Contest", "NBA Street"],
       "inspirationTag": "NBA Live 07 style",
+      "courtVisuals": {
+        "courtColor": "venice_blue",
+        "courtSurface": "painted_concrete_weathered",
+        "courtMarkings": "white_three_point_arc_free_throw_lane",
+        "courtNote": "Iconic blue painted outdoor basketball court at Venice Beach, CA. Blue/indigo base with white court lines and subtle weathering.",
+        "skyboxTime": "golden_hour",
+        "crowdRingEnabled": true,
+        "boardwalkBackdrop": true,
+        "palmTreeSkyline": true
+      },
       "scoreTarget": 100,
       "timeLimit": 300,
       "inputScheme": "swipe_gestures",
@@ -83,11 +93,14 @@
         ]
       },
       "meshyAssets": {
-        "venue": "MESHY_venice_beach_outdoor_court",
+        "venue": "MESHY_venice_beach_blue_court",
+        "courtSurface": "MESHY_venice_blue_concrete_court_surface",
         "backboard": "MESHY_regulation_backboard_venice",
         "athleteBase": "MESHY_athlete_basketball_dunk",
-        "crowd": "MESHY_venice_beach_crowd",
-        "ball": "MESHY_basketball_official"
+        "crowd": "MESHY_venice_beach_crowd_ringside",
+        "ball": "MESHY_basketball_official",
+        "palmTrees": "MESHY_venice_beach_palm_trees",
+        "boardwalk": "MESHY_venice_boardwalk_backdrop"
       }
     },
     "basketball_irl": {

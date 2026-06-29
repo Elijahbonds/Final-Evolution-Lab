@@ -49,8 +49,9 @@
         "map": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
         "render_mode": "3D_UE5",
         "irl_mode": false,
-        "venue_display": "Venice Beach Court (Outdoor)",
-        "mode_description": "3D Nexus Engine video game dunk contest at Venice Beach. NBA Live 07-style: choose your dunk package, hit swipe combo timing windows, earn judge scores from a 3-judge panel.",
+        "venue_display": "Venice Beach Blue Court",
+        "court_color": "venice_blue",
+        "mode_description": "3D Nexus Engine video game dunk contest on the iconic blue concrete court at Venice Beach, CA. NBA Live 07-style: choose your dunk package, hit swipe combo timing windows, earn judge scores from a 3-judge panel.",
         "game_inspiration": ["NBA Live 07 Dunk Contest", "NBA Street"],
         "inspiration_tag": "NBA Live 07 style",
         "nba_live_07_mechanics": {
