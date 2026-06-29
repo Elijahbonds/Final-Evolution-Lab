@@ -119,6 +119,15 @@ struct GamePlayView: View {
         gameMode.multiplayerType == .realtime
     }
 
+    /// Player avatar color — tracks active creator card so the skin persists across game modes.
+    private var activePlayerUIColor: UIColor {
+        guard let state = viewModel.profile.activeCreatorCard,
+              let card = CreatorCard.catalog.first(where: { $0.id == state.cardId }) else {
+            return UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
+        }
+        return UIColor(card.accentColor)
+    }
+
     private var isDunkContest: Bool {
         gameMode.id == .basketballDunkContest
     }
@@ -153,6 +162,21 @@ struct GamePlayView: View {
     }
 
     var body: some View {
+        switch gameMode.id {
+        case .brainBrawl:
+            BrainBrawlView(viewModel: viewModel, gameMode: gameMode)
+        case .whoSceneIt:
+            WhoSceneItView(viewModel: viewModel, gameMode: gameMode)
+        case .courtCarnival:
+            CourtCarnivalView(viewModel: viewModel, gameMode: gameMode)
+        case .basketballIRL:
+            IRLDunkView(viewModel: viewModel, gameMode: gameMode)
+        default:
+            mainGameBody
+        }
+    }
+
+    private var mainGameBody: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
 
@@ -557,7 +581,8 @@ struct GamePlayView: View {
                 rightStickInput: rightStickVector,
                 isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
                 isSpecialMove: isSlowMo || showVanishFlash || showPerfectGuard,
-                isSlowMotion: isSlowMo
+                isSlowMotion: isSlowMo,
+                playerColor: activePlayerUIColor
             )
             .clipShape(.rect(cornerRadius: 0))
 

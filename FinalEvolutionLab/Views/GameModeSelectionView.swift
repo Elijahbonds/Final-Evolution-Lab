@@ -9,6 +9,7 @@ struct GameModeSelectionView: View {
     @State private var sessionReadiness: Double = 50
     @State private var navigateToGame = false
     @State private var showMatchmaking = false
+    @State private var showShop = false
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -55,6 +56,9 @@ struct GameModeSelectionView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showShop) {
+            ShardShopView(viewModel: viewModel)
         }
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
@@ -207,7 +211,11 @@ struct GameModeSelectionView: View {
                 ForEach(Array(modes.enumerated()), id: \.element.id) { modeIndex, mode in
                     GameModeCard(mode: mode) {
                         pendingMode = mode
-                        showNeuralScan = true
+                        if mode.id == .marketBrowse {
+                            showShop = true
+                        } else {
+                            showNeuralScan = true
+                        }
                     }
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)

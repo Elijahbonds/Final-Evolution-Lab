@@ -34,8 +34,54 @@ struct GameSceneFactory {
             return buildGymnasticsScene()
         case .karateEndless:
             return buildDojoScene()
-        case .surfing, .skateboarding, .snowboarding, .brainBrawl:
+        case .surfing:
+            return buildSurfScene()
+        case .skateboarding:
+            return buildSkateParkScene()
+        case .snowboarding:
+            return buildSnowboardScene()
+        case .brainBrawl:
+            return buildBrainBrawlArenaScene()
+        case .whoSceneIt:
+            return buildWhoSceneItScene()
+        case .courtCarnival:
+            return buildCourtCarnivalScene()
+        case .basketballIRL:
+            return buildBasketballScene(mode: mode)
+        case .marketBrowse:
             return buildGymnasticsScene()
+        }
+    }
+
+    /// Repaints the player avatar node with the active creator card color.
+    /// Call after buildScene to apply skin persistence across game modes.
+    static func applyPlayerColor(_ color: UIColor, to scene: SCNScene, forMode mode: GameModeId) {
+        let playerName: String
+        switch mode {
+        case .basketballHeadToHead: playerName = "player1"
+        case .basketballDunkContest: playerName = "dunker"
+        case .basketball3v3: playerName = "blue1"
+        case .karate, .karateEndless: playerName = "fighter1"
+        case .baseball: playerName = "batter"
+        case .soccer: playerName = "kicker"
+        case .golf: playerName = "golfer"
+        case .tennis: playerName = "player"
+        case .volleyball: playerName = "vPlayer1"
+        case .gymnastics: playerName = "gymnast"
+        case .surfing: playerName = "surfer"
+        case .skateboarding: playerName = "skater"
+        case .snowboarding: playerName = "boarder"
+        case .brainBrawl, .whoSceneIt: playerName = "brainPlayer"
+        case .courtCarnival: playerName = "carniPlayer"
+        case .basketballIRL: playerName = "player1"
+        case .football: playerName = "returner"
+        case .marketBrowse: return
+        }
+        guard let node = scene.rootNode.childNode(withName: playerName, recursively: true) else { return }
+        node.enumerateChildNodes { child, _ in
+            guard let mat = child.geometry?.firstMaterial else { return }
+            mat.diffuse.contents = color
+            mat.emission.contents = color.withAlphaComponent(0.18)
         }
     }
 
@@ -1325,6 +1371,379 @@ struct GameSceneFactory {
         addArenaWalls(to: scene, wallColor: UIColor(red: 0.17, green: 0.16, blue: 0.26, alpha: 1), width: 16, depth: 16, height: 5)
         addParticles(to: scene, color: gymBlue.withAlphaComponent(0.1), area: SCNVector3(7, 0.1, 7))
 
+        return scene
+    }
+
+    // MARK: - Surf (Venice Beach Ocean)
+
+    private static func buildSurfScene() -> SCNScene {
+        let scene = SCNScene()
+        let oceanBlue = UIColor(red: 0.0, green: 0.45, blue: 0.72, alpha: 1)
+        let shallowGreen = UIColor(red: 0.0, green: 0.75, blue: 0.65, alpha: 1)
+        scene.background.contents = UIColor(red: 0.05, green: 0.12, blue: 0.22, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(2, 4, 9), lookAt: SCNVector3(0, 0.8, 0))
+        addLighting(to: scene, tint: shallowGreen)
+
+        let waterFloor = SCNBox(width: 20, height: 0.08, length: 14, chamferRadius: 0)
+        let wMat = SCNMaterial()
+        wMat.diffuse.contents = oceanBlue
+        wMat.emission.contents = UIColor(red: 0, green: 0.35, blue: 0.6, alpha: 0.3)
+        wMat.transparency = 0.85
+        waterFloor.materials = [wMat]
+        let waterNode = SCNNode(geometry: waterFloor)
+        waterNode.position = SCNVector3(0, -0.04, 0)
+        scene.rootNode.addChildNode(waterNode)
+
+        for i in 0..<5 {
+            let offset = Float(i) * 2.6 - 5.2
+            let wave = SCNBox(width: CGFloat(14 - Float(i) * 0.5), height: CGFloat(0.3 + Float(i) * 0.12), length: 0.9, chamferRadius: 0.3)
+            let waveMat = SCNMaterial()
+            waveMat.diffuse.contents = UIColor.white.withAlphaComponent(CGFloat(0.55 - Double(i) * 0.06))
+            waveMat.emission.contents = UIColor(red: 0.6, green: 0.95, blue: 1.0, alpha: CGFloat(0.2 - Double(i) * 0.03))
+            wave.materials = [waveMat]
+            let waveNode = SCNNode(geometry: wave)
+            waveNode.position = SCNVector3(offset, CGFloat(0.15 + Float(i) * 0.06), CGFloat(-1.5 + Float(i) * 0.4))
+            waveNode.name = "wave\(i)"
+            scene.rootNode.addChildNode(waveNode)
+
+            let waveRoll = SCNAction.customAction(duration: CGFloat(2.2 + Double(i) * 0.35)) { node, elapsed in
+                let t = Float(elapsed.truncatingRemainder(dividingBy: CGFloat(2.2 + Double(i) * 0.35))) / Float(2.2 + Double(i) * 0.35)
+                let xOsc = sin(t * .pi * 2) * CGFloat(1.8 + Float(i) * 0.3)
+                node.position = SCNVector3(offset + Float(xOsc), CGFloat(0.15 + Float(i) * 0.06) + sin(t * .pi * 4) * 0.04, node.position.z)
+            }
+            waveNode.runAction(SCNAction.repeatForever(waveRoll), forKey: "waveMotion\(i)")
+        }
+
+        let sandBar = SCNBox(width: 5, height: 0.05, length: 3, chamferRadius: 0)
+        let sandMat = SCNMaterial()
+        sandMat.diffuse.contents = UIColor(red: 0.85, green: 0.76, blue: 0.55, alpha: 1)
+        sandMat.roughness.contents = 0.95
+        sandBar.materials = [sandMat]
+        let sandNode = SCNNode(geometry: sandBar)
+        sandNode.position = SCNVector3(-6, 0.02, 0)
+        scene.rootNode.addChildNode(sandNode)
+
+        let surfBoard = SCNBox(width: 0.28, height: 0.04, length: 1.8, chamferRadius: 0.12)
+        let boardMat = SCNMaterial()
+        boardMat.diffuse.contents = UIColor(red: 0.95, green: 0.49, blue: 0.15, alpha: 1)
+        boardMat.emission.contents = UIColor(red: 0.95, green: 0.49, blue: 0.15, alpha: 0.3)
+        boardMat.metalness.contents = 0.2
+        surfBoard.materials = [boardMat]
+        let boardNode = SCNNode(geometry: surfBoard)
+        boardNode.position = SCNVector3(0.5, 0.05, 0.5)
+        scene.rootNode.addChildNode(boardNode)
+
+        addAvatar(to: scene, at: SCNVector3(0.5, 0.1, 0.5), color: shallowGreen, name: "surfer")
+        if let surfer = scene.rootNode.childNode(withName: "surfer", recursively: true) {
+            boardNode.addChildNode(surfer)
+            let surfRide = SCNAction.customAction(duration: 1000) { node, elapsed in
+                let t = Float(elapsed)
+                node.eulerAngles.z = sin(t * 1.2) * 0.18
+                node.eulerAngles.x = sin(t * 0.8) * 0.12
+                node.position.y = 0.1 + sin(t * 2.4) * 0.04
+            }
+            surfer.runAction(SCNAction.repeatForever(surfRide), forKey: "surfRide")
+        }
+
+        addVeniceBeachWalls(to: scene)
+        addParticles(to: scene, color: UIColor(red: 0.6, green: 0.95, blue: 1.0, alpha: 0.12), area: SCNVector3(12, 0.5, 8))
+        return scene
+    }
+
+    // MARK: - Skate Park
+
+    private static func buildSkateParkScene() -> SCNScene {
+        let scene = SCNScene()
+        let concreteTone = UIColor(red: 0.42, green: 0.42, blue: 0.46, alpha: 1)
+        let neonOrange = UIColor(red: 0.95, green: 0.45, blue: 0.12, alpha: 1)
+        scene.background.contents = UIColor(red: 0.06, green: 0.06, blue: 0.08, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(1, 5, 10), lookAt: SCNVector3(0, 1, 0))
+        addLighting(to: scene, tint: neonOrange)
+
+        addFloor(to: scene, color: concreteTone, reflectivity: 0.08)
+
+        let mainFloor = SCNBox(width: 14, height: 0.04, length: 10, chamferRadius: 0)
+        let fMat = SCNMaterial()
+        fMat.diffuse.contents = UIColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1)
+        fMat.roughness.contents = 0.92
+        mainFloor.materials = [fMat]
+        let floorNode = SCNNode(geometry: mainFloor)
+        floorNode.position = SCNVector3(0, 0.02, 0)
+        scene.rootNode.addChildNode(floorNode)
+
+        func halfPipeWall(x: Float, flipX: Bool) {
+            for seg in 0..<8 {
+                let angle = Float(seg) * (.pi / 2) / 8.0
+                let wallH = sin(angle) * 2.8
+                let wallZ = -cos(angle) * 1.0
+                let panel = SCNBox(width: 0.12, height: CGFloat(wallH), length: 10, chamferRadius: 0)
+                let pMat = SCNMaterial()
+                pMat.diffuse.contents = concreteTone
+                pMat.roughness.contents = 0.88
+                panel.materials = [pMat]
+                let n = SCNNode(geometry: panel)
+                n.position = SCNVector3(x + (flipX ? -wallZ : wallZ), CGFloat(wallH / 2), 0)
+                scene.rootNode.addChildNode(n)
+            }
+        }
+        halfPipeWall(x: -4.5, flipX: false)
+        halfPipeWall(x: 4.5, flipX: true)
+
+        let ledge = SCNBox(width: 2.5, height: 0.3, length: 0.5, chamferRadius: 0.04)
+        let lMat = SCNMaterial()
+        lMat.diffuse.contents = UIColor(red: 0.55, green: 0.55, blue: 0.58, alpha: 1)
+        lMat.metalness.contents = 0.3
+        ledge.materials = [lMat]
+        for (lx, lz) in [(-1.5, -1.5), (2.0, 1.0)] as [(Float, Float)] {
+            let ln = SCNNode(geometry: ledge)
+            ln.position = SCNVector3(lx, 0.15, lz)
+            scene.rootNode.addChildNode(ln)
+        }
+
+        let rail = SCNCylinder(radius: 0.04, height: 2.4)
+        let rMat = SCNMaterial()
+        rMat.diffuse.contents = UIColor.white
+        rMat.metalness.contents = 0.9
+        rMat.roughness.contents = 0.1
+        rail.materials = [rMat]
+        let railNode = SCNNode(geometry: rail)
+        railNode.eulerAngles.x = .pi / 2
+        railNode.position = SCNVector3(1.0, 0.55, 0)
+        scene.rootNode.addChildNode(railNode)
+
+        for (sx, sz) in [(0.5, 2.5), (-1.0, -2.0), (2.0, -1.5)] as [(Float, Float)] {
+            let graffiti = SCNBox(width: 0.4, height: 0.4, length: 0.015, chamferRadius: 0.02)
+            let gMat = SCNMaterial()
+            gMat.diffuse.contents = neonOrange.withAlphaComponent(0.7)
+            gMat.emission.contents = neonOrange.withAlphaComponent(0.4)
+            graffiti.materials = [gMat]
+            let gn = SCNNode(geometry: graffiti)
+            gn.position = SCNVector3(sx, 0.8, sz)
+            scene.rootNode.addChildNode(gn)
+        }
+
+        addAvatar(to: scene, at: SCNVector3(0, 0, 0), color: neonOrange, name: "skater")
+        addParticles(to: scene, color: neonOrange.withAlphaComponent(0.08), area: SCNVector3(10, 0.1, 8))
+        return scene
+    }
+
+    // MARK: - Snowboard (Mountain Halfpipe)
+
+    private static func buildSnowboardScene() -> SCNScene {
+        let scene = SCNScene()
+        let snowWhite = UIColor(red: 0.88, green: 0.92, blue: 1.0, alpha: 1)
+        let iceBlue = UIColor(red: 0.35, green: 0.60, blue: 0.92, alpha: 1)
+        scene.background.contents = UIColor(red: 0.10, green: 0.14, blue: 0.28, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(1, 5.5, 10), lookAt: SCNVector3(0, 1, 0))
+        addLighting(to: scene, tint: iceBlue)
+
+        addFloor(to: scene, color: snowWhite, reflectivity: 0.18)
+
+        let snowBase = SCNBox(width: 12, height: 0.04, length: 8, chamferRadius: 0)
+        let sMat = SCNMaterial()
+        sMat.diffuse.contents = snowWhite
+        sMat.roughness.contents = 0.85
+        snowBase.materials = [sMat]
+        let snowNode = SCNNode(geometry: snowBase)
+        snowNode.position = SCNVector3(0, 0.02, 0)
+        scene.rootNode.addChildNode(snowNode)
+
+        func halfPipeSide(x: Float, flipX: Bool) {
+            for seg in 0..<10 {
+                let angle = Float(seg) * (.pi / 2) / 10.0
+                let h = sin(angle) * 3.5
+                let offset = -cos(angle) * 1.4
+                let panel = SCNBox(width: 0.15, height: CGFloat(h), length: 8, chamferRadius: 0)
+                let pm = SCNMaterial()
+                pm.diffuse.contents = UIColor(red: 0.78, green: 0.85, blue: 0.98, alpha: 1)
+                pm.roughness.contents = 0.7
+                pm.metalness.contents = 0.1
+                panel.materials = [pm]
+                let n = SCNNode(geometry: panel)
+                n.position = SCNVector3(x + (flipX ? -offset : offset), CGFloat(h / 2), 0)
+                scene.rootNode.addChildNode(n)
+            }
+        }
+        halfPipeSide(x: -4.5, flipX: false)
+        halfPipeSide(x: 4.5, flipX: true)
+
+        for mIdx in 0..<5 {
+            let mh = Float(2.5 + Double(mIdx) * 0.8)
+            let mw = Float(1.8 + Double(mIdx) * 0.5)
+            let mtn = SCNPyramid(width: CGFloat(mw), height: CGFloat(mh), length: CGFloat(mw * 0.7))
+            let mmMat = SCNMaterial()
+            mmMat.diffuse.contents = UIColor(red: 0.55 + Float(mIdx) * 0.04, green: 0.60 + Float(mIdx) * 0.03, blue: 0.72 + Float(mIdx) * 0.02, alpha: 1)
+            mtn.materials = [mmMat]
+            let mn = SCNNode(geometry: mtn)
+            mn.position = SCNVector3(Float(mIdx - 2) * 2.8, 0, -7 - Float(mIdx) * 0.5)
+            scene.rootNode.addChildNode(mn)
+        }
+
+        addAvatar(to: scene, at: SCNVector3(0, 0, 0), color: iceBlue, name: "boarder")
+        addParticles(to: scene, color: snowWhite.withAlphaComponent(0.15), area: SCNVector3(10, 2.0, 6))
+        return scene
+    }
+
+    // MARK: - Brain Brawl Arena (2D Battle)
+
+    private static func buildBrainBrawlArenaScene() -> SCNScene {
+        let scene = SCNScene()
+        let neonPurple = UIColor(red: 0.55, green: 0.35, blue: 1.0, alpha: 1)
+        let neonCyan = UIColor(red: 0, green: 0.95, blue: 0.9, alpha: 1)
+        scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.06, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(0, 4, 9), lookAt: SCNVector3(0, 1, 0))
+        addLighting(to: scene, tint: neonPurple)
+
+        addFloor(to: scene, color: UIColor(red: 0.04, green: 0.02, blue: 0.10, alpha: 1), reflectivity: 0.25)
+
+        let gridFloor = SCNBox(width: 12, height: 0.01, length: 8, chamferRadius: 0)
+        let gfMat = SCNMaterial()
+        gfMat.diffuse.contents = UIColor(red: 0.08, green: 0.04, blue: 0.20, alpha: 1)
+        gfMat.emission.contents = neonPurple.withAlphaComponent(0.05)
+        gridFloor.materials = [gfMat]
+        scene.rootNode.addChildNode(SCNNode(geometry: gridFloor))
+
+        let gridStep: Float = 1.0
+        for gx in stride(from: Float(-6), through: 6, by: gridStep) {
+            let line = SCNBox(width: 0.015, height: 0.008, length: 8, chamferRadius: 0)
+            let lm = SCNMaterial(); lm.diffuse.contents = neonPurple.withAlphaComponent(0.18); lm.emission.contents = neonPurple.withAlphaComponent(0.18)
+            line.materials = [lm]
+            let ln = SCNNode(geometry: line); ln.position = SCNVector3(gx, 0.008, 0)
+            scene.rootNode.addChildNode(ln)
+        }
+        for gz in stride(from: Float(-4), through: 4, by: gridStep) {
+            let line = SCNBox(width: 12, height: 0.008, length: 0.015, chamferRadius: 0)
+            let lm = SCNMaterial(); lm.diffuse.contents = neonCyan.withAlphaComponent(0.14); lm.emission.contents = neonCyan.withAlphaComponent(0.14)
+            line.materials = [lm]
+            let ln = SCNNode(geometry: line); ln.position = SCNVector3(0, 0.008, gz)
+            scene.rootNode.addChildNode(ln)
+        }
+
+        for (px, pz, pname, col) in [(-2.5, Float(0), "brainPlayer", neonPurple), (2.5, Float(0), "brainOpponent", UIColor(red: 1, green: 0.3, blue: 0.6, alpha: 1))] as [(Float, Float, String, UIColor)] {
+            let podium = SCNBox(width: 0.9, height: 0.3, length: 0.9, chamferRadius: 0.06)
+            let pm = SCNMaterial()
+            pm.diffuse.contents = col.withAlphaComponent(0.12)
+            pm.emission.contents = col.withAlphaComponent(0.18)
+            podium.materials = [pm]
+            let pn = SCNNode(geometry: podium)
+            pn.position = SCNVector3(px, 0.15, pz)
+            scene.rootNode.addChildNode(pn)
+            addAvatar(to: scene, at: SCNVector3(px, 0.3, pz), color: col, name: pname)
+        }
+
+        addParticles(to: scene, color: neonPurple.withAlphaComponent(0.12), area: SCNVector3(10, 0.1, 6))
+        return scene
+    }
+
+    // MARK: - Who Scene It (Spotlight Stage)
+
+    private static func buildWhoSceneItScene() -> SCNScene {
+        let scene = SCNScene()
+        let spotGold = UIColor(red: 1.0, green: 0.85, blue: 0.3, alpha: 1)
+        let stagePink = UIColor(red: 0.9, green: 0.3, blue: 0.6, alpha: 1)
+        scene.background.contents = UIColor(red: 0.03, green: 0.02, blue: 0.05, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(0, 4.5, 9), lookAt: SCNVector3(0, 1.2, 0))
+        addLighting(to: scene, tint: spotGold)
+
+        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.04, blue: 0.10, alpha: 1), reflectivity: 0.3)
+
+        let stage = SCNBox(width: 10, height: 0.25, length: 5, chamferRadius: 0.1)
+        let stMat = SCNMaterial()
+        stMat.diffuse.contents = UIColor(red: 0.14, green: 0.10, blue: 0.22, alpha: 1)
+        stMat.roughness.contents = 0.5
+        stMat.metalness.contents = 0.3
+        stage.materials = [stMat]
+        let stNode = SCNNode(geometry: stage)
+        stNode.position = SCNVector3(0, 0.125, 0)
+        scene.rootNode.addChildNode(stNode)
+
+        let curtainL = SCNBox(width: 0.15, height: 4.5, length: 5, chamferRadius: 0)
+        let curMat = SCNMaterial()
+        curMat.diffuse.contents = stagePink.withAlphaComponent(0.6)
+        curMat.emission.contents = stagePink.withAlphaComponent(0.15)
+        curtainL.materials = [curMat]
+        let clNode = SCNNode(geometry: curtainL); clNode.position = SCNVector3(-5, 2.25, 0)
+        let crNode = SCNNode(geometry: curtainL); crNode.position = SCNVector3(5, 2.25, 0)
+        scene.rootNode.addChildNode(clNode)
+        scene.rootNode.addChildNode(crNode)
+
+        let spotlight = SCNNode()
+        spotlight.light = SCNLight()
+        spotlight.light?.type = .spot
+        spotlight.light?.color = spotGold
+        spotlight.light?.intensity = 2200
+        spotlight.light?.spotInnerAngle = 12
+        spotlight.light?.spotOuterAngle = 30
+        spotlight.light?.castsShadow = true
+        spotlight.position = SCNVector3(0, 10, 2)
+        spotlight.look(at: SCNVector3(0, 0.3, 0))
+        scene.rootNode.addChildNode(spotlight)
+
+        for (px, pz, pname, col) in [(-2.0, Float(0), "brainPlayer", spotGold), (2.0, Float(0), "brainOpponent", stagePink)] as [(Float, Float, String, UIColor)] {
+            addAvatar(to: scene, at: SCNVector3(px, 0.25, pz), color: col, name: pname)
+        }
+
+        addParticles(to: scene, color: spotGold.withAlphaComponent(0.1), area: SCNVector3(8, 0.5, 4))
+        return scene
+    }
+
+    // MARK: - Court Carnival (Party Board)
+
+    private static func buildCourtCarnivalScene() -> SCNScene {
+        let scene = SCNScene()
+        let festYellow = UIColor(red: 1.0, green: 0.85, blue: 0.0, alpha: 1)
+        let festOrange = UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1)
+        let festPink = UIColor(red: 1.0, green: 0.25, blue: 0.55, alpha: 1)
+        scene.background.contents = UIColor(red: 0.04, green: 0.02, blue: 0.08, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(0, 6, 11), lookAt: SCNVector3(0, 0.5, 0))
+        addLighting(to: scene, tint: festOrange)
+
+        addFloor(to: scene, color: UIColor(red: 0.1, green: 0.08, blue: 0.18, alpha: 1), reflectivity: 0.2)
+
+        let boardFloor = SCNBox(width: 10, height: 0.06, length: 8, chamferRadius: 0)
+        let bfMat = SCNMaterial()
+        bfMat.diffuse.contents = UIColor(red: 0.15, green: 0.10, blue: 0.28, alpha: 1)
+        boardFloor.materials = [bfMat]
+        let bfNode = SCNNode(geometry: boardFloor)
+        bfNode.position = SCNVector3(0, 0.03, 0)
+        scene.rootNode.addChildNode(bfNode)
+
+        let tileColors: [UIColor] = [festYellow, festOrange, festPink, UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 1), brandCyan]
+        for tx in -4...4 {
+            for tz in -3...3 {
+                let tile = SCNBox(width: 0.9, height: 0.02, length: 0.9, chamferRadius: 0.08)
+                let tm = SCNMaterial()
+                let col = tileColors[abs(tx + tz * 2) % tileColors.count]
+                tm.diffuse.contents = col.withAlphaComponent(0.18)
+                tm.emission.contents = col.withAlphaComponent(0.08)
+                tile.materials = [tm]
+                let tn = SCNNode(geometry: tile)
+                tn.position = SCNVector3(Float(tx), 0.07, Float(tz))
+                scene.rootNode.addChildNode(tn)
+            }
+        }
+
+        let wheelRadius: CGFloat = 1.2
+        let wheel = SCNTorus(ringRadius: wheelRadius, pipeRadius: 0.08)
+        let wmMat = SCNMaterial()
+        wmMat.diffuse.contents = festYellow
+        wmMat.emission.contents = festYellow.withAlphaComponent(0.5)
+        wheel.materials = [wmMat]
+        let wheelNode = SCNNode(geometry: wheel)
+        wheelNode.position = SCNVector3(4.0, 1.2, -2.0)
+        wheelNode.runAction(SCNAction.repeatForever(SCNAction.rotateBy(x: 0, y: .pi * 2, z: 0, duration: 4)), forKey: "spin")
+        scene.rootNode.addChildNode(wheelNode)
+
+        addAvatar(to: scene, at: SCNVector3(-1, 0, 0), color: festOrange, name: "carniPlayer")
+        addAvatar(to: scene, at: SCNVector3(1, 0, 0), color: festPink, name: "carniOpponent")
+        addVeniceBeachCrowd(to: scene, depth: 8)
+        addParticles(to: scene, color: festYellow.withAlphaComponent(0.12), area: SCNVector3(10, 0.5, 8))
         return scene
     }
 
