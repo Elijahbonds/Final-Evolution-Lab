@@ -1114,14 +1114,17 @@ const PixelStreamingView = () => {
       </div>
 
       <div>
-        <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>LAUNCH GAME MODE</h2>
+        <div className="mb-4">
+          <h2 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>LAUNCH GAME MODE</h2>
+          <p className="text-xs text-zinc-500 mt-1">Production and staging modes only. Preview and non-game modules stay hidden until launch-ready.</p>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="stream-modes">
           {(status?.supported_modes || []).map(m => (
             <button key={m} data-testid={`stream-${m}`} onClick={() => status?.available && launchMode(m)}
               disabled={!status?.available}
               className={`surface-card p-4 text-center card-hover ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''} ${status?.available ? 'cursor-pointer' : 'cursor-not-allowed border-zinc-800 bg-zinc-900/70'}`}>
               <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{m.replace(/_/g,' ')}</div>
-              <div className="text-xs text-zinc-400 font-mono">{status?.mode_maps?.[m] || m}</div>
+              <div title={status?.mode_maps?.[m] || m} className="text-xs text-zinc-400 font-mono break-words">{status?.mode_maps?.[m] || m}</div>
             </button>
           ))}
         </div>
