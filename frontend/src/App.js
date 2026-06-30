@@ -1075,8 +1075,8 @@ const PixelStreamingView = () => {
           <div className="flex items-center gap-3 mb-4">
             <WifiOff className="w-6 h-6 text-yellow-400" />
             <div>
-              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>SOVEREIGN HUB LISTENING</h3>
-              <p className="text-sm text-zinc-400">{status?.message}</p>
+              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>HUB LISTENING</h3>
+              <p className="text-sm text-zinc-400">Bridge endpoint ready for native UE5 handshakes.</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
