@@ -2,6 +2,8 @@ import Foundation
 import OSLog
 import FirebaseFirestore
 
+// MARK: - NexusBootSequence
+
 /// Static helpers that encapsulate each async step of the NexusEngine boot sequence.
 ///
 /// Keeping the steps here prevents NexusEngine from growing into a monolith and makes
@@ -54,18 +56,20 @@ struct NexusBootSequence {
         return true
     }
 
-    // MARK: Step 3 — Avatar prime
+    // MARK: Step 3 — Avatar / renderer prime
 
-    /// Delivers a persisted scan JSON to Unreal and starts Firebase identity observation so
-    /// the UE bridge receives auth state immediately on first load.
+    /// Starts Firebase identity observation (so the data relay has an auth state)
+    /// and delivers the player's persisted scan to NexusRenderer so physics are
+    /// calibrated from the moment the first game mode launches.
     ///
     /// Non-throwing: any failure is logged and silently swallowed so it never blocks boot.
     @MainActor
     static func primeAvatar(profile: UserProfile) async {
+        // Start watching Firebase Auth state — NexusBridge will push identity to NexusRenderer
         NexusBridge.shared.startFirebaseIdentityObservation()
 
         guard let scan = profile.systemScan else {
-            log.notice("No system scan in profile — avatar prime skipped.")
+            log.notice("No system scan in profile — avatar prime skipped, using default PRQ physics.")
             return
         }
 
@@ -111,10 +115,11 @@ struct NexusBootSequence {
 
         do {
             let data = try record.unrealBridgeJSON()
+            // Route through NexusBridge → NexusRenderer (replaces the old Unreal ObjC path)
             NexusBridge.shared.deliverSystemScanJSON(data)
-            log.info("Avatar prime: scan JSON delivered to Unreal bridge.")
+            log.info("Avatar prime: scan JSON relayed to NexusRenderer (PRQ=\(scan.prqScore, privacy: .public)).")
         } catch {
-            log.error("Avatar prime: unrealBridgeJSON encode failed: \(error.localizedDescription, privacy: .public)")
+            log.error("Avatar prime: encode failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -130,10 +135,10 @@ struct NexusBootSequence {
 
     private static func prqGradeString(_ prq: Double) -> String {
         switch prq {
-        case 80...:       return "ELITE"
-        case 60 ..< 80:   return "PRIMED"
-        case 40 ..< 60:   return "READY"
-        default:          return "RECOVERING"
+        case 80...:     return "ELITE"
+        case 60 ..< 80: return "PRIMED"
+        case 40 ..< 60: return "READY"
+        default:        return "RECOVERING"
         }
     }
 }

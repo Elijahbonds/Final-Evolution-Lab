@@ -4,7 +4,7 @@ import FirebaseFirestore
 
 // MARK: - Supporting types
 
-/// Lightweight container for a session that is currently live inside Unreal.
+/// Lightweight container for a session that is currently live inside the Nexus engine.
 nonisolated struct GameSession: Sendable {
     let id: String
     let modeId: GameModeId
@@ -17,9 +17,10 @@ nonisolated struct GameSession: Sendable {
 
 /// Central orchestrator for Final Evolution Lab.
 ///
-/// Owns the app boot sequence, OS pillar navigation, session lifecycle, and subsystem health
-/// tracking. All subsystems are wired through this class so that the UI layer has a single
-/// source of truth for app state.
+/// Owns the app boot sequence, pillar navigation, session lifecycle, and subsystem health.
+/// NexusEngine coordinates native subsystems — Firebase, HealthKit, NexusRenderer, EmergentWS —
+/// without delegating to any external runtime. All game rendering runs through NexusRenderer
+/// and is displayed by NexusSceneView. NexusBridge provides the data relay layer.
 @Observable
 @MainActor
 final class NexusEngine {
@@ -41,7 +42,7 @@ final class NexusEngine {
         case cold
         case bootingFirebase
         case bootingHealthKit
-        case bootingAvatar
+        case bootingRenderer
         case connectingEmergent
         case ready
         case failed(NexusError)
@@ -49,13 +50,25 @@ final class NexusEngine {
         static func == (lhs: BootState, rhs: BootState) -> Bool {
             switch (lhs, rhs) {
             case (.cold, .cold), (.bootingFirebase, .bootingFirebase),
-                 (.bootingHealthKit, .bootingHealthKit), (.bootingAvatar, .bootingAvatar),
+                 (.bootingHealthKit, .bootingHealthKit), (.bootingRenderer, .bootingRenderer),
                  (.connectingEmergent, .connectingEmergent), (.ready, .ready):
                 return true
             case (.failed(let a), .failed(let b)):
                 return a == b
             default:
                 return false
+            }
+        }
+
+        var displayLabel: String {
+            switch self {
+            case .cold:                return "Initializing"
+            case .bootingFirebase:     return "Connecting to cloud"
+            case .bootingHealthKit:    return "Linking HealthKit"
+            case .bootingRenderer:     return "Loading Nexus renderer"
+            case .connectingEmergent:  return "Joining arena network"
+            case .ready:               return "Ready"
+            case .failed:              return "Boot failed"
             }
         }
     }
@@ -72,19 +85,19 @@ final class NexusEngine {
 
         var displayName: String {
             switch self {
-            case .scan:     return "Body Scan"
-            case .cards:    return "Creator Cards"
-            case .arena:    return "Arena"
-            case .academy:  return "Academy"
+            case .scan:     "Body Scan"
+            case .cards:    "Creator Cards"
+            case .arena:    "Arena"
+            case .academy:  "Academy"
             }
         }
 
         var iconName: String {
             switch self {
-            case .scan:     return "waveform.path.ecg"
-            case .cards:    return "rectangle.stack.fill"
-            case .arena:    return "sportscourt.fill"
-            case .academy:  return "brain.head.profile"
+            case .scan:     "waveform.path.ecg"
+            case .cards:    "rectangle.stack.fill"
+            case .arena:    "sportscourt.fill"
+            case .academy:  "brain.head.profile"
             }
         }
     }
@@ -120,9 +133,9 @@ final class NexusEngine {
         let readyCount = [firestoreReady, healthKitAuthorized, emergentConnected, nexusEngineReady]
             .filter { $0 }.count
         switch readyCount {
-        case 4:       return .optimal
-        case 1...:    return .degraded
-        default:      return .offline
+        case 4:      return .optimal
+        case 1...:   return .degraded
+        default:     return .offline
         }
     }
 
@@ -151,8 +164,9 @@ final class NexusEngine {
     }
 
     private func runBootSequence() async {
-        Self.log.info("Boot sequence started.")
+        Self.log.info("NexusEngine boot sequence started.")
 
+        // Step 1 — Firebase
         bootState = .bootingFirebase
         do {
             try await NexusBootSequence.bootstrapFirebase()
@@ -164,62 +178,73 @@ final class NexusEngine {
             return
         }
 
+        // Step 2 — HealthKit
         bootState = .bootingHealthKit
         do {
             let authorized = try await NexusBootSequence.requestHealthKit()
             healthKitAuthorized = authorized
             Self.log.info("HealthKit step complete — authorized=\(authorized).")
         } catch {
-            // HealthKit denial is non-fatal; the app degrades gracefully.
+            // Denial is non-fatal; app degrades gracefully.
             Self.log.notice("HealthKit authorization denied — continuing in degraded mode.")
             healthKitAuthorized = false
         }
 
-        bootState = .bootingAvatar
+        // Step 3 — Native renderer prime
+        bootState = .bootingRenderer
         let profile = SaveSystem.loadProfile()
+        let arcadePhysics = ArcadePhysics.fromPRQ(
+            profile.metrics.prqScore,
+            neuralDrive: profile.metrics.neuralDrive,
+            audit: nil
+        )
+        await NexusRenderer.shared.prime(arcadePhysics: arcadePhysics, prq: profile.metrics.prqScore)
         await NexusBootSequence.primeAvatar(profile: profile)
-        Self.log.info("Avatar prime step complete.")
+        nexusEngineReady = NexusRenderer.shared.isReady
+        Self.log.info("Nexus renderer primed — ready=\(self.nexusEngineReady).")
 
+        // Step 4 — Emergent WebSocket
         bootState = .connectingEmergent
         NexusBootSequence.connectEmergent()
-        // Emergent is fire-and-forget; treat as connected when URL is configured.
         emergentConnected = Config.resolvedEmergentGameWebSocketURL() != nil
         Self.log.info("Emergent step complete — connected=\(self.emergentConnected).")
 
-        nexusEngineReady = NexusBridge.shared.isUnrealLoaded
         bootState = .ready
         Self.log.info("NexusEngine boot complete. health=\(String(describing: self.overallHealth)).")
     }
 
     // MARK: Session lifecycle
 
-    /// Initiates matchmaking then transitions to a live session inside Unreal.
+    /// Initiates matchmaking then transitions to a live session with a loaded NexusScene.
     ///
     /// Throws `sessionConflict` when a session is already active and `nexusNotReady` when
-    /// the Unreal framework has not finished loading.
+    /// the Nexus renderer has not finished loading.
     func launchMode(_ id: GameModeId, readiness: Double, profile: UserProfile) async throws {
         switch sessionState {
         case .idle:
             break
         case .ended:
-            // Allow re-launch from ended state without an explicit reset call.
             sessionState = .idle
         default:
             throw NexusError.sessionConflict
         }
 
-        Self.log.info("Launch requested for mode=\(id.rawValue, privacy: .public) readiness=\(readiness).")
-        sessionState = .matchmaking(id)
+        guard nexusEngineReady else {
+            throw NexusError.nexusNotReady
+        }
 
-        // Brief yield so observers see the matchmaking state before we proceed.
+        Self.log.info("Launch requested: mode=\(id.rawValue, privacy: .public) readiness=\(readiness).")
+        sessionState = .matchmaking(id)
         await Task.yield()
 
         sessionState = .launching(id)
 
-        // Deliver the latest PRQ avatar vector to Unreal before the session goes live.
-        // Uses the persisted scan from the profile; a simulated record is used as fallback
-        // so Unreal always receives a well-formed payload even on first run.
-        deliverScanToUnreal(from: profile)
+        // Build and load a scene for this mode with current PRQ physics
+        let scene = NexusScene.default(for: id, prq: readiness)
+        NexusRenderer.shared.loadScene(scene)
+
+        // Sync latest PRQ into the renderer
+        NexusRenderer.shared.applyPRQ(readiness)
 
         let session = GameSession(
             id: UUID().uuidString,
@@ -235,10 +260,11 @@ final class NexusEngine {
     /// Ends the active session and transitions to `.ended`, storing the optional match outcome.
     func endSession(outcome: GameSessionResult? = nil) {
         guard case .live(let session) = sessionState else {
-            Self.log.notice("endSession called but no live session — ignoring. current=\(String(describing: self.sessionState)).")
+            Self.log.notice("endSession called but no live session — ignoring.")
             return
         }
         Self.log.info("Session ended: \(session.id, privacy: .public).")
+        NexusRenderer.shared.unloadScene()
         sessionState = .ended(outcome)
     }
 
@@ -253,84 +279,28 @@ final class NexusEngine {
         }
     }
 
-    // MARK: PRQ sync bridge
+    // MARK: PRQ sync
 
-    /// Syncs HealthKit data to Firestore and delivers the resulting scan JSON to Unreal.
-    ///
-    /// Builds a `SystemScanRecord` from the profile's persisted scan so that the Firestore
-    /// write and Unreal bridge both operate on consistent data. The Firestore write is
-    /// best-effort (errors are logged, not thrown) so the Unreal bridge always receives the
-    /// latest avatar vector regardless of backend availability.
-    func syncPRQToAvatar(_ profile: UserProfile) async {
+    /// Syncs the latest PRQ/scan data into NexusRenderer, updating active scene physics.
+    func syncPRQToRenderer(_ profile: UserProfile) async {
         Self.log.info("PRQ sync triggered for profile=\(profile.id, privacy: .private).")
-        deliverScanToUnreal(from: profile)
+        NexusRenderer.shared.applyPRQ(profile.metrics.prqScore)
         guard FirebaseBootstrap.isConfigured else {
-            Self.log.notice("PRQ sync: Firebase not configured — Unreal bridge dispatched, Firestore skipped.")
+            Self.log.notice("PRQ sync: Firebase not configured — renderer updated, Firestore skipped.")
             return
         }
         do {
             try await FirebaseIdentity.ensureUserSignedIn()
-            Self.log.info("PRQ sync: Firestore identity ready.")
+            Self.log.info("PRQ sync: Firestore identity confirmed.")
         } catch {
             Self.log.error("PRQ sync: Firestore identity failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    // MARK: Private helpers
+    // MARK: Avatar appearance
 
-    /// Builds a `SystemScanRecord` from the profile's persisted scan and forwards its JSON
-    /// to the Unreal bridge. Falls back to a simulated scan when no scan is present.
-    private func deliverScanToUnreal(from profile: UserProfile) {
-        let record: SystemScanRecord
-        if let scan = profile.systemScan {
-            let vitals = SystemScanRecord.VitalsSnapshot(
-                heartRateBpm: nil,
-                restingHeartRateBpm: nil,
-                hrvSdnnMs: nil,
-                activeKcal: nil,
-                weeklyHrvAverageMs: nil,
-                sleepHoursLastNight: nil
-            )
-            let readiness = SystemScanRecord.ReadinessSnapshot(
-                neuralReadinessScore: scan.prqScore,
-                grade: prqGradeString(scan.prqScore),
-                hrvTrend: "STABLE",
-                recoveryEstimateHours: 0
-            )
-            record = SystemScanRecord(
-                schemaVersion: 1,
-                source: "nexus_launch",
-                capturedAt: .init(date: scan.date),
-                vitals: vitals,
-                readiness: readiness,
-                avatar: AvatarPerformanceAttributes.calculateAttributes(
-                    vitals: vitals,
-                    readiness: readiness,
-                    sleepHoursForMapping: nil,
-                    speedMultiplier: 1.0,
-                    hangTimeBonus: 0.0,
-                    isRecoveryMode: false
-                )
-            )
-        } else {
-            record = SystemScanRecord.makeSimulatedRandom()
-        }
-
-        do {
-            let data = try record.unrealBridgeJSON()
-            NexusBridge.shared.deliverSystemScanJSON(data)
-        } catch {
-            Self.log.error("deliverScanToUnreal: JSON encode failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    private func prqGradeString(_ prq: Double) -> String {
-        switch prq {
-        case 80...:       return "ELITE"
-        case 60 ..< 80:   return "PRIMED"
-        case 40 ..< 60:   return "READY"
-        default:          return "RECOVERING"
-        }
+    func updateAvatarAppearance(outfitId: String, tintHex: String) {
+        NexusRenderer.shared.applyAvatarAppearance(outfitId: outfitId, tintHex: tintHex)
     }
 }
 
@@ -351,7 +321,7 @@ enum NexusError: LocalizedError, Equatable {
         case .sessionConflict:
             return "A game session is already active. End the current session before launching a new one."
         case .nexusNotReady:
-            return "The Unreal runtime is not loaded. Ensure the embedded framework is present in the app bundle."
+            return "The Nexus renderer is not ready. Wait for the boot sequence to complete before launching a mode."
         }
     }
 }
