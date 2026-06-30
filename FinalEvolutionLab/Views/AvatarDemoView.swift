@@ -1,15 +1,26 @@
 import SwiftUI
 
 struct AvatarDemoView: View {
-    let exercise: Exercise
+    let category: Exercise.ExerciseCategory
+    let amplitude: CGFloat
     @State private var phase: CGFloat = 0
     @State private var glowPulse: Bool = false
 
-    private var movementAmplitude: CGFloat {
-        switch exercise.difficulty {
+    init(exercise: Exercise) {
+        self.category = exercise.category
+        self.amplitude = switch exercise.difficulty {
         case .foundation: 0.6
         case .flight: 0.8
         case .elite: 1.0
+        }
+    }
+
+    init(trainingExercise: TrainingExercise) {
+        self.category = trainingExercise.category
+        self.amplitude = switch trainingExercise.progressionLevel {
+        case 1: 0.6
+        case 2: 0.8
+        default: 1.0
         }
     }
 
@@ -59,7 +70,7 @@ struct AvatarDemoView: View {
             let scale = min(size.width, size.height) * 0.35
             let t = phase
 
-            let joints = computeJoints(cx: cx, cy: cy, scale: scale, t: t)
+            let joints = computeJoints(category: category, cx: cx, cy: cy, scale: scale, t: t)
 
             let limbColor = Theme.brandBlue
             let jointColor = Theme.brandCyan
@@ -101,7 +112,7 @@ struct AvatarDemoView: View {
     }
 
     private var exerciseCycleDuration: Double {
-        switch exercise.category {
+        switch category {
         case .plyometric: 0.6
         case .strength: 1.2
         case .mobility: 1.8
@@ -121,11 +132,11 @@ struct AvatarDemoView: View {
         ("rHip", "rKnee"), ("rKnee", "rAnkle"),
     ]
 
-    private func computeJoints(cx: CGFloat, cy: CGFloat, scale: CGFloat, t: CGFloat) -> [String: CGPoint] {
-        let amp = movementAmplitude
+    private func computeJoints(category: Exercise.ExerciseCategory, cx: CGFloat, cy: CGFloat, scale: CGFloat, t: CGFloat) -> [String: CGPoint] {
+        let amp = amplitude
         var joints: [String: CGPoint] = [:]
 
-        switch exercise.category {
+        switch category {
         case .plyometric:
             let jumpOffset = sin(t * .pi) * scale * 0.5 * amp
             let kneeAngle = sin(t * .pi) * 0.3 * amp

@@ -54,22 +54,22 @@ struct TrainingExerciseDetailView: View {
                 RoundedRectangle(cornerRadius: 24)
                     .fill(
                         LinearGradient(
-                            colors: [accentColor.opacity(0.2), Theme.cardBackground],
+                            colors: [accentColor.opacity(0.15), Theme.cardBackground],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(height: 160)
+                    .frame(height: 220)
                     .overlay(
                         RoundedRectangle(cornerRadius: 24)
                             .stroke(accentColor.opacity(0.2), lineWidth: 1)
                     )
 
-                VStack(spacing: 12) {
-                    Image(systemName: exercise.category.systemImage)
-                        .font(.system(size: 44, weight: .bold))
-                        .foregroundStyle(accentColor)
+                AvatarDemoView(trainingExercise: exercise)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
 
+                VStack {
+                    Spacer()
                     HStack(spacing: 8) {
                         Text(exercise.category.rawValue.uppercased())
                             .font(.system(size: 10, weight: .black, design: .monospaced))
@@ -93,8 +93,10 @@ struct TrainingExerciseDetailView: View {
                             .clipShape(Capsule())
                         }
                     }
+                    .padding(.bottom, 44)
                 }
             }
+            .frame(height: 220)
 
             HStack(spacing: 20) {
                 statPill(label: "SETS", value: "\(exercise.sets)")
