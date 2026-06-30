@@ -2044,7 +2044,7 @@ def _mode_registry_from_manager(manager: Dict[str, Any]) -> Dict[str, Dict[str, 
 
 def _venue_registry_from_payload(payload: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """Normalize venue registries that may store venues as a dict, list, or mode list."""
-    venues = payload.get("venues", {})
+    venues = payload.get("venues")
     if isinstance(venues, dict):
         return venues
     if isinstance(venues, list):
