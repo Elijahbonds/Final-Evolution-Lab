@@ -21,6 +21,10 @@ struct ArenaHubView: View {
                     CommunityFeedView()
                 case .modes:
                     GameModeSelectionView(viewModel: viewModel)
+                case .competition:
+                    DunkCompetitionView(viewModel: viewModel)
+                case .academy:
+                    EducationHubView(viewModel: viewModel)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -32,13 +36,17 @@ struct ArenaHubView: View {
 private enum ArenaSegment: String, CaseIterable, Identifiable {
     case feed
     case modes
+    case competition
+    case academy
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .feed: return "Community"
-        case .modes: return "Modes"
+        case .feed:        return "Community"
+        case .modes:       return "Modes"
+        case .competition: return "1v1 $"
+        case .academy:     return "Academy"
         }
     }
 }
