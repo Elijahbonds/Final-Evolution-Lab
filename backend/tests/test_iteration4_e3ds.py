@@ -242,11 +242,11 @@ class TestPreviousFeaturesStillWorking:
     """Verify previous iteration features still work"""
     
     def test_game_modes_endpoint(self, api_client):
-        """Game modes should still return 17 modes"""
+        """Game modes should still return 20 modes"""
         response = api_client.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 17
+        assert len(data) == 20
     
     def test_creator_cards_endpoint(self, api_client):
         """Creator cards should still return cards"""

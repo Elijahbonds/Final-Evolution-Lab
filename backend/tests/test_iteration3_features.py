@@ -310,27 +310,28 @@ class TestVideoCritiqueAPI:
 
 # ===================== EXISTING FEATURES REGRESSION =====================
 class TestExistingFeaturesRegression:
-    """Verify all 17 game modes and other existing features still work"""
+    """Verify all 20 game modes and other existing features still work"""
     
-    def test_all_17_game_modes(self, api_client):
-        """Test /games/modes still returns all 17 modes"""
+    def test_all_20_game_modes(self, api_client):
+        """Test /games/modes still returns all 20 modes"""
         response = api_client.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         modes = response.json()
-        assert len(modes) == 17, f"Expected 17 game modes, got {len(modes)}"
+        assert len(modes) == 20, f"Expected 20 game modes, got {len(modes)}"
         
         # Verify expected modes exist
         mode_ids = [m["id"] for m in modes]
         expected_modes = [
-            "basketball_h2h", "basketball_dunk", "basketball_3v3",
+            "basketball_h2h", "basketball_dunk", "basketball_irl", "basketball_3v3",
             "karate_h2h", "karate_endless", "baseball", "football",
             "soccer", "golf", "tennis", "volleyball", "gymnastics",
-            "brain_brawl", "surfing", "skateboarding", "snowboarding", "market_browse"
+            "brain_brawl", "surfing", "skateboarding", "snowboarding",
+            "who_scene_it", "court_carnival", "market_browse"
         ]
         for expected in expected_modes:
             assert expected in mode_ids, f"Missing game mode: {expected}"
         
-        print(f"All 17 game modes verified: {mode_ids}")
+        print(f"All 20 game modes verified: {mode_ids}")
     
     def test_auth_protection_still_works(self, api_client):
         """Test auth protection returns 401 without token"""

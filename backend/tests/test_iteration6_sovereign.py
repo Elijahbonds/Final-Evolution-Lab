@@ -282,7 +282,7 @@ class TestRegressionPreviousFeatures:
         response = requests.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         data = response.json()
-        assert len(data) >= 17, f"Expected 17+ game modes, got {len(data)}"
+        assert len(data) >= 20, f"Expected 20+ game modes, got {len(data)}"
         print(f"✅ Game modes: {len(data)} modes")
     
     def test_creator_cards_endpoint(self):

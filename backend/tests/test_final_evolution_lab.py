@@ -74,17 +74,17 @@ class TestAuthProtection:
         print("Auth protection working: /prq/metrics returns 401")
 
 
-# ===================== GAME MODES (17 modes) =====================
+# ===================== GAME MODES (20 modes) =====================
 class TestGameModes:
-    """Test all 17 game modes API"""
+    """Test all 20 game modes API"""
     
     def test_get_all_game_modes(self, api_client):
-        """Test /games/modes returns all 17 playable modes"""
+        """Test /games/modes returns all 20 registry modes"""
         response = api_client.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         modes = response.json()
         assert isinstance(modes, list)
-        assert len(modes) == 17, f"Expected 17 game modes, got {len(modes)}"
+        assert len(modes) == 20, f"Expected 20 game modes, got {len(modes)}"
         
         # Verify all modes have required fields
         for mode in modes:

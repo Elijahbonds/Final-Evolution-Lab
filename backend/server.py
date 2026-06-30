@@ -498,6 +498,13 @@ async def log_workout(data: Dict[str, Any], user: User = Depends(get_current_use
 async def get_game_modes():
     return get_seeded_game_modes()
 
+@api_router.get("/games/modes/{mode_id}")
+async def get_game_mode(mode_id: str):
+    for mode in get_seeded_game_modes():
+        if mode["id"] == mode_id:
+            return mode
+    raise HTTPException(status_code=404, detail=f"Game mode {mode_id} not found")
+
 ## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
 PRQ_MODE_WEIGHTS = {
     "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_irl": 1.25, "basketball_3v3": 1.3,
