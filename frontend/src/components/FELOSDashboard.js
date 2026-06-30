@@ -7,9 +7,7 @@ import {
   Share2, Download, Copy, X
 } from "lucide-react";
 import { BioFuelStripe, BioFuelScanner, BioFuelCookbook, BioFuelDoorDash } from "./BioFuel";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API, BACKEND_URL } from "@/config/api";
 
 const TRACK_ICON = { BookOpen, Atom, Award, Brain };
 const TRACK_GLOW = {

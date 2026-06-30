@@ -24,7 +24,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
+try:
+    from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
+except ImportError:
+    ImageContent = None
+    LlmChat = None
+    UserMessage = None
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -46,6 +51,7 @@ ATHLETIC_INTENTS = {
 }
 
 NUTRI_SHARDS_PER_SCAN = 12  # base award
+MAX_SCAN_IMAGE_BASE64_BYTES = 4 * 1024 * 1024
 
 
 def nasm_macro_target(weight_kg: float, sport: str, intent: str) -> Dict[str, Any]:
@@ -297,8 +303,10 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
     """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
-    if not EMERGENT_KEY:
-        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+    if len(req.image_base64.encode("utf-8")) > MAX_SCAN_IMAGE_BASE64_BYTES:
+        raise HTTPException(status_code=413, detail="image_base64 must be 4MB or smaller")
+    if not EMERGENT_KEY or not LlmChat or not UserMessage or not ImageContent:
+        raise HTTPException(status_code=503, detail="BioFuel vision scan is not configured")
 
     provider = "gemini" if req.model.startswith("gemini") else "openai"
     session_id = f"biofuel-scan-{uuid.uuid4().hex[:10]}"

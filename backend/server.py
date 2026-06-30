@@ -1,14 +1,21 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
-import os, logging, uuid, random, json, aiofiles, hashlib, hmac, base64
+import os, logging, uuid, random, json, hashlib, hmac, base64
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-import paypalrestsdk
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
+try:
+    import paypalrestsdk
+except ImportError:
+    paypalrestsdk = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -17,12 +24,14 @@ from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 
-# PayPal config
-paypalrestsdk.configure({
-    "mode": "sandbox",
-    "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
-})
+# PayPal config. The SDK is optional in local/dev environments; payment routes
+# return a clear 503 instead of blocking the whole API from importing.
+if paypalrestsdk:
+    paypalrestsdk.configure({
+        "mode": os.environ.get('PAYPAL_MODE', 'sandbox'),
+        "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
+        "client_secret": os.environ.get('PAYPAL_SECRET', '')
+    })
 
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -142,8 +151,7 @@ async def get_streak(user: User = Depends(get_current_user)):
         await db.streaks.insert_one(streak_doc)
     return streak_doc
 
-@api_router.post("/streaks/checkin")
-async def streak_checkin(user: User = Depends(get_current_user)):
+async def perform_streak_checkin(user: User):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     streak_doc = await db.streaks.find_one({"user_id": user.user_id}, {"_id": 0})
     if not streak_doc:
@@ -186,6 +194,10 @@ async def streak_checkin(user: User = Depends(get_current_user)):
     return {"current_streak": new_streak, "longest_streak": longest, "last_activity": today,
             "xp_earned": xp_bonus, "coins_earned": coin_bonus, "rewards": rewards, "daily_log": daily_log}
 
+@api_router.post("/streaks/checkin")
+async def streak_checkin(user: User = Depends(get_current_user)):
+    return await perform_streak_checkin(user)
+
 @api_router.get("/streaks/rewards")
 async def get_streak_rewards(user: User = Depends(get_current_user)):
     streak_doc = await db.streaks.find_one({"user_id": user.user_id}, {"_id": 0})
@@ -201,6 +213,9 @@ async def get_streak_rewards(user: User = Depends(get_current_user)):
 # ===================== PAYPAL =====================
 @api_router.post("/payments/create-order")
 async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    if not paypalrestsdk or not os.environ.get('PAYPAL_CLIENT_ID') or not os.environ.get('PAYPAL_SECRET'):
+        raise HTTPException(status_code=503, detail="PayPal is not configured")
+
     item_type = data.get("item_type", "card")  # card, course
     item_id = data.get("item_id")
     amount = data.get("amount", 0)
@@ -244,6 +259,9 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
 
 @api_router.post("/payments/capture")
 async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    if not paypalrestsdk or not os.environ.get('PAYPAL_CLIENT_ID') or not os.environ.get('PAYPAL_SECRET'):
+        raise HTTPException(status_code=503, detail="PayPal is not configured")
+
     payment_id = data.get("payment_id")
     payer_id = data.get("payer_id")
     if not payment_id or not payer_id:
@@ -411,9 +429,8 @@ async def upload_video(file: UploadFile = File(...), user: User = Depends(get_cu
     ext = file.filename.split(".")[-1] if "." in file.filename else "mp4"
     filepath = UPLOAD_DIR / f"{file_id}.{ext}"
 
-    async with aiofiles.open(filepath, 'wb') as f:
-        content = await file.read()
-        await f.write(content)
+    content = await file.read()
+    filepath.write_bytes(content)
 
     video_doc = {
         "id": file_id, "user_id": user.user_id, "filename": file.filename,
@@ -490,7 +507,7 @@ async def log_workout(data: Dict[str, Any], user: User = Depends(get_current_use
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     streak = await db.streaks.find_one({"user_id": user.user_id})
     if not streak or streak.get("last_activity") != today:
-        await streak_checkin.__wrapped__(user)
+        await perform_streak_checkin(user)
     await db.activity_feed.insert_one({"user_id": user.user_id, "type": "workout", "detail": data.get("workout_name","Custom"), "created_at": datetime.now(timezone.utc).isoformat()})
     return {k: v for k, v in log.items() if k != "_id"}
 
@@ -562,9 +579,13 @@ async def create_game_session(data: Dict[str, Any], user: User = Depends(get_cur
     await db.game_sessions.insert_one(s)
 
     # Update user aggregates: XP, PRQ, shards
+    new_prq_score = round(max(0.0, min(100.0, (user.prq_score or 75.0) + prq_delta)), 1)
     await db.users.update_one(
         {"user_id": user.user_id},
-        {"$inc": {"xp": xp, "prq_rating": prq_delta, "shards": shards_earned}}
+        {
+            "$inc": {"xp": xp, "shards": shards_earned},
+            "$set": {"prq_score": new_prq_score}
+        }
     )
 
     # Record shard ledger entry
@@ -744,6 +765,16 @@ async def get_progress(user: User = Depends(get_current_user)):
     w = await db.workout_logs.count_documents({"user_id":user.user_id})
     g = await db.game_sessions.count_documents({"user_id":user.user_id})
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
+    return {
+        "total_workouts": w,
+        "total_games": g,
+        "total_brawls": b,
+        "xp": user.xp,
+        "level": user.level,
+        "prq_score": user.prq_score,
+        "streak_days": user.streak_days,
+        "coins": user.coins
+    }
 
 # ===================== CENTRALIZED VENUE REGISTRY (Fetch on launch) =====================
 
@@ -756,7 +787,7 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = resolve_venue_key(mode_id, config)
         venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
@@ -1264,6 +1295,8 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
+    if not EMERGENT_KEY or not LlmChat or not UserMessage:
+        return {"response":"AI service is not configured yet. Use the seeded training, nutrition, and recovery plans while the model provider is connected.","model":"fallback","type":prompt_type}
     try:
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
         chat.with_model("openai","gpt-5.2")
@@ -1280,6 +1313,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
+    if not EMERGENT_KEY or not LlmChat or not UserMessage:
+        return {"response":"AI chat is not configured yet. I can still help you navigate FEL OS modules, workouts, game modes, and BioFuel recipes.","model":"fallback","conversation_id":cid}
     try:
         p,m = configs.get(model,("openai","gpt-5.2"))
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=f"You are FEL AI Assistant. Help {user.name} with training, nutrition, recovery. PRQ: {user.prq_score}/100. Be concise.")
@@ -1295,15 +1330,10 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
     mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        mode_id: resolve_venue_key(mode_id, config)
+        for mode_id, config in MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {}).items()
     }
+    supported_modes = [m for m in launchable_mode_ids() if m in mode_maps]
     
     ws_connected = len(sovereign_bridge.clients) > 0
     
@@ -1314,7 +1344,7 @@ async def get_streaming_status():
         "e3ds_disabled": True,
         "provider": "local_sovereign",
         "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect.",
-        "supported_modes": list(mode_maps.keys()),
+        "supported_modes": supported_modes,
         "mode_maps": mode_maps,
         "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
         "data_feed": True,
@@ -1332,10 +1362,10 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     mode_id = data.get("mode_id")
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
-    if not mode_config:
-        raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+    if not mode_config or mode_config.get("status") not in {"production", "staging"}:
+        raise HTTPException(status_code=404, detail=f"Mode {mode_id} is not launchable")
 
-    venue_key = mode_config["map"].split("/")[-1]
+    venue_key = resolve_venue_key(mode_id, mode_config)
     venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
 
     # Create live session in Sovereign Hub
@@ -1426,11 +1456,11 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
-    """All 17 modes with deep links and venue mapping — confirms playability"""
+    """All registry modes with deep links and venue mapping."""
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = resolve_venue_key(mode_id, config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
@@ -1444,7 +1474,7 @@ async def get_all_mapped_modes():
             "venue_display": venue_data.get("display_name", venue_key),
             "category": venue_data.get("category", "Unknown"),
             "db_collection": venue_data.get("db_collection", ""),
-            "linked": True
+            "linked": bool(venue_data)
         })
     return {
         "total_modes": len(mapped),
@@ -1974,6 +2004,28 @@ if mode_path.exists():
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
 
+UE_MODE_MAPS = {}
+ue_mode_path = ROOT_DIR / "ue_mode_maps.json"
+if ue_mode_path.exists():
+    with open(ue_mode_path) as f:
+        UE_MODE_MAPS = json.load(f).get("mode_to_unreal_map", {})
+    logger.info(f"Loaded UE mode maps: {len(UE_MODE_MAPS)} mode tokens")
+
+def resolve_venue_key(mode_id: str, mode_config: Dict[str, Any] = None) -> str:
+    """Resolve API mode ids to canonical Unreal/venue-registry tokens."""
+    if mode_id in UE_MODE_MAPS:
+        return UE_MODE_MAPS[mode_id]
+    if mode_config and mode_config.get("map"):
+        return mode_config["map"].split("/")[-1]
+    return mode_id
+
+def launchable_mode_ids() -> List[str]:
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    return [
+        mode_id for mode_id, config in registry.items()
+        if config.get("status") in {"production", "staging"}
+    ]
+
 # Sovereign connection state
 sovereign_state = {
     "websocket_status": "waiting_for_connection",
@@ -2355,7 +2407,7 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = resolve_venue_key(mode_id, config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         # Check for live session data in venue collection
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
