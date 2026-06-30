@@ -19,7 +19,11 @@ import { FELOSDashboard } from "@/components/FELOSDashboard";
 import { NexusPage } from "@/components/NexusConsole";
 import DistributionPage from "@/components/DistributionPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const DEFAULT_BACKEND_URL =
+  typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? "http://localhost:8000"
+    : window.location.origin;
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || DEFAULT_BACKEND_URL).replace(/\/$/, "");
 const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
@@ -794,15 +798,34 @@ const AICoachView = () => {
 const CoachHubView = () => {
   const [coaches, setCoaches] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [bookingId, setBookingId] = useState(null);
+  const [bookingError, setBookingError] = useState('');
   useEffect(() => {
     Promise.all([axios.get(`${API}/coach/available`), axios.get(`${API}/coach/sessions`)])
       .then(([c,s]) => {setCoaches(c.data);setSessions(s.data);}).catch(console.error);
   }, []);
+  const bookSession = async (coach) => {
+    setBookingId(coach.user_id);
+    setBookingError('');
+    try {
+      const r = await axios.post(`${API}/coach/sessions`, {
+        coach_id: coach.user_id,
+        sport: coach.sport || 'training',
+        session_type: 'training',
+      });
+      setSessions((current) => [r.data, ...current]);
+    } catch (e) {
+      setBookingError(e.response?.data?.detail || 'Could not book that session. Please try again.');
+    } finally {
+      setBookingId(null);
+    }
+  };
   return (
     <div className="space-y-8 fade-in">
       <div><p className="overline mb-1">TRAINING NETWORK</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>COACH HUB</h1></div>
       <div data-testid="available-coaches">
         <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>AVAILABLE COACHES</h2>
+        {bookingError && <div className="surface-card p-3 mb-4 text-sm text-red-400 border-red-400/20">{bookingError}</div>}
         <div className="grid md:grid-cols-2 gap-4">
           {coaches.map((c,i) => (
             <div key={i} className="surface-card p-6 card-hover">
@@ -812,7 +835,7 @@ const CoachHubView = () => {
                 <div className="text-right"><div className="font-mono text-lg text-cyan-400">${c.rate || 25}</div><div className="text-xs text-zinc-500">per session</div></div>
               </div>
               <div className="flex items-center gap-4 text-sm text-zinc-400 mb-4"><span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" />{c.rating}</span><span>{c.sessions} sessions</span></div>
-              <button data-testid={`book-coach-${i}`} className="btn-primary w-full">Book Session</button>
+              <button data-testid={`book-coach-${i}`} onClick={() => bookSession(c)} disabled={bookingId === c.user_id} className="btn-primary w-full">{bookingId === c.user_id ? 'Booking...' : 'Book Session'}</button>
             </div>
           ))}
         </div>
@@ -1240,7 +1263,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

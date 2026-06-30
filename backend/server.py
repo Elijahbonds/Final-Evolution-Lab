@@ -7,8 +7,15 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-import paypalrestsdk
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
+try:
+    import paypalrestsdk
+except ImportError:
+    paypalrestsdk = None
 
 # Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
 from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
@@ -17,12 +24,16 @@ from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 
-# PayPal config
-paypalrestsdk.configure({
-    "mode": "sandbox",
-    "client_id": os.environ.get('PAYPAL_CLIENT_ID', ''),
-    "client_secret": os.environ.get('PAYPAL_SECRET', '')
-})
+# PayPal config. Credentials are optional so local CI can still validate the app.
+PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', '')
+PAYPAL_SECRET = os.environ.get('PAYPAL_SECRET', '')
+PAYPAL_READY = bool(paypalrestsdk and PAYPAL_CLIENT_ID and PAYPAL_SECRET)
+if paypalrestsdk:
+    paypalrestsdk.configure({
+        "mode": "sandbox",
+        "client_id": PAYPAL_CLIENT_ID,
+        "client_secret": PAYPAL_SECRET
+    })
 
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -205,6 +216,8 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
     item_id = data.get("item_id")
     amount = data.get("amount", 0)
 
+    if not PAYPAL_READY:
+        raise HTTPException(status_code=503, detail="PayPal is not configured")
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Invalid amount")
 
@@ -246,6 +259,8 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
 async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_current_user)):
     payment_id = data.get("payment_id")
     payer_id = data.get("payer_id")
+    if not PAYPAL_READY:
+        raise HTTPException(status_code=503, detail="PayPal is not configured")
     if not payment_id or not payer_id:
         raise HTTPException(status_code=400, detail="payment_id and payer_id required")
 
@@ -500,7 +515,7 @@ async def get_game_modes():
 
 ## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
 PRQ_MODE_WEIGHTS = {
-    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_irl": 1.5, "basketball_3v3": 1.3,
     "karate_h2h": 1.4, "karate_endless": 1.4,
     "baseball": 1.0, "football": 1.5, "soccer": 1.1,
     "golf": 0.9, "tennis": 1.1, "volleyball": 1.2,
@@ -602,6 +617,7 @@ def get_seeded_game_modes():
     return [
         {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
         {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_irl","name":"IRL Dunk Session","display_name":"IRL · Regulation Rim","venue":"Regulation Court","category":"Basketball","description":"Real-world dunk and jump tracking with HealthKit PRQ sync","image_url":"https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800","player_count":"1-2","duration":"10 min","difficulty":"Advanced","playable":False,"game_type":"irl_tracking"},
         {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
         {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
         {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"https://images.unsplash.com/photo-1564415315949-7a0c4c73aab4?w=800","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
@@ -744,6 +760,7 @@ async def get_progress(user: User = Depends(get_current_user)):
     w = await db.workout_logs.count_documents({"user_id":user.user_id})
     g = await db.game_sessions.count_documents({"user_id":user.user_id})
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
+    return {"total_workouts": w, "total_games": g, "total_brawls": b, "xp": user.xp}
 
 # ===================== CENTRALIZED VENUE REGISTRY (Fetch on launch) =====================
 
@@ -751,12 +768,12 @@ async def get_progress(user: User = Depends(get_current_user)):
 async def get_venue_registry():
     """Centralized venue registry — apps fetch this on launch, no hardcoded links"""
     venues = VENUE_REGISTRY.get("venues", {})
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    registry = get_launchable_mode_registry()
     ws_url = os.environ.get("EMERGENT_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/sovereign")
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_venue_key(config)
         venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
@@ -1265,6 +1282,8 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
     try:
+        if not LlmChat or not UserMessage or not EMERGENT_KEY:
+            raise RuntimeError("AI service is not configured")
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
         chat.with_model("openai","gpt-5.2")
         r = await chat.send_message(UserMessage(text=context or f"Generate a {prompt_type} plan."))
@@ -1281,6 +1300,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     if not msg: raise HTTPException(400,"Message required")
     configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
     try:
+        if not LlmChat or not UserMessage or not EMERGENT_KEY:
+            raise RuntimeError("AI service is not configured")
         p,m = configs.get(model,("openai","gpt-5.2"))
         chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=f"You are FEL AI Assistant. Help {user.name} with training, nutrition, recovery. PRQ: {user.prq_score}/100. Be concise.")
         chat.with_model(p,m)
@@ -1294,16 +1315,8 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/streaming/status")
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
-    }
+    launchable_modes = get_launchable_mode_registry()
+    mode_maps = {mode_id: get_venue_key(config) for mode_id, config in launchable_modes.items()}
     
     ws_connected = len(sovereign_bridge.clients) > 0
     
@@ -1330,12 +1343,12 @@ async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_curre
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
     """Launch UE5 game mode via deep link — tracks session in Sovereign Hub"""
     mode_id = data.get("mode_id")
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    registry = get_launchable_mode_registry()
     mode_config = registry.get(mode_id)
     if not mode_config:
-        raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+        raise HTTPException(status_code=404, detail=f"Mode {mode_id} is not launchable")
 
-    venue_key = mode_config["map"].split("/")[-1]
+    venue_key = get_venue_key(mode_config)
     venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
 
     # Create live session in Sovereign Hub
@@ -1427,10 +1440,10 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
     """All 17 modes with deep links and venue mapping — confirms playability"""
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    registry = get_launchable_mode_registry()
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_venue_key(config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
@@ -2033,7 +2046,31 @@ mode_path = ROOT_DIR / "FEL_ModeManager.production.json"
 if mode_path.exists():
     with open(mode_path) as f:
         MODE_MANAGER = json.load(f)
-    logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
+    mode_manager = MODE_MANAGER.setdefault("mode_manager", {})
+    modes = mode_manager.get("modes", [])
+    if isinstance(modes, list) and "mode_registry" not in mode_manager:
+        mode_manager["mode_registry"] = {m["id"]: m for m in modes if isinstance(m, dict) and m.get("id")}
+    logger.info(f"Loaded mode manager: {len(mode_manager.get('mode_registry', {}))} modes")
+
+LAUNCHABLE_MODE_STATUSES = {"production", "staging"}
+
+def get_mode_registry() -> Dict[str, Dict[str, Any]]:
+    """Complete keyed mode registry, including IRL/preview/non-game entries."""
+    return MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+
+def get_venue_key(mode_config: Dict[str, Any]) -> Optional[str]:
+    map_path = mode_config.get("map")
+    if not map_path:
+        return None
+    return str(map_path).split("/")[-1]
+
+def get_launchable_mode_registry() -> Dict[str, Dict[str, Any]]:
+    """UE-backed production/staging modes that can be launched through Pixel Streaming."""
+    return {
+        mode_id: config
+        for mode_id, config in get_mode_registry().items()
+        if config.get("status") in LAUNCHABLE_MODE_STATUSES and get_venue_key(config)
+    }
 
 # Sovereign connection state
 sovereign_state = {
@@ -2413,10 +2450,10 @@ async def calculate_prq_live(user_id: str) -> float:
 @api_router.get("/production/modes")
 async def get_production_modes():
     """Production mode registry from FEL_ModeManager — NOT placeholder stubs"""
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    registry = get_launchable_mode_registry()
     modes = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        venue_key = get_venue_key(config)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         # Check for live session data in venue collection
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")

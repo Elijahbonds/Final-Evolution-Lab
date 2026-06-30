@@ -32,17 +32,20 @@ def skip(msg):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
-PRODUCTION_MODES = [
+UE_BACKED_PRODUCTION_MODES = [
     "basketball_h2h", "basketball_dunk", "basketball_3v3",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
 ]
+IRL_PRODUCTION_MODES = ["basketball_irl"]
+PRODUCTION_MODES = UE_BACKED_PRODUCTION_MODES + IRL_PRODUCTION_MODES
 
 NON_GAME_MODULES = ["market_browse"]
 
 STAGING_MODES = ["skateboarding", "snowboarding", "gymnastics", "brain_brawl"]
 PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+UE_BACKED_MODES = UE_BACKED_PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -50,13 +53,14 @@ PREVIEW_MODES = ["who_scene_it", "court_carnival"]
 def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
     mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
-    registry = mgr["mode_manager"]["mode_registry"]
+    mm = mgr["mode_manager"]
+    registry = mm.get("mode_registry") or {m["id"]: m for m in mm.get("modes", [])}
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
             info = registry[mode]
             if info["status"] == "production":
-                ok(f"{mode} → production, map={info['map']}")
+                ok(f"{mode} → production, map={info.get('map')}")
             else:
                 fail(f"{mode} status={info['status']}, expected production")
         else:
@@ -92,16 +96,16 @@ def test_ue_mode_maps():
     ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
     mode_map = ue_maps["mode_to_unreal_map"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
-        if mode in mode_map:
+    for mode in UE_BACKED_MODES:
+        if mode in mode_map and mode_map[mode]:
             ok(f"{mode} → {mode_map[mode]}")
         else:
-            if mode == "market_browse":
-                # market_browse may not have a UE map (it's a shop module)
-                ok(f"{mode} → present in ue_mode_maps")
-            else:
-                fail(f"{mode} missing from ue_mode_maps.json")
+            fail(f"{mode} missing launchable UE map in ue_mode_maps.json")
+    for mode in IRL_PRODUCTION_MODES:
+        if mode in mode_map and mode_map[mode] is None:
+            ok(f"{mode} → IRL session (no UE map)")
+        else:
+            fail(f"{mode} should be present with null UE map")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 3: ArenaSettings Coverage
@@ -111,8 +115,7 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in UE_BACKED_MODES:
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -133,8 +136,7 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in UE_BACKED_MODES:
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
             if entry["venueKey"] in venue_keys:
@@ -164,8 +166,7 @@ def test_emergent_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in UE_BACKED_MODES:
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention

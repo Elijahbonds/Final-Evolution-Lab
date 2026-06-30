@@ -1,7 +1,7 @@
 name: FEL Pre-Build CI Check
 on:
   push:
-    branches: [setup-healthkit]
+    branches: [main, setup-healthkit, 'cursor/**', 'claude/**']
   pull_request:
     branches: [setup-healthkit, main]
 
@@ -36,11 +36,14 @@ jobs:
           import json
           with open('./backend/FEL_ModeManager.production.json') as f:
               d = json.load(f)
-          modes = d['mode_manager']['mode_registry']
+          mm = d['mode_manager']
+          modes = mm.get('mode_registry') or {m['id']: m for m in mm.get('modes', [])}
           print(f'Mode registry: {len(modes)} modes')
           prod = [m for m,c in modes.items() if c['status'] == 'production']
-          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
+          staging = [m for m,c in modes.items() if c['status'] == 'staging']
+          print(f'Production: {len(prod)} | Staging: {len(staging)} | Total: {len(modes)}')
           assert len(modes) >= 17, 'Expected 17+ modes'
+          assert 'basketball_irl' in modes and modes['basketball_irl']['render_mode'] == 'IRL', 'basketball_irl IRL mode missing'
           print('✓ Mode registry valid')
           "
 
