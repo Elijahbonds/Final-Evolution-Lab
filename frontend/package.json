@@ -95,7 +95,6 @@
   "overrides": {
     "react-day-picker": {
       "react": "$react"
-    },
-    "ajv": "^8.12.0"
+    }
   }
 }
