@@ -1432,3 +1432,241 @@ async def get_dunk_lobby(tier: str):
         {"_id": 0, "user_id": 0}
     ).sort("joined_at", 1).limit(20).to_list(20)
     return {"tier": tier, "players": players, "count": len(players)}
+
+
+# ── Physics: collision detection ─────────────────────────────────
+
+class Sphere(BaseModel):
+    x: float; y: float; z: float; radius: float
+
+class Capsule(BaseModel):
+    ax: float; ay: float; az: float   # bottom centre
+    bx: float; by: float; bz: float   # top centre
+    radius: float
+
+class AABB(BaseModel):
+    min_x: float; min_y: float; min_z: float
+    max_x: float; max_y: float; max_z: float
+
+class CollisionRequest(BaseModel):
+    type: str           # "sphere_sphere" | "sphere_aabb" | "capsule_capsule"
+    a: dict
+    b: dict
+
+class CollisionResponse(BaseModel):
+    colliding: bool
+    penetration_depth: float
+    normal: Dict[str, float]   # unit vector pointing a→b
+
+def _vec3_len(x, y, z): return math.sqrt(x*x + y*y + z*z)
+def _vec3_norm(x, y, z):
+    l = _vec3_len(x, y, z) or 1e-9
+    return x/l, y/l, z/l
+
+@router.post("/physics/collision", response_model=CollisionResponse)
+async def detect_collision(req: CollisionRequest):
+    """
+    Deterministic collision detection for:
+      sphere_sphere  — player-ball or player-player bounding spheres
+      sphere_aabb    — ball vs rim bounding box
+      capsule_capsule — player bodies (approximated as 2-sphere swept capsules)
+    """
+    t = req.type
+
+    if t == "sphere_sphere":
+        sa, sb = Sphere(**req.a), Sphere(**req.b)
+        dx, dy, dz = sb.x-sa.x, sb.y-sa.y, sb.z-sa.z
+        dist = _vec3_len(dx, dy, dz)
+        combined_r = sa.radius + sb.radius
+        colliding = dist < combined_r
+        pen = max(0.0, combined_r - dist)
+        nx, ny, nz = _vec3_norm(dx, dy, dz)
+        return CollisionResponse(colliding=colliding, penetration_depth=round(pen,4),
+                                 normal={"x":round(nx,4),"y":round(ny,4),"z":round(nz,4)})
+
+    if t == "sphere_aabb":
+        s = Sphere(**req.a)
+        b = AABB(**req.b)
+        cx = max(b.min_x, min(s.x, b.max_x))
+        cy = max(b.min_y, min(s.y, b.max_y))
+        cz = max(b.min_z, min(s.z, b.max_z))
+        dx, dy, dz = s.x-cx, s.y-cy, s.z-cz
+        dist = _vec3_len(dx, dy, dz)
+        colliding = dist < s.radius
+        pen = max(0.0, s.radius - dist)
+        nx, ny, nz = _vec3_norm(dx or 0.001, dy, dz)
+        return CollisionResponse(colliding=colliding, penetration_depth=round(pen,4),
+                                 normal={"x":round(nx,4),"y":round(ny,4),"z":round(nz,4)})
+
+    if t == "capsule_capsule":
+        # Approximate each capsule as two bounding spheres (top + bottom)
+        ca, cb = Capsule(**req.a), Capsule(**req.b)
+        pairs = [
+            (ca.ax,ca.ay,ca.az, cb.ax,cb.ay,cb.az),
+            (ca.bx,ca.by,ca.bz, cb.bx,cb.by,cb.bz),
+            (ca.ax,ca.ay,ca.az, cb.bx,cb.by,cb.bz),
+            (ca.bx,ca.by,ca.bz, cb.ax,cb.ay,cb.az),
+        ]
+        min_dist = float('inf'); best_dx=best_dy=best_dz=0.0
+        for ax,ay,az,bx,by,bz in pairs:
+            dx,dy,dz = bx-ax, by-ay, bz-az
+            d = _vec3_len(dx,dy,dz)
+            if d < min_dist:
+                min_dist=d; best_dx=dx; best_dy=dy; best_dz=dz
+        combined_r = ca.radius + cb.radius
+        colliding = min_dist < combined_r
+        pen = max(0.0, combined_r - min_dist)
+        nx,ny,nz = _vec3_norm(best_dx, best_dy, best_dz)
+        return CollisionResponse(colliding=colliding, penetration_depth=round(pen,4),
+                                 normal={"x":round(nx,4),"y":round(ny,4),"z":round(nz,4)})
+
+    raise HTTPException(400, f"Unknown collision type '{t}'. Use sphere_sphere, sphere_aabb, or capsule_capsule.")
+
+
+# ── Arena: dunk style scoring ────────────────────────────────────
+
+DUNK_STYLES = {
+    "two_hand_power":  {"name": "Power Slam",   "multiplier": 1.0},
+    "one_hand":        {"name": "One-Hander",   "multiplier": 1.1},
+    "windmill":        {"name": "Windmill",     "multiplier": 1.35},
+    "360":             {"name": "360°",          "multiplier": 1.4},
+    "tomahawk":        {"name": "Tomahawk",     "multiplier": 1.3},
+    "reverse":         {"name": "Reverse",      "multiplier": 1.25},
+    "alley_oop":       {"name": "Alley-Oop",   "multiplier": 1.45},
+    "between_legs":    {"name": "Between-Legs", "multiplier": 1.5},
+    "off_glass":       {"name": "Off-Glass",   "multiplier": 1.2},
+}
+
+APPROACH_BONUS = {"running": 0, "one_step": 5, "two_step": 3, "standing": 10}
+
+class DunkScoreRequest(BaseModel):
+    height_inches: float         # measured jump height
+    style_key: str               # one of DUNK_STYLES keys
+    approach: str = "running"    # running | one_step | two_step | standing
+    clean_finish: bool = True    # false = hung on rim / double-clutch
+    crowd_reaction: int = 7      # 1–10 from simulated crowd meter
+
+class DunkScoreResponse(BaseModel):
+    raw_score: float
+    final_score: float
+    style_name: str
+    grade: str
+    breakdown: Dict[str, float]
+
+@router.post("/arena/dunk/score", response_model=DunkScoreResponse)
+async def score_dunk(req: DunkScoreRequest):
+    """Style-weighted dunk score for the IRL dunk contest."""
+    if req.style_key not in DUNK_STYLES:
+        raise HTTPException(400, f"style_key must be one of: {list(DUNK_STYLES.keys())}")
+    if not (1 <= req.crowd_reaction <= 10):
+        raise HTTPException(400, "crowd_reaction must be 1–10")
+
+    style = DUNK_STYLES[req.style_key]
+    height_score  = min(req.height_inches * 1.2, 60.0)
+    approach_bonus = APPROACH_BONUS.get(req.approach, 0)
+    clean_bonus    = 10.0 if req.clean_finish else -5.0
+    crowd_bonus    = (req.crowd_reaction - 5) * 1.5
+    raw            = height_score + approach_bonus + clean_bonus + crowd_bonus
+    final          = round(raw * style["multiplier"], 1)
+
+    if final >= 95:   grade = "A+"
+    elif final >= 85: grade = "A"
+    elif final >= 75: grade = "B+"
+    elif final >= 65: grade = "B"
+    elif final >= 55: grade = "C"
+    else:             grade = "D"
+
+    return DunkScoreResponse(
+        raw_score=round(raw, 1),
+        final_score=final,
+        style_name=style["name"],
+        grade=grade,
+        breakdown={
+            "height_score": round(height_score, 1),
+            "approach_bonus": approach_bonus,
+            "clean_bonus": clean_bonus,
+            "crowd_bonus": round(crowd_bonus, 1),
+            "style_multiplier": style["multiplier"],
+        }
+    )
+
+
+# ── Procedural venue generation ──────────────────────────────────
+
+import hashlib as _hashlib
+
+VENUE_TYPES = {
+    "outdoor_court": {
+        "surface": "asphalt", "lighting": ["noon_sun","golden_hour","dusk","overcast"],
+        "crowd_density": [0.2, 0.5, 0.8, 1.0], "ambient": ["AMB_Street","AMB_City","AMB_Beach"],
+        "obstacles": ["fence","bleachers","palm_trees","spectators","streetlight"],
+    },
+    "rooftop": {
+        "surface": "painted_concrete", "lighting": ["sunset","night_city","overcast"],
+        "crowd_density": [0.0, 0.1, 0.3], "ambient": ["AMB_Wind","AMB_City_High"],
+        "obstacles": ["hvac_unit","water_tank","ledge","graffiti_wall"],
+    },
+    "indoor_arena": {
+        "surface": "hardwood", "lighting": ["arena_spots","blue_wash","red_wash"],
+        "crowd_density": [0.5, 0.75, 1.0], "ambient": ["AMB_Arena_Crowd","AMB_Arena_Empty"],
+        "obstacles": ["team_benches","scoreboard","shot_clock","jumbotron"],
+    },
+    "beach": {
+        "surface": "sand", "lighting": ["noon_sun","golden_hour","cloudy"],
+        "crowd_density": [0.3, 0.6, 0.9], "ambient": ["AMB_Ocean","AMB_Beach_Crowd"],
+        "obstacles": ["net","palm_trees","spectators","volleyball_pole"],
+    },
+    "dojo": {
+        "surface": "tatami", "lighting": ["paper_lantern","skylight","night_candle"],
+        "crowd_density": [0.0, 0.2, 0.4], "ambient": ["AMB_Dojo","AMB_Wind_Bamboo"],
+        "obstacles": ["training_dummy","bokken_rack","mirror_wall","incense_pillar"],
+    },
+}
+
+def _prng(seed: int, n: int) -> list:
+    """Deterministic pseudo-random list of floats [0,1) from seed using SHA-256."""
+    results = []
+    for i in range(n):
+        h = _hashlib.sha256(f"{seed}:{i}".encode()).digest()
+        results.append(int.from_bytes(h[:4], "big") / 0xFFFFFFFF)
+    return results
+
+@router.get("/venues/generate/{seed}")
+async def generate_venue(seed: int, venue_type: str = "outdoor_court"):
+    """
+    Procedural venue layout. Same seed + venue_type always returns identical results.
+    Drives NexusEngine venue mesh selection and atmosphere pipeline.
+    """
+    if venue_type not in VENUE_TYPES:
+        raise HTTPException(400, f"venue_type must be one of: {list(VENUE_TYPES.keys())}")
+
+    vt = VENUE_TYPES[venue_type]
+    rng = _prng(seed, 12)
+
+    lighting    = vt["lighting"][int(rng[0] * len(vt["lighting"]))]
+    crowd_idx   = int(rng[1] * len(vt["crowd_density"]))
+    crowd       = vt["crowd_density"][crowd_idx]
+    ambient     = vt["ambient"][int(rng[2] * len(vt["ambient"]))]
+    num_obs     = max(1, int(rng[3] * 4) + 1)
+    obs_pool    = vt["obstacles"]
+    obstacles   = [obs_pool[int(r * len(obs_pool))] for r in rng[4:4+num_obs]]
+    court_rot   = round(rng[8] * 360, 1)
+    fog_density = round(rng[9] * 0.15, 3)
+    wind_speed  = round(rng[10] * 8.0, 1)
+    time_of_day = round(6 + rng[11] * 16, 1)   # 6.0 AM – 22.0 PM
+
+    return {
+        "seed": seed,
+        "venue_type": venue_type,
+        "surface": vt["surface"],
+        "lighting_preset": lighting,
+        "crowd_density": crowd,
+        "ambient_sfx": ambient,
+        "obstacles": obstacles,
+        "court_rotation_deg": court_rot,
+        "fog_density": fog_density,
+        "wind_speed_ms": wind_speed,
+        "time_of_day_hr": time_of_day,
+        "nexus_mesh_key": f"PROC_{venue_type.upper()}_{seed % 13:02d}",
+        "deterministic": True,
+    }
