@@ -86,6 +86,260 @@ private struct GymElementResult {
     let judge3: Double
 }
 
+// MARK: - Arena Canvas
+
+private struct GymnasticsArenaCanvas: View {
+    let elementIndex: Int
+    let gradeColor: Color
+    let showFlash: Bool
+
+    var body: some View {
+        TimelineView(.animation) { tl in
+            Canvas { ctx, size in
+                var d = GymDrawer(t: tl.date.timeIntervalSinceReferenceDate,
+                                  W: size.width, H: size.height,
+                                  elementIndex: elementIndex,
+                                  gradeColor: gradeColor, showFlash: showFlash)
+                d.render(ctx: &ctx)
+            }
+        }
+    }
+}
+
+private struct GymDrawer {
+    let t: Double
+    let W: CGFloat; let H: CGFloat
+    let elementIndex: Int
+    let gradeColor: Color; let showFlash: Bool
+
+    var matY: CGFloat { H * 0.72 }
+    var gx: CGFloat { W * 0.50 }
+    var gy: CGFloat { matY - 2 }
+
+    mutating func render(ctx: inout GraphicsContext) {
+        drawArenaBG(&ctx)
+        drawSpotlights(&ctx)
+        drawMat(&ctx)
+        drawJudges(&ctx)
+        drawGymnast(&ctx)
+        if showFlash { drawFlash(&ctx) }
+    }
+
+    private func drawArenaBG(_ ctx: inout GraphicsContext) {
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
+                 with: .linearGradient(
+                    Gradient(colors: [Color(red:0.04,green:0.02,blue:0.18),
+                                      Color(red:0.08,green:0.04,blue:0.22)]),
+                    startPoint: .zero, endPoint: CGPoint(x: 0, y: H)))
+        // Audience tiers
+        let jerseys: [Color] = [Color(red:0.72,green:0.12,blue:0.12),
+                                 Color(red:0.12,green:0.35,blue:0.72),
+                                 Color(red:0.55,green:0.45,blue:0.10),
+                                 Color(red:0.25,green:0.25,blue:0.28)]
+        for row in 0..<3 {
+            let ry = H * CGFloat(0.08 + Double(row) * 0.10)
+            let cols = 28
+            for col in 0..<cols {
+                let cx = W * CGFloat(col + 1) / CGFloat(cols + 1)
+                let jc = jerseys[(col * 3 + row * 5) % jerseys.count]
+                let wave = CGFloat(sin(t * 0.9 + Double(col) * 0.5 + Double(row))) * 1.2
+                ctx.fill(Path(ellipseIn: CGRect(x: cx-4, y: ry + wave - 4, width: 8, height: 8)),
+                         with: .color(jc.opacity(0.55)))
+            }
+        }
+    }
+
+    private func drawSpotlights(_ ctx: inout GraphicsContext) {
+        let lightPositions: [(CGFloat, CGFloat)] = [(W*0.2,0),(W*0.4,0),(W*0.6,0),(W*0.8,0)]
+        for (lx, _) in lightPositions {
+            // Cone
+            var cone = Path()
+            cone.move(to: CGPoint(x: lx, y: 0))
+            cone.addLine(to: CGPoint(x: gx - 28, y: matY))
+            cone.addLine(to: CGPoint(x: gx + 28, y: matY))
+            cone.closeSubpath()
+            var gc = ctx; gc.addFilter(.blur(radius: 16))
+            gc.fill(cone, with: .color(Color(red:1,green:0.97,blue:0.82).opacity(0.06)))
+            // Light source bloom
+            var bloom = ctx; bloom.addFilter(.blur(radius: 8))
+            bloom.fill(Path(ellipseIn: CGRect(x: lx-5, y: -4, width: 10, height: 10)),
+                       with: .color(Color(red:1,green:0.97,blue:0.82).opacity(0.50)))
+        }
+    }
+
+    private func drawMat(_ ctx: inout GraphicsContext) {
+        // Mat shadow
+        var sc = ctx; sc.addFilter(.blur(radius: 8))
+        sc.fill(Path(CGRect(x: W*0.08+6, y: matY+6, width: W*0.84, height: H*0.22)),
+                with: .color(.black.opacity(0.40)))
+        // Mat surface
+        ctx.fill(Path(CGRect(x: W*0.08, y: matY, width: W*0.84, height: H*0.22)),
+                 with: .linearGradient(
+                    Gradient(colors: [Color(red:0.12,green:0.14,blue:0.48),
+                                      Color(red:0.10,green:0.11,blue:0.38)]),
+                    startPoint: CGPoint(x: W*0.08, y: matY),
+                    endPoint: CGPoint(x: W*0.08, y: matY + H*0.22)))
+        // Mat border lines
+        ctx.stroke(Path(CGRect(x: W*0.08, y: matY, width: W*0.84, height: H*0.22)),
+                   with: .color(Color(red:0.45,green:0.48,blue:0.88).opacity(0.7)), lineWidth: 2)
+        // Center cross
+        var cross = Path()
+        cross.move(to: CGPoint(x: W*0.5, y: matY)); cross.addLine(to: CGPoint(x: W*0.5, y: matY + H*0.22))
+        cross.move(to: CGPoint(x: W*0.08, y: matY + H*0.11)); cross.addLine(to: CGPoint(x: W*0.92, y: matY + H*0.11))
+        ctx.stroke(cross, with: .color(Color(red:0.45,green:0.48,blue:0.88).opacity(0.25)), lineWidth: 0.8)
+    }
+
+    private func drawJudges(_ ctx: inout GraphicsContext) {
+        let tableY = matY + H * 0.26
+        // Table
+        ctx.fill(Path(CGRect(x: W*0.18, y: tableY, width: W*0.64, height: 14)),
+                 with: .color(Color(red:0.18,green:0.16,blue:0.30)))
+        // 3 judges
+        for j in 0..<3 {
+            let jx = W * CGFloat(0.28 + Double(j) * 0.22)
+            let jy = tableY - 12
+            ctx.fill(Path(ellipseIn: CGRect(x: jx-5, y: jy-5, width: 10, height: 10)),
+                     with: .color(Color(red:0.65,green:0.55,blue:0.45)))
+            var body = Path()
+            body.move(to: CGPoint(x: jx, y: jy+4)); body.addLine(to: CGPoint(x: jx, y: jy+12))
+            ctx.stroke(body, with: .color(Color(red:0.22,green:0.20,blue:0.35)), lineWidth: 4)
+        }
+    }
+
+    private func drawGymnast(_ ctx: inout GraphicsContext) {
+        let period: Double
+        switch elementIndex {
+        case 0: period = 2.2  // Tumble
+        case 1: period = 2.0  // Vault
+        case 2: period = 1.8  // Leap
+        case 3: period = 1.0  // Turn
+        case 4: period = 1.5  // Jump
+        default: period = 2.0 // Dismount
+        }
+        let p = fmod(t, period) / period  // 0→1 animation phase
+
+        let leotard = Color(red:0.38,green:0.40,blue:0.95)
+        let skin    = Color(red:0.94,green:0.81,blue:0.68)
+
+        switch elementIndex {
+        case 0: drawTumble(&ctx, p: p, leotard: leotard, skin: skin)
+        case 1: drawVault(&ctx, p: p, leotard: leotard, skin: skin)
+        case 2: drawLeap(&ctx, p: p, leotard: leotard, skin: skin)
+        case 3: drawTurn(&ctx, p: p, leotard: leotard, skin: skin)
+        case 4: drawJump(&ctx, p: p, leotard: leotard, skin: skin)
+        default: drawDismount(&ctx, p: p, leotard: leotard, skin: skin)
+        }
+    }
+
+    // -- Element Animations --
+
+    private func drawTumble(_ ctx: inout GraphicsContext, p: Double,
+                             leotard: Color, skin: Color) {
+        // Run left→right → flip
+        let runX = gx - 70 + CGFloat(p) * 140
+        let jumpH = p > 0.4 && p < 0.85 ? CGFloat(sin((p - 0.4) / 0.45 * .pi)) * 55 : 0
+        let rot = p > 0.45 ? (p - 0.45) / 0.4 * 2 * .pi : 0
+        let cy = gy - jumpH
+        drawFigure(&ctx, cx: runX, cy: cy, rotation: rot, leotard: leotard, skin: skin,
+                   armSpread: p > 0.45 && p < 0.85 ? 0.0 : 1.0, legSpread: p > 0.45 && p < 0.85 ? 0.0 : 0.8)
+    }
+
+    private func drawVault(_ ctx: inout GraphicsContext, p: Double,
+                            leotard: Color, skin: Color) {
+        let vx = gx - 60 + CGFloat(p) * 120
+        let jumpH = p > 0.3 && p < 0.9 ? CGFloat(sin((p - 0.3) / 0.6 * .pi)) * 60 : 0
+        let rot = p > 0.4 && p < 0.8 ? CGFloat((p - 0.4) / 0.4 * .pi) : 0
+        drawFigure(&ctx, cx: vx, cy: gy - jumpH, rotation: Double(rot), leotard: leotard, skin: skin,
+                   armSpread: p < 0.3 || p > 0.85 ? 1.0 : 0.2, legSpread: p > 0.4 && p < 0.8 ? 0.1 : 0.8)
+    }
+
+    private func drawLeap(_ ctx: inout GraphicsContext, p: Double,
+                           leotard: Color, skin: Color) {
+        let jumpH = CGFloat(sin(p * .pi)) * 52
+        let legSprd = CGFloat(sin(p * .pi)) * 1.5
+        let lx = gx - 40 + CGFloat(p) * 80
+        drawFigure(&ctx, cx: lx, cy: gy - jumpH, rotation: 0, leotard: leotard, skin: skin,
+                   armSpread: 1.8, legSpread: legSprd)
+    }
+
+    private func drawTurn(_ ctx: inout GraphicsContext, p: Double,
+                           leotard: Color, skin: Color) {
+        // Spinning in place — arm one side, leg raised
+        let spinAngle = p * 2 * .pi
+        let armAngle = CGFloat(spinAngle)
+        let raiseY: CGFloat = -16
+        let shadow = ctx
+        _ = shadow
+        drawFigure(&ctx, cx: gx, cy: gy, rotation: 0, leotard: leotard, skin: skin,
+                   armSpread: 1.0 + CGFloat(cos(spinAngle)) * 0.5, legSpread: 0.4)
+        // Raised leg indicator
+        var leg = Path()
+        leg.move(to: CGPoint(x: gx, y: gy + 14))
+        leg.addLine(to: CGPoint(x: gx + CGFloat(cos(spinAngle + .pi/2)) * 20,
+                                 y: gy + raiseY + CGFloat(sin(spinAngle + .pi/2)) * 10))
+        ctx.stroke(leg, with: .color(leotard), lineWidth: 2.5)
+    }
+
+    private func drawJump(_ ctx: inout GraphicsContext, p: Double,
+                           leotard: Color, skin: Color) {
+        let jumpH = CGFloat(sin(p * .pi)) * 48
+        let tuck = p > 0.35 && p < 0.75 ? CGFloat(sin((p - 0.35) / 0.4 * .pi)) : 0
+        drawFigure(&ctx, cx: gx, cy: gy - jumpH, rotation: 0, leotard: leotard, skin: skin,
+                   armSpread: 1.4, legSpread: tuck * 0.4 + 0.3)
+    }
+
+    private func drawDismount(_ ctx: inout GraphicsContext, p: Double,
+                               leotard: Color, skin: Color) {
+        let lx = gx + (CGFloat(p) - 0.5) * 100
+        let jumpH = p > 0.15 && p < 0.85 ? CGFloat(sin((p - 0.15) / 0.7 * .pi)) * 58 : 0
+        let rot = p > 0.2 && p < 0.8 ? (p - 0.2) / 0.6 * 1.5 * .pi : 0
+        drawFigure(&ctx, cx: lx, cy: gy - jumpH, rotation: rot, leotard: leotard, skin: skin,
+                   armSpread: p < 0.3 || p > 0.75 ? 0.8 : 0.1, legSpread: 0.3)
+    }
+
+    private func drawFigure(_ ctx: inout GraphicsContext, cx: CGFloat, cy: CGFloat,
+                             rotation: Double, leotard: Color, skin: Color,
+                             armSpread: CGFloat, legSpread: CGFloat) {
+        ctx.translateBy(x: cx, y: cy)
+        ctx.rotate(by: .radians(rotation))
+
+        // Shadow on mat
+        var sc = ctx; sc.addFilter(.blur(radius: 5))
+        sc.fill(Path(ellipseIn: CGRect(x: -12, y: matY - cy - 2, width: 24, height: 6)),
+                with: .color(.black.opacity(max(0, 0.35 - (cy - gy) / 120))))
+
+        // Head
+        ctx.fill(Path(ellipseIn: CGRect(x: -5, y: -34, width: 10, height: 10)), with: .color(skin))
+
+        // Torso
+        var torso = Path(); torso.move(to: CGPoint(x: 0, y: -24)); torso.addLine(to: CGPoint(x: 0, y: -8))
+        ctx.stroke(torso, with: .color(leotard), lineWidth: 4)
+
+        // Arms
+        let aOff = armSpread * 14
+        var arms = Path()
+        arms.move(to: CGPoint(x: -aOff, y: -20)); arms.addLine(to: CGPoint(x: 0, y: -20))
+        arms.addLine(to: CGPoint(x: aOff, y: -20))
+        ctx.stroke(arms, with: .color(skin), lineWidth: 2.2)
+
+        // Legs
+        let lOff = legSpread * 12
+        var legs = Path()
+        legs.move(to: CGPoint(x: -lOff, y: 10)); legs.addLine(to: CGPoint(x: 0, y: -8))
+        legs.addLine(to: CGPoint(x: lOff, y: 10))
+        ctx.stroke(legs, with: .color(leotard), lineWidth: 2.8)
+
+        ctx.rotate(by: .radians(-rotation))
+        ctx.translateBy(x: -cx, y: -cy)
+    }
+
+    private func drawFlash(_ ctx: inout GraphicsContext) {
+        var gc = ctx; gc.addFilter(.blur(radius: 20))
+        gc.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
+                with: .color(gradeColor.opacity(0.25)))
+    }
+}
+
 // MARK: - GymnasticsGameView
 
 struct GymnasticsGameView: View {
@@ -287,59 +541,66 @@ struct GymnasticsGameView: View {
     // MARK: - Element Prompt Card
 
     private func elementPromptCard(element: GymnasticsElement) -> some View {
-        VStack(spacing: 20) {
-            // Timer ring
-            ZStack {
-                Circle()
-                    .stroke(Color.white.opacity(0.08), lineWidth: 5)
-                    .frame(width: 88, height: 88)
-                Circle()
-                    .trim(from: 0, to: CGFloat(timeLeft / 2.0))
-                    .stroke(
-                        timeLeft > 1.0 ? accentColor : .red,
-                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                    )
-                    .frame(width: 88, height: 88)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 0.1), value: timeLeft)
+        ZStack {
+            // Canvas arena background
+            GymnasticsArenaCanvas(
+                elementIndex: currentElementIndex,
+                gradeColor: gradeFlashColor,
+                showFlash: showGradeFlash
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 24))
 
-                Text(String(format: "%.1f", timeLeft))
-                    .font(.system(size: 22, weight: .black, design: .monospaced))
-                    .foregroundStyle(timeLeft > 1.0 ? .white : .red)
-                    .contentTransition(.numericText())
-            }
-
-            // Name + arrow
-            VStack(spacing: 10) {
-                Text(element.prompt)
-                    .font(.system(size: 34, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(4)
-                    .shadow(color: accentColor.opacity(0.4), radius: 14)
-
-                Image(systemName: element.direction.systemImage)
-                    .font(.system(size: 54, weight: .black))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [accentColor, Theme.brandCyan],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(color: accentColor.opacity(0.5), radius: 20)
-                    .symbolEffect(.pulse, options: .speed(1.5))
-            }
-
-            Text("SWIPE \(element.direction.rawValue) NOW")
-                .font(.system(size: 11, weight: .black, design: .monospaced))
-                .foregroundStyle(accentColor.opacity(0.7))
-                .tracking(3)
-        }
-        .padding(30)
-        .background(
+            // Dark overlay for legibility
             RoundedRectangle(cornerRadius: 24)
-                .fill(Theme.cardBackground)
-                .overlay(RoundedRectangle(cornerRadius: 24).stroke(accentColor.opacity(0.2), lineWidth: 1))
-        )
+                .fill(Color.black.opacity(0.38))
+
+            // UI content
+            VStack(spacing: 16) {
+                // Timer ring
+                ZStack {
+                    Circle()
+                        .stroke(Color.white.opacity(0.12), lineWidth: 5)
+                        .frame(width: 78, height: 78)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(timeLeft / 2.0))
+                        .stroke(timeLeft > 1.0 ? accentColor : .red,
+                                style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .frame(width: 78, height: 78)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 0.1), value: timeLeft)
+                    Text(String(format: "%.1f", timeLeft))
+                        .font(.system(size: 20, weight: .black, design: .monospaced))
+                        .foregroundStyle(timeLeft > 1.0 ? .white : .red)
+                        .contentTransition(.numericText())
+                }
+
+                // Name + arrow
+                VStack(spacing: 8) {
+                    Text(element.prompt)
+                        .font(.system(size: 30, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .tracking(4)
+                        .shadow(color: accentColor.opacity(0.5), radius: 14)
+
+                    Image(systemName: element.direction.systemImage)
+                        .font(.system(size: 48, weight: .black))
+                        .foregroundStyle(
+                            LinearGradient(colors: [accentColor, Theme.brandCyan],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .shadow(color: accentColor.opacity(0.5), radius: 20)
+                        .symbolEffect(.pulse, options: .speed(1.5))
+                }
+
+                Text("SWIPE \(element.direction.rawValue) NOW")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(accentColor.opacity(0.8))
+                    .tracking(3)
+            }
+            .padding(.vertical, 24)
+            .padding(.horizontal, 30)
+        }
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(accentColor.opacity(0.25), lineWidth: 1))
         .padding(.horizontal, 24)
     }
 
