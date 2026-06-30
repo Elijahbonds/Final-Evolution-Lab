@@ -46,9 +46,9 @@ struct GameModeRouter: View {
         case .brainBrawl:
             BrainBrawlView(viewModel: viewModel)
         case .whoSceneIt:
-            WhoSceneItView(viewModel: viewModel)
+            WhoSceneItView(viewModel: viewModel, gameMode: gameMode)
         case .courtCarnival:
-            CourtCarnivalView(viewModel: viewModel)
+            CourtCarnivalView(viewModel: viewModel, gameMode: gameMode)
         case .marketBrowse:
             // Not a game session — no PRQ delta, no session receipt, no shards per round.
             MarketBrowseView(viewModel: viewModel)

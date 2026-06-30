@@ -8,7 +8,7 @@ struct FinalEvolutionLabApp: App {
             TrainingLabSocialBridge.shared.configureConnectorIfNeeded()
             NexusBridge.shared.startFirebaseIdentityObservation()
         }
-        _ = RorkScoreManager.shared
+        _ = FELScoreManager.shared
         EmergentRealtimeClient.shared.startIfConfigured()
     }
 

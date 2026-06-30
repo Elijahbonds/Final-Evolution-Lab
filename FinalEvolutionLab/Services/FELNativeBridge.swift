@@ -1,21 +1,21 @@
 import Foundation
 
 // MARK: - Unity → Native Bridge (Pure Swift)
-// When the Unity iOS build is embedded, the ObjC bridge (RorkNativeBridge.mm)
-// posts NSNotification "RorkScoreUpdated" with userInfo["score"] = Int.
+// When the Unity iOS build is embedded, the ObjC bridge (FELNativeBridge.mm)
+// posts NSNotification "FELScoreUpdated" with userInfo["score"] = Int.
 // This Swift file provides equivalent functionality for standalone testing
 // and serves as the native-side API for the Unity bridge.
 //
 // Unity data flow:
-//   Unity C# → RorkBridge.SendScoreToNative(prqScore)
-//   → _PostRorkScore(score) in RorkNativeBridge.mm
-//   → NSNotification "RorkScoreUpdated"
-//   → RorkScoreManager.shared observes and updates UI
+//   Unity C# → FELBridge.SendScoreToNative(prqScore)
+//   → _PostFELScore(score) in FELNativeBridge.mm
+//   → NSNotification "FELScoreUpdated"
+//   → FELScoreManager.shared observes and updates UI
 
-nonisolated enum RorkNativeBridge: Sendable {
+nonisolated enum FELNativeBridge: Sendable {
     static func postScore(_ score: Int) {
         NotificationCenter.default.post(
-            name: NSNotification.Name("RorkScoreUpdated"),
+            name: NSNotification.Name("FELScoreUpdated"),
             object: nil,
             userInfo: ["score": score]
         )
@@ -23,7 +23,7 @@ nonisolated enum RorkNativeBridge: Sendable {
 
     static func postMetrics(_ metrics: [String: Any]) {
         NotificationCenter.default.post(
-            name: NSNotification.Name("RorkMetricsUpdated"),
+            name: NSNotification.Name("FELMetricsUpdated"),
             object: nil,
             userInfo: metrics
         )

@@ -419,7 +419,7 @@ struct CritiqueSubmitView: View {
 
     private func submitCritique() {
         let critiqueId = UUID().uuidString
-        viewModel.coachEconomy.completeCritique(shards: 150, critiqueId: critiqueId)
+        viewModel.coachEconomy.completeCritique(shards: LabViewModel.critiqueCoachEarningShards, critiqueId: critiqueId)
         SaveSystem.saveCoachEconomy(viewModel.coachEconomy)
 
         withAnimation(.spring(response: 0.4)) {

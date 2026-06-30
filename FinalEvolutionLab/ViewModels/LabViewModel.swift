@@ -36,6 +36,16 @@ class LabViewModel {
 
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
 
+        coachEconomy.autoReleaseStaleEscrow()
+        SaveSystem.saveCoachEconomy(coachEconomy)
+
+        // Pull latest profile from Firestore on launch; local UserDefaults is the fallback.
+        ProfileSyncService.shared.pullProfile { [weak self] remoteProfile in
+            guard let self else { return }
+            self.profile = remoteProfile
+            SaveSystem.saveProfile(remoteProfile)
+        }
+
         if healthKit.isAuthorized {
             Task {
                 await healthKit.fetchLatestData()
@@ -97,6 +107,13 @@ class LabViewModel {
 
         SaveSystem.saveProfile(profile)
         SaveSystem.saveSessions(sessions)
+        ProfileSyncService.shared.pushProfile(profile)
+        ProfileSyncService.shared.appendShardDelta(
+            userId: profile.id,
+            delta: rewards.reduce(0) { $0 + $1.amount },
+            source: "workout_complete",
+            balanceAfter: profile.evolutionShards
+        )
 
         isWorkoutActive = false
         workoutTimer = 0
@@ -251,6 +268,8 @@ class LabViewModel {
     }
 
     static let critiqueCostShards = 500
+    /// Platform takes 20 %; coach earns the remaining 80 %.
+    static let critiqueCoachEarningShards = 400
 
     func requestCritique(exerciseName: String, notes: String) -> Bool {
         let cost = Self.critiqueCostShards
@@ -268,12 +287,10 @@ class LabViewModel {
             coachResponse: nil
         )
         critiqueRequests.append(request)
-
-        coachEconomy.completeCritique(shards: cost, critiqueId: request.id)
+        // Coach escrow is created when the coach submits their response, not here.
 
         SaveSystem.saveProfile(profile)
         SaveSystem.saveCritiqueRequests(critiqueRequests)
-        SaveSystem.saveCoachEconomy(coachEconomy)
         return true
     }
 
@@ -285,6 +302,7 @@ class LabViewModel {
 
         SaveSystem.saveCritiqueRequests(critiqueRequests)
         SaveSystem.saveCoachEconomy(coachEconomy)
+        ProfileSyncService.shared.pushCoachEconomy(coachEconomy)
     }
 
     func simulateCoachResponse(requestId: String) {

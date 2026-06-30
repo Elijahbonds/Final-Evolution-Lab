@@ -93,6 +93,24 @@ private let paths: [EduPath] = [
         certTitle: "Certificate in Applied Kinesiology",
         certHours: 3
     ),
+
+    EduPath(
+        id: "brain_brawl",
+        title: "Brain Brawl Arena",
+        subtitle: "Cognitive Combat · Reaction & Strategy",
+        description: "Train your mind with sports knowledge, logic puzzles, and rapid-fire decision challenges. Win Brain Brawl matches to advance through cognitive levels and earn education shards.",
+        icon: "brain.head.profile.fill",
+        color: Color(red: 0.8, green: 0.2, blue: 0.9),
+        modules: [
+            EduModule(id: "bb_react",   title: "Reaction Speed Training",       lessons: 6,  emoji: "⚡️", completed: 0),
+            EduModule(id: "bb_pattern", title: "Pattern Recognition",            lessons: 8,  emoji: "🔷", completed: 0),
+            EduModule(id: "bb_sports",  title: "Sports Rules & IQ",              lessons: 10, emoji: "🏆", completed: 0, locked: false),
+            EduModule(id: "bb_logic",   title: "Logic & Decision Under Pressure",lessons: 8,  emoji: "🧩", completed: 0, locked: true),
+            EduModule(id: "bb_mental",  title: "Mental Performance Foundations", lessons: 8,  emoji: "🧠", completed: 0, locked: true),
+        ],
+        certTitle: nil,
+        certHours: nil
+    ),
 ]
 
 // MARK: - Progress Storage (UserDefaults-backed)

@@ -1152,7 +1152,7 @@ def get_card_multimedia_assets(card_id):
     }
     return registry.get(card_id, {"ip_category": "unknown", "ip_gate": {}, "animations_3d": [], "masterclass_modules": [], "power_ups": [], "board_piece_config": {}})
 
-# ===================== GAME MODES: WHO SCENE IT & MARIO PARTY =====================
+# ===================== GAME MODES: WHO SCENE IT & COURT CARNIVAL =====================
 
 @api_router.get("/games/who-scene-it")
 async def get_who_scene_it_config():
@@ -1197,7 +1197,7 @@ async def get_who_scene_it_questions(round_num: int = 1):
 
 @api_router.get("/games/court-carnival")
 async def get_court_carnival_config():
-    """Court Carnival — board-style arcade mode (formerly mario_party_fever)"""
+    """Court Carnival — board-style arcade mode """
     return {
         "mode_id": "court_carnival",
         "display_name": "Court Carnival",

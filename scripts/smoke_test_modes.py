@@ -214,11 +214,11 @@ def test_server_seeded_modes():
         else:
             fail(f"{mode} missing from server.py seeded modes")
 
-    # Verify no mario_party_fever references in active code
-    if 'mario_party_fever' in content.replace("formerly mario_party_fever", ""):
-        fail("mario_party_fever still referenced in server.py (non-comment)")
+    # Verify all mario_party references have been scrubbed
+    if 'mario_party' in content:
+        fail("mario_party still referenced in server.py — scrub incomplete")
     else:
-        ok("No mario_party_fever references in active code")
+        ok("No mario_party references in server.py")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 8: Economy Integration

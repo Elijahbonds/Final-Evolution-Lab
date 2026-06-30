@@ -78,7 +78,7 @@ struct GamePlayView: View {
     @State private var showContestPill: Bool = false
     @State private var defenderSimDistance: Double = 4.0
 
-    @State private var goldenComboEngine = GoldenEraComboEngine()
+    @State private var goldenComboEngine = SignatureComboEngine()
     @State private var timeScaleManager = TimeScaleManager()
     @State private var matrixState = MatrixStateMachine()
     @State private var activeModifierState: ModifierState = .none
@@ -833,13 +833,13 @@ struct GamePlayView: View {
     private var controlPanel: some View {
         VStack(spacing: 8) {
             if inputScheme == .charge {
-                PS2GamepadOverlay(
-                    onFaceButton: handlePS2FaceButton,
-                    onDPad: handlePS2DPad,
-                    onLeftStick: handlePS2LeftStick,
-                    onRightStick: handlePS2RightStick,
-                    onLeftShoulder: handlePS2LeftShoulder,
-                    onRightShoulder: handlePS2RightShoulder,
+                ArenaPadOverlay(
+                    onFaceButton: handleArenaPadFaceButton,
+                    onDPad: handleArenaPadDPad,
+                    onLeftStick: handleArenaPadLeftStick,
+                    onRightStick: handleArenaPadRightStick,
+                    onLeftShoulder: handleArenaPadLeftShoulder,
+                    onRightShoulder: handleArenaPadRightShoulder,
                     accentColor: gameMode.accentColor,
                     isActive: isActive
                 )
@@ -2015,11 +2015,11 @@ struct GamePlayView: View {
         }
     }
 
-    // MARK: - PS2-Style Action Buttons
+    // MARK: - Arena-Style Action Buttons
 
     private var ps2ActionButtons: some View {
         let actions = actionsForMode
-        let ps2Layout = ps2ButtonLayout(for: actions)
+        let ps2Layout = arenaPadButtonLayout(for: actions)
 
         return HStack(spacing: 12) {
             ForEach(Array(ps2Layout.enumerated()), id: \.offset) { index, btn in
@@ -2053,14 +2053,14 @@ struct GamePlayView: View {
         }
     }
 
-    private struct PS2Button {
+    private struct ArenaPadButton {
         let symbol: String
         let color: Color
         let label: String
         let action: String
     }
 
-    private func ps2ButtonLayout(for actions: [String]) -> [PS2Button] {
+    private func arenaPadButtonLayout(for actions: [String]) -> [ArenaPadButton] {
         let ps2Colors: [(String, Color, String)] = [
             ("△", Color(red: 0.3, green: 0.78, blue: 0.47), "Triangle"),
             ("□", Color(red: 0.96, green: 0.44, blue: 0.71), "Square"),
@@ -2070,7 +2070,7 @@ struct GamePlayView: View {
 
         return actions.enumerated().map { index, action in
             let ps2 = ps2Colors[index % ps2Colors.count]
-            return PS2Button(symbol: ps2.0, color: ps2.1, label: ps2.2, action: action)
+            return ArenaPadButton(symbol: pad.0, color: ps2.1, label: ps2.2, action: action)
         }
     }
 
@@ -2260,7 +2260,7 @@ struct GamePlayView: View {
         showContestPill = false
         defenderSimDistance = 4.0
 
-        goldenComboEngine = GoldenEraComboEngine()
+        goldenComboEngine = SignatureComboEngine()
         timeScaleManager = TimeScaleManager()
         matrixState = MatrixStateMachine()
         activeModifierState = .none
@@ -3483,9 +3483,9 @@ struct GamePlayView: View {
         generator.notificationOccurred(.error)
     }
 
-    // MARK: - PS2 Controller Handlers
+    // MARK: - Arena Pad Handlers
 
-    private func handlePS2FaceButton(_ button: PS2FaceButton) {
+    private func handleArenaPadFaceButton(_ button: ArenaPadFaceButton) {
         guard isActive else { return }
         if isDunkContest {
             switch dunkEngine.phase {
@@ -3527,7 +3527,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2DPad(_ direction: PS2DPadDirection) {
+    private func handleArenaPadDPad(_ direction: ArenaPadDPadDirection) {
         guard isActive else { return }
         let comboDir: ComboDirection
         switch direction {
@@ -3545,7 +3545,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2LeftStick(_ vector: CGPoint) {
+    private func handleArenaPadLeftStick(_ vector: CGPoint) {
         guard isActive else { return }
         leftStickVector = vector
         updateDirectionFromStick(vector)
@@ -3558,7 +3558,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2RightStick(_ vector: CGPoint) {
+    private func handleArenaPadRightStick(_ vector: CGPoint) {
         guard isActive else { return }
         rightStickVector = vector
         updateDirectionFromStick(vector)
@@ -3577,7 +3577,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2LeftShoulder() {
+    private func handleArenaPadLeftShoulder() {
         guard isActive else { return }
         if isDunkContest {
             styleTriggerHeld.toggle()
@@ -3590,7 +3590,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2RightShoulder() {
+    private func handleArenaPadRightShoulder() {
         guard isActive else { return }
         if isDunkContest {
             powerTriggerHeld.toggle()

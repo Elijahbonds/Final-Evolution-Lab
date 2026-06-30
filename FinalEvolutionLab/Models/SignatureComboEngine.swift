@@ -134,7 +134,7 @@ nonisolated enum QTEGrade: String, Sendable {
     }
 }
 
-nonisolated struct GoldenEraComboEngine: Sendable {
+nonisolated struct SignatureComboEngine: Sendable {
     static let maxChainLength: Int = 6
     static let chainWindowSeconds: Double = 0.5
     static let styleLandingWindowSeconds: Double = 0.35
@@ -183,7 +183,7 @@ nonisolated struct GoldenEraComboEngine: Sendable {
         chain.map { $0.displayName }.joined(separator: " > ")
     }
 
-    func addTrick(_ trick: DirectionalTrick, at time: Double) -> GoldenEraComboEngine {
+    func addTrick(_ trick: DirectionalTrick, at time: Double) -> SignatureComboEngine {
         let isNewChain = chain.isEmpty || (time - lastInputTime) > Self.chainWindowSeconds
         var newChain = isNewChain ? [trick] : chain + [trick]
         if newChain.count > Self.maxChainLength {
@@ -197,7 +197,7 @@ nonisolated struct GoldenEraComboEngine: Sendable {
         let rawPoints = Int(Double(trick.basePoints) * newMultiplier * trick.riskFactor)
         let newTotal = isNewChain ? rawPoints : totalStylePoints + rawPoints
 
-        return GoldenEraComboEngine(
+        return SignatureComboEngine(
             chain: newChain,
             chainStartTime: isNewChain ? time : chainStartTime,
             lastInputTime: time,
@@ -208,9 +208,9 @@ nonisolated struct GoldenEraComboEngine: Sendable {
         )
     }
 
-    func startApexQTE(at time: Double) -> GoldenEraComboEngine {
+    func startApexQTE(at time: Double) -> SignatureComboEngine {
         let window = QTEApexWindow(startTime: time)
-        return GoldenEraComboEngine(
+        return SignatureComboEngine(
             chain: chain,
             chainStartTime: chainStartTime,
             lastInputTime: lastInputTime,
@@ -221,11 +221,11 @@ nonisolated struct GoldenEraComboEngine: Sendable {
         )
     }
 
-    func resolveApexQTE(inputTime: Double) -> GoldenEraComboEngine {
+    func resolveApexQTE(inputTime: Double) -> SignatureComboEngine {
         guard let window = apexWindow else { return self }
         let grade = window.grade(inputTime: inputTime)
         let bonusPoints = Int(Double(totalStylePoints) * (grade.multiplier - 1.0))
-        return GoldenEraComboEngine(
+        return SignatureComboEngine(
             chain: chain,
             chainStartTime: chainStartTime,
             lastInputTime: inputTime,
@@ -236,9 +236,9 @@ nonisolated struct GoldenEraComboEngine: Sendable {
         )
     }
 
-    func styleLanding(at time: Double) -> (engine: GoldenEraComboEngine, bonus: Int) {
+    func styleLanding(at time: Double) -> (engine: SignatureComboEngine, bonus: Int) {
         let landingBonus = Int(Double(totalStylePoints) * 0.3)
-        let boosted = GoldenEraComboEngine(
+        let boosted = SignatureComboEngine(
             chain: chain,
             chainStartTime: chainStartTime,
             lastInputTime: time,
@@ -250,8 +250,8 @@ nonisolated struct GoldenEraComboEngine: Sendable {
         return (boosted, landingBonus)
     }
 
-    func reset() -> GoldenEraComboEngine {
-        GoldenEraComboEngine()
+    func reset() -> SignatureComboEngine {
+        SignatureComboEngine()
     }
 
     func finalScore(prqNormalized: Double, neuralBurst: Bool) -> Int {
@@ -262,7 +262,7 @@ nonisolated struct GoldenEraComboEngine: Sendable {
 }
 
 // MARK: - ComboChain
-// Tracks consecutive-trick score multiplier system (separate from GoldenEraComboEngine).
+// Tracks consecutive-trick score multiplier system (separate from SignatureComboEngine).
 // A chain stays alive when tricks are performed within 3 seconds of each other;
 // breaking that window resets the chain to length 1 at the new trick.
 
