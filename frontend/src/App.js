@@ -1215,16 +1215,27 @@ const Dashboard = () => {
   const location = useLocation();
   const { user, setUser } = useAuth();
   useEffect(() => { if (location.state?.user && !user) setUser(location.state.user); }, [location.state, user, setUser]);
-  useEffect(() => {
+  const resetDashboardScroll = useCallback(() => {
     document.querySelector('.main-content')?.scrollTo({ top: 0 });
     window.scrollTo({ top: 0 });
-  }, [activeTab]);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+  const selectTab = useCallback((tab) => {
+    resetDashboardScroll();
+    setActiveTab(tab);
+    requestAnimationFrame(resetDashboardScroll);
+    setTimeout(resetDashboardScroll, 0);
+  }, [resetDashboardScroll]);
+  useEffect(() => {
+    resetDashboardScroll();
+  }, [activeTab, resetDashboardScroll]);
 
   const renderContent = () => {
     switch(activeTab) {
-      case 'fel-os': return <FELOSDashboard setActiveTab={setActiveTab} />;
+      case 'fel-os': return <FELOSDashboard setActiveTab={selectTab} />;
       case 'nexus': return <NexusView />;
-      case 'dashboard': return <DashboardView setActiveTab={setActiveTab} />;
+      case 'dashboard': return <DashboardView setActiveTab={selectTab} />;
       case 'scan': return <SystemScanView />;
       case 'games': return <GameModesView />;
       case 'cards': return <CreatorCardsView />;
@@ -1250,7 +1261,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen" style={{background:'var(--bg-default)'}}>
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={selectTab} />
       <main className="main-content">{renderContent()}</main>
     </div>
   );
