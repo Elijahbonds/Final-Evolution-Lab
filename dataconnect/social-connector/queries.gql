@@ -106,3 +106,63 @@ query ListCommentsForPost($postId: UUID!) @auth(level: USER) {
     }
   }
 }
+
+query ListShardLedgerForUser($limit: Int) @auth(level: USER) {
+  shardLedgers(
+    where: { user: { firebaseUid: { eq_expr: "auth.uid" } } }
+    orderBy: [{ createdAt: DESC }]
+    limit: $limit
+  ) {
+    id
+    deltaShards
+    balanceAfter
+    source
+    sessionReceiptId
+    gameModeId
+    note
+    createdAt
+  }
+}
+
+query GetUserByFirebaseUidWithShards($firebaseUid: String!) @auth(level: USER) {
+  users(where: { firebaseUid: { eq: $firebaseUid } }, limit: 1) {
+    id
+    username
+    email
+    profilePictureUrl
+    avatarUrl
+    topPRQScore
+    firebaseUid
+    shardLedgers_on_user(orderBy: [{ createdAt: DESC }], limit: 1) {
+      balanceAfter
+    }
+  }
+}
+
+query GetMyArenaSessions($limit: Int) @auth(level: USER) {
+  arenaSessions(
+    where: {
+      or: [
+        { player1: { firebaseUid: { eq_expr: "auth.uid" } } }
+        { player2: { firebaseUid: { eq_expr: "auth.uid" } } }
+      ]
+    }
+    orderBy: [{ startedAt: DESC }]
+    limit: $limit
+  ) {
+    id
+    entryTier
+    entryShardsEach
+    status
+    player1MaxHeightInches
+    player2MaxHeightInches
+    player1JumpCount
+    player2JumpCount
+    winnerId
+    shardsAwarded
+    startedAt
+    endedAt
+    player1 { id username avatarUrl topPRQScore }
+    player2 { id username avatarUrl topPRQScore }
+  }
+}

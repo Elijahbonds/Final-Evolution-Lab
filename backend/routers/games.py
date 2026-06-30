@@ -1288,3 +1288,147 @@ async def calculate_prq_live(user_id: str) -> float:
     final_prq = max(0, min(100, weighted_score + streak_bonus - decay))
     await db.users.update_one({"user_id": user_id}, {"$set": {"prq_score": round(final_prq, 1)}})
     return round(final_prq, 1)
+
+
+# ── Physics: ball trajectory prediction ─────────────────────────
+
+import math
+
+GRAVITY_MS2 = 9.8
+RIM_HEIGHT_M = 3.048      # 10 ft
+RIM_RADIUS_M = 0.2286     # 9 in
+BALL_RADIUS_M = 0.119
+
+class TrajectoryRequest(BaseModel):
+    launch_angle_deg: float    # degrees above horizontal
+    launch_speed_ms: float     # m/s
+    launch_height_m: float     # release point above floor
+    gravity_multiplier: float = 1.0  # 1.0 = Earth; <1 = assisted (training aid)
+
+class TrajectoryPoint(BaseModel):
+    t: float; x: float; y: float
+
+class TrajectoryResponse(BaseModel):
+    points: List[TrajectoryPoint]
+    peak_height_m: float
+    range_m: float
+    hits_rim: bool
+    swish: bool
+    flight_time_s: float
+
+@router.post("/physics/trajectory", response_model=TrajectoryResponse)
+async def compute_trajectory(req: TrajectoryRequest):
+    """Deterministic ball arc for dunk contest UI and replay validation."""
+    if not (0 < req.launch_angle_deg < 90):
+        raise HTTPException(400, "launch_angle_deg must be between 0 and 90")
+    if not (0 < req.launch_speed_ms <= 30):
+        raise HTTPException(400, "launch_speed_ms must be between 0 and 30")
+
+    g = GRAVITY_MS2 * max(0.1, req.gravity_multiplier)
+    angle_rad = math.radians(req.launch_angle_deg)
+    vx = req.launch_speed_ms * math.cos(angle_rad)
+    vy = req.launch_speed_ms * math.sin(angle_rad)
+    y0 = req.launch_height_m
+
+    dt = 0.02  # 50 Hz sample rate
+    points: List[TrajectoryPoint] = []
+    t = 0.0
+    peak_y = y0
+    land_x = 0.0
+    land_t = 0.0
+
+    while t <= 5.0:
+        x = vx * t
+        y = y0 + vy * t - 0.5 * g * t * t
+        points.append(TrajectoryPoint(t=round(t, 3), x=round(x, 3), y=round(y, 3)))
+        if y > peak_y:
+            peak_y = y
+        if y < 0 and t > 0:
+            land_x = x
+            land_t = t
+            break
+        t += dt
+
+    # Rim check: does the arc pass within one ball-radius of the rim centre?
+    rim_x_candidates = [
+        p.x for p in points
+        if abs(p.y - RIM_HEIGHT_M) < BALL_RADIUS_M * 1.5
+    ]
+    hits_rim = bool(rim_x_candidates)
+    swish = hits_rim and all(abs(rx - rim_x_candidates[0]) < RIM_RADIUS_M for rx in rim_x_candidates)
+
+    return TrajectoryResponse(
+        points=points,
+        peak_height_m=round(peak_y, 3),
+        range_m=round(land_x, 3),
+        hits_rim=hits_rim,
+        swish=swish,
+        flight_time_s=round(land_t, 3)
+    )
+
+
+# ── Arena: IRL Dunk Contest lobby helpers ───────────────────────
+
+class LobbyJoinRequest(BaseModel):
+    display_name: str
+    prq: float
+    entry_tier: str   # "practice" | "shards_100" | "shards_500"
+    avatar_url: Optional[str] = None
+
+class LobbyPlayer(BaseModel):
+    user_id: str
+    display_name: str
+    prq: float
+    entry_tier: str
+    avatar_url: Optional[str]
+    joined_at: str
+
+@router.post("/arena/dunk/lobby/join")
+async def join_dunk_lobby(req: LobbyJoinRequest, user: User = Depends(get_current_user)):
+    """Place player in the dunk contest matchmaking queue."""
+    valid_tiers = {"practice", "shards_100", "shards_500", "shards_1000"}
+    if req.entry_tier not in valid_tiers:
+        raise HTTPException(400, f"entry_tier must be one of {valid_tiers}")
+
+    slot = {
+        "user_id": user.user_id,
+        "display_name": req.display_name,
+        "prq": req.prq,
+        "entry_tier": req.entry_tier,
+        "avatar_url": req.avatar_url,
+        "joined_at": datetime.now(timezone.utc).isoformat(),
+        "status": "waiting"
+    }
+    await db.dunk_lobby.replace_one({"user_id": user.user_id}, slot, upsert=True)
+
+    # Attempt instant match within same tier (FIFO, excluding self)
+    opponent = await db.dunk_lobby.find_one(
+        {"entry_tier": req.entry_tier, "user_id": {"$ne": user.user_id}, "status": "waiting"},
+        {"_id": 0},
+        sort=[("joined_at", 1)]
+    )
+    if opponent:
+        session_id = f"dunk_{uuid.uuid4().hex[:10]}"
+        await db.dunk_lobby.update_many(
+            {"user_id": {"$in": [user.user_id, opponent["user_id"]]}},
+            {"$set": {"status": "matched", "session_id": session_id}}
+        )
+        return {"matched": True, "session_id": session_id, "opponent": {k: v for k, v in opponent.items() if k != "_id"}}
+
+    return {"matched": False, "queue_position": await db.dunk_lobby.count_documents({"entry_tier": req.entry_tier, "status": "waiting"})}
+
+
+@router.delete("/arena/dunk/lobby/leave")
+async def leave_dunk_lobby(user: User = Depends(get_current_user)):
+    await db.dunk_lobby.delete_one({"user_id": user.user_id, "status": "waiting"})
+    return {"ok": True}
+
+
+@router.get("/arena/dunk/lobby/{tier}")
+async def get_dunk_lobby(tier: str):
+    """Public lobby list for a given entry tier (no auth required — display names only)."""
+    players = await db.dunk_lobby.find(
+        {"entry_tier": tier, "status": "waiting"},
+        {"_id": 0, "user_id": 0}
+    ).sort("joined_at", 1).limit(20).to_list(20)
+    return {"tier": tier, "players": players, "count": len(players)}

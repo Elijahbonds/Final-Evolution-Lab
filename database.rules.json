@@ -1,0 +1,48 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "arena": {
+      "sessions": {
+        "$sessionId": {
+          ".read": "auth != null && (data.child('player1Id').val() === auth.uid || data.child('player2Id').val() === auth.uid)",
+          ".write": "auth != null && (data.child('player1Id').val() === auth.uid || data.child('player2Id').val() === auth.uid || !data.exists())",
+          "player1": {
+            "jumps": {
+              "$jumpId": {
+                ".validate": "newData.hasChildren(['heightInches', 'timestamp']) && newData.child('heightInches').isNumber() && newData.child('heightInches').val() >= 0 && newData.child('heightInches').val() <= 72"
+              }
+            }
+          },
+          "player2": {
+            "jumps": {
+              "$jumpId": {
+                ".validate": "newData.hasChildren(['heightInches', 'timestamp']) && newData.child('heightInches').isNumber() && newData.child('heightInches').val() >= 0 && newData.child('heightInches').val() <= 72"
+              }
+            }
+          },
+          "status": {
+            ".validate": "newData.isString() && (newData.val() === 'lobby' || newData.val() === 'matched' || newData.val() === 'setup' || newData.val() === 'countdown' || newData.val() === 'battle' || newData.val() === 'result')"
+          }
+        }
+      },
+      "lobby": {
+        "$modeId": {
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null && $userId === auth.uid",
+            ".validate": "newData.hasChildren(['displayName', 'prq', 'entryFee', 'joinedAt'])"
+          }
+        }
+      }
+    },
+
+    "presence": {
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "auth != null && $userId === auth.uid"
+      }
+    }
+  }
+}

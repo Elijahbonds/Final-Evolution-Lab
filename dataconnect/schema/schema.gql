@@ -45,3 +45,40 @@ type PostLike @table(key: ["post", "user"]) {
   user: User!
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# Evolution Shard ledger — append-only credit/debit rows.
+# Credits require server-side admin grant (verified session receipt).
+# Debits written by client after server validation of spend event.
+type ShardLedger @table {
+  id: UUID! @default(expr: "uuidV4()")
+  user: User!
+  deltaShards: Int!
+  balanceAfter: Int!
+  # "game_win" | "critique_earned" | "critique_spent" | "dunk_prize" | "coach_claim" | "admin_grant"
+  source: String! @col(dataType: "varchar(32)")
+  sessionReceiptId: String @col(dataType: "varchar(128)")
+  gameModeId: String @col(dataType: "varchar(64)")
+  note: String @col(dataType: "text")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# IRL Dunk Competition session — tracks each proctored 1v1 match.
+type ArenaSession @table {
+  id: UUID! @default(expr: "uuidV4()")
+  player1: User!
+  player2: User!
+  # "practice" | "shards_100" | "shards_500" | "cash_5" | "cash_20"
+  entryTier: String! @col(dataType: "varchar(32)")
+  entryShardsEach: Int!
+  # "battle" | "result" | "cancelled"
+  status: String! @col(dataType: "varchar(16)")
+  player1MaxHeightInches: Float
+  player2MaxHeightInches: Float
+  player1JumpCount: Int
+  player2JumpCount: Int
+  # null until result is confirmed
+  winnerId: UUID
+  shardsAwarded: Int
+  startedAt: Timestamp! @default(expr: "request.time")
+  endedAt: Timestamp
+}
