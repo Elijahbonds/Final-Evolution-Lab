@@ -1071,7 +1071,7 @@ const PixelStreamingView = () => {
       </div>
 
       {!status?.available && (
-        <div className="surface-card p-6" data-testid="streaming-connect">
+        <div className="surface-card p-6 pb-8" data-testid="streaming-connect">
           <div className="flex items-center gap-3 mb-4">
             <WifiOff className="w-6 h-6 text-yellow-400" />
             <div>
@@ -1084,7 +1084,7 @@ const PixelStreamingView = () => {
             <div className="bg-black/40 border border-white/5 p-4"><div className="metric-label">Launchable UE5</div><div className="text-cyan-400 font-mono">{status?.launchable_modes ?? supportedModes.length}</div></div>
             <div className="bg-black/40 border border-white/5 p-4"><div className="metric-label">Registry Total</div><div className="text-cyan-400 font-mono">{status?.total_registry_modes ?? '...'}</div></div>
           </div>
-          <p className="text-xs text-zinc-600 mt-4">Cloud iframe streaming is disabled in this sovereign build. Launch buttons deep-link to the native UE5 binary and use the WebSocket bridge for MapLoaded handshakes.</p>
+          <p className="text-xs text-zinc-600 mt-4 leading-relaxed">Cloud iframe streaming is disabled in this sovereign build. Launch buttons deep-link to the native UE5 binary and use the WebSocket bridge for MapLoaded handshakes.</p>
         </div>
       )}
 
@@ -1118,7 +1118,7 @@ const PixelStreamingView = () => {
           {supportedModes.map(m => (
             <button key={m} data-testid={`stream-${m}`} onClick={() => launchMode(m)}
               className={`surface-card p-4 text-center card-hover cursor-pointer ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''}`}>
-              <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{m.replace(/_/g,' ')}</div>
+              <div className="text-xs sm:text-sm font-bold text-cyan-400 uppercase mb-1 leading-tight break-words">{m.replace(/_/g,' ')}</div>
               <div className="text-xs text-zinc-600 font-mono">{status?.mode_maps?.[m] || m}</div>
             </button>
           ))}
