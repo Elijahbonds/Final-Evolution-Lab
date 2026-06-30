@@ -1118,9 +1118,10 @@ const PixelStreamingView = () => {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="stream-modes">
           {(status?.supported_modes || []).map(m => (
             <button key={m} data-testid={`stream-${m}`} onClick={() => status?.available && launchMode(m)}
-              className={`surface-card p-4 text-center card-hover ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''} ${status?.available ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}>
+              disabled={!status?.available}
+              className={`surface-card p-4 text-center card-hover ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''} ${status?.available ? 'cursor-pointer' : 'cursor-not-allowed border-zinc-800 bg-zinc-900/70'}`}>
               <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{m.replace(/_/g,' ')}</div>
-              <div className="text-xs text-zinc-600 font-mono">{status?.mode_maps?.[m] || m}</div>
+              <div className="text-xs text-zinc-400 font-mono">{status?.mode_maps?.[m] || m}</div>
             </button>
           ))}
         </div>
