@@ -94,8 +94,17 @@ private struct CourtDraw {
 
     var jumpH: CGFloat {
         guard phase == .execution else { return 0 }
-        let arc = exec < 0.65 ? sin(exec / 0.65 * .pi) : 0.0
-        return H * CGFloat(arc) * 0.27
+        // Wind-up crouch (0-0.15), then explosive leap, peak held longer, land fast
+        if exec < 0.15 { return -H * 0.025 * CGFloat(exec / 0.15) }  // slight crouch
+        let liftExec = (exec - 0.15) / 0.85
+        let arc = liftExec < 0.55 ? sin(liftExec / 0.55 * .pi * 0.92) : max(0, sin(liftExec / 0.55 * .pi * 0.92))
+        return H * CGFloat(arc) * 0.44  // dramatically higher — console-grade air time
+    }
+    // Shadow scale grows as player rises
+    var shadowScale: CGFloat {
+        guard phase == .execution else { return 1.0 }
+        let rise = jumpH / (H * 0.44)
+        return max(0.3, 1.0 - rise * 0.65)
     }
     var footY: CGFloat { floorY - jumpH }
 
@@ -103,36 +112,75 @@ private struct CourtDraw {
         drawBg(ctx: &ctx)
         drawCrowd(ctx: &ctx)
         drawFloor(ctx: &ctx)
+        drawPlayerShadow(ctx: &ctx)
         drawBasket(ctx: &ctx)
+        drawBallTrail(ctx: &ctx)
         drawBall(ctx: &ctx)
         drawPlayer(ctx: &ctx)
+        if phase == .execution && exec > 0.80 { drawRimImpact(ctx: &ctx) }
         if perfect && postDunk { drawSparkles(ctx: &ctx) }
     }
 
     private func drawBg(ctx: inout GraphicsContext) {
+        // Deep arena dark — richer blue-black than before
         ctx.fill(Path(CGRect(origin: .zero, size: size)),
-                 with: .color(Color(red: 0.02, green: 0.04, blue: 0.10)))
-        for (cx, cw): (CGFloat, CGFloat) in [(poleX, W * 0.55), (W * 0.28, W * 0.5)] {
+                 with: .color(Color(red: 0.01, green: 0.03, blue: 0.09)))
+
+        // Dramatic spotlight cones from ceiling corners
+        for (cx, cw): (CGFloat, CGFloat) in [(poleX, W * 0.60), (W * 0.22, W * 0.52)] {
             var p = Path()
-            p.addEllipse(in: CGRect(x: cx - cw/2, y: -H*0.08, width: cw, height: H*0.72))
-            ctx.fill(p, with: .color(Color.white.opacity(0.016)))
+            p.addEllipse(in: CGRect(x: cx - cw/2, y: -H*0.10, width: cw, height: H*0.82))
+            ctx.fill(p, with: .color(Color.white.opacity(0.020 + 0.008 * sin(t * 0.7))))
+        }
+
+        // Arena score halo — pulses when dunking
+        if phase == .execution {
+            let dunkPulse = 0.04 + 0.03 * sin(t * 6.0)
+            var halo = Path()
+            halo.addEllipse(in: CGRect(x: W*0.35, y: H*0.10, width: W*0.50, height: H*0.70))
+            ctx.fill(halo, with: .color(Color(red: 0.0, green: 0.55, blue: 1.0).opacity(dunkPulse)))
         }
     }
 
+    // Team jersey hue cycling for stadium diversity
+    private func crowdColor(index: Int, row: Int) -> Color {
+        let colors: [Color] = [
+            Color(red:0.15,green:0.30,blue:0.90),
+            Color(red:0.90,green:0.18,blue:0.18),
+            Color(red:0.95,green:0.80,blue:0.10),
+            Color(red:0.10,green:0.75,blue:0.35),
+            Color(red:0.80,green:0.20,blue:0.80),
+        ]
+        return colors[(index * 3 + row * 7) % colors.count]
+    }
+
     private func drawCrowd(ctx: inout GraphicsContext) {
-        for row in 0..<3 {
-            let count = 10 + row * 4
-            let rowY  = H * 0.07 + CGFloat(row) * 26
+        for row in 0..<4 {
+            let count = 12 + row * 5
+            let rowY  = H * 0.04 + CGFloat(row) * 22
             for i in 0..<count {
                 let px  = W * (CGFloat(i) + 0.5) / CGFloat(count)
-                let wave = sin(t * 2.2 + Double(i)*0.5 + Double(row)) * crowd * 7
+                let wave = sin(t * 2.5 + Double(i)*0.55 + Double(row)*0.8) * crowd * 10
                 let py  = rowY - CGFloat(wave)
-                let r: CGFloat = 5 + CGFloat(row)
-                let alpha = (0.12 + crowd * 0.30) * (1.0 - Double(row)*0.18)
-                ctx.fill(Path(ellipseIn: CGRect(x:px-r, y:py-r*1.9, width:r*2, height:r*2)),
-                         with: .color(Color.white.opacity(alpha)))
-                ctx.fill(Path(CGRect(x:px-r*0.7, y:py, width:r*1.4, height:r*2.2)),
-                         with: .color(Color.white.opacity(alpha * 0.7)))
+                let r: CGFloat = 4.5 + CGFloat(row) * 0.5
+                let alpha = (0.15 + crowd * 0.35) * (1.0 - Double(row)*0.16)
+                let jColor = crowdColor(index: i, row: row)
+                // Head
+                ctx.fill(Path(ellipseIn: CGRect(x:px-r*0.85, y:py-r*1.8, width:r*1.7, height:r*1.7)),
+                         with: .color(Color(red:0.88,green:0.72,blue:0.58).opacity(alpha * 1.1)))
+                // Jersey
+                ctx.fill(Path(CGRect(x:px-r*0.8, y:py, width:r*1.6, height:r*2.0)),
+                         with: .color(jColor.opacity(alpha)))
+                // Arms raised when crowd level high
+                if crowd > 0.5 {
+                    let armRaise = CGFloat(crowd - 0.5) * 2.0 * CGFloat(wave > 0 ? 1 : 0)
+                    for sign: CGFloat in [-1, 1] {
+                        var arm = Path()
+                        arm.move(to: CGPoint(x: px + sign*r*0.6, y: py))
+                        arm.addLine(to: CGPoint(x: px + sign*r*1.6, y: py - r*1.5*armRaise))
+                        ctx.stroke(arm, with: .color(jColor.opacity(alpha * 0.8)), lineWidth: 1.2)
+                    }
+                }
             }
         }
     }
@@ -191,23 +239,30 @@ private struct CourtDraw {
     private func drawPlayer(ctx: inout GraphicsContext) {
         let px = playerX
         let py = footY
-        let lw: CGFloat = 3.5
-        let headR: CGFloat = 9
-        let bodyH: CGFloat = 28
+        let lw: CGFloat = 4.0     // thicker limbs = more visible on large canvas
+        let headR: CGFloat = 11   // bigger head
+        let bodyH: CGFloat = 32
 
-        let cycle = t.truncatingRemainder(dividingBy: 0.52) / 0.52
+        let cycle = t.truncatingRemainder(dividingBy: 0.48) / 0.48
         let sinC = CGFloat(sin(cycle * .pi * 2))
 
         let shoulderY = py - bodyH - headR * 1.9
         let hipY      = shoulderY + bodyH
 
-        let bodyColor  = Color(red: 0.15, green: 0.82, blue: 1.0)
-        let legColor   = Color(red: 0.18, green: 0.22, blue: 0.88)
+        let bodyColor  = Color(red: 0.10, green: 0.85, blue: 1.0)
+        let legColor   = Color(red: 0.15, green: 0.20, blue: 0.95)
         let skinColor  = Color(red: 0.94, green: 0.81, blue: 0.70)
+        let shoeColor  = Color(red: 0.92, green: 0.35, blue: 0.08)  // orange Air Jordans
 
-        // Head
-        ctx.fill(Path(ellipseIn: CGRect(x:px-headR, y:shoulderY-headR*1.85, width:headR*2, height:headR*2)),
-                 with: .color(skinColor))
+        // Head with glow during dunk
+        if phase == .execution {
+            var gc = ctx; gc.addFilter(.shadow(color: bodyColor.opacity(0.4), radius: 8))
+            gc.fill(Path(ellipseIn: CGRect(x:px-headR, y:shoulderY-headR*1.85, width:headR*2, height:headR*2)),
+                    with: .color(skinColor))
+        } else {
+            ctx.fill(Path(ellipseIn: CGRect(x:px-headR, y:shoulderY-headR*1.85, width:headR*2, height:headR*2)),
+                     with: .color(skinColor))
+        }
 
         // Torso
         var spine = Path(); spine.move(to: CGPoint(x:px,y:shoulderY)); spine.addLine(to: CGPoint(x:px,y:hipY))
@@ -215,41 +270,74 @@ private struct CourtDraw {
 
         if phase == .execution {
             let ep = CGFloat(exec)
-            // Reaching arm toward rim
-            let angle: CGFloat = -.pi * 0.20 - ep * .pi * 0.55
-            let aex = px + cos(angle)*30; let aey = shoulderY + sin(angle)*30
-            var arm = Path(); arm.move(to: CGPoint(x:px,y:shoulderY+4)); arm.addLine(to: CGPoint(x:aex,y:aey))
-            ctx.stroke(arm, with: .color(bodyColor), lineWidth: lw)
-            var arm2 = Path(); arm2.move(to: CGPoint(x:px,y:shoulderY+4)); arm2.addLine(to: CGPoint(x:px-18,y:shoulderY+20))
-            ctx.stroke(arm2, with: .color(bodyColor), lineWidth: lw)
-            // Legs tucked
-            for sign: CGFloat in [1, -1] {
-                var leg = Path()
-                leg.move(to: CGPoint(x:px,y:hipY))
-                leg.addLine(to: CGPoint(x:px+sign*18,y:hipY+14))
-                leg.addLine(to: CGPoint(x:px+sign*10,y:hipY+28))
-                ctx.stroke(leg, with: .color(legColor), lineWidth: lw)
+            if ep < 0.15 {
+                // Wind-up crouch: arms pulled back, knees bent low
+                let crouchT = ep / 0.15
+                for sign: CGFloat in [1, -1] {
+                    // Arms pulled back and down (loading)
+                    var arm = Path(); arm.move(to: CGPoint(x:px,y:shoulderY+4))
+                    arm.addLine(to: CGPoint(x:px+sign*22, y:shoulderY+18 + 10*crouchT))
+                    ctx.stroke(arm, with: .color(bodyColor), lineWidth: lw)
+                    // Legs deeply bent
+                    var leg = Path(); leg.move(to: CGPoint(x:px,y:hipY))
+                    leg.addLine(to: CGPoint(x:px+sign*20, y:hipY+12))
+                    leg.addLine(to: CGPoint(x:px+sign*12, y:hipY+22))
+                    ctx.stroke(leg, with: .color(legColor), lineWidth: lw)
+                    // Shoes
+                    ctx.fill(Path(CGRect(x:px+sign*8, y:hipY+20, width:sign*10, height:5)), with: .color(shoeColor))
+                }
+            } else {
+                // Full leap: dominant arm reaches for rim, off-arm trails, legs tucked
+                let liftT = (ep - 0.15) / 0.85  // 0→1 across the aerial
+                // Dunking arm sweeps up and forward dramatically
+                let angle: CGFloat = -.pi * 0.10 - liftT * .pi * 0.75
+                let aex = px + cos(angle)*38; let aey = shoulderY + sin(angle)*38
+                var arm = Path(); arm.move(to: CGPoint(x:px,y:shoulderY+4)); arm.addLine(to: CGPoint(x:aex,y:aey))
+                var gc = ctx; gc.addFilter(.shadow(color: bodyColor.opacity(0.5), radius: 6))
+                gc.stroke(arm, with: .color(bodyColor), lineWidth: lw + 1)
+                // Off-arm trails behind
+                var arm2 = Path(); arm2.move(to: CGPoint(x:px,y:shoulderY+4))
+                arm2.addLine(to: CGPoint(x:px-22, y:shoulderY + 22 + liftT*10))
+                ctx.stroke(arm2, with: .color(bodyColor), lineWidth: lw)
+                // Legs tuck harder as apex approached
+                let tuck = min(1.0, liftT * 1.3)
+                for sign: CGFloat in [1, -1] {
+                    var leg = Path()
+                    leg.move(to: CGPoint(x:px,y:hipY))
+                    leg.addLine(to: CGPoint(x:px+sign*16, y:hipY + 10 - tuck*18))
+                    leg.addLine(to: CGPoint(x:px+sign*8,  y:hipY + 22 - tuck*28))
+                    ctx.stroke(leg, with: .color(legColor), lineWidth: lw)
+                    // Shoes visible during tuck
+                    ctx.fill(Path(CGRect(x:px+sign*5, y:hipY+20-tuck*28, width:sign*10, height:5)),
+                             with: .color(shoeColor))
+                }
             }
         } else if phase == .approach {
-            // Running
+            // Running — faster stride, more exaggerated
             for sign: CGFloat in [1, -1] {
                 var arm = Path(); arm.move(to: CGPoint(x:px,y:shoulderY+5))
-                arm.addLine(to: CGPoint(x:px+sign*17*sinC, y:shoulderY+21))
+                arm.addLine(to: CGPoint(x:px+sign*22*sinC, y:shoulderY+22))
                 ctx.stroke(arm, with: .color(bodyColor), lineWidth: lw)
                 var leg = Path(); leg.move(to: CGPoint(x:px,y:hipY))
-                leg.addLine(to: CGPoint(x:px+sign*14*sinC,y:hipY+18))
-                leg.addLine(to: CGPoint(x:px+sign*8*sinC, y:py-1))
+                leg.addLine(to: CGPoint(x:px+sign*18*sinC,y:hipY+20))
+                leg.addLine(to: CGPoint(x:px+sign*10*sinC, y:py-1))
                 ctx.stroke(leg, with: .color(legColor), lineWidth: lw)
+                // Running shoe at contact point
+                ctx.fill(Path(CGRect(x:px+sign*7*sinC, y:py-5, width:sign*12, height:5)),
+                         with: .color(shoeColor))
             }
         } else {
-            // Standing idle
+            // Standing idle — slight weight shift
+            let idleRock = CGFloat(sin(t * 1.4) * 2)
             for sign: CGFloat in [1, -1] {
                 var arm = Path(); arm.move(to: CGPoint(x:px,y:shoulderY+4))
-                arm.addLine(to: CGPoint(x:px+sign*15,y:hipY-5))
+                arm.addLine(to: CGPoint(x:px+sign*18+idleRock, y:hipY-3))
                 ctx.stroke(arm, with: .color(bodyColor), lineWidth: lw)
                 var leg = Path(); leg.move(to: CGPoint(x:px,y:hipY))
-                leg.addLine(to: CGPoint(x:px+sign*7,y:py-1))
+                leg.addLine(to: CGPoint(x:px+sign*8+idleRock*0.5, y:py-1))
                 ctx.stroke(leg, with: .color(legColor), lineWidth: lw)
+                ctx.fill(Path(CGRect(x:px+sign*5+idleRock*0.5, y:py-5, width:sign*12, height:5)),
+                         with: .color(shoeColor))
             }
         }
     }
@@ -280,14 +368,66 @@ private struct CourtDraw {
 
     private func drawSparkles(ctx: inout GraphicsContext) {
         let cx = (rimL+rimR)/2; let cy = rimY - 18
-        for i in 0..<14 {
-            let angle = Double(i)/14.0 * .pi*2 + t*1.9
-            let dist  = 26 + sin(t*3.5 + Double(i))*12
+        for i in 0..<20 {
+            let angle = Double(i)/20.0 * .pi*2 + t*2.1
+            let dist  = 28 + sin(t*3.8 + Double(i))*16
             let sx = cx + CGFloat(cos(angle))*CGFloat(dist)
             let sy = cy + CGFloat(sin(angle))*CGFloat(dist)
-            let alpha = 0.5 + 0.5*abs(sin(t*4.5 + Double(i)*0.7))
-            var sc = ctx; sc.addFilter(.shadow(color: Color.yellow.opacity(0.5), radius: 4))
-            sc.fill(Path(ellipseIn: CGRect(x:sx-2.5,y:sy-2.5,width:5,height:5)), with: .color(Color.yellow.opacity(alpha)))
+            let alpha = 0.6 + 0.4*abs(sin(t*5.0 + Double(i)*0.7))
+            let sparkColor: Color = i % 3 == 0 ? .white : (i % 3 == 1 ? .yellow : Color.orange)
+            var sc = ctx; sc.addFilter(.shadow(color: sparkColor.opacity(0.6), radius: 5))
+            sc.fill(Path(ellipseIn: CGRect(x:sx-3,y:sy-3,width:6,height:6)), with: .color(sparkColor.opacity(alpha)))
+        }
+    }
+
+    private func drawPlayerShadow(ctx: inout GraphicsContext) {
+        let px = playerX
+        let sw: CGFloat = 28 * shadowScale
+        let sh: CGFloat = 8  * shadowScale
+        let shadowAlpha = 0.35 * Double(shadowScale)
+        ctx.fill(Path(ellipseIn: CGRect(x: px - sw/2, y: floorY + 2, width: sw, height: sh)),
+                 with: .color(Color.black.opacity(shadowAlpha)))
+    }
+
+    // Ball motion trail — 4 ghost copies fading behind the ball during execution
+    private func drawBallTrail(ctx: inout GraphicsContext) {
+        guard phase == .execution, exec > 0.20 else { return }
+        let r: CGFloat = 7
+        let ex = (rimL + rimR) / 2; let ey = rimY - 6
+        for trail in 1...4 {
+            let pastExec = max(0.20, exec - Double(trail) * 0.055)
+            let pastLift = (pastExec - 0.15) / 0.85
+            let pastArc = pastLift < 0.55 ? sin(pastLift / 0.55 * .pi * 0.92) : max(0.0, sin(pastLift / 0.55 * .pi * 0.92))
+            let pastJumpH = H * CGFloat(pastArc) * 0.44
+            let pastPlayerX = W * (0.10 + (0.50 + CGFloat(pastExec) * 0.20) * 0.70)
+            let pastFootY = floorY - pastJumpH
+            let sx = pastPlayerX + 14; let sy = pastFootY - pastJumpH - 36
+            let ep = CGFloat(pastExec)
+            let trailBx = sx + (ex - sx) * ep
+            let trailBy = sy + (ey - sy) * ep - H * 0.22 * 4 * ep * (1 - ep)
+            let alpha = 0.28 - Double(trail) * 0.055
+            ctx.fill(Path(ellipseIn: CGRect(x:trailBx-r,y:trailBy-r,width:r*2,height:r*2)),
+                     with: .color(Color.orange.opacity(alpha)))
+        }
+    }
+
+    // Rim impact burst when ball arrives at the hoop
+    private func drawRimImpact(ctx: inout GraphicsContext) {
+        let cx = (rimL+rimR)/2; let cy = rimY
+        let impactFrac = (exec - 0.80) / 0.20  // 0→1 over final 20% of arc
+        let burstR = CGFloat(impactFrac) * 34
+        // Expanding ring
+        var ring = Path(); ring.addEllipse(in: CGRect(x: cx-burstR, y: cy-burstR*0.5, width: burstR*2, height: burstR))
+        ctx.stroke(ring, with: .color(Color.orange.opacity(max(0, 0.8 - impactFrac * 0.9))), lineWidth: 2.5)
+
+        // 8 radial sparks
+        for i in 0..<8 {
+            let angle = Double(i) * .pi / 4.0
+            let sparkLen: CGFloat = burstR * 0.8
+            let sx = cx + CGFloat(cos(angle)) * sparkLen
+            let sy = cy + CGFloat(sin(angle)) * sparkLen * 0.4
+            var spark = Path(); spark.move(to: CGPoint(x: cx, y: cy)); spark.addLine(to: CGPoint(x: sx, y: sy))
+            ctx.stroke(spark, with: .color(Color.yellow.opacity(max(0, 0.7 - impactFrac * 0.8))), lineWidth: 1.5)
         }
     }
 }
@@ -374,9 +514,10 @@ struct BasketballDunkGameView: View {
     private var courtCanvas: some View {
         DunkCourtCanvas(phase: phase, powerLevel: powerLevel, execProgress: execProgress,
                         crowdLevel: crowdLevel, isPerfect: isPerfect, postDunk: postDunk)
-            .frame(height: 200)
+            .frame(height: phase == .execution ? 260 : 220)  // bigger during the actual dunk
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius:16).stroke(accent.opacity(0.12), lineWidth:1))
+            .overlay(RoundedRectangle(cornerRadius:16).stroke(accent.opacity(0.14), lineWidth:1))
+            .animation(.easeInOut(duration: 0.3), value: phase == .execution)
     }
 
     // MARK: - Score header

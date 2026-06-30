@@ -71,6 +71,8 @@ private struct KarateDojo: View {
     let opponentPoseName: String
     let crowdAlpha: Double
     let dragonActive: Bool
+    var lastHitTime: Double = 0   // absolute time of most recent player hit landing
+    var lastHitType: String = ""  // "punch" | "kick" | "dragon"
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -78,7 +80,8 @@ private struct KarateDojo: View {
                 let t = tl.date.timeIntervalSinceReferenceDate
                 var d = DojoDrawer(size: size, t: t,
                                    playerPose: playerPoseName, opponentPose: opponentPoseName,
-                                   crowd: crowdAlpha, dragon: dragonActive)
+                                   crowd: crowdAlpha, dragon: dragonActive,
+                                   lastHitTime: lastHitTime, lastHitType: lastHitType)
                 d.render(into: &ctx)
             }
         }
@@ -89,6 +92,7 @@ private struct DojoDrawer {
     let size: CGSize; let t: Double
     let playerPose: String; let opponentPose: String
     let crowd: Double; let dragon: Bool
+    let lastHitTime: Double; let lastHitType: String
 
     var W: CGFloat { size.width }
     var H: CGFloat { size.height }
@@ -102,6 +106,11 @@ private struct DojoDrawer {
         drawFighter(ctx: &ctx, cx: W*0.25, pose: pose(for: playerPose), color: Color(red:0.15,green:0.75,blue:1.0), flip: false)
         drawFighter(ctx: &ctx, cx: W*0.75, pose: pose(for: opponentPose), color: Color(red:1.0,green:0.22,blue:0.22), flip: true)
         drawShadows(ctx: &ctx)
+        // Hit sparks at impact point — fires for 0.45s after any landing hit
+        let timeSinceHit = t - lastHitTime
+        if timeSinceHit < 0.45 && lastHitTime > 0 {
+            drawHitSparks(ctx: &ctx, timeSince: timeSinceHit)
+        }
     }
 
     private func pose(for name: String) -> StickPose {
@@ -247,6 +256,47 @@ private struct DojoDrawer {
             ctx.fill(s, with:.color(Color.black.opacity(0.25)))
         }
     }
+
+    // Console-grade hit sparks — burst of colored particles at point of impact
+    private func drawHitSparks(ctx: inout GraphicsContext, timeSince: Double) {
+        let frac = timeSince / 0.45   // 0→1 as sparks die
+        let alpha = max(0, 1.0 - frac * 1.3)
+        let cx: CGFloat = W * 0.62   // impact zone just left of opponent
+        let cy: CGFloat = floorY - H * 0.30
+
+        // Spark color by hit type
+        let sparkColor: Color = lastHitType == "kick" ? Color(red:1.0,green:0.45,blue:0.0) :
+                                lastHitType == "dragon" ? Color.yellow :
+                                Color(red:0.2,green:0.7,blue:1.0)
+
+        // Expanding ring
+        let ringR = CGFloat(frac) * 40
+        var ring = Path(); ring.addEllipse(in: CGRect(x:cx-ringR, y:cy-ringR*0.6, width:ringR*2, height:ringR*1.2))
+        ctx.stroke(ring, with:.color(sparkColor.opacity(alpha * 0.8)), lineWidth:2.0)
+
+        // 10 radial sparks shooting outward
+        let sparkCount = lastHitType == "dragon" ? 16 : 10
+        for i in 0..<sparkCount {
+            let angle = Double(i) / Double(sparkCount) * .pi * 2
+            let sparkDist = CGFloat(frac) * 38
+            let sx = cx + CGFloat(cos(angle)) * sparkDist
+            let sy = cy + CGFloat(sin(angle)) * sparkDist * 0.55
+            var sp = Path(); sp.move(to: CGPoint(x:cx, y:cy)); sp.addLine(to: CGPoint(x:sx, y:sy))
+            ctx.stroke(sp, with:.color(sparkColor.opacity(alpha * 0.9)), lineWidth:1.8)
+            // Spark dot at tip
+            var dot = ctx; dot.addFilter(.shadow(color: sparkColor.opacity(0.7), radius: 4))
+            dot.fill(Path(ellipseIn: CGRect(x:sx-2.5,y:sy-2.5,width:5,height:5)),
+                     with:.color(sparkColor.opacity(alpha)))
+        }
+
+        // Central flash
+        let flashR = CGFloat(max(0, 1.0 - frac * 2.5)) * 18
+        if flashR > 0 {
+            var gc = ctx; gc.addFilter(.shadow(color: sparkColor.opacity(0.9), radius: 10))
+            gc.fill(Path(ellipseIn: CGRect(x:cx-flashR,y:cy-flashR,width:flashR*2,height:flashR*2)),
+                    with:.color(Color.white.opacity(alpha * 1.4)))
+        }
+    }
 }
 
 // MARK: - Phases & Outcome
@@ -348,6 +398,9 @@ struct KarateGameView: View {
     @State private var actionLabelTask: Task<Void, Never>?
     @State private var screenShake: CGFloat = 0
     @State private var poseResetTask: Task<Void, Never>?
+    // Hit spark timing (absolute time reference)
+    @State private var lastHitTime: Double = 0
+    @State private var lastHitType: String = ""
 
     // AI
     @State private var aiAttackTask: Task<Void, Never>?
@@ -435,7 +488,8 @@ struct KarateGameView: View {
         ZStack {
             KarateDojo(playerPoseName:playerPose, opponentPoseName:opponentPose,
                        crowdAlpha:min(1.0,(Double(playerScore)+Double(opponentScore))*0.04),
-                       dragonActive:chakra >= 100 && showDragonStrikeButton)
+                       dragonActive:chakra >= 100 && showDragonStrikeButton,
+                       lastHitTime:lastHitTime, lastHitType:lastHitType)
 
             if showFightFlash {
                 Text("FIGHT!").font(.system(size:52,weight:.black,design:.monospaced)).italic()
@@ -553,6 +607,7 @@ struct KarateGameView: View {
         showAction(text:isCrit ? "CRITICAL PUNCH!" : "PUNCH", color:Theme.brandBlue)
         setPose("punch", for:"player", duration:0.35)
         setPose("hit", for:"opponent", duration:0.35)
+        lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "punch"
         if isCrit { triggerCritFlash() }
         flashScreenShake()
         impactMed.impactOccurred()
@@ -570,6 +625,7 @@ struct KarateGameView: View {
         showAction(text:isCrit ? "CRITICAL KICK!" : "KICK", color:accentColor)
         setPose("kick", for:"player", duration:0.40)
         setPose("hit", for:"opponent", duration:0.40)
+        lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "kick"
         if isCrit { triggerCritFlash() }
         flashScreenShake()
         impactHvy.impactOccurred()
@@ -598,6 +654,7 @@ struct KarateGameView: View {
         showAction(text:"DRAGON STRIKE!", color:.yellow)
         setPose("dragon", for:"player", duration:0.8)
         setPose("hit", for:"opponent", duration:0.6)
+        lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "dragon"
         triggerCritFlash(); flashScreenShake()
         notif.notificationOccurred(.success)
         if opponentHP <= 0 { endGame(ko:true,playerKO:false) }
