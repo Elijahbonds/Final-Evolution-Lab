@@ -1215,6 +1215,10 @@ const Dashboard = () => {
   const location = useLocation();
   const { user, setUser } = useAuth();
   useEffect(() => { if (location.state?.user && !user) setUser(location.state.user); }, [location.state, user, setUser]);
+  useEffect(() => {
+    document.querySelector('.main-content')?.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
+  }, [activeTab]);
 
   const renderContent = () => {
     switch(activeTab) {
