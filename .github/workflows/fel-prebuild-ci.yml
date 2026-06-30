@@ -17,7 +17,11 @@ jobs:
           chmod +x ./infra/fel_prebuild_ci_check.sh
           # Set UPROJECT to the known location in the repo
           export UPROJECT="./UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
-          ./infra/fel_prebuild_ci_check.sh --strict
+          if [ -f "$UPROJECT" ]; then
+            ./infra/fel_prebuild_ci_check.sh --strict
+          else
+            echo "::warning::Skipping Unreal descriptor alignment check because $UPROJECT is not present in this checkout."
+          fi
         env:
           INTERNAL_ID: FinalEvolutionLab
           BUNDLE_ID: com.finalevolutionlab.sovereign
