@@ -226,6 +226,15 @@ struct GameModeSelectionView: View {
 
     @MainActor
     private func launchGame() async {
+        // Load the NexusScene for this mode before navigating.
+        // .marketBrowse is a store view, not a game session — skip the engine launch.
+        if let mode = pendingMode, mode.id != .marketBrowse {
+            try? await NexusEngine.shared.launchMode(
+                mode.id,
+                readiness: sessionReadiness,
+                profile: viewModel.profile
+            )
+        }
         navigateToGame = true
     }
 }

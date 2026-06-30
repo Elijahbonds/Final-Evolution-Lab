@@ -10,6 +10,16 @@ struct GameModeRouter: View {
 
     @ViewBuilder
     var body: some View {
+        routedView
+            .onDisappear {
+                // End the NexusEngine session when the game view is dismissed.
+                // endSession() is a no-op if no session is live (e.g. .marketBrowse).
+                NexusEngine.shared.endSession()
+            }
+    }
+
+    @ViewBuilder
+    private var routedView: some View {
         switch gameMode.id {
         case .basketballHeadToHead:
             BasketballH2HGameView(viewModel: viewModel)
