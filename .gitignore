@@ -104,6 +104,7 @@ venv/
 
 # Build caches
 .cache/
+.mongo-data/
 
 # Rork
 .rork/
