@@ -92,6 +92,7 @@ __pycache__/
 *pyc*
 venv/
 .venv/
+.mongo-data/
 
 # Archives / large binaries
 **/*.zip
