@@ -15,6 +15,8 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var sport: String?
     var age: Int?
     var goal: String?
+    /// Gates public feed, HealthKit connect, and paid critique/cash competition for under-18 users.
+    var guardianConsentForMinorFeatures: Bool
     var hasCompletedOnboarding: Bool
     var systemScan: SystemScanResult?
     var activeCreatorCard: CreatorCardState?
@@ -42,6 +44,7 @@ extension UserProfile: Codable {
         sport = try container.decodeIfPresent(String.self, forKey: .sport)
         age = try container.decodeIfPresent(Int.self, forKey: .age)
         goal = try container.decodeIfPresent(String.self, forKey: .goal)
+        guardianConsentForMinorFeatures = (try? container.decode(Bool.self, forKey: .guardianConsentForMinorFeatures)) ?? false
         hasCompletedOnboarding = (try? container.decode(Bool.self, forKey: .hasCompletedOnboarding)) ?? false
         systemScan = try container.decodeIfPresent(SystemScanResult.self, forKey: .systemScan)
         activeCreatorCard = try container.decodeIfPresent(CreatorCardState.self, forKey: .activeCreatorCard)
@@ -72,6 +75,7 @@ extension UserProfile: Codable {
         sport: nil,
         age: nil,
         goal: nil,
+        guardianConsentForMinorFeatures: false,
         hasCompletedOnboarding: false,
         systemScan: nil,
         activeCreatorCard: nil,
