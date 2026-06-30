@@ -15,6 +15,12 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def load_mode_registry():
+    mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+    mgr = json.loads(mgr_path.read_text())
+    mm = mgr.get("mode_manager", {})
+    return mm.get("mode_registry") or {m["id"]: m for m in mm.get("modes", [])}
+
 REQUIRED_VENUE_DIRS = [
     "BaseballPark", "Dojo", "Gridiron", "Links",
     "Luma_Venice_Shop", "NeuroArena", "SandCourt",
@@ -73,9 +79,7 @@ def validate_maps_to_cook_coverage():
     import re
     maps_to_cook = set(re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content))
 
-    mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
-    mgr = json.loads(mgr_path.read_text())
-    registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+    registry = load_mode_registry()
 
     for mode_id, info in registry.items():
         if info.get("status") != "production":

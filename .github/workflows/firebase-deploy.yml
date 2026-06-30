@@ -56,12 +56,16 @@ jobs:
               if rm == 'MISSING':
                   errors.append(f"{m['id']}: render_mode field missing")
               print(f"  {m['id']:35} render_mode={rm:8} irl={m.get('irl_mode',False)}")
-          h2h  = next(m for m in modes if m['id'] == 'basketball_h2h')
-          bb   = next(m for m in modes if m['id'] == 'brain_brawl')
-          dunk = next(m for m in modes if m['id'] == 'basketball_dunk')
-          assert h2h['render_mode']  == 'IRL',     f"basketball_h2h must be IRL"
-          assert h2h['irl_mode']     == True,       "basketball_h2h must have irl_mode=true"
-          assert h2h.get('rim_height_inches') == 120, "basketball_h2h must have rim_height_inches=120"
+          by_id = {m['id']: m for m in modes}
+          h2h  = by_id['basketball_h2h']
+          irl  = by_id['basketball_irl']
+          bb   = by_id['brain_brawl']
+          dunk = by_id['basketball_dunk']
+          assert h2h['render_mode']  == '3D_UE5',   f"basketball_h2h must be 3D_UE5"
+          assert h2h['irl_mode']     == False,      "basketball_h2h must have irl_mode=false"
+          assert irl['render_mode']  == 'IRL',      f"basketball_irl must be IRL"
+          assert irl['irl_mode']     == True,       "basketball_irl must have irl_mode=true"
+          assert irl.get('rim_height_inches') == 120, "basketball_irl must have rim_height_inches=120"
           assert bb['render_mode']   == '2D',       f"brain_brawl must be 2D"
           assert dunk['render_mode'] == '3D_UE5',   f"basketball_dunk must be 3D_UE5"
           assert 'Venice' in dunk.get('venue_display', ''), "basketball_dunk venue must mention Venice Beach"

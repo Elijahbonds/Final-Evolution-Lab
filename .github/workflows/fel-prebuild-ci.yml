@@ -13,14 +13,20 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Pre-Build CI Check
+        if: hashFiles('**/FinalEvolutionLab.uproject') != ''
         run: |
           chmod +x ./infra/fel_prebuild_ci_check.sh
-          # Set UPROJECT to the known location in the repo
-          export UPROJECT="./UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
+          export UPROJECT="$(find . -name 'FinalEvolutionLab.uproject' -print -quit)"
           ./infra/fel_prebuild_ci_check.sh --strict
         env:
           INTERNAL_ID: FinalEvolutionLab
           BUNDLE_ID: com.finalevolutionlab.sovereign
+
+      - name: Skip Pre-Build CI Check
+        if: hashFiles('**/FinalEvolutionLab.uproject') == ''
+        run: |
+          echo "FinalEvolutionLab.uproject is not checked into this repository shard."
+          echo "Skipping Unreal descriptor validation; JSON registry checks still run below."
 
       - name: Verify Critical Files
         run: |
@@ -36,7 +42,8 @@ jobs:
           import json
           with open('./backend/FEL_ModeManager.production.json') as f:
               d = json.load(f)
-          modes = d['mode_manager']['mode_registry']
+          mm = d['mode_manager']
+          modes = mm.get('mode_registry') or {m['id']: m for m in mm.get('modes', [])}
           print(f'Mode registry: {len(modes)} modes')
           prod = [m for m,c in modes.items() if c['status'] == 'production']
           print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')

@@ -19,7 +19,14 @@ import { FELOSDashboard } from "@/components/FELOSDashboard";
 import { NexusPage } from "@/components/NexusConsole";
 import DistributionPage from "@/components/DistributionPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const resolveBackendUrl = () => {
+  if (process.env.REACT_APP_BACKEND_URL) return process.env.REACT_APP_BACKEND_URL;
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8000';
+  return window.location.origin;
+};
+
+const BACKEND_URL = resolveBackendUrl();
 const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
 
@@ -129,13 +136,13 @@ const LandingPage = () => {
         <div className="relative z-10 max-w-6xl mx-auto px-8 py-24 text-center">
           <p className="overline mb-4">THE ATHLETE OPERATING SYSTEM</p>
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6" style={{fontFamily:'Barlow Condensed'}}>YOUR MOVEMENT<br/><span className="text-cyan-400">AUDITED</span></h1>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 17 playable game modes, AI coaching, and cognitive training.</p>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-8">System scan meets game arena. 20 total modes across UE5, IRL training, AI coaching, and cognitive training.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button data-testid="cta-start-btn" onClick={handleLogin} className="btn-primary text-lg px-8 py-4">Start System Scan</button>
             <button className="btn-secondary text-lg px-8 py-4">Watch Demo</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
-            {[{v:"17",l:"Game Modes"},{v:"9,356+",l:"AI Assets"},{v:"54",l:"Animations"},{v:"12",l:"Venues"}].map((s,i) => (
+            {[{v:"20",l:"Modes"},{v:"15",l:"UE5 Launches"},{v:"9,356+",l:"AI Assets"},{v:"14",l:"Venues"}].map((s,i) => (
               <div key={i} className="text-center"><div className="metric-value text-cyan-400">{s.v}</div><div className="metric-label">{s.l}</div></div>
             ))}
           </div>
@@ -148,7 +155,7 @@ const LandingPage = () => {
           {[
             {icon:Activity,t:"System Scan",d:"Avatar, PRQ metrics, health signals, and workout plans unified"},
             {icon:Users,t:"Creator Cards",d:"Digital collectibles from elite athletes and coaches"},
-            {icon:Gamepad2,t:"17 Game Modes",d:"All playable: basketball, karate, soccer, surfing, and more"},
+            {icon:Gamepad2,t:"20 Mode Registry",d:"UE5 launch modes plus IRL basketball, academy, and marketplace modules"},
             {icon:Trophy,t:"Coach Economy",d:"Instruction and critique as first-class currencies"},
             {icon:Brain,t:"Brain Brawl",d:"Cognitive training for peak decision-making"},
             {icon:GraduationCap,t:"Education",d:"Common Core to kinesiology certification"}
@@ -277,7 +284,7 @@ const DashboardView = ({ setActiveTab }) => {
       <div>
         <h2 className="text-2xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>QUICK START</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[{t:'Play Game',d:'17 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
+          {[{t:'Play Game',d:'20 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
             <button key={idx} data-testid={`quick-${i.a}`} onClick={()=>setActiveTab(i.a)} className="surface-card p-5 text-left card-hover flex items-center gap-4">
               <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center flex-shrink-0"><i.icon className="w-6 h-6 text-cyan-400" /></div>
               <div className="flex-1 min-w-0"><div className="font-bold">{i.t}</div><div className="text-sm text-zinc-500">{i.d}</div></div>
@@ -522,6 +529,7 @@ const GameModesView = () => {
     try {
       const r = await axios.post(`${API}/streaming/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
+      let mapLoaded = false;
 
       // Deep link to UE5 native binary
       const deepLink = r.data.deep_link;
@@ -540,6 +548,7 @@ const GameModesView = () => {
             const msg = JSON.parse(e.data);
             if (msg.type === 'sovereign_handshake' || msg.type === 'map_loaded') {
               // MapLoaded signal received from UFELEmergentBridgeSubsystem
+              mapLoaded = true;
               setLaunchStatus(null);
               setLaunchingMode(null);
               ws.close();
@@ -550,7 +559,7 @@ const GameModesView = () => {
         // 10s System Re-auth (NOT browser fallback)
         // If no MapLoaded signal, trigger re-auth instead of showing placeholder
         setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+          if (!mapLoaded) {
             ws.close();
             setLaunchStatus('timeout');
             // System Re-auth: re-verify session, do NOT fall back to browser game
@@ -633,7 +642,7 @@ const GameModesView = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="game-modes-grid">
         {filtered.map(mode => (
-          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && setPlayingMode(mode)}>
+          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && launchNativeMode(mode)}>
             <img src={mode.image_url} alt={mode.name} loading="lazy" />
             <div className="game-mode-overlay">
               <div className="flex items-center gap-2 mb-2">
@@ -1019,32 +1028,27 @@ const LeaderboardView = () => {
 // ===================== PIXEL STREAMING =====================
 const PixelStreamingView = () => {
   const [status, setStatus] = useState(null);
-  const [serverUrl, setServerUrl] = useState('');
-  const [connecting, setConnecting] = useState(false);
+  const [launchError, setLaunchError] = useState('');
   const [activeMode, setActiveMode] = useState(null);
   const iframeRef = useRef(null);
 
   useEffect(() => { axios.get(`${API}/streaming/status`).then(r => setStatus(r.data)).catch(console.error); }, []);
 
-  const handleConnect = async () => {
-    if (!serverUrl) return;
-    setConnecting(true);
-    try {
-      await axios.post(`${API}/streaming/connect`, {stream_url: serverUrl, iframe_url: serverUrl});
-      const r = await axios.get(`${API}/streaming/status`);
-      setStatus(r.data);
-    } catch {}
-    setConnecting(false);
-  };
-
   const launchMode = async (modeId) => {
+    setLaunchError('');
     try {
       const r = await axios.post(`${API}/streaming/launch-mode`, {mode_id: modeId});
       setActiveMode(r.data);
       if (iframeRef.current && r.data.command) {
         iframeRef.current.contentWindow.postMessage(JSON.stringify(r.data.command), '*');
       }
-    } catch (e) { console.error(e); }
+      if (r.data.deep_link) {
+        window.location.href = r.data.deep_link;
+      }
+    } catch (e) {
+      console.error(e);
+      setLaunchError(e?.response?.data?.detail || 'Unable to launch this mode.');
+    }
   };
 
   useEffect(() => {
@@ -1054,39 +1058,33 @@ const PixelStreamingView = () => {
   }, [status?.available]);
 
   const streamSrc = status?.iframe_url || status?.stream_url || '';
+  const supportedModes = status?.supported_modes || [];
 
   return (
     <div className="space-y-6 fade-in">
       <div className="flex items-center justify-between">
-        <div><p className="overline mb-1">EAGLE 3D STREAMING · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
+        <div><p className="overline mb-1">SOVEREIGN HUB · UE 5.7</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>PIXEL STREAMING</h1></div>
         <div className="flex items-center gap-2">
           {status?.available ? <Wifi className="w-5 h-5 text-green-400" /> : <WifiOff className="w-5 h-5 text-red-400" />}
-          <span className={`text-sm font-mono ${status?.available ? 'text-green-400' : 'text-red-400'}`}>{status?.available ? 'LIVE' : 'OFFLINE'}</span>
+          <span className={`text-sm font-mono ${status?.available ? 'text-green-400' : 'text-yellow-400'}`}>{status?.available ? 'BRIDGE LIVE' : 'AWAITING BRIDGE'}</span>
         </div>
       </div>
 
       {!status?.available && (
         <div className="surface-card p-6" data-testid="streaming-connect">
           <div className="flex items-center gap-3 mb-4">
-            {status?.has_api_key ? <Wifi className="w-6 h-6 text-yellow-400" /> : <WifiOff className="w-6 h-6 text-red-400" />}
+            <WifiOff className="w-6 h-6 text-yellow-400" />
             <div>
-              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>{status?.has_api_key ? 'E3DS API KEY CONFIGURED' : 'CONNECT E3DS STREAM'}</h3>
+              <h3 className="text-lg font-bold" style={{fontFamily:'Barlow Condensed'}}>SOVEREIGN HUB LISTENING</h3>
               <p className="text-sm text-zinc-400">{status?.message}</p>
             </div>
           </div>
-          {status?.setup_steps?.length > 0 && (
-            <div className="bg-black/50 border border-white/5 p-4 mb-4">
-              <h4 className="metric-label mb-3">SETUP STEPS</h4>
-              {status.setup_steps.map((step, i) => (
-                <div key={i} className="text-sm text-zinc-400 py-1">{step}</div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-3 mb-3">
-            <input data-testid="stream-url" value={serverUrl} onChange={e => setServerUrl(e.target.value)} placeholder="https://stream.eagle3dstreaming.com/view/your-app-id" className="input-clinical flex-1" />
-            <button data-testid="connect-stream" onClick={handleConnect} disabled={connecting} className="btn-primary">{connecting ? 'Connecting...' : 'Connect'}</button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div className="bg-black/40 border border-white/5 p-4"><div className="metric-label">Mode</div><div className="text-cyan-400 font-mono">{status?.mode || 'local_sovereign'}</div></div>
+            <div className="bg-black/40 border border-white/5 p-4"><div className="metric-label">Launchable UE5</div><div className="text-cyan-400 font-mono">{status?.launchable_modes ?? supportedModes.length}</div></div>
+            <div className="bg-black/40 border border-white/5 p-4"><div className="metric-label">Registry Total</div><div className="text-cyan-400 font-mono">{status?.total_registry_modes ?? '...'}</div></div>
           </div>
-          <p className="text-xs text-zinc-600">Paste the iframe URL from the E3DS Control Panel after uploading your UE5 build.</p>
+          <p className="text-xs text-zinc-600 mt-4">Cloud iframe streaming is disabled in this sovereign build. Launch buttons deep-link to the native UE5 binary and use the WebSocket bridge for MapLoaded handshakes.</p>
         </div>
       )}
 
@@ -1094,19 +1092,19 @@ const PixelStreamingView = () => {
         {status?.available && streamSrc ? (
           <div className="relative">
             <iframe ref={iframeRef} data-testid="e3ds-iframe" src={streamSrc} className="w-full border-0" style={{height:'540px'}} allow="xr-spatial-tracking *; camera *; microphone *; autoplay; fullscreen" allowFullScreen />
-            {activeMode && <div className="absolute top-3 left-3 badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}><Play className="w-3 h-3 inline mr-1" />{activeMode.mode_id.replace(/_/g,' ').toUpperCase()} — {activeMode.map}</div>}
+            {activeMode && <div className="absolute top-3 left-3 badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}><Play className="w-3 h-3 inline mr-1" />{activeMode.mode_id.replace(/_/g,' ').toUpperCase()} — {activeMode.map || activeMode.map_path}</div>}
             <div className="absolute top-3 right-3 flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs text-green-400 font-mono">STREAMING</span></div>
           </div>
         ) : (
           <div className="aspect-video bg-black flex items-center justify-center border border-white/5">
             <div className="text-center">
               <Radio className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>AWAITING E3DS STREAM</h3>
-              <p className="text-sm text-zinc-700 mt-2">Connect Eagle 3D Streaming to play UE5 game modes in high fidelity</p>
+              <h3 className="text-xl font-bold text-zinc-600" style={{fontFamily:'Barlow Condensed'}}>LOCAL SOVEREIGN DATA FEED</h3>
+              <p className="text-sm text-zinc-700 mt-2">Use the launch grid below to open UE5 modes and wait for the native bridge handshake.</p>
               <div className="flex items-center justify-center gap-6 mt-6 text-zinc-700">
-                <div className="text-center"><div className="font-mono text-lg">RTX 4080</div><div className="text-xs">GPU</div></div>
-                <div className="text-center"><div className="font-mono text-lg">1080p60</div><div className="text-xs">Stream</div></div>
-                <div className="text-center"><div className="font-mono text-lg">WebRTC</div><div className="text-xs">Protocol</div></div>
+                <div className="text-center"><div className="font-mono text-lg">WSS</div><div className="text-xs">Bridge</div></div>
+                <div className="text-center"><div className="font-mono text-lg">AES-256</div><div className="text-xs">Envelope</div></div>
+                <div className="text-center"><div className="font-mono text-lg">UE5.7</div><div className="text-xs">Native</div></div>
               </div>
             </div>
           </div>
@@ -1115,10 +1113,11 @@ const PixelStreamingView = () => {
 
       <div>
         <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>LAUNCH GAME MODE</h2>
+        {launchError && <div className="surface-card p-3 mb-3 border-l-2 border-red-400 text-sm text-red-300">{launchError}</div>}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3" data-testid="stream-modes">
-          {(status?.supported_modes || []).map(m => (
-            <button key={m} data-testid={`stream-${m}`} onClick={() => status?.available && launchMode(m)}
-              className={`surface-card p-4 text-center card-hover ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''} ${status?.available ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}>
+          {supportedModes.map(m => (
+            <button key={m} data-testid={`stream-${m}`} onClick={() => launchMode(m)}
+              className={`surface-card p-4 text-center card-hover cursor-pointer ${activeMode?.mode_id === m ? 'border-l-2 border-cyan-400' : ''}`}>
               <div className="text-sm font-bold text-cyan-400 uppercase mb-1">{m.replace(/_/g,' ')}</div>
               <div className="text-xs text-zinc-600 font-mono">{status?.mode_maps?.[m] || m}</div>
             </button>
@@ -1127,14 +1126,13 @@ const PixelStreamingView = () => {
       </div>
 
       <div className="surface-card p-6" data-testid="deploy-instructions">
-        <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>PULUMI DEPLOY</h3>
+        <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>UE5 LAUNCH CONTRACT</h3>
         <div className="bg-black/50 p-4 border border-white/5 font-mono text-sm text-zinc-400 overflow-x-auto">
-          <div className="text-zinc-600"># One-command Eagle 3D deployment</div>
-          <div>export E3DS_API_KEY="your-api-key"</div>
-          <div>export E3DS_ACCOUNT_ID="your-account-id"</div>
-          <div>export FEL_BUILD_URL="s3://bucket/FEL-Shipping.zip"</div>
-          <div className="text-cyan-400 mt-2">./infra/deploy_e3ds.sh</div>
-          <div className="text-zinc-600 mt-2"># Stream URL auto-injected into web portal</div>
+          <div className="text-zinc-600"># Backend response</div>
+          <div>deep_link: finalevolution://launch?map={'{map_token}'}&mode={'{mode_id}'}&session={'{session_id}'}</div>
+          <div>ws_url: {status?.ws_url || 'wss://finalevolutiongroup.com/ws/sovereign'}</div>
+          <div className="text-cyan-400 mt-2">await MapLoaded from UFELEmergentBridgeSubsystem</div>
+          <div className="text-zinc-600 mt-2">IRL, 2D, preview, and marketplace modes remain visible in the registry but are excluded from UE5 streaming launch.</div>
         </div>
       </div>
     </div>
@@ -1240,7 +1238,7 @@ const Dashboard = () => {
       case 'analytics': return <AnalyticsView />;
       case 'sovereign': return <SovereignDashboard />;
       case 'leaderboard': return <LeaderboardView />;
-      case 'streaming': return <SovereignDashboard />;
+      case 'streaming': return <PixelStreamingView />;
       case 'profile': return <ProfileView />;
       default: return <DashboardView setActiveTab={setActiveTab} />;
     }

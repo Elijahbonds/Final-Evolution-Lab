@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
+FEL Smoke Test Suite — Production Mode Acceptance Tests
 Tests each production mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
@@ -33,7 +33,7 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_irl", "basketball_3v3",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
@@ -44,19 +44,23 @@ NON_GAME_MODULES = ["market_browse"]
 STAGING_MODES = ["skateboarding", "snowboarding", "gymnastics", "brain_brawl"]
 PREVIEW_MODES = ["who_scene_it", "court_carnival"]
 
+def load_mode_registry():
+    mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
+    mm = mgr["mode_manager"]
+    return mm.get("mode_registry") or {m["id"]: m for m in mm.get("modes", [])}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
-    mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
-    registry = mgr["mode_manager"]["mode_registry"]
+    registry = load_mode_registry()
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
             info = registry[mode]
             if info["status"] == "production":
-                ok(f"{mode} → production, map={info['map']}")
+                ok(f"{mode} → production, map={info.get('map')}")
             else:
                 fail(f"{mode} status={info['status']}, expected production")
         else:
@@ -164,8 +168,12 @@ def test_emergent_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
+    ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())["mode_to_unreal_map"]
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if ue_maps.get(mode) is None:
+            ok(f"{mode} → IRL/non-UE mode does not require EmergentPlayMap")
+            continue
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -255,7 +263,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  20 modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

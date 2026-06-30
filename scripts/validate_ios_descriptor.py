@@ -17,6 +17,14 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def load_mode_registry():
+    mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+    if not mgr_path.exists():
+        return {}
+    mgr = json.loads(mgr_path.read_text())
+    mm = mgr.get("mode_manager", {})
+    return mm.get("mode_registry") or {m["id"]: m for m in mm.get("modes", [])}
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -40,8 +48,7 @@ def validate_packaging_settings():
     # Validate all required maps are listed in MapsToCook
     mode_mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mode_mgr_path.exists():
-        mgr = json.loads(mode_mgr_path.read_text())
-        registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+        registry = load_mode_registry()
         maps_in_ini = re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content)
         for mode_id, info in registry.items():
             map_path = info.get("map", "")
@@ -77,7 +84,9 @@ def validate_emergent_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        for mode_id, map_path in ue_maps.items():
+            if map_path is None:
+                continue
             if mode_id not in play_map_section:
                 err(f"EmergentPlayMap missing mode: {mode_id}")
     print("  ✓ EmergentPlayMap cross-reference validated")
@@ -90,7 +99,7 @@ def validate_mode_counts():
         return
     mgr = json.loads(mgr_path.read_text())
     mm = mgr.get("mode_manager", {})
-    registry = mm.get("mode_registry", {})
+    registry = load_mode_registry()
 
     actual_total = len(registry)
     declared_total = mm.get("total_modes", 0)
@@ -115,8 +124,7 @@ def validate_arena_settings():
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mgr_path.exists():
-        mgr = json.loads(mgr_path.read_text())
-        registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+        registry = load_mode_registry()
         for mode_id, info in registry.items():
             if mode_id not in modes:
                 if info.get("status") in ("production", "staging"):

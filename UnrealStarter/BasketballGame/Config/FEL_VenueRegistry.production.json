@@ -1,6 +1,6 @@
 {
   "schema": "fel-venue-registry-2",
-  "notes": "Production venue registry — 19 modes (12 production, 4 staging, 2 preview, 1 non-game-module). Aligned with FEL_ModeManager, GameMode.swift, DefaultGame.ini, and ArenaSettings.json.",
+  "notes": "Production venue registry — 20 modes (13 production, 4 staging, 2 preview, 1 non-game-module). Aligned with FEL_ModeManager, GameMode.swift, DefaultGame.ini, and ArenaSettings.json.",
   "modes": [
     {
       "id": "basketball_h2h",
@@ -17,6 +17,14 @@
       "displayVenue": "Venice Beach",
       "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
       "ambientSFX": "AMB_VeniceBeach"
+    },
+    {
+      "id": "basketball_irl",
+      "analyticsMode": "basketball_irl",
+      "venueKey": "regulation_court_irl",
+      "displayVenue": "Regulation Court (IRL)",
+      "spawnPoint": null,
+      "ambientSFX": null
     },
     {
       "id": "basketball_3v3",
@@ -157,6 +165,7 @@
   ],
   "venues": [
     { "venueKey": "venice_beach", "analyticsPolicyName": "Venice Beach" },
+    { "venueKey": "regulation_court_irl", "analyticsPolicyName": "Regulation Court (IRL)" },
     { "venueKey": "dojo", "analyticsPolicyName": "Martial Arts Dojo" },
     { "venueKey": "baseball_park", "analyticsPolicyName": "Baseball Park" },
     { "venueKey": "gridiron", "analyticsPolicyName": "Gridiron Stadium" },
