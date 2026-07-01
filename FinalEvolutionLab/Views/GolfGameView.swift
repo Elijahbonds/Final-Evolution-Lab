@@ -25,6 +25,273 @@ private enum ShotState { case idle, aiming, draggingBack, ballFlying, landed }
 
 private enum ShotType { case driver, iron, wedge, putt }
 
+// MARK: - GolfClub (14 clubs with real yardages)
+
+private enum GolfClub: String, CaseIterable, Identifiable {
+    case driver  = "DRIVER"
+    case threeWood = "3 WOOD"
+    case fiveWood  = "5 WOOD"
+    case fourIron  = "4 IRON"
+    case fiveIron  = "5 IRON"
+    case sixIron   = "6 IRON"
+    case sevenIron = "7 IRON"
+    case eightIron = "8 IRON"
+    case nineIron  = "9 IRON"
+    case pitchingWedge = "PW"
+    case sandWedge     = "SW"
+    case lobWedge      = "LW"
+    case putter        = "PUTTER"
+    case hybridFour    = "4 HYB"
+
+    var id: String { rawValue }
+
+    // Base yardage (mid-range of typical amateur distances)
+    var baseYardage: Int {
+        switch self {
+        case .driver:        return 270
+        case .threeWood:     return 245
+        case .fiveWood:      return 225
+        case .hybridFour:    return 205
+        case .fourIron:      return 195
+        case .fiveIron:      return 183
+        case .sixIron:       return 170
+        case .sevenIron:     return 157
+        case .eightIron:     return 143
+        case .nineIron:      return 128
+        case .pitchingWedge: return 110
+        case .sandWedge:     return  85
+        case .lobWedge:      return  60
+        case .putter:        return  15
+        }
+    }
+
+    // Launch angle in degrees (higher = more loft)
+    var launchAngle: Double {
+        switch self {
+        case .driver:        return 12
+        case .threeWood:     return 14
+        case .fiveWood:      return 16
+        case .hybridFour:    return 18
+        case .fourIron:      return 20
+        case .fiveIron:      return 22
+        case .sixIron:       return 25
+        case .sevenIron:     return 28
+        case .eightIron:     return 31
+        case .nineIron:      return 34
+        case .pitchingWedge: return 38
+        case .sandWedge:     return 44
+        case .lobWedge:      return 52
+        case .putter:        return  2
+        }
+    }
+
+    // Spin rate (rpm – higher = more stopping power)
+    var spinRate: Int {
+        switch self {
+        case .driver:        return 2700
+        case .threeWood:     return 3200
+        case .fiveWood:      return 3600
+        case .hybridFour:    return 4000
+        case .fourIron:      return 4400
+        case .fiveIron:      return 4800
+        case .sixIron:       return 5200
+        case .sevenIron:     return 5700
+        case .eightIron:     return 6200
+        case .nineIron:      return 6800
+        case .pitchingWedge: return 7800
+        case .sandWedge:     return 8500
+        case .lobWedge:      return 9200
+        case .putter:        return  500
+        }
+    }
+
+    // Mishit penalty: how much extra scatter on off-center hits (0–1)
+    var mishitPenalty: Double {
+        switch self {
+        case .driver:        return 0.18
+        case .threeWood:     return 0.15
+        case .fiveWood:      return 0.13
+        case .hybridFour:    return 0.11
+        case .fourIron:      return 0.12
+        case .fiveIron:      return 0.11
+        case .sixIron:       return 0.10
+        case .sevenIron:     return 0.09
+        case .eightIron:     return 0.08
+        case .nineIron:      return 0.08
+        case .pitchingWedge: return 0.07
+        case .sandWedge:     return 0.09
+        case .lobWedge:      return 0.11
+        case .putter:        return 0.04
+        }
+    }
+
+    // Whether this club qualifies for spin control UI
+    var supportsSpinControl: Bool {
+        switch self {
+        case .fourIron, .fiveIron, .sixIron, .sevenIron, .eightIron, .nineIron,
+             .pitchingWedge, .sandWedge, .lobWedge:
+            return true
+        default:
+            return false
+        }
+    }
+
+    // Whether this club is a putter variant
+    var isPutter: Bool { self == .putter }
+
+    // Short display name for buttons
+    var shortName: String {
+        switch self {
+        case .driver:        return "DR"
+        case .threeWood:     return "3W"
+        case .fiveWood:      return "5W"
+        case .hybridFour:    return "4H"
+        case .fourIron:      return "4I"
+        case .fiveIron:      return "5I"
+        case .sixIron:       return "6I"
+        case .sevenIron:     return "7I"
+        case .eightIron:     return "8I"
+        case .nineIron:      return "9I"
+        case .pitchingWedge: return "PW"
+        case .sandWedge:     return "SW"
+        case .lobWedge:      return "LW"
+        case .putter:        return "PT"
+        }
+    }
+
+    // Distance range string for display
+    var distanceRange: String {
+        switch self {
+        case .driver:        return "250–300y"
+        case .threeWood:     return "230–260y"
+        case .fiveWood:      return "210–240y"
+        case .hybridFour:    return "195–215y"
+        case .fourIron:      return "185–205y"
+        case .fiveIron:      return "173–193y"
+        case .sixIron:       return "160–180y"
+        case .sevenIron:     return "147–167y"
+        case .eightIron:     return "133–153y"
+        case .nineIron:      return "118–138y"
+        case .pitchingWedge: return "100–120y"
+        case .sandWedge:     return " 75– 95y"
+        case .lobWedge:      return " 50– 70y"
+        case .putter:        return "  5– 25y"
+        }
+    }
+
+    // Best club recommendation given a yardage to hole
+    static func recommended(forYards yards: Int) -> GolfClub {
+        let target = yards
+        return GolfClub.allCases.min(by: { abs($0.baseYardage - target) < abs($1.baseYardage - target) }) ?? .sevenIron
+    }
+}
+
+// MARK: - Shot Shape
+
+private enum ShotShape: String, CaseIterable {
+    case straight = "STRAIGHT"
+    case draw     = "DRAW"
+    case fade     = "FADE"
+
+    var icon: String {
+        switch self {
+        case .straight: return "arrow.up"
+        case .draw:     return "arrow.up.left"
+        case .fade:     return "arrow.up.right"
+        }
+    }
+
+    // Lateral drift multiplier (positive = right drift, negative = left)
+    var lateralBias: Double {
+        switch self {
+        case .straight: return  0.0
+        case .draw:     return -0.06  // curves right-to-left
+        case .fade:     return  0.06  // curves left-to-right
+        }
+    }
+
+    // Distance multiplier
+    var distanceMultiplier: Double {
+        switch self {
+        case .straight: return 1.00
+        case .draw:     return 1.07   // extra 5–15y and more roll
+        case .fade:     return 0.96   // slight distance loss for control
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .straight: return "Neutral trajectory"
+        case .draw:     return "+5–15y · More roll"
+        case .fade:     return "Max control · -4%"
+        }
+    }
+}
+
+// MARK: - Spin Control
+
+private enum Spin: String, CaseIterable {
+    case neutral   = "NEUTRAL"
+    case backspin  = "BACK"
+    case topspin   = "TOP"
+
+    var icon: String {
+        switch self {
+        case .neutral:  return "circle"
+        case .backspin: return "arrow.down.circle"
+        case .topspin:  return "arrow.up.circle"
+        }
+    }
+
+    // Roll-out modifier after landing (negative = check-back, positive = run-out yards)
+    var rollModifier: Double {
+        switch self {
+        case .neutral:  return  0.0
+        case .backspin: return -0.04  // ball checks back
+        case .topspin:  return  0.06  // ball runs 10–20y
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .neutral:  return "Normal roll"
+        case .backspin: return "Checks back (pro)"
+        case .topspin:  return "Runs out 10–20y"
+        }
+    }
+}
+
+// MARK: - Course Hole Definition
+
+private struct CourseHole {
+    let number: Int
+    let par: Int
+    let yardage: Int
+    let description: String
+    let difficulty: String   // "Easy" / "Medium" / "Hard"
+}
+
+private let courseCard: [CourseHole] = [
+    CourseHole(number: 1, par: 4, yardage: 385, description: "Dogleg right · Bunker left",         difficulty: "Medium"),
+    CourseHole(number: 2, par: 3, yardage: 165, description: "Elevated tee · Wind in face",         difficulty: "Medium"),
+    CourseHole(number: 3, par: 5, yardage: 520, description: "Long par 5 · Water right",            difficulty: "Hard"),
+    CourseHole(number: 4, par: 4, yardage: 410, description: "Narrow fairway · Bunker both sides",  difficulty: "Hard"),
+    CourseHole(number: 5, par: 3, yardage: 140, description: "Island green · Short carry",          difficulty: "Hard"),
+    CourseHole(number: 6, par: 5, yardage: 480, description: "Reachable par 5 · Tailwind hole",    difficulty: "Easy"),
+    CourseHole(number: 7, par: 4, yardage: 360, description: "Risk/reward · Cut corner",            difficulty: "Medium"),
+    CourseHole(number: 8, par: 3, yardage: 190, description: "Long par 3 · Bunker front",           difficulty: "Hard"),
+    CourseHole(number: 9, par: 4, yardage: 375, description: "Finishing hole · Water left",         difficulty: "Medium"),
+]
+
+// MARK: - Green Slope Data
+
+private struct GreenSlopeArrow: Identifiable {
+    let id = UUID()
+    let position: CGPoint   // normalized 0–1 within green area
+    let angle: Double       // direction the ball will break (degrees)
+    let strength: Double    // 0–1
+}
+
 // MARK: - Haptic Helpers
 
 private func hapticHeavy() {

@@ -1183,6 +1183,39 @@ struct Basketball3v3GameView: View {
     @State private var rimShake: Double = 0
     @State private var screenShake: CGFloat = 0
 
+    // ── Hot Zone System ──────────────────────────────────────────────────
+    @State private var playerHotZone: CourtZone = .midRange
+    @State private var isHot: Bool = false
+    @State private var consecutiveMakesInZone: Int = 0
+    @State private var zoneAnnouncerText: String = ""
+    @State private var showZoneAnnouncer: Bool = false
+
+    // ── Teammate AI Play Calling ──────────────────────────────────────────
+    @State private var teammate1Position: CourtPosition = .wing
+    @State private var teammate2Position: CourtPosition = .elbow
+    @State private var activeSetPlay: SetPlay? = nil
+    @State private var showTeammateOpen: Bool = false
+    @State private var teammateOpenText: String = "TEAMMATE OPEN!"
+    @State private var playCallCooldown: Bool = false
+    @State private var currentPlayIndex: Int = 0
+
+    // ── Defensive Intensity ───────────────────────────────────────────────
+    @State private var defenseMode: DefenseMode = .manToMan
+
+    // ── Fatigue & Substitution ────────────────────────────────────────────
+    @State private var teamFatigue: Double = 1.0
+    @State private var isSubbing: Bool = false
+    @State private var subAnimProgress: Double = 0.0
+    @State private var subTask: Task<Void, Never>? = nil
+
+    // ── Shot Clock Pressure ───────────────────────────────────────────────
+    @State private var shotClockHapticTask: Task<Void, Never>? = nil
+
+    // ── Highlight Plays ───────────────────────────────────────────────────
+    @State private var lastHighlight: HighlightType? = nil
+    @State private var showHighlight: Bool = false
+    @State private var highlightSlowMo: Bool = false
+
     // Haptic generators
     private let impactHvy   = UIImpactFeedbackGenerator(style: .heavy)
     private let impactRigid = UIImpactFeedbackGenerator(style: .rigid)
@@ -1458,7 +1491,18 @@ struct Basketball3v3GameView: View {
         showResultLabel = false; lastPasser = ""
         shotProgress = -1; passProgress = -1; rimShake = 0
         playerPoses = ["idle", "idle", "idle"]; opponentPoses = ["guard", "guard", "guard"]
-        shardsRewarded = false; phase = .playing
+        shardsRewarded = false
+
+        // Reset new mechanics
+        playerHotZone = .midRange; isHot = false; consecutiveMakesInZone = 0
+        zoneAnnouncerText = ""; showZoneAnnouncer = false
+        teammate1Position = .wing; teammate2Position = .elbow
+        activeSetPlay = nil; showTeammateOpen = false; playCallCooldown = false
+        defenseMode = .manToMan
+        teamFatigue = 1.0; isSubbing = false; subAnimProgress = 0.0
+        lastHighlight = nil; showHighlight = false; highlightSlowMo = false
+
+        phase = .playing
         startMatchClock(); resetShotClock(); scheduleOpponentAttack()
     }
 
@@ -1639,19 +1683,30 @@ struct Basketball3v3GameView: View {
     }
 
     private func resetShotClock() {
-        shotClockTask?.cancel(); shotClock = 24
+        shotClockTask?.cancel(); shotClockHapticTask?.cancel()
+        shotClock = 24
         shotClockTask = Task {
             while shotClock > 0 {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
-                await MainActor.run { shotClock -= 1 }
+                await MainActor.run {
+                    shotClock -= 1
+                    // Shot clock pressure: flash haptic every second at ≤5
+                    if shotClock <= 5 && shotClock > 0 && possession == .player {
+                        impactMed.impactOccurred()
+                    }
+                }
             }
             await MainActor.run {
                 guard phase == .playing else { return }
                 if possession == .player {
-                    // Haptic: .soft on shot clock violation (foul call)
-                    impactSoft.impactOccurred()
-                    comboCount = 0; comboMultiplier = 1; possession = .opponent; activePasser = 0
+                    // Shot clock violation — turnover + error haptic
+                    notif.notificationOccurred(.error)
+                    flashZoneAnnouncer("SHOT CLOCK VIOLATION!")
+                    comboCount = 0; comboMultiplier = 1
+                    consecutiveMakesInZone = 0; isHot = false
+                    possession = .opponent; activePasser = 0
+                    drainFatigue(amount: 0.02)   // violation costs fatigue
                     scheduleOpponentAttack()
                 } else {
                     possession = .player; activePasser = 0
@@ -1679,5 +1734,8 @@ struct Basketball3v3GameView: View {
         matchClockTask?.cancel(); shotAnimTask?.cancel(); passAnimTask?.cancel()
         shotClockTask = nil; opponentTask = nil; matchClockTask = nil
         shotAnimTask = nil; passAnimTask = nil
+        // Cancel new mechanic tasks
+        subTask?.cancel(); subTask = nil
+        shotClockHapticTask?.cancel(); shotClockHapticTask = nil
     }
 }
