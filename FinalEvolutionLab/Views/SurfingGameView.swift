@@ -1,4 +1,15 @@
 import SwiftUI
+import UIKit
+
+// MARK: - Haptic Helpers
+
+private func hapticImpact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+    UIImpactFeedbackGenerator(style: style).impactOccurred()
+}
+
+private func hapticNotification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+    UINotificationFeedbackGenerator().notificationOccurred(type)
+}
 
 // MARK: - Phase
 
@@ -48,6 +59,12 @@ private struct WaveScore: Identifiable {
     var finalScore: Double { wipeout ? 0 : rawScore }
 }
 
+// MARK: - Canvas Phase
+
+private enum SurfCanvasPhase {
+    case normal, tube, aerial, wipeout
+}
+
 // MARK: - Surf Wave Drawer
 
 private struct SurfWaveDrawer {
@@ -57,14 +74,27 @@ private struct SurfWaveDrawer {
     let power: Double
     let isTrickWindow: Bool
     let t: Double
+    var canvasPhase: SurfCanvasPhase = .normal
+    var comboString: [String] = []
+    var tubeMultiplier: Int = 1
+    var jerseyColor: Color = Color(red: 0.2, green: 0.75, blue: 1.0)
 
     mutating func render(ctx: inout GraphicsContext) {
         drawSky(ctx: &ctx)
+        drawHorizonGlow(ctx: &ctx)
         drawOcean(ctx: &ctx)
+        drawOceanRipples(ctx: &ctx)
+        drawPier(ctx: &ctx)
+        drawBeachCrowd(ctx: &ctx)
         drawWaveFace(ctx: &ctx)
+        drawWaveCrestFoam(ctx: &ctx)
+        drawCrestSpray(ctx: &ctx)
         drawWhitewater(ctx: &ctx)
         drawFoamStripes(ctx: &ctx)
+        if canvasPhase == .tube { drawTubeScene(ctx: &ctx) }
         drawSurfer(ctx: &ctx)
+        drawSeagulls(ctx: &ctx)
+        if !comboString.isEmpty { drawComboString(ctx: &ctx) }
         if isTrickWindow { drawTrickGlow(ctx: &ctx) }
     }
 
@@ -99,13 +129,36 @@ private struct SurfWaveDrawer {
                    with: .color(Color(red: 1.0, green: 0.95, blue: 0.80).opacity(0.28)))
     }
 
+    // Horizon glow — warm sunrise/sunset orange pulsing slowly
+    private func drawHorizonGlow(ctx: inout GraphicsContext) {
+        let horizonY = H * 0.37
+        let pulse = CGFloat(0.5 + 0.5 * sin(t * 0.4))
+        var glowGC = ctx
+        glowGC.addFilter(.blur(radius: 28))
+        glowGC.fill(Path(CGRect(x: 0, y: horizonY - 22, width: W, height: 44)),
+                    with: .linearGradient(
+                        Gradient(stops: [
+                            .init(color: Color(red: 1.0, green: 0.55, blue: 0.10)
+                                    .opacity(Double(0.12 + pulse * 0.14)), location: 0),
+                            .init(color: Color(red: 1.0, green: 0.38, blue: 0.05)
+                                    .opacity(Double(0.08 + pulse * 0.10)), location: 0.5),
+                            .init(color: .clear, location: 1)
+                        ]),
+                        startPoint: CGPoint(x: 0, y: horizonY - 22),
+                        endPoint: CGPoint(x: 0, y: horizonY + 22)))
+    }
+
     private func drawOcean(ctx: inout GraphicsContext) {
         let horizonY = H * 0.37
+        // Deep blue-green at horizon → light turquoise toward camera
         ctx.fill(Path(CGRect(x: 0, y: horizonY, width: W, height: H - horizonY)),
                  with: .linearGradient(
                     Gradient(stops: [
-                        .init(color: Color(red: 0.03, green: 0.16, blue: 0.32), location: 0),
-                        .init(color: Color(red: 0.01, green: 0.07, blue: 0.18), location: 1)
+                        .init(color: Color(red: 0.03, green: 0.22, blue: 0.38), location: 0.0),
+                        .init(color: Color(red: 0.04, green: 0.30, blue: 0.42), location: 0.30),
+                        .init(color: Color(red: 0.05, green: 0.40, blue: 0.52), location: 0.60),
+                        .init(color: Color(red: 0.06, green: 0.50, blue: 0.60), location: 0.80),
+                        .init(color: Color(red: 0.02, green: 0.10, blue: 0.22), location: 1.0)
                     ]),
                     startPoint: CGPoint(x: 0, y: horizonY),
                     endPoint: CGPoint(x: 0, y: H)))
@@ -120,8 +173,76 @@ private struct SurfWaveDrawer {
             farWave.addQuadCurve(to: CGPoint(x: wx + ww, y: wy),
                                   control: CGPoint(x: wx + ww * 0.5, y: wy - H * 0.018))
             ctx.stroke(farWave,
-                       with: .color(Color(red: 0.15, green: 0.45, blue: 0.65).opacity(0.25)),
+                       with: .color(Color(red: 0.20, green: 0.60, blue: 0.75).opacity(0.30)),
                        lineWidth: 1.5)
+        }
+    }
+
+    // Water surface ripples — 8 sine-wave paths on flat water in front of wave
+    private func drawOceanRipples(ctx: inout GraphicsContext) {
+        let (_, _, baseX, baseY, _) = waveGeometry()
+        for r in 0..<8 {
+            let fr = Double(r)
+            let ry = baseY + H * CGFloat(0.04 + fr * 0.018)
+            guard ry < H else { continue }
+            let phase = fmod(t * 0.8 + fr * 0.3, 2.0 * .pi)
+            var ripple = Path()
+            let steps = 20
+            for s in 0..<steps {
+                let x = CGFloat(s) / CGFloat(steps - 1) * baseX * 0.9
+                let y = ry + CGFloat(sin(Double(s) * 0.9 + phase)) * H * 0.004
+                if s == 0 { ripple.move(to: CGPoint(x: x, y: y)) }
+                else { ripple.addLine(to: CGPoint(x: x, y: y)) }
+            }
+            ctx.stroke(ripple,
+                       with: .color(Color(red: 0.35, green: 0.70, blue: 0.90)
+                                        .opacity(max(0, 0.14 - fr * 0.01))),
+                       lineWidth: 0.8)
+        }
+    }
+
+    // Pier silhouette extending from right edge over water
+    private func drawPier(ctx: inout GraphicsContext) {
+        let horizonY = H * 0.37
+        let pierBaseY = horizonY + H * 0.04
+        let pierTipX = W * 0.60
+        let pierEndX = W * 1.0
+        let pierTopY = pierBaseY - H * 0.02
+        var pier = Path()
+        pier.move(to: CGPoint(x: pierTipX, y: pierTopY))
+        pier.addLine(to: CGPoint(x: pierEndX, y: pierTopY))
+        pier.addLine(to: CGPoint(x: pierEndX, y: pierBaseY + H * 0.012))
+        pier.addLine(to: CGPoint(x: pierTipX, y: pierBaseY + H * 0.012))
+        pier.closeSubpath()
+        ctx.fill(pier, with: .color(Color(red: 0.08, green: 0.10, blue: 0.14).opacity(0.82)))
+        for k in 0..<5 {
+            let px = pierTipX + (pierEndX - pierTipX) * CGFloat(k) / 4.0
+            var piling = Path()
+            piling.move(to: CGPoint(x: px, y: pierBaseY + H * 0.012))
+            piling.addLine(to: CGPoint(x: px, y: pierBaseY + H * 0.055))
+            ctx.stroke(piling,
+                       with: .color(Color(red: 0.08, green: 0.10, blue: 0.14).opacity(0.75)),
+                       lineWidth: 3)
+        }
+    }
+
+    // Beach crowd — 15 spectator dots that bob on big moves
+    private func drawBeachCrowd(ctx: inout GraphicsContext) {
+        let crowdY = H * 0.90
+        let bigMove = power > 0.75
+        for k in 0..<15 {
+            let fk = Double(k)
+            let cx = W * CGFloat(0.04 + fk * 0.061)
+            let bobOffset = bigMove ? CGFloat(abs(sin(t * 3.0 + fk * 0.7))) * 5.0 : 0
+            let cy = crowdY - bobOffset
+            let r = CGFloat(0.5 + fk / 15.0 * 0.3)
+            let g = CGFloat(0.3 + 0.2 * sin(fk))
+            let b = CGFloat(0.6 + 0.2 * cos(fk))
+            let spectatorColor = Color(red: Double(r), green: Double(g), blue: Double(b)).opacity(0.65)
+            ctx.fill(Path(ellipseIn: CGRect(x: cx - 3, y: cy - 5, width: 6, height: 7)),
+                     with: .color(spectatorColor))
+            ctx.fill(Path(ellipseIn: CGRect(x: cx - 2, y: cy - 10, width: 5, height: 5)),
+                     with: .color(spectatorColor))
         }
     }
 
@@ -174,6 +295,43 @@ private struct SurfWaveDrawer {
             with: .color(Color.white.opacity(0.38)))
     }
 
+    // White foam texture on wave crest — 20 small bezier arcs
+    private func drawWaveCrestFoam(ctx: inout GraphicsContext) {
+        let (crestX, crestY, _, _, _) = waveGeometry()
+        for i in 0..<20 {
+            let fi = Double(i)
+            let fx = crestX - W * 0.12 + W * CGFloat(fi / 20.0) * 0.28
+            let fy = crestY + H * 0.005 + CGFloat(sin(fi * 1.3 + t * 2.0)) * H * 0.008
+            let fw = W * CGFloat(0.012 + (fi / 20.0) * 0.008)
+            var arc = Path()
+            arc.move(to: CGPoint(x: fx, y: fy))
+            arc.addQuadCurve(to: CGPoint(x: fx + fw, y: fy),
+                             control: CGPoint(x: fx + fw * 0.5, y: fy - H * 0.009))
+            let foamOpacity = 0.45 + 0.30 * sin(fi * 0.7 + t * 1.5)
+            ctx.stroke(arc, with: .color(.white.opacity(foamOpacity)), lineWidth: 1.8)
+        }
+    }
+
+    // 20 spray particles launching off crest tip with gravity
+    private func drawCrestSpray(ctx: inout GraphicsContext) {
+        let (crestX, crestY, _, _, _) = waveGeometry()
+        guard power > 0.4 else { return }
+        for i in 0..<20 {
+            let fi = Double(i)
+            let spawnX = crestX + CGFloat(i - 10) * 7
+            let vx = CGFloat(fi - 10.0) * 1.8
+            let vy = -CGFloat(38.0 + fi * 2.5)
+            let age = CGFloat(fmod(t * 2.8 + fi * 0.38, 1.0))
+            let px = spawnX + vx * age
+            let py = crestY + vy * age + 0.5 * 75 * age * age
+            let opacity = Double((1.0 - age) * CGFloat(power) * 0.9)
+            guard opacity > 0.02 else { continue }
+            let r = CGFloat(1.5 + age * 1.0)
+            ctx.fill(Path(ellipseIn: CGRect(x: px - r, y: py - r, width: r * 2, height: r * 2)),
+                     with: .color(.white.opacity(opacity)))
+        }
+    }
+
     private func drawWhitewater(ctx: inout GraphicsContext) {
         let (_, _, baseX, baseY, waveH) = waveGeometry()
         let foamH = H * 0.06
@@ -196,6 +354,7 @@ private struct SurfWaveDrawer {
             let bx = W * CGFloat(bxn) + W * 0.04 * CGFloat(animPhase)
             let by = baseY - H * 0.015 - CGFloat(animPhase) * foamH * 0.8
             let br = CGFloat(1.5 + phase * 2.0)
+            let _ = waveH // suppress warning
             ctx.fill(Path(ellipseIn: CGRect(x: bx - br, y: by - br, width: br * 2, height: br * 2)),
                      with: .color(.white.opacity(CGFloat(0.28 + animPhase * 0.22))))
         }
@@ -222,57 +381,179 @@ private struct SurfWaveDrawer {
         }
     }
 
+    // Barrel / tube scene — elliptical mouth, light at end, falling lip
+    private func drawTubeScene(ctx: inout GraphicsContext) {
+        let (crestX, crestY, baseX, baseY, _) = waveGeometry()
+        let tubeX = baseX + (crestX - baseX) * 0.55
+        let tubeY = crestY + (baseY - crestY) * 0.38
+        let tubeW = W * 0.22
+        let tubeH = H * 0.14
+        // Dark barrel interior
+        var tubeMouth = Path()
+        tubeMouth.addEllipse(in: CGRect(x: tubeX - tubeW * 0.5, y: tubeY - tubeH * 0.5,
+                                         width: tubeW, height: tubeH))
+        ctx.fill(tubeMouth, with: .color(Color(red: 0.01, green: 0.04, blue: 0.12).opacity(0.75)))
+        ctx.stroke(tubeMouth, with: .color(.white.opacity(0.30)), lineWidth: 1.5)
+        // Light at end of tube
+        var tubeGC = ctx
+        tubeGC.addFilter(.blur(radius: 16))
+        tubeGC.fill(Path(ellipseIn: CGRect(x: tubeX + tubeW * 0.22, y: tubeY - tubeH * 0.28,
+                                            width: tubeW * 0.30, height: tubeH * 0.55)),
+                    with: .color(.white.opacity(0.55)))
+        // Falling lip / water wall
+        let wallPulse = CGFloat(abs(sin(t * 2.2))) * H * 0.018
+        var wall = Path()
+        wall.move(to: CGPoint(x: tubeX - tubeW * 0.5, y: tubeY - tubeH * 0.5))
+        wall.addCurve(
+            to: CGPoint(x: tubeX + tubeW * 0.5, y: tubeY - tubeH * 0.3 - wallPulse),
+            control1: CGPoint(x: tubeX - tubeW * 0.1, y: tubeY - tubeH * 0.85 - wallPulse),
+            control2: CGPoint(x: tubeX + tubeW * 0.3, y: tubeY - tubeH * 0.7 - wallPulse * 0.5))
+        ctx.stroke(wall, with: .color(.white.opacity(0.35)), lineWidth: 2.5)
+        // Tube score multiplier badge
+        ctx.draw(
+            Text("x\(tubeMultiplier) TUBE")
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.cyan.opacity(0.9)),
+            at: CGPoint(x: tubeX, y: tubeY - tubeH * 0.8),
+            anchor: .center)
+    }
+
     private func drawSurfer(ctx: inout GraphicsContext) {
         let (crestX, crestY, baseX, baseY, _) = waveGeometry()
         let faceT: CGFloat = 0.42
         let sx = baseX + (crestX - baseX) * faceT * 0.80
         let sy = crestY + (baseY - crestY) * (1.0 - faceT * 0.72)
         let leanAngle = (balance - 0.5) * .pi / 5.5
-        let trickJump = isTrickWindow ? -abs(sin(t * 8.0)) * 14.0 : 0.0
+
+        let isAerial = canvasPhase == .aerial
+        let isTube = canvasPhase == .tube
+        let isBottomTurn = !isTrickWindow && !isAerial && !isTube && power > 0.5
+
+        let trickJump: Double
+        switch canvasPhase {
+        case .aerial:  trickJump = -abs(sin(t * 5.0)) * 30.0
+        case .tube:    trickJump = 6.0
+        default:       trickJump = isTrickWindow ? -abs(sin(t * 8.0)) * 14.0 : 0.0
+        }
 
         var shadowGC = ctx
         shadowGC.translateBy(x: sx, y: sy + CGFloat(trickJump))
         shadowGC.addFilter(.blur(radius: 4))
         shadowGC.fill(Path(ellipseIn: CGRect(x: -18, y: 8, width: 36, height: 8)),
-                      with: .color(.black.opacity(0.32)))
+                      with: .color(.black.opacity(isAerial ? 0.10 : 0.32)))
 
         var gc = ctx
         gc.translateBy(x: sx, y: sy + CGFloat(trickJump))
         gc.rotate(by: .radians(leanAngle))
 
+        // Board with jersey-tinted rail stripe
         gc.fill(Path(roundedRect: CGRect(x: -21, y: 4, width: 42, height: 7),
                      cornerRadius: CGSize(width: 3.5, height: 3.5)),
                 with: .color(.white.opacity(0.92)))
         gc.fill(Path(roundedRect: CGRect(x: -21, y: 4, width: 42, height: 2),
                      cornerRadius: CGSize(width: 1, height: 1)),
-                with: .color(Color(red: 0.20, green: 0.75, blue: 1.0).opacity(0.85)))
+                with: .color(jerseyColor.opacity(0.85)))
+
+        // Leash — thin white line from ankle to board tail
+        var leash = Path()
+        leash.move(to: CGPoint(x: -8, y: 4))
+        leash.addQuadCurve(to: CGPoint(x: -21, y: 8),
+                           control: CGPoint(x: -15, y: 12))
+        gc.stroke(leash, with: .color(.white.opacity(0.40)), lineWidth: 0.8)
 
         let wetsuit = GraphicsContext.Shading.color(Color(red: 0.06, green: 0.14, blue: 0.32))
         let skin = GraphicsContext.Shading.color(Color(red: 0.88, green: 0.65, blue: 0.44))
 
-        var legs = Path()
-        legs.move(to: CGPoint(x: -7, y: 4))
-        legs.addLine(to: CGPoint(x: -4, y: -3))
-        legs.addLine(to: CGPoint(x: -1, y: -7))
-        legs.move(to: CGPoint(x: 7, y: 4))
-        legs.addLine(to: CGPoint(x: 4, y: -3))
-        legs.addLine(to: CGPoint(x: 1, y: -7))
-        gc.stroke(legs, with: wetsuit, lineWidth: 3.0)
+        if isTube {
+            // Deep crouch — one arm trailing in wave face
+            var legs = Path()
+            legs.move(to: CGPoint(x: -6, y: 4))
+            legs.addLine(to: CGPoint(x: -5, y: -1))
+            legs.addLine(to: CGPoint(x: -2, y: -4))
+            legs.move(to: CGPoint(x: 6, y: 4))
+            legs.addLine(to: CGPoint(x: 5, y: -1))
+            legs.addLine(to: CGPoint(x: 2, y: -4))
+            gc.stroke(legs, with: wetsuit, lineWidth: 3.0)
+            var torso = Path()
+            torso.move(to: CGPoint(x: 0, y: -4))
+            torso.addLine(to: CGPoint(x: 0, y: -12))
+            gc.stroke(torso, with: wetsuit, lineWidth: 3.0)
+            var arms = Path()
+            arms.move(to: CGPoint(x: -18, y: -8))
+            arms.addLine(to: CGPoint(x: 0, y: -10))
+            arms.addLine(to: CGPoint(x: 10, y: -11))
+            gc.stroke(arms, with: wetsuit, lineWidth: 2.5)
+            gc.fill(Path(ellipseIn: CGRect(x: -4.5, y: -20, width: 9, height: 9)), with: skin)
+        } else if isAerial {
+            // Grab position — hand meets board
+            var legs = Path()
+            legs.move(to: CGPoint(x: -7, y: 4))
+            legs.addLine(to: CGPoint(x: -9, y: -2))
+            legs.addLine(to: CGPoint(x: -6, y: -8))
+            legs.move(to: CGPoint(x: 7, y: 4))
+            legs.addLine(to: CGPoint(x: 9, y: -2))
+            legs.addLine(to: CGPoint(x: 6, y: -8))
+            gc.stroke(legs, with: wetsuit, lineWidth: 3.0)
+            var torso = Path()
+            torso.move(to: CGPoint(x: 0, y: -8))
+            torso.addLine(to: CGPoint(x: 0, y: -18))
+            gc.stroke(torso, with: wetsuit, lineWidth: 3.0)
+            var arms = Path()
+            arms.move(to: CGPoint(x: -10, y: -14))
+            arms.addLine(to: CGPoint(x: 0, y: -13))
+            arms.addLine(to: CGPoint(x: 12, y: -8))
+            arms.addLine(to: CGPoint(x: 14, y: 2))  // grab board
+            gc.stroke(arms, with: wetsuit, lineWidth: 2.5)
+            gc.fill(Path(ellipseIn: CGRect(x: -4.5, y: -26, width: 9, height: 9)), with: skin)
+        } else if isBottomTurn {
+            // Crouch with arms extended for cutback/bottom-turn balance
+            var legs = Path()
+            legs.move(to: CGPoint(x: -7, y: 4))
+            legs.addLine(to: CGPoint(x: -5, y: -2))
+            legs.addLine(to: CGPoint(x: -3, y: -6))
+            legs.move(to: CGPoint(x: 7, y: 4))
+            legs.addLine(to: CGPoint(x: 5, y: -2))
+            legs.addLine(to: CGPoint(x: 3, y: -6))
+            gc.stroke(legs, with: wetsuit, lineWidth: 3.0)
+            var torso = Path()
+            torso.move(to: CGPoint(x: 0, y: -6))
+            torso.addLine(to: CGPoint(x: 3, y: -14))  // lean forward
+            gc.stroke(torso, with: wetsuit, lineWidth: 3.0)
+            let armSpread: CGFloat = isTrickWindow ? 22 : 16
+            var arms = Path()
+            arms.move(to: CGPoint(x: -armSpread, y: -11))
+            arms.addLine(to: CGPoint(x: 3, y: -10))
+            arms.addLine(to: CGPoint(x: armSpread, y: -9))
+            gc.stroke(arms, with: wetsuit, lineWidth: 2.5)
+            gc.fill(Path(ellipseIn: CGRect(x: -1.5, y: -22, width: 9, height: 9)), with: skin)
+        } else {
+            // Default upright stance
+            var legs = Path()
+            legs.move(to: CGPoint(x: -7, y: 4))
+            legs.addLine(to: CGPoint(x: -4, y: -3))
+            legs.addLine(to: CGPoint(x: -1, y: -7))
+            legs.move(to: CGPoint(x: 7, y: 4))
+            legs.addLine(to: CGPoint(x: 4, y: -3))
+            legs.addLine(to: CGPoint(x: 1, y: -7))
+            gc.stroke(legs, with: wetsuit, lineWidth: 3.0)
+            var torso = Path()
+            torso.move(to: CGPoint(x: 0, y: -7))
+            torso.addLine(to: CGPoint(x: 0, y: -17))
+            gc.stroke(torso, with: wetsuit, lineWidth: 3.0)
+            let armSpread: CGFloat = isTrickWindow ? 17 : 13
+            var arms = Path()
+            arms.move(to: CGPoint(x: -armSpread, y: -13))
+            arms.addLine(to: CGPoint(x: 0, y: -12))
+            arms.addLine(to: CGPoint(x: armSpread, y: -13))
+            gc.stroke(arms, with: wetsuit, lineWidth: 2.5)
+            gc.fill(Path(ellipseIn: CGRect(x: -4.5, y: -25, width: 9, height: 9)), with: skin)
+        }
 
-        var torso = Path()
-        torso.move(to: CGPoint(x: 0, y: -7))
-        torso.addLine(to: CGPoint(x: 0, y: -17))
-        gc.stroke(torso, with: wetsuit, lineWidth: 3.0)
+        // Jersey color patch on chest
+        gc.fill(Path(ellipseIn: CGRect(x: -4, y: -17, width: 8, height: 8)),
+                with: .color(jerseyColor.opacity(0.55)))
 
-        let armSpread: CGFloat = isTrickWindow ? 17 : 13
-        var arms = Path()
-        arms.move(to: CGPoint(x: -armSpread, y: -13))
-        arms.addLine(to: CGPoint(x: 0, y: -12))
-        arms.addLine(to: CGPoint(x: armSpread, y: -13))
-        gc.stroke(arms, with: wetsuit, lineWidth: 2.5)
-
-        gc.fill(Path(ellipseIn: CGRect(x: -4.5, y: -25, width: 9, height: 9)), with: skin)
-
+        // Fin spray during turns
         if power > 0.35 {
             for si in 0..<5 {
                 let sa = Double(si) * .pi / 4.0 - .pi * 0.1
@@ -285,6 +566,42 @@ private struct SurfWaveDrawer {
                                                width: sdot * 2, height: sdot * 2)),
                         with: .color(.white.opacity(CGFloat(0.5 * power) * CGFloat(1.0 - sprayPhase))))
             }
+        }
+    }
+
+    // Seagulls — 3 V-shaped bird silhouettes
+    private func drawSeagulls(ctx: inout GraphicsContext) {
+        for i in 0..<3 {
+            let fi = Double(i)
+            let bx = CGFloat(fmod(t * (22.0 + fi * 6.0) + fi * 80.0, Double(W) + 80.0)) - 40
+            let by = H * CGFloat(0.10 + fi * 0.04) + CGFloat(sin(t * 0.6 + fi * 1.3)) * 6
+            var bird = Path()
+            bird.move(to: CGPoint(x: bx - 11, y: by + 4))
+            bird.addLine(to: CGPoint(x: bx, y: by))
+            bird.addLine(to: CGPoint(x: bx + 11, y: by + 4))
+            ctx.stroke(bird, with: .color(.white.opacity(0.55)), lineWidth: 1.5)
+        }
+    }
+
+    // Combo string badges along bottom of canvas
+    private func drawComboString(ctx: inout GraphicsContext) {
+        let startX = W - W * 0.05
+        for (idx, trick) in comboString.suffix(4).enumerated() {
+            let bx = startX - CGFloat(idx) * W * 0.22
+            let by = H * 0.92
+            guard bx > 0 else { continue }
+            var badge = Path()
+            badge.addRoundedRect(in: CGRect(x: bx - W * 0.10, y: by - 9,
+                                            width: W * 0.20, height: 18),
+                                  cornerSize: CGSize(width: 5, height: 5))
+            ctx.fill(badge, with: .color(Color.yellow.opacity(0.18)))
+            ctx.stroke(badge, with: .color(Color.yellow.opacity(0.45)), lineWidth: 1)
+            ctx.draw(
+                Text(trick)
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color.yellow.opacity(0.85)),
+                at: CGPoint(x: bx, y: by),
+                anchor: .center)
         }
     }
 
@@ -309,6 +626,10 @@ private struct SurfingWaveCanvas: View {
     let balance: Double
     let power: Double
     let isTrickWindow: Bool
+    var canvasPhase: SurfCanvasPhase = .normal
+    var comboString: [String] = []
+    var tubeMultiplier: Int = 1
+    var jerseyColor: Color = Color(red: 0.2, green: 0.75, blue: 1.0)
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -317,7 +638,11 @@ private struct SurfingWaveCanvas: View {
                 var drawer = SurfWaveDrawer(
                     W: size.width, H: size.height,
                     balance: balance, power: power,
-                    isTrickWindow: isTrickWindow, t: t)
+                    isTrickWindow: isTrickWindow, t: t,
+                    canvasPhase: canvasPhase,
+                    comboString: comboString,
+                    tubeMultiplier: tubeMultiplier,
+                    jerseyColor: jerseyColor)
                 drawer.render(ctx: &ctx)
             }
         }
@@ -506,6 +831,14 @@ struct SurfingGameView: View {
     @State private var rewardApplied: Bool = false
 
     @State private var paddleProgress: Double = 0.0
+
+    // Canvas phase & haptic state
+    @State private var currentCanvasPhase: SurfCanvasPhase = .normal
+    @State private var comboTricks: [String] = []
+    @State private var tubeMultiplier: Int = 1
+    @State private var wasInPerfectBalance: Bool = false
+    @State private var judgeScores: [Double] = []
+    @State private var showJudgePanel: Bool = false
 
     private let accentColor = Color(red: 0.2, green: 0.75, blue: 1.0)
     private let totalWaves = 3
@@ -754,7 +1087,9 @@ struct SurfingGameView: View {
 
     private var ridingStatusPanel: some View {
         ZStack {
-            SurfingWaveCanvas(balance: balanceMeter, power: wavePower, isTrickWindow: false)
+            SurfingWaveCanvas(balance: balanceMeter, power: wavePower, isTrickWindow: false,
+                              canvasPhase: currentCanvasPhase, comboString: comboTricks,
+                              tubeMultiplier: tubeMultiplier)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             Color.black.opacity(0.16)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -785,7 +1120,9 @@ struct SurfingGameView: View {
 
     private var trickWindowPanel: some View {
         ZStack {
-            SurfingWaveCanvas(balance: balanceMeter, power: wavePower, isTrickWindow: true)
+            SurfingWaveCanvas(balance: balanceMeter, power: wavePower, isTrickWindow: true,
+                              canvasPhase: currentCanvasPhase, comboString: comboTricks,
+                              tubeMultiplier: tubeMultiplier)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             Color.black.opacity(0.52)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -983,6 +1320,34 @@ struct SurfingGameView: View {
                         .font(.system(size: 30, weight: .black, design: .monospaced)).foregroundStyle(.white)
                 }
             }
+
+            // Judge panel — 3 scores revealed with staggered animation
+            if showJudgePanel && !judgeScores.isEmpty {
+                HStack(spacing: 12) {
+                    ForEach(judgeScores.indices, id: \.self) { idx in
+                        VStack(spacing: 4) {
+                            Text("JUDGE \(idx + 1)")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                                .foregroundStyle(.secondary).tracking(1)
+                            Text(String(format: "%.1f", judgeScores[idx]))
+                                .font(.system(size: 22, weight: .black, design: .monospaced))
+                                .foregroundStyle(.yellow)
+                                .contentTransition(.numericText())
+                        }
+                        .padding(.vertical, 8).padding(.horizontal, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.yellow.opacity(0.08))
+                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.yellow.opacity(0.28), lineWidth: 1))
+                        )
+                        .transition(.scale(scale: 0.5).combined(with: .opacity))
+                        .animation(.spring(response: 0.35, dampingFraction: 0.6)
+                                    .delay(Double(idx) * 0.28), value: showJudgePanel)
+                    }
+                }
+            }
+
             VStack(spacing: 10) {
                 if let ws = waveScores.last {
                     scoreRow(label: "TRICK POINTS", value: String(format: "%.0f", Double(trickAccumulator)))
@@ -1115,6 +1480,12 @@ struct SurfingGameView: View {
         trickAccumulator = 0
         trickWindowOpen = false
         performedTrick = nil
+        comboTricks = []
+        tubeMultiplier = 1
+        currentCanvasPhase = .normal
+        wasInPerfectBalance = false
+        judgeScores = []
+        showJudgePanel = false
         phase = .riding
         startWavePowerTimer()
         startHeatClock()
@@ -1163,6 +1534,12 @@ struct SurfingGameView: View {
                     balanceMeter = max(0, min(1, balanceMeter + drift))
                     let dist = abs(balanceMeter - 0.5)
                     currentBalanceMultiplier = dist < 0.1 ? 1.5 : (dist < 0.25 ? 1.0 : 0.5)
+                    // Perfect balance haptic — fires once on entry (not spam)
+                    let isNowPerfect = dist < 0.1
+                    if isNowPerfect && !wasInPerfectBalance {
+                        hapticImpact(.soft)
+                    }
+                    wasInPerfectBalance = isNowPerfect
                     if balanceMeter < 0.12 || balanceMeter > 0.88 {
                         balanceOffCenterTime += 0.15
                         if balanceOffCenterTime >= 2.0 && !wipeoutTriggered {
@@ -1181,6 +1558,8 @@ struct SurfingGameView: View {
         trickWindowOpen = true
         trickWindowTimeLeft = 4.0
         phase = .trickWindow
+        // Perfect timing window haptic — soft pulse on window open
+        hapticImpact(.soft)
         Task {
             for i in 0..<40 {
                 guard !Task.isCancelled else { return }
@@ -1206,6 +1585,38 @@ struct SurfingGameView: View {
         performedTrick = trick
         trickAccumulator += trick.points
         currentWaveScore = Double(trickAccumulator) * currentBalanceMultiplier
+
+        // Haptic per trick — mirroring real surf sensation
+        switch trick {
+        case .aerial:
+            hapticImpact(.heavy)           // launch off the lip
+            currentCanvasPhase = .aerial
+            Task {
+                try? await Task.sleep(for: .milliseconds(600))
+                await MainActor.run {
+                    hapticImpact(.heavy)   // aerial landing — board slapping water
+                    currentCanvasPhase = .normal
+                }
+            }
+        case .tube:
+            hapticImpact(.rigid)           // entering the barrel
+            currentCanvasPhase = .tube
+            tubeMultiplier = min(3, tubeMultiplier + 1)
+            Task {
+                try? await Task.sleep(for: .milliseconds(1200))
+                await MainActor.run { currentCanvasPhase = .normal }
+            }
+        case .cutback:
+            hapticImpact(.medium)          // carving the wave (bottom turn / cutback)
+            currentCanvasPhase = .normal
+        }
+
+        // Score popup haptic
+        hapticImpact(.light)
+
+        // Track combo string for canvas badges
+        comboTricks.append(trick.rawValue)
+
         trickFlashText = "\(trick.rawValue)  +\(trick.points)"
         withAnimation(.spring(response: 0.2)) { showTrickFlash = true }
         Task {
@@ -1228,16 +1639,29 @@ struct SurfingGameView: View {
         let ws = WaveScore(waveNumber: waveNumber, rawScore: finalScore, wipeout: wipeout)
         waveScores.append(ws)
         if wipeout {
+            // Wipeout haptics — notification error + heavy impact
+            hapticNotification(.error)
+            hapticImpact(.heavy)
+            currentCanvasPhase = .wipeout
             phase = .wipeout
             Task {
                 try? await Task.sleep(for: .seconds(2.0))
                 await MainActor.run { advanceWave() }
             }
         } else {
+            // Score popup haptic
+            hapticImpact(.light)
+            // Generate judge scores for panel reveal
+            let j1 = finalScore * Double.random(in: 0.85...1.05)
+            let j2 = finalScore * Double.random(in: 0.80...1.00)
+            let j3 = finalScore * Double.random(in: 0.88...1.08)
+            judgeScores = [min(10, j1 / 3.0), min(10, j2 / 3.0), min(10, j3 / 3.0)]
+            showJudgePanel = true
+            currentCanvasPhase = .normal
             phase = .waveResult
             Task {
                 try? await Task.sleep(for: .seconds(2.4))
-                await MainActor.run { advanceWave() }
+                await MainActor.run { showJudgePanel = false; advanceWave() }
             }
         }
     }
