@@ -31,6 +31,7 @@ struct AvatarDemoView: View {
     }
 
     // MARK: - State
+    @State private var show3DAvatar: Bool = false
     @State private var repCount: Int = 0
     @State private var setCount: Int = 1
     @State private var exerciseIndex: Int = 0
@@ -120,6 +121,9 @@ struct AvatarDemoView: View {
         }
         .overlay(alignment: .top) {
             setProgressBar
+        }
+        .overlay(alignment: .bottomTrailing) {
+            avatarModelOverlay
         }
         .onReceive(repTimer) { _ in
             updateRepCounter()
@@ -1066,6 +1070,47 @@ struct AvatarDemoView: View {
             .clipShape(Capsule())
         }
         .padding(.bottom, 12)
+    }
+
+    // MARK: - 3D Avatar Overlay (shows when USDZ file is present)
+
+    private var avatarModelOverlay: some View {
+        VStack(spacing: 6) {
+            if show3DAvatar {
+                MeshyAvatarView(slot: .elijahBonds, autoRotate: true)
+                    .frame(width: 110, height: 160)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+                    .shadow(color: Color(red: 0.2, green: 0.6, blue: 1.0).opacity(0.4), radius: 12)
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) {
+                    show3DAvatar.toggle()
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: show3DAvatar ? "cube.fill" : "cube")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(show3DAvatar ? "HIDE 3D" : "3D")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                }
+                .foregroundStyle(Color(red: 0.4, green: 0.8, blue: 1.0))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule()
+                        .fill(Color.black.opacity(0.65))
+                        .overlay(Capsule().stroke(Color(red: 0.4, green: 0.8, blue: 1.0).opacity(0.4), lineWidth: 1))
+                )
+            }
+        }
+        .padding(.trailing, 12)
+        .padding(.bottom, 100)
     }
 
     private var setProgressBar: some View {
