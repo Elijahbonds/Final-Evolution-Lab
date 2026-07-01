@@ -1582,6 +1582,258 @@ struct GymnasticsGameView: View {
         }
     }
 
+    // MARK: - Dual Score HUD
+
+    private var dualScoreHUD: some View {
+        HStack(spacing: 0) {
+            // YOU panel
+            VStack(spacing: 1) {
+                Text("YOU")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(accentColor.opacity(0.8))
+                    .tracking(2)
+                Text(String(format: "%.0f", totalScore))
+                    .font(.system(size: 26, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
+                    .animation(.spring(response: 0.25), value: Int(totalScore))
+                // element progress dots
+                HStack(spacing: 4) {
+                    ForEach(0..<totalElements, id: \.self) { i in
+                        Circle()
+                            .fill(i < elementResults.count
+                                  ? (elementResults[i].grade == .miss ? Color.red : accentColor)
+                                  : Color.white.opacity(0.12))
+                            .frame(width: 5, height: 5)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(accentColor.opacity(0.08))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(accentColor.opacity(0.25), lineWidth: 1))
+            )
+
+            // VS divider
+            Text("VS")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.30))
+                .padding(.horizontal, 8)
+
+            // ARIA (AI) panel
+            ZStack {
+                VStack(spacing: 1) {
+                    Text("ARIA")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.orange.opacity(0.85))
+                        .tracking(2)
+                    Text("\(aiCurrentScore)")
+                        .font(.system(size: 26, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                        .animation(.spring(response: 0.25), value: aiCurrentScore)
+                    // AI element progress dots
+                    HStack(spacing: 4) {
+                        ForEach(0..<totalElements, id: \.self) { i in
+                            Circle()
+                                .fill(i < aiElementResults.count
+                                      ? (aiElementResults[i] == 0 ? Color.red : Color.orange)
+                                      : Color.white.opacity(0.12))
+                                .frame(width: 5, height: 5)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(showAiFlash ? aiElementFlash.opacity(0.18) : Color.orange.opacity(0.06))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+                            showAiFlash ? aiElementFlash.opacity(0.60) : Color.orange.opacity(0.22),
+                            lineWidth: showAiFlash ? 1.8 : 1))
+                        .animation(.easeOut(duration: 0.25), value: showAiFlash)
+                )
+
+                // AI score pop text
+                if showAIScorePop {
+                    Text(aiScorePopText)
+                        .font(.system(size: 15, weight: .black, design: .monospaced))
+                        .foregroundStyle(aiElementFlash)
+                        .shadow(color: aiElementFlash.opacity(0.6), radius: 8)
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.5).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                }
+
+                // AI grade text flash
+                if showAiFlash {
+                    VStack(spacing: 0) {
+                        Spacer()
+                        Text(aiGradeText)
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(aiElementFlash)
+                            .padding(.bottom, 4)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 4)
+    }
+
+    // MARK: - Final Judgment Overlay
+
+    private var finalJudgmentOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.82).ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                // Crown for winner
+                let youWin = Int(totalScore) > aiCurrentScore
+                let drawGame = Int(totalScore) == aiCurrentScore
+
+                Text("FINAL JUDGMENT")
+                    .font(.system(size: 18, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .tracking(3)
+                    .padding(.top, 20)
+
+                // Crown icon
+                Image(systemName: drawGame ? "equal.circle.fill" : "crown.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(drawGame ? Color.gray : Color.yellow)
+                    .shadow(color: (drawGame ? Color.gray : Color.yellow).opacity(0.6), radius: 14)
+                    .symbolEffect(.bounce, value: showFinalJudgment)
+
+                // Side-by-side score bars
+                HStack(spacing: 16) {
+                    // Player bar
+                    VStack(spacing: 8) {
+                        Text("YOU")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(youWin && !drawGame ? accentColor : .white.opacity(0.7))
+                            .tracking(2)
+                        Text(String(format: "%.0f", totalScore))
+                            .font(.system(size: 34, weight: .black, design: .monospaced))
+                            .foregroundStyle(youWin && !drawGame ? accentColor : .white)
+
+                        let maxScore = max(totalScore, Double(aiCurrentScore), 1)
+                        GeometryReader { geo in
+                            ZStack(alignment: .bottom) {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.white.opacity(0.08))
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(youWin && !drawGame
+                                          ? LinearGradient(colors: [accentColor, Theme.brandCyan], startPoint: .bottom, endPoint: .top)
+                                          : LinearGradient(colors: [Color.white.opacity(0.5), Color.white.opacity(0.3)], startPoint: .bottom, endPoint: .top))
+                                    .frame(height: geo.size.height * CGFloat(totalScore / maxScore))
+                                    .animation(.easeOut(duration: 1.2), value: showFinalJudgment)
+                            }
+                        }
+                        .frame(height: 100)
+
+                        if youWin && !drawGame {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(.yellow)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // AI bar
+                    VStack(spacing: 8) {
+                        Text("ARIA")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(!youWin && !drawGame ? Color.orange : .white.opacity(0.7))
+                            .tracking(2)
+                        Text("\(aiCurrentScore)")
+                            .font(.system(size: 34, weight: .black, design: .monospaced))
+                            .foregroundStyle(!youWin && !drawGame ? Color.orange : .white)
+
+                        let maxScore = max(totalScore, Double(aiCurrentScore), 1)
+                        GeometryReader { geo in
+                            ZStack(alignment: .bottom) {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.white.opacity(0.08))
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(!youWin && !drawGame
+                                          ? LinearGradient(colors: [Color.orange, Color.red], startPoint: .bottom, endPoint: .top)
+                                          : LinearGradient(colors: [Color.white.opacity(0.5), Color.white.opacity(0.3)], startPoint: .bottom, endPoint: .top))
+                                    .frame(height: geo.size.height * CGFloat(Double(aiCurrentScore) / maxScore))
+                                    .animation(.easeOut(duration: 1.2).delay(0.1), value: showFinalJudgment)
+                            }
+                        }
+                        .frame(height: 100)
+
+                        if !youWin && !drawGame {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(.yellow)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 32)
+
+                // ARIA element breakdown
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("ARIA's ROUTINE")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .tracking(2)
+                    HStack(spacing: 8) {
+                        ForEach(aiElementResults.indices, id: \.self) { i in
+                            let pts = aiElementResults[i]
+                            VStack(spacing: 3) {
+                                Text(i < kRoutineElements.count ? String(kRoutineElements[i].name.prefix(3)).uppercased() : "???")
+                                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                Text("+\(pts)")
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                    .foregroundStyle(pts == 10 ? .yellow : (pts == 7 ? accentColor : .red))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.white.opacity(0.06))
+                            )
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+
+                Button {
+                    withAnimation { showFinalJudgment = false }
+                } label: {
+                    Text("CONTINUE")
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
+                        .tracking(2)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(accentColor.opacity(0.85))
+                        )
+                        .padding(.horizontal, 32)
+                }
+                .padding(.bottom, 24)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(red: 0.04, green: 0.02, blue: 0.18).opacity(0.95))
+                    .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.12), lineWidth: 1))
+            )
+            .padding(20)
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        .animation(.spring(response: 0.4), value: showFinalJudgment)
+    }
+
     // MARK: - Logic
 
     private func startElement() {
@@ -1703,7 +1955,60 @@ struct GymnasticsGameView: View {
         }
     }
 
+    // MARK: - AI Timer
+
+    private func startAITimer() {
+        aiTimerTask?.cancel()
+        aiTimerTask = Task {
+            for _ in 0..<totalElements {
+                guard !Task.isCancelled else { return }
+                try? await Task.sleep(for: .milliseconds(2500))
+                guard !Task.isCancelled else { return }
+                await MainActor.run { advanceAIElement() }
+            }
+        }
+    }
+
+    private func advanceAIElement() {
+        guard aiRoutineProgress < preDeterminedAIResults.count else { return }
+        let pts = preDeterminedAIResults[aiRoutineProgress]
+        aiElementResults.append(pts)
+        aiCurrentScore += pts
+        aiRoutineProgress += 1
+
+        if pts == 10 {
+            aiElementFlash = .yellow
+            aiGradeText = "PERFECT"
+            aiScorePopText = "+10"
+        } else if pts == 7 {
+            aiElementFlash = Theme.brandCyan
+            aiGradeText = "GOOD"
+            aiScorePopText = "+7"
+        } else {
+            aiElementFlash = .red
+            aiGradeText = "WOBBLE"
+            aiScorePopText = "+0 WOBBLE"
+        }
+
+        withAnimation(.spring(response: 0.2)) {
+            showAiFlash = true
+            showAIScorePop = true
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            await MainActor.run {
+                withAnimation { showAiFlash = false; showAIScorePop = false }
+            }
+        }
+    }
+
     private func finishRoutine() {
+        aiTimerTask?.cancel()
+        // Fill remaining AI elements if player's routine ended before AI finished
+        while aiRoutineProgress < preDeterminedAIResults.count {
+            advanceAIElement()
+        }
+
         let totalPossible = Double(totalElements * 10)
         executionBar = min(1.0, max(0, totalScore / totalPossible))
         artisticImpression = min(1.0, (totalScore / totalPossible) * 0.85 + Double.random(in: 0.05...0.15))
@@ -1714,8 +2019,14 @@ struct GymnasticsGameView: View {
             let shards = playerWins ? 50 : (isDraw ? 25 : 15)
             viewModel.profile.evolutionShards += shards
         }
-        GameResultService.saveResult(modeId: "gymnastics", userScore: Int(totalScore), opponentScore: 0)
+        GameResultService.saveResult(modeId: "gymnastics", userScore: Int(totalScore), opponentScore: aiCurrentScore)
 
+        Task {
+            try? await Task.sleep(for: .seconds(1.8))
+            await MainActor.run {
+                withAnimation { showFinalJudgment = true }
+            }
+        }
         Task {
             try? await Task.sleep(for: .seconds(3.2))
             await MainActor.run { phase = .result }

@@ -33,6 +33,11 @@ private struct SoccerStadiumCanvas: View {
     let isPenaltyAwarded: Bool
     let isCorner: Bool
     let lastCornerTime: Double
+    // Drag-to-aim
+    var isShotDragging: Bool = false
+    var shotDragStart: CGPoint = .zero
+    var shotDragCurrent: CGPoint = .zero
+    var keeperPosition: CGFloat = 0.5
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -53,7 +58,11 @@ private struct SoccerStadiumCanvas: View {
                     isRaining: isRaining,
                     isPenaltyAwarded: isPenaltyAwarded,
                     isCorner: isCorner,
-                    lastCornerTime: lastCornerTime
+                    lastCornerTime: lastCornerTime,
+                    isShotDragging: isShotDragging,
+                    shotDragStart: shotDragStart,
+                    shotDragCurrent: shotDragCurrent,
+                    keeperPosition: keeperPosition
                 )
                 d.render(ctx: &ctx)
             }
@@ -83,6 +92,11 @@ private struct SoccerFieldDrawer {
     let isPenaltyAwarded: Bool
     let isCorner: Bool
     let lastCornerTime: Double
+    // Drag-to-aim
+    var isShotDragging: Bool = false
+    var shotDragStart: CGPoint = .zero
+    var shotDragCurrent: CGPoint = .zero
+    var keeperPosition: CGFloat = 0.5
 
     var W: CGFloat { size.width }
     var H: CGFloat { size.height }
