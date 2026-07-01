@@ -7,29 +7,51 @@ struct GameModeSelectionView: View {
     @State private var showNeuralScan = false
     @State private var pendingMode: GameMode?
     @State private var sessionReadiness: Double = 50
-    @State private var navigateToGame = false
+    @State private var gameplayRoute: GameModeId?
+    /// Bumped on every push so EXIT → relaunch recreates ``GamePlayView`` even for the same mode.
+    @State private var gameplayLaunchId = UUID()
     @State private var showMatchmaking = false
+    @State private var showComingSoonSheet = false
+    @State private var comingSoonModeName = ""
+    @State private var showKarateCoopLobby = false
+    @State private var karateCoopPlayerCount = 1
+    @State private var showDunkPlatform = false
+    @State private var showTriumphLobby = false
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: FELSpacing.xxl) {
                 headerSection
+                nexusSprintBanner
                 globalMatchmakingBanner
+                triumphCashTournamentBanner
 
                 ForEach(GameModeRegistry.sportCategories, id: \.rawValue) { category in
                     sportSection(category)
                 }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            .padding(.horizontal, FELSpacing.md)
+            .padding(.bottom, FELSpacing.xxl)
         }
         .scrollIndicators(.hidden)
         .background(Theme.deepBlack)
-        .navigationDestination(isPresented: $navigateToGame) {
-            if let mode = pendingMode {
-                GameModeRouter(gameMode: mode, viewModel: viewModel)
+        .navigationDestination(item: $gameplayRoute) { modeId in
+            if modeId == .brainBrawl {
+                BrainBrawl2DView(
+                    viewModel: viewModel,
+                    gameMode: GameModeRegistry.mode(for: .brainBrawl),
+                    onDismiss: { gameplayRoute = nil }
+                )
+                .id(gameplayLaunchId)
+            } else if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
+                GamePlayView(
+                    viewModel: viewModel,
+                    gameMode: mode,
+                    sessionReadiness: sessionReadiness
+                )
+                .id(gameplayLaunchId)
             }
         }
         .fullScreenCover(isPresented: $showNeuralScan) {
@@ -40,7 +62,7 @@ struct GameModeSelectionView: View {
                 showNeuralScan = false
                 Task {
                     try? await Task.sleep(for: .milliseconds(300))
-                    await launchGame()
+                    await launchNexusGameplay()
                 }
             }
         }
@@ -51,7 +73,7 @@ struct GameModeSelectionView: View {
                     showMatchmaking = false
                     Task {
                         try? await Task.sleep(for: .milliseconds(300))
-                        await launchGame()
+                        await launchNexusGameplay()
                     }
                 }
             }
@@ -59,19 +81,109 @@ struct GameModeSelectionView: View {
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
         }
+        .sheet(isPresented: $showComingSoonSheet) {
+            ComingSoonModeSheet(modeName: comingSoonModeName) {
+                showComingSoonSheet = false
+            }
+        }
+        .sheet(isPresented: $showKarateCoopLobby) {
+            KarateCoopLobbySheet(playerCount: $karateCoopPlayerCount) {
+                showKarateCoopLobby = false
+                Task { @MainActor in
+                    await launchSelectedMode()
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showDunkPlatform) {
+            NavigationStack {
+                DunkMatchmakingView(viewModel: viewModel)
+            }
+        }
+        .fullScreenCover(isPresented: $showTriumphLobby) {
+            TriumphTournamentLobbyView(viewModel: viewModel)
+        }
+    }
+
+    private var nexusSprintBanner: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.brandCyan)
+                Text(FELPremiumCopy.Emulator.featuredModes)
+                    .font(.system(.caption2, design: .monospaced, weight: .black))
+                    .foregroundStyle(Theme.brandCyan)
+                    .tracking(2)
+                Spacer()
+                Text("\(GameModeRegistry.nexusSprintModes.count) \(FELPremiumCopy.Emulator.modesAvailable.lowercased())")
+                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(GameModeRegistry.nexusSprintModes) { mode in
+                        Button {
+                            FELHaptics.modeSelect()
+                            SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
+                            pendingMode = mode
+                            Task { @MainActor in
+                                await launchSelectedMode()
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(mode.nexusSprintPriorityLabel)
+                                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                                    .foregroundStyle(mode.accentColor)
+                                Text(mode.name)
+                                    .font(.system(size: 11, weight: .black))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                            }
+                            .frame(width: 108, alignment: .leading)
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(mode.accentColor.opacity(0.12))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(mode.accentColor.opacity(0.35), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("NexusSprintMode_\(mode.id.rawValue)")
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityLabel("\(mode.name), \(mode.nexusSprintPriorityLabel.lowercased()) priority")
+                        .accessibilityHint("Double tap to launch \(mode.name)")
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Theme.brandCyan.opacity(0.15), lineWidth: 1)
+                )
+        )
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 12)
     }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("SELECT MODE")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+                .font(FELTypography.overline())
                 .foregroundStyle(Theme.brandBlue)
                 .tracking(4)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 10)
 
             Text("Arena")
-                .font(.system(size: 56, weight: .black))
+                .font(FELTypography.display())
                 .italic()
                 .foregroundStyle(
                     LinearGradient(
@@ -83,40 +195,17 @@ struct GameModeSelectionView: View {
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 15)
 
-            // Active creator card pill
-            if let active = viewModel.profile.activeCreatorCard,
-               let card = CreatorCard.catalog.first(where: { $0.id == active.cardId }) {
-                HStack(spacing: 6) {
-                    Image(systemName: card.iconName)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(card.accentColor)
-                    Text(card.title)
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(card.accentColor)
-                    Text("ACTIVE")
-                        .font(.system(size: 8, weight: .black, design: .monospaced))
-                        .foregroundStyle(.green)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Color.green.opacity(0.12))
-                        .clipShape(Capsule())
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule().fill(card.accentColor.opacity(0.08))
-                        .overlay(Capsule().stroke(card.accentColor.opacity(0.2), lineWidth: 0.5))
-                )
-                .opacity(appeared ? 1 : 0)
-                .transition(.scale.combined(with: .opacity))
-            }
-
             HStack(spacing: 8) {
+                FELPreviewLabel(text: FELPremiumCopy.Preview.arena)
+
                 HStack(spacing: 4) {
-                    Text("\(GameModeRegistry.all.count)")
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(Theme.brandCyan)
+                    Text("\(GameModeRegistry.nexusSprintModes.count)")
                         .font(.system(.caption, design: .monospaced, weight: .black))
                         .foregroundStyle(Theme.brandCyan)
-                    Text("MODES")
+                    Text(FELPremiumCopy.Emulator.modesAvailable)
                         .font(.system(.caption2, design: .monospaced, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -126,10 +215,10 @@ struct GameModeSelectionView: View {
                     .frame(width: 3, height: 3)
 
                 HStack(spacing: 4) {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 9))
-                        .foregroundStyle(Theme.brandCyan.opacity(0.7))
-                    Text("MULTIPLAYER")
+                    Text("\(GameModeRegistry.catalogModes.count)")
+                        .font(.system(.caption, design: .monospaced, weight: .black))
+                        .foregroundStyle(.white.opacity(0.7))
+                    Text("MODES")
                         .font(.system(.caption2, design: .monospaced, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -141,10 +230,9 @@ struct GameModeSelectionView: View {
 
     private var globalMatchmakingBanner: some View {
         Button {
-            if let mode = GameModeRegistry.all.first {
-                pendingMode = mode
-                showMatchmaking = true
-            }
+            guard let mode = GameModeRegistry.resolvedLastSelectedMode() else { return }
+            pendingMode = mode
+            showMatchmaking = true
         } label: {
             HStack(spacing: 14) {
                 ZStack {
@@ -163,7 +251,62 @@ struct GameModeSelectionView: View {
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
 
-                    Text("Find opponents by PRQ tier")
+                    if let last = GameModeRegistry.resolvedLastSelectedMode() {
+                        Text("Matchmaking · \(last.name)")
+                            .font(.system(.caption2, design: .monospaced, weight: .medium))
+                            .foregroundStyle(Theme.brandCyan.opacity(0.7))
+                    } else {
+                        Text("Pick any mode card below first")
+                            .font(.system(.caption2, design: .monospaced, weight: .medium))
+                            .foregroundStyle(.orange.opacity(0.85))
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(Theme.brandCyan)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(GameModeRegistry.resolvedLastSelectedMode() == nil)
+        .opacity(GameModeRegistry.resolvedLastSelectedMode() == nil ? 0.55 : 1)
+    }
+
+    private var triumphCashTournamentBanner: some View {
+        Button {
+            showTriumphLobby = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.brandCyan.opacity(0.12))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: "dollarsign.circle.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text("COMPETITIVE CASH ARENA")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: "CASH")
+                    }
+
+                    Text("Wager real cash on Head-to-Head matches")
                         .font(.system(.caption2, design: .monospaced, weight: .medium))
                         .foregroundStyle(Theme.brandCyan.opacity(0.7))
                 }
@@ -180,7 +323,14 @@ struct GameModeSelectionView: View {
                     .fill(Theme.cardBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan.opacity(0.4), Theme.elitePurple.opacity(0.2)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
                     )
             )
         }
@@ -206,11 +356,22 @@ struct GameModeSelectionView: View {
             LazyVGrid(columns: columns, spacing: 14) {
                 ForEach(Array(modes.enumerated()), id: \.element.id) { modeIndex, mode in
                     GameModeCard(mode: mode) {
+                        guard mode.isLaunchableInCurrentBuild else {
+                            comingSoonModeName = mode.name
+                            showComingSoonSheet = true
+                            return
+                        }
+                        FELHaptics.modeSelect()
+                        SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
                         pendingMode = mode
-                        if mode.id == .marketBrowse {
-                            Task { await launchGame() }
+                        if mode.id.isIRLDunkContest {
+                            showDunkPlatform = true
+                        } else if mode.id == .karateEndless {
+                            showKarateCoopLobby = true
                         } else {
-                            showNeuralScan = true
+                            Task { @MainActor in
+                                await launchSelectedMode()
+                            }
                         }
                     }
                     .opacity(appeared ? 1 : 0)
@@ -225,17 +386,28 @@ struct GameModeSelectionView: View {
     }
 
     @MainActor
-    private func launchGame() async {
-        // Load the NexusScene for this mode before navigating.
-        // .marketBrowse is a store view, not a game session — skip the engine launch.
-        if let mode = pendingMode, mode.id != .marketBrowse {
-            try? await NexusEngine.shared.launchMode(
-                mode.id,
-                readiness: sessionReadiness,
-                profile: viewModel.profile
-            )
+    private func launchSelectedMode() async {
+        guard let mode = pendingMode else { return }
+        sessionReadiness = viewModel.effectiveMetrics.neuralDrive
+        await pushGameplayRoute(mode.id)
+    }
+
+    /// NEXUS-only launch — SceneKit + ``NexusGameplayEngine`` in ``GamePlayView`` (UE embed archived).
+    @MainActor
+    private func launchNexusGameplay() async {
+        guard let mode = pendingMode else { return }
+        await pushGameplayRoute(mode.id)
+    }
+
+    /// Clears ``navigationDestination`` before re-push so EXIT → same mode re-entry works (SwiftUI item routing).
+    @MainActor
+    private func pushGameplayRoute(_ modeId: GameModeId) async {
+        if gameplayRoute == modeId {
+            gameplayRoute = nil
+            try? await Task.sleep(for: .milliseconds(50))
         }
-        navigateToGame = true
+        gameplayLaunchId = UUID()
+        gameplayRoute = modeId
     }
 }
 
@@ -271,6 +443,8 @@ struct GameModeCard: View {
                     Spacer()
 
                     multiplayerBadge
+
+                    nexusTierBadge
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -333,28 +507,78 @@ struct GameModeCard: View {
                 .shadow(color: mode.accentColor.opacity(isPressed ? 0.15 : 0.05), radius: isPressed ? 12 : 4)
             )
             .scaleEffect(isPressed ? 0.96 : 1)
+            .opacity(mode.isLaunchableInCurrentBuild ? 1 : 0.55)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .light), trigger: isPressed)
+        .accessibilityLabel(modeAccessibilityLabel)
+        .accessibilityHint(mode.isLaunchableInCurrentBuild ? "Double tap to play \(mode.name)" : "Preview mode — not available in this build")
+        .accessibilityAddTraits(mode.isLaunchableInCurrentBuild ? .isButton : .isStaticText)
+        .accessibilityIdentifier("GameModeCard_\(mode.id.rawValue)")
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
             withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isPressed = pressing }
         }, perform: {})
+    }
+
+    private var modeAccessibilityLabel: String {
+        var parts = [mode.name, mode.subtitle, mode.environmentName, mode.nexusCapabilityTier.rawValue.uppercased()]
+        if !mode.isLaunchableInCurrentBuild {
+            parts.append("Not available in this build")
+        }
+        return parts.joined(separator: ", ")
+    }
+
+    private var nexusTierBadge: some View {
+        let (label, color): (String, Color) = {
+            switch mode.nexusCapabilityTier {
+            case .prod:
+                if Config.appRuntimeEnvironment == .staging { return ("STAGING", Theme.brandCyan) }
+                return ("PROD", Theme.neonGreen)
+            case .sim:
+                return ("SIM", Theme.brandCyan)
+            case .staging:
+                return ("STAGING", .orange)
+            case .preview:
+                return ("PREVIEW", .orange)
+            case .nonGame:
+                return ("MODULE", Color.gray)
+            }
+        }()
+
+        return Text(label)
+            .font(.system(size: 8, weight: .black, design: .monospaced))
+            .foregroundStyle(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.12))
+            .clipShape(Capsule())
+    }
+
+    private var comingSoonBadge: some View {
+        Text("SOON")
+            .font(.system(size: 8, weight: .black, design: .monospaced))
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.orange.opacity(0.12))
+            .clipShape(Capsule())
     }
 
     private var multiplayerBadge: some View {
         Group {
             switch mode.multiplayerType {
             case .realtime:
+                let rules = GameModeRules.forMode(mode.id)
                 HStack(spacing: 3) {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
+                    Image(systemName: rules.useMatchCountdown ? "timer" : "person.fill")
                         .font(.system(size: 7))
-                    Text("LIVE")
+                    Text(rules.useMatchCountdown ? "TIMED" : "LOCAL")
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
                 }
-                .foregroundStyle(Theme.brandCyan)
+                .foregroundStyle(rules.useMatchCountdown ? Theme.brandCyan : Color.white.opacity(0.65))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
-                .background(Theme.brandCyan.opacity(0.1))
+                .background((rules.useMatchCountdown ? Theme.brandCyan : Color.white).opacity(0.1))
                 .clipShape(Capsule())
             case .turnBased:
                 HStack(spacing: 3) {
@@ -370,6 +594,18 @@ struct GameModeCard: View {
                 .clipShape(Capsule())
             case .solo:
                 EmptyView()
+            case .localCoop:
+                HStack(spacing: 3) {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 7))
+                    Text("LOCAL CO-OP")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                }
+                .foregroundStyle(.orange)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.orange.opacity(0.12))
+                .clipShape(Capsule())
             }
         }
     }
@@ -382,5 +618,93 @@ extension GameMode: Hashable {
 
     nonisolated func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+private struct KarateCoopLobbySheet: View {
+    @Binding var playerCount: Int
+    let onLaunch: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("DOJO BREACH")
+                    .font(.system(.title3, design: .monospaced, weight: .black))
+                    .foregroundStyle(.orange)
+
+                Text("LOCAL CO-OP · 1–4 PLAYERS")
+                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                    .foregroundStyle(.secondary)
+
+                Text("Shared-screen wave survival. More fighters scale breach intensity. Online multiplayer is not implemented in this build.")
+                    .font(.system(.subheadline, design: .monospaced))
+                    .foregroundStyle(.secondary)
+
+                Picker("Fighters", selection: $playerCount) {
+                    ForEach(1...4, id: \.self) { count in
+                        Text("\(count) fighter\(count == 1 ? "" : "s")").tag(count)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Spacer()
+
+                Button(action: onLaunch) {
+                    Text("ENTER DOJO")
+                        .font(.system(.headline, design: .monospaced, weight: .black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.orange)
+                        .foregroundStyle(.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.deepBlack)
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+private struct ComingSoonModeSheet: View {
+    let modeName: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                Image(systemName: "hourglass")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundStyle(.orange)
+                    .padding(.top, 24)
+
+                Text("\(modeName) ships post-sprint.")
+                    .font(.system(.headline, weight: .black))
+                    .multilineTextAlignment(.center)
+
+                Text("Play Dunk Contest, Karate Endless, H2H, or Court Carnival today.")
+                    .font(.system(.subheadline, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.deepBlack)
+            .navigationTitle("Coming Soon")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done", action: onDismiss)
+                        .font(.system(.subheadline, design: .monospaced, weight: .bold))
+                }
+            }
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }

@@ -1,0 +1,24 @@
+{
+  "cooked_runtime_note": "[FELPlayMap] in DefaultGame.ini is the cooked iOS runtime map path source of truth. /Game/FEL/Maps paths in this JSON are logical map/venue tokens used by the backend.",
+  "mode_manager": {
+    "total_modes": 19,
+    "production_modes": 12,
+    "mode_registry": {
+      "basketball_h2h": {"status": "production"},
+      "basketball_dunk": {"status": "production"},
+      "basketball_3v3": {"status": "production"},
+      "karate_h2h": {"status": "production"},
+      "baseball": {"status": "production"},
+      "football": {"status": "production"},
+      "soccer": {"status": "production"},
+      "golf": {"status": "production"},
+      "tennis": {"status": "production"},
+      "volleyball": {"status": "production"},
+      "gymnastics": {"status": "production"},
+      "brain_brawl": {"status": "production"},
+      "who_scene_it": {"status": "staging"},
+      "court_carnival": {"status": "staging"},
+      "market_browse": {"type": "non-game-module"}
+    }
+  }
+}

@@ -84,7 +84,7 @@ class TestGameModes:
         assert response.status_code == 200
         modes = response.json()
         assert isinstance(modes, list)
-        assert len(modes) == 17, f"Expected 17 game modes, got {len(modes)}"
+        assert len(modes) == 20, f"Expected 20 game modes, got {len(modes)}"
         
         # Verify all modes have required fields
         for mode in modes:
@@ -227,7 +227,7 @@ class TestBrainBrawl:
             assert "id" in q
             assert "question" in q
             assert "options" in q
-            assert "correct" in q
+            assert "correct" not in q
             assert len(q["options"]) == 4
         
         print(f"Brain Brawl questions: {len(questions)} returned")
@@ -441,21 +441,59 @@ class TestBrainBrawlSubmit:
     """Test Brain Brawl submission"""
     
     def test_submit_brain_brawl(self, auth_client):
-        """Test POST /brain-brawl/submit records session"""
-        response = auth_client.post(f"{BASE_URL}/api/brain-brawl/submit", json={
-            "mode": "quick_fire",
-            "questions_total": 10,
-            "questions_correct": 7,
-            "time_taken_seconds": 120,
+        """Test modern Brain Brawl session workflow: start then submit"""
+        # 1. Start a quiz session
+        start_resp = auth_client.post(f"{BASE_URL}/api/brain-brawl/session/start", json={
             "category": "sports_iq",
-            "score": 700
+            "count": 5
         })
+        assert start_resp.status_code == 200
+        start_data = start_resp.json()
+        assert "session_id" in start_data
+        assert "questions" in start_data
+        
+        session_id = start_data["session_id"]
+        questions = start_data["questions"]
+        assert len(questions) == 5
+        
+        # 2. Submit answers (dummy array of 0s)
+        submit_resp = auth_client.post(f"{BASE_URL}/api/brain-brawl/session/submit", json={
+            "session_id": session_id,
+            "answers": [0] * len(questions)
+        })
+        assert submit_resp.status_code == 200
+        submit_data = submit_resp.json()
+        assert "session_id" in submit_data
+        assert "questions_total" in submit_data
+        assert "questions_correct" in submit_data
+        assert "xp_earned" in submit_data
+        print(f"Modern Brain Brawl session OK: correct={submit_data['questions_correct']}, xp={submit_data['xp_earned']}")
+
+
+# ===================== TRIVIA ARENA =====================
+class TestTriviaArena:
+    """Test Trivia Arena endpoint and question banks"""
+    
+    def test_get_trivia_questions_all(self, api_client):
+        """Test getting all trivia questions returns default of 5"""
+        response = api_client.get(f"{BASE_URL}/api/trivia/questions")
         assert response.status_code == 200
         data = response.json()
-        assert "session" in data
-        assert "xp_earned" in data
-        assert data["session"]["questions_correct"] == 7
-        print(f"Brain Brawl submit OK: correct={data['session']['questions_correct']}, xp={data['xp_earned']}")
+        assert len(data) == 5
+        for q in data:
+            assert "question" in q
+            assert "options" in q
+            assert "category" in q
+            assert "correct" in q
+            
+    def test_get_trivia_questions_by_category(self, api_client):
+        """Test getting trivia questions filtered by category"""
+        response = api_client.get(f"{BASE_URL}/api/trivia/questions?category=science&count=3")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        for q in data:
+            assert q["category"] == "science"
 
 
 if __name__ == "__main__":

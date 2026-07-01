@@ -5,9 +5,22 @@ import {
   Gift, Zap, Clock, BarChart3, Play, Pause, Eye, Radio,
   ArrowRight, Share2, DollarSign, Shield, Database, RefreshCw
 } from "lucide-react";
+import { API_URL, BACKEND_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
+const FALLBACK_ANALYTICS = {
+  vault_sync: { sync_target: "Local shell", synced: 0, pending_sync: 0 },
+  overview: { total_sessions: 0, total_minutes: 0 },
+  mode_stats: [],
+};
+const FALLBACK_POLICY = {
+  vault_sync_protocol: {
+    flow: ["1. Local shell captures session receipts", "2. Vault sync queues private performance data", "3. Backend reconciles when services are online"],
+    private_signaling_server: { auth: "JWT or local shell session", data_format: "JSON session receipt" },
+    retention: "User controlled",
+    data_policy: { third_party_access: "None by default" },
+  },
+};
 
 // ===================== MULTIPLAYER LOBBY =====================
 export const MultiplayerView = () => {
@@ -23,7 +36,7 @@ export const MultiplayerView = () => {
 
   useEffect(() => { fetchRooms(); }, []);
 
-  const fetchRooms = () => { axios.get(`${API}/multiplayer/rooms`).then(r => setRooms(r.data)).catch(console.error); };
+  const fetchRooms = () => { axios.get(`${API}/multiplayer/rooms`).then(r => setRooms(r.data)).catch(() => setRooms([])); };
 
   const createRoom = async () => {
     setCreating(true);
@@ -31,7 +44,10 @@ export const MultiplayerView = () => {
       const r = await axios.post(`${API}/multiplayer/create-room`, { game_mode: gameMode, max_players: 2, allow_spectators: true });
       setActiveRoom(r.data);
       connectWS(r.data.id);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      setActiveRoom({ id: `local-${gameMode}`, game_mode: gameMode, max_players: 2 });
+      setPlayers(["me"]);
+    }
     setCreating(false);
   };
 
@@ -40,7 +56,7 @@ export const MultiplayerView = () => {
       await axios.post(`${API}/multiplayer/rooms/${roomId}/join`);
       setActiveRoom({ id: roomId });
       connectWS(roomId);
-    } catch (e) { console.error(e); }
+    } catch (e) { setActiveRoom({ id: roomId }); setPlayers(["me"]); }
   };
 
   const spectateRoom = async (roomId) => {
@@ -54,6 +70,7 @@ export const MultiplayerView = () => {
   const connectWS = (roomId) => {
     const wsUrl = `${BACKEND_URL.replace('https', 'wss').replace('http', 'ws')}/ws/game/${roomId}`;
     const socket = new WebSocket(wsUrl);
+    socket.onerror = () => setPlayers((p) => (p.length ? p : ["me"]));
     socket.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.type === 'player_joined') setPlayers(p => [...p, data.user_id]);
@@ -148,7 +165,10 @@ export const ReferralView = () => {
       } else {
         setCode(s.data.code);
       }
-    } catch { }
+    } catch {
+      setStats({ total_referrals: 0, total_coins_earned: 0, pending_payout: 0, code: "FEL-SHELL" });
+      setCode("FEL-SHELL");
+    }
   };
 
   const copyCode = () => {
@@ -222,12 +242,12 @@ export const AnalyticsView = () => {
 
   useEffect(() => {
     Promise.all([axios.get(`${API}/analytics/dashboard`), axios.get(`${API}/analytics/policy`)])
-      .then(([d, p]) => { setData(d.data); setPolicy(p.data); }).catch(console.error);
+      .then(([d, p]) => { setData(d.data); setPolicy(p.data); }).catch(() => { setData(FALLBACK_ANALYTICS); setPolicy(FALLBACK_POLICY); });
   }, []);
 
   const triggerSync = async () => {
     setSyncing(true);
-    try { await axios.post(`${API}/analytics/sovereign-sync`); const d = await axios.get(`${API}/analytics/dashboard`); setData(d.data); } catch {}
+    try { await axios.post(`${API}/analytics/vault-sync`); const d = await axios.get(`${API}/analytics/dashboard`); setData(d.data); } catch {}
     setSyncing(false);
   };
 
@@ -235,8 +255,8 @@ export const AnalyticsView = () => {
     <div className="space-y-8 fade-in">
       <div className="flex items-center justify-between">
         <div><p className="overline mb-1">PERFORMANCE DATA</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>ANALYTICS</h1></div>
-        <button data-testid="sovereign-sync" onClick={triggerSync} disabled={syncing} className="btn-secondary flex items-center gap-2">
-          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />{syncing ? 'Syncing...' : 'Sovereign Sync'}
+        <button data-testid="vault-sync" onClick={triggerSync} disabled={syncing} className="btn-secondary flex items-center gap-2">
+          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />{syncing ? 'Syncing...' : 'Performance Sync'}
         </button>
       </div>
 
@@ -245,13 +265,13 @@ export const AnalyticsView = () => {
         <div className="flex items-center gap-3">
           <Shield className="w-6 h-6 text-cyan-400" />
           <div>
-            <div className="font-bold text-sm">SOVEREIGN SYNC</div>
-            <div className="text-xs text-zinc-400">{data?.sovereign_sync?.sync_target}</div>
+            <div className="font-bold text-sm">VAULT SYNC</div>
+            <div className="text-xs text-zinc-400">{data?.vault_sync?.sync_target}</div>
           </div>
         </div>
         <div className="flex items-center gap-4 text-sm">
-          <span className="text-green-400"><Database className="w-4 h-4 inline mr-1" />{data?.sovereign_sync?.synced || 0} synced</span>
-          <span className="text-yellow-400">{data?.sovereign_sync?.pending_sync || 0} pending</span>
+          <span className="text-green-400"><Database className="w-4 h-4 inline mr-1" />{data?.vault_sync?.synced || 0} synced</span>
+          <span className="text-yellow-400">{data?.vault_sync?.pending_sync || 0} pending</span>
         </div>
       </div>
 
@@ -285,9 +305,9 @@ export const AnalyticsView = () => {
       {/* Data Policy */}
       {policy && (
         <div className="surface-card p-6" data-testid="data-policy">
-          <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>DATA POLICY · SOVEREIGN SYNC v1</h2>
+          <h2 className="text-xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>DATA POLICY · VAULT SYNC v1</h2>
           <div className="space-y-3 text-sm">
-            {policy.sovereign_sync_protocol?.flow?.map((step, i) => (
+            {policy.vault_sync_protocol?.flow?.map((step, i) => (
               <div key={i} className="flex items-start gap-3 py-2 border-b border-white/5">
                 <div className="w-6 h-6 bg-cyan-400/10 flex items-center justify-center flex-shrink-0 text-cyan-400 font-mono text-xs">{i+1}</div>
                 <span className="text-zinc-300">{step.replace(/^\d+\.\s*/, '')}</span>
@@ -295,10 +315,10 @@ export const AnalyticsView = () => {
             ))}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-4 text-xs text-zinc-500">
-            <div><span className="text-zinc-400">Encryption:</span> {policy.sovereign_sync_protocol?.private_signaling_server?.auth}</div>
-            <div><span className="text-zinc-400">Data Format:</span> {policy.sovereign_sync_protocol?.private_signaling_server?.data_format}</div>
-            <div><span className="text-zinc-400">Retention:</span> {policy.sovereign_sync_protocol?.retention}</div>
-            <div><span className="text-zinc-400">Third-party:</span> {policy.sovereign_sync_protocol?.data_policy?.third_party_access}</div>
+            <div><span className="text-zinc-400">Encryption:</span> {policy.vault_sync_protocol?.private_signaling_server?.auth}</div>
+            <div><span className="text-zinc-400">Data Format:</span> {policy.vault_sync_protocol?.private_signaling_server?.data_format}</div>
+            <div><span className="text-zinc-400">Retention:</span> {policy.vault_sync_protocol?.retention}</div>
+            <div><span className="text-zinc-400">Third-party:</span> {policy.vault_sync_protocol?.data_policy?.third_party_access}</div>
           </div>
         </div>
       )}

@@ -1,0 +1,19 @@
+{
+  "id": "golf_club_prop_model_fbx",
+  "name": "Golf Club Prop (FBX)",
+  "category": "models",
+  "type": "prop_fbx",
+  "file": "golf_club_prop_model_fbx.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/795d0645-a4ee-4df4-97e7-18d68830bae4/1015952/unityModel_1015952_2890010.fbx"],
+  "description": "Golf club with red handle, gray shaft, and black club head, FBX format for Unity/Unreal",
+  "tags": ["golf", "club", "prop", "sport", "fbx"],
+  "keywords": ["golf club", "iron", "driver", "red handle", "sport prop", "equipment"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "property_id": "search_f5b3710563f0_0",
+  "fel_modes": ["golf"]
+}

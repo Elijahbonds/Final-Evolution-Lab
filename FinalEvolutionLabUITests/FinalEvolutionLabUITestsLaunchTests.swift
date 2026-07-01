@@ -2,7 +2,7 @@
 //  FinalEvolutionLabUITestsLaunchTests.swift
 //  FinalEvolutionLabUITests
 //
-//  Created by Rork on March 2, 2026.
+//  Created by Final Evolution Lab on March 2, 2026.
 //
 
 import XCTest
@@ -20,6 +20,7 @@ final class FinalEvolutionLabUITestsLaunchTests: XCTestCase {
     @MainActor
     func testLaunch() throws {
         let app = XCUIApplication()
+        app.launchArguments.append("-UITestMode")
         app.launch()
 
         // Insert steps here to perform after app launch but before taking a screenshot,

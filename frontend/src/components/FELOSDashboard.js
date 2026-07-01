@@ -4,21 +4,201 @@ import {
   Activity, ShoppingBag, Gamepad2, GraduationCap, Award, BookOpen,
   Atom, Brain, ChevronRight, ChevronLeft, CheckCircle2, Lock, Zap,
   Trophy, Target, Flame, Crown, Sparkles, ExternalLink, Loader2,
-  Share2, Download, Copy, X, Terminal
+  Share2, Download, Copy, X
 } from "lucide-react";
 import { BioFuelStripe, BioFuelScanner, BioFuelCookbook, BioFuelDoorDash } from "./BioFuel";
-import { NexusConsole, MODE_STATUS, statusColor } from "./NexusConsole";
+import { API_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
-const TRACK_ICON = { BookOpen, Atom, Award, Brain };
+/** EDU-11: Bio-Digital “quick complete” bypasses real 3D modules — dev/admin only. */
+const SHOW_BIO_DIGITAL_DEV =
+  process.env.NODE_ENV === "development" ||
+  process.env.REACT_APP_ENABLE_BIO_DIGITAL_DEV_TOOLS === "true";
+
+const TRACK_ICON = { BookOpen, Atom, Award, Brain, Trophy };
 const TRACK_GLOW = {
   emerald: { ring: "ring-emerald-400/40", text: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/30" },
   cyan:    { ring: "ring-cyan-400/40",    text: "text-cyan-400",    bg: "bg-cyan-400/10",    border: "border-cyan-400/30" },
   amber:   { ring: "ring-amber-400/40",   text: "text-amber-400",   bg: "bg-amber-400/10",   border: "border-amber-400/30" },
   fuchsia: { ring: "ring-fuchsia-400/40", text: "text-fuchsia-400", bg: "bg-fuchsia-400/10", border: "border-fuchsia-400/30" },
 };
+
+const FALLBACK_FEL_OS = {
+  user: { user_id: "dev-athlete" },
+  scan: {
+    prq_score: 75.0,
+    level: 1,
+    streak_days: 0,
+    xp: 0,
+    metrics: { strength: 75, speed: 75, power: 75, mental: 75 },
+  },
+  cards: { owned_count: 0, lifetime_purchases: 0, recent: [] },
+  arena: { modes_played: 0, vault_sessions: 0, ue5_bridge: "ready" },
+  academy: {
+    overall_completion_pct: 0,
+    lessons_completed: 0,
+    lessons_total: 4,
+    tracks: [
+      { track_id: "kinesiology", title: "Kinesiology", icon: "BookOpen", accent: "cyan", completed_lessons: 0, total_lessons: 1, locked: false },
+      { track_id: "biofuel", title: "Bio-Fuel", icon: "Atom", accent: "emerald", completed_lessons: 0, total_lessons: 1, locked: false },
+      { track_id: "arena", title: "Arena IQ", icon: "Trophy", accent: "amber", completed_lessons: 0, total_lessons: 1, locked: false },
+      { track_id: "neuro", title: "Neuro Drive", icon: "Brain", accent: "fuchsia", completed_lessons: 0, total_lessons: 1, locked: false },
+    ],
+  },
+};
+
+const FALLBACK_TRACKS = {
+  kinesiology: {
+    track_id: "kinesiology",
+    title: "Applied Kinesiology",
+    subtitle: "Movement literacy for athletes",
+    description: "Learn joints, planes of motion, muscle actions, and safe mechanics used by Final Evolution Lab gameplay.",
+    category: "Academy",
+    level: "Foundational",
+    color: "amber",
+    icon: "BookOpen",
+    lessons: [
+      {
+        id: "movement_planes",
+        title: "Planes of Motion",
+        summary: "Sagittal, frontal, and transverse movement patterns.",
+        duration_min: 6,
+        question_count: 2,
+      },
+      {
+        id: "joint_actions",
+        title: "Joint Actions",
+        summary: "Match athletic skills to flexion, extension, rotation, and stabilization.",
+        duration_min: 7,
+        question_count: 2,
+      },
+    ],
+    final_assessment: { question_count: 3, pass_threshold_pct: 80 },
+  },
+  biofuel: {
+    track_id: "biofuel",
+    title: "Bio-Fuel Nutrition",
+    subtitle: "Macros, hydration, and recovery timing",
+    description: "Use performance nutrition basics to support training readiness and recovery.",
+    category: "Academy",
+    level: "Foundational",
+    color: "emerald",
+    icon: "Atom",
+    lessons: [
+      { id: "macro_targets", title: "Athlete Macro Targets", summary: "Balance calories, protein, carbs, and fats around training.", duration_min: 6, question_count: 2 },
+      { id: "recovery_hydration", title: "Recovery Hydration", summary: "Pair fluids, electrolytes, and protein after hard sessions.", duration_min: 5, question_count: 2 },
+    ],
+    final_assessment: { question_count: 2, pass_threshold_pct: 75 },
+  },
+  arena: {
+    track_id: "arena",
+    title: "Arena IQ",
+    subtitle: "Decision making across 19 game modes",
+    description: "Study scoring, session receipts, and how PRQ/economy rewards are earned.",
+    category: "Academy",
+    level: "Gameplay",
+    color: "cyan",
+    icon: "Trophy",
+    lessons: [
+      { id: "session_receipts", title: "Session Receipts", summary: "Understand score, duration, anti-cheat, XP, and Shards.", duration_min: 5, question_count: 2 },
+      { id: "mode_strategy", title: "Mode Strategy", summary: "Pick training modes based on your athlete profile.", duration_min: 5, question_count: 2 },
+    ],
+    final_assessment: { question_count: 2, pass_threshold_pct: 75 },
+  },
+  neuro: {
+    track_id: "neuro",
+    title: "Neuro Drive",
+    subtitle: "Reaction, attention, and cognitive training",
+    description: "Prepare for Brain Brawl and Trivia Arena with applied cognitive drills.",
+    category: "Academy",
+    level: "Cognitive",
+    color: "fuchsia",
+    icon: "Brain",
+    lessons: [
+      { id: "reaction_focus", title: "Reaction And Focus", summary: "Use quick decisions without losing form quality.", duration_min: 5, question_count: 2 },
+      { id: "brain_brawl_prep", title: "Brain Brawl Prep", summary: "Sports IQ and kinesiology recall under time pressure.", duration_min: 5, question_count: 2 },
+    ],
+    final_assessment: { question_count: 2, pass_threshold_pct: 75 },
+  },
+};
+
+const FALLBACK_PROGRESS = {
+  tracks: Object.values(FALLBACK_TRACKS).map((track) => ({
+    track_id: track.track_id,
+    completion_pct: 0,
+    quiz_scores: {},
+    final_passed: false,
+    certificate_issued: false,
+  })),
+};
+
+const FALLBACK_ELIGIBILITY = {
+  all_met: false,
+  checks: {
+    lessons_completed: { met: false, detail: "Complete the shell lessons first." },
+    final_assessment: { met: false, detail: "Pass the final assessment." },
+    bio_digital_modules: { met: false, detail: "Complete live anatomy modules in UE or dev helper." },
+  },
+};
+
+function fallbackLesson(trackId, lessonId) {
+  const track = FALLBACK_TRACKS[trackId] || FALLBACK_TRACKS.kinesiology;
+  const lessonMeta = track.lessons.find((lesson) => lesson.id === lessonId) || track.lessons[0];
+  return {
+    ...lessonMeta,
+    minimum_study_seconds: 0,
+    content_blocks: [
+      {
+        type: "text",
+        heading: "Shell Lesson",
+        body: lessonMeta.summary,
+      },
+      {
+        type: "bullets",
+        heading: "Apply It",
+        items: [
+          "Connect the concept to one FEL arena movement.",
+          "Prioritize control, consistency, and athlete safety.",
+        ],
+      },
+    ],
+    resources: [],
+    quiz: [
+      {
+        q: `What is the main focus of ${lessonMeta.title}?`,
+        options: ["Performance learning", "Random guessing", "Ignoring form", "Skipping recovery"],
+        answer: 0,
+      },
+      {
+        q: "Which habit best supports long-term athlete development?",
+        options: ["Consistent practice", "No hydration", "Unsafe max effort every rep", "Never reviewing results"],
+        answer: 0,
+      },
+    ],
+  };
+}
+
+const FALLBACK_FINAL = {
+  title: "Applied Kinesiology Final Assessment",
+  pass_threshold_pct: 80,
+  questions: [
+    { q: "A vertical jump primarily starts in which plane?", options: ["Sagittal", "Frontal", "Transverse", "None"], answer: 0 },
+    { q: "Rotation drills primarily challenge which plane?", options: ["Transverse", "Sagittal", "Frontal", "Static only"], answer: 0 },
+    { q: "Good athlete mechanics should prioritize what first?", options: ["Control and safety", "Only max speed", "Random motion", "No feedback"], answer: 0 },
+  ],
+};
+
+function scoreQuiz(questions, answers) {
+  const results = questions.map((q, i) => {
+    const correctIndex = q.answer ?? 0;
+    return { correct: answers[i] === correctIndex, correct_index: correctIndex };
+  });
+  const correct = results.filter((row) => row.correct).length;
+  const total = questions.length;
+  const scorePct = total ? Math.round((correct / total) * 100) : 0;
+  return { results, correct, total, score_pct: scorePct, passed: scorePct >= 75, first_pass: true, xp_earned: scorePct >= 75 ? 100 : 25 };
+}
 
 // ============================================================
 // 4-QUADRANT DASHBOARD
@@ -33,32 +213,11 @@ export const FELOSDashboard = ({ setActiveTab }) => {
   const [cookbookOpen, setCookbookOpen] = useState(false);
   const [doordashOpen, setDoordashOpen] = useState(false);
   const [biofuelKey, setBiofuelKey] = useState(0); // bump to force stripe refresh after a log
-  const [nexusOpen, setNexusOpen] = useState(false);
-  const [nexusHealth, setNexusHealth] = useState("OPTIMAL");
-  const [nexusHealthColor, setNexusHealthColor] = useState("text-cyan-400");
 
   const refresh = useCallback(() => {
-    axios.get(`${API}/system-scan/unified`).then((r) => setScan(r.data)).catch(console.error);
+    axios.get(`${API}/system-scan/unified`).then((r) => setScan(r.data)).catch(() => setScan(FALLBACK_FEL_OS));
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
-
-  // Simulated Nexus health poll every 30s
-  useEffect(() => {
-    const poll = () => {
-      const statuses = [
-        { label: "OPTIMAL",  color: "text-cyan-400"  },
-        { label: "OPTIMAL",  color: "text-cyan-400"  },
-        { label: "OPTIMAL",  color: "text-cyan-400"  },
-        { label: "DEGRADED", color: "text-amber-400" },
-      ];
-      const pick = statuses[Math.floor(Math.random() * statuses.length)];
-      setNexusHealth(pick.label);
-      setNexusHealthColor(pick.color);
-    };
-    poll();
-    const interval = setInterval(poll, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   if (view === "lesson" && trackId && lessonId) {
     return <LessonRunner trackId={trackId} lessonId={lessonId} onBack={() => { setView("track"); refresh(); }} />;
@@ -79,7 +238,7 @@ export const FELOSDashboard = ({ setActiveTab }) => {
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight" style={{fontFamily:'Barlow Condensed'}}>
             FINAL EVOLUTION <span className="text-cyan-400">/ OS</span>
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">One scan. Four pillars. Athlete-sovereign.</p>
+          <p className="text-sm text-zinc-400 mt-1">One scan. Four pillars. Athlete-owned performance.</p>
         </div>
         {scan && (
           <div className="flex items-center gap-3" data-testid="fel-os-header-prq">
@@ -104,17 +263,6 @@ export const FELOSDashboard = ({ setActiveTab }) => {
               <div className="text-xs text-zinc-500 uppercase tracking-wider flex items-center gap-1 justify-end"><Flame className="w-3 h-3"/>Streak</div>
               <div className="text-3xl font-black text-orange-400">{scan.scan.streak_days}</div>
             </div>
-            <div className="w-px h-10 bg-zinc-800" />
-            <div
-              data-testid="nexus-health-badge"
-              className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 cursor-pointer hover:border-cyan-400/40 transition-colors"
-              onClick={() => setNexusOpen(true)}
-              title="Open Nexus Console"
-            >
-              <div className={`w-2 h-2 rounded-full ${nexusHealthColor.replace("text-","bg-")} animate-pulse`} />
-              <span className="text-xs font-mono text-zinc-400">NEXUS</span>
-              <span className={`text-xs font-bold font-mono ${nexusHealthColor}`}>{nexusHealth}</span>
-            </div>
           </div>
         )}
       </div>
@@ -123,6 +271,7 @@ export const FELOSDashboard = ({ setActiveTab }) => {
         <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-cyan-400" /></div>
       ) : (
         <>
+          {/* NUTRI-09: BioFuel logs/scanner live in this WKWebView dashboard; native Vault/HealthKit stay separate until a shared API sync lands. */}
           <BioFuelStripe
             key={biofuelKey}
             onOpenScanner={() => setScannerOpen(true)}
@@ -132,7 +281,7 @@ export const FELOSDashboard = ({ setActiveTab }) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <ScanQuadrant scan={scan.scan} onOpen={() => setActiveTab && setActiveTab("scan")} />
             <CardsQuadrant cards={scan.cards} onOpen={() => setActiveTab && setActiveTab("cards")} />
-            <ArenaQuadrant arena={scan.arena} onOpen={() => setActiveTab && setActiveTab("games")} onOpenNexus={() => setNexusOpen(true)} />
+            <ArenaQuadrant arena={scan.arena} onOpen={() => setActiveTab && setActiveTab("games")} />
             <AcademyQuadrant academy={scan.academy} onTrack={(tid) => { setTrackId(tid); setView("track"); }} />
           </div>
         </>
@@ -149,9 +298,6 @@ export const FELOSDashboard = ({ setActiveTab }) => {
       )}
       {doordashOpen && (
         <BioFuelDoorDash onClose={() => setDoordashOpen(false)} onLogged={() => { setBiofuelKey((k) => k + 1); refresh(); }} />
-      )}
-      {nexusOpen && (
-        <NexusConsole onClose={() => setNexusOpen(false)} />
       )}
     </div>
   );
@@ -222,11 +368,11 @@ const CardsQuadrant = ({ cards, onOpen }) => (
   </QuadrantShell>
 );
 
-const ArenaQuadrant = ({ arena, onOpen, onOpenNexus }) => (
+const ArenaQuadrant = ({ arena, onOpen }) => (
   <QuadrantShell icon={Gamepad2} label="Arena · 19 Modes" accent="border-orange-400/30" onOpen={onOpen} testId="quadrant-arena">
     <div className="grid grid-cols-2 gap-3 text-sm">
       <Stat label="Modes Played" value={arena.modes_played} accent="text-orange-400" />
-      <Stat label="Sovereign Sess." value={arena.sovereign_sessions} />
+      <Stat label="Hub sessions" value={arena.vault_sessions} />
     </div>
     <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center justify-between text-xs">
       <span className="text-zinc-500">UE5 Bridge</span>
@@ -234,27 +380,6 @@ const ArenaQuadrant = ({ arena, onOpen, onOpenNexus }) => (
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
         {arena.ue5_bridge?.toUpperCase()}
       </span>
-    </div>
-    {/* Nexus Console button */}
-    <div className="mt-3">
-      <button
-        data-testid="arena-nexus-console-btn"
-        onClick={onOpenNexus}
-        className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-cyan-400/30 bg-cyan-400/5 text-cyan-400 hover:bg-cyan-400/10 transition-colors text-xs font-bold uppercase tracking-wider"
-      >
-        <Terminal className="w-3.5 h-3.5" /> Nexus Console
-      </button>
-    </div>
-    {/* Mode status grid */}
-    <div className="mt-4 pt-4 border-t border-zinc-800" data-testid="arena-mode-status">
-      <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Mode Status</div>
-      <div className="flex flex-wrap gap-1.5" data-testid="mode-status-strip">
-        {Object.entries(MODE_STATUS).map(([id, status]) => (
-          <span key={id} className={`px-2 py-0.5 text-[10px] font-mono rounded ${statusColor(status)}`}>
-            {id.replace(/_/g, " ")}
-          </span>
-        ))}
-      </div>
     </div>
   </QuadrantShell>
 );
@@ -315,13 +440,13 @@ const TrackDetail = ({ trackId, onBack, onLesson, onFinal, scan }) => {
   const [bbLaunch, setBbLaunch] = useState(null);
 
   const refresh = useCallback(() => {
-    axios.get(`${API}/education/tracks/${trackId}`).then((r) => setTrack(r.data)).catch(console.error);
+    axios.get(`${API}/education/tracks/${trackId}`).then((r) => setTrack(r.data)).catch(() => setTrack(FALLBACK_TRACKS[trackId] || FALLBACK_TRACKS.kinesiology));
     axios.get(`${API}/education/progress`).then((r) => {
       const t = r.data.tracks.find((x) => x.track_id === trackId);
-      setProgress(t);
-    }).catch(console.error);
+      setProgress(t || FALLBACK_PROGRESS.tracks.find((x) => x.track_id === trackId) || FALLBACK_PROGRESS.tracks[0]);
+    }).catch(() => setProgress(FALLBACK_PROGRESS.tracks.find((x) => x.track_id === trackId) || FALLBACK_PROGRESS.tracks[0]));
     if (trackId === "kinesiology") {
-      axios.get(`${API}/education/kinesiology/eligibility`).then((r) => setEligibility(r.data)).catch(console.error);
+      axios.get(`${API}/education/kinesiology/eligibility`).then((r) => setEligibility(r.data)).catch(() => setEligibility(FALLBACK_ELIGIBILITY));
     }
   }, [trackId]);
   useEffect(() => { refresh(); }, [refresh]);
@@ -349,10 +474,21 @@ const TrackDetail = ({ trackId, onBack, onLesson, onFinal, scan }) => {
     try {
       const r = await axios.post(`${API}/education/brain-brawl/launch`);
       setBbLaunch(r.data);
-      // Native iOS deep link
-      window.location.href = r.data.deep_link;
+      const payload = JSON.stringify({
+        type: "fel_brain_brawl_launch",
+        session_id: r.data.session_id,
+        deep_link: r.data.deep_link,
+        ue5_mode_id: r.data.ue5_mode_id,
+      });
+      if (window.webkit?.messageHandlers?.felNativeBridge?.postMessage) {
+        window.webkit.messageHandlers.felNativeBridge.postMessage(payload);
+      } else if (typeof window.felBrainBrawlLaunch === "function") {
+        window.felBrainBrawlLaunch(payload);
+      } else {
+        window.location.href = r.data.deep_link;
+      }
     } catch (e) {
-      console.error(e);
+      setBbLaunch({ session_id: "local-brain-brawl", deep_link: "fel://arena/brain_brawl", ue5_mode_id: "brain_brawl" });
     }
   };
 
@@ -483,8 +619,8 @@ const TrackDetail = ({ trackId, onBack, onLesson, onFinal, scan }) => {
         </div>
       )}
 
-      {/* Bio-Digital module helper for kinesiology */}
-      {trackId === "kinesiology" && eligibility && !eligibility.checks.bio_digital_modules.met && (
+      {/* Bio-Digital module helper — dev-only (EDU-11); production uses UE anatomy receipts */}
+      {SHOW_BIO_DIGITAL_DEV && trackId === "kinesiology" && eligibility && !eligibility.checks.bio_digital_modules.met && (
         <BioDigitalQuickComplete onChange={refresh} />
       )}
     </div>
@@ -499,10 +635,18 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    axios.get(`${API}/education/tracks/${trackId}/lesson/${lessonId}`).then((r) => setLesson(r.data)).catch(console.error);
+    axios.get(`${API}/education/tracks/${trackId}/lesson/${lessonId}`).then((r) => setLesson(r.data)).catch(() => setLesson(fallbackLesson(trackId, lessonId)));
+    axios.post(`${API}/education/tracks/${trackId}/lesson/${lessonId}/open`, {}).catch(() => {});
   }, [trackId, lessonId]);
+
+  useEffect(() => {
+    if (!lesson?.minimum_study_seconds) return undefined;
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [lesson?.minimum_study_seconds]);
 
   const submit = async () => {
     setSubmitting(true);
@@ -510,12 +654,17 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
       const arr = lesson.quiz.map((_, i) => answers[i] ?? -1);
       const r = await axios.post(`${API}/education/tracks/${trackId}/lesson/${lessonId}/submit`, { answers: arr });
       setResult(r.data);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      const arr = lesson.quiz.map((_, i) => answers[i] ?? -1);
+      setResult(scoreQuiz(lesson.quiz, arr));
+    }
     finally { setSubmitting(false); }
   };
 
   if (!lesson) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-cyan-400" /></div>;
 
+  const minSec = lesson.minimum_study_seconds || 0;
+  const studyReady = !minSec || elapsed >= minSec;
   const allAnswered = lesson.quiz.every((_, i) => answers[i] !== undefined);
 
   return (
@@ -527,7 +676,35 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
         <div className="text-[10px] tracking-[0.4em] uppercase text-cyan-400/70">Lesson · {lesson.duration_min} min</div>
         <h2 className="text-3xl font-black tracking-tight" style={{fontFamily:'Barlow Condensed'}}>{lesson.title}</h2>
         <p className="text-sm text-zinc-300 mt-2 leading-relaxed">{lesson.summary}</p>
+        {minSec > 0 && (
+          <p className="text-xs text-zinc-500 mt-2" data-testid="lesson-study-timer">
+            Study gate: {Math.min(elapsed, minSec)}/{minSec}s with lesson content before quiz submit is enabled.
+          </p>
+        )}
       </div>
+
+      {lesson.content_blocks && lesson.content_blocks.length > 0 && (
+        <div className="space-y-3 border border-zinc-800 bg-zinc-950/80 p-4" data-testid="lesson-content-blocks">
+          {lesson.content_blocks.map((b, idx) => (
+            <div key={idx}>
+              {b.heading && <div className="text-xs font-bold text-cyan-400/90 uppercase tracking-wider mb-1">{b.heading}</div>}
+              {b.type === "text" && b.body && <p className="text-sm text-zinc-300 leading-relaxed">{b.body}</p>}
+              {b.type === "bullets" && b.items && (
+                <ul className="list-disc list-inside text-sm text-zinc-300 space-y-1">
+                  {b.items.map((it, j) => (<li key={j}>{it}</li>))}
+                </ul>
+              )}
+            </div>
+          ))}
+          {lesson.resources && lesson.resources.length > 0 && (
+            <div className="pt-2 border-t border-zinc-800 text-xs text-zinc-500">
+              Resources: {lesson.resources.map((r) => (
+                <a key={r.url} href={r.url} target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline ml-2">{r.label}</a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         {lesson.quiz.map((q, i) => (
@@ -537,8 +714,9 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
             <div className="grid gap-2">
               {q.options.map((opt, j) => {
                 const isPicked = answers[i] === j;
-                const isCorrectAfter = result && result.results[i].correct_index === j;
-                const isWrongPickAfter = result && isPicked && !result.results[i].correct;
+                const row = result?.results?.[i];
+                const isCorrectPick = row && row.correct && isPicked;
+                const isWrongPickAfter = row && isPicked && !row.correct;
                 return (
                   <button
                     key={j}
@@ -547,11 +725,11 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
                     onClick={() => setAnswers({ ...answers, [i]: j })}
                     className={`text-left p-2 text-sm border transition-colors ${
                       result
-                        ? isCorrectAfter
+                        ? isCorrectPick
                           ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
                           : isWrongPickAfter
                           ? 'border-red-400/50 bg-red-400/10 text-red-300'
-                          : 'border-zinc-800 text-zinc-400'
+                          : 'border-zinc-800 text-zinc-500'
                         : isPicked
                         ? 'border-cyan-400 bg-cyan-400/10 text-cyan-100'
                         : 'border-zinc-800 hover:border-zinc-600'
@@ -570,11 +748,11 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
       {!result ? (
         <button
           data-testid="quiz-submit-btn"
-          disabled={!allAnswered || submitting}
+          disabled={!allAnswered || submitting || !studyReady}
           onClick={submit}
-          className={`w-full py-3 font-bold transition-colors ${allAnswered ? 'bg-cyan-400 text-black hover:bg-cyan-300' : 'bg-zinc-900 text-zinc-600 cursor-not-allowed'}`}
+          className={`w-full py-3 font-bold transition-colors ${allAnswered && studyReady ? 'bg-cyan-400 text-black hover:bg-cyan-300' : 'bg-zinc-900 text-zinc-600 cursor-not-allowed'}`}
         >
-          {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Submit Quiz'}
+          {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : !studyReady ? `Review lesson (${minSec - elapsed}s)` : 'Submit Quiz'}
         </button>
       ) : (
         <div className={`p-5 border ${result.passed ? 'border-emerald-400/40 bg-emerald-400/5' : 'border-amber-400/40 bg-amber-400/5'}`} data-testid="quiz-result">
@@ -594,27 +772,54 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
 // KINESIOLOGY FINAL ASSESSMENT
 // ============================================================
 const KinesiologyFinal = ({ onBack }) => {
-  const [fa, setFa] = useState(null);
+  const [meta, setMeta] = useState(null);
+  const [attempt, setAttempt] = useState(null);
+  const [startErr, setStartErr] = useState(null);
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    axios.get(`${API}/education/kinesiology/final-assessment`).then((r) => setFa(r.data)).catch(console.error);
+    axios.get(`${API}/education/kinesiology/final-assessment`).then((r) => setMeta(r.data)).catch(() => setMeta(FALLBACK_FINAL));
+    axios
+      .post(`${API}/education/kinesiology/final-assessment/start`, {})
+      .then((r) => setAttempt(r.data))
+      .catch(() => setAttempt({ ...FALLBACK_FINAL, attempt_token: "local-final-attempt", expires_at: null }));
   }, []);
 
   const submit = async () => {
+    if (!attempt?.attempt_token) return;
     setSubmitting(true);
+    const arr = attempt.questions.map((_, i) => answers[i] ?? -1);
     try {
-      const arr = fa.questions.map((_, i) => answers[i] ?? -1);
-      const r = await axios.post(`${API}/education/kinesiology/final-assessment/submit`, { answers: arr });
+      const r = await axios.post(`${API}/education/kinesiology/final-assessment/submit`, {
+        attempt_token: attempt.attempt_token,
+        answers: arr,
+      });
       setResult(r.data);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      const scored = scoreQuiz(attempt.questions, arr);
+      setResult({ ...scored, passed: scored.score_pct >= threshold });
+    }
     finally { setSubmitting(false); }
   };
 
-  if (!fa) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-cyan-400" /></div>;
-  const allAnswered = fa.questions.every((_, i) => answers[i] !== undefined);
+  if (startErr) {
+    return (
+      <div className="max-w-3xl space-y-4">
+        <button data-testid="final-back-btn" onClick={onBack} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-400">
+          <ChevronLeft className="w-4 h-4" /> Back
+        </button>
+        <div className="p-4 border border-red-400/40 text-red-300 text-sm">{typeof startErr === "string" ? startErr : JSON.stringify(startErr)}</div>
+      </div>
+    );
+  }
+
+  if (!meta || !attempt) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-cyan-400" /></div>;
+
+  const qs = attempt.questions || [];
+  const allAnswered = qs.every((_, i) => answers[i] !== undefined);
+  const threshold = attempt.pass_threshold_pct ?? meta.pass_threshold_pct;
 
   return (
     <div className="space-y-5 fade-in max-w-3xl" data-testid="kin-final-runner">
@@ -622,12 +827,13 @@ const KinesiologyFinal = ({ onBack }) => {
         <ChevronLeft className="w-4 h-4" /> Back
       </button>
       <div>
-        <div className="text-[10px] tracking-[0.4em] uppercase text-amber-400/70">Final Assessment · {fa.pass_threshold_pct}% to pass</div>
-        <h2 className="text-3xl font-black tracking-tight" style={{fontFamily:'Barlow Condensed'}}>{fa.title}</h2>
+        <div className="text-[10px] tracking-[0.4em] uppercase text-amber-400/70">Final Assessment · {threshold}% to pass</div>
+        <h2 className="text-3xl font-black tracking-tight" style={{fontFamily:'Barlow Condensed'}}>{attempt.title || meta.title}</h2>
+        <p className="text-xs text-zinc-500 mt-1">Server-shuffled attempt — submit before expiry.</p>
       </div>
 
       <div className="space-y-3">
-        {fa.questions.map((q, i) => (
+        {qs.map((q, i) => (
           <div key={i} data-testid={`final-question-${i}`} className="border border-zinc-800 bg-zinc-950 p-4">
             <div className="text-xs text-zinc-500 mb-2">Q{i + 1}</div>
             <div className="font-medium mb-3">{q.q}</div>
@@ -686,13 +892,17 @@ const BioDigitalQuickComplete = ({ onChange }) => {
         modules_completed: r.data.academy.bio_digital.modules_completed,
         required: r.data.academy.bio_digital.modules_required,
       });
-    }).catch(console.error);
+    }).catch(() => setState({ modules_completed: [], required: ["skeleton", "muscles", "movement_planes", "injury_prevention"] }));
   }, []);
 
   const complete = async (mid) => {
     setBusy(mid);
     try {
-      const r = await axios.post(`${API}/education/bio-digital/complete-module`, { module_id: mid });
+      const begin = await axios.post(`${API}/education/bio-digital/begin-module`, { module_id: mid });
+      const r = await axios.post(`${API}/education/bio-digital/complete-module`, {
+        module_id: mid,
+        completion_receipt: begin.data.completion_receipt,
+      });
       setState({ modules_completed: r.data.modules_completed, required: r.data.required });
       if (onChange) onChange();
     } catch (e) { console.error(e); }
@@ -726,6 +936,106 @@ const BioDigitalQuickComplete = ({ onChange }) => {
     </div>
   );
 };
+
+// ============================================================
+// EDUCATION TAB — same tracks pipeline as FEL OS (replaces legacy /education/courses UI)
+// ============================================================
+export function EducationTracksPortal({ setActiveTab }) {
+  const [scan, setScan] = useState(null);
+  const [view, setView] = useState("overview");
+  const [trackId, setTrackId] = useState(null);
+  const [lessonId, setLessonId] = useState(null);
+
+  const refresh = useCallback(() => {
+    axios.get(`${API}/system-scan/unified`).then((r) => setScan(r.data)).catch(() => setScan(FALLBACK_FEL_OS));
+  }, []);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  if (view === "lesson" && trackId && lessonId) {
+    return (
+      <LessonRunner
+        trackId={trackId}
+        lessonId={lessonId}
+        onBack={() => {
+          setView("track");
+          refresh();
+        }}
+      />
+    );
+  }
+  if (view === "final" && trackId === "kinesiology") {
+    return (
+      <KinesiologyFinal
+        onBack={() => {
+          setView("track");
+          refresh();
+        }}
+      />
+    );
+  }
+  if (view === "track" && trackId && scan) {
+    return (
+      <TrackDetail
+        trackId={trackId}
+        onBack={() => {
+          setView("overview");
+          setTrackId(null);
+          refresh();
+        }}
+        onLesson={(lid) => {
+          setLessonId(lid);
+          setView("lesson");
+        }}
+        onFinal={() => setView("final")}
+        scan={scan}
+      />
+    );
+  }
+
+  if (!scan) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 fade-in" data-testid="education-tracks-portal">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] tracking-[0.35em] text-cyan-400/70 uppercase mb-1">Athlete Academy</p>
+          <h1 className="text-4xl font-black tracking-tight" style={{ fontFamily: "Barlow Condensed" }}>
+            EDUCATION
+          </h1>
+          <p className="text-sm text-zinc-400 mt-1 max-w-xl">
+            Common Core, STEM, Applied Kinesiology, and Brain Brawl use the same{" "}
+            <span className="text-zinc-300">education/tracks</span> pipeline as FEL OS — one progress model and certificate logic.
+          </p>
+        </div>
+        <button
+          type="button"
+          data-testid="education-open-fel-os"
+          className="px-4 py-2 border border-cyan-400/40 text-cyan-400 text-sm font-bold hover:bg-cyan-400/10 transition-colors"
+          onClick={() => setActiveTab && setActiveTab("fel-os")}
+        >
+          Open full FEL OS
+        </button>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <AcademyQuadrant
+          academy={scan.academy}
+          onTrack={(tid) => {
+            setTrackId(tid);
+            setView("track");
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // ============================================================
 // SHARE PASS MODAL

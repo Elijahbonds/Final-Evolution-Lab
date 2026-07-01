@@ -1,0 +1,84 @@
+# Requires Firebase Auth (Anonymous or full account). Tighten with @auth(expr: ...) as you mature IAM.
+
+mutation RegisterSignedInUser(
+  $username: String!
+  $email: String!
+  $profilePictureUrl: String
+  $avatarUrl: String
+) @auth(level: USER) {
+  user_insert(
+    data: {
+      firebaseUid_expr: "auth.uid"
+      username: $username
+      email: $email
+      profilePictureUrl: $profilePictureUrl
+      avatarUrl: $avatarUrl
+    }
+  )
+}
+
+mutation LinkUserToFirebaseAuth($userKey: User_Key!) @auth(level: USER) {
+  user_update(key: $userKey, data: { firebaseUid_expr: "auth.uid" })
+}
+
+mutation UpdateUserTrainingProfile(
+  $userKey: User_Key!
+  $topPRQScore: Float!
+  $avatarUrl: String
+) @auth(level: USER) {
+  user_update(
+    key: $userKey
+    data: { topPRQScore: $topPRQScore, avatarUrl: $avatarUrl }
+  )
+}
+
+mutation CreatePost(
+  $content: String!
+  $authorId: UUID!
+  $gameModeId: String
+  $trainingScore: Float
+  $clipUrl: String
+  $feedSource: String
+) @auth(level: USER) {
+  post_insert(
+    data: {
+      content: $content
+      authorId: $authorId
+      gameModeId: $gameModeId
+      trainingScore: $trainingScore
+      clipUrl: $clipUrl
+      feedSource: $feedSource
+    }
+  )
+}
+
+mutation CreateComment($postId: UUID!, $authorId: UUID!, $content: String!) @auth(level: USER) {
+  comment_insert(
+    data: {
+      postId: $postId
+      authorId: $authorId
+      content: $content
+    }
+  )
+}
+
+mutation LikePost($postId: UUID!, $userId: UUID!) @auth(level: USER) {
+  postLike_insert(
+    data: {
+      postId: $postId
+      userId: $userId
+    }
+  )
+}
+
+mutation UnlikePost($postId: UUID!, $userId: UUID!) @auth(level: USER) {
+  postLike_delete(key: { postId: $postId, userId: $userId })
+}
+
+mutation DeletePost($postKey: Post_Key!) @auth(level: USER) {
+  post_delete(key: $postKey)
+}
+
+mutation DeleteComment($commentKey: Comment_Key!) @auth(level: USER) {
+  comment_delete(key: $commentKey)
+}

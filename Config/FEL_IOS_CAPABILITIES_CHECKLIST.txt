@@ -32,6 +32,6 @@ Environment variables (Xcode scheme, CI, or hosting dashboard → map to process
 GEMINI_API_KEY
 FEL_SUPABASE_URL
 FEL_SUPABASE_ANON_KEY
-Optional: FEL_SOVEREIGN_LEADERBOARD_URL, FEL_SOVEREIGN_LEADERBOARD_TOKEN
+Optional: FEL_VAULT_LEADERBOARD_URL, FEL_VAULT_LEADERBOARD_TOKEN
 
 Resolved in code via Source/FELAppConfig.swift (env first, then Info.plist).

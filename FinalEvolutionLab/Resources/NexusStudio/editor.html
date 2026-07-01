@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>NEXUS Studio Editor</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --fg: #c9d1d9;
+      --muted: #8b949e;
+      --accent: #33d4ff;
+      --keyword: #ff7b72;
+      --string: #a5d6ff;
+      --comment: #8b949e;
+      --number: #79c0ff;
+      --type: #ffa657;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      overflow: hidden;
+    }
+    #wrap {
+      display: flex;
+      height: 100%;
+    }
+    #gutter {
+      width: 44px;
+      padding: 12px 6px 12px 10px;
+      text-align: right;
+      color: var(--muted);
+      user-select: none;
+      overflow: hidden;
+      line-height: 1.45;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    #editor {
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      background: transparent;
+      color: var(--fg);
+      padding: 12px;
+      line-height: 1.45;
+      tab-size: 4;
+      white-space: pre;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #editor[readonly] {
+      opacity: 0.92;
+    }
+    #status {
+      position: fixed;
+      left: 8px;
+      bottom: 6px;
+      font-size: 10px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+    #lang-badge {
+      position: fixed;
+      right: 8px;
+      top: 8px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      background: rgba(51, 212, 255, 0.12);
+      border: 1px solid rgba(51, 212, 255, 0.35);
+      border-radius: 999px;
+      padding: 4px 10px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="gutter">1</div>
+    <textarea id="editor" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+  </div>
+  <div id="status"></div>
+  <div id="lang-badge">PLAIN</div>
+  <script>
+    const editor = document.getElementById('editor');
+    const gutter = document.getElementById('gutter');
+    const status = document.getElementById('status');
+    const langBadge = document.getElementById('lang-badge');
+    let language = 'plain';
+    let readOnly = true;
+
+    const LANG_LABELS = {
+      cpp: 'C++',
+      swift: 'Swift',
+      json: 'JSON',
+      markdown: 'Markdown',
+      plain: 'Plain'
+    };
+
+    function langLabel(lang) {
+      return LANG_LABELS[lang] || lang.toUpperCase();
+    }
+
+    function updateLangBadge() {
+      langBadge.textContent = langLabel(language);
+    }
+
+    function updateGutter() {
+      const lines = editor.value.split('\n').length;
+      gutter.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
+    }
+
+    function notifyChange() {
+      updateGutter();
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.contentChanged) {
+        window.webkit.messageHandlers.contentChanged.postMessage(editor.value);
+      }
+    }
+
+    editor.addEventListener('input', notifyChange);
+    editor.addEventListener('scroll', () => { gutter.scrollTop = editor.scrollTop; });
+
+    window.setStudioContentB64 = function(b64, lang, readonly) {
+      language = lang || 'plain';
+      readOnly = !!readonly;
+      try {
+        editor.value = atob(b64);
+      } catch (e) {
+        editor.value = '';
+      }
+      editor.readOnly = readOnly;
+      status.textContent = langLabel(language) + (readOnly ? ' · READ-ONLY' : ' · SANDBOX EDIT');
+      updateLangBadge();
+      updateGutter();
+    };
+
+    window.setStudioContent = function(text, lang, readonly) {
+      language = lang || 'plain';
+      readOnly = !!readonly;
+      editor.value = text || '';
+      editor.readOnly = readOnly;
+      status.textContent = langLabel(language) + (readOnly ? ' · READ-ONLY' : ' · SANDBOX EDIT');
+      updateLangBadge();
+      updateGutter();
+    };
+
+    window.getStudioContent = function() {
+      return editor.value;
+    };
+
+    window.setStudioReadOnly = function(readonly) {
+      readOnly = !!readonly;
+      editor.readOnly = readOnly;
+      status.textContent = langLabel(language) + (readOnly ? ' · READ-ONLY' : ' · SANDBOX EDIT');
+    };
+
+    updateLangBadge();
+    updateGutter();
+  </script>
+</body>
+</html>

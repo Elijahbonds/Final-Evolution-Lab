@@ -1,0 +1,27 @@
+name: fel-e3ds-streaming
+runtime: python
+description: Final Evolution Lab — Eagle 3D Streaming GPU Infrastructure
+
+config:
+  e3ds:e3dsApiKey:
+    description: Eagle 3D Streaming API key
+    secret: true
+  e3ds:e3dsAccountId:
+    description: E3DS account ID
+  e3ds:buildZipUrl:
+    description: URL to the packaged UE5 build zip
+  e3ds:e3dsAppName:
+    description: Application name on E3DS
+    default: FinalEvolutionLab
+  e3ds:e3dsRegion:
+    description: E3DS deployment region
+    default: us-east
+  e3ds:gpuTier:
+    description: GPU tier (rtx3070, rtx4080)
+    default: rtx4080
+  e3ds:maxStreams:
+    description: Max concurrent streams
+    default: "4"
+  e3ds:idleTimeoutMin:
+    description: Idle disconnect timeout in minutes
+    default: "15"

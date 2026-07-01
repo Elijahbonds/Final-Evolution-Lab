@@ -1,0 +1,176 @@
+{
+  "schema_version": "1",
+  "gap_id": "gap_commit_dual_dunk",
+  "feature_name": "Dual Dunk Contest (IRL WDA + 3D H2H) — commit-ready staging",
+  "generated_at": "2026-06-29T20:45:00Z",
+  "canonical_repo": "/Users/elijahbonds/Final-Evolution-Lab",
+  "git": {
+    "branch": "anti-gravity-fel",
+    "base_head_sha": "3d18c6bdb67ade479105385a419a92d6d21623d4",
+    "commit_requested": false,
+    "staging_only": true
+  },
+  "overall_status": "commit_ready",
+  "pass_fail": "PASS",
+  "executive_summary": {
+    "headline": "Dual-mode dunk split (basketball_dunk_irl + basketball_dunk_3d) and FIBA/WDA IRL stack are staged for commit. C++ DunkContestMode gate green; iOS Debug sim build succeeded after compile-unblock fixes.",
+    "gap_closed": "Uncommitted dual-dunk + WDA working-tree files identified, compile-verified, and git-added — no commit created (user must explicitly request)."
+  },
+  "dual_mode_status": {
+    "irl_h2h": {
+      "mode_id": "basketball_dunk_irl",
+      "swift_enum": "basketballDunkContestIRL",
+      "cartridge_title": "Slam Cam '26",
+      "launch": "ArcadeLibraryView / GameModeSelectionView → DunkMatchmakingView → DunkRecordingTrackerView",
+      "scoring": "WDAScoringEngine (FIBA 75s, execution/artistic/first-try, biomechanical deductions)"
+    },
+    "3d_h2h": {
+      "mode_id": "basketball_dunk_3d",
+      "swift_enum": "basketballDunkContest3D",
+      "nexus_runtime_mode_id": "basketball_dunk",
+      "cartridge_title": "Slam Jam '94",
+      "cpp": "DunkContestMode via arena_mode_registry basketball_dunk entry",
+      "launch": "Standard GamePlayView + GameSceneFactory.buildDunkContestScene"
+    }
+  },
+  "verification": {
+    "nexus_build_gate": {
+      "script": "./scripts/nexus_build_gate.sh",
+      "status": "pass",
+      "production_modes_validated": 18,
+      "dunk_contest_validate_only": "pass (basketball_dunk / venice_beach_court mobile mesh)"
+    },
+    "ios_xcodebuild_debug_sim": {
+      "command": "ALLOW_GOOGLE_SERVICE_PLACEHOLDER=1 xcodebuild -project FinalEvolutionLab.xcodeproj -scheme FinalEvolutionLab -derivedDataPath /tmp/FEL-DD-NEXUS -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' -configuration Debug build",
+      "status": "pass",
+      "banner": "BUILD SUCCEEDED",
+      "derived_data": "/tmp/FEL-DD-NEXUS"
+    },
+    "compile_unblock_fixes_applied": [
+      {
+        "file": "FinalEvolutionLab/Models/BrainBrawlProgression.swift",
+        "fix": "Introduced BrainBrawlCategoryStat so BrainBrawlMatchSummary conforms to Equatable"
+      },
+      {
+        "file": "FinalEvolutionLab/Views/BrainBrawl2DView.swift",
+        "fix": "Migrated categoryStats from tuple dictionary to BrainBrawlCategoryStat"
+      },
+      {
+        "file": "FinalEvolutionLab/Models/CreatorCard.swift",
+        "fix": "Corrected catalog entry argument order; marked card(forId:) and activeCard(for:) @MainActor"
+      },
+      {
+        "file": "FinalEvolutionLab/Utilities/NexusGameplayAvatarLoader.swift",
+        "fix": "Added import SwiftUI; @MainActor resolvedCreatorCard for catalog lookup"
+      },
+      {
+        "file": "FinalEvolutionLab/Views/WorkoutDayView.swift",
+        "fix": "Reordered TrainingExerciseDetailView args (onComplete before athleteProfile)"
+      }
+    ]
+  },
+  "suggested_commit_message": "feat(dunk): commit dual IRL WDA + 3D H2H dunk contest stack\n\nSplit basketball_dunk into basketball_dunk_irl (camera/Vision/WDA) and basketball_dunk_3d (NEXUS C++ DunkContestMode). Adds DunkMatchmakingView, DunkRecordingTrackerView, WDAScoringEngine, and routing from ArcadeLibrary/GameModeSelection. Includes compile-unblock fixes for CreatorCard, BrainBrawl, and avatar loader.",
+  "git_add_files": {
+    "primary_swift_dual_dunk_wda": [
+      "FinalEvolutionLab/Models/GameMode.swift",
+      "FinalEvolutionLab/Models/DunkContestEngine.swift",
+      "FinalEvolutionLab/Models/GameModeRules.swift",
+      "FinalEvolutionLab/Models/ArcadeCartridgeMetadata.swift",
+      "FinalEvolutionLab/Services/WDAScoringEngine.swift",
+      "FinalEvolutionLab/Views/DunkMatchmakingView.swift",
+      "FinalEvolutionLab/Views/DunkRecordingTrackerView.swift",
+      "FinalEvolutionLab/Views/GameModeSelectionView.swift",
+      "FinalEvolutionLab/Views/ArcadeLibraryView.swift",
+      "FinalEvolutionLab/Views/GamePlayView.swift",
+      "FinalEvolutionLab/Views/GameSceneFactory.swift",
+      "FinalEvolutionLab/Views/GameSceneHostView.swift"
+    ],
+    "dependencies_required_by_dunk_views": [
+      "FinalEvolutionLab/Models/NexusAnimationAsset.swift",
+      "FinalEvolutionLab/Services/TriumphTournamentEngine.swift",
+      "FinalEvolutionLab/Utilities/FELPremiumCopy.swift",
+      "FinalEvolutionLab/Utilities/FELPreviewLabel.swift"
+    ],
+    "engine_cpp_3d_dunk": [
+      "app/gameplay/include/nexus/gameplay/dunk_contest_mode.h",
+      "app/gameplay/src/dunk_contest_mode.cpp",
+      "app/gameplay/include/nexus/gameplay/arena_mode_registry.h",
+      "app/gameplay/src/arena_mode_registry.cpp",
+      "tests/unit/gameplay/gameplay_test.cpp"
+    ],
+    "tests_and_smoke": [
+      "FinalEvolutionLabTests/GameLogicTests.swift",
+      "FinalEvolutionLabUITests/GameModeScreenshotUITests.swift"
+    ],
+    "compile_unblock_same_commit": [
+      "FinalEvolutionLab/Models/BrainBrawlProgression.swift",
+      "FinalEvolutionLab/Views/BrainBrawl2DView.swift",
+      "FinalEvolutionLab/Models/CreatorCard.swift",
+      "FinalEvolutionLab/Utilities/NexusGameplayAvatarLoader.swift",
+      "FinalEvolutionLab/Views/WorkoutDayView.swift"
+    ],
+    "coord_artifacts": [
+      "artifacts/coord/dunk_contest_dual_mode_handoff.json",
+      "artifacts/coord/fiba_wda_dunk_platform_handoff.json",
+      "artifacts/coord/gap_commit_dual_dunk.json"
+    ]
+  },
+  "git_add_command_exact": "git add FinalEvolutionLab/Models/GameMode.swift FinalEvolutionLab/Models/DunkContestEngine.swift FinalEvolutionLab/Models/GameModeRules.swift FinalEvolutionLab/Models/ArcadeCartridgeMetadata.swift FinalEvolutionLab/Services/WDAScoringEngine.swift FinalEvolutionLab/Views/DunkMatchmakingView.swift FinalEvolutionLab/Views/DunkRecordingTrackerView.swift FinalEvolutionLab/Views/GameModeSelectionView.swift FinalEvolutionLab/Views/ArcadeLibraryView.swift FinalEvolutionLab/Views/GamePlayView.swift FinalEvolutionLab/Views/GameSceneFactory.swift FinalEvolutionLab/Views/GameSceneHostView.swift FinalEvolutionLab/Models/NexusAnimationAsset.swift FinalEvolutionLab/Services/TriumphTournamentEngine.swift FinalEvolutionLab/Utilities/FELPremiumCopy.swift FinalEvolutionLab/Utilities/FELPreviewLabel.swift app/gameplay/include/nexus/gameplay/dunk_contest_mode.h app/gameplay/src/dunk_contest_mode.cpp app/gameplay/include/nexus/gameplay/arena_mode_registry.h app/gameplay/src/arena_mode_registry.cpp tests/unit/gameplay/gameplay_test.cpp FinalEvolutionLabTests/GameLogicTests.swift FinalEvolutionLabUITests/GameModeScreenshotUITests.swift FinalEvolutionLab/Models/BrainBrawlProgression.swift FinalEvolutionLab/Views/BrainBrawl2DView.swift FinalEvolutionLab/Models/CreatorCard.swift FinalEvolutionLab/Utilities/NexusGameplayAvatarLoader.swift FinalEvolutionLab/Views/WorkoutDayView.swift && git add -f artifacts/coord/dunk_contest_dual_mode_handoff.json artifacts/coord/fiba_wda_dunk_platform_handoff.json artifacts/coord/gap_commit_dual_dunk.json",
+  "gitignore_note": "artifacts/coord/* is gitignored except vercel_migration_handoff.json — coord handoffs require git add -f",
+  "git_add_files_flat": [
+    "FinalEvolutionLab/Models/GameMode.swift",
+    "FinalEvolutionLab/Models/DunkContestEngine.swift",
+    "FinalEvolutionLab/Models/GameModeRules.swift",
+    "FinalEvolutionLab/Models/ArcadeCartridgeMetadata.swift",
+    "FinalEvolutionLab/Services/WDAScoringEngine.swift",
+    "FinalEvolutionLab/Views/DunkMatchmakingView.swift",
+    "FinalEvolutionLab/Views/DunkRecordingTrackerView.swift",
+    "FinalEvolutionLab/Views/GameModeSelectionView.swift",
+    "FinalEvolutionLab/Views/ArcadeLibraryView.swift",
+    "FinalEvolutionLab/Views/GamePlayView.swift",
+    "FinalEvolutionLab/Views/GameSceneFactory.swift",
+    "FinalEvolutionLab/Views/GameSceneHostView.swift",
+    "FinalEvolutionLab/Models/NexusAnimationAsset.swift",
+    "FinalEvolutionLab/Services/TriumphTournamentEngine.swift",
+    "FinalEvolutionLab/Utilities/FELPremiumCopy.swift",
+    "FinalEvolutionLab/Utilities/FELPreviewLabel.swift",
+    "app/gameplay/include/nexus/gameplay/dunk_contest_mode.h",
+    "app/gameplay/src/dunk_contest_mode.cpp",
+    "app/gameplay/include/nexus/gameplay/arena_mode_registry.h",
+    "app/gameplay/src/arena_mode_registry.cpp",
+    "tests/unit/gameplay/gameplay_test.cpp",
+    "FinalEvolutionLabTests/GameLogicTests.swift",
+    "FinalEvolutionLabUITests/GameModeScreenshotUITests.swift",
+    "FinalEvolutionLab/Models/BrainBrawlProgression.swift",
+    "FinalEvolutionLab/Views/BrainBrawl2DView.swift",
+    "FinalEvolutionLab/Models/CreatorCard.swift",
+    "FinalEvolutionLab/Utilities/NexusGameplayAvatarLoader.swift",
+    "FinalEvolutionLab/Views/WorkoutDayView.swift",
+    "artifacts/coord/dunk_contest_dual_mode_handoff.json",
+    "artifacts/coord/fiba_wda_dunk_platform_handoff.json",
+    "artifacts/coord/gap_commit_dual_dunk.json"
+  ],
+  "remaining_gaps_post_commit": [
+    {
+      "id": "ui_smoke_dual_mode_cards",
+      "priority": "P0",
+      "detail": "Re-run GameModeScreenshotUITests after commit — verify basketball_dunk_irl + basketball_dunk_3d card IDs"
+    },
+    {
+      "id": "cpp_registry_irl_gap",
+      "priority": "P1",
+      "detail": "basketball_dunk_irl has no C++ validate-only entry; production gate remains 18 modes not 19"
+    },
+    {
+      "id": "device_qa_irl_camera",
+      "priority": "P1",
+      "detail": "Physical iPhone camera + Vision pose QA for IRL WDA path not run"
+    }
+  ],
+  "coord_refs": [
+    "artifacts/coord/dunk_contest_dual_mode_handoff.json",
+    "artifacts/coord/fiba_wda_dunk_platform_handoff.json",
+    "artifacts/coord/dunk_contest_build_gate.json",
+    "artifacts/coord/gap_irl_proctored_dunk.json"
+  ]
+}

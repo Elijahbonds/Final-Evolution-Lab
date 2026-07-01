@@ -46,7 +46,7 @@ const creatorCards = [
 ];
 
 for (const c of creatorCards) {
-  await db.doc(`catalog/creator_cards/${c.id}`).set({
+  await db.doc(`catalog/creator_cards/cards/${c.id}`).set({
     ...c,
     kind: "creator_card_stub",
     updatedAt: new Date().toISOString(),
@@ -75,7 +75,7 @@ const modules = [
 ];
 
 for (const m of modules) {
-  await db.doc(`education/modules/${m.id}`).set({
+  await db.doc(`education/modules/items/${m.id}`).set({
     ...m,
     kind: "education_module_stub",
     updatedAt: new Date().toISOString(),
@@ -83,5 +83,5 @@ for (const m of modules) {
 }
 
 console.log(
-  `Firestore emulator (${host}) seeded: catalog/creator_cards/*, education/modules/*, _emulator_meta/seed`
+  `Firestore emulator (${host}) seeded: catalog/creator_cards/cards/*, education/modules/items/*, _emulator_meta/seed`
 );

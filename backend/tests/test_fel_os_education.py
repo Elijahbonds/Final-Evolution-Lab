@@ -3,10 +3,29 @@ Backend tests: FEL OS Education Tracks, Kinesiology Cert, Bio-Digital, Brain Bra
 Unified System Scan, and refactor regression checks.
 """
 import os
+import sys
+import time
+from pathlib import Path
+
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://readiness-stack.preview.emergentagent.com").rstrip("/")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from routers.education_tracks import TRACKS  # noqa: E402
+
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://readiness-stack.preview.finalevolutionlab.com").rstrip("/")
+
+
+def _kin_perfect_answers(questions_payload):
+    """Match shuffled options back to canonical bank by question stem (integration helper)."""
+    bank = TRACKS["kinesiology"]["final_assessment"]["questions"]
+    by_stem = {q["q"]: q for q in bank}
+    out = []
+    for item in questions_payload:
+        orig = by_stem[item["q"]]
+        correct_text = orig["options"][orig["correct"]]
+        out.append(item["options"].index(correct_text))
+    return out
 
 # Pre-provisioned sessions (see test_credentials.md + mongosh seed)
 FRESH_TOKEN = "sess_edu_1777958291132"       # PRQ 82, fresh (no progress)
@@ -16,6 +35,11 @@ EXISTING_TOKEN = "sess_1777957943281"        # PRQ 82, cert already issued (idem
 
 def h(token):
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+
+def enroll_user(token, course_id):
+    r = requests.post(f"{BASE_URL}/api/education/enroll/{course_id}", headers=h(token))
+    return r
 
 
 # ---------- Tracks listing / detail ----------
@@ -47,7 +71,8 @@ class TestEducationTracks:
         assert data["final_assessment"]["question_count"] == 10
 
     def test_lesson_quiz_strips_correct(self):
-        r = requests.get(f"{BASE_URL}/api/education/tracks/common_core/lesson/cc_math_1")
+        enroll_user(FRESH_TOKEN, "college_prep")
+        r = requests.get(f"{BASE_URL}/api/education/tracks/common_core/lesson/cc_math_1", headers=h(FRESH_TOKEN))
         assert r.status_code == 200
         data = r.json()
         assert data["id"] == "cc_math_1"
@@ -64,13 +89,18 @@ class TestEducationTracks:
 # ---------- Auth gating ----------
 class TestAuthGating:
     @pytest.mark.parametrize("method,path", [
+        ("get",  "/api/education/tracks/common_core/lesson/cc_math_1"),
         ("post", "/api/education/tracks/common_core/lesson/cc_math_1/submit"),
+        ("post", "/api/education/tracks/common_core/lesson/cc_math_1/open"),
         ("get",  "/api/education/progress"),
         ("get",  "/api/education/kinesiology/eligibility"),
         ("post", "/api/education/kinesiology/final-assessment/submit"),
+        ("post", "/api/education/kinesiology/final-assessment/start"),
         ("post", "/api/education/kinesiology/certify"),
+        ("post", "/api/education/bio-digital/begin-module"),
         ("post", "/api/education/bio-digital/complete-module"),
         ("post", "/api/education/brain-brawl/launch"),
+        ("post", "/api/brain-brawl/session/start"),
         ("get",  "/api/system-scan/unified"),
     ])
     def test_requires_auth(self, method, path):
@@ -82,6 +112,7 @@ class TestAuthGating:
 # ---------- Quiz submit / grading / XP / idempotency ----------
 class TestLessonSubmit:
     def test_submit_wrong_length_400(self):
+        enroll_user(FRESH_TOKEN, "college_prep")
         r = requests.post(
             f"{BASE_URL}/api/education/tracks/common_core/lesson/cc_math_1/submit",
             headers=h(FRESH_TOKEN), json={"answers": [1, 1]},
@@ -89,6 +120,7 @@ class TestLessonSubmit:
         assert r.status_code == 400
 
     def test_pass_awards_xp_once(self):
+        enroll_user(FRESH_TOKEN, "college_prep")
         # Correct answers for cc_math_1 = [1,1,1,1]
         url = f"{BASE_URL}/api/education/tracks/common_core/lesson/cc_math_1/submit"
         # Baseline XP
@@ -110,6 +142,7 @@ class TestLessonSubmit:
         assert d2["xp_earned"] == 0
 
     def test_fail_does_not_complete(self):
+        enroll_user(FRESH_TOKEN, "stem_sports")
         url = f"{BASE_URL}/api/education/tracks/stem/lesson/stem_phys_1/submit"
         # All zeros — only 1st is correct index 1, so 0/4 => fail
         r = requests.post(url, headers=h(FRESH_TOKEN), json={"answers": [0, 0, 0, 0]})
@@ -141,12 +174,10 @@ KIN_ANSWERS = {
     "kin_per_1": [1, 1, 1, 1], "kin_neu_1": [1, 0, 1, 1],
     "kin_rec_1": [2, 1, 1, 0], "kin_eth_1": [1, 1, 1, 1],
 }
-FINAL_ANSWERS = [1] * 10  # all correct_index == 1
-
-
 class TestKinesiologyHappyPath:
     def test_complete_flow(self):
         tok = FRESH_TOKEN
+        enroll_user(tok, "kinesiology_cert")
         # 1. Coursework
         for lid in KIN_LESSONS:
             r = requests.post(
@@ -156,11 +187,20 @@ class TestKinesiologyHappyPath:
             assert r.status_code == 200, f"lesson {lid} failed: {r.text}"
             assert r.json()["passed"] is True, f"lesson {lid} not passed: {r.json()}"
 
-        # 2. Bio-digital modules
+        # 2. Bio-digital modules (begin → receipt → complete)
         for m in ["skeletal_basics", "muscular_chains", "kinetic_chain_pillars", "neural_priming"]:
+            rb = requests.post(
+                f"{BASE_URL}/api/education/bio-digital/begin-module",
+                headers=h(tok), json={"module_id": m},
+            )
+            assert rb.status_code == 200, rb.text
+            receipt = rb.json().get("completion_receipt")
+            assert receipt
+            # BIO_DIGITAL_MIN_ACTIVE_SECONDS default (3s) — anti instant-complete gate
+            time.sleep(3.5)
             r = requests.post(
                 f"{BASE_URL}/api/education/bio-digital/complete-module",
-                headers=h(tok), json={"module_id": m},
+                headers=h(tok), json={"module_id": m, "completion_receipt": receipt},
             )
             assert r.status_code == 200
         # 3. Eligibility — final not yet passed, so not all_met
@@ -180,15 +220,24 @@ class TestKinesiologyHappyPath:
         r = requests.post(f"{BASE_URL}/api/education/kinesiology/certify", headers=h(tok))
         assert r.status_code == 400
 
-        # 5. Final assessment
+        # 5. Final assessment (server-shuffled attempt + verified receipt)
+        rs = requests.post(
+            f"{BASE_URL}/api/education/kinesiology/final-assessment/start",
+            headers=h(tok), json={},
+        )
+        assert rs.status_code == 200, rs.text
+        att = rs.json()
+        perfect = _kin_perfect_answers(att["questions"])
         r = requests.post(
             f"{BASE_URL}/api/education/kinesiology/final-assessment/submit",
-            headers=h(tok), json={"answers": FINAL_ANSWERS},
+            headers=h(tok),
+            json={"attempt_token": att["attempt_token"], "answers": perfect},
         )
         assert r.status_code == 200, r.text
         fd = r.json()
         assert fd["passed"] is True
         assert fd["score_pct"] >= 80.0
+        assert fd.get("final_verified_receipt")
 
         # 6. Certify
         r = requests.post(f"{BASE_URL}/api/education/kinesiology/certify", headers=h(tok))
@@ -208,6 +257,7 @@ class TestKinesiologyHappyPath:
 class TestKinesiologyLowPRQ:
     def test_prq_gate_blocks(self):
         tok = LOWPRQ_TOKEN
+        enroll_user(tok, "kinesiology_cert")
         r = requests.get(f"{BASE_URL}/api/education/kinesiology/eligibility", headers=h(tok))
         assert r.status_code == 200
         elig = r.json()
@@ -219,6 +269,7 @@ class TestKinesiologyLowPRQ:
 
 class TestExistingUserIdempotent:
     def test_already_issued(self):
+        enroll_user(EXISTING_TOKEN, "kinesiology_cert")
         r = requests.post(f"{BASE_URL}/api/education/kinesiology/certify", headers=h(EXISTING_TOKEN))
         assert r.status_code == 200
         d = r.json()
@@ -228,7 +279,14 @@ class TestExistingUserIdempotent:
 
 # ---------- Brain Brawl ----------
 class TestBrainBrawl:
+    def test_legacy_questions_strip_correct_index(self):
+        r = requests.get(f"{BASE_URL}/api/brain-brawl/questions?count=5")
+        assert r.status_code == 200
+        for q in r.json():
+            assert "correct" not in q
+
     def test_launch_returns_deep_link(self):
+        enroll_user(FRESH_TOKEN, "brain_brawl_101")
         r = requests.post(f"{BASE_URL}/api/education/brain-brawl/launch", headers=h(FRESH_TOKEN))
         assert r.status_code == 200
         d = r.json()
@@ -247,7 +305,7 @@ class TestUnifiedScan:
             assert k in d
         assert d["scan"]["prq_score"] == 82.0
         assert d["arena"]["ue5_bridge"] == "ready"
-        assert "sovereign_sessions" in d["arena"]
+        assert "vault_sessions" in d["arena"]
         assert "modes_played" in d["arena"]
         assert len(d["academy"]["tracks"]) == 4
         assert d["academy"]["bio_digital"]["modules_required"] == [
@@ -279,6 +337,6 @@ class TestRefactorRegression:
         r = requests.get(f"{BASE_URL}/api/cards")
         assert r.status_code == 200
 
-    def test_sovereign_status(self):
-        r = requests.get(f"{BASE_URL}/api/sovereign/status", headers=h(FRESH_TOKEN))
+    def test_vault_status(self):
+        r = requests.get(f"{BASE_URL}/api/vault/status", headers=h(FRESH_TOKEN))
         assert r.status_code in (200, 401)  # depends on whether endpoint requires auth

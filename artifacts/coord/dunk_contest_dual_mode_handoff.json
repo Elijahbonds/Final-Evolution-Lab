@@ -1,0 +1,258 @@
+{
+  "schema_version": "2",
+  "handoff_id": "dunk_contest_dual_mode_handoff",
+  "generated_at": "2026-06-29T13:00:00Z",
+  "agent_role": "gameplay_tester",
+  "canonical_repo": "/Users/elijahbonds/Final-Evolution-Lab",
+  "sources_polled": [
+    "artifacts/coord/dunk_contest_dual_mode_handoff.json (v1 draft)",
+    "artifacts/coord/dunk_contest_branch_audit.json",
+    "artifacts/coord/mode_fix_basketball_dunk.json",
+    "artifacts/coord/fiba_wda_dunk_platform_handoff.json",
+    "artifacts/coord/mocap_dunk_integration_handoff.json",
+    "artifacts/coord/basketball_modes_handoff.json",
+    "artifacts/coord/sim_fr_handoff.json",
+    "artifacts/coord/sim_3d_verify_handoff.json",
+    "artifacts/coord/sim_3d_verify_followup.json",
+    "artifacts/coord/blocker_fix_mode_card.json",
+    "artifacts/coord/blocker_fix_ui_smoke.json",
+    "artifacts/coord/deadline_sprint_p0_blockers.json",
+    "artifacts/coord/deadline_sprint_build_gate.json"
+  ],
+  "simulator_fix_handoff_note": "artifacts/coord/simulator_fix_handoff.json not found — synthesized from sim_fr_handoff, sim_3d_verify_handoff, sim_3d_verify_followup, blocker_fix_mode_card, blocker_fix_ui_smoke, deadline_sprint_p0_blockers",
+  "executive_summary": {
+    "verdict": "PARTIAL — dual-mode split landed in working tree; C++ 3D path green; IRL WDA stack code-complete but uncommitted; iOS sim smoke still blocked",
+    "headline": "Dunk Contest is now two production modes: IRL H2H (camera/Vision/WDA) and 3D H2H (NEXUS C++ DunkContestMode + Metal/SceneKit). Engine gate PASS (18 modes). Simulator UI smoke FAIL pending clean xcodebuild + updated mode-card IDs for basketball_dunk_irl / basketball_dunk_3d.",
+    "ir_l_h2h_status": "code_complete_uncommitted",
+    "3d_h2h_status": "pass_engine_partial_ios",
+    "ship_readiness": "not_ready — P0 iOS compile/smoke + commit dual-mode + untrack Dunk views"
+  },
+  "dual_mode_status": {
+    "irl_h2h": {
+      "mode_id": "basketball_dunk_irl",
+      "swift_enum": "basketballDunkContestIRL",
+      "display_name": "IRL H2H Dunk Contest",
+      "cartridge_title": "Slam Cam '26",
+      "status": "code_complete_uncommitted",
+      "pass_fail": "PARTIAL",
+      "launch_surface": "ArcadeLibraryView / GameModeSelectionView → showDunkPlatform → DunkMatchmakingView → DunkRecordingTrackerView",
+      "scoring": "WDAScoringEngine (FIBA 75s window, execution/artistic/first-try heuristics, knee valgus/ankle pronation deductions)",
+      "pose_tracking": "Apple Vision VNDetectHumanBodyPoseRequest + procedural skeleton sim fallback",
+      "mocap_integration": "fel.dunk.register_signature bridges selected signature animation keyframes to C++ session",
+      "judges": "Randy, Dominique, Lisa — live board reveal + dynamic commentary",
+      "rewards": "+50 Evolution Shards, PRQ via FELScoreManager",
+      "cpp_engine": "none — Swift-native path; no validate-only entry in arena_mode_registry",
+      "git_state": {
+        "GameMode.swift": "modified (dual enum present in working tree)",
+        "DunkMatchmakingView.swift": "untracked (??)",
+        "DunkRecordingTrackerView.swift": "untracked (??)",
+        "WDAScoringEngine.swift": "untracked (??)"
+      },
+      "gaps": [
+        "Views/services not committed — zero git history for DunkMatchmaking/DunkRecording",
+        "No device QA on physical camera + AVCaptureSession",
+        "No C++ receipt path for basketball_dunk_irl",
+        "nexus_validate_production_modes.sh still 18-mode gate (IRL not counted)"
+      ]
+    },
+    "3d_h2h": {
+      "mode_id": "basketball_dunk_3d",
+      "swift_enum": "basketballDunkContest3D",
+      "legacy_alias": "basketball_dunk",
+      "display_name": "3D H2H Dunk Contest",
+      "cartridge_title": "Slam Jam '94",
+      "status": "pass_engine_partial_ios",
+      "pass_fail": "PARTIAL",
+      "launch_surface": "Standard GamePlayView + GameSceneFactory.buildDunkContestScene + NexusHybridGameplayContainerView",
+      "nexus_runtime_mode_id": "basketball_dunk",
+      "cpp_simulator": "DunkContestMode",
+      "commands": ["fel.dunk.charge_begin", "fel.dunk.charge_release", "fel.dunk.apex_tap"],
+      "win_condition": "player_score >= 21 (kWinScore), 3-round Swift UI",
+      "3d_presentation": {
+        "venue": "Venice_Beach_Court",
+        "mobile_mesh": "assets/nexus/imported/venice_beach_court_model_fbx_mobile.nexusmesh.json",
+        "tris": 80000,
+        "hybrid_viewport": "Metal venue + SceneKit player avatar"
+      },
+      "vision_bar": {
+        "average": 8.3,
+        "all_axes_pass": true,
+        "audit_ref": "artifacts/coord/mode_fix_basketball_dunk.json"
+      },
+      "engine_tests": [
+        "dunk_contest_lifecycle_generates_win_receipt",
+        "dunk_contest_charge_release_scores",
+        "mode_runtime_tracks_dunk_combo_metrics",
+        "flagship_basketball_dunk_validate_only_integration"
+      ],
+      "gaps": [
+        "Swift DunkContestState vs C++ DunkContestMode may diverge on edge rounds (basketball_modes_handoff)",
+        "Device Metal 60 FPS unproven (V-013)",
+        "Hybrid viewport sim proof blocked — UI smoke cannot enter GamePlayView",
+        "Live authenticated receipt POST still queued locally (V-012)"
+      ]
+    },
+    "routing": {
+      "irl_grid_tap": "mode.id.isIRLDunkContest → DunkMatchmakingView fullScreenCover",
+      "3d_grid_tap": "mode.id.is3DDunkContest → standard GamePlayView navigation",
+      "legacy_basketball_dunk": "GameModeRegistry.playableMode resolves basketball_dunk → basketballDunkContest3D",
+      "ui_test_smoke": "testProductSmoke uses basketball_dunk (legacy → 3D); testPremiumDesign uses basketball_dunk_3d explicitly"
+    },
+    "production_mode_ids": {
+      "removed": ["basketball_dunk"],
+      "added": ["basketball_dunk_irl", "basketball_dunk_3d"],
+      "swift_production_count_target": 19,
+      "cpp_validate_count_current": 18,
+      "note": "C++ arena_mode_registry lists basketball_dunk only; 3D Swift id maps via nexusRuntimeModeId alias"
+    }
+  },
+  "git_branch_findings": {
+    "polled_at": "2026-06-29T12:53:33Z",
+    "refreshed_at": "2026-06-29T13:00:00Z",
+    "canonical": {
+      "checked_out_branch": "anti-gravity-fel",
+      "head_sha": "3d18c6bdb67ade479105385a419a92d6d21623d4",
+      "tracking": "ahead 1 of origin/anti-gravity-fel",
+      "working_tree": "massive dirty state — dual-mode GameMode.swift modified; Dunk views untracked",
+      "committed_dual_modes_on_tip": false,
+      "working_tree_dual_modes": true,
+      "branches_with_committed_dual_irl_plus_3d": []
+    },
+    "mirror": {
+      "path": "/Users/elijahbonds/Documents/rork-final-evolution-lab",
+      "only_branch_with_committed_dual_modes": "origin/claude/nexus-engine-setup-2qgkik",
+      "claude_dual_mode_commits": [
+        { "sha": "b49596e", "summary": "restore basketball_h2h 3D; add basketball_irl IRL mode" },
+        { "sha": "cb0c0c6", "summary": "IRLDunkView + routes basketballIRL in GamePlayView" }
+      ],
+      "note": "Claude dual-mode chain NOT present on canonical remotes — mirror-only"
+    },
+    "cross_repo_drift": {
+      "canonical_ahead_of_mirror_anti_gravity": "3d18c6b playtest pipeline",
+      "dunk_views": "DunkMatchmakingView/DunkRecordingTrackerView exist in both working trees; never committed on any branch tip",
+      "engine_dunk_contest_cpp": "Present on anti-gravity-fel (both repos) + origin/cursor/nexus-engine-app-completion-1478"
+    },
+    "full_audit_ref": "artifacts/coord/dunk_contest_branch_audit.json"
+  },
+  "build_smoke_results": {
+    "nexus_build_gate": {
+      "script": "./scripts/nexus_build_gate.sh",
+      "last_pass": {
+        "generated_at": "2026-06-28T04:39:55Z",
+        "status": "pass",
+        "headless_ctest": "11/11",
+        "full_renderer_ctest": "13/13",
+        "production_modes": 18
+      },
+      "fresh_poll": {
+        "generated_at": "2026-06-29T12:55:46Z",
+        "status": "pass",
+        "exit_code": 0,
+        "headless_ctest": "11/11 passed",
+        "full_renderer_ctest": "13/13 passed (nexus_renderer_test 25.66s)",
+        "production_modes_validated": 18,
+        "staging_modes": 0,
+        "banner": "==> nexus_build_gate PASS"
+      }
+    },
+    "nexus_gameplay_regression": {
+      "status": "pass",
+      "ref": "artifacts/coord/deadline_sprint_build_gate.json",
+      "ctest": "100%",
+      "sprint_live_modes": 10,
+      "includes": "basketball_dunk (3D alias)"
+    },
+    "ios_xcodebuild_debug_sim": {
+      "status": "blocked",
+      "last_known_pass": "2026-06-28 sim_3d_verify — BUILD SUCCEEDED /tmp/FEL-DD-NEXUS",
+      "last_known_fail": "2026-06-28 deadline_sprint — OOM exit 137, DerivedData lock from parallel agents",
+      "followup_fail": "2026-06-28 sim_3d_verify_followup — UserProfile/NexusAnimationAsset duplicate-type regressions",
+      "fresh_poll": "NOT_RUN this session (gate-only poll)"
+    },
+    "ios_ui_smoke": {
+      "test": "FinalEvolutionLabUITests/GameModeScreenshotUITests/testProductSmoke_KeySimulatorFlows",
+      "status": "fail",
+      "last_failure": "2026-06-28 sim_3d_verify — Missing mode card basketball_dunk @ line 98",
+      "root_cause": "Emulator shell uses ArcadeLibraryView; identifier mismatch GameModeCard_* vs ArcadeCartridge_* (fixed in blocker_fix_mode_card, verify blocked)",
+      "fixes_applied_not_verified": [
+        "blocker_fix_mode_card — GameModeCard_{modeId} on ArcadeCartridgeCard",
+        "blocker_fix_ui_smoke — releaseState .production + robust Play tab nav",
+        "sim_3d_verify_followup — NexusSprintMode_* banner parity, GameSceneHostView super.init fix"
+      ],
+      "dual_mode_smoke_gap": "Smoke still queries basketball_dunk; after split must assert GameModeCard_basketball_dunk_irl and GameModeCard_basketball_dunk_3d (or NexusSprintMode_* variants)",
+      "last_green": "2026-06-19 sim_fr_handoff — test-without-building PASS (stale binary caveat)"
+    },
+    "simulator_synthesis": {
+      "sim_fr_handoff": { "verdict": "PASS", "date": "2026-06-19", "caveat": "stale test-without-building" },
+      "sim_3d_verify_handoff": { "verdict": "FAIL", "date": "2026-06-28", "blocker": "basketball_dunk mode card" },
+      "sim_3d_verify_followup": { "verdict": "NOT_RUN", "date": "2026-06-28", "blocker": "compile + DerivedData lock" },
+      "emulator_verify_phase10_master": "FAIL — UI smoke driven"
+    }
+  },
+  "p0_blockers": [
+    {
+      "id": "dual_mode_uncommitted",
+      "severity": "P0",
+      "detail": "GameMode.swift dual split + DunkMatchmakingView/DunkRecordingTrackerView/WDAScoringEngine exist only as modified/untracked working-tree files — not on any branch tip",
+      "action": "Commit dual-mode GameMode + WDA views to anti-gravity-fel; add to Xcode project if missing from pbxproj"
+    },
+    {
+      "id": "ios_sim_compile_verify",
+      "severity": "P0",
+      "detail": "Clean Debug xcodebuild not completed in sprint VM (OOM exit 137, /tmp/FEL-DD-NEXUS build.db lock)",
+      "repro": "pkill -f 'xcodebuild.*FinalEvolutionLab' && ALLOW_GOOGLE_SERVICE_PLACEHOLDER=1 xcodebuild -project FinalEvolutionLab.xcodeproj -scheme FinalEvolutionLab -derivedDataPath /tmp/FEL-DD-NEXUS -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' -configuration Debug build"
+    },
+    {
+      "id": "ui_smoke_dual_mode_cards",
+      "severity": "P0",
+      "detail": "testProductSmoke_KeySimulatorFlows fails on mode card discovery; after dual split, UITest must target basketball_dunk_irl + basketball_dunk_3d identifiers",
+      "repro": "xcodebuild test ... -only-testing:FinalEvolutionLabUITests/GameModeScreenshotUITests/testProductSmoke_KeySimulatorFlows"
+    },
+    {
+      "id": "cpp_registry_irl_gap",
+      "severity": "P1",
+      "detail": "basketball_dunk_irl has no C++ validate-only entry; production gate still 18 modes not 19",
+      "action": "Extend arena_mode_registry + nexus_validate when IRL receipt/engine contract defined"
+    },
+    {
+      "id": "device_metal_proof",
+      "severity": "P1",
+      "detail": "V-013 — Metal hybrid venue draw unproven on physical iPhone for 3D H2H",
+      "ref": "mode_fix_basketball_dunk ship_pass_open"
+    },
+    {
+      "id": "live_receipt_post",
+      "severity": "P1",
+      "detail": "V-012 — authenticated receipt POST end-to-end still queued locally",
+      "ref": "mode_fix_basketball_dunk ship_pass_open"
+    },
+    {
+      "id": "testflight_ipa",
+      "severity": "P2",
+      "detail": "V-003 signed TestFlight IPA — user credentials blocked",
+      "ref": "deadline_sprint_p0_blockers"
+    }
+  ],
+  "recommended_next_actions": [
+    "Single-flight xcodebuild on /tmp/FEL-DD-NEXUS after pkill concurrent agents",
+    "Commit dual-mode GameMode.swift + Dunk WDA stack; verify pbxproj includes untracked views",
+    "Update GameModeScreenshotUITests for basketball_dunk_irl + basketball_dunk_3d sprint/card IDs",
+    "Re-run testProductSmoke_KeySimulatorFlows — expect IRL → DunkMatchmakingView, 3D → GamePlayView EXIT loop",
+    "Device QA: IRL camera lab on physical iPhone; 3D Metal 60 FPS proof",
+    "Cherry-pick or port origin/claude/nexus-engine-setup-2qgkik dual-mode patterns if mirror IRLDunkView needed"
+  ],
+  "key_files": [
+    "FinalEvolutionLab/Models/GameMode.swift",
+    "FinalEvolutionLab/Views/GameModeSelectionView.swift",
+    "FinalEvolutionLab/Views/ArcadeLibraryView.swift",
+    "FinalEvolutionLab/Views/DunkMatchmakingView.swift",
+    "FinalEvolutionLab/Views/DunkRecordingTrackerView.swift",
+    "FinalEvolutionLab/Services/WDAScoringEngine.swift",
+    "FinalEvolutionLab/Views/GamePlayView.swift",
+    "FinalEvolutionLab/Models/ArcadeCartridgeMetadata.swift",
+    "app/gameplay/include/nexus/gameplay/dunk_contest_mode.h",
+    "app/gameplay/src/dunk_contest_mode.cpp",
+    "app/gameplay/src/arena_mode_registry.cpp",
+    "FinalEvolutionLabUITests/GameModeScreenshotUITests.swift"
+  ]
+}
