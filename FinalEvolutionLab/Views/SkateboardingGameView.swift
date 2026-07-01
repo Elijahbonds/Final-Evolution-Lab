@@ -820,6 +820,14 @@ struct SkateboardingGameView: View {
     @State private var specialMeter: Double = 0.0
     @State private var specialActive: Bool = false
 
+    // Screen shake
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+
+    // Particle burst
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     @State private var didWin = false
     @State private var shardsEarned = 0
 
@@ -835,35 +843,49 @@ struct SkateboardingGameView: View {
                 startPoint: .top, endPoint: .bottom
             ).ignoresSafeArea()
 
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Skateboarding",
-                    subtitle: "3 runs · 10 sec each · Chain combos",
-                    countdown: 3,
-                    accentColor: accentColor,
-                    onComplete: { startRun() }
-                )
-            case .running:     runningBody
-            case .bail:        bailBody
-            case .runTransition: runTransitionBody
-            case .result:
-                ResultScreen(
-                    winner: didWin ? .p1 : .p2,
-                    p1Score: bestRunScore,
-                    p2Score: max(0, bestRunScore - Int.random(in: 50...200)),
-                    title: "Skateboarding",
-                    accentColor: accentColor,
-                    prqGain: didWin ? 12 : 4,
-                    prqCurrent: viewModel.effectiveMetrics.prqScore,
-                    modeAttributeLabel: "TRICK",
-                    modeAttributeValue: min(1.0, Double(bestRunScore) / 1000.0),
-                    onReturn: {
-                        applyRewards()
-                        dismiss()
-                    }
-                )
+            ForEach(burstParticles, id: \.id) { p in
+                Circle()
+                    .fill(p.color)
+                    .frame(width: 6, height: 6)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity)
+                    .blur(radius: 1)
             }
+            .allowsHitTesting(false)
+
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Skateboarding",
+                        subtitle: "3 runs · 10 sec each · Chain combos",
+                        countdown: 3,
+                        accentColor: accentColor,
+                        onComplete: { startRun() }
+                    )
+                case .running:     runningBody
+                case .bail:        bailBody
+                case .runTransition: runTransitionBody
+                case .result:
+                    ResultScreen(
+                        winner: didWin ? .p1 : .p2,
+                        p1Score: bestRunScore,
+                        p2Score: max(0, bestRunScore - Int.random(in: 50...200)),
+                        title: "Skateboarding",
+                        accentColor: accentColor,
+                        prqGain: didWin ? 12 : 4,
+                        prqCurrent: viewModel.effectiveMetrics.prqScore,
+                        modeAttributeLabel: "TRICK",
+                        modeAttributeValue: min(1.0, Double(bestRunScore) / 1000.0),
+                        onReturn: {
+                            applyRewards()
+                            dismiss()
+                        }
+                    )
+                }
+            }
+            .offset(x: shakeX, y: shakeY)
 
             if showBailFlash {
                 Color.red.opacity(0.25)
@@ -1325,6 +1347,7 @@ struct SkateboardingGameView: View {
             if specialMeter >= 1.0 {
                 specialActive = true
                 hapticRigid()
+                triggerBurst(color: .yellow, count: 12)
             }
         }
 
@@ -1342,6 +1365,7 @@ struct SkateboardingGameView: View {
         }
 
         showTrickPopup(name: trick.name, points: points)
+        triggerShake(intensity: 5)
     }
 
     private func performSpecialTrick(_ trick: SkateTrick) {
@@ -1363,6 +1387,8 @@ struct SkateboardingGameView: View {
         }
         hapticHeavy()
         hapticHeavy()
+        triggerShake(intensity: 14)
+        triggerBurst(color: .yellow, count: 20)
         showTrickPopup(name: "⭐ \(trick.name)!", points: points)
     }
 
@@ -1491,6 +1517,7 @@ struct SkateboardingGameView: View {
     private func triggerComboComplete(points: Int) {
         withAnimation(.spring(response: 0.3)) { showComboComplete = true }
         hapticSuccess()
+        triggerBurst(color: accentColor, count: 14)
         Task {
             try? await Task.sleep(for: .seconds(2.0))
             await MainActor.run {
@@ -1515,6 +1542,7 @@ struct SkateboardingGameView: View {
         comboCount = 0
         lastTrickIndex = nil
         hapticError() // slam/bail: error notification + heavy
+        triggerShake(intensity: 10)
         comboString = ""
         comboActive = false
         comboTotal = 0

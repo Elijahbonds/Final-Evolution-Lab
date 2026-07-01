@@ -948,40 +948,62 @@ struct SnowboardingGameView: View {
     @State private var trickyTask: Task<Void, Never>? = nil
     @State private var trickyFlash: Bool = false
 
+    // Screen shake
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+
+    // Particle burst
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
             slopeGradientBg.ignoresSafeArea()
 
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Snowboarding",
-                    subtitle: "6 jumps · Gain speed · Nail tricks in the air",
-                    countdown: 3,
-                    accentColor: accentColor,
-                    onComplete: { startSlope() }
-                )
-            case .slope:              slopeBody
-            case .jump, .trick:       jumpBody
-            case .roundResult:        roundResultBody
-            case .result:
-                ResultScreen(
-                    winner: didWin ? .p1 : .p2,
-                    p1Score: totalScore,
-                    p2Score: max(0, totalScore - Int.random(in: 100...300)),
-                    title: "Snowboarding",
-                    accentColor: accentColor,
-                    prqGain: didWin ? 14 : 5,
-                    prqCurrent: viewModel.effectiveMetrics.prqScore,
-                    modeAttributeLabel: "STYLE",
-                    modeAttributeValue: min(1.0, Double(totalScore) / 2000.0),
-                    onReturn: {
-                        applyRewards()
-                        dismiss()
-                    }
-                )
+            ForEach(burstParticles, id: \.id) { p in
+                Circle()
+                    .fill(p.color)
+                    .frame(width: 6, height: 6)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity)
+                    .blur(radius: 1)
             }
+            .allowsHitTesting(false)
+
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Snowboarding",
+                        subtitle: "6 jumps · Gain speed · Nail tricks in the air",
+                        countdown: 3,
+                        accentColor: accentColor,
+                        onComplete: { startSlope() }
+                    )
+                case .slope:              slopeBody
+                case .jump, .trick:       jumpBody
+                case .roundResult:        roundResultBody
+                case .result:
+                    ResultScreen(
+                        winner: didWin ? .p1 : .p2,
+                        p1Score: totalScore,
+                        p2Score: max(0, totalScore - Int.random(in: 100...300)),
+                        title: "Snowboarding",
+                        accentColor: accentColor,
+                        prqGain: didWin ? 14 : 5,
+                        prqCurrent: viewModel.effectiveMetrics.prqScore,
+                        modeAttributeLabel: "STYLE",
+                        modeAttributeValue: min(1.0, Double(totalScore) / 2000.0),
+                        onReturn: {
+                            applyRewards()
+                            dismiss()
+                        }
+                    )
+                }
+            }
+            .offset(x: shakeX, y: shakeY)
 
             if showGatePenalty {
                 Color.red.opacity(0.18).ignoresSafeArea().allowsHitTesting(false).transition(.opacity)
@@ -1119,6 +1141,8 @@ struct SnowboardingGameView: View {
         trickyActive = true
         boostMeter = 0
         hapticHeavy()
+        triggerShake(intensity: 12)
+        triggerBurst(color: Color(red: 0.4, green: 0.8, blue: 1.0), count: 18)
         trickyTask?.cancel()
         trickyTask = Task {
             // TRICKY mode lasts 8 seconds
@@ -1507,6 +1531,7 @@ struct SnowboardingGameView: View {
         // Crash/wipeout haptics
         hapticError()
         hapticHeavy()
+        triggerShake(intensity: 12)
         Task {
             try? await Task.sleep(for: .milliseconds(600))
             await MainActor.run { withAnimation { showGatePenalty = false }; lastGateMissed = false }
@@ -1560,6 +1585,8 @@ struct SnowboardingGameView: View {
         jumpHeight = 0
         inAir = false
         hapticHeavy()
+        triggerShake(intensity: 7)
+        triggerBurst(color: .white, count: 10)
 
         // Apply combo multiplier and perfect landing bonus
         var finalPoints = roundTrickPoints
@@ -1661,6 +1688,7 @@ struct SnowboardingGameView: View {
         let chainLength = tricksThisJump.count
         tricksThisJump.append(trick.name)
         roundTrickNames.append(trick.name)
+        triggerShake(intensity: 5)
 
         // Combo multiplier: each additional trick adds 0.3x; TRICKY mode adds ×3
         comboMultiplier = 1.0 + CGFloat(chainLength) * 0.3
@@ -1699,5 +1727,47 @@ struct SnowboardingGameView: View {
         viewModel.profile.evolutionShards += shards
         let xpGain = min(xpCapPerSession, totalScore / 10)
         viewModel.profile.metrics.prqScore = min(100, viewModel.profile.metrics.prqScore + Double(xpGain) * 0.01)
+    }
+
+    // MARK: - Screen Shake
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    // MARK: - Particle Burst
+
+    private func triggerBurst(at center: CGPoint = CGPoint(x: UIScreen.main.bounds.width/2, y: UIScreen.main.bounds.height/2), color: Color, count: Int = 12) {
+        let id = burstCounter; burstCounter += 1
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: center.x, y: center.y, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.6)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 40...90)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 }
