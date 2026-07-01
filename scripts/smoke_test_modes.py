@@ -60,6 +60,12 @@ def server_ids_for(mode: str) -> list[str]:
         ids.append("basketball_dunk")
     return ids
 
+
+def ue_aliases_for(mode: str) -> list[str]:
+    if mode == "basketball_dunk_3d":
+        return ["basketball_dunk"]
+    return []
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -124,12 +130,14 @@ def test_arena_settings():
     modes = arena["modes"]
 
     for mode in LAUNCHABLE_MODES:
-        if mode in modes:
-            cfg = modes[mode]
+        arena_mode = mode if mode in modes else next((alias for alias in ue_aliases_for(mode) if alias in modes), None)
+        if arena_mode:
+            cfg = modes[arena_mode]
             has_level = "unrealOpenLevelPackage" in cfg
             has_display = "modeDisplayName" in cfg
             if has_level and has_display:
-                ok(f"{mode} → {cfg['modeDisplayName']}")
+                alias_note = f" via {arena_mode}" if arena_mode != mode else ""
+                ok(f"{mode}{alias_note} → {cfg['modeDisplayName']}")
             else:
                 fail(f"{mode} missing unrealOpenLevelPackage or modeDisplayName")
         else:
@@ -177,11 +185,13 @@ def test_fel_play_map():
                 play_map[k.strip()] = v.strip()
 
     for mode in LAUNCHABLE_MODES:
-        if mode in play_map:
-            path = play_map[mode]
+        play_mode = mode if mode in play_map else next((alias for alias in ue_aliases_for(mode) if alias in play_map), None)
+        if play_mode:
+            path = play_map[play_mode]
             # Verify path uses /Venues/ convention
             if "/Venues/" in path:
-                ok(f"{mode} → {path}")
+                alias_note = f" via {play_mode}" if play_mode != mode else ""
+                ok(f"{mode}{alias_note} → {path}")
             else:
                 fail(f"{mode} deep link path doesn't use /Venues/ convention: {path}")
         else:
@@ -218,7 +228,7 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    for mode in PRODUCTION_MODES:
+    for mode in LAUNCHABLE_MODES:
         candidate_ids = server_ids_for(mode)
         if any(f'"id":"{candidate}"' in content or f'"id": "{candidate}"' in content for candidate in candidate_ids):
             ok(f"{mode} in server seeded modes")
