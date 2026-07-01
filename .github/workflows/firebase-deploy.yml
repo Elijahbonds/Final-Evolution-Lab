@@ -15,18 +15,10 @@ on:
 #     → Firebase Console → Project Settings → Service accounts → Generate new private key
 #     → Paste the entire JSON value
 #
-#   REACT_APP_FIREBASE_API_KEY            → Firebase Console → Project Settings → Web app config
-#   REACT_APP_FIREBASE_AUTH_DOMAIN        → <project-id>.firebaseapp.com
-#   REACT_APP_FIREBASE_DATABASE_URL       → https://<project-id>-default-rtdb.firebaseio.com
-#   REACT_APP_FIREBASE_STORAGE_BUCKET     → <project-id>.appspot.com
-#   REACT_APP_FIREBASE_MESSAGING_SENDER_ID
-#   REACT_APP_FIREBASE_APP_ID
-#
-#   GCP_PROJECT_ID                        → final-evolution-lab
+#   GCP_PROJECT_ID  → final-evolution-lab
 
 env:
   FIREBASE_PROJECT_ID: final-evolution-lab
-  NODE_VERSION: '18'
 
 jobs:
   # ── 1. Validate JSON registries (fast, no credentials needed) ──
@@ -75,59 +67,14 @@ jobs:
           pip install -r backend/requirements.txt --quiet 2>/dev/null || true
           python3 scripts/smoke_test_modes.py || echo "Smoke tests need backend deps — skipped in CI"
 
-  # ── 2. Build frontend ──────────────────────────────────────────
-  build-frontend:
-    name: Build React Frontend
-    runs-on: ubuntu-latest
-    needs: validate-registries
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm install --legacy-peer-deps
-
-      - name: Build
-        working-directory: frontend
-        run: npm run build
-        env:
-          CI: false
-          GENERATE_SOURCEMAP: false
-          REACT_APP_FIREBASE_PROJECT_ID: ${{ env.FIREBASE_PROJECT_ID }}
-          REACT_APP_FIREBASE_API_KEY: ${{ secrets.REACT_APP_FIREBASE_API_KEY }}
-          REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ secrets.REACT_APP_FIREBASE_AUTH_DOMAIN }}
-          REACT_APP_FIREBASE_DATABASE_URL: ${{ secrets.REACT_APP_FIREBASE_DATABASE_URL }}
-          REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ secrets.REACT_APP_FIREBASE_STORAGE_BUCKET }}
-          REACT_APP_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}
-          REACT_APP_FIREBASE_APP_ID: ${{ secrets.REACT_APP_FIREBASE_APP_ID }}
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/build
-          retention-days: 1
-
-  # ── 3. Deploy to Firebase (push only) ─────────────────────────
+  # ── 2. Deploy to Firebase (push only) ─────────────────────────
   deploy-firebase:
     name: Deploy — Hosting + Firestore Rules + Realtime DB Rules
     runs-on: ubuntu-latest
-    needs: build-frontend
+    needs: validate-registries
     if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/build
 
       - name: Deploy Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -137,27 +84,26 @@ jobs:
           projectId: ${{ env.FIREBASE_PROJECT_ID }}
           channelId: live
 
-      - name: Deploy Firestore rules
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}
-          projectId: ${{ env.FIREBASE_PROJECT_ID }}
-          target: firestore
-
       - name: Install firebase-tools
         run: npm install -g firebase-tools@latest --quiet
+
+      - name: Deploy Firestore rules
+        run: |
+          firebase deploy --only firestore:rules \
+            --project ${{ env.FIREBASE_PROJECT_ID }} \
+            --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}
 
       - name: Deploy Realtime Database rules
         run: |
           firebase deploy --only database \
             --project ${{ env.FIREBASE_PROJECT_ID }} \
-            --token "${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}" \
             --non-interactive || echo "DB rules deploy skipped (Realtime DB not yet enabled in project)"
         env:
-          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}
 
-  # ── 4. Data Connect schema deploy (main branch only) ──────────
+  # ── 3. Data Connect schema deploy (main branch only) ──────────
   deploy-dataconnect:
     name: Deploy Data Connect Schema
     runs-on: ubuntu-latest
