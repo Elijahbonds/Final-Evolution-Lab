@@ -7,6 +7,35 @@ private enum H2HPhase { case difficultySelect, ready, playing, result }
 private enum ShotResult: String { case made = "MADE", blocked = "BLOCKED", miss = "MISS" }
 private enum H2HPossession { case player, opponent }
 
+private enum TimingResult {
+    case perfect, good, early, late, rushed
+    var accuracyModifier: Double {
+        switch self {
+        case .perfect: return 0.15
+        case .good:    return 0.0
+        case .early:   return -0.15
+        case .late:    return -0.15
+        case .rushed:  return -0.30
+        }
+    }
+    var label: String {
+        switch self {
+        case .perfect: return "PERFECT"
+        case .good:    return "GOOD"
+        case .early:   return "EARLY"
+        case .late:    return "LATE"
+        case .rushed:  return "RUSHED"
+        }
+    }
+    var color: Color {
+        switch self {
+        case .perfect: return .green
+        case .good:    return .white
+        default:       return .yellow
+        }
+    }
+}
+
 private enum AIDifficulty: String, CaseIterable {
     case rookie = "ROOKIE"
     case pro = "PRO"
@@ -84,6 +113,14 @@ private struct StreetCourtCanvas: View {
     let posterizeActive: Bool
     let ankleShimmy: Bool
     let dustActive: Bool
+    // Shot timing
+    let shotTimingActive: Bool
+    let shotTimingMeter: CGFloat
+    let timingResult: TimingResult?
+    let timingFeedbackOpacity: Double
+    // Momentum
+    let playerMomentum: Int
+    let aiMomentum: Int
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -96,7 +133,13 @@ private struct StreetCourtCanvas: View {
                     opponentPose: opponentPose, rimShake: rimShake,
                     showConfetti: showConfetti, hotHandActive: hotHandActive,
                     posterizeActive: posterizeActive, ankleShimmy: ankleShimmy,
-                    dustActive: dustActive
+                    dustActive: dustActive,
+                    shotTimingActive: shotTimingActive,
+                    shotTimingMeter: shotTimingMeter,
+                    timingResult: timingResult,
+                    timingFeedbackOpacity: timingFeedbackOpacity,
+                    playerMomentum: playerMomentum,
+                    aiMomentum: aiMomentum
                 )
                 d.render(into: &ctx)
             }
@@ -119,6 +162,12 @@ private struct StreetDrawer {
     let posterizeActive: Bool
     let ankleShimmy: Bool
     let dustActive: Bool
+    let shotTimingActive: Bool
+    let shotTimingMeter: CGFloat
+    let timingResult: TimingResult?
+    let timingFeedbackOpacity: Double
+    let playerMomentum: Int
+    let aiMomentum: Int
 
     // Court geometry
     var floorY: CGFloat { H * 0.68 }
@@ -133,7 +182,10 @@ private struct StreetDrawer {
     init(size: CGSize, t: Double, possession: H2HPossession, shotProgress: Double,
          shotMade: Bool, playerPose: String, opponentPose: String, rimShake: Double,
          showConfetti: Bool, hotHandActive: Bool, posterizeActive: Bool,
-         ankleShimmy: Bool, dustActive: Bool) {
+         ankleShimmy: Bool, dustActive: Bool,
+         shotTimingActive: Bool, shotTimingMeter: CGFloat,
+         timingResult: TimingResult?, timingFeedbackOpacity: Double,
+         playerMomentum: Int, aiMomentum: Int) {
         self.W = size.width; self.H = size.height; self.t = t
         self.possession = possession; self.shotProgress = shotProgress
         self.shotMade = shotMade; self.playerPose = playerPose
@@ -141,6 +193,12 @@ private struct StreetDrawer {
         self.showConfetti = showConfetti; self.hotHandActive = hotHandActive
         self.posterizeActive = posterizeActive; self.ankleShimmy = ankleShimmy
         self.dustActive = dustActive
+        self.shotTimingActive = shotTimingActive
+        self.shotTimingMeter = shotTimingMeter
+        self.timingResult = timingResult
+        self.timingFeedbackOpacity = timingFeedbackOpacity
+        self.playerMomentum = playerMomentum
+        self.aiMomentum = aiMomentum
     }
 
     mutating func render(into ctx: inout GraphicsContext) {
@@ -158,6 +216,7 @@ private struct StreetDrawer {
         drawSpectators(ctx: &ctx)
         drawGameClock(ctx: &ctx)
         drawScoreSprayPaint(ctx: &ctx)
+        drawMomentumIndicators(ctx: &ctx)
         if hotHandActive { drawHotHandAura(ctx: &ctx) }
         if shotProgress >= 0 { drawBallArc(ctx: &ctx) }
         drawPlayerShadow(ctx: &ctx)
@@ -175,6 +234,11 @@ private struct StreetDrawer {
             drawBuzzerVignette(ctx: &ctx)
             drawCrowdConfetti(ctx: &ctx)
         }
+        if playerMomentum >= 2 { drawMomentumFlame(ctx: &ctx) }
+        if playerMomentum == 3 { drawOnFireBorder(ctx: &ctx) }
+        if playerMomentum <= -2 { drawIceColdOverlay(ctx: &ctx) }
+        if shotTimingActive { drawShotTimingBar(ctx: &ctx) }
+        if timingFeedbackOpacity > 0 { drawTimingFeedback(ctx: &ctx) }
     }
 
     // MARK: - #1 Sky / Background
@@ -1283,6 +1347,128 @@ private struct StreetDrawer {
         }
         ctx.stroke(wavePath, with: .color(Color.white.opacity(0.18)), lineWidth: 1.2)
     }
+
+    // MARK: - Momentum Indicators
+
+    private func drawMomentumIndicators(ctx: inout GraphicsContext) {
+        let pipY = floorY - H * 0.02
+        let pipSpacing: CGFloat = 8
+        let totalPips = 3
+        for i in 0..<totalPips {
+            let pipX = playerX - CGFloat(totalPips - 1) * pipSpacing / 2 + CGFloat(i) * pipSpacing
+            let filled = i < abs(playerMomentum)
+            let pipColor: Color = playerMomentum > 0 ? Color.orange : Color(red: 0.30, green: 0.60, blue: 1.0)
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: pipX - 3, y: pipY - 3, width: 6, height: 6)),
+                with: .color(filled ? pipColor.opacity(0.90) : Color.white.opacity(0.15))
+            )
+        }
+    }
+
+    private func drawMomentumFlame(ctx: inout GraphicsContext) {
+        let cx = playerX; let cy = floorY - H * 0.06
+        let pulse = CGFloat(0.7 + 0.3 * sin(t * 5.0))
+        var flameCtx = ctx
+        flameCtx.addFilter(.blur(radius: 18))
+        flameCtx.fill(
+            Path(ellipseIn: CGRect(x: cx - 28 * pulse, y: cy - 28 * pulse, width: 56 * pulse, height: 56 * pulse)),
+            with: .color(Color.orange.opacity(0.55))
+        )
+        var innerCtx = ctx
+        innerCtx.addFilter(.blur(radius: 8))
+        innerCtx.fill(
+            Path(ellipseIn: CGRect(x: cx - 14, y: cy - 20, width: 28, height: 28)),
+            with: .color(Color(red: 1.0, green: 0.55, blue: 0.0).opacity(0.45))
+        )
+        ctx.draw(Text("🔥").font(.system(size: 14)), at: CGPoint(x: cx, y: cy - 32))
+    }
+
+    private func drawOnFireBorder(ctx: inout GraphicsContext) {
+        let pulse = CGFloat(0.55 + 0.20 * sin(t * 4.0))
+        var borderCtx = ctx
+        borderCtx.addFilter(.blur(radius: 12))
+        var borderPath = Path(); borderPath.addRect(CGRect(x: 0, y: 0, width: W, height: H))
+        borderCtx.stroke(borderPath, with: .color(Color.orange.opacity(pulse * 0.70)), lineWidth: 18)
+        let fireAlpha = 0.75 + 0.25 * sin(t * 3.5)
+        ctx.draw(
+            Text("ON FIRE!")
+                .font(.system(size: 15, weight: .black, design: .monospaced))
+                .foregroundColor(Color.orange.opacity(fireAlpha)),
+            at: CGPoint(x: W * 0.50, y: H * 0.06)
+        )
+    }
+
+    private func drawIceColdOverlay(ctx: inout GraphicsContext) {
+        var coldCtx = ctx
+        coldCtx.addFilter(.blur(radius: 10))
+        coldCtx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
+                     with: .color(Color(red: 0.10, green: 0.25, blue: 0.80).opacity(0.12)))
+        let iceAlpha = 0.60 + 0.20 * sin(t * 2.0)
+        ctx.draw(
+            Text("ICE COLD")
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundColor(Color(red: 0.55, green: 0.78, blue: 1.0).opacity(iceAlpha)),
+            at: CGPoint(x: playerX, y: floorY - H * 0.10)
+        )
+        var blueCtx = ctx
+        blueCtx.addFilter(.blur(radius: 8))
+        blueCtx.fill(
+            Path(ellipseIn: CGRect(x: playerX - 22, y: floorY - 18, width: 44, height: 14)),
+            with: .color(Color(red: 0.20, green: 0.50, blue: 1.0).opacity(0.35))
+        )
+    }
+
+    // MARK: - Shot Timing Bar
+
+    private func drawShotTimingBar(ctx: inout GraphicsContext) {
+        let barW = W * 0.65; let barH: CGFloat = 14
+        let barX = (W - barW) / 2; let barY = H * 0.88
+        var bgPath = Path()
+        bgPath.addRoundedRect(in: CGRect(x: barX, y: barY, width: barW, height: barH),
+                              cornerSize: CGSize(width: 6, height: 6))
+        ctx.fill(bgPath, with: .color(Color(red: 0.12, green: 0.12, blue: 0.15).opacity(0.92)))
+        ctx.stroke(bgPath, with: .color(Color.white.opacity(0.20)), lineWidth: 1)
+        // Red zones (outer 20% each side)
+        let redZoneW = barW * 0.20
+        ctx.fill(Path(CGRect(x: barX, y: barY, width: redZoneW, height: barH)),
+                 with: .color(Color.red.opacity(0.65)))
+        ctx.fill(Path(CGRect(x: barX + barW - redZoneW, y: barY, width: redZoneW, height: barH)),
+                 with: .color(Color.red.opacity(0.65)))
+        // Yellow zones (next 15% each side)
+        let yellowZoneW = barW * 0.15
+        ctx.fill(Path(CGRect(x: barX + redZoneW, y: barY, width: yellowZoneW, height: barH)),
+                 with: .color(Color.yellow.opacity(0.55)))
+        ctx.fill(Path(CGRect(x: barX + barW - redZoneW - yellowZoneW, y: barY, width: yellowZoneW, height: barH)),
+                 with: .color(Color.yellow.opacity(0.55)))
+        // Green zone: center 14% (0.43–0.57)
+        let greenZoneW = barW * 0.14; let greenZoneX = barX + barW * 0.43
+        ctx.fill(Path(CGRect(x: greenZoneX, y: barY, width: greenZoneW, height: barH)),
+                 with: .color(Color.green.opacity(0.80)))
+        // Needle
+        let needleX = barX + shotTimingMeter * barW
+        var needle = Path()
+        needle.move(to: CGPoint(x: needleX, y: barY - 2))
+        needle.addLine(to: CGPoint(x: needleX, y: barY + barH + 2))
+        ctx.stroke(needle, with: .color(Color.white.opacity(0.95)), lineWidth: 2.5)
+        // "RELEASE" label above bar
+        ctx.draw(
+            Text("RELEASE").font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundColor(Color.white.opacity(0.70)),
+            at: CGPoint(x: W / 2, y: barY - 10)
+        )
+    }
+
+    private func drawTimingFeedback(ctx: inout GraphicsContext) {
+        guard let result = timingResult else { return }
+        let riseY = H * 0.40 - CGFloat(1.0 - timingFeedbackOpacity) * 30
+        var textCtx = ctx; textCtx.opacity = timingFeedbackOpacity
+        textCtx.draw(
+            Text(result.label)
+                .font(.system(size: 22, weight: .black, design: .monospaced))
+                .foregroundColor(result.color),
+            at: CGPoint(x: (rimX - 18 + rimX + 2) / 2, y: riseY)
+        )
+    }
 }
 
 // MARK: - Main View
@@ -1322,6 +1508,26 @@ struct BasketballH2HGameView: View {
     @State private var posterizeActive: Bool = false
     @State private var ankleShimmy: Bool = false
     @State private var dustActive: Bool = false
+
+    // Shot timing mechanic
+    @State private var shotTimingMeter: CGFloat = 0
+    @State private var shotTimingActive: Bool = false
+    @State private var timingResult: TimingResult? = nil
+    @State private var timingFeedbackOpacity: Double = 0
+    @State private var shotTimingTask: Task<Void, Never>?
+    @State private var autoFireTask: Task<Void, Never>?
+
+    // Momentum / hot-cold system
+    @State private var playerMomentum: Int = 0    // -3 to +3
+    @State private var playerStreak: Int = 0
+    @State private var aiMomentum: Int = 0
+
+    // Floating shot result feedback
+    @State private var feedbackText: String = ""
+    @State private var feedbackColor: Color = .white
+    @State private var feedbackY: CGFloat = 0
+    @State private var feedbackOpacity: Double = 0
+    @State private var feedbackTask: Task<Void, Never>?
 
     // Haptics
     private let impactLight  = UIImpactFeedbackGenerator(style: .light)
@@ -1529,20 +1735,39 @@ struct BasketballH2HGameView: View {
                 .padding(.top, 6)
 
             // Canvas court — fills most of screen
-            StreetCourtCanvas(
-                possession: possession,
-                shotProgress: shotProgress,
-                shotMade: shotMade,
-                playerPose: playerPose,
-                opponentPose: opponentPose,
-                rimShake: rimShake,
-                showConfetti: showConfetti,
-                hotHandActive: hotHandActive,
-                posterizeActive: posterizeActive,
-                ankleShimmy: ankleShimmy,
-                dustActive: dustActive
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ZStack {
+                StreetCourtCanvas(
+                    possession: possession,
+                    shotProgress: shotProgress,
+                    shotMade: shotMade,
+                    playerPose: playerPose,
+                    opponentPose: opponentPose,
+                    rimShake: rimShake,
+                    showConfetti: showConfetti,
+                    hotHandActive: hotHandActive,
+                    posterizeActive: posterizeActive,
+                    ankleShimmy: ankleShimmy,
+                    dustActive: dustActive,
+                    shotTimingActive: shotTimingActive,
+                    shotTimingMeter: shotTimingMeter,
+                    timingResult: timingResult,
+                    timingFeedbackOpacity: timingFeedbackOpacity,
+                    playerMomentum: playerMomentum,
+                    aiMomentum: aiMomentum
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // Floating shot result popup (rises from basket, fades out)
+                if feedbackOpacity > 0 {
+                    Text(feedbackText)
+                        .font(.system(size: 26, weight: .black, design: .monospaced))
+                        .foregroundStyle(feedbackColor)
+                        .shadow(color: feedbackColor.opacity(0.70), radius: 12)
+                        .offset(y: feedbackY)
+                        .opacity(feedbackOpacity)
+                        .allowsHitTesting(false)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
@@ -1703,32 +1928,47 @@ struct BasketballH2HGameView: View {
 
     private var inputPanel: some View {
         VStack(spacing: 12) {
-            Button {
-                guard phase == .playing, possession == .player, shotProgress < 0 else { return }
-                playerAttemptShoot()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "basketball.fill").font(.system(size: 18, weight: .bold))
-                    Text("SHOOT").font(.system(size: 18, weight: .black, design: .monospaced))
+            if shotTimingActive {
+                // RELEASE button: shown while timing meter oscillates
+                Button { releaseShot() } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "hand.point.up.left.fill").font(.system(size: 18, weight: .bold))
+                        Text("RELEASE").font(.system(size: 18, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        LinearGradient(colors: [Color.green, Color.green.opacity(0.75)],
+                                       startPoint: .top, endPoint: .bottom)
+                    )
+                    .clipShape(.rect(cornerRadius: 16))
+                    .shadow(color: Color.green.opacity(0.50), radius: 14)
                 }
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(
-                    possession == .player && phase == .playing && shotProgress < 0
-                        ? LinearGradient(
-                            colors: [accentColor, accentColor.opacity(0.75)],
-                            startPoint: .top, endPoint: .bottom
-                          )
-                        : LinearGradient(
-                            colors: [Color.white.opacity(0.15), Color.white.opacity(0.08)],
-                            startPoint: .top, endPoint: .bottom
-                          )
-                )
-                .clipShape(.rect(cornerRadius: 16))
-                .shadow(color: possession == .player ? accentColor.opacity(0.35) : .clear, radius: 12)
+            } else {
+                Button {
+                    guard phase == .playing, possession == .player, shotProgress < 0 else { return }
+                    playerAttemptShoot()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "basketball.fill").font(.system(size: 18, weight: .bold))
+                        Text("SHOOT").font(.system(size: 18, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        possession == .player && phase == .playing && shotProgress < 0
+                            ? LinearGradient(colors: [accentColor, accentColor.opacity(0.75)],
+                                             startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [Color.white.opacity(0.15), Color.white.opacity(0.08)],
+                                             startPoint: .top, endPoint: .bottom)
+                    )
+                    .clipShape(.rect(cornerRadius: 16))
+                    .shadow(color: possession == .player ? accentColor.opacity(0.35) : .clear, radius: 12)
+                }
+                .disabled(possession != .player || phase != .playing || shotProgress >= 0)
             }
-            .disabled(possession != .player || phase != .playing || shotProgress >= 0)
 
             HStack(spacing: 12) {
                 actionButton(label: "CROSSOVER", icon: "arrow.left.and.right") {
@@ -1824,6 +2064,12 @@ struct BasketballH2HGameView: View {
         showConfetti = false; hotHandActive = false
         posterizeActive = false; ankleShimmy = false; dustActive = false
         fakeActive = false
+        // Reset shot timing
+        shotTimingMeter = 0; shotTimingActive = false; timingResult = nil; timingFeedbackOpacity = 0
+        // Reset momentum / streak
+        playerMomentum = 0; playerStreak = 0; aiMomentum = 0
+        // Reset floating feedback
+        feedbackOpacity = 0; feedbackText = ""; feedbackY = 0
         phase = .playing
         resetShotClock()
         scheduleOpponentShot()
@@ -1831,6 +2077,8 @@ struct BasketballH2HGameView: View {
 
     private func playerAttemptShoot() {
         guard phase == .playing, possession == .player, shotProgress < 0 else { return }
+        // If timing meter is already active, treat as RELEASE tap
+        if shotTimingActive { releaseShot(); return }
         shotClockTask?.cancel()
 
         // Defense block check for Elite / Legend tiers
@@ -1840,37 +2088,84 @@ struct BasketballH2HGameView: View {
             let isBlocked = Double.random(in: 0...1) < effectiveDefense
             if isBlocked {
                 UINotificationFeedbackGenerator().notificationOccurred(.error)
-                playerPose = "idle"
-                opponentPose = "block"
+                playerPose = "idle"; opponentPose = "block"
                 flashShotResult(.blocked)
-                comboCount = 0; comboMultiplier = 1
-                hotHandActive = false
+                comboCount = 0; comboMultiplier = 1; hotHandActive = false
+                updatePlayerMomentum(made: false)
+                showFloatingFeedback(text: "BLOCKED", color: .red)
                 Task {
                     try? await Task.sleep(for: .milliseconds(500))
                     await MainActor.run {
-                        opponentPose = "guard"
-                        possession = .opponent
-                        resetShotClock()
-                        scheduleOpponentShot()
+                        opponentPose = "guard"; possession = .opponent
+                        resetShotClock(); scheduleOpponentShot()
                     }
                 }
                 return
             }
         }
 
-        fakeActive = false
-        playerPose = "shoot"
-        opponentPose = "block"
-        // Haptic: medium on shot attempt
+        fakeActive = false; playerPose = "shoot"; opponentPose = "block"
         impactMed.impactOccurred()
 
+        // Activate shot timing meter
+        shotTimingActive = true; timingResult = nil; timingFeedbackOpacity = 0
+
+        // Animate timing needle oscillating
+        shotTimingTask?.cancel()
+        shotTimingTask = Task {
+            let startTime = Date.now
+            while !Task.isCancelled {
+                let elapsed = Date.now.timeIntervalSince(startTime)
+                let raw = sin(elapsed * Double.pi * 1.5)
+                let mapped = CGFloat((raw + 1.0) / 2.0)
+                await MainActor.run { shotTimingMeter = mapped }
+                try? await Task.sleep(for: .milliseconds(16))
+            }
+        }
+
+        // Auto-fire after 1.8s
+        autoFireTask?.cancel()
+        autoFireTask = Task {
+            try? await Task.sleep(for: .milliseconds(1800))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard shotTimingActive else { return }
+                let autoTiming: TimingResult = shotTimingMeter < 0.20 || shotTimingMeter > 0.80 ? .rushed : .late
+                resolveShot(timing: autoTiming)
+            }
+        }
+    }
+
+    private func releaseShot() {
+        guard shotTimingActive else { return }
+        let m = Double(shotTimingMeter)
+        let timing: TimingResult
+        if m >= 0.43 && m <= 0.57 { timing = .perfect }
+        else if (m >= 0.30 && m < 0.43) || (m > 0.57 && m <= 0.70) { timing = .good }
+        else if m < 0.30 { timing = .early }
+        else { timing = .late }
+        resolveShot(timing: timing)
+    }
+
+    private func resolveShot(timing: TimingResult) {
+        shotTimingTask?.cancel(); autoFireTask?.cancel()
+        shotTimingActive = false; timingResult = timing
+
         let prq = viewModel.effectiveMetrics.prqScore
-        let hitChance = min(0.85, 0.45 + (prq / 100) * 0.30 + Double(comboCount) * 0.02)
-        let made = Double.random(in: 0...1) < hitChance
+        let momentumBonus = Double(playerMomentum) * 0.05
+        let baseHit = min(0.85, 0.45 + (prq / 100) * 0.30 + Double(comboCount) * 0.02
+                          + timing.accuracyModifier + momentumBonus)
+        let made = Double.random(in: 0...1) < max(0.05, baseHit)
         let isDunk = made && Double.random(in: 0...1) < 0.25
         let isAnd1 = made && Double.random(in: 0...1) < 0.12
 
-        // Animate shot arc then resolve
+        // Show timing result in canvas (fades after 0.7s)
+        timingFeedbackOpacity = 1.0
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            await MainActor.run { withAnimation(.easeOut(duration: 0.3)) { timingFeedbackOpacity = 0 } }
+        }
+
         shotAnimTask?.cancel()
         shotAnimTask = Task {
             await MainActor.run { shotProgress = 0 }
@@ -1881,34 +2176,36 @@ struct BasketballH2HGameView: View {
                 await MainActor.run { shotProgress = Double(step + 1) / Double(steps) }
             }
             await MainActor.run {
-                shotProgress = -1
-                shotMade = made
-                playerPose = "idle"
-                opponentPose = "guard"
+                shotProgress = -1; shotMade = made
+                playerPose = "idle"; opponentPose = "guard"
 
                 if made {
                     comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
+                    updatePlayerMomentum(made: true)
                     let pts = 2 * comboMultiplier
                     withAnimation(.spring(response: 0.3)) { playerScore = min(playerScore + pts, 99) }
-                    flashShotResult(.made)
-                    triggerRimShake(intensity: 1.0)
+                    flashShotResult(.made); triggerRimShake(intensity: 1.0)
+
+                    if timing == .perfect {
+                        showFloatingFeedback(text: "BUCKETS", color: .orange)
+                    } else {
+                        showFloatingFeedback(text: "+\(pts)", color: .white)
+                    }
+                    // HE'S COOKING after exactly 3 straight makes
+                    if playerStreak == 3 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            showFloatingFeedback(text: "HE'S COOKING", color: Color(red: 1.0, green: 0.55, blue: 0.0))
+                        }
+                    }
 
                     if isDunk || isAnd1 {
-                        // Haptic: heavy on dunk / and-1
-                        impactHvy.impactOccurred()
-                        posterizeActive = true
-                        showConfetti = true
+                        impactHvy.impactOccurred(); posterizeActive = true; showConfetti = true
                         Task {
                             try? await Task.sleep(for: .milliseconds(1200))
-                            await MainActor.run {
-                                posterizeActive = false
-                                showConfetti = false
-                            }
+                            await MainActor.run { posterizeActive = false; showConfetti = false }
                         }
                     } else if playerScore >= winTarget - 2 {
-                        // Haptic: rigid on game-winning bucket
-                        impactRigid.impactOccurred()
-                        showConfetti = true
+                        impactRigid.impactOccurred(); showConfetti = true
                         Task {
                             try? await Task.sleep(for: .milliseconds(1500))
                             await MainActor.run { showConfetti = false }
@@ -1916,24 +2213,47 @@ struct BasketballH2HGameView: View {
                     } else {
                         notif.notificationOccurred(.success)
                     }
-
-                    // Hot hand after 3+ consecutive makes
-                    if comboCount >= 3 {
-                        hotHandActive = true
-                    }
+                    if comboCount >= 3 { hotHandActive = true }
                 } else {
-                    comboCount = 0; comboMultiplier = 1
-                    hotHandActive = false
-                    flashShotResult(.miss)
-                    triggerRimShake(intensity: 0.5)
-                    // Haptic: soft on miss (travel/turnover feel)
+                    comboCount = 0; comboMultiplier = 1; hotHandActive = false
+                    updatePlayerMomentum(made: false)
+                    flashShotResult(.miss); triggerRimShake(intensity: 0.5)
                     impactSoft.impactOccurred()
+                    showFloatingFeedback(text: timing.label, color: timing.color)
                 }
 
                 possession = .opponent; resetShotClock()
                 if playerScore >= winTarget { endGame(); return }
                 scheduleOpponentShot()
             }
+        }
+    }
+
+    private func updatePlayerMomentum(made: Bool) {
+        if made {
+            playerStreak += 1
+            if playerStreak >= 2 { playerMomentum = min(3, playerMomentum + 1) }
+        } else {
+            playerStreak = 0
+            playerMomentum = max(-3, playerMomentum - 1)
+        }
+    }
+
+    private func showFloatingFeedback(text: String, color: Color) {
+        feedbackTask?.cancel()
+        feedbackText = text; feedbackColor = color; feedbackY = 0; feedbackOpacity = 1.0
+        feedbackTask = Task {
+            let steps = 24
+            for i in 0..<steps {
+                try? await Task.sleep(for: .milliseconds(33))
+                guard !Task.isCancelled else { return }
+                let progress = Double(i + 1) / Double(steps)
+                await MainActor.run {
+                    feedbackY = CGFloat(-progress * 40)
+                    feedbackOpacity = max(0, 1.0 - progress * 1.2)
+                }
+            }
+            await MainActor.run { feedbackOpacity = 0 }
         }
     }
 
@@ -2069,7 +2389,9 @@ struct BasketballH2HGameView: View {
 
     private func cancelAllTasks() {
         shotClockTask?.cancel(); opponentTask?.cancel()
-        shotAnimTask?.cancel()
+        shotAnimTask?.cancel(); shotTimingTask?.cancel()
+        autoFireTask?.cancel(); feedbackTask?.cancel()
         shotClockTask = nil; opponentTask = nil; shotAnimTask = nil
+        shotTimingTask = nil; autoFireTask = nil; feedbackTask = nil
     }
 }

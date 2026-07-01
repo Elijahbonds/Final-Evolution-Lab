@@ -2495,6 +2495,11 @@ struct TennisGameView: View {
     }
 
     private func handleAimedShot(dx: CGFloat, dy: CGFloat) {
+        guard awaitingSwipe else { return }
+        awaitingSwipe = false
+        swipeWindowOpen = false
+        swipeWindowTask?.cancel()
+
         // Determine base swipe direction from total drag
         let swipeDir: SwipeDir
         if abs(dx) > abs(dy) { swipeDir = dx < 0 ? .left : .right }
