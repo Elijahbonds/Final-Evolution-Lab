@@ -1169,6 +1169,249 @@ private func hapticError() {
 
 enum CourtCarnivalPhase { case ready, spinning, playing, result }
 
+// MARK: - Interactive Power Meter View (Ring Toss / Dunk)
+
+private struct PowerMeterView: View {
+    let powerLevel: CGFloat    // 0...1
+    let label: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.white.opacity(0.10))
+                    .frame(width: 200, height: 22)
+                LinearGradient(
+                    colors: [Color.red, Color.yellow, Color.green, Color.yellow, Color.red],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(width: 200, height: 22)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                // Needle indicator
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.white)
+                    .frame(width: 4, height: 26)
+                    .offset(x: powerLevel * 196)
+                    .animation(.linear(duration: 0.016), value: powerLevel)
+            }
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.55), lineWidth: 1.5))
+        }
+    }
+}
+
+// MARK: - Swipe Aim Canvas View (Trick Shot)
+
+private struct SwipeAimCanvas: View {
+    let dragOffset: CGSize
+    let isDragging: Bool
+    let targetSlot: Int  // 0=left, 1=center, 2=right
+
+    var body: some View {
+        Canvas { ctx, size in
+            let W = size.width; let H = size.height
+            let originX = W / 2; let originY = H * 0.80
+            // Targets
+            let slots: [CGFloat] = [W * 0.20, W * 0.50, W * 0.80]
+            let tgtY = H * 0.20
+            for (i, sx) in slots.enumerated() {
+                let isTarget = i == targetSlot
+                ctx.stroke(Path(ellipseIn: CGRect(x: sx-14, y: tgtY-8, width: 28, height: 16)),
+                           with: .color(isTarget ? Color.orange.opacity(0.95) : Color.white.opacity(0.30)),
+                           lineWidth: isTarget ? 2.5 : 1.5)
+                if isTarget {
+                    var glow = ctx; glow.addFilter(.blur(radius: 4))
+                    glow.fill(Path(ellipseIn: CGRect(x: sx-14, y: tgtY-8, width: 28, height: 16)),
+                              with: .color(Color.orange.opacity(0.30)))
+                }
+            }
+            // Aim arc dotted line during drag
+            if isDragging {
+                let dx = dragOffset.width; let dy = dragOffset.height
+                let mag = sqrt(dx*dx + dy*dy)
+                if mag > 10 {
+                    let nx = dx / mag; let ny = dy / mag
+                    for step in 0..<10 {
+                        let u = CGFloat(step) / 9.0
+                        let px = originX + nx * u * 120
+                        let py = originY + ny * u * 80 - CGFloat(sin(Double(u) * .pi)) * 40
+                        let dotR: CGFloat = 2.5 - u * 1.5
+                        ctx.fill(Path(ellipseIn: CGRect(x: px-dotR, y: py-dotR, width: dotR*2, height: dotR*2)),
+                                 with: .color(Color.cyan.opacity(Double(1.0 - u) * 0.90)))
+                    }
+                }
+            }
+            // Player throwing figure
+            ctx.fill(Path(ellipseIn: CGRect(x: originX-5, y: originY-32, width: 10, height: 10)),
+                     with: .color(Color.white.opacity(0.85)))
+            var body = Path(); body.move(to: CGPoint(x: originX, y: originY-22)); body.addLine(to: CGPoint(x: originX, y: originY-5))
+            ctx.stroke(body, with: .color(Color.white.opacity(0.80)), lineWidth: 2)
+            // Ball
+            let ballOffX = isDragging ? dragOffset.width * 0.3 : 0
+            let ballOffY = isDragging ? dragOffset.height * 0.3 : 0
+            var bGC = ctx; bGC.addFilter(.blur(radius: 3))
+            bGC.fill(Path(ellipseIn: CGRect(x: originX+ballOffX-8, y: originY-26+ballOffY-8, width: 16, height: 16)),
+                     with: .color(Color.orange.opacity(0.55)))
+            ctx.fill(Path(ellipseIn: CGRect(x: originX+ballOffX-6, y: originY-26+ballOffY-6, width: 12, height: 12)),
+                     with: .color(Color(red: 1.0, green: 0.55, blue: 0.0).opacity(0.95)))
+        }
+    }
+}
+
+// MARK: - Rally Timing Canvas View
+
+private struct RallyTimingCanvas: View {
+    let ballProgress: CGFloat   // 0...1 left-to-right
+    let windowOpen: Bool
+    let rallyStreak: Int
+
+    var body: some View {
+        Canvas { ctx, size in
+            let W = size.width; let H = size.height
+            // Court background
+            ctx.fill(Path(CGRect(width: W, height: H)), with: .color(Color(red: 0.08, green: 0.18, blue: 0.08)))
+            // Net
+            var net = Path(); net.move(to: CGPoint(x: W/2, y: 0)); net.addLine(to: CGPoint(x: W/2, y: H))
+            ctx.stroke(net, with: .color(Color.white.opacity(0.28)), lineWidth: 1.5)
+            // Ball
+            let bx = W * ballProgress
+            let by = H * 0.50 - CGFloat(sin(ballProgress * .pi)) * H * 0.35
+            var bGC = ctx; bGC.addFilter(.blur(radius: 3))
+            bGC.fill(Path(ellipseIn: CGRect(x: bx-8, y: by-8, width: 16, height: 16)),
+                     with: .color(Color.yellow.opacity(0.55)))
+            ctx.fill(Path(ellipseIn: CGRect(x: bx-5, y: by-5, width: 10, height: 10)),
+                     with: .color(Color.yellow.opacity(0.95)))
+            // Window highlight ring when ball approaches player side (progress > 0.80)
+            if windowOpen {
+                let ringR: CGFloat = 18
+                var wGC = ctx; wGC.addFilter(.blur(radius: 4))
+                wGC.stroke(Path(ellipseIn: CGRect(x: bx-ringR, y: by-ringR, width: ringR*2, height: ringR*2)),
+                           with: .color(Color.green.opacity(0.80)), lineWidth: 3)
+                ctx.stroke(Path(ellipseIn: CGRect(x: bx-ringR, y: by-ringR, width: ringR*2, height: ringR*2)),
+                           with: .color(Color.green.opacity(0.95)), lineWidth: 2)
+            }
+            // Rackets
+            ctx.stroke(Path(ellipseIn: CGRect(x: W*0.04, y: H*0.36, width: 16, height: 22)),
+                       with: .color(Color.yellow.opacity(0.65)), lineWidth: 2)
+            ctx.stroke(Path(ellipseIn: CGRect(x: W*0.88, y: H*0.36, width: 16, height: 22)),
+                       with: .color(Color.yellow.opacity(0.65)), lineWidth: 2)
+            // Streak label dots
+            for s in 0..<min(rallyStreak, 6) {
+                ctx.fill(Path(ellipseIn: CGRect(x: W*0.38 + CGFloat(s)*12, y: H*0.10, width: 8, height: 8)),
+                         with: .color(Color.green.opacity(0.90)))
+            }
+        }
+    }
+}
+
+// MARK: - Dunk Power Canvas View
+
+private struct DunkPowerCanvas: View {
+    let chargeLevel: CGFloat   // 0...1
+    let isCharging: Bool
+
+    var body: some View {
+        Canvas { ctx, size in
+            let W = size.width; let H = size.height
+            let groundY = H * 0.80
+            let cx = W / 2
+            // Ground
+            ctx.fill(Path(CGRect(x: 0, y: groundY, width: W, height: H-groundY)),
+                     with: .color(Color(red: 0.10, green: 0.18, blue: 0.35)))
+            var fl = Path(); fl.move(to: CGPoint(x: 0, y: groundY)); fl.addLine(to: CGPoint(x: W, y: groundY))
+            ctx.stroke(fl, with: .color(Color.white.opacity(0.22)), lineWidth: 1.5)
+            // Rim (hoop)
+            let rimX = W * 0.78; let rimY = H * 0.20
+            var pole = Path(); pole.move(to: CGPoint(x: rimX + 12, y: rimY + 10)); pole.addLine(to: CGPoint(x: rimX + 12, y: groundY))
+            ctx.stroke(pole, with: .color(Color.white.opacity(0.55)), lineWidth: 2)
+            ctx.stroke(Path(ellipseIn: CGRect(x: rimX-14, y: rimY-6, width: 28, height: 12)),
+                       with: .color(Color.orange.opacity(0.90)), lineWidth: 2.5)
+            var bkboard = Path(); bkboard.addRect(CGRect(x: rimX+8, y: rimY-20, width: 20, height: 28))
+            ctx.stroke(bkboard, with: .color(Color.white.opacity(0.50)), lineWidth: 1.5)
+            // Player figure rising based on chargeLevel
+            let jumpH = chargeLevel * H * 0.52
+            let fy = groundY - jumpH - 28
+            // Glow effect when fully charged
+            if chargeLevel > 0.85 {
+                var gGC = ctx; gGC.addFilter(.blur(radius: 8))
+                gGC.fill(Path(ellipseIn: CGRect(x: cx-16, y: fy-10, width: 32, height: 32)),
+                         with: .color(Color.cyan.opacity(0.45)))
+            }
+            var body = Path(); body.move(to: CGPoint(x: cx, y: fy-18)); body.addLine(to: CGPoint(x: cx, y: fy))
+            ctx.stroke(body, with: .color(Color.cyan.opacity(0.90)), lineWidth: 2.5)
+            ctx.fill(Path(ellipseIn: CGRect(x: cx-5, y: fy-28, width: 10, height: 10)),
+                     with: .color(Color.cyan.opacity(0.90)))
+            let ls = chargeLevel * 14
+            var ll = Path(); ll.move(to: CGPoint(x: cx, y: fy)); ll.addLine(to: CGPoint(x: cx-ls, y: fy+18))
+            ctx.stroke(ll, with: .color(Color.cyan.opacity(0.80)), lineWidth: 2)
+            var rl = Path(); rl.move(to: CGPoint(x: cx, y: fy)); rl.addLine(to: CGPoint(x: cx+ls, y: fy+18))
+            ctx.stroke(rl, with: .color(Color.cyan.opacity(0.80)), lineWidth: 2)
+            // Shadow
+            let ss = max(CGFloat(0.18), 1.0 - chargeLevel * 0.80)
+            ctx.fill(Path(ellipseIn: CGRect(x: cx-18*ss, y: groundY-4, width: 36*ss, height: 8)),
+                     with: .color(Color.black.opacity(Double(ss)*0.38)))
+            // Charge rings
+            if isCharging {
+                for i in 0..<3 {
+                    let r = CGFloat(8 + i * 12) * chargeLevel
+                    ctx.stroke(Path(ellipseIn: CGRect(x: cx-r, y: groundY-r*0.4, width: r*2, height: r*0.8)),
+                               with: .color(Color.cyan.opacity(Double(0.60 - Double(i)*0.15))), lineWidth: 1.5)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Dribble Rhythm Canvas View
+
+private struct DribbleRhythmCanvas: View {
+    let ballProgress: CGFloat   // 0...1 bounce phase (sin-based)
+    let combo: Int
+    let showWindow: Bool        // true when ball is near floor (tap window)
+
+    var body: some View {
+        Canvas { ctx, size in
+            let W = size.width; let H = size.height
+            let floorY = H * 0.82
+            ctx.fill(Path(CGRect(x: 0, y: floorY, width: W, height: H-floorY)),
+                     with: .color(Color(red: 0.10, green: 0.18, blue: 0.35)))
+            var fl = Path(); fl.move(to: CGPoint(x: 0, y: floorY)); fl.addLine(to: CGPoint(x: W, y: floorY))
+            ctx.stroke(fl, with: .color(Color.white.opacity(0.22)), lineWidth: 1.5)
+            let bx = W * 0.50
+            let rawY = ballProgress   // 0=floor, 1=top
+            let by = floorY - 6 - rawY * H * 0.55
+            let r: CGFloat = 14
+            // Tap window highlight ring
+            if showWindow {
+                var wGC = ctx; wGC.addFilter(.blur(radius: 5))
+                wGC.stroke(Path(ellipseIn: CGRect(x: bx-r-8, y: by-r-8, width: (r+8)*2, height: (r+8)*2)),
+                           with: .color(Color.green.opacity(0.85)), lineWidth: 3)
+                ctx.stroke(Path(ellipseIn: CGRect(x: bx-r-6, y: by-r-6, width: (r+6)*2, height: (r+6)*2)),
+                           with: .color(Color.green.opacity(0.95)), lineWidth: 2)
+            }
+            // Ball glow
+            var bGC = ctx; bGC.addFilter(.blur(radius: 4))
+            bGC.fill(Path(ellipseIn: CGRect(x: bx-r, y: by-r, width: r*2, height: r*2)),
+                     with: .color(Color(red: 1.0, green: 0.55, blue: 0.0).opacity(0.55)))
+            ctx.fill(Path(ellipseIn: CGRect(x: bx-r, y: by-r, width: r*2, height: r*2)),
+                     with: .color(Color(red: 1.0, green: 0.55, blue: 0.0).opacity(0.92)))
+            // Shadow under ball
+            let sw = r * 2 * (1 - rawY * 0.6)
+            ctx.fill(Path(ellipseIn: CGRect(x: bx-sw/2, y: floorY-3, width: sw, height: 5)),
+                     with: .color(Color.black.opacity(Double(0.28 * (1.0 - Double(rawY) * 0.7)))))
+            // Combo dots
+            for c in 0..<min(combo, 8) {
+                ctx.fill(Path(ellipseIn: CGRect(x: W*0.22 + CGFloat(c)*14, y: H*0.12, width: 10, height: 10)),
+                         with: .color(Color.orange.opacity(0.90)))
+            }
+        }
+    }
+}
+
 // MARK: - CourtCarnivalView
 
 struct CourtCarnivalView: View {
@@ -1187,6 +1430,40 @@ struct CourtCarnivalView: View {
     @State private var spinTask: Task<Void, Never>?
     @State private var showResult = false
     @State private var resultText = ""
+
+    // MARK: Interactive mechanic state
+    // Ring Toss (game 0) — oscillating power meter
+    @State private var ringPowerLevel: CGFloat = 0.0
+    @State private var ringThrown = false
+    @State private var ringHit = false
+
+    // Ball Dribble (game 1) — rhythm tap
+    @State private var dribbleBallPhase: CGFloat = 0.0      // 0=floor,1=top driven by time
+    @State private var dribbleCombo = 0
+    @State private var dribbleWindowOpen = false
+    @State private var dribbleAnimTask: Task<Void, Never>?
+
+    // Trick Shot (game 2) — swipe angle
+    @GestureState private var dragOffset: CGSize = .zero
+    @State private var isDragging = false
+    @State private var trickTargetSlot = 1       // 0=left,1=center,2=right
+    @State private var trickShotsHit = 0
+    @State private var trickShotsTotal = 0
+    @State private var lastDragOffset: CGSize = .zero
+
+    // Rally (game 3) — tap timing
+    @State private var rallyBallProgress: CGFloat = 0.0
+    @State private var rallyWindowOpen = false
+    @State private var rallyStreak = 0
+    @State private var rallyMisses = 0
+    @State private var rallyAnimTask: Task<Void, Never>?
+
+    // Dunk (game 4) — hold-and-release
+    @State private var dunkChargeLevel: CGFloat = 0.0
+    @State private var dunkIsCharging = false
+    @State private var dunkChargeTask: Task<Void, Never>?
+    @State private var dunkReleaseLevel: CGFloat = 0.0
+    @State private var dunkAttempted = false
 
     private enum CarnivalPhase { case ready, spinning, playing, result }
     private struct MiniGameResult { let won: Bool; let points: Int; let label: String }
@@ -1241,7 +1518,13 @@ struct CourtCarnivalView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .onDisappear { timerTask?.cancel(); spinTask?.cancel() }
+        .onDisappear {
+            timerTask?.cancel()
+            spinTask?.cancel()
+            dribbleAnimTask?.cancel()
+            rallyAnimTask?.cancel()
+            dunkChargeTask?.cancel()
+        }
     }
 
     // MARK: - Spinning Body
@@ -1282,7 +1565,6 @@ struct CourtCarnivalView: View {
         let gameWon = miniGameResult?.won ?? false
         let gameLost = miniGameResult.map { !$0.won } ?? false
         return ZStack {
-            // Full-screen carnival arena canvas
             CarnivalArenaCanvas(
                 tapCount: tapCount,
                 timeRemaining: timeRemaining,
@@ -1323,10 +1605,12 @@ struct CourtCarnivalView: View {
 
                 Spacer()
 
+                // Per-game interactive canvas area
                 VStack(spacing: 16) {
-                    CarnivalGameCanvas(game: game, tapCount: tapCount)
-                        .frame(height: 110)
+                    gameCanvasArea(game: game)
+                        .frame(height: 130)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+
                     Text(game.title.uppercased())
                         .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundStyle(game.color)
@@ -1336,17 +1620,9 @@ struct CourtCarnivalView: View {
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
 
-                    if game.mechanic == .tap {
-                        Text("\(tapCount) taps")
-                            .font(.system(size: 28, weight: .black, design: .monospaced))
-                            .foregroundStyle(game.color)
-                            .contentTransition(.numericText())
-                        Text("Target: \(game.target)")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
+                    gameStatsRow(game: game)
                 }
-                .padding(32)
+                .padding(24)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
                         .fill(Theme.cardBackground.opacity(0.88))
@@ -1364,27 +1640,354 @@ struct CourtCarnivalView: View {
                         Text(res.label).font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
                     }
                     .padding(.bottom, 20)
-                } else if game.mechanic == .tap {
-                    Button {
-                        tapCount += 1
-                        hapticSoft() // #haptic-tap: soft each tap
-                    } label: {
-                        Text("TAP!")
-                            .font(.system(size: 22, weight: .black, design: .monospaced))
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            .background(game.color)
-                            .clipShape(.rect(cornerRadius: 16))
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
+                } else {
+                    gameActionButton(game: game)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
                 }
             }
         }
     }
 
-    // MARK: - Game Logic (unchanged)
+    // MARK: - Per-Game Canvas
+
+    @ViewBuilder
+    private func gameCanvasArea(game: CarnivalGame) -> some View {
+        switch currentMiniGame {
+        case 0:
+            // Ring Toss — power meter
+            TimelineView(.animation) { tl in
+                let t = tl.date.timeIntervalSinceReferenceDate
+                let level = ringThrown ? ringPowerLevel : CGFloat((sin(t * .pi) + 1.0) / 2.0)
+                CarnivalGameCanvas(game: game, tapCount: tapCount)
+                    .onChange(of: ringThrown) { _, thrown in
+                        if !thrown { ringPowerLevel = CGFloat((sin(t * .pi) + 1.0) / 2.0) }
+                    }
+                    .overlay(alignment: .bottom) {
+                        PowerMeterView(powerLevel: level, label: "POWER", color: game.color)
+                            .padding(.bottom, 8)
+                    }
+            }
+        case 1:
+            // Dribble — rhythm bounce
+            DribbleRhythmCanvas(
+                ballProgress: dribbleBallPhase,
+                combo: dribbleCombo,
+                showWindow: dribbleWindowOpen
+            )
+        case 2:
+            // Trick Shot — swipe aim
+            SwipeAimCanvas(
+                dragOffset: isDragging ? dragOffset : lastDragOffset,
+                isDragging: isDragging,
+                targetSlot: trickTargetSlot
+            )
+            .gesture(
+                DragGesture(minimumDistance: 8)
+                    .updating($dragOffset) { value, state, _ in state = value.translation }
+                    .onChanged { _ in isDragging = true }
+                    .onEnded { value in
+                        isDragging = false
+                        lastDragOffset = value.translation
+                        handleTrickShotThrow(drag: value.translation)
+                    }
+            )
+        case 3:
+            // Rally — ball timing
+            RallyTimingCanvas(
+                ballProgress: rallyBallProgress,
+                windowOpen: rallyWindowOpen,
+                rallyStreak: rallyStreak
+            )
+        case 4:
+            // Dunk — hold charge
+            DunkPowerCanvas(chargeLevel: dunkChargeLevel, isCharging: dunkIsCharging)
+        default:
+            CarnivalGameCanvas(game: game, tapCount: tapCount)
+        }
+    }
+
+    // MARK: - Per-Game Stats Row
+
+    @ViewBuilder
+    private func gameStatsRow(game: CarnivalGame) -> some View {
+        switch currentMiniGame {
+        case 0:
+            Text(ringHit ? "BULLSEYE!" : "Tap THROW at peak power!")
+                .font(.system(size: 14, weight: .black, design: .monospaced))
+                .foregroundStyle(ringHit ? Color.green : game.color)
+        case 1:
+            HStack(spacing: 16) {
+                Text("COMBO")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Text("×\(dribbleCombo)")
+                    .font(.system(size: 28, weight: .black, design: .monospaced))
+                    .foregroundStyle(game.color)
+                    .contentTransition(.numericText())
+            }
+        case 2:
+            HStack(spacing: 16) {
+                Text("\(trickShotsHit)/\(trickShotsTotal)")
+                    .font(.system(size: 24, weight: .black, design: .monospaced))
+                    .foregroundStyle(game.color)
+                Text("shots hit")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        case 3:
+            HStack(spacing: 16) {
+                Text("STREAK")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Text("\(rallyStreak)")
+                    .font(.system(size: 28, weight: .black, design: .monospaced))
+                    .foregroundStyle(game.color)
+                    .contentTransition(.numericText())
+            }
+        case 4:
+            Text(dunkAttempted ? (dunkReleaseLevel > 0.75 ? "SLAM DUNK!" : "Just missed…") : "HOLD to charge, RELEASE at peak!")
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundStyle(dunkReleaseLevel > 0.75 ? Color.green : game.color)
+                .multilineTextAlignment(.center)
+        default:
+            EmptyView()
+        }
+    }
+
+    // MARK: - Per-Game Action Buttons
+
+    @ViewBuilder
+    private func gameActionButton(game: CarnivalGame) -> some View {
+        switch currentMiniGame {
+        case 0:
+            // Ring Toss — THROW button
+            Button {
+                guard !ringThrown else { return }
+                // Capture power level at moment of tap
+                let now = Date().timeIntervalSinceReferenceDate
+                let captured = CGFloat((sin(now * .pi) + 1.0) / 2.0)
+                ringPowerLevel = captured
+                ringThrown = true
+                let perfect = abs(captured - 0.5) < 0.18
+                ringHit = perfect
+                if perfect {
+                    hapticHeavy()
+                } else {
+                    hapticSoft()
+                }
+                tapCount += 1
+            } label: {
+                Text(ringThrown ? (ringHit ? "BULLSEYE!" : "MISSED") : "THROW")
+                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(ringThrown ? (ringHit ? Color.green : Color.red) : game.color)
+                    .clipShape(.rect(cornerRadius: 16))
+            }
+
+        case 1:
+            // Dribble — TAP IN RHYTHM
+            Button {
+                handleDribbleTap()
+            } label: {
+                Text("TAP RHYTHM")
+                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(dribbleWindowOpen ? Color.green : game.color)
+                    .clipShape(.rect(cornerRadius: 16))
+            }
+
+        case 2:
+            // Trick Shot — Swipe instructions (button is drag gesture on canvas)
+            VStack(spacing: 8) {
+                Text("DRAG canvas to aim · Release to throw")
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Text("Target: \(["LEFT", "CENTER", "RIGHT"][trickTargetSlot])")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundStyle(game.color)
+            }
+
+        case 3:
+            // Rally — TAP when window opens
+            Button {
+                handleRallyTap()
+            } label: {
+                Text("HIT!")
+                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(rallyWindowOpen ? Color.green : game.color)
+                    .clipShape(.rect(cornerRadius: 16))
+            }
+
+        case 4:
+            // Dunk — HOLD button
+            Button {
+                // tap handled by press-and-hold gesture below
+            } label: {
+                Text(dunkIsCharging ? "CHARGING… RELEASE!" : "HOLD TO JUMP")
+                    .font(.system(size: 20, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(dunkIsCharging ? Color.cyan : game.color)
+                    .clipShape(.rect(cornerRadius: 16))
+            }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in startDunkCharge() }
+                    .onEnded   { _ in releaseDunkCharge() }
+            )
+
+        default:
+            EmptyView()
+        }
+    }
+
+    // MARK: - Interactive Mechanic Handlers
+
+    // Ring Toss: power oscillates automatically; throw captured at button tap (see gameActionButton case 0)
+
+    // Dribble Rhythm: animate ball bounce and check tap timing
+    private func handleDribbleTap() {
+        tapCount += 1
+        if dribbleWindowOpen {
+            // Perfect timing
+            dribbleCombo += 1
+            hapticHeavy()
+        } else {
+            // Off-beat: reset combo
+            dribbleCombo = max(0, dribbleCombo - 1)
+            hapticSoft()
+        }
+    }
+
+    // Trick Shot: evaluate drag direction against target slot
+    private func handleTrickShotThrow(drag: CGSize) {
+        trickShotsTotal += 1
+        tapCount += 1
+        // Determine aimed slot from horizontal drag
+        let aimedSlot: Int
+        if drag.width < -40 { aimedSlot = 0 }       // swipe left
+        else if drag.width > 40 { aimedSlot = 2 }   // swipe right
+        else { aimedSlot = 1 }                       // straight / center
+        if aimedSlot == trickTargetSlot {
+            trickShotsHit += 1
+            hapticHeavy()
+        } else {
+            hapticSoft()
+        }
+        // Randomize next target for variety
+        trickTargetSlot = Int.random(in: 0...2)
+    }
+
+    // Rally Tap: timing check
+    private func handleRallyTap() {
+        tapCount += 1
+        if rallyWindowOpen {
+            rallyStreak += 1
+            hapticHeavy()
+        } else {
+            rallyMisses += 1
+            rallyStreak = 0
+            hapticSoft()
+        }
+    }
+
+    // Dunk Charge
+    private func startDunkCharge() {
+        guard !dunkIsCharging && !dunkAttempted else { return }
+        dunkIsCharging = true
+        dunkChargeLevel = 0.0
+        dunkChargeTask?.cancel()
+        dunkChargeTask = Task {
+            let start = Date()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(16))
+                let elapsed = Date().timeIntervalSince(start)
+                await MainActor.run {
+                    dunkChargeLevel = min(1.0, CGFloat(elapsed / 1.5))
+                }
+                if dunkChargeLevel >= 1.0 { break }
+            }
+        }
+    }
+
+    private func releaseDunkCharge() {
+        guard dunkIsCharging else { return }
+        dunkIsCharging = false
+        dunkAttempted = true
+        dunkChargeTask?.cancel()
+        dunkReleaseLevel = dunkChargeLevel
+        tapCount += 1
+        if dunkReleaseLevel > 0.75 {
+            hapticHeavy()
+        } else {
+            hapticSoft()
+        }
+    }
+
+    // MARK: - Game Animations
+
+    private func startDribbleAnimation() {
+        dribbleCombo = 0
+        dribbleBallPhase = 0.0
+        dribbleWindowOpen = false
+        dribbleAnimTask?.cancel()
+        // Bounce period: ~0.8s per cycle
+        dribbleAnimTask = Task {
+            let cycleDuration: Double = 0.80
+            let windowFraction = 0.20   // bottom 20% = tap window
+            let start = Date()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(16))
+                let elapsed = Date().timeIntervalSince(start)
+                let phase = fmod(elapsed, cycleDuration) / cycleDuration   // 0...1
+                // abs(sin) so 0=floor, 1=peak
+                let bounce = CGFloat(abs(sin(phase * .pi)))
+                await MainActor.run {
+                    dribbleBallPhase = bounce
+                    // Window is open when ball is near floor (low bounce)
+                    dribbleWindowOpen = bounce < CGFloat(windowFraction)
+                }
+            }
+        }
+    }
+
+    private func startRallyAnimation() {
+        rallyStreak = 0
+        rallyMisses = 0
+        rallyBallProgress = 0.0
+        rallyWindowOpen = false
+        rallyAnimTask?.cancel()
+        // Ball travels across in ~1.4s
+        let crossDuration: Double = 1.40
+        let windowFraction: CGFloat = 0.15   // last 15% on player side = tap window
+        rallyAnimTask = Task {
+            let start = Date()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(16))
+                let elapsed = Date().timeIntervalSince(start)
+                let rawProg = fmod(elapsed, crossDuration) / crossDuration   // 0...1
+                // Ping-pong: 0→1→0
+                let pingPong = rawProg < 0.5 ? rawProg * 2.0 : (1.0 - rawProg) * 2.0
+                await MainActor.run {
+                    rallyBallProgress = CGFloat(pingPong)
+                    // Window opens when ball reaches player's side (far right, > 1-windowFraction)
+                    rallyWindowOpen = CGFloat(pingPong) > (1.0 - windowFraction)
+                }
+            }
+        }
+    }
+
+    // MARK: - Game Logic
 
     private func spinWheel() {
         let spinDegrees = Double.random(in: 720...1440)
@@ -1402,6 +2005,14 @@ struct CourtCarnivalView: View {
         showResult = false
         miniGameResult = nil
         timeRemaining = game.timeLimit
+        // Reset per-game state
+        resetInteractiveState()
+        // Start per-game animations
+        switch currentMiniGame {
+        case 1: startDribbleAnimation()
+        case 3: startRallyAnimation()
+        default: break
+        }
         timerTask?.cancel()
         timerTask = Task {
             while timeRemaining > 0 {
@@ -1413,18 +2024,71 @@ struct CourtCarnivalView: View {
         }
     }
 
+    private func resetInteractiveState() {
+        // Ring Toss
+        ringPowerLevel = 0.0; ringThrown = false; ringHit = false
+        // Dribble
+        dribbleBallPhase = 0.0; dribbleCombo = 0; dribbleWindowOpen = false
+        dribbleAnimTask?.cancel()
+        // Trick Shot
+        isDragging = false; trickTargetSlot = Int.random(in: 0...2)
+        trickShotsHit = 0; trickShotsTotal = 0; lastDragOffset = .zero
+        // Rally
+        rallyBallProgress = 0.0; rallyWindowOpen = false
+        rallyStreak = 0; rallyMisses = 0
+        rallyAnimTask?.cancel()
+        // Dunk
+        dunkChargeLevel = 0.0; dunkIsCharging = false
+        dunkReleaseLevel = 0.0; dunkAttempted = false
+        dunkChargeTask?.cancel()
+    }
+
     private func evaluateMiniGame() {
         timerTask?.cancel()
-        let game = miniGames[currentMiniGame]
+        dribbleAnimTask?.cancel()
+        rallyAnimTask?.cancel()
+        dunkChargeTask?.cancel()
+
         let won: Bool
         let pts: Int
         let label: String
-        switch game.mechanic {
-        case .tap:
-            won = tapCount >= game.target
-            pts = won ? 10 : 0
-            label = won ? "\(tapCount) taps — target met!" : "\(tapCount)/\(game.target) taps"
-        case .auto:
+
+        switch currentMiniGame {
+        case 0:
+            // Ring Toss: hit = +10, close miss = +5
+            won = ringHit || (abs(ringPowerLevel - 0.5) < 0.30 && ringThrown)
+            let perfect = ringHit
+            pts = perfect ? 10 : (won ? 5 : 0)
+            label = perfect ? "Bullseye! Perfect power!" : (won ? "Close — nearly on target" : "Missed the pegs")
+
+        case 1:
+            // Dribble: combo ≥ 4 = win
+            won = dribbleCombo >= 4
+            pts = min(10, dribbleCombo * 2)
+            label = "Combo ×\(dribbleCombo) — \(won ? "perfect rhythm!" : "keep the beat")"
+
+        case 2:
+            // Trick Shot: >50% accuracy = win
+            let accuracy = trickShotsTotal > 0 ? Double(trickShotsHit) / Double(trickShotsTotal) : 0.0
+            won = accuracy >= 0.5 && trickShotsTotal >= 2
+            pts = won ? Int(accuracy * 10.0) : 0
+            label = trickShotsTotal > 0 ? "\(trickShotsHit)/\(trickShotsTotal) shots on target" : "No throws made"
+
+        case 3:
+            // Rally: streak ≥ 3 = win
+            won = rallyStreak >= 3
+            pts = min(10, rallyStreak * 2)
+            label = "Rally streak ×\(rallyStreak)"
+
+        case 4:
+            // Dunk: release ≥ 0.75 = dunk
+            won = dunkReleaseLevel > 0.75
+            pts = won ? 10 : (dunkReleaseLevel > 0.50 ? 4 : 0)
+            label = dunkAttempted
+                ? (won ? "SLAM DUNK! \(Int(dunkReleaseLevel * 100))% power" : "Too early — missed the rim")
+                : "No jump attempted"
+
+        default:
             won = Double.random(in: 0...1) < 0.65
             pts = won ? 10 : 0
             label = won ? "Challenge cleared!" : "Close — keep going"
@@ -1432,15 +2096,11 @@ struct CourtCarnivalView: View {
 
         // Haptics based on outcome
         if won {
-            if pts >= 10 && tapCount > game.target + 5 {
-                hapticRigid()   // jackpot / perfect score
-            } else {
-                hapticHeavy()   // bullseye / regular win
-            }
-        } else if tapCount > 0 && tapCount >= game.target - 3 {
-            hapticSoft()        // near-miss
+            if pts >= 10 { hapticRigid() } else { hapticHeavy() }
+        } else if tapCount > 0 {
+            hapticSoft()
         } else {
-            hapticError()       // miss / game over
+            hapticError()
         }
 
         if won { playerScore += pts }
@@ -1454,12 +2114,7 @@ struct CourtCarnivalView: View {
 
     private func advanceMiniGame() {
         if currentMiniGame + 1 >= miniGames.count {
-            // Final result haptic
-            if playerScore >= 30 {
-                hapticRigid()
-            } else {
-                hapticMedium()
-            }
+            if playerScore >= 30 { hapticRigid() } else { hapticMedium() }
             GameResultService.saveResult(modeId: "court_carnival", userScore: playerScore)
             phase = .result
         } else {
@@ -1473,7 +2128,7 @@ struct CourtCarnivalView: View {
 // MARK: - CarnivalGame Model
 
 struct CarnivalGame {
-    enum Mechanic { case tap, auto }
+    enum Mechanic { case tap, power, rhythm, swipe, timing, hold }
     let title: String
     let instruction: String
     let icon: String
@@ -1483,25 +2138,25 @@ struct CarnivalGame {
     let target: Int
 
     static let all: [CarnivalGame] = [
-        CarnivalGame(title: "Speed Dribble",
-                     instruction: "Tap as fast as you can to out-dribble your opponent!",
+        CarnivalGame(title: "Ring Toss",
+                     instruction: "Watch the power meter oscillate — tap THROW at peak center for a bullseye!",
                      icon: "figure.basketball", color: Color(red: 1, green: 0.6, blue: 0),
-                     mechanic: .tap, timeLimit: 8, target: 20),
-        CarnivalGame(title: "Sprint Burst",
-                     instruction: "Rapid taps — first to 25 reps wins the lane!",
+                     mechanic: .power, timeLimit: 8, target: 1),
+        CarnivalGame(title: "Dribble Rhythm",
+                     instruction: "Tap in sync when the ball hits the floor — build your combo!",
                      icon: "figure.run", color: .green,
-                     mechanic: .tap, timeLimit: 10, target: 25),
-        CarnivalGame(title: "Jump Timing",
-                     instruction: "Nail the timing — the arena is watching!",
-                     icon: "arrow.up.circle.fill", color: .cyan,
-                     mechanic: .auto, timeLimit: 6, target: 0),
-        CarnivalGame(title: "Rally Strike",
-                     instruction: "Tap each hit before the ball bounces twice!",
-                     icon: "tennis.racket", color: .yellow,
-                     mechanic: .tap, timeLimit: 8, target: 18),
+                     mechanic: .rhythm, timeLimit: 10, target: 4),
         CarnivalGame(title: "Trick Shot",
-                     instruction: "The pressure's on — clutch the angle!",
+                     instruction: "Drag to aim at the glowing target — swipe LEFT, CENTER or RIGHT and release!",
                      icon: "basketball.fill", color: Color(red: 0.95, green: 0.49, blue: 0.15),
-                     mechanic: .auto, timeLimit: 5, target: 0),
+                     mechanic: .swipe, timeLimit: 8, target: 2),
+        CarnivalGame(title: "Rally Strike",
+                     instruction: "Tap HIT when the ball reaches your side — keep the rally streak alive!",
+                     icon: "tennis.racket", color: .yellow,
+                     mechanic: .timing, timeLimit: 10, target: 3),
+        CarnivalGame(title: "Slam Dunk",
+                     instruction: "Hold the button to charge your jump — release at full power to dunk!",
+                     icon: "arrow.up.circle.fill", color: .cyan,
+                     mechanic: .hold, timeLimit: 6, target: 1),
     ]
 }
