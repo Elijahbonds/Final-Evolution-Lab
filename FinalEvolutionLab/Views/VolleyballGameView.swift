@@ -1793,5 +1793,18 @@ struct VolleyballGameView: View {
         )
     }
 
-    private func cancelAllTasks() { gameTimerTask?.cancel(); rallyTask?.cancel(); inputWindowTask?.cancel() }
+    private func movePlayer(delta: CGFloat) {
+        guard phase == .playing else { return }
+        withAnimation(.easeOut(duration: 0.12)) {
+            playerX = max(0.05, min(0.95, playerX + delta))
+        }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func cancelAllTasks() {
+        gameTimerTask?.cancel()
+        rallyTask?.cancel()
+        inputWindowTask?.cancel()
+        positioningTask?.cancel()
+    }
 }

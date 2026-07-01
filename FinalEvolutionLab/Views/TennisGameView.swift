@@ -2483,83 +2483,168 @@ struct TennisGameView: View {
         }
     }
 
+    // MARK: - Drag-to-Aim Handlers
+
+    private func normalizePoint(_ p: CGPoint) -> CGPoint {
+        // Normalize screen point to 0–1 based on approximate canvas rect
+        // Canvas is at y≈160 with height 280 in a ~375pt wide screen
+        let screenW = UIScreen.main.bounds.width
+        let screenH = UIScreen.main.bounds.height
+        return CGPoint(x: max(0, min(1, p.x / screenW)),
+                       y: max(0, min(1, p.y / screenH)))
+    }
+
+    private func handleAimedShot(dx: CGFloat, dy: CGFloat) {
+        // Determine base swipe direction from total drag
+        let swipeDir: SwipeDir
+        if abs(dx) > abs(dy) { swipeDir = dx < 0 ? .left : .right }
+        else if dy < -20    { swipeDir = .up }
+        else                { swipeDir = .none }
+
+        guard swipeDir != .none else {
+            flashFeedback("MISS!")
+            triggerFault()
+            unforcedErrors += 1
+            addErrorMomentum()
+            canChallenge = true
+            opponentWinsPoint()
+            return
+        }
+
+        TennisHaptic.hit()
+        resolveShotWithAim(direction: swipeDir, zone: currentTargetZone)
+    }
+
     // MARK: - Shot Resolution
 
     private func resolveShot(direction: SwipeDir) {
+        resolveShotWithAim(direction: direction, zone: nil)
+    }
+
+    private func resolveShotWithAim(direction: SwipeDir, zone: ShotZone?) {
         let baseWinnerProb = shotSelection.winnerProbability + momentumAccuracyModifier
         let clampedProb = max(0.05, min(0.90, baseWinnerProb))
 
-        let shotX = direction == .left ? CGFloat.random(in: 0.15...0.4) : CGFloat.random(in: 0.6...0.85)
+        // Use aimed zone target if available, otherwise fallback to swipe direction
+        let targetPos: CGPoint
+        if let zone = zone {
+            targetPos = zone.normalizedTarget
+        } else {
+            let shotX = direction == .left ? CGFloat.random(in: 0.15...0.4) : CGFloat.random(in: 0.6...0.85)
+            targetPos = CGPoint(x: shotX, y: 0.15)
+        }
+
+        // Placement bonuses
+        var placementBonus: Double = 0
+        var placementLabel: String? = nil
+        if let zone = zone {
+            if zone.isCorner {
+                placementBonus = 0.12
+                placementLabel = "WINNER ZONE!"
+            } else if zone.isWide {
+                placementBonus = 0.06
+                // If opponent is on opposite side, opening is bigger
+                if let lastZone = lastOpponentZone, lastZone.isLeft != zone.isLeft {
+                    placementBonus += 0.10
+                    placementLabel = "PASSING SHOT!"
+                }
+            }
+        }
+
+        // Perfect crosscourt + perfect timing → ACE attempt
+        let isPerfectCrosscourt = zone == .topLeft || zone == .topRight
+        let isPerfectTiming = shotSelection == .groundstroke && momentumAccuracyModifier > 0
+        let aceAttempt = isPerfectCrosscourt && isPerfectTiming
+
+        // Landing dot for mini-court
+        var dotIsWinner = false
 
         switch shotSelection {
 
         case .groundstroke:
             crowdLevel = min(1.0, crowdLevel + 0.08)
-            let isWinner = Double.random(in: 0...1) < clampedProb
+            let finalProb = clampedProb + placementBonus
+            let isWinner = Double.random(in: 0...1) < finalProb
             if isWinner {
-                flashFeedback("WINNER!")
-                triggerWinner()
+                dotIsWinner = true
+                let label = aceAttempt ? "ACE!" : (placementLabel ?? "WINNER!")
+                flashFeedback(label)
+                if aceAttempt { triggerAce(); acesCount += 1 } else { triggerWinner() }
                 winnersCount += 1
                 addWinnerMomentum()
                 checkMomentumBanners()
                 crowdLevel = min(1.0, crowdLevel + 0.15)
-                animateBallShot(to: CGPoint(x: shotX, y: 0.15))
+                animateBallShot(to: targetPos)
+                if let label = placementLabel { flashWinnerZone(label) }
                 awardPlayerPoint()
             } else {
                 flashFeedback("GREAT SHOT!")
-                animateBallShot(to: CGPoint(x: shotX, y: 0.15))
+                animateBallShot(to: targetPos)
+                // Opponent covers aimed zone — track for next rally
+                lastOpponentZone = zone
                 continueRally()
             }
             approachMode = false
 
         case .lob:
-            // High arc — 25% chance opponent falls back and misses
-            let opponentMissesLob = Double.random(in: 0...1) < (0.25 + momentumAccuracyModifier * 0.5)
+            let opponentMissesLob = Double.random(in: 0...1) < (0.25 + momentumAccuracyModifier * 0.5 + placementBonus)
             crowdLevel = min(1.0, crowdLevel + 0.10)
             if opponentMissesLob {
+                dotIsWinner = true
                 flashFeedback("LOB WINNER!")
-                triggerWinner()
-                winnersCount += 1
-                addWinnerMomentum()
-                checkMomentumBanners()
-                // High arc animation: ball goes to top centre
-                animateBallShot(to: CGPoint(x: CGFloat.random(in: 0.35...0.65), y: 0.10))
+                triggerWinner(); winnersCount += 1
+                addWinnerMomentum(); checkMomentumBanners()
+                animateBallShot(to: CGPoint(x: targetPos.x, y: 0.10))
                 awardPlayerPoint()
             } else {
                 flashFeedback("GREAT LOB!")
-                animateBallShot(to: CGPoint(x: 0.5, y: 0.12))
+                animateBallShot(to: CGPoint(x: targetPos.x, y: 0.12))
+                lastOpponentZone = zone
                 continueRally()
             }
             approachMode = false
 
         case .dropShot:
-            // 30% winner if opponent at baseline
-            let dropWins = Double.random(in: 0...1) < (0.30 + momentumAccuracyModifier * 0.5)
+            let dropWins = Double.random(in: 0...1) < (0.30 + momentumAccuracyModifier * 0.5 + placementBonus)
             crowdLevel = min(1.0, crowdLevel + 0.12)
             if dropWins {
+                dotIsWinner = true
                 flashFeedback("DROP SHOT!")
-                triggerWinner()
-                winnersCount += 1
-                addWinnerMomentum()
-                checkMomentumBanners()
-                // Lands near net
-                animateBallShot(to: CGPoint(x: CGFloat.random(in: 0.35...0.65), y: 0.32))
+                triggerWinner(); winnersCount += 1
+                addWinnerMomentum(); checkMomentumBanners()
+                animateBallShot(to: CGPoint(x: targetPos.x, y: 0.32))
                 awardPlayerPoint()
             } else {
                 flashFeedback("TRICKY DROP!")
-                animateBallShot(to: CGPoint(x: CGFloat.random(in: 0.35...0.65), y: 0.30))
+                animateBallShot(to: CGPoint(x: targetPos.x, y: 0.30))
+                lastOpponentZone = zone
                 continueRally()
             }
             approachMode = false
 
         case .approach:
-            // Approach shot advances player to net
             flashFeedback("APPROACHING NET!")
             crowdLevel = min(1.0, crowdLevel + 0.05)
-            animateBallShot(to: CGPoint(x: shotX, y: 0.30))
+            animateBallShot(to: CGPoint(x: targetPos.x, y: 0.30))
             approachMode = true
-            // After approach, next will be volley — increase winner chance
+            lastOpponentZone = zone
             continueRally()
+        }
+
+        // Record landing dot for mini-court history
+        if let zone = zone {
+            let dot = ShotLandingDot(normalizedPos: zone.normalizedTarget, isWinner: dotIsWinner)
+            landingDots.append(dot)
+            if landingDots.count > 20 { landingDots.removeFirst() }
+        }
+    }
+
+    private func flashWinnerZone(_ text: String) {
+        winnerZoneText = text
+        withAnimation(.spring(response: 0.2)) { showWinnerZoneFlash = true }
+        Task {
+            try? await Task.sleep(for: .milliseconds(1200))
+            await MainActor.run { withAnimation(.easeOut(duration: 0.3)) { showWinnerZoneFlash = false } }
         }
     }
 
