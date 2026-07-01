@@ -12,6 +12,14 @@ private enum EnemySide { case left, right }
 private enum EnemyType { case grappler, striker, rusher }
 private enum PowerUpType { case speedBoost, powerStrike, shield, timeSlow }
 
+// MARK: - Enemy Archetypes
+
+enum EnemyArchetype: String, CaseIterable {
+    case striker  = "STRIKER"
+    case grappler = "GRAPPLER"
+    case rusher   = "RUSHER"
+}
+
 // MARK: - Wave Opponent (legacy — kept for HP bar UI)
 
 private struct WaveOpponent: Identifiable {
@@ -1943,18 +1951,53 @@ struct KarateEndlessGameView: View {
         startParticleUpdater()
     }
 
+    // MARK: - Archetype Helpers
+
+    private func archetypeHPMultiplier(for archetype: EnemyArchetype) -> Double {
+        switch archetype {
+        case .striker:  return 1.0   // 100 base HP
+        case .grappler: return 1.5   // 150 base HP
+        case .rusher:   return 0.8   // 80 base HP
+        }
+    }
+
+    private func archetypeForWave(_ wave: Int, slot: Int) -> EnemyArchetype {
+        if wave <= 3 {
+            return .striker
+        } else if wave <= 6 {
+            return slot % 2 == 0 ? .striker : .grappler
+        } else if wave <= 9 {
+            return EnemyArchetype.allCases[slot % 3]
+        } else {
+            // Wave 10+: hybrid boss — cycle all 3
+            return EnemyArchetype.allCases[(wave + slot) % 3]
+        }
+    }
+
     private func spawnWave() {
         let count = min(3, waveNumber)
         let hpScale = 1.0 + Double(waveNumber - 1) * 0.25
-        let baseHP = 60.0 * hpScale * (waveNumber % 5 == 0 ? 1.8 : 1.0)
+        let bossMultiplier = waveNumber % 5 == 0 ? 1.8 : 1.0
         var newOpponents: [WaveOpponent] = []
         var newEnemies: [EnemyState] = []
 
-        let enemyTypes: [EnemyType] = [.striker, .grappler, .rusher]
         let enemySides: [EnemySide] = [.right, .right, .left]
         let enemyXs: [CGFloat] = [0.72, 0.58, 0.83]
 
+        // Set the dominant archetype for this wave (slot 0 = lead enemy)
+        currentArchetype = archetypeForWave(waveNumber, slot: 0)
+
+        let slotArchetypeToEnemyType: (EnemyArchetype) -> EnemyType = { arch in
+            switch arch {
+            case .striker:  return .striker
+            case .grappler: return .grappler
+            case .rusher:   return .rusher
+            }
+        }
+
         for i in 0..<count {
+            let arch = archetypeForWave(waveNumber, slot: i)
+            let baseHP = 100.0 * archetypeHPMultiplier(for: arch) * hpScale * bossMultiplier
             let name = opponentNamePool[(waveNumber * 3 + i) % opponentNamePool.count]
             newOpponents.append(WaveOpponent(hp: baseHP, maxHP: baseHP, name: name, slideInProgress: 0.0))
             newEnemies.append(EnemyState(
@@ -1963,7 +2006,7 @@ struct KarateEndlessGameView: View {
                 chargeProgress: 0.0,
                 pose: "approach",
                 side: enemySides[i],
-                type: enemyTypes[i % enemyTypes.count],
+                type: slotArchetypeToEnemyType(arch),
                 name: name,
                 slideInProgress: 0.0
             ))
@@ -2082,6 +2125,21 @@ struct KarateEndlessGameView: View {
 
     private func aiAttack() {
         guard phase == .fighting else { return }
+
+        // Dispatch archetype-specific special attacks (30% chance when enemy alive)
+        if !enemies.isEmpty, Double.random(in: 0...1) < 0.30 {
+            switch enemies[0].type {
+            case .grappler:
+                triggerGrapAttack()
+                return
+            case .rusher:
+                triggerRusherCharge()
+                return
+            case .striker:
+                break  // falls through to normal attack below
+            }
+        }
+
         let baseDamage = 6.0 + Double(waveNumber - 1) * 1.5 * (waveNumber % 5 == 0 ? 1.5 : 1.0)
         let damage = Double.random(in: baseDamage...(baseDamage + 8))
 
@@ -2189,6 +2247,110 @@ struct KarateEndlessGameView: View {
         setPlayerPose("dragon", duration: 0.6)
         showAction(text: "STANCE", color: Theme.elitePurple)
         impactMed.impactOccurred()
+    }
+
+    // MARK: - Archetype Attack Triggers
+
+    private func triggerGrapAttack() {
+        guard phase == .fighting else { return }
+        grabActive = true
+        grabTapCount = 0
+        showAction(text: "GRAB! TAP x3!", color: Color(red: 0.1, green: 0.35, blue: 0.9))
+        impactHvy.impactOccurred()
+        // 1.5s window to break
+        Task {
+            try? await Task.sleep(for: .milliseconds(1500))
+            await MainActor.run {
+                guard grabActive else { return }   // player already broke it
+                // Failed to break grab — heavy damage (30% of max HP)
+                grabActive = false
+                grabTapCount = 0
+                let damage = maxPlayerHP * 0.30
+                playerHP = max(0, playerHP - damage)
+                combo = 0
+                setPlayerPose("hit", duration: 0.6)
+                triggerHitFlash()
+                flashScreenShake()
+                showAction(text: "GRABBED! -30% HP", color: .red)
+                notif.notificationOccurred(.error)
+                if playerHP <= 0 { endGame() }
+            }
+        }
+    }
+
+    private func handleGrabBreakTap() {
+        guard grabActive, phase == .fighting else { return }
+        grabTapCount += 1
+        impactLgt.impactOccurred()
+        if grabTapCount >= 3 {
+            // Broke the grab — grappler staggers, free hit
+            grabActive = false
+            grabTapCount = 0
+            showAction(text: "GRAB BROKEN! FREE HIT!", color: .green)
+            impactHvy.impactOccurred()
+            // Stagger first enemy
+            if !enemies.isEmpty {
+                enemies[0].pose = "staggered"
+                Task {
+                    try? await Task.sleep(for: .milliseconds(600))
+                    await MainActor.run {
+                        if !enemies.isEmpty { enemies[0].pose = "approach" }
+                    }
+                }
+                // Free hit bonus
+                applyDamageToEnemies(damage: 0.18)
+                score += 3
+                combo += 2
+                maxCombo = max(maxCombo, combo)
+            }
+        }
+    }
+
+    private func triggerRusherCharge() {
+        guard phase == .fighting else { return }
+        chargeWarning = true
+        showAction(text: "INCOMING! SWIPE UP!", color: Color(red: 1.0, green: 0.55, blue: 0.05))
+        impactMed.impactOccurred()
+        // 0.8s to react
+        Task {
+            try? await Task.sleep(for: .milliseconds(800))
+            await MainActor.run {
+                guard chargeWarning else { return }  // player already dodged
+                // No dodge — knockdown
+                chargeWarning = false
+                let damage = maxPlayerHP * 0.22
+                playerHP = max(0, playerHP - damage)
+                combo = 0
+                setPlayerPose("hit", duration: 0.7)
+                triggerHitFlash()
+                flashScreenShake()
+                showAction(text: "KNOCKDOWN!", color: .orange)
+                notif.notificationOccurred(.error)
+                if playerHP <= 0 { endGame() }
+            }
+        }
+    }
+
+    private func handleRusherDodge() {
+        guard chargeWarning, phase == .fighting else { return }
+        chargeWarning = false
+        // Successful dodge — rusher overshot, 1.5s vulnerable window
+        setPlayerPose("kick", duration: 0.4)
+        showAction(text: "DODGED! RUSHER VULNERABLE!", color: .green)
+        impactHvy.impactOccurred()
+        // Make rusher vulnerable (staggered) for 1.5s
+        if !enemies.isEmpty {
+            enemies[0].pose = "staggered"
+            Task {
+                try? await Task.sleep(for: .milliseconds(1500))
+                await MainActor.run {
+                    if !enemies.isEmpty { enemies[0].pose = "approach" }
+                }
+            }
+        }
+        score += 2
+        combo += 1
+        maxCombo = max(maxCombo, combo)
     }
 
     private func triggerDragonStrike() {
