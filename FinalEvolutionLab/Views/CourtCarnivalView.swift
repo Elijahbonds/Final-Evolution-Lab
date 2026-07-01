@@ -428,20 +428,95 @@ private struct CarnivalArenaCanvas: View {
                      with: .color(Color.orange.opacity(0.35 / Double(trail))))
         }
 
-        // #32–#41 — Crowd spectators (10 silhouettes)
+        // #32 — Crowd spectator 1 (leftmost, cyan)
         let crowdColors: [Color] = [.cyan, .orange, .yellow, .green, .pink, .purple, .white, .red, .cyan, .yellow]
-        for ci in 0..<10 {
-            let crowdFrac = CGFloat(ci) / 10.0
-            let cx2 = W * (0.04 + crowdFrac * 0.92)
-            let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + Double(ci) * 0.65)) * 2.5
-            let cH: CGFloat = 16 + CGFloat(ci % 3) * 3
-            let cColor = crowdColors[ci % crowdColors.count].opacity(0.55)
-            var cHead = Path()
-            cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+        do {
+            let cx2 = W * 0.04; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 0.0)) * 2.5
+            let cH: CGFloat = 16; let cColor = crowdColors[0].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
             ctx.fill(cHead, with: .color(cColor))
-            var cBody = Path()
-            cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8))
-            cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #33 — Crowd spectator 2 (orange)
+        do {
+            let cx2 = W * 0.13; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 0.65)) * 2.5
+            let cH: CGFloat = 19; let cColor = crowdColors[1].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #34 — Crowd spectator 3 (yellow)
+        do {
+            let cx2 = W * 0.22; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 1.3)) * 2.5
+            let cH: CGFloat = 16; let cColor = crowdColors[2].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #35 — Crowd spectator 4 (green)
+        do {
+            let cx2 = W * 0.31; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 1.95)) * 2.5
+            let cH: CGFloat = 19; let cColor = crowdColors[3].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #36 — Crowd spectator 5 (pink)
+        do {
+            let cx2 = W * 0.40; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 2.6)) * 2.5
+            let cH: CGFloat = 16; let cColor = crowdColors[4].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #37 — Crowd spectator 6 (purple, center-right)
+        do {
+            let cx2 = W * 0.58; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 3.25)) * 2.5
+            let cH: CGFloat = 19; let cColor = crowdColors[5].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #38 — Crowd spectator 7 (white)
+        do {
+            let cx2 = W * 0.67; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 3.9)) * 2.5
+            let cH: CGFloat = 16; let cColor = crowdColors[6].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #39 — Crowd spectator 8 (red)
+        do {
+            let cx2 = W * 0.76; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 4.55)) * 2.5
+            let cH: CGFloat = 19; let cColor = crowdColors[7].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #40 — Crowd spectator 9 (cyan, far right)
+        do {
+            let cx2 = W * 0.85; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 5.20)) * 2.5
+            let cH: CGFloat = 16; let cColor = crowdColors[8].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
+            ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
+        }
+        // #41 — Crowd spectator 10 (yellow, rightmost)
+        do {
+            let cx2 = W * 0.94; let bobY = H * 0.385 + CGFloat(sin(t * 1.8 + 5.85)) * 2.5
+            let cH: CGFloat = 19; let cColor = crowdColors[9].opacity(0.55)
+            var cHead = Path(); cHead.addEllipse(in: CGRect(x: cx2-4, y: bobY-cH, width: 8, height: 8))
+            ctx.fill(cHead, with: .color(cColor))
+            var cBody = Path(); cBody.move(to: CGPoint(x: cx2, y: bobY-cH+8)); cBody.addLine(to: CGPoint(x: cx2, y: bobY))
             ctx.stroke(cBody, with: .color(cColor), lineWidth: 1.2)
         }
 
