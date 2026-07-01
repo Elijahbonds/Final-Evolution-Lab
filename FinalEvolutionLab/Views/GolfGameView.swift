@@ -2030,23 +2030,24 @@ struct GolfGameView: View {
         }
     }
 
-    // MARK: - Club Cycling
+    // MARK: - Club Cycling (legacy — kept for backward compat, full picker preferred)
 
     private func cycleShotType() {
-        switch currentShotType {
-        case .driver:
-            currentShotType = .iron
-            shotTypeLabel = "IRON 7"
-        case .iron:
-            currentShotType = .wedge
-            shotTypeLabel = "WEDGE"
-        case .wedge:
-            currentShotType = .putt
-            shotTypeLabel = "PUTTER"
-        case .putt:
+        let clubs = GolfClub.allCases
+        let idx = clubs.firstIndex(of: selectedClub) ?? 0
+        selectedClub = clubs[(idx + 1) % clubs.count]
+        shotTypeLabel = selectedClub.rawValue
+        switch selectedClub {
+        case .driver, .threeWood, .fiveWood, .hybridFour:
             currentShotType = .driver
-            shotTypeLabel = "DRIVER"
+        case .fourIron, .fiveIron, .sixIron, .sevenIron, .eightIron, .nineIron:
+            currentShotType = .iron
+        case .pitchingWedge, .sandWedge, .lobWedge:
+            currentShotType = .wedge
+        case .putter:
+            currentShotType = .putt
         }
+        if !selectedClub.supportsSpinControl { appliedSpin = .neutral }
         hapticSoft()
     }
 
@@ -2097,15 +2098,33 @@ struct GolfGameView: View {
     }
 
     private var holeCardOverlay: some View {
-        VStack(spacing: 12) {
+        let holeIdx = min((holeResults.last?.hole ?? currentHole) - 1, courseCard.count - 1)
+        let holePar = courseCard[holeIdx].par
+        return VStack(spacing: 12) {
             Text("HOLE \(holeResults.last?.hole ?? currentHole) COMPLETE")
                 .font(.system(size: 10, weight: .black, design: .monospaced))
                 .foregroundStyle(.secondary).tracking(3)
             Text(holeCardText).font(.system(size: 32, weight: .black)).italic()
                 .foregroundStyle(holeCardColor).shadow(color: holeCardColor.opacity(0.5), radius: 16)
             if let last = holeResults.last {
-                Text("\(last.strokes) strokes · Par \(parPerHole)")
-                    .font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
+                let svp = last.scoreVsPar
+                HStack(spacing: 8) {
+                    Text("\(last.strokes) strokes · Par \(holePar)")
+                        .font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
+                    Text(svp == 0 ? "EVEN" : (svp > 0 ? "+\(svp)" : "\(svp)"))
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(svp < 0 ? accentColor : (svp == 0 ? .white : .red))
+                }
+            }
+            // Running total vs par
+            let runningPar = holeResults.reduce(0) { $0 + courseCard[min($1.hole - 1, courseCard.count - 1)].par }
+            let runningTotal = totalStrokes
+            let runSvp = runningTotal - runningPar
+            HStack(spacing: 4) {
+                Text("RUNNING TOTAL:").font(.system(size: 8, design: .monospaced)).foregroundStyle(.secondary)
+                Text(runSvp == 0 ? "EVEN" : (runSvp > 0 ? "+\(runSvp)" : "\(runSvp)"))
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(runSvp < 0 ? accentColor : (runSvp == 0 ? .white : .red))
             }
         }
         .padding(24)
@@ -2113,6 +2132,305 @@ struct GolfGameView: View {
             .overlay(RoundedRectangle(cornerRadius: 20).stroke(holeCardColor.opacity(0.3), lineWidth: 1)))
         .shadow(color: .black.opacity(0.5), radius: 24)
         .transition(.scale(scale: 0.7).combined(with: .opacity))
+    }
+
+    // MARK: - Club Selector Overlay (14 clubs wheel/list)
+
+    private var clubSelectorOverlay: some View {
+        let distToHole: Int = {
+            let dx = ballX - Double(holePosition.x)
+            let dy = ballY - Double(holePosition.y)
+            return Int(sqrt(dx * dx + dy * dy) * 350)
+        }()
+        let recClub = GolfClub.recommended(forYards: distToHole)
+        return ZStack {
+            Color.black.opacity(0.55).ignoresSafeArea()
+                .onTapGesture { withAnimation { showClubSelector = false } }
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Text("SELECT CLUB")
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Text("~\(distToHole)y to pin")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Button { withAnimation { showClubSelector = false } } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.secondary)
+                    }.padding(.leading, 8)
+                }
+                .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 10)
+
+                Divider().background(Theme.cardBorder)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 6) {
+                        ForEach(GolfClub.allCases) { club in
+                            Button {
+                                selectedClub = club
+                                shotTypeLabel = club.rawValue
+                                // Update legacy ShotType for FX
+                                switch club {
+                                case .driver, .threeWood, .fiveWood, .hybridFour:
+                                    currentShotType = .driver
+                                case .fourIron, .fiveIron, .sixIron, .sevenIron, .eightIron, .nineIron:
+                                    currentShotType = .iron
+                                case .pitchingWedge, .sandWedge, .lobWedge:
+                                    currentShotType = .wedge
+                                case .putter:
+                                    currentShotType = .putt
+                                }
+                                // Reset spin when changing club
+                                if !club.supportsSpinControl { appliedSpin = .neutral }
+                                withAnimation { showClubSelector = false }
+                                hapticSoft()
+                            } label: {
+                                HStack(spacing: 12) {
+                                    // Club short name badge
+                                    Text(club.shortName)
+                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                        .foregroundStyle(selectedClub == club ? Theme.deepBlack : Color(red: 0.95, green: 0.85, blue: 0.45))
+                                        .frame(width: 36, height: 28)
+                                        .background(RoundedRectangle(cornerRadius: 6)
+                                            .fill(selectedClub == club ? Color(red: 0.95, green: 0.85, blue: 0.45) : Theme.cardBackground))
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack(spacing: 6) {
+                                            Text(club.rawValue)
+                                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                                .foregroundStyle(selectedClub == club ? Color(red: 0.95, green: 0.85, blue: 0.45) : .white)
+                                            if club == recClub {
+                                                Text("RECOMMENDED")
+                                                    .font(.system(size: 6, weight: .black, design: .monospaced))
+                                                    .foregroundStyle(.black)
+                                                    .padding(.horizontal, 5).padding(.vertical, 2)
+                                                    .background(Capsule().fill(accentColor))
+                                            }
+                                        }
+                                        Text(club.distanceRange)
+                                            .font(.system(size: 9, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    // Loft angle indicator
+                                    VStack(spacing: 1) {
+                                        Text("\(Int(club.launchAngle))°")
+                                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                        Text("LOFT")
+                                            .font(.system(size: 6, design: .monospaced))
+                                            .foregroundStyle(.secondary.opacity(0.7))
+                                    }
+
+                                    if selectedClub == club {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(accentColor)
+                                            .font(.system(size: 16))
+                                    }
+                                }
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .background(RoundedRectangle(cornerRadius: 10)
+                                    .fill(selectedClub == club ? Theme.cardBackground.opacity(1.0) : Color.clear)
+                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                        .stroke(selectedClub == club ? Theme.cardBorder : Color.clear, lineWidth: 1)))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                }
+                .frame(maxHeight: 380)
+            }
+            .background(RoundedRectangle(cornerRadius: 20).fill(Theme.cardBackground.opacity(0.97))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.cardBorder, lineWidth: 1)))
+            .shadow(color: .black.opacity(0.5), radius: 24)
+            .padding(.horizontal, 20)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    // MARK: - Green Reading Overlay
+
+    private var greenReadingOverlay: some View {
+        VStack(spacing: 12) {
+            Text("GREEN READING")
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundStyle(accentColor).tracking(3)
+
+            // Break text
+            Text(breakText.isEmpty ? "FLAT GREEN" : breakText)
+                .font(.system(size: 16, weight: .black, design: .monospaced))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+
+            // Slope visualization
+            Canvas { ctx, size in
+                let cx = size.width / 2
+                let cy = size.height / 2
+                // Draw green circle
+                let greenPath = Path(ellipseIn: CGRect(x: cx - 48, y: cy - 32, width: 96, height: 64))
+                ctx.fill(greenPath, with: .color(Color(red: 0.22, green: 0.62, blue: 0.24).opacity(0.6)))
+                ctx.stroke(greenPath, with: .color(Color(red: 0.20, green: 0.56, blue: 0.22)), lineWidth: 1.2)
+                // Draw slope arrows
+                for arrow in slopeArrows {
+                    let ax = cx - 48 + arrow.position.x * 96
+                    let ay = cy - 32 + arrow.position.y * 64
+                    let angleR = arrow.angle * .pi / 180.0
+                    let len: CGFloat = 14 * CGFloat(arrow.strength)
+                    let ex = ax + len * CGFloat(cos(angleR))
+                    let ey = ay + len * CGFloat(sin(angleR))
+                    var arrowPath = Path()
+                    arrowPath.move(to: CGPoint(x: ax, y: ay))
+                    arrowPath.addLine(to: CGPoint(x: ex, y: ey))
+                    ctx.stroke(arrowPath, with: .color(Color.cyan.opacity(0.7 * arrow.strength + 0.2)), lineWidth: 1.5)
+                    // Arrowhead
+                    let hAngle1 = angleR + 2.4
+                    let hAngle2 = angleR - 2.4
+                    var head = Path()
+                    head.move(to: CGPoint(x: ex, y: ey))
+                    head.addLine(to: CGPoint(x: ex + 5 * CGFloat(cos(hAngle1)), y: ey + 5 * CGFloat(sin(hAngle1))))
+                    head.move(to: CGPoint(x: ex, y: ey))
+                    head.addLine(to: CGPoint(x: ex + 5 * CGFloat(cos(hAngle2)), y: ey + 5 * CGFloat(sin(hAngle2))))
+                    ctx.stroke(head, with: .color(Color.cyan.opacity(0.8)), lineWidth: 1.2)
+                }
+                // Cup marker
+                ctx.fill(Path(ellipseIn: CGRect(x: cx - 5, y: cy - 5, width: 10, height: 10)),
+                         with: .color(.black.opacity(0.88)))
+            }
+            .frame(width: 180, height: 120)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(red: 0.16, green: 0.42, blue: 0.18).opacity(0.3)))
+
+            // Slope magnitude
+            let slopeMag = sqrt(greenSlope.dx * greenSlope.dx + greenSlope.dy * greenSlope.dy)
+            HStack(spacing: 16) {
+                VStack(spacing: 2) {
+                    Text("SLOPE")
+                        .font(.system(size: 7, weight: .black, design: .monospaced)).foregroundStyle(.secondary)
+                    Text(String(format: "%.1f%%", slopeMag * 100))
+                        .font(.system(size: 12, weight: .black, design: .monospaced)).foregroundStyle(.white)
+                }
+                VStack(spacing: 2) {
+                    Text("GRAIN")
+                        .font(.system(size: 7, weight: .black, design: .monospaced)).foregroundStyle(.secondary)
+                    Text(greenSlope.dy > 0 ? "DOWNGRAIN" : "UPGRAIN")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(greenSlope.dy > 0 ? .orange : accentColor)
+                }
+            }
+
+            Button { withAnimation { showGreenReading = false } } label: {
+                Text("DISMISS")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: 20).fill(Theme.cardBackground.opacity(0.97))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(accentColor.opacity(0.3), lineWidth: 1)))
+        .shadow(color: .black.opacity(0.5), radius: 24)
+        .padding(.horizontal, 30)
+        .transition(.scale(scale: 0.8).combined(with: .opacity))
+    }
+
+    // MARK: - Full Scorecard Overlay
+
+    private var fullScorecardOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.6).ignoresSafeArea()
+                .onTapGesture { withAnimation { showFullScorecard = false } }
+            VStack(spacing: 0) {
+                // Title
+                HStack {
+                    Text("SCORECARD")
+                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                        .foregroundStyle(accentColor)
+                    Spacer()
+                    Button { withAnimation { showFullScorecard = false } } label: {
+                        Image(systemName: "xmark.circle.fill").font(.system(size: 18)).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
+
+                Divider().background(Theme.cardBorder)
+
+                // Column headers
+                HStack(spacing: 0) {
+                    Text("HOLE").frame(width: 40, alignment: .leading)
+                    Text("PAR").frame(width: 32, alignment: .center)
+                    Text("YDS").frame(width: 44, alignment: .center)
+                    Text("SCORE").frame(width: 44, alignment: .center)
+                    Text("+/-").frame(width: 40, alignment: .center)
+                }
+                .font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 14).padding(.vertical, 6)
+
+                Divider().background(Theme.cardBorder.opacity(0.5))
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        ForEach(courseCard, id: \.number) { hole in
+                            let result = holeResults.first(where: { $0.hole == hole.number })
+                            let isCurrentHole = hole.number == currentHole
+                            HStack(spacing: 0) {
+                                Text("\(hole.number)").frame(width: 40, alignment: .leading)
+                                    .foregroundStyle(isCurrentHole ? accentColor : .white)
+                                Text("\(hole.par)").frame(width: 32, alignment: .center)
+                                    .foregroundStyle(.secondary)
+                                Text("\(hole.yardage)").frame(width: 44, alignment: .center)
+                                    .foregroundStyle(.secondary)
+                                if let r = result {
+                                    Text("\(r.strokes)").frame(width: 44, alignment: .center)
+                                        .foregroundStyle(.white)
+                                    let svp = r.scoreVsPar
+                                    Text(svp == 0 ? "E" : (svp > 0 ? "+\(svp)" : "\(svp)"))
+                                        .frame(width: 40, alignment: .center)
+                                        .foregroundStyle(svp < 0 ? accentColor : (svp == 0 ? .white : .red))
+                                } else if isCurrentHole {
+                                    Text("–").frame(width: 44, alignment: .center).foregroundStyle(accentColor)
+                                    Text("NOW").frame(width: 40, alignment: .center).foregroundStyle(accentColor)
+                                } else {
+                                    Text("–").frame(width: 44, alignment: .center).foregroundStyle(.secondary.opacity(0.4))
+                                    Text("–").frame(width: 40, alignment: .center).foregroundStyle(.secondary.opacity(0.4))
+                                }
+                            }
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .padding(.horizontal, 14).padding(.vertical, 7)
+                            .background(isCurrentHole ? accentColor.opacity(0.08) : Color.clear)
+                            if hole.number != 9 { Divider().background(Theme.cardBorder.opacity(0.3)) }
+                        }
+                    }
+                }
+                .frame(maxHeight: 340)
+
+                Divider().background(Theme.cardBorder)
+
+                // Total row
+                let completedPar    = holeResults.reduce(0) { $0 + courseCard[min($1.hole - 1, courseCard.count - 1)].par }
+                let completedShots  = totalStrokes
+                let completedSvp    = completedShots - completedPar
+                HStack(spacing: 0) {
+                    Text("TOTAL").frame(width: 40, alignment: .leading).foregroundStyle(.white)
+                    Text("\(completedPar)").frame(width: 32, alignment: .center).foregroundStyle(accentColor)
+                    Text("–").frame(width: 44, alignment: .center).foregroundStyle(.secondary)
+                    Text("\(completedShots)").frame(width: 44, alignment: .center).foregroundStyle(.white)
+                    Text(completedSvp == 0 ? "E" : (completedSvp > 0 ? "+\(completedSvp)" : "\(completedSvp)"))
+                        .frame(width: 40, alignment: .center)
+                        .foregroundStyle(completedSvp < 0 ? accentColor : (completedSvp == 0 ? .white : .red))
+                }
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .padding(.horizontal, 14).padding(.vertical, 10)
+            }
+            .background(RoundedRectangle(cornerRadius: 20).fill(Theme.cardBackground.opacity(0.97))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.cardBorder, lineWidth: 1)))
+            .shadow(color: .black.opacity(0.5), radius: 24)
+            .padding(.horizontal, 16)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 
     // MARK: - Drag Gesture
@@ -2169,9 +2487,28 @@ struct GolfGameView: View {
         }
 
         let radians = aimAngle * .pi / 180.0
-        let dist = 0.55 * power
-        let newBallX = clamp(ballX + sin(radians) * dist, 0.05, 0.95)
-        let newBallY = clamp(ballY + cos(radians) * dist, 0.05, 0.95)
+
+        // ── Wind drift applied to landing position ──
+        // landingDrift = windSpeed * sin(windDirection) * 0.8  (normalized canvas units / ~250)
+        let windDriftRaw = windSpeed * sin(windAngle * .pi / 180.0) * 0.8
+        let windDriftNorm = windDriftRaw / 250.0
+
+        // ── Shot shape lateral bias ──
+        let shapeLateral = shotShape.lateralBias
+        let shapeDistMult = shotShape.distanceMultiplier
+
+        // ── Spin roll modifier (applied along shot direction) ──
+        let spinRollMod = selectedClub.supportsSpinControl ? appliedSpin.rollModifier : 0.0
+
+        // ── Mishit random scatter based on club mishit penalty ──
+        let mishitScatter = Double.random(in: -selectedClub.mishitPenalty...selectedClub.mishitPenalty)
+
+        let dist = 0.55 * power * shapeDistMult + spinRollMod
+        // Perpendicular (lateral) offset direction
+        let perpRadians = radians + .pi / 2.0
+        let lateralOffset = (windDriftNorm + shapeLateral + mishitScatter) * 0.55
+        let newBallX = clamp(ballX + sin(radians) * dist + cos(perpRadians) * lateralOffset, 0.05, 0.95)
+        let newBallY = clamp(ballY + cos(radians) * dist + sin(perpRadians) * lateralOffset, 0.05, 0.95)
 
         let hitObstacle = obstacles.first { obs in
             let oL = obs.position.x - obs.size.width  / 2
@@ -2186,9 +2523,15 @@ struct GolfGameView: View {
         ballProgress = 0
         golferPose = "backswing"
 
-        // Randomise wind each shot
-        windAngle = Double.random(in: 0...360)
-        windSpeed = Double.random(in: 3...18)
+        // ── Dynamic wind: changes every 2 shots with ±3mph and ±15° variation ──
+        shotsSinceWindChange += 1
+        if shotsSinceWindChange >= 2 {
+            shotsSinceWindChange = 0
+            windSpeed = clamp(windSpeed + Double.random(in: -3.0...3.0), 0, 25)
+            windAngle = (windAngle + Double.random(in: -15.0...15.0)).truncatingRemainder(dividingBy: 360)
+            if windAngle < 0 { windAngle += 360 }
+            windDirection = windAngle
+        }
 
         Task {
             try? await Task.sleep(nanoseconds: 40_000_000)
@@ -2262,8 +2605,14 @@ struct GolfGameView: View {
         let dy = ballY - Double(holePosition.y)
         let dist = sqrt(dx * dx + dy * dy)
 
+        // When ball reaches putting range (<0.18) show green reading hint
+        if dist < 0.18 && !ballOnGreen {
+            showGreenReading = true
+        }
+
         if dist < 0.10 {
             ballOnGreen = true
+            showGreenReading = false
             // Check for hole-in-one
             if currentStrokes == 1 {
                 // Hole-in-one rigid haptic — #HAPTIC-RIGID
@@ -2280,19 +2629,23 @@ struct GolfGameView: View {
             recordHole()
         } else if currentStrokes >= parPerHole + 3 {
             ballOnGreen = true
+            showGreenReading = false
             recordHole()
         }
     }
 
     private func recordHole() {
-        let scoreVsPar = currentStrokes - parPerHole
+        let holePar    = courseCard[min(currentHole - 1, courseCard.count - 1)].par
+        let scoreVsPar = currentStrokes - holePar
         let (name, color): (String, Color) = {
             switch scoreVsPar {
-            case ..<(-1): return ("Eagle",        accentColor)
-            case -1:      return ("Birdie",        Theme.brandCyan)
-            case 0:       return ("Par",           .white)
-            case 1:       return ("Bogey",         .orange)
-            default:      return ("Double Bogey",  .red)
+            case ..<(-2): return ("Albatross",     Color(red: 1.0, green: 0.85, blue: 0.20))
+            case -2:      return ("Eagle",          accentColor)
+            case -1:      return ("Birdie",         Theme.brandCyan)
+            case 0:       return ("Par",            .white)
+            case 1:       return ("Bogey",          .orange)
+            case 2:       return ("Double Bogey",   .red)
+            default:      return ("Triple Bogey+",  Color(red: 0.6, green: 0.0, blue: 0.0))
             }
         }()
 
@@ -2304,7 +2657,7 @@ struct GolfGameView: View {
 
         withAnimation(.spring(response: 0.3)) { showHoleCard = true }
         Task {
-            try? await Task.sleep(for: .milliseconds(1800))
+            try? await Task.sleep(for: .milliseconds(2200))
             await MainActor.run {
                 withAnimation { showHoleCard = false }
                 if currentHole < 9 { advanceHole() } else { phase = .result }
@@ -2317,7 +2670,17 @@ struct GolfGameView: View {
         ballX = 0.5; ballY = 0.1; ballProgress = -1
         aimAngle = 0; pullDistance = 0; shotState = .idle
         golferPose = "address"
-        currentShotType = .driver; shotTypeLabel = "DRIVER"
+        // Reset club to recommended for new hole (updated in generateHoleLayout)
+        currentShotType = .driver
+        selectedClub = .driver
+        shotTypeLabel = "DRIVER"
+        // Reset shot shape, spin, and green reading
+        shotShape = .straight
+        appliedSpin = .neutral
+        showGreenReading = false
+        showClubSelector = false
+        showShotShapeSelector = false
+        showSpinSelector = false
         generateHoleLayout()
     }
 
@@ -2339,6 +2702,59 @@ struct GolfGameView: View {
             ))
         }
         obstacles = newObs
+
+        // ── Initialize wind for new hole (full random each hole) ──
+        windSpeed     = Double.random(in: 0...25)
+        windAngle     = Double.random(in: 0...360)
+        windDirection = windAngle
+        shotsSinceWindChange = 0
+
+        // ── Green slope: random slope vector and break text ──
+        let slopeDx = Double.random(in: -0.15...0.15)
+        let slopeDy = Double.random(in: -0.15...0.15)
+        greenSlope   = CGVector(dx: slopeDx, dy: slopeDy)
+        generateSlopeArrows()
+        updateBreakText()
+
+        // ── Recommend club based on hole yardage and ball starting position ──
+        let holeData = courseCard[min(currentHole - 1, courseCard.count - 1)]
+        // Rough guess: ball starts at ~0.1 normalized which maps to ~0 yards → use full hole yardage
+        recommendedClub = GolfClub.recommended(forYards: holeData.yardage)
+    }
+
+    private func generateSlopeArrows() {
+        var arrows: [GreenSlopeArrow] = []
+        let baseAngle = atan2(greenSlope.dy, greenSlope.dx) * 180.0 / .pi
+        let slopeStrength = min(1.0, sqrt(greenSlope.dx * greenSlope.dx + greenSlope.dy * greenSlope.dy) / 0.15)
+        // Place 4–5 arrows spread across the green
+        let arrowPositions: [CGPoint] = [
+            CGPoint(x: 0.25, y: 0.25), CGPoint(x: 0.75, y: 0.25),
+            CGPoint(x: 0.50, y: 0.50), CGPoint(x: 0.25, y: 0.75),
+            CGPoint(x: 0.75, y: 0.75)
+        ]
+        let count = Int.random(in: 3...5)
+        for i in 0..<count {
+            let pos = arrowPositions[i % arrowPositions.count]
+            let variation = Double.random(in: -10...10)
+            arrows.append(GreenSlopeArrow(
+                position: pos,
+                angle: baseAngle + variation,
+                strength: max(0.3, slopeStrength + Double.random(in: -0.15...0.15))
+            ))
+        }
+        slopeArrows = arrows
+    }
+
+    private func updateBreakText() {
+        let slopeMag = sqrt(greenSlope.dx * greenSlope.dx + greenSlope.dy * greenSlope.dy)
+        let breakFeet = Int(slopeMag * 30)
+        guard breakFeet > 0 else { breakText = "FLAT GREEN"; return }
+        let lateral  = greenSlope.dx
+        let vertical = greenSlope.dy
+        var parts: [String] = []
+        if abs(lateral) > 0.02  { parts.append(lateral < 0 ? "BREAK LEFT \(Int(abs(lateral) * 20))ft" : "BREAK RIGHT \(Int(abs(lateral) * 20))ft") }
+        if abs(vertical) > 0.02 { parts.append(vertical > 0 ? "DOWNHILL \(Int(abs(vertical) * 20))ft" : "UPHILL \(Int(abs(vertical) * 20))ft") }
+        breakText = parts.joined(separator: " · ")
     }
 
     // MARK: - Rewards
