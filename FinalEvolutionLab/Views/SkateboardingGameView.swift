@@ -1641,4 +1641,46 @@ struct SkateboardingGameView: View {
         let xpGain = min(xpCapPerSession, bestRunScore / 10)
         viewModel.profile.metrics.prqScore = min(100, viewModel.profile.metrics.prqScore + Double(xpGain) * 0.01)
     }
+
+    // MARK: - Screen Shake
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    // MARK: - Particle Burst
+
+    private func triggerBurst(at center: CGPoint = CGPoint(x: UIScreen.main.bounds.width/2, y: UIScreen.main.bounds.height/2), color: Color, count: Int = 12) {
+        let id = burstCounter; burstCounter += 1
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: center.x, y: center.y, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.6)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 40...90)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
+    }
 }
