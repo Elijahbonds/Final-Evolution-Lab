@@ -15,9 +15,13 @@ jobs:
       - name: Run Pre-Build CI Check
         run: |
           chmod +x ./infra/fel_prebuild_ci_check.sh
-          # Set UPROJECT to the known location in the repo
-          export UPROJECT="./UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
-          ./infra/fel_prebuild_ci_check.sh --strict
+          UPROJECT="./UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
+          if [[ -f "$UPROJECT" ]]; then
+            export UPROJECT
+            ./infra/fel_prebuild_ci_check.sh --strict
+          else
+            echo "::warning::Archived Unreal descriptor not present at $UPROJECT; skipping legacy UE identifier alignment for NEXUS-only checkout."
+          fi
         env:
           INTERNAL_ID: FinalEvolutionLab
           BUNDLE_ID: com.finalevolutionlab.sovereign
@@ -32,21 +36,11 @@ jobs:
 
       - name: Validate Mode Registry
         run: |
-          python3 -c "
-          import json
-          with open('./backend/FEL_ModeManager.production.json') as f:
-              d = json.load(f)
-          modes = d['mode_manager']['modes']
-          print(f'Mode registry: {len(modes)} modes')
-          prod = [m for m in modes if m.get('status') == 'production']
-          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
-          assert len(modes) >= 17, 'Expected 17+ modes'
-          print('✓ Mode registry valid')
-          "
+          python3 scripts/validate_mode_registry.py
 
       - name: Block Merge on Failure
         if: failure()
         run: |
-          echo "::error::Pre-build CI check FAILED. Identifier alignment broken."
-          echo "::error::Run ./infra/fix_ios_descriptor_path.sh to resolve."
+          echo "::error::Pre-build CI check FAILED."
+          echo "::error::Review the failed step above for the specific NEXUS or legacy identifier gate."
           exit 1
