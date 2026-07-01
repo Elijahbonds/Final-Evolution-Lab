@@ -108,7 +108,10 @@ private struct StreetDrawer {
         if dustActive { drawCrossoverDust(ctx: &ctx) }
         if ankleShimmy { drawAnkleShimmy(ctx: &ctx) }
         if posterizeActive { drawPosterizeImpact(ctx: &ctx) }
-        if showConfetti { drawCrowdConfetti(ctx: &ctx) }
+        if showConfetti {
+            drawBuzzerVignette(ctx: &ctx)
+            drawCrowdConfetti(ctx: &ctx)
+        }
     }
 
     // MARK: - #1 Sky / Background
@@ -929,28 +932,32 @@ private struct StreetDrawer {
 
         let shoeColor = Color(red: 0.92, green: 0.35, blue: 0.08)
 
-        // #75 - #80 Pose-specific limb drawing
         switch pose {
         case "shoot":
+            // #75 Shoot pose: upper arm raise (release arm)
             line(CGPoint(x: cx, y: shoulderY + 4), CGPoint(x: cx + m * 22, y: shoulderY - 18))
             line(CGPoint(x: cx + m * 22, y: shoulderY - 18), CGPoint(x: cx + m * 30, y: shoulderY - 34))
+            // #76 Shoot pose: off arm guide
             line(CGPoint(x: cx, y: shoulderY + 4), CGPoint(x: cx - m * 14, y: shoulderY + 16))
+            // #77 Shoot pose: legs push-off
             line(CGPoint(x: cx, y: hipY), CGPoint(x: cx + m * 14, y: hipY + 16))
             line(CGPoint(x: cx + m * 14, y: hipY + 16), CGPoint(x: cx + m * 10, y: fy))
             line(CGPoint(x: cx, y: hipY), CGPoint(x: cx - m * 10, y: hipY + 18))
             line(CGPoint(x: cx - m * 10, y: hipY + 18), CGPoint(x: cx - m * 8, y: fy))
             ctx.fill(Path(CGRect(x: cx + m * 7, y: fy - 5, width: m * 14, height: 5)), with: .color(shoeColor))
         case "crossover":
-            // Low dribble stance, step-back crossover
+            // #78 Crossover pose: dribble arm low
             let shimmy: CGFloat = ankleShimmy ? CGFloat(sin(t * 12)) * 4 : 0
             line(CGPoint(x: cx, y: shoulderY + 4), CGPoint(x: cx + m * 20 + shimmy, y: hipY - 8))
             line(CGPoint(x: cx, y: shoulderY + 4), CGPoint(x: cx - m * 18, y: shoulderY + 18))
+            // #79 Crossover pose: wide spread legs
             line(CGPoint(x: cx, y: hipY), CGPoint(x: cx + m * 18 + shimmy, y: hipY + 18))
             line(CGPoint(x: cx + m * 18 + shimmy, y: hipY + 18), CGPoint(x: cx + m * 12 + shimmy, y: fy))
             line(CGPoint(x: cx, y: hipY), CGPoint(x: cx - m * 14, y: hipY + 16))
             line(CGPoint(x: cx - m * 14, y: hipY + 16), CGPoint(x: cx - m * 10, y: fy))
             ctx.fill(Path(CGRect(x: cx + m * 8 + shimmy, y: fy - 5, width: m * 14, height: 5)), with: .color(shoeColor))
         case "drive":
+            // #80 Drive pose: leaning forward aggressively
             line(CGPoint(x: cx, y: shoulderY + 4), CGPoint(x: cx + m * 24, y: shoulderY + 10))
             line(CGPoint(x: cx + m * 24, y: shoulderY + 10), CGPoint(x: cx + m * 36, y: shoulderY))
             line(CGPoint(x: cx, y: shoulderY + 4), CGPoint(x: cx - m * 12, y: shoulderY + 20))
@@ -960,7 +967,7 @@ private struct StreetDrawer {
             line(CGPoint(x: cx - m * 8, y: hipY + 20), CGPoint(x: cx - m * 4, y: fy))
             ctx.fill(Path(CGRect(x: cx + m * 22, y: fy - 5, width: m * 14, height: 5)), with: .color(shoeColor))
         case "guard", "defend":
-            // Wide defensive stance — arms spread
+            // #81 (re-numbered) Guard/defend pose: wide stance arms out
             line(CGPoint(x: cx, y: shoulderY + 4), CGPoint(x: cx + m * 26, y: shoulderY + 10))
             line(CGPoint(x: cx, y: shoulderY + 4), CGPoint(x: cx - m * 26, y: shoulderY + 10))
             line(CGPoint(x: cx, y: hipY), CGPoint(x: cx + m * 18, y: hipY + 16))
@@ -1000,10 +1007,10 @@ private struct StreetDrawer {
         }
     }
 
-    // MARK: - #81 Crossover dust
+    // MARK: - #82 Crossover dust
 
     private func drawCrossoverDust(ctx: inout GraphicsContext) {
-        // #81 Step-back crossover dust cloud at player feet
+        // #82 Step-back crossover dust cloud at player feet
         for i in 0..<6 {
             let fi = Double(i)
             let dustX = playerX - 10 + CGFloat(i) * 5 + CGFloat(sin(t * 8 + fi)) * 4
@@ -1019,10 +1026,10 @@ private struct StreetDrawer {
         }
     }
 
-    // MARK: - #82 Ankle-breaker shimmy
+    // MARK: - #83 Ankle-breaker shimmy
 
     private func drawAnkleShimmy(ctx: inout GraphicsContext) {
-        // #82 Zigzag shimmy lines radiating from player feet
+        // #83 Zigzag shimmy lines radiating from player feet
         let shimFreq = t * 14
         for i in 0..<5 {
             let fi = CGFloat(i)
@@ -1035,10 +1042,10 @@ private struct StreetDrawer {
         }
     }
 
-    // MARK: - #83 Posterize impact
+    // MARK: - #84 Posterize impact
 
     private func drawPosterizeImpact(ctx: inout GraphicsContext) {
-        // #83 Red impact ring + stars around basket area
+        // #84 Red impact ring (outer glow) on posterize
         let impactPulse = CGFloat(sin(t * 8.0)) * 5
         let ringR: CGFloat = 30 + impactPulse
         var ring = Path()
@@ -1046,9 +1053,10 @@ private struct StreetDrawer {
         var ringCtx = ctx
         ringCtx.addFilter(.blur(radius: 3))
         ringCtx.stroke(ring, with: .color(Color.red.opacity(0.70)), lineWidth: 3)
+        // #85 Crisp inner ring
         ctx.stroke(ring, with: .color(Color.red.opacity(0.45)), lineWidth: 2)
 
-        // Star sparks
+        // #86 Star sparks around posterize ring
         for i in 0..<5 {
             let angle = Double(i) * (2 * .pi / 5) + t * 3.0
             let starX = opponentX + CGFloat(cos(angle)) * (ringR + 8)
@@ -1059,10 +1067,36 @@ private struct StreetDrawer {
         }
     }
 
-    // MARK: - #84 Crowd confetti / win banner particles
+    // MARK: - #87 Buzzer-shot vignette
+
+    private func drawBuzzerVignette(ctx: inout GraphicsContext) {
+        // #87 Dark vignette corners on buzzer/win moment
+        let vigRadius = min(W, H) * 0.65
+        var vigCtx = ctx
+        vigCtx.addFilter(.blur(radius: 20))
+        // Top-left corner
+        vigCtx.fill(
+            Path(ellipseIn: CGRect(x: -vigRadius * 0.4, y: -vigRadius * 0.4, width: vigRadius, height: vigRadius)),
+            with: .color(Color.black.opacity(0.55))
+        )
+        // Bottom-right corner
+        vigCtx.fill(
+            Path(ellipseIn: CGRect(x: W - vigRadius * 0.6, y: H - vigRadius * 0.6, width: vigRadius, height: vigRadius)),
+            with: .color(Color.black.opacity(0.55))
+        )
+    }
+
+    // MARK: - #88-#90 Crowd confetti / win banner particles
 
     private func drawCrowdConfetti(ctx: inout GraphicsContext) {
-        // #84 20 confetti pieces falling during big play
+        // #88 Confetti background shimmer
+        var shimCtx = ctx
+        shimCtx.addFilter(.blur(radius: 8))
+        shimCtx.fill(
+            Path(CGRect(x: 0, y: 0, width: W, height: H * 0.5)),
+            with: .color(Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.08))
+        )
+
         let confettiColors: [Color] = [.red, .yellow, .blue, .green, .white, .orange, .purple, .cyan]
         for i in 0..<20 {
             let fi = Double(i)
@@ -1073,6 +1107,7 @@ private struct StreetDrawer {
             let rotAngle = t * (1.5 + fi * 0.2)
             let cc = confettiColors[i % confettiColors.count]
 
+            // #89 Each confetti rectangle (copy-transform pattern)
             var gc = ctx
             gc.translateBy(x: cx2, y: fallY)
             gc.rotate(by: .radians(rotAngle))
@@ -1081,6 +1116,16 @@ private struct StreetDrawer {
                 with: .color(cc.opacity(0.75))
             )
         }
+
+        // #90 Crowd wave arc at spectator level during win
+        let waveY = floorY - H * 0.30
+        var wavePath = Path()
+        wavePath.move(to: CGPoint(x: 0, y: waveY))
+        for xi in stride(from: CGFloat(0), through: W, by: 8) {
+            let wy = waveY + CGFloat(sin(Double(xi) / 28.0 + t * 3.5)) * 4
+            wavePath.addLine(to: CGPoint(x: xi, y: wy))
+        }
+        ctx.stroke(wavePath, with: .color(Color.white.opacity(0.18)), lineWidth: 1.2)
     }
 }
 
