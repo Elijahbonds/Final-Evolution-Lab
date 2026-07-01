@@ -1715,6 +1715,9 @@ struct TennisGameView: View {
     @State private var tiebreakOpponentPoints: Int = 0
     @State private var showTiebreakBanner: Bool = false
 
+    // MARK: Deuce / Advantage (0 = none/deuce, 1 = player adv, -1 = opponent adv)
+    @State private var advantagePlayer: Int = 0
+
     // MARK: Ball & Rally
     @State private var ball: TennisBall = TennisBall()
     @State private var rallyTask: Task<Void, Never>? = nil
@@ -1868,6 +1871,26 @@ struct TennisGameView: View {
         .onDisappear { cancelAllTasks() }
     }
 
+    // MARK: - Score Display Helpers
+
+    private var isDeuce: Bool {
+        playerPoints == .forty && opponentPoints == .forty && advantagePlayer == 0
+    }
+
+    private var playerScoreDisplay: String {
+        if isTiebreak { return "\(tiebreakPlayerPoints)" }
+        if advantagePlayer == 1 { return "ADV" }
+        if advantagePlayer == -1 && playerPoints == .forty { return "40" }
+        return playerPoints.display
+    }
+
+    private var opponentScoreDisplay: String {
+        if isTiebreak { return "\(tiebreakOpponentPoints)" }
+        if advantagePlayer == -1 { return "ADV" }
+        if advantagePlayer == 1 && opponentPoints == .forty { return "40" }
+        return opponentPoints.display
+    }
+
     // MARK: - Score Header
 
     private var scoreHeader: some View {
@@ -1876,9 +1899,10 @@ struct TennisGameView: View {
                 VStack(spacing: 2) {
                     Text("YOU").font(.system(size: 8, weight: .black, design: .monospaced))
                         .foregroundStyle(.secondary).tracking(2)
-                    Text(isTiebreak ? "\(tiebreakPlayerPoints)" : playerPoints.display)
-                        .font(.system(size: 32, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white).contentTransition(.numericText())
+                    Text(playerScoreDisplay)
+                        .font(.system(size: advantagePlayer != 0 ? 20 : 32, weight: .black, design: .monospaced))
+                        .foregroundStyle(advantagePlayer == 1 ? accentColor : .white)
+                        .contentTransition(.numericText())
                 }
                 Spacer()
                 VStack(spacing: 2) {
@@ -1914,9 +1938,10 @@ struct TennisGameView: View {
                 VStack(spacing: 2) {
                     Text(opponentName.uppercased()).font(.system(size: 8, weight: .black, design: .monospaced))
                         .foregroundStyle(.secondary).tracking(2)
-                    Text(isTiebreak ? "\(tiebreakOpponentPoints)" : opponentPoints.display)
-                        .font(.system(size: 32, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.white.opacity(0.55)).contentTransition(.numericText())
+                    Text(opponentScoreDisplay)
+                        .font(.system(size: advantagePlayer != 0 ? 20 : 32, weight: .black, design: .monospaced))
+                        .foregroundStyle(advantagePlayer == -1 ? Color.red : Color.white.opacity(0.55))
+                        .contentTransition(.numericText())
                 }
             }.padding(.horizontal, 24)
 
@@ -2707,8 +2732,21 @@ struct TennisGameView: View {
             return
         }
         withAnimation {
-            if playerPoints == .forty { playerWinsGame() }
-            else { playerPoints = playerPoints.next ?? .zero }
+            let bothAtForty = playerPoints == .forty && opponentPoints == .forty
+            if bothAtForty || advantagePlayer != 0 {
+                // Deuce / advantage situation
+                if advantagePlayer == -1 {
+                    advantagePlayer = 0           // break opponent's advantage → back to deuce
+                } else if advantagePlayer == 1 {
+                    advantagePlayer = 0; playerWinsGame()  // player had adv → wins game
+                } else {
+                    advantagePlayer = 1           // deuce → player gets advantage
+                }
+            } else if playerPoints == .forty {
+                playerWinsGame()
+            } else {
+                playerPoints = playerPoints.next ?? .zero
+            }
         }
         scheduleNextRallyOrServe(playerServes: false)
     }
@@ -2720,7 +2758,16 @@ struct TennisGameView: View {
             return
         }
         withAnimation {
-            if opponentPoints == .forty {
+            let bothAtForty = playerPoints == .forty && opponentPoints == .forty
+            if bothAtForty || advantagePlayer != 0 {
+                if advantagePlayer == 1 {
+                    advantagePlayer = 0           // break player's advantage → back to deuce
+                } else if advantagePlayer == -1 {
+                    advantagePlayer = 0; TennisHaptic.doubleFault(); opponentWinsGame()
+                } else {
+                    advantagePlayer = -1          // deuce → opponent gets advantage
+                }
+            } else if opponentPoints == .forty {
                 TennisHaptic.doubleFault()
                 opponentWinsGame()
             } else {
@@ -2731,7 +2778,7 @@ struct TennisGameView: View {
     }
 
     private func playerWinsGame() {
-        playerPoints = .zero; opponentPoints = .zero; playerGames += 1
+        playerPoints = .zero; opponentPoints = .zero; advantagePlayer = 0; playerGames += 1
         checkForTiebreak()
         if !isTiebreak {
             if playerGames >= 6 && playerGames - opponentGames >= 2 { playerWinsSet() }
@@ -2739,7 +2786,7 @@ struct TennisGameView: View {
     }
 
     private func opponentWinsGame() {
-        playerPoints = .zero; opponentPoints = .zero; opponentGames += 1
+        playerPoints = .zero; opponentPoints = .zero; advantagePlayer = 0; opponentGames += 1
         checkForTiebreak()
         if !isTiebreak {
             if opponentGames >= 6 && opponentGames - playerGames >= 2 { opponentWinsSet() }
