@@ -27,6 +27,13 @@ private struct VBCourtCanvas: View {
     let digActive: Bool
     let serveActive: Bool
     let matchPointActive: Bool
+    // Positioning
+    let playerPositionX: CGFloat
+    let aiPositionX: CGFloat
+    let ballLandingX: CGFloat
+    let showLandingShadow: Bool
+    let digResult: DigResult?
+    let selectedSpikeZone: Int?
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -39,7 +46,13 @@ private struct VBCourtCanvas: View {
                     rallyState: rallyState, crowd: crowdLevel,
                     spikeActive: spikeActive, aceActive: aceActive,
                     digActive: digActive, serveActive: serveActive,
-                    matchPointActive: matchPointActive
+                    matchPointActive: matchPointActive,
+                    playerPositionX: playerPositionX,
+                    aiPositionX: aiPositionX,
+                    ballLandingX: ballLandingX,
+                    showLandingShadow: showLandingShadow,
+                    digResult: digResult,
+                    selectedSpikeZone: selectedSpikeZone
                 )
                 d.render(ctx: &ctx)
             }
