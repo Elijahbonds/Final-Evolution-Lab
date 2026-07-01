@@ -566,7 +566,7 @@ private struct Draw3v3 {
             )
         }
 
-        // #45 — Active player glow halo
+        // #46 — Active player glow halo
         if !flip && index == activePasser && possession == .player {
             var gc = ctx
             gc.addFilter(.blur(radius: 8))
@@ -576,7 +576,7 @@ private struct Draw3v3 {
             )
         }
 
-        // #46 — Hot hand streak glow (combo >= 3)
+        // #47 — Hot hand streak glow (combo >= 3)
         if !flip && comboCount >= 3 {
             var gcHot = ctx
             gcHot.addFilter(.blur(radius: 6))
@@ -588,11 +588,11 @@ private struct Draw3v3 {
         }
     }
 
-    // MARK: - Ball & Scoring #51–#64
+    // MARK: - Ball & Scoring #48–#64
 
     private func drawBallScoring(ctx: inout GraphicsContext) {
-        // #47–#50 — Dribble ball (drawn inline in drawDribble called earlier)
-        // These ops follow after figure drawing
+        // #48 — Dribble ball bounce shadow (see drawDribble for ball fill #49)
+        // Ball ops #49–#50 are inline in drawDribble / drawPassArc / drawShotArc
 
         // #51 — 3-pointer star burst (12 stars) when result is score
         if showResultLabel, let result = lastResult, result == .score {
