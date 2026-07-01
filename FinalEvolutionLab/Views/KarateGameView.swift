@@ -1344,6 +1344,10 @@ struct KarateGameView: View {
     @State private var showActionLabel: Bool = false
     @State private var actionLabelTask: Task<Void, Never>?
     @State private var screenShake: CGFloat = 0
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
     @State private var poseResetTask: Task<Void, Never>?
     // Hit spark timing (absolute time reference)
     @State private var lastHitTime: Double = 0
@@ -1362,23 +1366,34 @@ struct KarateGameView: View {
             Color(red:0.06,green:0.01,blue:0.01).ignoresSafeArea()
             if showCriticalFlash { Color.yellow.opacity(0.16).ignoresSafeArea().allowsHitTesting(false) }
 
-            switch phase {
-            case .ready:
-                GetReadyScreen(title:"Karate · 1v1", subtitle:"Best of 3 Rounds · 30s Each · Beat the Opponent",
-                               countdown:3, accentColor:accentColor, onComplete:{ startRound() })
-            case .roundAnnounce:
-                roundAnnounceOverlay
-            case .fight:
-                fightBody.offset(x:screenShake)
-            case .roundEnd:
-                roundEndOverlay
-            case .result:
-                ResultScreen(winner:outcome == .win ? .p1 : (outcome == .draw ? .draw : .p2),
-                             p1Score:playerScore, p2Score:opponentScore, title:"Karate · 1v1", accentColor:accentColor,
-                             prqGain:outcome == .win ? 10 : (outcome == .draw ? 5 : 2),
-                             prqCurrent:viewModel.effectiveMetrics.prqScore, modeAttributeLabel:"COMBO",
-                             modeAttributeValue:min(1.0,Double(maxCombo)/10.0), onReturn:{ dismiss() })
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
             }
+            .allowsHitTesting(false)
+
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(title:"Karate · 1v1", subtitle:"Best of 3 Rounds · 30s Each · Beat the Opponent",
+                                   countdown:3, accentColor:accentColor, onComplete:{ startRound() })
+                case .roundAnnounce:
+                    roundAnnounceOverlay
+                case .fight:
+                    fightBody
+                case .roundEnd:
+                    roundEndOverlay
+                case .result:
+                    ResultScreen(winner:outcome == .win ? .p1 : (outcome == .draw ? .draw : .p2),
+                                 p1Score:playerScore, p2Score:opponentScore, title:"Karate · 1v1", accentColor:accentColor,
+                                 prqGain:outcome == .win ? 10 : (outcome == .draw ? 5 : 2),
+                                 prqCurrent:viewModel.effectiveMetrics.prqScore, modeAttributeLabel:"COMBO",
+                                 modeAttributeValue:min(1.0,Double(maxCombo)/10.0), onReturn:{ dismiss() })
+                }
+            }
+            .offset(x: shakeX, y: shakeY)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -1640,6 +1655,7 @@ struct KarateGameView: View {
             playerRoundsWon += 1
             roundAnnounceText = ko ? "KO! YOU WIN ROUND \(currentRound)" : "ROUND \(currentRound) — YOU WIN!"
             showAction(text: ko ? "KO!" : "ROUND WIN!", color: Theme.brandBlue)
+            if ko { triggerShake(intensity: 22); triggerBurst(color: .yellow, count: 24) }
         } else if isDraw {
             roundAnnounceText = "ROUND \(currentRound) — DRAW"
             showAction(text:"DRAW",color:.white)
@@ -1708,9 +1724,12 @@ struct KarateGameView: View {
         opponentScore += 1
         setPose("hit", for: "player", duration: 0.4)
         setPose("punch", for: "opponent", duration: 0.35)
-        flashScreenShake()
+        triggerShake(intensity: 8)
         impactMed.impactOccurred()
-        if playerHP <= 0 { endRound(ko:true,playerKO:true) }
+        if playerHP <= 0 {
+            triggerShake(intensity: 22); triggerBurst(color: .yellow, count: 24)
+            endRound(ko:true,playerKO:true)
+        }
     }
 
     // MARK: - Player Actions
@@ -1731,7 +1750,11 @@ struct KarateGameView: View {
         setPose("hit", for:"opponent", duration:0.35)
         lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "punch"
         if isCrit { triggerCritFlash() }
-        flashScreenShake()
+        if isCrit {
+            triggerShake(intensity: 18); triggerBurst(color: .red, count: 20)
+        } else {
+            triggerShake(intensity: 10); triggerBurst(color: accentColor, count: 14)
+        }
         impactMed.impactOccurred()
         if opponentHP <= 0 { endRound(ko:true,playerKO:false) }
     }
@@ -1752,7 +1775,11 @@ struct KarateGameView: View {
         setPose("hit", for:"opponent", duration:0.40)
         lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "kick"
         if isCrit { triggerCritFlash() }
-        flashScreenShake()
+        if isCrit {
+            triggerShake(intensity: 18); triggerBurst(color: .red, count: 20)
+        } else {
+            triggerShake(intensity: 10); triggerBurst(color: accentColor, count: 14)
+        }
         impactHvy.impactOccurred()
         if opponentHP <= 0 { endRound(ko:true,playerKO:false) }
     }
@@ -1762,6 +1789,7 @@ struct KarateGameView: View {
         combo = 0; comboCount = 0; playerHP = min(maxHP,playerHP+5)
         showAction(text:"BLOCK", color:Theme.foundationGreen)
         setPose("block", for:"player", duration:0.5)
+        triggerShake(intensity: 12); triggerBurst(color: .cyan, count: 14)
         impactMed.impactOccurred()
     }
 
@@ -1776,7 +1804,7 @@ struct KarateGameView: View {
         setPose("dragon", for:"player", duration:0.7)
         setPose("hit", for:"opponent", duration:0.6)
         lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "dragon"
-        triggerCritFlash(); flashScreenShake()
+        triggerCritFlash(); triggerShake(intensity: 18); triggerBurst(color: .red, count: 20)
         notif.notificationOccurred(.success)
         if opponentHP <= 0 { endRound(ko:true,playerKO:false) }
     }
@@ -1791,7 +1819,7 @@ struct KarateGameView: View {
         setPose("dragon", for:"player", duration:0.8)
         setPose("hit", for:"opponent", duration:0.6)
         lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "dragon"
-        triggerCritFlash(); flashScreenShake()
+        triggerCritFlash(); triggerShake(intensity: 22); triggerBurst(color: .yellow, count: 24)
         notif.notificationOccurred(.success)
         if opponentHP <= 0 { endRound(ko:true,playerKO:false) }
     }
@@ -1849,6 +1877,48 @@ struct KarateGameView: View {
         GameResultService.saveResult(modeId: "karate", userScore: playerScore, opponentScore: opponentScore)
         viewModel.profile.evolutionShards += outcome == .win ? 50 : outcome == .draw ? 25 : 15
         SaveSystem.saveProfile(viewModel.profile)
+    }
+
+    // MARK: - Screen Shake & Particle Burst
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 
     private func cancelAllTasks() {

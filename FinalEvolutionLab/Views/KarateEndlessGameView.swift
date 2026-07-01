@@ -1405,6 +1405,10 @@ struct KarateEndlessGameView: View {
     @State private var showActionLabel: Bool = false
     @State private var actionLabelTask: Task<Void, Never>?
     @State private var screenShake: CGFloat = 0
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
     @State private var showWaveBanner: Bool = false
     @State private var waveBannerTask: Task<Void, Never>?
     @State private var particleTask: Task<Void, Never>?
@@ -1443,26 +1447,36 @@ struct KarateEndlessGameView: View {
                     .allowsHitTesting(false)
             }
 
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Karate · Endless",
-                    subtitle: "4-Minute Survival · Wave Attack",
-                    countdown: 3,
-                    accentColor: accentColor,
-                    onComplete: { startGame() }
-                )
-
-            case .fighting:
-                fightingBody
-                    .offset(x: screenShake)
-
-            case .waveClear:
-                waveClearBanner
-
-            case .result:
-                resultBody
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
             }
+            .allowsHitTesting(false)
+
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Karate · Endless",
+                        subtitle: "4-Minute Survival · Wave Attack",
+                        countdown: 3,
+                        accentColor: accentColor,
+                        onComplete: { startGame() }
+                    )
+
+                case .fighting:
+                    fightingBody
+
+                case .waveClear:
+                    waveClearBanner
+
+                case .result:
+                    resultBody
+                }
+            }
+            .offset(x: shakeX, y: shakeY)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -2161,11 +2175,14 @@ struct KarateEndlessGameView: View {
             }
             setPlayerPose("hit", duration: 0.4)
             triggerHitFlash()
-            flashScreenShake()
+            triggerShake(intensity: 8)
             notif.notificationOccurred(.error)
             combo = 0
         }
-        if playerHP <= 0 { endGame() }
+        if playerHP <= 0 {
+            triggerShake(intensity: 22); triggerBurst(color: .yellow, count: 24)
+            endGame()
+        }
     }
 
     // MARK: - Player Actions
@@ -2188,7 +2205,11 @@ struct KarateEndlessGameView: View {
         if !enemies.isEmpty { enemies[0].pose = "staggered" }
         showAction(text: isCritical ? "CRITICAL PUNCH!" : "PUNCH", color: Theme.brandBlue)
         if isCritical { triggerCriticalFlash() }
-        flashScreenShake()
+        if isCritical {
+            triggerShake(intensity: 18); triggerBurst(color: .red, count: 20)
+        } else {
+            triggerShake(intensity: 10); triggerBurst(color: accentColor, count: 14)
+        }
         impactHvy.impactOccurred()
     }
 
@@ -2210,7 +2231,11 @@ struct KarateEndlessGameView: View {
         if !enemies.isEmpty { enemies[0].pose = "staggered" }
         showAction(text: isCritical ? "CRITICAL KICK!" : "KICK", color: accentColor)
         if isCritical { triggerCriticalFlash() }
-        flashScreenShake()
+        if isCritical {
+            triggerShake(intensity: 18); triggerBurst(color: .red, count: 20)
+        } else {
+            triggerShake(intensity: 10); triggerBurst(color: accentColor, count: 14)
+        }
         impactHvy.impactOccurred()
     }
 
@@ -2221,6 +2246,7 @@ struct KarateEndlessGameView: View {
         playerHP = min(maxPlayerHP, playerHP + 4)
         setPlayerPose("block", duration: 0.5)
         showAction(text: "BLOCK", color: Theme.brandBlue)
+        triggerShake(intensity: 12); triggerBurst(color: .cyan, count: 14)
         impactMed.impactOccurred()
         Task {
             try? await Task.sleep(for: .milliseconds(600))
@@ -2287,6 +2313,7 @@ struct KarateEndlessGameView: View {
             grabActive = false
             grabTapCount = 0
             showAction(text: "GRAB BROKEN! FREE HIT!", color: .green)
+            triggerShake(intensity: 12); triggerBurst(color: .cyan, count: 14)
             impactHvy.impactOccurred()
             // Stagger first enemy
             if !enemies.isEmpty {
@@ -2337,6 +2364,7 @@ struct KarateEndlessGameView: View {
         // Successful dodge — rusher overshot, 1.5s vulnerable window
         setPlayerPose("kick", duration: 0.4)
         showAction(text: "DODGED! RUSHER VULNERABLE!", color: .green)
+        triggerShake(intensity: 12); triggerBurst(color: .cyan, count: 14)
         impactHvy.impactOccurred()
         // Make rusher vulnerable (staggered) for 1.5s
         if !enemies.isEmpty {
@@ -2384,7 +2412,7 @@ struct KarateEndlessGameView: View {
         for i in enemies.indices { enemies[i].pose = "staggered" }
         showAction(text: "DRAGON STRIKE!", color: .yellow)
         triggerCriticalFlash()
-        flashScreenShake()
+        triggerShake(intensity: 22); triggerBurst(color: .yellow, count: 24)
         notif.notificationOccurred(.success)
 
         enemies.removeAll { !$0.isAlive }
@@ -2426,6 +2454,7 @@ struct KarateEndlessGameView: View {
         guard phase == .fighting else { return }
         aiAttackTask?.cancel()
         phase = .waveClear
+        triggerShake(intensity: 18); triggerBurst(color: .yellow, count: 24)
         waveNumber += 1
         killStreak = 0  // reset streak between waves
 
@@ -2521,6 +2550,48 @@ struct KarateEndlessGameView: View {
         if score > highScore {
             highScore = score
             UserDefaults.standard.set(score, forKey: highScoreKey)
+        }
+    }
+
+    // MARK: - Screen Shake & Particle Burst
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
         }
     }
 
