@@ -1267,6 +1267,47 @@ struct SoccerGameView: View {
     @State private var isCorner: Bool = false
     @State private var lastCornerTime: Double = 0
 
+    // MARK: — AI Difficulty Scaling
+    @State private var aiDifficulty: Double = 0.3
+    @State private var consecutivePlayerGoals: Int = 0
+    @State private var consecutiveAIGoals: Int = 0
+
+    // MARK: — Stamina System
+    @State private var playerStamina: Double = 1.0
+    @State private var staminaTimer: Task<Void, Never>? = nil
+    @State private var sprintBoosted: Bool = false
+    @State private var sprintBoostActive: Bool = false
+
+    // MARK: — Shot Power Timing
+    @State private var shotPowerMeter: Double = 0.0
+    @State private var shotPowerFilling: Bool = false
+    @State private var shotPowerTimer: Task<Void, Never>? = nil
+    @State private var releasePower: Double = 0.0
+    @State private var showReleaseButton: Bool = false
+
+    // MARK: — Set Piece / Power-Ups
+    @State private var hasPowerShot: Bool = false
+    @State private var hasGoldenGlove: Bool = false
+    @State private var powerUpMessage: String = ""
+    @State private var showPowerUpMessage: Bool = false
+
+    // MARK: — Match Phases
+    @State private var isExtraTime: Bool = false
+    @State private var isSuddenDeathGoal: Bool = false
+    @State private var yellowCardCount: Int = 0
+    @State private var redCardGiven: Bool = false
+    @State private var varCheckActive: Bool = false
+    @State private var varCheckMessage: String = ""
+    @State private var varCheckTask: Task<Void, Never>? = nil
+
+    // MARK: — Progression Stats
+    @State private var shotsAttempted: Int = 0
+    @State private var shotsMade: Int = 0
+    @State private var possessionTicks: Int = 0
+    @State private var totalTicks: Int = 0
+    @State private var possessionTimer: Task<Void, Never>? = nil
+    @State private var manOfTheMatch: Bool = false
+
     private let XP_CAP: Int = 500
     private let WIN_SHARDS = 50
     private let DRAW_SHARDS = 25
