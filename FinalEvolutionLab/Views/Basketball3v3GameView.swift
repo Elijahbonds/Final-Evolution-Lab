@@ -1271,6 +1271,7 @@ struct Basketball3v3GameView: View {
         VStack(spacing: 0) {
             clockHeader.padding(.horizontal, 20).padding(.top, 8)
             scoreBoard.padding(.horizontal, 20).padding(.top, 6)
+            fatigueBar.padding(.horizontal, 20).padding(.top, 4)
 
             Court3v3Canvas(
                 possession: possession,
@@ -1294,29 +1295,112 @@ struct Basketball3v3GameView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, 16).padding(.vertical, 6)
             .overlay(alignment: .center) {
-                if showResultLabel, let result = lastResult {
-                    VStack(spacing: 3) {
-                        Text(result.rawValue)
-                            .font(.system(size: 28, weight: .black, design: .monospaced)).italic()
-                            .foregroundStyle(result == .score || result == .assist
-                                ? accentColor
-                                : (result == .blocked ? .red : .secondary))
-                            .shadow(color: (result == .score ? accentColor : .red).opacity(0.6), radius: 14)
-                        if !lastPasser.isEmpty && result == .assist {
-                            Text("ASSIST: \(lastPasser)")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(accentColor.opacity(0.8))
+                ZStack {
+                    // Result label
+                    if showResultLabel, let result = lastResult {
+                        VStack(spacing: 3) {
+                            Text(result.rawValue)
+                                .font(.system(size: 28, weight: .black, design: .monospaced)).italic()
+                                .foregroundStyle(result == .score || result == .assist
+                                    ? accentColor
+                                    : (result == .blocked ? .red : .secondary))
+                                .shadow(color: (result == .score ? accentColor : .red).opacity(0.6), radius: 14)
+                            if !lastPasser.isEmpty && result == .assist {
+                                Text("ASSIST: \(lastPasser)")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(accentColor.opacity(0.8))
+                            }
+                        }
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.5).combined(with: .opacity),
+                            removal: .opacity))
+                        .animation(.spring(response: 0.22, dampingFraction: 0.55), value: showResultLabel)
+                    }
+
+                    // Zone announcer
+                    if showZoneAnnouncer {
+                        Text(zoneAnnouncerText)
+                            .font(.system(size: 14, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color(red: 1.0, green: 0.88, blue: 0.20))
+                            .shadow(color: Color.orange.opacity(0.7), radius: 8)
+                            .padding(.horizontal, 12).padding(.vertical, 5)
+                            .background(Color.black.opacity(0.55).cornerRadius(8))
+                            .offset(y: 48)
+                            .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity),
+                                                    removal: .opacity))
+                    }
+
+                    // Teammate open flash
+                    if showTeammateOpen {
+                        Text(teammateOpenText)
+                            .font(.system(size: 17, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color(red: 0.18, green: 0.78, blue: 1.0))
+                            .shadow(color: Color.cyan.opacity(0.8), radius: 10)
+                            .padding(.horizontal, 14).padding(.vertical, 6)
+                            .background(Color.black.opacity(0.60).cornerRadius(9))
+                            .offset(y: -60)
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    }
+
+                    // Highlight play vignette + text
+                    if showHighlight, let hl = lastHighlight {
+                        ZStack {
+                            // Slow-mo dark vignette
+                            Color.black.opacity(0.38)
+                                .ignoresSafeArea()
+                                .transition(.opacity)
+
+                            VStack(spacing: 6) {
+                                Text(hl.rawValue)
+                                    .font(.system(size: 32, weight: .black, design: .monospaced)).italic()
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [Color(red: 1.0, green: 0.82, blue: 0.0), .orange],
+                                            startPoint: .topLeading, endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .shadow(color: Color.orange.opacity(0.90), radius: 18)
+                                Text("HIGHLIGHT PLAY")
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                    .foregroundStyle(.white.opacity(0.65)).tracking(3)
+                            }
+                            .transition(.scale(scale: 0.3).combined(with: .opacity))
                         }
                     }
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.5).combined(with: .opacity),
-                        removal: .opacity))
-                    .animation(.spring(response: 0.22, dampingFraction: 0.55), value: showResultLabel)
+
+                    // Substitution overlay
+                    if isSubbing {
+                        VStack(spacing: 6) {
+                            Text("SUBSTITUTION IN PROGRESS")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .foregroundStyle(.white).tracking(2)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.20)).frame(height: 8)
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(accentColor)
+                                        .frame(width: geo.size.width * subAnimProgress, height: 8)
+                                }
+                            }.frame(height: 8).frame(maxWidth: 180)
+                        }
+                        .padding(.horizontal, 18).padding(.vertical, 12)
+                        .background(Color.black.opacity(0.72).cornerRadius(12))
+                        .offset(y: 80)
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
+                .animation(.spring(response: 0.22, dampingFraction: 0.55), value: showResultLabel)
+                .animation(.spring(response: 0.22, dampingFraction: 0.55), value: showZoneAnnouncer)
+                .animation(.spring(response: 0.25, dampingFraction: 0.60), value: showTeammateOpen)
+                .animation(.spring(response: 0.28, dampingFraction: 0.55), value: showHighlight)
+                .animation(.spring(response: 0.30, dampingFraction: 0.65), value: isSubbing)
             }
 
-            comboRow.padding(.horizontal, 20).padding(.bottom, 6)
-            inputPanel.padding(.horizontal, 20).padding(.bottom, 28)
+            comboRow.padding(.horizontal, 20).padding(.bottom, 4)
+            hotZoneRow.padding(.horizontal, 20).padding(.bottom, 4)
+            inputPanel.padding(.horizontal, 20).padding(.bottom, 4)
+            advancedControlsRow.padding(.horizontal, 20).padding(.bottom, 4)
+            defenseModeRow.padding(.horizontal, 20).padding(.bottom, 16)
         }
     }
 
@@ -1410,6 +1494,203 @@ struct Basketball3v3GameView: View {
             }
         }
         .frame(height: 32).animation(.spring(response: 0.3), value: comboCount)
+    }
+
+    // MARK: - Fatigue Bar
+
+    private var fatigueBar: some View {
+        HStack(spacing: 8) {
+            Text("STAMINA").font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary).tracking(2)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.white.opacity(0.10))
+                        .frame(height: 6)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(teamFatigue > 0.5
+                              ? LinearGradient(colors: [accentColor, accentColor.opacity(0.7)],
+                                               startPoint: .leading, endPoint: .trailing)
+                              : LinearGradient(colors: [.orange, .red],
+                                               startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * CGFloat(teamFatigue), height: 6)
+                        .animation(.linear(duration: 0.4), value: teamFatigue)
+                }
+            }.frame(height: 6)
+            Text("\(Int(teamFatigue * 100))%")
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(teamFatigue < 0.5 ? .orange : accentColor)
+                .frame(width: 34, alignment: .trailing)
+            if teamFatigue < 0.5 {
+                Text("LOW").font(.system(size: 7, weight: .black, design: .monospaced))
+                    .foregroundStyle(.red).tracking(1)
+                    .transition(.opacity)
+            }
+        }
+        .frame(height: 14)
+        .padding(.horizontal, 10).padding(.vertical, 4)
+        .background(RoundedRectangle(cornerRadius: 8)
+            .fill(Color.white.opacity(0.05))
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .stroke(teamFatigue < 0.5 ? Color.red.opacity(0.30) : Color.white.opacity(0.08), lineWidth: 0.8)))
+        .animation(.easeInOut(duration: 0.3), value: teamFatigue < 0.5)
+    }
+
+    // MARK: - Hot Zone Row
+
+    private var hotZoneRow: some View {
+        HStack(spacing: 8) {
+            // Zone indicator
+            HStack(spacing: 5) {
+                Image(systemName: isHot ? "flame.fill" : "mappin.circle")
+                    .font(.system(size: 10))
+                    .foregroundStyle(isHot ? .orange : .secondary)
+                Text(playerHotZone.rawValue)
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(isHot ? .orange : .secondary)
+                    .lineLimit(1)
+                if isHot {
+                    Text("+15%").font(.system(size: 7, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.orange.opacity(0.8))
+                        .padding(.horizontal, 4).padding(.vertical, 1)
+                        .background(Color.orange.opacity(0.15).cornerRadius(4))
+                }
+            }
+            Spacer()
+            // Consecutive makes dots
+            HStack(spacing: 3) {
+                ForEach(0..<3, id: \.self) { dot in
+                    Circle()
+                        .fill(dot < consecutiveMakesInZone
+                              ? (isHot ? Color.orange : accentColor)
+                              : Color.white.opacity(0.15))
+                        .frame(width: 7, height: 7)
+                        .shadow(color: dot < consecutiveMakesInZone ? accentColor.opacity(0.6) : .clear, radius: 3)
+                }
+            }
+            Text("HOT ZONE").font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary).tracking(1)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .background(RoundedRectangle(cornerRadius: 8)
+            .fill(isHot ? Color.orange.opacity(0.08) : Color.white.opacity(0.04))
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .stroke(isHot ? Color.orange.opacity(0.35) : Color.white.opacity(0.08), lineWidth: 0.8)))
+        .animation(.spring(response: 0.3), value: isHot)
+    }
+
+    // MARK: - Advanced Controls Row (CALL PLAY + SUB)
+
+    private var advancedControlsRow: some View {
+        let active = possession == .player && phase == .playing && shotProgress < 0 && passProgress < 0
+        return HStack(spacing: 10) {
+            // CALL PLAY button
+            Button {
+                guard active && !playCallCooldown else { return }
+                callPlay()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "megaphone.fill").font(.system(size: 11, weight: .bold))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("CALL PLAY").font(.system(size: 9, weight: .black, design: .monospaced))
+                        Text(nextPlayName).font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(active && !playCallCooldown ? Color(red: 1.0, green: 0.82, blue: 0.0) : .secondary)
+                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(active && !playCallCooldown
+                              ? Color(red: 1.0, green: 0.82, blue: 0.0).opacity(0.10)
+                              : Color.white.opacity(0.04))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(active && !playCallCooldown
+                                    ? Color(red: 1.0, green: 0.82, blue: 0.0).opacity(0.30)
+                                    : Color.white.opacity(0.08), lineWidth: 1))
+                )
+            }.disabled(!active || playCallCooldown)
+
+            // SUB button
+            Button {
+                guard phase == .playing, !isSubbing else { return }
+                performSubstitution()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.left.arrow.right").font(.system(size: 11, weight: .bold))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("SUB").font(.system(size: 9, weight: .black, design: .monospaced))
+                        Text(isSubbing ? "IN PROGRESS" : "\(Int(teamFatigue * 100))% STAMINA")
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(!isSubbing ? accentColor : .secondary)
+                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(!isSubbing ? accentColor.opacity(0.08) : Color.white.opacity(0.04))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(!isSubbing ? accentColor.opacity(0.28) : Color.white.opacity(0.08), lineWidth: 1))
+                )
+            }.disabled(isSubbing || phase != .playing)
+        }
+    }
+
+    // MARK: - Defense Mode Row
+
+    private var defenseModeRow: some View {
+        VStack(spacing: 4) {
+            Text("DEFENSE").font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary).tracking(3).frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                ForEach(DefenseMode.allCases, id: \.self) { mode in
+                    Button {
+                        guard phase == .playing else { return }
+                        withAnimation(.spring(response: 0.25)) { defenseMode = mode }
+                        impactMed.impactOccurred()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: mode.icon).font(.system(size: 9, weight: .bold))
+                            Text(mode.rawValue).font(.system(size: 8, weight: .black, design: .monospaced))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(defenseMode == mode ? .black : (mode == .press ? .red : accentColor))
+                        .padding(.horizontal, 8).padding(.vertical, 7)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 9)
+                                .fill(defenseMode == mode
+                                      ? (mode == .press ? Color.red : accentColor)
+                                      : Color.white.opacity(0.05))
+                                .overlay(RoundedRectangle(cornerRadius: 9)
+                                    .stroke(defenseMode == mode
+                                            ? .clear
+                                            : (mode == .press ? Color.red.opacity(0.25) : accentColor.opacity(0.18)),
+                                            lineWidth: 0.8))
+                        )
+                    }
+                }
+            }
+            // Defense description
+            HStack(spacing: 4) {
+                Image(systemName: "info.circle").font(.system(size: 9))
+                Text(defenseModeDescription).font(.system(size: 8, design: .monospaced))
+            }
+            .foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: 10)
+            .fill(Color.white.opacity(0.04))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 0.8)))
+    }
+
+    private var defenseModeDescription: String {
+        switch defenseMode {
+        case .zone:     return "Covers paint, gives open 3s"
+        case .manToMan: return "Balanced — mirrors every player"
+        case .press:    return "HIGH RISK: +20% steal, +15% foul"
+        }
     }
 
     // MARK: - Input Panel
