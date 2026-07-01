@@ -1535,6 +1535,10 @@ struct BasketballH2HGameView: View {
     @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
     @State private var burstCounter: Int = 0
 
+    // CLUTCH TIME state
+    @State private var clutchTimeActive = false
+    @State private var clutchTimePulse = false
+
     // Haptics
     private let impactLight  = UIImpactFeedbackGenerator(style: .light)
     private let impactMed    = UIImpactFeedbackGenerator(style: .medium)
@@ -1773,6 +1777,34 @@ struct BasketballH2HGameView: View {
                     aiMomentum: aiMomentum
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // CLUTCH TIME pulsing vignette overlay
+                if clutchTimeActive {
+                    ZStack {
+                        RadialGradient(
+                            colors: [.clear, Color.red.opacity(clutchTimePulse ? 0.28 : 0.14)],
+                            center: .center, startRadius: 80, endRadius: 300
+                        )
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+
+                        VStack(spacing: 2) {
+                            Text("CLUTCH")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(5)
+                                .foregroundStyle(.red.opacity(0.85))
+                            Text("TIME")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .tracking(5)
+                                .foregroundStyle(.red.opacity(0.85))
+                        }
+                        .shadow(color: .red.opacity(0.6), radius: 8)
+                        .offset(y: -120)
+                        .scaleEffect(clutchTimePulse ? 1.05 : 1.0)
+                    }
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                }
 
                 // Floating shot result popup (rises from basket, fades out)
                 if feedbackOpacity > 0 {
@@ -2080,7 +2112,7 @@ struct BasketballH2HGameView: View {
         playerPose = "idle"; opponentPose = "guard"
         showConfetti = false; hotHandActive = false
         posterizeActive = false; ankleShimmy = false; dustActive = false
-        fakeActive = false
+        fakeActive = false; clutchTimeActive = false; clutchTimePulse = false
         // Reset shot timing
         shotTimingMeter = 0; shotTimingActive = false; timingResult = nil; timingFeedbackOpacity = 0
         // Reset momentum / streak
@@ -2250,6 +2282,14 @@ struct BasketballH2HGameView: View {
                 }
 
                 possession = .opponent; resetShotClock()
+                // Activate CLUTCH TIME when anyone is within 3 of win
+                if !clutchTimeActive && max(playerScore, opponentScore) >= winTarget - 3 {
+                    withAnimation(.easeIn(duration: 0.4)) { clutchTimeActive = true }
+                    withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+                        clutchTimePulse = true
+                    }
+                    impactRigid.impactOccurred()
+                }
                 if playerScore >= winTarget {
                     // Match-winning basket
                     triggerShake(intensity: 20)
