@@ -36,9 +36,9 @@ jobs:
           import json
           with open('./backend/FEL_ModeManager.production.json') as f:
               d = json.load(f)
-          modes = d['mode_manager']['mode_registry']
+          modes = d['mode_manager']['modes']
           print(f'Mode registry: {len(modes)} modes')
-          prod = [m for m,c in modes.items() if c['status'] == 'production']
+          prod = [m for m in modes if m.get('status') == 'production']
           print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
           assert len(modes) >= 17, 'Expected 17+ modes'
           print('✓ Mode registry valid')

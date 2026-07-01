@@ -42,6 +42,7 @@ struct AvatarDemoView: View {
     @State private var effortPercent: Int = 0
     @State private var lastRepPhase: Int = -1   // tracks phase crossing for haptic trigger
     @State private var personalBestReps: Int = 0
+    @State private var sessionStartTime: Date = Date()
 
     // Timer fires at ~60fps for smooth animation logic
     private let animationTimer = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
@@ -160,6 +161,13 @@ struct AvatarDemoView: View {
                 }
                 setCount += 1
                 exerciseIndex = (exerciseIndex + 1) % exerciseVariantCount
+
+                // Persist training data on set completion
+                GameResultService.saveResult(
+                    modeId: "avatar_training",
+                    userScore: setCount,
+                    durationSeconds: Int(Date().timeIntervalSince(sessionStartTime))
+                )
 
                 // Trigger rest phase
                 isResting = true
