@@ -147,41 +147,69 @@ async def _broadcast(match_id: str, payload: Dict[str, Any]) -> None:
     sockets -= dead
 
 
-async def _simulate_scoring(match_id: str, players: List[str], n_events: int = 8) -> None:
+def _card_bonus(loadout: list) -> float:
+    """Returns total bonus multiplier from loadout modifiers (0.0 = no bonus)."""
+    import re
+    total = 0.0
+    for card in loadout:
+        summary = card.get("modifiers_summary", "")
+        for pct in re.findall(r'\+(\d+(?:\.\d+)?)%', summary):
+            total += float(pct) / 100.0
+    return min(total, 0.5)  # cap at 50% bonus
+
+
+async def _simulate_scoring(
+    match_id: str,
+    players: List[str],
+    loadouts: Dict[str, List[Dict[str, Any]]],
+    n_events: int = 8,
+) -> None:
     """Background task: emit simulated score_events for dev/testing."""
     import random
+    scores: Dict[str, int] = {p: 0 for p in players}
     seq = 0
     for _ in range(n_events):
         await asyncio.sleep(1.5)
+        # Weight scoring by card bonuses
+        weights = []
+        for p in players:
+            base = 1.0
+            bonus = _card_bonus(loadouts.get(p, []))
+            weights.append(base + bonus)
+        total_w = sum(weights)
+        rand = random.random() * total_w
+        scorer = players[0]
+        cumulative = 0.0
+        for i, p in enumerate(players):
+            cumulative += weights[i]
+            if rand <= cumulative:
+                scorer = p
+                break
+        points = random.choices([1, 2, 3], weights=[0.3, 0.5, 0.2])[0]
+        scores[scorer] = scores.get(scorer, 0) + points
         seq += 1
-        player_id = random.choice(players)
-        points = random.choice([1, 2, 3])
         event: Dict[str, Any] = {
             "type": "score_event",
-            "player_id": player_id,
+            "player_id": scorer,
             "points": points,
             "seq": seq,
             "timestamp": _now(),
+            "score_snapshot": dict(scores),
         }
         await _persist_event(match_id, event)
-        # Update score in match record
-        match = await _load_match(match_id)
-        if match and match.get("status") == "active":
-            score = match.get("score", {})
-            score[player_id] = score.get(player_id, 0) + points
-            match["score"] = score
-            await _persist_match(match)
-            event["score_snapshot"] = score
         await _broadcast(match_id, event)
 
-    # End match
-    match = await _load_match(match_id)
-    if match:
-        match["status"] = "finished"
-        match["finished_at"] = _now()
-        await _persist_match(match)
-        await _broadcast(match_id, {"type": "match_end", "match_id": match_id,
-                                    "score": match.get("score", {}), "timestamp": _now()})
+    # match_end
+    end_event: Dict[str, Any] = {
+        "type": "match_end",
+        "match_id": match_id,
+        "score": scores,
+        "timestamp": _now(),
+    }
+    await _persist_event(match_id, end_event)
+    await _broadcast(match_id, end_event)
+    _matches[match_id]["status"] = "finished"
+    _matches[match_id]["score"] = scores
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
@@ -246,7 +274,7 @@ async def join_match(
         }
         await _broadcast(body.match_id, start_event)
         # Kick off simulated scoring in background
-        asyncio.create_task(_simulate_scoring(body.match_id, match["players"]))
+        asyncio.create_task(_simulate_scoring(body.match_id, match["players"], match["loadouts"]))
     else:
         await _persist_match(match)
 
@@ -292,14 +320,18 @@ async def ws_match(websocket: WebSocket, match_id: str):
         }})
     try:
         while True:
-            # Keep connection alive; all outbound data is pushed via _broadcast
-            data = await websocket.receive_text()
-            if data == "ping":
-                await websocket.send_text("pong")
-    except WebSocketDisconnect:
+            try:
+                # 30-second receive timeout; client must send any message or ping
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                if data == "ping":
+                    await websocket.send_text("pong")
+            except asyncio.TimeoutError:
+                # Send ping; if client is gone this will raise on next iteration
+                await websocket.send_json({"type": "ping"})
+    except Exception:
         pass
     finally:
-        _ws_connections.get(match_id, set()).discard(websocket)
+        _ws_connections[match_id].discard(websocket)
 
 
 # ── Debug / Nexus HTTP probes ─────────────────────────────────────────────

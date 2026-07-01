@@ -420,10 +420,30 @@ async def submit_critique(data: Dict[str, Any], user: User = Depends(get_current
         "coach_id": data.get("coach_id"), "video_id": data.get("video_id"),
         "sport": data.get("sport"), "notes": data.get("notes", ""),
         "status": "pending", "feedback": None, "rating": None,
+        "match_id": data.get("match_id", None),
+        "event_seq": data.get("event_seq", None),
+        "frame_timestamp": data.get("frame_timestamp", None),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.critiques.insert_one(critique)
     return {k: v for k, v in critique.items() if k != "_id"}
+
+
+@router.post("/games/result")
+async def save_game_result(payload: dict):
+    """Save a completed game result from the iOS client."""
+    result_doc = {
+        "user_id": payload.get("user_id", "anonymous"),
+        "mode_id": payload.get("mode_id", "unknown"),
+        "user_score": payload.get("user_score", 0),
+        "opponent_score": payload.get("opponent_score", 0),
+        "duration_seconds": payload.get("duration_seconds", 0),
+        "creator_card_ids": payload.get("creator_card_ids", []),
+        "prq_delta": payload.get("prq_delta", 0),
+        "played_at": datetime.now(timezone.utc).isoformat() + "Z",
+    }
+    await db.game_sessions.insert_one(result_doc)
+    return {"ok": True, "result_id": str(result_doc.get("_id", "mock"))}
 
 
 @router.get("/coach/critiques")
