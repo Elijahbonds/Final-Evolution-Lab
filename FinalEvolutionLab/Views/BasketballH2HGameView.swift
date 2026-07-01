@@ -3,9 +3,72 @@ import UIKit
 
 // MARK: - Types
 
-private enum H2HPhase { case ready, playing, result }
+private enum H2HPhase { case difficultySelect, ready, playing, result }
 private enum ShotResult: String { case made = "MADE", blocked = "BLOCKED", miss = "MISS" }
 private enum H2HPossession { case player, opponent }
+
+private enum AIDifficulty: String, CaseIterable {
+    case rookie = "ROOKIE"
+    case pro = "PRO"
+    case elite = "ELITE"
+    case legend = "LEGEND"
+
+    var displayName: String { rawValue }
+
+    var prqRewardRange: String {
+        switch self {
+        case .rookie: return "+3 PRQ"
+        case .pro: return "+8 PRQ"
+        case .elite: return "+15 PRQ"
+        case .legend: return "+25 PRQ"
+        }
+    }
+
+    var winRateDescription: String {
+        switch self {
+        case .rookie: return "Easy"
+        case .pro: return "Medium"
+        case .elite: return "Hard"
+        case .legend: return "Legendary"
+        }
+    }
+
+    var aiMissDescription: String {
+        switch self {
+        case .rookie: return "AI misses 50% of shots"
+        case .pro: return "AI misses 25% of shots"
+        case .elite: return "AI misses 10% of shots"
+        case .legend: return "AI misses 5%, defends harder"
+        }
+    }
+
+    var prqReward: Int {
+        switch self {
+        case .rookie: return 3
+        case .pro: return 8
+        case .elite: return 15
+        case .legend: return 25
+        }
+    }
+
+    var cardGradient: [Color] {
+        switch self {
+        case .rookie: return [Color(red: 0.72, green: 0.45, blue: 0.20), Color(red: 0.50, green: 0.30, blue: 0.10)]
+        case .pro: return [Color(red: 0.70, green: 0.70, blue: 0.75), Color(red: 0.45, green: 0.45, blue: 0.52)]
+        case .elite: return [Color(red: 0.85, green: 0.70, blue: 0.10), Color(red: 0.60, green: 0.48, blue: 0.05)]
+        case .legend: return [Color(red: 0.62, green: 0.18, blue: 0.90), Color(red: 0.38, green: 0.08, blue: 0.62)]
+        }
+    }
+
+    var badgeColor: Color {
+        switch self {
+        case .rookie: return Color(red: 0.72, green: 0.45, blue: 0.20)
+        case .pro: return Color(red: 0.70, green: 0.70, blue: 0.75)
+        case .elite: return Color(red: 0.85, green: 0.70, blue: 0.10)
+        case .legend: return Color(red: 0.70, green: 0.20, blue: 0.95)
+        }
+    }
+}
 
 // MARK: - Street Court Canvas
 
@@ -1229,7 +1292,8 @@ struct BasketballH2HGameView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var phase: H2HPhase = .ready
+    @State private var phase: H2HPhase = .difficultySelect
+    @State private var selectedDifficulty: AIDifficulty = .pro
     @State private var playerScore: Int = 0
     @State private var opponentScore: Int = 0
     @State private var shotClock: Int = 24
@@ -1241,6 +1305,7 @@ struct BasketballH2HGameView: View {
     @State private var showShotLabel: Bool = false
     @State private var possession: H2HPossession = .player
     @State private var shardsRewarded: Bool = false
+    @State private var fakeActive: Bool = false      // true after a successful fake; reduces block chance on next shot
 
     // Canvas state
     @State private var shotProgress: Double = -1   // -1 = no shot, 0→1 = arc
@@ -1269,11 +1334,35 @@ struct BasketballH2HGameView: View {
     private let winTarget = 21
     private let accentColor = Color(red: 1.0, green: 0.60, blue: 0.0)
 
-    private var aiShotChance: Double {
-        0.25 + (viewModel.effectiveMetrics.prqScore / 100.0) * 0.47
+    private var aiShotAccuracy: Double {
+        switch selectedDifficulty {
+        case .rookie: return 0.45
+        case .pro:    return 0.65
+        case .elite:  return 0.80
+        case .legend: return 0.92
+        }
     }
-    private var aiDelayLow: Double { 3.0 + (1 - viewModel.effectiveMetrics.prqScore / 100) * 2.0 }
-    private var aiDelayHigh: Double { aiDelayLow + 1.5 }
+
+    private var aiResponseDelay: Double {
+        switch selectedDifficulty {
+        case .rookie: return 1.8
+        case .pro:    return 1.2
+        case .elite:  return 0.7
+        case .legend: return 0.3
+        }
+    }
+
+    private var aiDefenseStrength: Double {
+        switch selectedDifficulty {
+        case .rookie: return 0.2
+        case .pro:    return 0.45
+        case .elite:  return 0.70
+        case .legend: return 0.90
+        }
+    }
+
+    private var aiDelayLow: Double { aiResponseDelay }
+    private var aiDelayHigh: Double { aiResponseDelay + 1.0 }
 
     // MARK: - Body
 
@@ -1282,6 +1371,8 @@ struct BasketballH2HGameView: View {
             Color(red: 0.04, green: 0.04, blue: 0.10).ignoresSafeArea()
 
             switch phase {
+            case .difficultySelect:
+                difficultySelectScreen
             case .ready:
                 GetReadyScreen(
                     title: "Street 1v1",
@@ -1309,6 +1400,120 @@ struct BasketballH2HGameView: View {
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onDisappear { cancelAllTasks() }
+    }
+
+    // MARK: - Difficulty Select Screen
+
+    private var difficultySelectScreen: some View {
+        VStack(spacing: 0) {
+            Spacer().frame(height: 20)
+
+            Text("CHOOSE DIFFICULTY")
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .tracking(3)
+                .foregroundStyle(.white.opacity(0.70))
+
+            Text("STREET 1v1")
+                .font(.system(size: 28, weight: .black, design: .monospaced))
+                .foregroundStyle(accentColor)
+                .padding(.top, 4)
+
+            Spacer().frame(height: 28)
+
+            // 2x2 grid of difficulty cards
+            VStack(spacing: 14) {
+                HStack(spacing: 14) {
+                    difficultyCard(.rookie)
+                    difficultyCard(.pro)
+                }
+                HStack(spacing: 14) {
+                    difficultyCard(.elite)
+                    difficultyCard(.legend)
+                }
+            }
+            .padding(.horizontal, 20)
+
+            Spacer()
+
+            // FIND MATCH button
+            Button {
+                withAnimation(.spring(response: 0.35)) { phase = .ready }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "basketball.fill").font(.system(size: 16, weight: .bold))
+                    Text("FIND MATCH").font(.system(size: 17, weight: .black, design: .monospaced))
+                    Text("·  \(selectedDifficulty.prqRewardRange)").font(.system(size: 13, weight: .bold, design: .monospaced))
+                }
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(
+                    LinearGradient(colors: [accentColor, accentColor.opacity(0.80)],
+                                   startPoint: .top, endPoint: .bottom)
+                )
+                .clipShape(.rect(cornerRadius: 16))
+                .shadow(color: accentColor.opacity(0.40), radius: 14)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 36)
+        }
+    }
+
+    @ViewBuilder
+    private func difficultyCard(_ difficulty: AIDifficulty) -> some View {
+        let isSelected = selectedDifficulty == difficulty
+        Button {
+            withAnimation(.spring(response: 0.25)) { selectedDifficulty = difficulty }
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(difficulty.displayName)
+                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+
+                Text(difficulty.prqRewardRange)
+                    .font(.system(size: 20, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+
+                Text(difficulty.winRateDescription)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.80))
+
+                Divider()
+                    .background(Color.white.opacity(0.25))
+
+                Text(difficulty.aiMissDescription)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.70))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(
+                    colors: difficulty.cardGradient,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(isSelected ? Color.white.opacity(0.75) : Color.white.opacity(0.15),
+                            lineWidth: isSelected ? 2 : 1)
+            )
+            .clipShape(.rect(cornerRadius: 14))
+            .shadow(color: isSelected ? difficulty.badgeColor.opacity(0.45) : .clear, radius: 10)
+            .scaleEffect(isSelected ? 1.03 : 1.0)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Playing Body
@@ -1341,6 +1546,20 @@ struct BasketballH2HGameView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
+            .overlay(alignment: .topTrailing) {
+                Text(selectedDifficulty.rawValue)
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .tracking(1.5)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(selectedDifficulty.badgeColor.opacity(0.88))
+                    )
+                    .padding(.top, 20)
+                    .padding(.trailing, 28)
+            }
             .overlay(alignment: .center) {
                 if showShotLabel, let result = lastShotResult {
                     Text(result.rawValue)
@@ -1518,6 +1737,26 @@ struct BasketballH2HGameView: View {
                 actionButton(label: "DRIVE", icon: "figure.run") {
                     playerAttemptMove(action: "DRIVE")
                 }
+                if selectedDifficulty == .elite || selectedDifficulty == .legend {
+                    actionButton(label: "FAKE", icon: "hand.raised.fingers.spread") {
+                        playerAttemptFake()
+                    }
+                }
+            }
+        }
+    }
+
+    private func playerAttemptFake() {
+        guard phase == .playing, possession == .player, shotProgress < 0 else { return }
+        impactLight.impactOccurred()
+        playerPose = "crossover"
+        dustActive = true
+        Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            await MainActor.run {
+                playerPose = "idle"
+                dustActive = false
+                fakeActive = true   // AI commits; next shot has reduced block chance
             }
         }
     }
@@ -1547,7 +1786,7 @@ struct BasketballH2HGameView: View {
         let playerWon = playerScore >= winTarget
         let didTie = !playerWon && opponentScore < winTarget
         let winner: ResultScreen.ResultWinner = playerWon ? .p1 : (didTie ? .draw : .p2)
-        let prqGain = PRQ.modeReward(
+        let prqGain = playerWon ? selectedDifficulty.prqReward : PRQ.modeReward(
             mode: .basketballHeadToHead, won: playerWon, tied: didTie,
             combo: comboCount, criticals: comboCount / 3,
             scoreDifferential: playerScore - opponentScore
@@ -1584,6 +1823,7 @@ struct BasketballH2HGameView: View {
         playerPose = "idle"; opponentPose = "guard"
         showConfetti = false; hotHandActive = false
         posterizeActive = false; ankleShimmy = false; dustActive = false
+        fakeActive = false
         phase = .playing
         resetShotClock()
         scheduleOpponentShot()
@@ -1592,6 +1832,33 @@ struct BasketballH2HGameView: View {
     private func playerAttemptShoot() {
         guard phase == .playing, possession == .player, shotProgress < 0 else { return }
         shotClockTask?.cancel()
+
+        // Defense block check for Elite / Legend tiers
+        if (selectedDifficulty == .elite || selectedDifficulty == .legend) {
+            let effectiveDefense = fakeActive ? aiDefenseStrength * 0.15 : aiDefenseStrength
+            fakeActive = false
+            let isBlocked = Double.random(in: 0...1) < effectiveDefense
+            if isBlocked {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+                playerPose = "idle"
+                opponentPose = "block"
+                flashShotResult(.blocked)
+                comboCount = 0; comboMultiplier = 1
+                hotHandActive = false
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    await MainActor.run {
+                        opponentPose = "guard"
+                        possession = .opponent
+                        resetShotClock()
+                        scheduleOpponentShot()
+                    }
+                }
+                return
+            }
+        }
+
+        fakeActive = false
         playerPose = "shoot"
         opponentPose = "block"
         // Haptic: medium on shot attempt
@@ -1737,7 +2004,7 @@ struct BasketballH2HGameView: View {
             await MainActor.run {
                 guard phase == .playing else { return }
                 opponentPose = "shoot"
-                let made = Double.random(in: 0...1) < aiShotChance
+                let made = Double.random(in: 0...1) < aiShotAccuracy
                 if made {
                     withAnimation(.spring(response: 0.3)) { opponentScore = min(opponentScore + 2, 99) }
                     triggerRimShake(intensity: 0.6)
@@ -1794,7 +2061,9 @@ struct BasketballH2HGameView: View {
 
     private func endGame() {
         cancelAllTasks()
-        GameResultService.saveResult(modeId: "basketball_h2h", userScore: playerScore, opponentScore: opponentScore)
+        let playerWon = playerScore >= winTarget
+        let prqDelta = playerWon ? selectedDifficulty.prqReward : 0
+        GameResultService.saveResult(modeId: "basketball_h2h", userScore: playerScore, opponentScore: opponentScore, prqDelta: prqDelta)
         withAnimation(.spring(response: 0.4)) { phase = .result }
     }
 
