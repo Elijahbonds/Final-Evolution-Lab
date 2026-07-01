@@ -55,6 +55,26 @@ private enum SwipeDir {
     case up, upRight, upLeft, doubleUp, hold
 }
 
+// MARK: - Grind Type
+
+private enum GrindType: String, CaseIterable {
+    case fiveO        = "5-0 Grind"
+    case nosegrind    = "Nosegrind"
+    case tailslide    = "Tailslide"
+    case bluntslide   = "Bluntslide"
+    case krookedGrind = "K-Grind"
+
+    static func random() -> GrindType { allCases.randomElement()! }
+}
+
+// MARK: - Special Tricks (THPS-style)
+
+private let specialTricks: [SkateTrick] = [
+    SkateTrick(name: "900",          points: 500, icon: "arrow.2.circlepath"),
+    SkateTrick(name: "McTwist",      points: 450, icon: "figure.skiing.downhill"),
+    SkateTrick(name: "Flip McTwist", points: 600, icon: "star.fill"),
+]
+
 // MARK: - Combo multiplier steps
 
 private let comboMultipliers: [Int] = [1, 2, 3, 5]
@@ -779,6 +799,27 @@ struct SkateboardingGameView: View {
     @State private var swipeStartLocation: CGPoint = .zero
     @State private var lastSwipeEnd: Date = .distantPast
 
+    // Manual balance
+    @State private var isManual = false
+    @State private var manualBalance: CGFloat = 0.5
+    @State private var manualWindowTask: Task<Void, Never>? = nil
+    @State private var lastTrickLandTime: Date? = nil
+
+    // Combo extended
+    @State private var comboActive = false
+    @State private var comboTotal = 0
+    @State private var comboText = ""
+    @State private var showComboComplete = false
+
+    // Grind system
+    @State private var grindScore = 0
+    @State private var grindProgress: CGFloat = 0
+    @State private var currentGrindType: GrindType = .fiveO
+
+    // SPECIAL meter (Tony Hawk style: fills on tricks, unlocks 3 high-value specials)
+    @State private var specialMeter: Double = 0.0
+    @State private var specialActive: Bool = false
+
     @State private var didWin = false
     @State private var shardsEarned = 0
 
@@ -862,6 +903,7 @@ struct SkateboardingGameView: View {
             headerBar
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
+            specialMeterBar.padding(.horizontal, 20).padding(.top, 4)
 
             Spacer()
 
@@ -989,6 +1031,72 @@ struct SkateboardingGameView: View {
 
     private var comboMultiplierLabel: String { "×\(comboMultiplier(for: comboCount))" }
 
+    private var specialMeterBar: some View {
+        HStack(spacing: 10) {
+            Text("SPECIAL")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(specialActive
+                    ? Color(red: 1.0, green: 0.80, blue: 0.0)
+                    : accentColor.opacity(0.6))
+                .tracking(2)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4).fill(Theme.cardBorder).frame(height: 8)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(LinearGradient(
+                            colors: specialActive
+                                ? [Color(red: 1.0, green: 0.80, blue: 0.0), Color(red: 1.0, green: 0.45, blue: 0.12)]
+                                : [accentColor, Color(red: 0.8, green: 0.3, blue: 0.05)],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * CGFloat(min(specialMeter, 1.0)), height: 8)
+                        .animation(.spring(response: 0.25), value: specialMeter)
+                }
+            }
+            .frame(height: 8)
+
+            if specialActive {
+                Text("ACTIVE")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 1.0, green: 0.80, blue: 0.0))
+                    .shadow(color: Color(red: 1.0, green: 0.80, blue: 0.0).opacity(0.8), radius: 6)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var specialTrickRow: some View {
+        VStack(spacing: 6) {
+            Text("SPECIAL TRICKS UNLOCKED — TAP TO EXECUTE")
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .foregroundStyle(Color(red: 1.0, green: 0.80, blue: 0.0))
+                .tracking(1)
+            HStack(spacing: 8) {
+                ForEach(specialTricks, id: \.name) { trick in
+                    Button { performSpecialTrick(trick) } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: trick.icon)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.black)
+                            Text(trick.name)
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                                .foregroundStyle(.black)
+                            Text("+\(trick.points)")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .foregroundStyle(.black.opacity(0.7))
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                        .background(Color(red: 1.0, green: 0.80, blue: 0.0))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+        .padding(.top, 8)
+    }
+
     private var skateParkVisual: some View {
         SkateParkCanvas(
             grinding: isGrinding,
@@ -1005,6 +1113,7 @@ struct SkateboardingGameView: View {
 
     private var swipeInputArea: some View {
         VStack(spacing: 16) {
+            if specialActive { specialTrickRow }
             HStack(spacing: 0) {
                 ForEach(skateTricks.prefix(4)) { trick in
                     VStack(spacing: 4) {
@@ -1210,6 +1319,15 @@ struct SkateboardingGameView: View {
         allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
         comboActive = true
 
+        // Fill SPECIAL meter: each trick adds 20% (5 tricks to charge it)
+        if !specialActive {
+            specialMeter = min(1.0, specialMeter + 0.2)
+            if specialMeter >= 1.0 {
+                specialActive = true
+                hapticRigid()
+            }
+        }
+
         // Haptic feedback — ollie/jump: heavy takeoff; trick landing: heavy
         hapticHeavy()
         if mult >= 3 {
@@ -1224,6 +1342,28 @@ struct SkateboardingGameView: View {
         }
 
         showTrickPopup(name: trick.name, points: points)
+    }
+
+    private func performSpecialTrick(_ trick: SkateTrick) {
+        guard phase == .running, specialActive else { return }
+        specialActive = false
+        specialMeter = 0
+        let mult = comboMultiplier(for: comboCount)
+        let points = trick.points * mult
+        comboCount = min(comboCount + 1, comboMultipliers.count - 1)
+        comboTotal += points
+        currentRunScore += points
+        bestRunScore = max(bestRunScore, currentRunScore)
+        allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
+        comboActive = true
+        if comboString.isEmpty {
+            comboString = "⭐ \(trick.name)"
+        } else {
+            comboString += " → ⭐ \(trick.name)"
+        }
+        hapticHeavy()
+        hapticHeavy()
+        showTrickPopup(name: "⭐ \(trick.name)!", points: points)
     }
 
     // MARK: - Manual
@@ -1380,6 +1520,8 @@ struct SkateboardingGameView: View {
         comboTotal = 0
         grindScore = 0
         grindProgress = 0
+        specialMeter = max(0, specialMeter - 0.4)
+        specialActive = false
         withAnimation(.spring(response: 0.2)) { showBailFlash = true }
         phase = .bail
         Task {
@@ -1411,6 +1553,8 @@ struct SkateboardingGameView: View {
         comboText = ""
         showComboComplete = false
         comboString = ""
+        specialMeter = 0
+        specialActive = false
         runTimer?.cancel()
         runTimer = Task {
             let tick: Double = 0.1
