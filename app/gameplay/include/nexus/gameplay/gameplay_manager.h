@@ -6,6 +6,7 @@
 
 #include <nlohmann/json.hpp>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
