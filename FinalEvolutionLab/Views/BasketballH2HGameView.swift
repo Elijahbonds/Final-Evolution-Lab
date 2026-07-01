@@ -1529,6 +1529,12 @@ struct BasketballH2HGameView: View {
     @State private var feedbackOpacity: Double = 0
     @State private var feedbackTask: Task<Void, Never>?
 
+    // Screen shake & particle burst FX
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     // Haptics
     private let impactLight  = UIImpactFeedbackGenerator(style: .light)
     private let impactMed    = UIImpactFeedbackGenerator(style: .medium)
@@ -1576,22 +1582,33 @@ struct BasketballH2HGameView: View {
         ZStack {
             Color(red: 0.04, green: 0.04, blue: 0.10).ignoresSafeArea()
 
-            switch phase {
-            case .difficultySelect:
-                difficultySelectScreen
-            case .ready:
-                GetReadyScreen(
-                    title: "Street 1v1",
-                    subtitle: "First to 21 · Your court, your rules",
-                    countdown: 3,
-                    accentColor: accentColor,
-                    onComplete: { startGame() }
-                )
-            case .playing:
-                playingBody.offset(x: screenShake)
-            case .result:
-                resultScreen
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
             }
+            .allowsHitTesting(false)
+
+            Group {
+                switch phase {
+                case .difficultySelect:
+                    difficultySelectScreen
+                case .ready:
+                    GetReadyScreen(
+                        title: "Street 1v1",
+                        subtitle: "First to 21 · Your court, your rules",
+                        countdown: 3,
+                        accentColor: accentColor,
+                        onComplete: { startGame() }
+                    )
+                case .playing:
+                    playingBody
+                case .result:
+                    resultScreen
+                }
+            }
+            .offset(x: shakeX, y: shakeY)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -2092,6 +2109,7 @@ struct BasketballH2HGameView: View {
                 flashShotResult(.blocked)
                 comboCount = 0; comboMultiplier = 1; hotHandActive = false
                 updatePlayerMomentum(made: false)
+                triggerShake(intensity: 6)
                 showFloatingFeedback(text: "BLOCKED", color: .red)
                 Task {
                     try? await Task.sleep(for: .milliseconds(500))
@@ -2199,18 +2217,27 @@ struct BasketballH2HGameView: View {
                     }
 
                     if isDunk || isAnd1 {
+                        // Special move / dunk
+                        triggerShake(intensity: 18)
+                        triggerBurst(color: .yellow, count: 20)
                         impactHvy.impactOccurred(); posterizeActive = true; showConfetti = true
                         Task {
                             try? await Task.sleep(for: .milliseconds(1200))
                             await MainActor.run { posterizeActive = false; showConfetti = false }
                         }
                     } else if playerScore >= winTarget - 2 {
+                        // Near match-winning bucket
+                        triggerShake(intensity: 14)
+                        triggerBurst(color: accentColor, count: 16)
                         impactRigid.impactOccurred(); showConfetti = true
                         Task {
                             try? await Task.sleep(for: .milliseconds(1500))
                             await MainActor.run { showConfetti = false }
                         }
                     } else {
+                        // Normal make
+                        triggerShake(intensity: 14)
+                        triggerBurst(color: accentColor, count: 16)
                         notif.notificationOccurred(.success)
                     }
                     if comboCount >= 3 { hotHandActive = true }
@@ -2223,7 +2250,12 @@ struct BasketballH2HGameView: View {
                 }
 
                 possession = .opponent; resetShotClock()
-                if playerScore >= winTarget { endGame(); return }
+                if playerScore >= winTarget {
+                    // Match-winning basket
+                    triggerShake(intensity: 20)
+                    triggerBurst(color: accentColor, count: 24)
+                    endGame(); return
+                }
                 scheduleOpponentShot()
             }
         }
@@ -2285,6 +2317,7 @@ struct BasketballH2HGameView: View {
                     flashShotResult(.blocked)
                     // Haptic: soft on turnover
                     impactSoft.impactOccurred()
+                    triggerShake(intensity: 6)
                     possession = .opponent; comboCount = 0; comboMultiplier = 1
                     hotHandActive = false
                     opponentPose = "guard"; resetShotClock(); scheduleOpponentShot()
@@ -2328,6 +2361,7 @@ struct BasketballH2HGameView: View {
                 if made {
                     withAnimation(.spring(response: 0.3)) { opponentScore = min(opponentScore + 2, 99) }
                     triggerRimShake(intensity: 0.6)
+                    triggerShake(intensity: 8)
                     flashScreenShakeFX()
                 }
                 Task {
@@ -2393,5 +2427,47 @@ struct BasketballH2HGameView: View {
         autoFireTask?.cancel(); feedbackTask?.cancel()
         shotClockTask = nil; opponentTask = nil; shotAnimTask = nil
         shotTimingTask = nil; autoFireTask = nil; feedbackTask = nil
+    }
+
+    // MARK: - Screen Shake & Particle Burst
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 }

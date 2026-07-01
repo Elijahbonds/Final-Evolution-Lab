@@ -1640,6 +1640,12 @@ struct Basketball3v3GameView: View {
     @State private var crowdBounce: Bool = false
     @State private var showParkLit: Bool = false
 
+    // Screen shake & particle burst FX
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     // Haptic generators
     private let impactHvy   = UIImpactFeedbackGenerator(style: .heavy)
     private let impactRigid = UIImpactFeedbackGenerator(style: .rigid)
@@ -1668,15 +1674,27 @@ struct Basketball3v3GameView: View {
                 Color(red: 0.18, green: 0.10, blue: 0.15),
                 Color(red: 0.22, green: 0.12, blue: 0.08)
             ], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
-            switch phase {
-            case .ready:
-                GetReadyScreen(title: "3v3 Streetball", subtitle: "First to 21 · WINNER STAYS",
-                               countdown: 3, accentColor: accentColor, onComplete: { startGame() })
-            case .playing:
-                playingBody.offset(x: screenShake)
-            case .result:
-                resultScreen
+
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
             }
+            .allowsHitTesting(false)
+
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(title: "3v3 Streetball", subtitle: "First to 21 · WINNER STAYS",
+                                   countdown: 3, accentColor: accentColor, onComplete: { startGame() })
+                case .playing:
+                    playingBody
+                case .result:
+                    resultScreen
+                }
+            }
+            .offset(x: shakeX, y: shakeY)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -2350,6 +2368,8 @@ struct Basketball3v3GameView: View {
                     lastPasser = passer != 0 ? teammateNames[passer - 1] : ""
                     flashResult(passer != 0 ? .assist : .score)
                     triggerRimShake(1.0)
+                    triggerShake(intensity: 14)
+                    triggerBurst(color: accentColor, count: 16)
                     drainFatigue(amount: 0.01)
 
                     // Highlight play check
@@ -2375,7 +2395,12 @@ struct Basketball3v3GameView: View {
                 }
                 possession = .opponent; activePasser = 0; resetShotClock()
                 showDriveButton = false
-                if playerTeamScore >= targetScore { endGame(); return }
+                if playerTeamScore >= targetScore {
+                    // Match-winning basket
+                    triggerShake(intensity: 20)
+                    triggerBurst(color: accentColor, count: 24)
+                    endGame(); return
+                }
                 scheduleOpponentAttack()
             }
         }
@@ -2408,6 +2433,7 @@ struct Basketball3v3GameView: View {
                     flashResult(.blocked)
                     // Haptic: .medium on defensive block
                     impactMed.impactOccurred()
+                    triggerShake(intensity: 6)
                     possession = .opponent; activePasser = 0; comboCount = 0; comboMultiplier = 1
                     resetShotClock(); scheduleOpponentAttack()
                 }
@@ -2432,13 +2458,19 @@ struct Basketball3v3GameView: View {
                             withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + 2 * comboMultiplier, 99) }
                             lastPasser = teammateNames[teammate - 1]; flashResult(.assist)
                             triggerRimShake(0.8)
+                            triggerShake(intensity: 14)
+                            triggerBurst(color: accentColor, count: 16)
                             // Haptic: .heavy on made basket
                             impactHvy.impactOccurred()
                         } else {
                             flashResult(.miss)
                         }
                         possession = .opponent; activePasser = 0; resetShotClock()
-                        if playerTeamScore >= targetScore { endGame(); return }
+                        if playerTeamScore >= targetScore {
+                            triggerShake(intensity: 20)
+                            triggerBurst(color: accentColor, count: 24)
+                            endGame(); return
+                        }
                         scheduleOpponentAttack()
                     }
                 }
@@ -2489,6 +2521,7 @@ struct Basketball3v3GameView: View {
                         // Foul — opponent gets easy points
                         flashZoneAnnouncer("FOUL CALLED!")
                         impactSoft.impactOccurred()
+                        triggerShake(intensity: 6)
                         withAnimation(.spring(response: 0.3)) { opponentTeamScore = min(opponentTeamScore + 1, 99) }
                         possession = .player; activePasser = 0; resetShotClock()
                         if opponentTeamScore >= targetScore { endGame() }
@@ -2507,6 +2540,7 @@ struct Basketball3v3GameView: View {
                 if made {
                     withAnimation(.spring(response: 0.3)) { opponentTeamScore = min(opponentTeamScore + 2, 99) }
                     triggerRimShake(0.6); flashScreenShakeFX()
+                    triggerShake(intensity: 8)
                     impactSoft.impactOccurred()
                     drainFatigue(amount: 0.008)
                 } else {
@@ -2703,14 +2737,17 @@ struct Basketball3v3GameView: View {
                 let roll = Double.random(in: 0...1)
 
                 if roll < alleyOopChance && momentum > 0.0 {
-                    // Alley oop!
+                    // Alley oop! — triggerHighlight already calls shake/burst
                     triggerHighlight(.alleyOop)
                     withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + 2 * comboMultiplier, 99) }
                     comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
                     lastPasser = teammateNames[0]; flashResult(.assist)
                     triggerRimShake(1.0); impactHvy.impactOccurred()
                     possession = .opponent; activePasser = 0; resetShotClock()
-                    if playerTeamScore >= targetScore { endGame(); return }
+                    if playerTeamScore >= targetScore {
+                        triggerShake(intensity: 20); triggerBurst(color: accentColor, count: 24)
+                        endGame(); return
+                    }
                     scheduleOpponentAttack()
                 } else if roll < alleyOopChance + openLayupChance {
                     // Regular open layup
@@ -2718,9 +2755,13 @@ struct Basketball3v3GameView: View {
                     withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + 2 * comboMultiplier, 99) }
                     comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
                     lastPasser = teammateNames[0]; flashResult(.assist)
-                    triggerRimShake(0.9); impactHvy.impactOccurred()
+                    triggerRimShake(0.9); triggerShake(intensity: 14); triggerBurst(color: accentColor, count: 16)
+                    impactHvy.impactOccurred()
                     possession = .opponent; activePasser = 0; resetShotClock()
-                    if playerTeamScore >= targetScore { endGame(); return }
+                    if playerTeamScore >= targetScore {
+                        triggerShake(intensity: 20); triggerBurst(color: accentColor, count: 24)
+                        endGame(); return
+                    }
                     scheduleOpponentAttack()
                 } else {
                     flashResult(.miss)
@@ -2755,7 +2796,8 @@ struct Basketball3v3GameView: View {
                     consecutiveMakesInZone += 1
                     lastPasser = teammateNames[1]; flashResult(.assist)
                     flashZoneAnnouncer(CourtZone.corner3.rawValue)
-                    triggerRimShake(1.0); impactRigid.impactOccurred()
+                    triggerRimShake(1.0); triggerShake(intensity: 14); triggerBurst(color: accentColor, count: 16)
+                    impactRigid.impactOccurred()
                 } else {
                     flashResult(.miss); consecutiveMakesInZone = 0; isHot = false
                 }
@@ -2764,7 +2806,10 @@ struct Basketball3v3GameView: View {
                     try? await Task.sleep(for: .milliseconds(300))
                     await MainActor.run { playerPoses[2] = "idle"; teammate2Position = .elbow }
                 }
-                if playerTeamScore >= targetScore { endGame(); return }
+                if playerTeamScore >= targetScore {
+                    triggerShake(intensity: 20); triggerBurst(color: accentColor, count: 24)
+                    endGame(); return
+                }
                 scheduleOpponentAttack()
             }
         }
@@ -2792,6 +2837,9 @@ struct Basketball3v3GameView: View {
                             // Check for poster dunk on ISO
                             if Double(comboCount) > 2 && Double.random(in: 0...1) < 0.18 {
                                 triggerHighlight(.posterDunk)
+                            } else {
+                                triggerShake(intensity: 14)
+                                triggerBurst(color: accentColor, count: 16)
                             }
                             comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
                             withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + 2 * comboMultiplier, 99) }
@@ -2801,7 +2849,10 @@ struct Basketball3v3GameView: View {
                             flashResult(.miss); impactMed.impactOccurred()
                         }
                         possession = .opponent; activePasser = 0; resetShotClock()
-                        if playerTeamScore >= targetScore { endGame(); return }
+                        if playerTeamScore >= targetScore {
+                            triggerShake(intensity: 20); triggerBurst(color: accentColor, count: 24)
+                            endGame(); return
+                        }
                         scheduleOpponentAttack()
                     }
                 }
@@ -2839,6 +2890,8 @@ struct Basketball3v3GameView: View {
         lastHighlight = type
         highlightSlowMo = true
         showHighlight = true
+        triggerShake(intensity: 18)
+        triggerBurst(color: .yellow, count: 20)
         impactHvy.impactOccurred()
         Task {
             try? await Task.sleep(for: .milliseconds(120))
@@ -3025,6 +3078,8 @@ struct Basketball3v3GameView: View {
             var pts = 2 * comboMultiplier
             if isDunk {
                 addHype(0.30); impactHvy.impactOccurred()
+                triggerShake(intensity: 18)
+                triggerBurst(color: .yellow, count: 20)
                 if hasContact {
                     pts += 1; addHype(0.35)
                     impactHvy.impactOccurred()
@@ -3038,9 +3093,13 @@ struct Basketball3v3GameView: View {
                 if hasContact {
                     pts += 1; addHype(0.35)
                     impactHvy.impactOccurred()
+                    triggerShake(intensity: 14)
+                    triggerBurst(color: accentColor, count: 16)
                     flashResult(.score)
                     flashZoneAnnouncer("AND-1!")
                 } else {
+                    triggerShake(intensity: 14)
+                    triggerBurst(color: accentColor, count: 16)
                     flashResult(.score)
                 }
             }
@@ -3055,7 +3114,11 @@ struct Basketball3v3GameView: View {
         }
         drainFatigue(amount: 0.015)
         possession = .opponent; activePasser = 0; resetShotClock()
-        if playerTeamScore >= targetScore { endGame(); return }
+        if playerTeamScore >= targetScore {
+            triggerShake(intensity: 20)
+            triggerBurst(color: accentColor, count: 24)
+            endGame(); return
+        }
         scheduleOpponentAttack()
         _ = zone
     }
@@ -3110,6 +3173,48 @@ struct Basketball3v3GameView: View {
         } else {
             consecutiveMakesStreet = 0
             hotPlayer = nil
+        }
+    }
+
+    // MARK: - Screen Shake & Particle Burst
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
         }
     }
 }
