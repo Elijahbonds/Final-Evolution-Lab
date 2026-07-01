@@ -213,8 +213,25 @@ struct ResultScreen: View {
     @State private var appeared = false
     @State private var trophyBounce = false
     @State private var glowPulse = false
+    @State private var victoryScale: CGFloat = 0.5
+    @State private var confettiPieces: [ConfettiPiece] = []
+    @State private var confettiActive = false
+    @State private var confettiOpacity: Double = 1.0
 
     private var isP1Win: Bool { winner == .p1 }
+
+    private struct ConfettiPiece: Identifiable {
+        let id: Int
+        let x: CGFloat
+        let color: Color
+        let size: CGFloat
+        let isCircle: Bool
+        let duration: Double
+        let wobbleSpeed: Double
+        let rotationSpeed: Double
+        let startTime: Double
+        let delay: Double
+    }
 
     var body: some View {
         ZStack {
@@ -241,6 +258,37 @@ struct ResultScreen: View {
                     .ignoresSafeArea()
                 }
                 .allowsHitTesting(false)
+            }
+
+            // Confetti rain on victory
+            if confettiActive {
+                TimelineView(.animation) { timeline in
+                    Canvas { ctx, size in
+                        let now = timeline.date.timeIntervalSinceReferenceDate
+                        for piece in confettiPieces {
+                            let elapsed = now - piece.startTime - piece.delay
+                            guard elapsed > 0 else { continue }
+                            let progress = (elapsed.truncatingRemainder(dividingBy: piece.duration)) / piece.duration
+                            let y = -16 + (size.height + 32) * progress
+                            let x = piece.x + CGFloat(sin(elapsed * piece.wobbleSpeed * 2 * .pi)) * 18
+                            let angle = elapsed * piece.rotationSpeed * 2 * .pi
+                            let fadeOut = progress > 0.85 ? 1.0 - (progress - 0.85) / 0.15 : 1.0
+                            ctx.opacity = fadeOut
+                            let transform = CGAffineTransform(translationX: x, y: CGFloat(y))
+                                .rotated(by: CGFloat(angle))
+                            if piece.isCircle {
+                                let r = CGRect(x: -piece.size/2, y: -piece.size/2, width: piece.size, height: piece.size)
+                                ctx.fill(Path(ellipseIn: r).applying(transform), with: .color(piece.color))
+                            } else {
+                                let r = CGRect(x: -piece.size/2, y: -piece.size/3, width: piece.size, height: piece.size * 0.55)
+                                ctx.fill(Path(r).applying(transform), with: .color(piece.color))
+                            }
+                        }
+                    }
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .opacity(confettiOpacity)
             }
 
             VStack(spacing: 24) {
@@ -294,6 +342,7 @@ struct ResultScreen: View {
                     )
                     .shadow(color: isP1Win ? accentColor.opacity(0.4) : .clear, radius: 20)
                     .opacity(appeared ? 1 : 0)
+                    .scaleEffect(isP1Win ? victoryScale : 1.0)
                     .offset(y: appeared ? 0 : 15)
 
                 HStack(spacing: 20) {
@@ -327,8 +376,14 @@ struct ResultScreen: View {
                         .fill(.ultraThinMaterial.opacity(0.3))
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .stroke(accentColor.opacity(0.15), lineWidth: 1)
+                                .stroke(
+                                    isP1Win
+                                        ? LinearGradient(colors: [accentColor.opacity(glowPulse ? 0.7 : 0.3), accentColor.opacity(0.1), accentColor.opacity(glowPulse ? 0.5 : 0.2)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                        : LinearGradient(colors: [.white.opacity(0.15), .white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                    lineWidth: isP1Win ? 1.5 : 1
+                                )
                         )
+                        .shadow(color: isP1Win ? accentColor.opacity(glowPulse ? 0.25 : 0.1) : .clear, radius: 12)
                 )
                 .opacity(appeared ? 1 : 0)
 
@@ -371,6 +426,7 @@ struct ResultScreen: View {
                 appeared = true
             }
             if isP1Win {
+                // Trophy bounce
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.4).delay(0.3)) {
                     trophyBounce = true
                 }
@@ -379,6 +435,43 @@ struct ResultScreen: View {
                 }
                 withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true).delay(0.5)) {
                     glowPulse = true
+                }
+                // VICTORY text slam
+                withAnimation(.interpolatingSpring(stiffness: 600, damping: 12).delay(0.35)) {
+                    victoryScale = 1.0
+                }
+                // Confetti rain
+                let confettiColors: [Color] = [
+                    .yellow, accentColor,
+                    Color(red: 1, green: 0.4, blue: 0.4),
+                    Color(red: 0.3, green: 1, blue: 0.6),
+                    .cyan,
+                    Color(red: 1, green: 0.75, blue: 0)
+                ]
+                let now = Date.timeIntervalSinceReferenceDate
+                let screenW = UIScreen.main.bounds.width
+                confettiPieces = (0..<55).map { i in
+                    ConfettiPiece(
+                        id: i,
+                        x: CGFloat.random(in: 0...screenW),
+                        color: confettiColors[i % confettiColors.count],
+                        size: CGFloat.random(in: 5...13),
+                        isCircle: i % 3 == 0,
+                        duration: Double.random(in: 2.0...4.5),
+                        wobbleSpeed: Double.random(in: 0.3...0.9),
+                        rotationSpeed: Double.random(in: 0.4...2.0),
+                        startTime: now,
+                        delay: Double.random(in: 0...1.8)
+                    )
+                }
+                confettiActive = true
+                Task {
+                    try? await Task.sleep(for: .seconds(5))
+                    await MainActor.run {
+                        withAnimation(.easeOut(duration: 1.2)) { confettiOpacity = 0 }
+                    }
+                    try? await Task.sleep(for: .seconds(1))
+                    await MainActor.run { confettiActive = false; confettiOpacity = 1 }
                 }
             }
         }
