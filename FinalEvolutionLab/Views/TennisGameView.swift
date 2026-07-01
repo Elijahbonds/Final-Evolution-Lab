@@ -21,6 +21,81 @@ private struct TennisBall {
     var fromOpponent: Bool = true
 }
 
+// MARK: - New: Serve Type
+
+private enum ServeType: String, CaseIterable {
+    case flat  = "FLAT"
+    case slice = "SLICE"
+    case kick  = "KICK"
+
+    var description: String {
+        switch self {
+        case .flat:  return "Fast · Straight · 70% in"
+        case .slice: return "Curves away · 80% in"
+        case .kick:  return "Bounces high · 85% in"
+        }
+    }
+    /// Base probability the serve lands in when executed
+    var inProbability: Double {
+        switch self {
+        case .flat:  return 0.70
+        case .slice: return 0.80
+        case .kick:  return 0.85
+        }
+    }
+    /// Icon representing the serve type
+    var icon: String {
+        switch self {
+        case .flat:  return "bolt.fill"
+        case .slice: return "arrow.turn.down.right"
+        case .kick:  return "arrow.up.and.down.circle"
+        }
+    }
+    /// Accent colour for the button
+    var color: Color {
+        switch self {
+        case .flat:  return Color(red: 0.95, green: 0.82, blue: 0.15)
+        case .slice: return Color(red: 0.30, green: 0.75, blue: 0.95)
+        case .kick:  return Color(red: 0.85, green: 0.45, blue: 0.95)
+        }
+    }
+}
+
+// MARK: - New: Shot Type
+
+private enum ShotType: String, CaseIterable {
+    case groundstroke = "DRIVE"
+    case lob          = "LOB"
+    case dropShot     = "DROP"
+    case approach     = "APPROACH"
+
+    var icon: String {
+        switch self {
+        case .groundstroke: return "arrow.right.circle.fill"
+        case .lob:          return "arrow.up.circle.fill"
+        case .dropShot:     return "arrow.down.circle.fill"
+        case .approach:     return "figure.walk"
+        }
+    }
+    var color: Color {
+        switch self {
+        case .groundstroke: return Color(red: 0.20, green: 0.80, blue: 0.40)
+        case .lob:          return Color(red: 0.95, green: 0.65, blue: 0.15)
+        case .dropShot:     return Color(red: 0.95, green: 0.35, blue: 0.35)
+        case .approach:     return Color(red: 0.45, green: 0.65, blue: 0.95)
+        }
+    }
+    /// Probability of outright winner when used in ideal circumstances
+    var winnerProbability: Double {
+        switch self {
+        case .groundstroke: return 0.18
+        case .lob:          return 0.25
+        case .dropShot:     return 0.30
+        case .approach:     return 0.15
+        }
+    }
+}
+
 // MARK: - Haptics Helper
 
 private enum TennisHaptic {
@@ -29,6 +104,8 @@ private enum TennisHaptic {
     static func ace()         { UIImpactFeedbackGenerator(style: .rigid).impactOccurred() }
     static func fault()       { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
     static func doubleFault() { UINotificationFeedbackGenerator().notificationOccurred(.error) }
+    static func challenge()   { UIImpactFeedbackGenerator(style: .rigid).impactOccurred() }
+    static func momentum()    { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
 }
 
 // MARK: - Court Canvas
@@ -1140,6 +1217,306 @@ private struct TennisDrawer {
     private func lerp(_ a: CGFloat, _ b: CGFloat, _ t: CGFloat) -> CGFloat { a + (b - a) * t }
 }
 
+// MARK: - Set Stats Modal
+
+private struct SetStatsModal: View {
+    let setNumber: Int
+    let acesCount: Int
+    let winnersCount: Int
+    let unforcedErrors: Int
+    let serveAttempts: Int
+    let serveIns: Int
+    let onDismiss: () -> Void
+
+    private var servePercent: Int {
+        guard serveAttempts > 0 else { return 0 }
+        return Int(Double(serveIns) / Double(serveAttempts) * 100)
+    }
+    private var winnerPercent: Int {
+        let total = winnersCount + unforcedErrors
+        guard total > 0 else { return 0 }
+        return Int(Double(winnersCount) / Double(total) * 100)
+    }
+    private var mvpRating: Int {
+        let total = winnersCount + unforcedErrors
+        guard total > 0 else { return 50 }
+        return Int(Double(winnersCount) / Double(total) * 100)
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.85).ignoresSafeArea()
+            VStack(spacing: 20) {
+                Text("SET \(setNumber) STATS")
+                    .font(.system(size: 20, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.85, green: 0.75, blue: 0.1))
+                    .tracking(4)
+
+                VStack(spacing: 14) {
+                    statRow(label: "ACES", value: "\(acesCount)", color: Color(red: 0.95, green: 0.82, blue: 0.15))
+                    statRow(label: "WINNERS", value: "\(winnersCount)", color: Color(red: 0.20, green: 0.80, blue: 0.40))
+                    statRow(label: "UNFORCED ERRORS", value: "\(unforcedErrors)", color: Color(red: 0.90, green: 0.30, blue: 0.30))
+                    statRow(label: "1ST SERVE %", value: "\(servePercent)%", color: Color(red: 0.45, green: 0.65, blue: 0.95))
+                    Divider().background(Color.white.opacity(0.15))
+                    statRow(label: "MVP RATING", value: "\(mvpRating)/100", color: Color(red: 0.85, green: 0.75, blue: 0.1))
+                }
+                .padding(20)
+                .background(Color(white: 0.08).clipShape(RoundedRectangle(cornerRadius: 16)))
+
+                Button {
+                    onDismiss()
+                } label: {
+                    Text("CONTINUE")
+                        .font(.system(size: 16, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color(red: 0.85, green: 0.75, blue: 0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal, 40)
+            }
+            .padding(24)
+        }
+    }
+
+    private func statRow(label: String, value: String, color: Color) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .tracking(1)
+            Spacer()
+            Text(value)
+                .font(.system(size: 18, weight: .black, design: .monospaced))
+                .foregroundStyle(color)
+        }
+    }
+}
+
+// MARK: - Momentum Bar
+
+private struct MomentumBar: View {
+    let momentum: Double  // 0.0–1.0
+
+    private var isOnARoll: Bool { momentum > 0.75 }
+    private var isUnderPressure: Bool { momentum < 0.25 }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            // Status banner
+            if isOnARoll {
+                Text("ON A ROLL 🔥")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.95, green: 0.55, blue: 0.10))
+                    .tracking(2)
+                    .transition(.scale.combined(with: .opacity))
+            } else if isUnderPressure {
+                Text("UNDER PRESSURE ❄️")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.50, green: 0.80, blue: 1.00))
+                    .tracking(2)
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    // Background track
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(white: 0.12))
+                        .frame(height: 8)
+
+                    // Player (blue) side – fills from left to momentum point
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.20, green: 0.55, blue: 1.00),
+                                         Color(red: 0.10, green: 0.35, blue: 0.80)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * CGFloat(momentum), height: 8)
+
+                    // Opponent (red) side – fills from right toward momentum point
+                    HStack {
+                        Spacer(minLength: geo.size.width * CGFloat(momentum))
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(red: 0.80, green: 0.20, blue: 0.20),
+                                             Color(red: 0.95, green: 0.35, blue: 0.35)],
+                                    startPoint: .leading, endPoint: .trailing
+                                )
+                            )
+                            .frame(height: 8)
+                    }
+
+                    // Center pivot marker
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(Color.white.opacity(0.70))
+                        .frame(width: 2, height: 12)
+                        .offset(x: geo.size.width / 2 - 1, y: -2)
+
+                    // Momentum cursor
+                    Circle()
+                        .fill(isOnARoll ? Color(red: 0.95, green: 0.55, blue: 0.10)
+                              : isUnderPressure ? Color(red: 0.50, green: 0.80, blue: 1.00)
+                              : Color.white)
+                        .frame(width: 12, height: 12)
+                        .shadow(color: .black.opacity(0.4), radius: 3)
+                        .offset(x: geo.size.width * CGFloat(momentum) - 6, y: -2)
+                }
+            }
+            .frame(height: 12)
+
+            HStack {
+                Text("YOU")
+                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.20, green: 0.55, blue: 1.00))
+                Spacer()
+                Text("MOMENTUM")
+                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(1)
+                Spacer()
+                Text("OPP")
+                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.95, green: 0.35, blue: 0.35))
+            }
+        }
+        .animation(.spring(response: 0.35), value: momentum)
+        .padding(.horizontal, 24)
+    }
+}
+
+// MARK: - Serve Type Picker
+
+private struct ServeTypePicker: View {
+    @Binding var selected: ServeType
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text("SELECT SERVE")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .tracking(3)
+
+            HStack(spacing: 10) {
+                ForEach(ServeType.allCases, id: \.self) { type in
+                    Button {
+                        selected = type
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: type.icon)
+                                .font(.system(size: 14))
+                            Text(type.rawValue)
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(selected == type ? .black : type.color)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(selected == type ? type.color : type.color.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(type.color.opacity(selected == type ? 0 : 0.45), lineWidth: 1)
+                        )
+                    }
+                }
+            }
+
+            Text(selected.description)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .animation(.easeInOut(duration: 0.15), value: selected)
+        }
+        .padding(.horizontal, 24)
+    }
+}
+
+// MARK: - Shot Type Pad
+
+private struct ShotTypePad: View {
+    @Binding var selected: ShotType
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text("SHOT TYPE")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .tracking(3)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(ShotType.allCases, id: \.self) { type in
+                    Button {
+                        selected = type
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: type.icon)
+                                .font(.system(size: 12))
+                            Text(type.rawValue)
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(selected == type ? .black : type.color)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(selected == type ? type.color : type.color.opacity(0.10))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(type.color.opacity(selected == type ? 0 : 0.40), lineWidth: 1)
+                        )
+                    }
+                }
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+}
+
+// MARK: - Challenge Overlay
+
+private struct ChallengeReviewOverlay: View {
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.75).ignoresSafeArea()
+            VStack(spacing: 16) {
+                Text("VIDEO REVIEW")
+                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .tracking(4)
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.85, green: 0.75, blue: 0.1)))
+                    .scaleEffect(1.5)
+                Text("REVIEWING...")
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.85, green: 0.75, blue: 0.1))
+                    .tracking(3)
+            }
+        }
+        .transition(.opacity)
+    }
+}
+
+// MARK: - Tiebreak Banner
+
+private struct TiebreakBanner: View {
+    var body: some View {
+        Text("⚡ TIEBREAK ⚡")
+            .font(.system(size: 14, weight: .black, design: .monospaced))
+            .foregroundStyle(.black)
+            .tracking(4)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(Color(red: 0.95, green: 0.82, blue: 0.15))
+            .clipShape(Capsule())
+            .shadow(color: Color(red: 0.95, green: 0.82, blue: 0.15).opacity(0.6), radius: 12)
+            .transition(.scale.combined(with: .opacity))
+    }
+}
+
 // MARK: - TennisGameView
 
 struct TennisGameView: View {
@@ -1148,10 +1525,12 @@ struct TennisGameView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    // MARK: Phase & Timer
     @State private var phase: TennisPhase = .ready
     @State private var timeLeft: Int = 120
     @State private var gameTimerTask: Task<Void, Never>? = nil
 
+    // MARK: Scoring
     @State private var playerGames: Int = 0
     @State private var opponentGames: Int = 0
     @State private var playerPoints: TennisPoint = .zero
@@ -1159,6 +1538,13 @@ struct TennisGameView: View {
     @State private var playerSets: Int = 0
     @State private var opponentSets: Int = 0
 
+    // MARK: Tiebreak
+    @State private var isTiebreak: Bool = false
+    @State private var tiebreakPlayerPoints: Int = 0
+    @State private var tiebreakOpponentPoints: Int = 0
+    @State private var showTiebreakBanner: Bool = false
+
+    // MARK: Ball & Rally
     @State private var ball: TennisBall = TennisBall()
     @State private var rallyTask: Task<Void, Never>? = nil
     @State private var awaitingSwipe: Bool = false
@@ -1173,17 +1559,78 @@ struct TennisGameView: View {
     @State private var ballOpacity: Double = 1.0
     @State private var crowdLevel: Double = 0.30
 
-    // FX state for canvas
+    // MARK: Canvas FX
     @State private var showAce: Bool = false
     @State private var showWinner: Bool = false
     @State private var showFault: Bool = false
 
+    // MARK: Swipe & Drag
     @State private var dragStart: CGPoint? = nil
     private let XP_CAP_PER_SESSION = 500
     @State private var sessionXP: Int = 0
 
+    // MARK: Serve System
+    @State private var serveType: ServeType = .flat
+    @State private var isFirstServe: Bool = true
+    @State private var firstServeFaulted: Bool = false
+
+    // MARK: Shot Selection
+    @State private var shotSelection: ShotType = .groundstroke
+    @State private var showShotPad: Bool = false
+    @State private var approachMode: Bool = false  // true after an approach shot — next will be volley
+
+    // MARK: Momentum
+    @State private var playerMomentum: Double = 0.5  // 0.0–1.0
+    @State private var showMomentumBar: Bool = true
+
+    // MARK: Challenge System
+    @State private var challengesRemaining: Int = 1
+    @State private var showChallengeReview: Bool = false
+    @State private var challengeResultText: String = ""
+    @State private var showChallengeResult: Bool = false
+    @State private var canChallenge: Bool = false   // only available immediately after a point
+
+    // MARK: Statistics
+    @State private var acesCount: Int = 0
+    @State private var winnersCount: Int = 0
+    @State private var unforcedErrors: Int = 0
+    @State private var serveAttempts: Int = 0
+    @State private var serveIns: Int = 0
+    @State private var setNumber: Int = 1
+    @State private var showSetStats: Bool = false
+
+    // Snapshot at set boundary for stats modal
+    @State private var lastSetAces: Int = 0
+    @State private var lastSetWinners: Int = 0
+    @State private var lastSetErrors: Int = 0
+    @State private var lastSetServeAttempts: Int = 0
+    @State private var lastSetServeIns: Int = 0
+
     private let accentColor = Color(red: 0.85, green: 0.75, blue: 0.1)
     private let opponentName = "Kai Nexus"
+
+    // MARK: - Momentum Helpers
+
+    /// Effective accuracy bonus/penalty from momentum
+    private var momentumAccuracyModifier: Double {
+        if playerMomentum > 0.75 { return 0.15 }
+        if playerMomentum < 0.25 { return -0.15 }
+        return 0.0
+    }
+
+    private func addWinnerMomentum() {
+        withAnimation(.spring(response: 0.3)) {
+            playerMomentum = min(1.0, playerMomentum + 0.12)
+        }
+    }
+
+    private func addErrorMomentum() {
+        withAnimation(.spring(response: 0.3)) {
+            playerMomentum = max(0.0, playerMomentum - 0.10)
+        }
+    }
+
+    // MARK: - Body
 
     var body: some View {
         ZStack {
@@ -1201,6 +1648,26 @@ struct TennisGameView: View {
             case .serving: servingView
             case .rally:   rallyView
             case .result:  resultView
+            }
+
+            // Overlays that appear across phases
+            if showChallengeReview {
+                ChallengeReviewOverlay()
+                    .zIndex(10)
+            }
+
+            if showSetStats {
+                SetStatsModal(
+                    setNumber: setNumber - 1,
+                    acesCount: lastSetAces,
+                    winnersCount: lastSetWinners,
+                    unforcedErrors: lastSetErrors,
+                    serveAttempts: lastSetServeAttempts,
+                    serveIns: lastSetServeIns
+                ) {
+                    withAnimation { showSetStats = false }
+                }
+                .zIndex(9)
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -1226,14 +1693,23 @@ struct TennisGameView: View {
                 VStack(spacing: 2) {
                     Text("YOU").font(.system(size: 8, weight: .black, design: .monospaced))
                         .foregroundStyle(.secondary).tracking(2)
-                    Text(playerPoints.display)
+                    Text(isTiebreak ? "\(tiebreakPlayerPoints)" : playerPoints.display)
                         .font(.system(size: 32, weight: .black, design: .monospaced))
                         .foregroundStyle(.white).contentTransition(.numericText())
                 }
                 Spacer()
                 VStack(spacing: 2) {
-                    Text(clockString).font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(timeLeft <= 20 ? .red : accentColor)
+                    HStack(spacing: 6) {
+                        Text(clockString).font(.system(size: 11, weight: .black, design: .monospaced))
+                            .foregroundStyle(timeLeft <= 20 ? .red : accentColor)
+                        if isTiebreak {
+                            Text("TB").font(.system(size: 9, weight: .black, design: .monospaced))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(accentColor)
+                                .clipShape(Capsule())
+                        }
+                    }
                     HStack(spacing: 4) {
                         ForEach(0..<3) { i in
                             Circle().fill(i < playerSets ? accentColor : Color.white.opacity(0.12))
@@ -1255,11 +1731,18 @@ struct TennisGameView: View {
                 VStack(spacing: 2) {
                     Text(opponentName.uppercased()).font(.system(size: 8, weight: .black, design: .monospaced))
                         .foregroundStyle(.secondary).tracking(2)
-                    Text(opponentPoints.display)
+                    Text(isTiebreak ? "\(tiebreakOpponentPoints)" : opponentPoints.display)
                         .font(.system(size: 32, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.white.opacity(0.55)).contentTransition(.numericText())
                 }
             }.padding(.horizontal, 24)
+
+            // Momentum bar always visible during rally/serving phases
+            if phase == .rally || phase == .serving {
+                MomentumBar(momentum: playerMomentum)
+                    .padding(.top, 4)
+            }
+
             Rectangle().fill(accentColor.opacity(0.25)).frame(height: 1).padding(.horizontal, 20)
         }
         .padding(.top, 8)
@@ -1285,10 +1768,21 @@ struct TennisGameView: View {
             .animation(.easeInOut(duration: 0.55), value: ball.position)
             .clipShape(RoundedRectangle(cornerRadius: 14))
 
+            // Tiebreak overlay banner on canvas
+            if showTiebreakBanner {
+                VStack {
+                    TiebreakBanner()
+                    Spacer()
+                }
+                .padding(.top, 12)
+                .allowsHitTesting(false)
+            }
+
             if showFeedback {
                 Text(feedbackText)
                     .font(.system(size: 22, weight: .black, design: .monospaced))
-                    .foregroundStyle(feedbackText == "ACE!" || feedbackText == "WINNER!" ? accentColor : .red)
+                    .foregroundStyle(feedbackText == "ACE!" || feedbackText == "WINNER!" || feedbackText.contains("ROLL")
+                                     ? accentColor : feedbackText.contains("PRESSURE") ? Color(red: 0.50, green: 0.80, blue: 1.0) : .red)
                     .shadow(color: accentColor.opacity(0.6), radius: 12)
                     .transition(.scale(scale: 0.5).combined(with: .opacity))
                     .allowsHitTesting(false)
@@ -1306,10 +1800,26 @@ struct TennisGameView: View {
             Spacer()
             courtCanvas
             Spacer()
-            VStack(spacing: 16) {
-                Text("SERVE").font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(accentColor).tracking(4)
+
+            VStack(spacing: 14) {
+                // First vs Second serve label
+                HStack(spacing: 8) {
+                    Text(firstServeFaulted ? "2ND SERVE" : "1ST SERVE")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(firstServeFaulted ? Color.red : accentColor)
+                        .tracking(4)
+                    if !firstServeFaulted {
+                        Text("SERVE").font(.system(size: 11, weight: .black, design: .monospaced))
+                            .foregroundStyle(accentColor).tracking(4)
+                            .hidden()  // balance layout
+                    }
+                }
+
                 Text("Tap to toss, then serve").font(.system(size: 12, design: .monospaced)).foregroundStyle(.secondary)
+
+                // Serve type picker — always visible before serve
+                ServeTypePicker(selected: $serveType)
+
                 if serveReady && !serveAnimating {
                     actionButton(label: "SERVE", icon: "arrow.up.circle.fill") { launchServe() }
                 } else if !serveReady {
@@ -1318,7 +1828,7 @@ struct TennisGameView: View {
                     Text("Tossing…").font(.system(size: 14, design: .monospaced)).foregroundStyle(.secondary)
                 }
             }
-            .padding(.bottom, 40)
+            .padding(.bottom, 36)
         }
     }
 
@@ -1331,20 +1841,50 @@ struct TennisGameView: View {
                 Spacer()
                 courtCanvas
                 Spacer()
-                VStack(spacing: 12) {
+
+                VStack(spacing: 10) {
+                    // Shot selection pad visible during rally (before swipe window opens)
+                    if !swipeWindowOpen && phase == .rally {
+                        ShotTypePad(selected: $shotSelection)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
+                    // Return window prompt
                     if swipeWindowOpen {
                         Text("SWIPE TO RETURN!")
                             .font(.system(size: 14, weight: .black, design: .monospaced))
                             .foregroundStyle(accentColor).tracking(2)
                             .transition(.scale.combined(with: .opacity))
                     } else {
-                        Text("Watch the ball…").font(.system(size: 12, design: .monospaced)).foregroundStyle(.secondary)
+                        Text(approachMode ? "AT NET — VOLLEY READY" : "Watch the ball…")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(approachMode ? Color(red: 0.45, green: 0.65, blue: 0.95) : .secondary)
+                    }
+
+                    // Challenge button — available right after disputed line call
+                    if canChallenge && challengesRemaining > 0 {
+                        Button {
+                            useChallenge()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "video.fill").font(.system(size: 12))
+                                Text("CHALLENGE (\(challengesRemaining) left)")
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20).padding(.vertical, 8)
+                            .background(Color(red: 0.55, green: 0.25, blue: 0.85))
+                            .clipShape(Capsule())
+                        }
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .frame(height: 60)
-                .animation(.easeInOut(duration: 0.2), value: swipeWindowOpen)
+                .frame(minHeight: 110)
+                .animation(.easeInOut(duration: 0.20), value: swipeWindowOpen)
+                .animation(.easeInOut(duration: 0.20), value: showShotPad)
                 .padding(.bottom, 20)
             }
+
             Color.clear.contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 20)
@@ -1420,6 +1960,91 @@ struct TennisGameView: View {
         }
     }
 
+    // MARK: - Momentum Banner Helpers
+
+    private func checkMomentumBanners() {
+        if playerMomentum > 0.75 {
+            flashFeedback("ON A ROLL!")
+        } else if playerMomentum < 0.25 {
+            flashFeedback("UNDER PRESSURE!")
+        }
+    }
+
+    // MARK: - Challenge System
+
+    private func useChallenge() {
+        guard challengesRemaining > 0, !showChallengeReview else { return }
+        challengesRemaining -= 1
+        canChallenge = false
+        TennisHaptic.challenge()
+
+        withAnimation { showChallengeReview = true }
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            await MainActor.run {
+                withAnimation { showChallengeReview = false }
+                // 50/50 outcome for challenge
+                let success = Bool.random()
+                if success {
+                    challengeResultText = "CALL OVERTURNED — POINT REPLAYED"
+                    // Give point back
+                    flashFeedback("CHALLENGE!")
+                    addWinnerMomentum()
+                    scheduleNextRallyOrServe(playerServes: true)
+                } else {
+                    challengeResultText = "CALL CONFIRMED — POINT STANDS"
+                    flashFeedback("OUT!")
+                }
+                showChallengeResult = true
+                Task {
+                    try? await Task.sleep(for: .milliseconds(2000))
+                    await MainActor.run { showChallengeResult = false }
+                }
+            }
+        }
+    }
+
+    // MARK: - Tiebreak Logic
+
+    private var tiebreakScoreDisplay: String {
+        "\(tiebreakPlayerPoints)–\(tiebreakOpponentPoints)"
+    }
+
+    private func enterTiebreak() {
+        isTiebreak = true
+        tiebreakPlayerPoints = 0
+        tiebreakOpponentPoints = 0
+        withAnimation(.spring(response: 0.3)) { showTiebreakBanner = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await MainActor.run { withAnimation { showTiebreakBanner = false } }
+        }
+        flashFeedback("TIEBREAK!")
+    }
+
+    private func tiebreakPlayerWinsPoint() {
+        withAnimation { tiebreakPlayerPoints += 1 }
+        checkTiebreakWin()
+    }
+
+    private func tiebreakOpponentWinsPoint() {
+        withAnimation { tiebreakOpponentPoints += 1 }
+        checkTiebreakWin()
+    }
+
+    private func checkTiebreakWin() {
+        let pp = tiebreakPlayerPoints; let op = tiebreakOpponentPoints
+        if pp >= 7 && pp - op >= 2 {
+            isTiebreak = false
+            playerWinsSet()
+        } else if op >= 7 && op - pp >= 2 {
+            isTiebreak = false
+            opponentWinsSet()
+        } else {
+            scheduleNextRallyOrServe(playerServes: tiebreakPlayerPoints % 2 == 0)
+        }
+    }
+
     // MARK: - Helpers
 
     private var clockString: String { String(format: "%d:%02d", timeLeft / 60, timeLeft % 60) }
@@ -1427,6 +2052,7 @@ struct TennisGameView: View {
     private func startMatch() {
         ball.position = CGPoint(x: 0.5, y: 0.8)
         isServing = true; serveReady = false; serveAnimating = false
+        firstServeFaulted = false
         phase = .serving; startGameTimer()
     }
 
@@ -1460,21 +2086,67 @@ struct TennisGameView: View {
 
     private func launchServe() {
         serveReady = false; serveAnimating = true
+        serveAttempts += 1
+
+        // Determine if serve lands in based on serve type probability
+        let inProb = serveType.inProbability + momentumAccuracyModifier * 0.5
+        let landedIn = Double.random(in: 0...1) < inProb
+
         let dir: CGFloat = Bool.random() ? -0.2 : 0.2
-        // Haptic: medium on serve launch (ball bounce off racquet)
         TennisHaptic.bounce()
+
+        // Ball arc varies by serve type
+        let arcY: CGFloat
+        switch serveType {
+        case .flat:  arcY = 0.16   // fast, low arc
+        case .slice: arcY = 0.20   // mid arc, curves
+        case .kick:  arcY = 0.25   // higher bounce
+        }
+
         withAnimation(.easeIn(duration: 0.5)) {
-            ball.position = CGPoint(x: 0.5 + dir, y: 0.18)
+            ball.position = CGPoint(x: 0.5 + dir, y: arcY)
             ballScale = 0.75
         }
+
         Task {
             try? await Task.sleep(for: .milliseconds(600))
-            await MainActor.run { phase = .rally; beginRally(fromOpponent: false) }
+            await MainActor.run {
+                if landedIn {
+                    serveIns += 1
+                    firstServeFaulted = false
+                    isFirstServe = true
+                    phase = .rally
+                    beginRally(fromOpponent: false)
+                } else {
+                    triggerFault()
+                    if firstServeFaulted {
+                        // Double fault
+                        flashFeedback("DOUBLE FAULT!")
+                        TennisHaptic.doubleFault()
+                        unforcedErrors += 1
+                        addErrorMomentum()
+                        firstServeFaulted = false
+                        isFirstServe = true
+                        opponentWinsPoint()
+                    } else {
+                        // First fault — choose serve type for second serve
+                        flashFeedback("FAULT!")
+                        firstServeFaulted = true
+                        serveReady = false; serveAnimating = false
+                        // Reset ball position for second serve
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            ball.position = CGPoint(x: 0.5, y: 0.8)
+                            ballScale = 1.0
+                        }
+                    }
+                }
+            }
         }
     }
 
     private func beginRally(fromOpponent: Bool) {
         rallyTask?.cancel(); awaitingSwipe = false; swipeWindowOpen = false
+        canChallenge = false
         rallyTask = Task {
             let targetX = CGFloat.random(in: 0.25...0.75)
             await MainActor.run {
@@ -1483,7 +2155,6 @@ struct TennisGameView: View {
                     ballScale = fromOpponent ? 1.0 : 0.7
                 }
             }
-            // Haptic: medium bounce as ball lands
             TennisHaptic.bounce()
             if fromOpponent {
                 try? await Task.sleep(for: .milliseconds(500))
@@ -1513,6 +2184,9 @@ struct TennisGameView: View {
                     swipeWindowOpen = false
                     flashFeedback("MISS!")
                     triggerFault()
+                    unforcedErrors += 1
+                    addErrorMomentum()
+                    canChallenge = true
                     opponentWinsPoint()
                 }
             }
@@ -1522,48 +2196,154 @@ struct TennisGameView: View {
     private func handlePlayerSwipe(_ dir: SwipeDir) {
         guard awaitingSwipe else { return }
         awaitingSwipe = false; swipeWindowOpen = false; swipeWindowTask?.cancel()
-        // Haptic: heavy on successful hit
         TennisHaptic.hit()
+
         if dir != .none {
-            let isWinner = Bool.random()
-            if isWinner {
-                flashFeedback("WINNER!")
-                triggerWinner()
-            } else {
-                flashFeedback("GREAT SHOT!")
-            }
-            crowdLevel = min(1.0, crowdLevel + 0.15)
-            let shotX = dir == .left ? CGFloat.random(in: 0.15...0.4) : CGFloat.random(in: 0.6...0.85)
-            withAnimation(.easeIn(duration: 0.45)) {
-                ball.position = CGPoint(x: shotX, y: 0.15)
-                ballScale = 0.7
-            }
-            Task {
-                try? await Task.sleep(for: .milliseconds(600))
-                await MainActor.run { beginRally(fromOpponent: false) }
-            }
+            // Resolve shot based on selected shot type and momentum
+            resolveShot(direction: dir)
         } else {
             flashFeedback("MISS!")
             triggerFault()
+            unforcedErrors += 1
+            addErrorMomentum()
+            canChallenge = true
             opponentWinsPoint()
         }
     }
 
+    // MARK: - Shot Resolution
+
+    private func resolveShot(direction: SwipeDir) {
+        let baseWinnerProb = shotSelection.winnerProbability + momentumAccuracyModifier
+        let clampedProb = max(0.05, min(0.90, baseWinnerProb))
+
+        let shotX = direction == .left ? CGFloat.random(in: 0.15...0.4) : CGFloat.random(in: 0.6...0.85)
+
+        switch shotSelection {
+
+        case .groundstroke:
+            crowdLevel = min(1.0, crowdLevel + 0.08)
+            let isWinner = Double.random(in: 0...1) < clampedProb
+            if isWinner {
+                flashFeedback("WINNER!")
+                triggerWinner()
+                winnersCount += 1
+                addWinnerMomentum()
+                checkMomentumBanners()
+                crowdLevel = min(1.0, crowdLevel + 0.15)
+                animateBallShot(to: CGPoint(x: shotX, y: 0.15))
+                awardPlayerPoint()
+            } else {
+                flashFeedback("GREAT SHOT!")
+                animateBallShot(to: CGPoint(x: shotX, y: 0.15))
+                continueRally()
+            }
+            approachMode = false
+
+        case .lob:
+            // High arc — 25% chance opponent falls back and misses
+            let opponentMissesLob = Double.random(in: 0...1) < (0.25 + momentumAccuracyModifier * 0.5)
+            crowdLevel = min(1.0, crowdLevel + 0.10)
+            if opponentMissesLob {
+                flashFeedback("LOB WINNER!")
+                triggerWinner()
+                winnersCount += 1
+                addWinnerMomentum()
+                checkMomentumBanners()
+                // High arc animation: ball goes to top centre
+                animateBallShot(to: CGPoint(x: CGFloat.random(in: 0.35...0.65), y: 0.10))
+                awardPlayerPoint()
+            } else {
+                flashFeedback("GREAT LOB!")
+                animateBallShot(to: CGPoint(x: 0.5, y: 0.12))
+                continueRally()
+            }
+            approachMode = false
+
+        case .dropShot:
+            // 30% winner if opponent at baseline
+            let dropWins = Double.random(in: 0...1) < (0.30 + momentumAccuracyModifier * 0.5)
+            crowdLevel = min(1.0, crowdLevel + 0.12)
+            if dropWins {
+                flashFeedback("DROP SHOT!")
+                triggerWinner()
+                winnersCount += 1
+                addWinnerMomentum()
+                checkMomentumBanners()
+                // Lands near net
+                animateBallShot(to: CGPoint(x: CGFloat.random(in: 0.35...0.65), y: 0.32))
+                awardPlayerPoint()
+            } else {
+                flashFeedback("TRICKY DROP!")
+                animateBallShot(to: CGPoint(x: CGFloat.random(in: 0.35...0.65), y: 0.30))
+                continueRally()
+            }
+            approachMode = false
+
+        case .approach:
+            // Approach shot advances player to net
+            flashFeedback("APPROACHING NET!")
+            crowdLevel = min(1.0, crowdLevel + 0.05)
+            animateBallShot(to: CGPoint(x: shotX, y: 0.30))
+            approachMode = true
+            // After approach, next will be volley — increase winner chance
+            continueRally()
+        }
+    }
+
+    // MARK: - Helpers for shot resolution
+
+    private func animateBallShot(to position: CGPoint) {
+        withAnimation(.easeIn(duration: 0.45)) {
+            ball.position = position
+            ballScale = 0.7
+        }
+    }
+
+    private func awardPlayerPoint() {
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            await MainActor.run { playerWinsPoint() }
+        }
+    }
+
+    private func continueRally() {
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            await MainActor.run { beginRally(fromOpponent: false) }
+        }
+    }
+
+    // MARK: - Opponent AI
+
     private func opponentResponds() {
         let prq = viewModel.effectiveMetrics.prqScore
-        let returnChance = 0.45 + (prq / 200.0)
+        // Opponent is more accurate when player is under pressure
+        let opponentBoost = playerMomentum < 0.25 ? 0.15 : 0.0
+        let returnChance = 0.45 + (prq / 200.0) + opponentBoost
+
         if Double.random(in: 0...1) < returnChance {
             beginRally(fromOpponent: true)
         } else {
             flashFeedback("ACE!")
             triggerAce()
+            acesCount += 1
+            winnersCount += 1
+            addWinnerMomentum()
+            checkMomentumBanners()
             playerWinsPoint()
         }
     }
 
+    // MARK: - Point / Game / Set Logic
+
     private func playerWinsPoint() {
-        // Haptic: success notification for winning a point
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+        canChallenge = false
+        if isTiebreak {
+            tiebreakPlayerWinsPoint()
+            return
+        }
         withAnimation {
             if playerPoints == .forty { playerWinsGame() }
             else { playerPoints = playerPoints.next ?? .zero }
@@ -1572,9 +2352,13 @@ struct TennisGameView: View {
     }
 
     private func opponentWinsPoint() {
+        canChallenge = false
+        if isTiebreak {
+            tiebreakOpponentWinsPoint()
+            return
+        }
         withAnimation {
             if opponentPoints == .forty {
-                // Haptic: error on game lost
                 TennisHaptic.doubleFault()
                 opponentWinsGame()
             } else {
@@ -1586,30 +2370,82 @@ struct TennisGameView: View {
 
     private func playerWinsGame() {
         playerPoints = .zero; opponentPoints = .zero; playerGames += 1
-        if playerGames >= 6 && playerGames - opponentGames >= 2 { playerWinsSet() }
+        checkForTiebreak()
+        if !isTiebreak {
+            if playerGames >= 6 && playerGames - opponentGames >= 2 { playerWinsSet() }
+        }
     }
 
     private func opponentWinsGame() {
         playerPoints = .zero; opponentPoints = .zero; opponentGames += 1
-        if opponentGames >= 6 && opponentGames - playerGames >= 2 { opponentWinsSet() }
+        checkForTiebreak()
+        if !isTiebreak {
+            if opponentGames >= 6 && opponentGames - playerGames >= 2 { opponentWinsSet() }
+        }
+    }
+
+    /// Check and trigger tiebreak when both players reach 6 games
+    private func checkForTiebreak() {
+        if playerGames == 6 && opponentGames == 6 && !isTiebreak {
+            enterTiebreak()
+        }
     }
 
     private func playerWinsSet() {
+        captureSetStats()
         playerGames = 0; opponentGames = 0; playerSets += 1
-        if playerSets >= 2 { endMatch() }
+        setNumber += 1
+        showSetStatsModal()
+        if playerSets >= 2 {
+            Task {
+                try? await Task.sleep(for: .milliseconds(2200))
+                await MainActor.run { endMatch() }
+            }
+        }
     }
 
     private func opponentWinsSet() {
+        captureSetStats()
         playerGames = 0; opponentGames = 0; opponentSets += 1
-        if opponentSets >= 2 { endMatch() }
+        setNumber += 1
+        showSetStatsModal()
+        if opponentSets >= 2 {
+            Task {
+                try? await Task.sleep(for: .milliseconds(2200))
+                await MainActor.run { endMatch() }
+            }
+        }
     }
+
+    // MARK: - Set Stats
+
+    private func captureSetStats() {
+        lastSetAces = acesCount
+        lastSetWinners = winnersCount
+        lastSetErrors = unforcedErrors
+        lastSetServeAttempts = serveAttempts
+        lastSetServeIns = serveIns
+        // Reset rolling stats for next set
+        acesCount = 0; winnersCount = 0; unforcedErrors = 0
+        serveAttempts = 0; serveIns = 0
+    }
+
+    private func showSetStatsModal() {
+        withAnimation(.spring(response: 0.35)) { showSetStats = true }
+    }
+
+    // MARK: - Scheduling
 
     private func scheduleNextRallyOrServe(playerServes: Bool) {
         Task {
             try? await Task.sleep(for: .milliseconds(1200))
             await MainActor.run {
                 guard phase == .rally || phase == .serving else { return }
-                isServing = true; serveReady = false; serveAnimating = false
+                isServing = true
+                serveReady = false
+                serveAnimating = false
+                firstServeFaulted = false
+                approachMode = false
                 ball.position = playerServes ? CGPoint(x: 0.5, y: 0.82) : CGPoint(x: 0.5, y: 0.18)
                 phase = .serving
             }
