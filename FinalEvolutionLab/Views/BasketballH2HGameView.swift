@@ -218,24 +218,68 @@ private struct StreetDrawer {
     // MARK: - #10-#13 Graffiti Tags
 
     private func drawGraffitiTags(ctx: inout GraphicsContext) {
-        let tagData: [(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, color: Color, label: String)] = [
-            (W * 0.01, floorY - H * 0.38, W * 0.09, H * 0.05, Color(red: 0.9, green: 0.2, blue: 0.2), "NEXUS"),
-            (W * 0.01, floorY - H * 0.30, W * 0.10, H * 0.04, Color(red: 0.2, green: 0.8, blue: 0.3), "RUN IT"),
-            (W * 0.01, floorY - H * 0.23, W * 0.08, H * 0.04, Color(red: 0.2, green: 0.5, blue: 1.0), "GAME"),
-            (W * 0.01, floorY - H * 0.15, W * 0.10, H * 0.04, Color(red: 1.0, green: 0.7, blue: 0.1), "1v1 👑")
-        ]
+        // #10 Graffiti tag 1: "NEXUS" — red on brick wall
+        let t1X = W * 0.01; let t1Y = floorY - H * 0.38
+        let t1W = W * 0.09; let t1H = H * 0.05
+        let red = Color(red: 0.9, green: 0.2, blue: 0.2)
+        var tag1Glow = ctx
+        tag1Glow.addFilter(.blur(radius: 4))
+        tag1Glow.fill(Path(CGRect(x: t1X, y: t1Y, width: t1W, height: t1H)), with: .color(red.opacity(0.30)))
+        ctx.fill(Path(CGRect(x: t1X, y: t1Y, width: t1W, height: t1H)), with: .color(red.opacity(0.22)))
+        // N letter strokes
+        var nPath = Path()
+        nPath.move(to: CGPoint(x: t1X + 4, y: t1Y + t1H - 3))
+        nPath.addLine(to: CGPoint(x: t1X + 4, y: t1Y + 3))
+        nPath.addLine(to: CGPoint(x: t1X + t1W - 4, y: t1Y + t1H - 3))
+        nPath.addLine(to: CGPoint(x: t1X + t1W - 4, y: t1Y + 3))
+        ctx.stroke(nPath, with: .color(red.opacity(0.70)), lineWidth: 1.5)
 
-        for (i, tag) in tagData.enumerated() {
-            // #10–#13 Graffiti color block + text per tag
-            let rect = CGRect(x: tag.x, y: tag.y, width: tag.w, height: tag.h)
-            ctx.fill(Path(rect), with: .color(tag.color.opacity(0.18)))
-            if let text = ctx.resolveSymbol(id: i) {
-                ctx.draw(text, at: CGPoint(x: tag.x + tag.w / 2, y: tag.y + tag.h / 2))
-            }
-            var outlineCtx = ctx
-            outlineCtx.addFilter(.blur(radius: 3))
-            outlineCtx.fill(Path(rect), with: .color(tag.color.opacity(0.25)))
-        }
+        // #11 Graffiti tag 2: "RUN IT" — green
+        let t2X = W * 0.01; let t2Y = floorY - H * 0.30
+        let t2W = W * 0.10; let t2H = H * 0.04
+        let grn = Color(red: 0.2, green: 0.8, blue: 0.3)
+        var tag2Glow = ctx
+        tag2Glow.addFilter(.blur(radius: 4))
+        tag2Glow.fill(Path(CGRect(x: t2X, y: t2Y, width: t2W, height: t2H)), with: .color(grn.opacity(0.30)))
+        ctx.fill(Path(CGRect(x: t2X, y: t2Y, width: t2W, height: t2H)), with: .color(grn.opacity(0.22)))
+        var r2Path = Path()
+        r2Path.move(to: CGPoint(x: t2X + 3, y: t2Y + t2H - 2))
+        r2Path.addLine(to: CGPoint(x: t2X + 3, y: t2Y + 2))
+        r2Path.addLine(to: CGPoint(x: t2X + t2W * 0.4, y: t2Y + t2H * 0.5))
+        r2Path.addLine(to: CGPoint(x: t2X + t2W - 3, y: t2Y + t2H - 2))
+        ctx.stroke(r2Path, with: .color(grn.opacity(0.65)), lineWidth: 1.5)
+
+        // #12 Graffiti tag 3: "GAME" — blue
+        let t3X = W * 0.01; let t3Y = floorY - H * 0.23
+        let t3W = W * 0.08; let t3H = H * 0.04
+        let blu = Color(red: 0.2, green: 0.5, blue: 1.0)
+        var tag3Glow = ctx
+        tag3Glow.addFilter(.blur(radius: 4))
+        tag3Glow.fill(Path(CGRect(x: t3X, y: t3Y, width: t3W, height: t3H)), with: .color(blu.opacity(0.30)))
+        ctx.fill(Path(CGRect(x: t3X, y: t3Y, width: t3W, height: t3H)), with: .color(blu.opacity(0.22)))
+        var g3Path = Path()
+        g3Path.move(to: CGPoint(x: t3X + t3W - 3, y: t3Y + 3))
+        g3Path.addArc(center: CGPoint(x: t3X + t3W * 0.5, y: t3Y + t3H * 0.5),
+                      radius: t3W * 0.32, startAngle: .degrees(-60), endAngle: .degrees(200), clockwise: false)
+        ctx.stroke(g3Path, with: .color(blu.opacity(0.65)), lineWidth: 1.5)
+
+        // #13 Graffiti tag 4: "1v1" — gold/orange, bottom tag
+        let t4X = W * 0.01; let t4Y = floorY - H * 0.15
+        let t4W = W * 0.10; let t4H = H * 0.04
+        let gld = Color(red: 1.0, green: 0.7, blue: 0.1)
+        var tag4Glow = ctx
+        tag4Glow.addFilter(.blur(radius: 5))
+        tag4Glow.fill(Path(CGRect(x: t4X, y: t4Y, width: t4W, height: t4H)), with: .color(gld.opacity(0.35)))
+        ctx.fill(Path(CGRect(x: t4X, y: t4Y, width: t4W, height: t4H)), with: .color(gld.opacity(0.25)))
+        // "1v1" stroke marks
+        var oPath = Path()
+        oPath.move(to: CGPoint(x: t4X + 3, y: t4Y + 2))
+        oPath.addLine(to: CGPoint(x: t4X + 3, y: t4Y + t4H - 2))
+        oPath.move(to: CGPoint(x: t4X + t4W * 0.45, y: t4Y + 2))
+        oPath.addLine(to: CGPoint(x: t4X + t4W * 0.55, y: t4Y + t4H - 2))
+        oPath.move(to: CGPoint(x: t4X + t4W - 3, y: t4Y + 2))
+        oPath.addLine(to: CGPoint(x: t4X + t4W - 3, y: t4Y + t4H - 2))
+        ctx.stroke(oPath, with: .color(gld.opacity(0.70)), lineWidth: 1.5)
     }
 
     // MARK: - #14 Power Lines

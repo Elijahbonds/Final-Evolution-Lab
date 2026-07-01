@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Supporting Types
 
@@ -22,6 +23,26 @@ private struct GolfObstacleLayout: Identifiable {
 
 private enum ShotState { case idle, aiming, draggingBack, ballFlying, landed }
 
+private enum ShotType { case driver, iron, wedge, putt }
+
+// MARK: - Haptic Helpers
+
+private func hapticHeavy() {
+    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+}
+private func hapticRigid() {
+    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+}
+private func hapticMedium() {
+    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+}
+private func hapticSoft() {
+    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+}
+private func hapticError() {
+    UINotificationFeedbackGenerator().notificationOccurred(.error)
+}
+
 // MARK: - Canvas View
 
 private struct GolfCourseCanvas: View {
@@ -34,6 +55,16 @@ private struct GolfCourseCanvas: View {
     let aimAngle: Double;   let pullDistance: CGFloat
     let shotState: ShotState; let golferPose: String
     let crowdExcitement: Double
+    let currentHole: Int
+    let currentStrokes: Int
+    let totalStrokes: Int
+    let parPerHole: Int
+    let holeResults: [GolfHoleResult]
+    let windAngle: Double
+    let windSpeed: Double
+    let showImpactFX: Bool
+    let impactFXType: String
+    let shotTypeLabel: String
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -46,7 +77,13 @@ private struct GolfCourseCanvas: View {
                     holePosition: holePosition, obstacles: obstacles,
                     aimAngle: aimAngle, pullDistance: pullDistance,
                     shotState: shotState, golferPose: golferPose,
-                    crowdExcitement: crowdExcitement
+                    crowdExcitement: crowdExcitement,
+                    currentHole: currentHole, currentStrokes: currentStrokes,
+                    totalStrokes: totalStrokes, parPerHole: parPerHole,
+                    holeResults: holeResults,
+                    windAngle: windAngle, windSpeed: windSpeed,
+                    showImpactFX: showImpactFX, impactFXType: impactFXType,
+                    shotTypeLabel: shotTypeLabel
                 )
                 d.render(ctx: &ctx)
             }
@@ -67,6 +104,16 @@ private struct GolfDrawer {
     let aimAngle: Double;   let pullDistance: CGFloat
     let shotState: ShotState; let golferPose: String
     let crowdExcitement: Double
+    let currentHole: Int
+    let currentStrokes: Int
+    let totalStrokes: Int
+    let parPerHole: Int
+    let holeResults: [GolfHoleResult]
+    let windAngle: Double
+    let windSpeed: Double
+    let showImpactFX: Bool
+    let impactFXType: String
+    let shotTypeLabel: String
 
     init(t: Double, size: CGSize,
          ballX: Double, ballY: Double, ballProgress: Double,
@@ -74,7 +121,11 @@ private struct GolfDrawer {
          ballEndX: Double, ballEndY: Double,
          holePosition: CGPoint, obstacles: [GolfObstacleLayout],
          aimAngle: Double, pullDistance: CGFloat,
-         shotState: ShotState, golferPose: String, crowdExcitement: Double) {
+         shotState: ShotState, golferPose: String, crowdExcitement: Double,
+         currentHole: Int, currentStrokes: Int, totalStrokes: Int, parPerHole: Int,
+         holeResults: [GolfHoleResult],
+         windAngle: Double, windSpeed: Double,
+         showImpactFX: Bool, impactFXType: String, shotTypeLabel: String) {
         self.t = t; W = size.width; H = size.height
         self.ballX = ballX; self.ballY = ballY; self.ballProgress = ballProgress
         self.ballStartX = ballStartX; self.ballStartY = ballStartY
@@ -83,6 +134,12 @@ private struct GolfDrawer {
         self.aimAngle = aimAngle; self.pullDistance = pullDistance
         self.shotState = shotState; self.golferPose = golferPose
         self.crowdExcitement = crowdExcitement
+        self.currentHole = currentHole; self.currentStrokes = currentStrokes
+        self.totalStrokes = totalStrokes; self.parPerHole = parPerHole
+        self.holeResults = holeResults
+        self.windAngle = windAngle; self.windSpeed = windSpeed
+        self.showImpactFX = showImpactFX; self.impactFXType = impactFXType
+        self.shotTypeLabel = shotTypeLabel
     }
 
     // Coord helpers: normalized (0–1, origin bottom-left) → canvas (origin top-left)
@@ -94,79 +151,391 @@ private struct GolfDrawer {
     var ballCX: CGFloat { nx(ballX) }
     var ballCY: CGFloat { ny(ballY) }
 
-    mutating func render(ctx: inout GraphicsContext) {
-        drawSky(&ctx)
-        drawTrees(&ctx)
-        drawFairway(&ctx)
-        drawObstacles(&ctx)
-        drawGreen(&ctx)
-        drawFlag(&ctx)
-        if shotState != .ballFlying { drawAimLine(&ctx) }
-        if ballProgress >= 0 { drawTrail(&ctx) }
-        drawBall(&ctx)
-        if ballProgress < 0.3 || ballProgress < 0 { drawGolfer(&ctx) }
+    // Current ball canvas position during flight or at rest
+    var currentBallPos: (CGFloat, CGFloat) {
+        if ballProgress >= 0 {
+            let ep = CGFloat(ballProgress)
+            let sx = nx(ballStartX); let sy = ny(ballStartY)
+            let ex = nx(ballEndX);   let ey = ny(ballEndY)
+            let peakH: CGFloat = 85
+            let bx = sx + (ex - sx) * ep
+            let by = sy + (ey - sy) * ep - peakH * 4 * ep * (1 - ep)
+            return (bx, by)
+        }
+        return (ballCX, ballCY)
     }
 
-    private func drawSky(_ ctx: inout GraphicsContext) {
-        let skyH = H * 0.08
-        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: skyH)),
-                 with: .linearGradient(
-                    Gradient(colors: [Color(red:0.38,green:0.65,blue:0.88),
-                                      Color(red:0.55,green:0.78,blue:0.92)]),
-                    startPoint: .zero, endPoint: CGPoint(x: 0, y: skyH)))
+    mutating func render(ctx: inout GraphicsContext) {
+        // ── Scene 1: Course BG ──
+        drawSkyGradient(&ctx)          // #1–#6
+        drawMountainRange(&ctx)        // #7–#8
+        drawFairwayHills(&ctx)         // #9–#10
+        drawFescueStrips(&ctx)         // #11
+        drawTrees(&ctx)                // #12
 
-        // Clouds
+        // ── Scene 2: Obstacles & Green ──
+        drawWaterHazard(&ctx)          // #13
+        drawSandTrap(&ctx)             // #14
+        drawFairway(&ctx)              // #15–#16
+        drawGreen(&ctx)                // #17–#20
+
+        // ── Scene 3: Hole Layout mini-map ──
+        drawMiniMap(&ctx)              // #21–#28
+
+        // ── Scene 4: Flag / pin ──
+        drawFlag(&ctx)                 // #29–#31
+
+        // ── Scene 5: Putt line & landing ring ──
+        drawPuttLine(&ctx)             // #32
+        drawLandingRing(&ctx)          // #33
+
+        // ── Scene 6: Aim arc ──
+        if shotState != .ballFlying { drawAimLine(&ctx) } // #34–#35
+
+        // ── Scene 7: Ball trail ──
+        if ballProgress >= 0 { drawTrail(&ctx) } // #36–#43
+
+        // ── Scene 8: Wind drift arrow & apex ──
+        if shotState == .ballFlying { drawWindDrift(&ctx) } // #44
+        if shotState == .ballFlying { drawApexIndicator(&ctx) } // #45
+
+        // ── Scene 9: Ball ──
+        drawBall(&ctx)                 // #46–#50
+
+        // ── Scene 10: Golfer & caddie ──
+        if ballProgress < 0.3 || ballProgress < 0 {
+            drawCaddie(&ctx)           // #51–#53
+            drawGolfer(&ctx)           // #54–#65
+        }
+
+        // ── Scene 11: Impact FX ──
+        if showImpactFX { drawImpactFX(&ctx) } // #66–#76
+
+        // ── Scene 12: Score / UI on canvas ──
+        drawScorecardPanel(&ctx)       // #77–#80
+        drawWindDial(&ctx)             // #81–#82
+        drawClubDisplay(&ctx)          // #83
+        drawDistanceRing(&ctx)         // #84
+    }
+
+    // MARK: - #1–#6 Sky Gradient (morning light)
+
+    private func drawSkyGradient(_ ctx: inout GraphicsContext) {
+        let skyH = H * 0.32
+
+        // #1 Sky base gradient — pale blue at top to warm orange at horizon
+        var skyPath = Path()
+        skyPath.addRect(CGRect(x: 0, y: 0, width: W, height: skyH))
+        ctx.fill(skyPath, with: .linearGradient(
+            Gradient(colors: [
+                Color(red: 0.52, green: 0.76, blue: 0.92),
+                Color(red: 0.75, green: 0.88, blue: 0.96),
+                Color(red: 0.99, green: 0.82, blue: 0.56),
+                Color(red: 0.98, green: 0.65, blue: 0.30)
+            ]),
+            startPoint: CGPoint(x: W / 2, y: 0),
+            endPoint: CGPoint(x: W / 2, y: skyH)
+        ))
+
+        // #2 Morning sun glow (blurred halo)
+        let sunX = W * 0.78
+        let sunY = skyH * 0.38 + CGFloat(sin(t * 0.08)) * 2
+        var sunGlow = ctx
+        sunGlow.addFilter(.blur(radius: 22))
+        var sunGlowPath = Path()
+        sunGlowPath.addEllipse(in: CGRect(x: sunX - 36, y: sunY - 36, width: 72, height: 72))
+        sunGlow.fill(sunGlowPath, with: .color(Color(red: 1.0, green: 0.88, blue: 0.45).opacity(0.55)))
+
+        // #3 Sun disc
+        var sunDisc = Path()
+        sunDisc.addEllipse(in: CGRect(x: sunX - 16, y: sunY - 16, width: 32, height: 32))
+        ctx.fill(sunDisc, with: .color(Color(red: 1.0, green: 0.94, blue: 0.65)))
+
+        // #4 Sun rays
+        for i in 0..<8 {
+            let angle = Double(i) * (.pi / 4.0) + t * 0.06
+            var rayPath = Path()
+            rayPath.move(to: CGPoint(x: sunX + CGFloat(cos(angle)) * 18, y: sunY + CGFloat(sin(angle)) * 18))
+            rayPath.addLine(to: CGPoint(x: sunX + CGFloat(cos(angle)) * 28, y: sunY + CGFloat(sin(angle)) * 28))
+            ctx.stroke(rayPath, with: .color(Color(red: 1.0, green: 0.90, blue: 0.50).opacity(0.45)), lineWidth: 1.5)
+        }
+
+        // #5 Cloud row 1 (animated drift)
+        let cloudColors: [Color] = [.white.opacity(0.88), .white.opacity(0.76), .white.opacity(0.70)]
         for i in 0..<3 {
-            let cx = W * CGFloat(0.2 + Double(i) * 0.3) + CGFloat(sin(t * 0.04 + Double(i))) * 8
-            let cy = skyH * 0.45
+            let cx = W * CGFloat(0.12 + Double(i) * 0.32) + CGFloat(fmod(t * 3.0 + Double(i) * 40.0, W + 60)) - 30
+            let cy = skyH * CGFloat(0.22 + Double(i % 2) * 0.12)
+            for j in 0..<5 {
+                let dx = CGFloat(j - 2) * 14
+                let dy = CGFloat(j % 2 == 0 ? 0 : -6)
+                let r: CGFloat = j == 2 ? 13 : (j == 1 || j == 3 ? 10 : 7)
+                var cloud = Path()
+                cloud.addEllipse(in: CGRect(x: cx + dx - r, y: cy + dy - r, width: r * 2, height: r * 2))
+                ctx.fill(cloud, with: .color(cloudColors[i % 3]))
+            }
+        }
+
+        // #6 Horizon haze
+        var hazePath = Path()
+        hazePath.addRect(CGRect(x: 0, y: skyH - 18, width: W, height: 18))
+        ctx.fill(hazePath, with: .linearGradient(
+            Gradient(colors: [Color.clear, Color(red: 0.98, green: 0.72, blue: 0.45).opacity(0.35)]),
+            startPoint: CGPoint(x: W / 2, y: skyH - 18),
+            endPoint: CGPoint(x: W / 2, y: skyH)
+        ))
+    }
+
+    // MARK: - #7–#8 Mountain Range at horizon
+
+    private func drawMountainRange(_ ctx: inout GraphicsContext) {
+        let baseY = H * 0.32
+
+        // #7 Far mountains (lighter, hazy)
+        let farMtnData: [(CGFloat, CGFloat, CGFloat)] = [
+            (W * 0.05, baseY + 2, W * 0.25),
+            (W * 0.22, baseY - 12, W * 0.18),
+            (W * 0.40, baseY - 6, W * 0.22),
+            (W * 0.62, baseY - 18, W * 0.20),
+            (W * 0.80, baseY - 8, W * 0.24),
+            (W * 0.95, baseY + 4, W * 0.16)
+        ]
+        for (px, peakY, width) in farMtnData {
+            var mtn = Path()
+            mtn.move(to: CGPoint(x: px - width / 2, y: baseY))
+            mtn.addLine(to: CGPoint(x: px, y: peakY))
+            mtn.addLine(to: CGPoint(x: px + width / 2, y: baseY))
+            mtn.closeSubpath()
+            ctx.fill(mtn, with: .color(Color(red: 0.60, green: 0.70, blue: 0.75).opacity(0.55)))
+        }
+
+        // #8 Near mountain ridge (darker, solid)
+        var nearRidge = Path()
+        nearRidge.move(to: CGPoint(x: 0, y: baseY))
+        let ridgePoints: [(CGFloat, CGFloat)] = [
+            (W * 0.08, baseY - 5),
+            (W * 0.18, baseY - 20),
+            (W * 0.28, baseY - 10),
+            (W * 0.38, baseY - 28),
+            (W * 0.50, baseY - 16),
+            (W * 0.62, baseY - 30),
+            (W * 0.72, baseY - 12),
+            (W * 0.82, baseY - 22),
+            (W * 0.92, baseY - 8),
+            (W, baseY - 4)
+        ]
+        for pt in ridgePoints { nearRidge.addLine(to: CGPoint(x: pt.0, y: pt.1)) }
+        nearRidge.addLine(to: CGPoint(x: W, y: baseY))
+        nearRidge.addLine(to: CGPoint(x: 0, y: baseY))
+        nearRidge.closeSubpath()
+        ctx.fill(nearRidge, with: .color(Color(red: 0.25, green: 0.38, blue: 0.30).opacity(0.80)))
+    }
+
+    // MARK: - #9–#10 Rolling Fairway Hills
+
+    private func drawFairwayHills(_ ctx: inout GraphicsContext) {
+        let hillBase = H * 0.34
+
+        // #9 Left green hill
+        var leftHill = Path()
+        leftHill.move(to: CGPoint(x: -10, y: hillBase + 30))
+        leftHill.addCurve(
+            to: CGPoint(x: W * 0.48, y: hillBase + 30),
+            control1: CGPoint(x: W * 0.10, y: hillBase - 20),
+            control2: CGPoint(x: W * 0.32, y: hillBase - 30)
+        )
+        leftHill.addLine(to: CGPoint(x: W * 0.48, y: H))
+        leftHill.addLine(to: CGPoint(x: -10, y: H))
+        leftHill.closeSubpath()
+        ctx.fill(leftHill, with: .color(Color(red: 0.12, green: 0.32, blue: 0.14)))
+
+        // #10 Right undulating hill
+        var rightHill = Path()
+        rightHill.move(to: CGPoint(x: W * 0.52, y: hillBase + 30))
+        rightHill.addCurve(
+            to: CGPoint(x: W + 10, y: hillBase + 30),
+            control1: CGPoint(x: W * 0.68, y: hillBase - 25),
+            control2: CGPoint(x: W * 0.88, y: hillBase - 15)
+        )
+        rightHill.addLine(to: CGPoint(x: W + 10, y: H))
+        rightHill.addLine(to: CGPoint(x: W * 0.52, y: H))
+        rightHill.closeSubpath()
+        ctx.fill(rightHill, with: .color(Color(red: 0.12, green: 0.32, blue: 0.14)))
+    }
+
+    // MARK: - #11 Rough/Fescue strips
+
+    private func drawFescueStrips(_ ctx: inout GraphicsContext) {
+        // #11 Fescue rough fringe strips along left and right edges of fairway
+        let topFairway = H * 0.36
+        let roughW: CGFloat = W * 0.07
+        // Left rough
+        var leftRough = Path()
+        leftRough.addRect(CGRect(x: 0, y: topFairway, width: roughW, height: H - topFairway))
+        ctx.fill(leftRough, with: .color(Color(red: 0.09, green: 0.25, blue: 0.11)))
+        // Right rough
+        var rightRough = Path()
+        rightRough.addRect(CGRect(x: W - roughW, y: topFairway, width: roughW, height: H - topFairway))
+        ctx.fill(rightRough, with: .color(Color(red: 0.09, green: 0.25, blue: 0.11)))
+
+        // Fescue grass tufts along edges
+        for i in 0..<20 {
+            let frac = CGFloat(i) / 19.0
+            let yPos = topFairway + frac * (H - topFairway - 20)
+            let phase = sin(t * 1.2 + Double(i) * 0.9)
+            // Left tufts
             for j in 0..<4 {
-                let dx = CGFloat(j - 1) * 14
-                let dy = CGFloat(j % 2) * -5
-                let r: CGFloat = j == 1 || j == 2 ? 10 : 7
-                let cloud = Path(ellipseIn: CGRect(x: cx + dx - r, y: cy + dy - r, width: r*2, height: r*2))
-                ctx.fill(cloud, with: .color(.white.opacity(0.82)))
+                let bx = W * 0.065 * CGFloat(j) / 3.0 + 2
+                var tuft = Path()
+                tuft.move(to: CGPoint(x: bx, y: yPos))
+                tuft.addLine(to: CGPoint(x: bx + CGFloat(phase) * 2.5, y: yPos - 5 - CGFloat(j % 3) * 2))
+                ctx.stroke(tuft, with: .color(Color(red: 0.14, green: 0.40, blue: 0.16).opacity(0.7)), lineWidth: 0.8)
             }
         }
     }
 
+    // MARK: - #12 Tree Silhouettes (5 different heights)
+
     private func drawTrees(_ ctx: inout GraphicsContext) {
-        let treeBase = H * 0.08
-        let treeH = H * 0.10
-        // Left-side trees
+        // #12 Tree rows with 5 distinct height profiles
+        let treeBaseY = H * 0.34
+        let heightProfiles: [CGFloat] = [0.09, 0.12, 0.07, 0.11, 0.08]
+
+        // Left forest line
         for i in 0..<7 {
-            let tx = W * 0.04 + CGFloat(i) * W * 0.035
-            let th = treeH * CGFloat(0.75 + sin(Double(i) * 2.1) * 0.25)
-            let sway = CGFloat(sin(t * 0.6 + Double(i) * 1.4)) * 1.5
+            let tx = W * 0.02 + CGFloat(i) * W * 0.038
+            let profile = heightProfiles[i % 5]
+            let th = H * profile
+            let sway = CGFloat(sin(t * 0.55 + Double(i) * 1.4)) * 1.8
             // Trunk
             var trunk = Path()
-            trunk.move(to: CGPoint(x: tx + sway, y: treeBase + th))
-            trunk.addLine(to: CGPoint(x: tx + sway, y: treeBase + th * 0.65))
-            ctx.stroke(trunk, with: .color(Color(red:0.35,green:0.22,blue:0.10)), lineWidth: 2.5)
-            // Canopy
-            let canopy = Path(ellipseIn: CGRect(x: tx + sway - 11, y: treeBase, width: 22, height: th * 0.7))
-            ctx.fill(canopy, with: .color(Color(red:0.10,green:0.28,blue:0.12)))
+            trunk.move(to: CGPoint(x: tx + sway, y: treeBaseY + th))
+            trunk.addLine(to: CGPoint(x: tx + sway, y: treeBaseY + th * 0.62))
+            ctx.stroke(trunk, with: .color(Color(red: 0.32, green: 0.20, blue: 0.09)), lineWidth: 2.8)
+            // Pine canopy (triangle)
+            if i % 3 == 0 {
+                var pine = Path()
+                pine.move(to: CGPoint(x: tx + sway, y: treeBaseY))
+                pine.addLine(to: CGPoint(x: tx + sway - 10, y: treeBaseY + th * 0.65))
+                pine.addLine(to: CGPoint(x: tx + sway + 10, y: treeBaseY + th * 0.65))
+                pine.closeSubpath()
+                ctx.fill(pine, with: .color(Color(red: 0.09, green: 0.26, blue: 0.11)))
+            } else {
+                // Round canopy
+                let canopy = Path(ellipseIn: CGRect(x: tx + sway - 11, y: treeBaseY, width: 22, height: th * 0.72))
+                ctx.fill(canopy, with: .color(Color(red: 0.10, green: 0.28, blue: 0.12)))
+            }
         }
-        // Right-side trees
+
+        // Right forest line
         for i in 0..<7 {
-            let tx = W * 0.96 - CGFloat(i) * W * 0.035
-            let th = treeH * CGFloat(0.75 + sin(Double(i) * 1.9 + 0.7) * 0.25)
-            let sway = CGFloat(sin(t * 0.6 + Double(i) * 1.6 + 2.0)) * 1.5
+            let tx = W * 0.98 - CGFloat(i) * W * 0.038
+            let profile = heightProfiles[(i + 2) % 5]
+            let th = H * profile
+            let sway = CGFloat(sin(t * 0.55 + Double(i) * 1.6 + 2.1)) * 1.8
             var trunk = Path()
-            trunk.move(to: CGPoint(x: tx + sway, y: treeBase + th))
-            trunk.addLine(to: CGPoint(x: tx + sway, y: treeBase + th * 0.65))
-            ctx.stroke(trunk, with: .color(Color(red:0.35,green:0.22,blue:0.10)), lineWidth: 2.5)
-            let canopy = Path(ellipseIn: CGRect(x: tx + sway - 11, y: treeBase, width: 22, height: th * 0.7))
-            ctx.fill(canopy, with: .color(Color(red:0.10,green:0.28,blue:0.12)))
+            trunk.move(to: CGPoint(x: tx + sway, y: treeBaseY + th))
+            trunk.addLine(to: CGPoint(x: tx + sway, y: treeBaseY + th * 0.62))
+            ctx.stroke(trunk, with: .color(Color(red: 0.32, green: 0.20, blue: 0.09)), lineWidth: 2.8)
+            if i % 3 == 1 {
+                var pine = Path()
+                pine.move(to: CGPoint(x: tx + sway, y: treeBaseY))
+                pine.addLine(to: CGPoint(x: tx + sway - 11, y: treeBaseY + th * 0.65))
+                pine.addLine(to: CGPoint(x: tx + sway + 11, y: treeBaseY + th * 0.65))
+                pine.closeSubpath()
+                ctx.fill(pine, with: .color(Color(red: 0.09, green: 0.26, blue: 0.11)))
+            } else {
+                let canopy = Path(ellipseIn: CGRect(x: tx + sway - 11, y: treeBaseY, width: 22, height: th * 0.72))
+                ctx.fill(canopy, with: .color(Color(red: 0.10, green: 0.28, blue: 0.12)))
+            }
         }
     }
 
-    private func drawFairway(_ ctx: inout GraphicsContext) {
-        let top = H * 0.16
-        // Rough (dark green base)
-        ctx.fill(Path(CGRect(x: 0, y: top, width: W, height: H - top)),
-                 with: .color(Color(red:0.08,green:0.22,blue:0.10)))
+    // MARK: - #13 Water Hazard
 
-        // Perspective fairway trapezoid: narrow at top (far), wide at bottom (near)
+    private func drawWaterHazard(_ ctx: inout GraphicsContext) {
+        // #13 Draw water hazard obstacles with animated shimmer
+        for obs in obstacles where obs.type == .water {
+            let ox = nx(obs.position.x)
+            let oy = ny(obs.position.y)
+            let ow = CGFloat(obs.size.width) * W
+            let oh = CGFloat(obs.size.height) * H
+            let rect = CGRect(x: ox - ow / 2, y: oy - oh / 2, width: ow, height: oh)
+
+            // Water base
+            ctx.fill(Path(ellipseIn: rect), with: .linearGradient(
+                Gradient(colors: [Color(red: 0.15, green: 0.45, blue: 0.90),
+                                  Color(red: 0.08, green: 0.28, blue: 0.68)]),
+                startPoint: CGPoint(x: ox - ow / 2, y: oy - oh / 2),
+                endPoint: CGPoint(x: ox + ow / 2, y: oy + oh / 2)
+            ))
+
+            // Animated shimmer lines
+            for si in 0..<5 {
+                let phase = fmod(t * 1.1 + Double(si) * 0.65, 1.0)
+                let sx = ox - ow * 0.4 + CGFloat(phase) * ow * 0.8
+                var shimmer = Path()
+                shimmer.move(to: CGPoint(x: sx - 7, y: oy - oh * 0.1 + CGFloat(si % 2) * 4))
+                shimmer.addQuadCurve(
+                    to: CGPoint(x: sx + 7, y: oy + oh * 0.1 + CGFloat(si % 2) * 4),
+                    control: CGPoint(x: sx + 3, y: oy + CGFloat(si % 2) * 4)
+                )
+                ctx.stroke(shimmer, with: .color(.white.opacity(0.32)), lineWidth: 1.1)
+            }
+
+            // "W" label
+            ctx.draw(Text("W").font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.8)),
+                     at: CGPoint(x: ox, y: oy), anchor: .center)
+
+            // Hazard border
+            ctx.stroke(Path(ellipseIn: rect), with: .color(Color(red: 0.20, green: 0.55, blue: 0.95).opacity(0.5)), lineWidth: 1.2)
+        }
+    }
+
+    // MARK: - #14 Sand Trap
+
+    private func drawSandTrap(_ ctx: inout GraphicsContext) {
+        // #14 Draw sand trap obstacles with stippling texture
+        for obs in obstacles where obs.type == .sandTrap {
+            let ox = nx(obs.position.x)
+            let oy = ny(obs.position.y)
+            let ow = CGFloat(obs.size.width) * W
+            let oh = CGFloat(obs.size.height) * H
+            let rect = CGRect(x: ox - ow / 2, y: oy - oh / 2, width: ow, height: oh)
+
+            // Sand base
+            ctx.fill(Path(ellipseIn: rect), with: .color(Color(red: 0.90, green: 0.82, blue: 0.54)))
+
+            // Stipple dots
+            for di in 0..<18 {
+                let angle = Double(di) * .pi * 2.0 / 18.0
+                let rr = ow * 0.30
+                let dx = ox + rr * CGFloat(cos(angle)) * 0.85
+                let dy = oy + (oh / ow) * rr * CGFloat(sin(angle))
+                ctx.fill(Path(ellipseIn: CGRect(x: dx - 1.5, y: dy - 1.5, width: 3, height: 3)),
+                         with: .color(Color(red: 0.68, green: 0.58, blue: 0.32).opacity(0.65)))
+            }
+
+            ctx.draw(Text("S").font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(Color(red: 0.50, green: 0.40, blue: 0.15)),
+                     at: CGPoint(x: ox, y: oy), anchor: .center)
+
+            // Border
+            ctx.stroke(Path(ellipseIn: rect), with: .color(Color(red: 0.75, green: 0.65, blue: 0.35).opacity(0.6)), lineWidth: 1.0)
+        }
+    }
+
+    // MARK: - #15–#16 Fairway
+
+    private func drawFairway(_ ctx: inout GraphicsContext) {
+        let top = H * 0.36
+
+        // #15 Rough (dark green base under fairway)
+        var roughBase = Path()
+        roughBase.addRect(CGRect(x: 0, y: top, width: W, height: H - top))
+        ctx.fill(roughBase, with: .color(Color(red: 0.08, green: 0.22, blue: 0.10)))
+
+        // Perspective fairway trapezoid
         let topL = CGPoint(x: W * 0.28, y: top)
         let topR = CGPoint(x: W * 0.72, y: top)
         let botL = CGPoint(x: W * 0.04, y: H)
@@ -176,9 +545,9 @@ private struct GolfDrawer {
         fw.move(to: topL); fw.addLine(to: topR)
         fw.addLine(to: botR); fw.addLine(to: botL)
         fw.closeSubpath()
-        ctx.fill(fw, with: .color(Color(red:0.16,green:0.40,blue:0.17)))
+        ctx.fill(fw, with: .color(Color(red: 0.16, green: 0.42, blue: 0.18)))
 
-        // Mowing stripes
+        // #16 Mowing stripes
         let stripes = 18
         for i in 0..<stripes {
             if i % 2 == 0 { continue }
@@ -192,112 +561,184 @@ private struct GolfDrawer {
             stripe.move(to: CGPoint(x: x0l, y: y0)); stripe.addLine(to: CGPoint(x: x0r, y: y0))
             stripe.addLine(to: CGPoint(x: x1r, y: y1)); stripe.addLine(to: CGPoint(x: x1l, y: y1))
             stripe.closeSubpath()
-            ctx.fill(stripe, with: .color(Color(red:0.18,green:0.44,blue:0.19).opacity(0.55)))
+            ctx.fill(stripe, with: .color(Color(red: 0.19, green: 0.46, blue: 0.20).opacity(0.50)))
         }
     }
 
-    private func drawObstacles(_ ctx: inout GraphicsContext) {
-        for obs in obstacles {
-            let ox = nx(obs.position.x)
-            let oy = ny(obs.position.y)
-            let ow = CGFloat(obs.size.width) * W
-            let oh = CGFloat(obs.size.height) * H
-
-            if obs.type == .sandTrap {
-                let rect = CGRect(x: ox - ow/2, y: oy - oh/2, width: ow, height: oh)
-                ctx.fill(Path(ellipseIn: rect), with: .color(Color(red:0.88,green:0.80,blue:0.52)))
-                // Texture stippling
-                for di in 0..<14 {
-                    let angle = Double(di) * .pi * 2 / 14
-                    let r = ow * 0.33
-                    let dx = ox + r * CGFloat(cos(angle)) * 0.9
-                    let dy = oy + (oh / ow) * r * CGFloat(sin(angle))
-                    ctx.fill(Path(ellipseIn: CGRect(x: dx-1.5, y: dy-1.5, width: 3, height: 3)),
-                             with: .color(Color(red:0.70,green:0.62,blue:0.36).opacity(0.7)))
-                }
-                // "S" label
-                ctx.draw(Text("S").font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(Color(red:0.50,green:0.40,blue:0.15)),
-                         at: CGPoint(x: ox, y: oy), anchor: .center)
-            } else {
-                // Water with animated shimmer
-                let rect = CGRect(x: ox - ow/2, y: oy - oh/2, width: ow, height: oh)
-                ctx.fill(Path(ellipseIn: rect), with: .linearGradient(
-                    Gradient(colors: [Color(red:0.18,green:0.48,blue:0.88),
-                                      Color(red:0.10,green:0.30,blue:0.70)]),
-                    startPoint: CGPoint(x: ox - ow/2, y: oy),
-                    endPoint: CGPoint(x: ox + ow/2, y: oy)))
-                for si in 0..<4 {
-                    let phase = fmod(t * 1.2 + Double(si) * 0.7, 1.0)
-                    let sx = ox - ow * 0.35 + CGFloat(phase) * ow * 0.7
-                    var shimmer = Path()
-                    shimmer.move(to: CGPoint(x: sx - 6, y: oy - oh * 0.12))
-                    shimmer.addQuadCurve(to: CGPoint(x: sx + 6, y: oy + oh * 0.12),
-                                         control: CGPoint(x: sx + 3, y: oy))
-                    ctx.stroke(shimmer, with: .color(.white.opacity(0.38)), lineWidth: 1.2)
-                }
-                ctx.draw(Text("W").font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.8)),
-                         at: CGPoint(x: ox, y: oy), anchor: .center)
-            }
-        }
-    }
+    // MARK: - #17–#20 Green
 
     private func drawGreen(_ ctx: inout GraphicsContext) {
-        let gr: CGFloat = 48
-        // Fringe
-        ctx.fill(Path(ellipseIn: CGRect(x: hx-gr-10, y: hy-gr-10, width: (gr+10)*2, height: (gr+10)*2)),
-                 with: .color(Color(red:0.18,green:0.50,blue:0.20)))
-        // Green surface
-        ctx.fill(Path(ellipseIn: CGRect(x: hx-gr, y: hy-gr, width: gr*2, height: gr*2)),
-                 with: .color(Color(red:0.22,green:0.62,blue:0.25)))
-        // Contour rings
-        for ri in [0.75, 0.50, 0.25] as [CGFloat] {
+        let gr: CGFloat = 52
+
+        // #17 Fringe ring
+        let fringeRect = CGRect(x: hx - gr - 12, y: hy - gr - 12, width: (gr + 12) * 2, height: (gr + 12) * 2)
+        ctx.fill(Path(ellipseIn: fringeRect), with: .color(Color(red: 0.17, green: 0.48, blue: 0.19)))
+
+        // #18 Green surface
+        ctx.fill(Path(ellipseIn: CGRect(x: hx - gr, y: hy - gr, width: gr * 2, height: gr * 2)),
+                 with: .color(Color(red: 0.22, green: 0.62, blue: 0.24)))
+
+        // #19 Contour rings
+        for ri in [0.78, 0.54, 0.30] as [CGFloat] {
             let rr = gr * ri
-            ctx.stroke(Path(ellipseIn: CGRect(x: hx-rr, y: hy-rr, width: rr*2, height: rr*2)),
-                       with: .color(Color(red:0.20,green:0.56,blue:0.22).opacity(0.45)), lineWidth: 0.6)
+            ctx.stroke(Path(ellipseIn: CGRect(x: hx - rr, y: hy - rr, width: rr * 2, height: rr * 2)),
+                       with: .color(Color(red: 0.20, green: 0.56, blue: 0.22).opacity(0.42)), lineWidth: 0.7)
         }
-        // Cup shadow glow
-        var gc = ctx
-        gc.addFilter(.blur(radius: 4))
-        gc.fill(Path(ellipseIn: CGRect(x: hx-8, y: hy-4, width: 16, height: 10)),
-                with: .color(.black.opacity(0.55)))
-        // Cup
-        ctx.fill(Path(ellipseIn: CGRect(x: hx-6, y: hy-5, width: 12, height: 10)),
-                 with: .color(.black.opacity(0.90)))
+
+        // #20 Cup shadow glow + cup
+        var cupGlow = ctx
+        cupGlow.addFilter(.blur(radius: 4))
+        cupGlow.fill(Path(ellipseIn: CGRect(x: hx - 9, y: hy - 4, width: 18, height: 11)),
+                     with: .color(.black.opacity(0.52)))
+        ctx.fill(Path(ellipseIn: CGRect(x: hx - 6, y: hy - 5, width: 12, height: 10)),
+                 with: .color(.black.opacity(0.88)))
     }
 
+    // MARK: - #21–#28 Mini-Map Inset
+
+    private func drawMiniMap(_ ctx: inout GraphicsContext) {
+        let mapX: CGFloat = W - 82
+        let mapY: CGFloat = 10
+        let mapW: CGFloat = 72
+        let mapH: CGFloat = 90
+
+        // #21 Mini-map background
+        var mapBg = ctx
+        mapBg.addFilter(.blur(radius: 0))
+        var bgRect = Path()
+        bgRect.addRoundedRect(in: CGRect(x: mapX, y: mapY, width: mapW, height: mapH),
+                              cornerSize: CGSize(width: 6, height: 6))
+        ctx.fill(bgRect, with: .color(Color.black.opacity(0.72)))
+        ctx.stroke(bgRect, with: .color(Color(red: 0.3, green: 0.8, blue: 0.4).opacity(0.6)), lineWidth: 1.0)
+
+        // #22 Fairway path on mini-map
+        let mfxL = mapX + mapW * 0.22
+        let mfxR = mapX + mapW * 0.78
+        let mfyT = mapY + mapH * 0.12
+        let mfyB = mapY + mapH * 0.88
+        var mapFairway = Path()
+        mapFairway.move(to: CGPoint(x: mfxL, y: mfyB))
+        mapFairway.addLine(to: CGPoint(x: mfxR, y: mfyB))
+        mapFairway.addLine(to: CGPoint(x: mfxR - 6, y: mfyT))
+        mapFairway.addLine(to: CGPoint(x: mfxL + 6, y: mfyT))
+        mapFairway.closeSubpath()
+        ctx.fill(mapFairway, with: .color(Color(red: 0.16, green: 0.44, blue: 0.18)))
+
+        // #23 Green oval on mini-map
+        let mgx = mapX + CGFloat(holePosition.x) * mapW
+        let mgy = mapY + (1.0 - CGFloat(holePosition.y)) * mapH
+        ctx.fill(Path(ellipseIn: CGRect(x: mgx - 6, y: mgy - 4, width: 12, height: 8)),
+                 with: .color(Color(red: 0.22, green: 0.72, blue: 0.26)))
+
+        // #24 Pin on mini-map
+        var miniPin = Path()
+        miniPin.move(to: CGPoint(x: mgx, y: mgy - 4))
+        miniPin.addLine(to: CGPoint(x: mgx, y: mgy - 10))
+        ctx.stroke(miniPin, with: .color(.white), lineWidth: 0.8)
+        ctx.fill(Path(ellipseIn: CGRect(x: mgx, y: mgy - 12, width: 5, height: 4)),
+                 with: .color(.red))
+
+        // #25 Fairway path line on mini-map
+        let mbx = mapX + CGFloat(ballX) * mapW
+        let mby = mapY + (1.0 - CGFloat(ballY)) * mapH
+        var pathLine = Path()
+        pathLine.move(to: CGPoint(x: mbx, y: mby))
+        pathLine.addLine(to: CGPoint(x: mgx, y: mgy))
+        ctx.stroke(pathLine, with: .color(Color(red: 0.3, green: 0.9, blue: 0.5).opacity(0.45)), lineWidth: 0.7)
+
+        // #26 Player dot on mini-map
+        var playerGlow = ctx
+        playerGlow.addFilter(.blur(radius: 2))
+        playerGlow.fill(Path(ellipseIn: CGRect(x: mbx - 4, y: mby - 4, width: 8, height: 8)),
+                        with: .color(Color.yellow.opacity(0.6)))
+        ctx.fill(Path(ellipseIn: CGRect(x: mbx - 3, y: mby - 3, width: 6, height: 6)),
+                 with: .color(.yellow))
+
+        // #27 Par badge in mini-map corner
+        var parBadge = Path()
+        parBadge.addRoundedRect(in: CGRect(x: mapX + 2, y: mapY + 2, width: 22, height: 14),
+                                cornerSize: CGSize(width: 4, height: 4))
+        ctx.fill(parBadge, with: .color(Color(red: 0.15, green: 0.55, blue: 0.25)))
+        ctx.draw(Text("P\(parPerHole)").font(.system(size: 7, weight: .black, design: .monospaced))
+            .foregroundStyle(.white),
+                 at: CGPoint(x: mapX + 13, y: mapY + 9), anchor: .center)
+
+        // #28 Hole number label on mini-map
+        ctx.draw(Text("H\(currentHole)").font(.system(size: 7, weight: .bold, design: .monospaced))
+            .foregroundStyle(Color(red: 0.8, green: 0.9, blue: 0.8)),
+                 at: CGPoint(x: mapX + mapW - 14, y: mapY + 9), anchor: .center)
+    }
+
+    // MARK: - #29–#31 Flagstick
+
     private func drawFlag(_ ctx: inout GraphicsContext) {
-        let poleH: CGFloat = 36
+        let poleH: CGFloat = 40
         let poleBase = CGPoint(x: hx, y: hy - 5)
         let poleTop  = CGPoint(x: hx, y: hy - 5 - poleH)
 
-        // Pole shadow
+        // #29 Pole shadow
         var shadowPole = Path()
         shadowPole.move(to: CGPoint(x: poleBase.x + 2, y: poleBase.y + 2))
-        shadowPole.addLine(to: CGPoint(x: poleTop.x + 2, y: poleTop.y + 2))
-        ctx.stroke(shadowPole, with: .color(.black.opacity(0.25)), lineWidth: 2)
+        shadowPole.addLine(to: CGPoint(x: poleTop.x + 3, y: poleTop.y + 3))
+        ctx.stroke(shadowPole, with: .color(.black.opacity(0.22)), lineWidth: 2)
 
-        // Pole
+        // #30 Pole
         var pole = Path()
         pole.move(to: poleBase); pole.addLine(to: poleTop)
-        ctx.stroke(pole, with: .color(Color(white: 0.92)), lineWidth: 1.8)
+        ctx.stroke(pole, with: .color(Color(white: 0.90)), lineWidth: 1.8)
 
-        // Waving flag
+        // #31 Waving flag
         let wave = CGFloat(sin(t * 3.8)) * 5
         let wave2 = CGFloat(sin(t * 3.8 + 1.2)) * 3
         var flag = Path()
         flag.move(to: poleTop)
         flag.addCurve(
-            to:       CGPoint(x: poleTop.x + 18, y: poleTop.y + 10 + wave),
-            control1: CGPoint(x: poleTop.x + 6,  y: poleTop.y - 1 + wave2),
-            control2: CGPoint(x: poleTop.x + 14, y: poleTop.y + 4 + wave)
+            to:       CGPoint(x: poleTop.x + 20, y: poleTop.y + 11 + wave),
+            control1: CGPoint(x: poleTop.x + 7,  y: poleTop.y - 1 + wave2),
+            control2: CGPoint(x: poleTop.x + 15, y: poleTop.y + 5 + wave)
         )
-        flag.addLine(to: CGPoint(x: poleTop.x, y: poleTop.y + 12))
+        flag.addLine(to: CGPoint(x: poleTop.x, y: poleTop.y + 13))
         flag.closeSubpath()
-        ctx.fill(flag, with: .color(Color(red:0.10,green:0.72,blue:0.32)))
-        ctx.stroke(flag, with: .color(Color(red:0.08,green:0.55,blue:0.25)), lineWidth: 0.5)
+        ctx.fill(flag, with: .color(Color(red: 0.10, green: 0.72, blue: 0.32)))
+        ctx.stroke(flag, with: .color(Color(red: 0.08, green: 0.55, blue: 0.25)), lineWidth: 0.5)
     }
+
+    // MARK: - #32 Putt Line
+
+    private func drawPuttLine(_ ctx: inout GraphicsContext) {
+        // #32 Dashed putt line from ball to hole when on green
+        let gr: CGFloat = 52
+        let dx = ballCX - hx
+        let dy = ballCY - hy
+        let distToGreen = sqrt(dx * dx + dy * dy)
+        guard distToGreen < gr * 1.8, ballProgress < 0 else { return }
+
+        let segs = 12
+        for i in 0..<segs {
+            if i % 2 == 1 { continue }
+            let t0 = CGFloat(i) / CGFloat(segs)
+            let t1 = CGFloat(i + 1) / CGFloat(segs)
+            var seg = Path()
+            seg.move(to: CGPoint(x: ballCX + (hx - ballCX) * t0, y: ballCY + (hy - ballCY) * t0))
+            seg.addLine(to: CGPoint(x: ballCX + (hx - ballCX) * t1, y: ballCY + (hy - ballCY) * t1))
+            ctx.stroke(seg, with: .color(Color.white.opacity(0.38)), lineWidth: 1.2)
+        }
+    }
+
+    // MARK: - #33 Landing Ring
+
+    private func drawLandingRing(_ ctx: inout GraphicsContext) {
+        // #33 Animated landing ring at ball end position when flying
+        guard ballProgress > 0.6 && ballProgress < 1.0 else { return }
+        let ex = nx(ballEndX); let ey = ny(ballEndY)
+        let pulse = CGFloat(sin(t * 10.0)) * 3
+        let ringR: CGFloat = 12 + pulse
+        var ring = Path()
+        ring.addEllipse(in: CGRect(x: ex - ringR, y: ey - ringR * 0.5, width: ringR * 2, height: ringR))
+        ctx.stroke(ring, with: .color(Color(red: 0.3, green: 0.9, blue: 0.4).opacity(0.6)), lineWidth: 1.5)
+    }
+
+    // MARK: - #34–#35 Aim Arc
 
     private func drawAimLine(_ ctx: inout GraphicsContext) {
         guard shotState == .idle || shotState == .draggingBack else { return }
@@ -308,10 +749,10 @@ private struct GolfDrawer {
         let dist = CGFloat(power * 0.55) * W
         let ex = ballCX + dist * CGFloat(sin(radians))
         let ey = ballCY - dist * CGFloat(cos(radians))
-        let peakH: CGFloat = CGFloat(power) * 70
+        let peakH: CGFloat = CGFloat(power) * 75
 
-        // Dashed arc (draw every other segment)
-        let segs = 14
+        // #34 Dashed aim arc
+        let segs = 16
         for i in 0..<segs {
             if i % 2 == 1 { continue }
             let t0 = CGFloat(i) / CGFloat(segs)
@@ -321,76 +762,152 @@ private struct GolfDrawer {
             let bxp = ballCX + (ex - ballCX) * t1
             let byp = ballCY + (ey - ballCY) * t1 - peakH * 4 * t1 * (1 - t1)
             var seg = Path()
-            seg.move(to: CGPoint(x: ax, y: ay)); seg.addLine(to: CGPoint(x: bxp, y: byp))
-            ctx.stroke(seg, with: .color(Color(red:0.3,green:0.85,blue:0.4).opacity(0.75)), lineWidth: 1.8)
+            seg.move(to: CGPoint(x: ax, y: ay))
+            seg.addLine(to: CGPoint(x: bxp, y: byp))
+            ctx.stroke(seg, with: .color(Color(red: 0.30, green: 0.88, blue: 0.42).opacity(0.78)), lineWidth: 1.9)
         }
 
-        // Target ring (pulse)
-        let pulse = CGFloat(sin(t * 5)) * 2
+        // #35 Pulsing target ring
+        let pulse = CGFloat(sin(t * 5.0)) * 2.5
         let ring = Path(ellipseIn: CGRect(x: ex - 10 - pulse, y: ey - 10 - pulse,
                                           width: (10 + pulse) * 2, height: (10 + pulse) * 2))
-        ctx.stroke(ring, with: .color(Color(red:0.3,green:0.85,blue:0.4).opacity(0.55)), lineWidth: 1.5)
+        ctx.stroke(ring, with: .color(Color(red: 0.30, green: 0.88, blue: 0.42).opacity(0.58)), lineWidth: 1.6)
     }
+
+    // MARK: - #36–#43 Ball Trail (8 ghost frames)
 
     private func drawTrail(_ ctx: inout GraphicsContext) {
         guard ballProgress >= 0 else { return }
         let sx = nx(ballStartX); let sy = ny(ballStartY)
         let ex = nx(ballEndX);   let ey = ny(ballEndY)
         let peakH: CGFloat = 85
-        for g in 1...4 {
-            let gep = CGFloat(max(0, ballProgress - Double(g) * 0.06))
-            let tx = sx + (ex - sx) * gep
-            let ty = sy + (ey - sy) * gep - peakH * 4 * gep * (1 - gep)
-            let r: CGFloat = CGFloat(5 - g) * 0.9
-            let alpha = (1.0 - Double(g) * 0.22) * 0.55
-            ctx.fill(Path(ellipseIn: CGRect(x: tx - r, y: ty - r, width: r*2, height: r*2)),
+
+        // #36–#43 8 ghost trail dots
+        for g in 1...8 {
+            let gp = CGFloat(max(0, ballProgress - Double(g) * 0.05))
+            let tx = sx + (ex - sx) * gp
+            let ty = sy + (ey - sy) * gp - peakH * 4 * gp * (1 - gp)
+            let r: CGFloat = CGFloat(9 - g) * 0.7
+            let alpha = (1.0 - Double(g) * 0.11) * 0.52
+            // Each ghost numbered implicitly #36..#43
+            ctx.fill(Path(ellipseIn: CGRect(x: tx - r, y: ty - r, width: r * 2, height: r * 2)),
                      with: .color(.white.opacity(alpha)))
         }
     }
 
-    private func drawBall(_ ctx: inout GraphicsContext) {
-        let bxPos: CGFloat
-        let byPos: CGFloat
-        if ballProgress >= 0 {
-            let ep = CGFloat(ballProgress)
-            let sx = nx(ballStartX); let sy = ny(ballStartY)
-            let ex = nx(ballEndX);   let ey = ny(ballEndY)
-            let peakH: CGFloat = 85
-            bxPos = sx + (ex - sx) * ep
-            byPos = sy + (ey - sy) * ep - peakH * 4 * ep * (1 - ep)
-        } else {
-            bxPos = ballCX; byPos = ballCY
-        }
+    // MARK: - #44 Wind Drift Arrow
 
-        let r: CGFloat = ballProgress >= 0 ? max(4, 8 - CGFloat(ballProgress) * 3.5) : 8
-
-        // Drop shadow
-        var gc = ctx
-        gc.addFilter(.blur(radius: r * 0.6))
-        gc.fill(Path(ellipseIn: CGRect(x: bxPos - r * 0.9, y: byPos + r * 0.4,
-                                       width: r * 1.8, height: r * 0.7)),
-                with: .color(.black.opacity(0.28)))
-
-        // Ball body
-        ctx.fill(Path(ellipseIn: CGRect(x: bxPos-r, y: byPos-r, width: r*2, height: r*2)),
-                 with: .radialGradient(
-                    Gradient(colors: [.white, Color(white:0.78)]),
-                    center: CGPoint(x: bxPos - r * 0.3, y: byPos - r * 0.3),
-                    startRadius: 0, endRadius: r * 1.2))
-
-        // Dimple seam
-        var seam = Path()
-        seam.addArc(center: CGPoint(x: bxPos, y: byPos), radius: r - 2,
-                    startAngle: .degrees(30), endAngle: .degrees(150), clockwise: false)
-        ctx.stroke(seam, with: .color(Color(white:0.55).opacity(0.45)), lineWidth: 0.8)
-
-        // Specular
-        ctx.fill(Path(ellipseIn: CGRect(x: bxPos - r*0.5, y: byPos - r*0.65, width: r*0.4, height: r*0.25)),
-                 with: .color(.white.opacity(0.9)))
+    private func drawWindDrift(_ ctx: inout GraphicsContext) {
+        // #44 Small wind drift arrow during ball flight
+        let (bx, by) = currentBallPos
+        let arrowLen: CGFloat = 18 * CGFloat(windSpeed / 15.0)
+        let wr = windAngle * .pi / 180.0
+        let ax = bx + arrowLen * CGFloat(cos(wr))
+        let ay = by + arrowLen * CGFloat(sin(wr))
+        var windArrow = Path()
+        windArrow.move(to: CGPoint(x: bx, y: by))
+        windArrow.addLine(to: CGPoint(x: ax, y: ay))
+        ctx.stroke(windArrow, with: .color(Color.cyan.opacity(0.6)), lineWidth: 1.4)
+        // Arrowhead
+        let ha: CGFloat = 0.5
+        ctx.fill(Path(ellipseIn: CGRect(x: ax - 3, y: ay - 3, width: 6, height: 6)),
+                 with: .color(Color.cyan.opacity(0.7 * ha)))
     }
 
+    // MARK: - #45 Apex Indicator
+
+    private func drawApexIndicator(_ ctx: inout GraphicsContext) {
+        // #45 Dotted apex height indicator at the peak of ball flight
+        guard ballProgress > 0.3 && ballProgress < 0.7 else { return }
+        let sx = nx(ballStartX); let sy = ny(ballStartY)
+        let ex = nx(ballEndX);   let ey = ny(ballEndY)
+        let peakH: CGFloat = 85
+        let apexX = sx + (ex - sx) * 0.5
+        let apexY = sy + (ey - sy) * 0.5 - peakH
+        let (bx, _) = currentBallPos
+        // Vertical dashed line from ball ground to apex
+        var apexLine = Path()
+        apexLine.move(to: CGPoint(x: bx, y: apexY + 4))
+        apexLine.addLine(to: CGPoint(x: bx, y: apexY + 14))
+        ctx.stroke(apexLine, with: .color(Color.yellow.opacity(0.55)), lineWidth: 0.9)
+        // Apex circle
+        ctx.fill(Path(ellipseIn: CGRect(x: apexX - 3, y: apexY - 3, width: 6, height: 6)),
+                 with: .color(Color.yellow.opacity(0.70)))
+    }
+
+    // MARK: - #46–#50 Ball
+
+    private func drawBall(_ ctx: inout GraphicsContext) {
+        let (bxPos, byPos) = currentBallPos
+        let r: CGFloat = ballProgress >= 0 ? max(4, 8 - CGFloat(ballProgress) * 3.5) : 8
+
+        // #46 Drop shadow glow
+        var shadowGlow = ctx
+        shadowGlow.addFilter(.blur(radius: r * 0.7))
+        shadowGlow.fill(Path(ellipseIn: CGRect(x: bxPos - r * 0.95, y: byPos + r * 0.45,
+                                               width: r * 1.9, height: r * 0.65)),
+                        with: .color(.black.opacity(0.28)))
+
+        // #47 Ball body radial gradient
+        ctx.fill(Path(ellipseIn: CGRect(x: bxPos - r, y: byPos - r, width: r * 2, height: r * 2)),
+                 with: .radialGradient(
+                    Gradient(colors: [.white, Color(white: 0.76)]),
+                    center: CGPoint(x: bxPos - r * 0.28, y: byPos - r * 0.28),
+                    startRadius: 0, endRadius: r * 1.25))
+
+        // #48 Dimple seam arc
+        var seam = Path()
+        seam.addArc(center: CGPoint(x: bxPos, y: byPos), radius: r - 2.0,
+                    startAngle: .degrees(25), endAngle: .degrees(155), clockwise: false)
+        ctx.stroke(seam, with: .color(Color(white: 0.52).opacity(0.42)), lineWidth: 0.9)
+
+        // #49 Second seam arc
+        var seam2 = Path()
+        seam2.addArc(center: CGPoint(x: bxPos, y: byPos), radius: r - 2.0,
+                     startAngle: .degrees(200), endAngle: .degrees(340), clockwise: false)
+        ctx.stroke(seam2, with: .color(Color(white: 0.52).opacity(0.30)), lineWidth: 0.9)
+
+        // #50 Specular highlight
+        ctx.fill(Path(ellipseIn: CGRect(x: bxPos - r * 0.48, y: byPos - r * 0.62,
+                                        width: r * 0.38, height: r * 0.24)),
+                 with: .color(.white.opacity(0.88)))
+    }
+
+    // MARK: - #51–#53 Caddie Silhouette
+
+    private func drawCaddie(_ ctx: inout GraphicsContext) {
+        // Caddie stands to the right/behind the golfer
+        let cgx = ballCX + 22
+        let cBaseY = ballCY + 34
+        let cColor = Color(red: 0.30, green: 0.28, blue: 0.42)
+
+        // #51 Caddie head
+        ctx.fill(Path(ellipseIn: CGRect(x: cgx - 4, y: cBaseY - 28, width: 8, height: 8)),
+                 with: .color(cColor))
+
+        // #52 Caddie body
+        var cBody = Path()
+        cBody.move(to: CGPoint(x: cgx, y: cBaseY - 20))
+        cBody.addLine(to: CGPoint(x: cgx, y: cBaseY - 8))
+        ctx.stroke(cBody, with: .color(cColor), lineWidth: 4)
+
+        // #53 Caddie golf bag (rectangle behind them)
+        var bagRect = Path()
+        bagRect.addRoundedRect(in: CGRect(x: cgx + 4, y: cBaseY - 22, width: 6, height: 18),
+                               cornerSize: CGSize(width: 2, height: 2))
+        ctx.fill(bagRect, with: .color(Color(red: 0.45, green: 0.30, blue: 0.18)))
+        // Club shafts sticking out
+        for ci in 0..<3 {
+            var shaft = Path()
+            shaft.move(to: CGPoint(x: cgx + 5 + CGFloat(ci) * 1.5, y: cBaseY - 22))
+            shaft.addLine(to: CGPoint(x: cgx + 5 + CGFloat(ci) * 1.5, y: cBaseY - 28))
+            ctx.stroke(shaft, with: .color(Color(white: 0.65)), lineWidth: 0.8)
+        }
+    }
+
+    // MARK: - #54–#65 Golfer at Address / Swing Poses
+
     private func drawGolfer(_ ctx: inout GraphicsContext) {
-        // Golfer stands behind the ball (higher canvas Y = further from hole)
         let gx = ballCX
         let headY  = ballCY + 10
         let waistY = ballCY + 22
@@ -399,71 +916,94 @@ private struct GolfDrawer {
         let jersey = Color(red: 0.92, green: 0.75, blue: 0.25)
         let skin   = Color(red: 0.94, green: 0.80, blue: 0.68)
         let pants  = Color(red: 0.20, green: 0.22, blue: 0.50)
-        let club   = Color(white: 0.65)
+        let clubC  = Color(white: 0.65)
 
-        // Hat
-        let hatBrim = Path(ellipseIn: CGRect(x: gx-7, y: headY-8, width: 14, height: 5))
-        ctx.fill(hatBrim, with: .color(Color(red:0.15,green:0.50,blue:0.20)))
-        let hatTop = Path(ellipseIn: CGRect(x: gx-4.5, y: headY-14, width: 9, height: 8))
-        ctx.fill(hatTop, with: .color(Color(red:0.12,green:0.42,blue:0.16)))
+        // #54 Stance shadow on ground
+        var stance = ctx
+        stance.addFilter(.blur(radius: 4))
+        stance.fill(Path(ellipseIn: CGRect(x: gx - 14, y: feetY - 2, width: 28, height: 6)),
+                    with: .color(.black.opacity(0.32)))
 
-        // Head
-        ctx.fill(Path(ellipseIn: CGRect(x: gx-5.5, y: headY-5.5, width: 11, height: 11)), with: .color(skin))
+        // #55 Hat brim
+        let hatBrim = Path(ellipseIn: CGRect(x: gx - 7, y: headY - 8, width: 14, height: 5))
+        ctx.fill(hatBrim, with: .color(Color(red: 0.15, green: 0.50, blue: 0.20)))
 
-        // Body
+        // #56 Hat top
+        let hatTop = Path(ellipseIn: CGRect(x: gx - 4.5, y: headY - 14, width: 9, height: 8))
+        ctx.fill(hatTop, with: .color(Color(red: 0.12, green: 0.42, blue: 0.16)))
+
+        // #57 Head
+        ctx.fill(Path(ellipseIn: CGRect(x: gx - 5.5, y: headY - 5.5, width: 11, height: 11)),
+                 with: .color(skin))
+
+        // #58 Body torso
         var body = Path()
         body.move(to: CGPoint(x: gx, y: headY + 4))
         body.addLine(to: CGPoint(x: gx, y: waistY))
         ctx.stroke(body, with: .color(jersey), lineWidth: 4)
 
-        // Arms + club
-        switch pose {
+        // #59–#62 Arms + club (pose-dependent)
+        switch golferPose {
         case "backswing":
+            // #59 Backswing arms rotate up-right
             var arms = Path()
             arms.move(to: CGPoint(x: gx - 9, y: headY + 12))
             arms.addLine(to: CGPoint(x: gx, y: headY + 7))
             arms.addLine(to: CGPoint(x: gx + 8, y: headY + 4))
-            arms.addLine(to: CGPoint(x: gx + 13, y: headY - 6))
+            arms.addLine(to: CGPoint(x: gx + 14, y: headY - 7))
             ctx.stroke(arms, with: .color(skin), lineWidth: 2.2)
             var cl = Path()
-            cl.move(to: CGPoint(x: gx + 13, y: headY - 6))
-            cl.addLine(to: CGPoint(x: gx + 20, y: headY - 14))
-            ctx.stroke(cl, with: .color(club), lineWidth: 1.6)
+            cl.move(to: CGPoint(x: gx + 14, y: headY - 7))
+            cl.addLine(to: CGPoint(x: gx + 22, y: headY - 16))
+            ctx.stroke(cl, with: .color(clubC), lineWidth: 1.6)
 
         case "impact":
+            // #60 Impact position — arms extended toward ball
             var arms = Path()
             arms.move(to: CGPoint(x: gx + 10, y: headY + 8))
             arms.addLine(to: CGPoint(x: gx, y: headY + 6))
-            arms.addLine(to: CGPoint(x: gx - 11, y: headY + 9))
+            arms.addLine(to: CGPoint(x: gx - 12, y: headY + 9))
             ctx.stroke(arms, with: .color(skin), lineWidth: 2.2)
             var cl = Path()
-            cl.move(to: CGPoint(x: gx - 11, y: headY + 9))
-            cl.addLine(to: CGPoint(x: gx - 18, y: headY + 7))
-            ctx.stroke(cl, with: .color(club), lineWidth: 1.6)
-            // Impact spark
+            cl.move(to: CGPoint(x: gx - 12, y: headY + 9))
+            cl.addLine(to: CGPoint(x: gx - 20, y: headY + 7))
+            ctx.stroke(cl, with: .color(clubC), lineWidth: 1.6)
+            // #61 Impact sparks
             for sp in 0..<6 {
-                let a = Double(sp) * .pi / 3
-                let sr: CGFloat = 6
+                let a = Double(sp) * .pi / 3.0
+                let sr: CGFloat = 7
                 var spark = Path()
-                spark.move(to: CGPoint(x: gx - 19, y: headY + 7))
-                spark.addLine(to: CGPoint(x: gx - 19 + sr * CGFloat(cos(a)),
+                spark.move(to: CGPoint(x: gx - 20, y: headY + 7))
+                spark.addLine(to: CGPoint(x: gx - 20 + sr * CGFloat(cos(a)),
                                            y: headY + 7 + sr * CGFloat(sin(a))))
-                ctx.stroke(spark, with: .color(Color(red:1,green:0.85,blue:0.2).opacity(0.8)), lineWidth: 1)
+                ctx.stroke(spark, with: .color(Color(red: 1, green: 0.85, blue: 0.2).opacity(0.80)), lineWidth: 1.0)
             }
 
         case "followthrough":
+            // #62 Follow-through arc — arms wrap around left high
             var arms = Path()
             arms.move(to: CGPoint(x: gx + 8, y: headY + 12))
             arms.addLine(to: CGPoint(x: gx, y: headY + 7))
             arms.addLine(to: CGPoint(x: gx - 8, y: headY + 3))
-            arms.addLine(to: CGPoint(x: gx - 14, y: headY - 7))
+            arms.addLine(to: CGPoint(x: gx - 15, y: headY - 8))
             ctx.stroke(arms, with: .color(skin), lineWidth: 2.2)
             var cl = Path()
-            cl.move(to: CGPoint(x: gx - 14, y: headY - 7))
-            cl.addLine(to: CGPoint(x: gx - 20, y: headY - 16))
-            ctx.stroke(cl, with: .color(club), lineWidth: 1.6)
+            cl.move(to: CGPoint(x: gx - 15, y: headY - 8))
+            cl.addLine(to: CGPoint(x: gx - 22, y: headY - 18))
+            ctx.stroke(cl, with: .color(clubC), lineWidth: 1.6)
+            // #63 Follow-through divot dirt splash
+            for di in 0..<8 {
+                let da = Double(di) * .pi / 4.0 + .pi * 1.1
+                let dr: CGFloat = CGFloat(4 + di % 4) * 1.8
+                ctx.fill(Path(ellipseIn: CGRect(
+                    x: ballCX - 12 + dr * CGFloat(cos(da)) - 1.5,
+                    y: ballCY + dr * CGFloat(sin(da)) - 1.5,
+                    width: 3, height: 3)),
+                         with: .color(Color(red: 0.25, green: 0.18, blue: 0.08).opacity(0.72)))
+            }
 
         default: // address
+            // #64 Address — arms down holding club at setup
             var arms = Path()
             arms.move(to: CGPoint(x: gx - 9, y: headY + 10))
             arms.addLine(to: CGPoint(x: gx, y: headY + 7))
@@ -473,16 +1013,265 @@ private struct GolfDrawer {
             cl.move(to: CGPoint(x: gx - 9, y: headY + 10))
             cl.addLine(to: CGPoint(x: gx - 10, y: ballCY + 4))
             cl.addLine(to: CGPoint(x: gx - 6, y: ballCY + 4))
-            ctx.stroke(cl, with: .color(club), lineWidth: 1.6)
+            ctx.stroke(cl, with: .color(clubC), lineWidth: 1.6)
         }
 
-        // Legs
+        // #65 Legs
         var legs = Path()
         legs.move(to: CGPoint(x: gx - 6, y: feetY))
         legs.addLine(to: CGPoint(x: gx, y: waistY))
         legs.addLine(to: CGPoint(x: gx + 6, y: feetY))
         ctx.stroke(legs, with: .color(pants), lineWidth: 2.8)
     }
+
+    // MARK: - #66–#76 Impact FX
+
+    private func drawImpactFX(_ ctx: inout GraphicsContext) {
+        let impactX = nx(ballStartX)
+        let impactY = ny(ballStartY)
+
+        switch impactFXType {
+        case "driver":
+            // #66 Grass spray — 12 green dots
+            for gi in 0..<12 {
+                let ga = Double(gi) * .pi * 2.0 / 12.0
+                let gr: CGFloat = CGFloat(8 + gi % 5) * 2.0
+                let px = impactX + gr * CGFloat(cos(ga))
+                let py = impactY + gr * CGFloat(sin(ga)) * 0.5
+                ctx.fill(Path(ellipseIn: CGRect(x: px - 2, y: py - 2, width: 4, height: 4)),
+                         with: .color(Color(red: 0.20, green: 0.65, blue: 0.22).opacity(0.80)))
+            }
+            // #67 Grass spray glow
+            var grassGlow = ctx
+            grassGlow.addFilter(.blur(radius: 5))
+            grassGlow.fill(Path(ellipseIn: CGRect(x: impactX - 16, y: impactY - 8, width: 32, height: 16)),
+                           with: .color(Color(red: 0.15, green: 0.60, blue: 0.20).opacity(0.40)))
+            // #68 Speed lines from drive
+            for sl in 0..<5 {
+                let sly = impactY - CGFloat(sl) * 6
+                var speedLine = Path()
+                speedLine.move(to: CGPoint(x: impactX - 22, y: sly))
+                speedLine.addLine(to: CGPoint(x: impactX - 8, y: sly))
+                ctx.stroke(speedLine, with: .color(Color.white.opacity(0.50)), lineWidth: 0.9)
+            }
+
+        case "iron":
+            // #69 Iron divot explosion — turf chunks
+            for di in 0..<10 {
+                let da = Double(di) * .pi / 5.0 + .pi * 0.8
+                let dr: CGFloat = CGFloat(5 + di % 4) * 2.2
+                ctx.fill(Path(ellipseIn: CGRect(
+                    x: impactX + dr * CGFloat(cos(da)) - 2,
+                    y: impactY + dr * CGFloat(sin(da)) * 0.55 - 2,
+                    width: 4, height: 4)),
+                         with: .color(Color(red: 0.22, green: 0.15, blue: 0.06).opacity(0.75)))
+            }
+            // #70 Iron impact ring
+            var ironRing = ctx
+            ironRing.addFilter(.blur(radius: 2))
+            ironRing.stroke(Path(ellipseIn: CGRect(x: impactX - 12, y: impactY - 6, width: 24, height: 12)),
+                            with: .color(Color.orange.opacity(0.45)), lineWidth: 2)
+
+        case "bunker":
+            // #71 Bunker sand burst — tan dots exploding outward
+            for si in 0..<16 {
+                let sa = Double(si) * .pi * 2.0 / 16.0
+                let sr: CGFloat = CGFloat(6 + si % 6) * 2.0
+                ctx.fill(Path(ellipseIn: CGRect(
+                    x: impactX + sr * CGFloat(cos(sa)) - 2,
+                    y: impactY + sr * CGFloat(sin(sa)) * 0.5 - 2,
+                    width: 4, height: 4)),
+                         with: .color(Color(red: 0.88, green: 0.78, blue: 0.48).opacity(0.78)))
+            }
+            // #72 Sand burst center glow
+            var sandGlow = ctx
+            sandGlow.addFilter(.blur(radius: 8))
+            sandGlow.fill(Path(ellipseIn: CGRect(x: impactX - 14, y: impactY - 8, width: 28, height: 16)),
+                          with: .color(Color(red: 0.95, green: 0.85, blue: 0.55).opacity(0.50)))
+
+        case "water":
+            // #73 Splash ring on water surface
+            var splashRing = ctx
+            splashRing.addFilter(.blur(radius: 1))
+            splashRing.stroke(Path(ellipseIn: CGRect(x: impactX - 18, y: impactY - 8, width: 36, height: 16)),
+                              with: .color(Color(red: 0.30, green: 0.65, blue: 0.95).opacity(0.70)), lineWidth: 2.5)
+            // #74 Inner splash ring
+            ctx.stroke(Path(ellipseIn: CGRect(x: impactX - 10, y: impactY - 4, width: 20, height: 8)),
+                       with: .color(.white.opacity(0.50)), lineWidth: 1.5)
+            // #75 Water droplets
+            for wi in 0..<8 {
+                let wa = Double(wi) * .pi / 4.0
+                let wr2: CGFloat = 20
+                ctx.fill(Path(ellipseIn: CGRect(
+                    x: impactX + wr2 * CGFloat(cos(wa)) - 2,
+                    y: impactY + wr2 * CGFloat(sin(wa)) * 0.4 - 3,
+                    width: 3, height: 5)),
+                         with: .color(.white.opacity(0.60)))
+            }
+
+        case "holein":
+            // #76 Hole-out burst — gold ring + 8 gold stars
+            var goldGlow = ctx
+            goldGlow.addFilter(.blur(radius: 10))
+            goldGlow.fill(Path(ellipseIn: CGRect(x: hx - 24, y: hy - 24, width: 48, height: 48)),
+                          with: .color(Color(red: 1.0, green: 0.85, blue: 0.20).opacity(0.65)))
+            ctx.stroke(Path(ellipseIn: CGRect(x: hx - 20, y: hy - 20, width: 40, height: 40)),
+                       with: .color(Color(red: 1.0, green: 0.85, blue: 0.20)), lineWidth: 2.5)
+            for si in 0..<8 {
+                let sa = Double(si) * .pi / 4.0 + t * 2.0
+                let sr: CGFloat = 26
+                var starPt = Path()
+                starPt.move(to: CGPoint(x: hx + (sr - 6) * CGFloat(cos(sa)), y: hy + (sr - 6) * CGFloat(sin(sa))))
+                starPt.addLine(to: CGPoint(x: hx + sr * CGFloat(cos(sa)), y: hy + sr * CGFloat(sin(sa))))
+                ctx.stroke(starPt, with: .color(Color(red: 1.0, green: 0.88, blue: 0.30)), lineWidth: 2)
+            }
+
+        default: break
+        }
+    }
+
+    // MARK: - #77–#80 Scorecard Panel
+
+    private func drawScorecardPanel(_ ctx: inout GraphicsContext) {
+        let panelX: CGFloat = 8
+        let panelY: CGFloat = 10
+        let panelW: CGFloat = 80
+        let panelH: CGFloat = 62
+
+        // #77 Scorecard background
+        var panelBg = Path()
+        panelBg.addRoundedRect(in: CGRect(x: panelX, y: panelY, width: panelW, height: panelH),
+                               cornerSize: CGSize(width: 6, height: 6))
+        ctx.fill(panelBg, with: .color(Color.black.opacity(0.70)))
+        ctx.stroke(panelBg, with: .color(Color(red: 0.3, green: 0.75, blue: 0.4).opacity(0.55)), lineWidth: 0.8)
+
+        // #78 Hole label
+        ctx.draw(Text("HOLE \(currentHole)")
+            .font(.system(size: 7, weight: .black, design: .monospaced))
+            .foregroundStyle(Color(red: 0.6, green: 0.9, blue: 0.6)),
+                 at: CGPoint(x: panelX + panelW / 2, y: panelY + 10), anchor: .center)
+
+        // #79 Divider line
+        var divider = Path()
+        divider.move(to: CGPoint(x: panelX + 4, y: panelY + 18))
+        divider.addLine(to: CGPoint(x: panelX + panelW - 4, y: panelY + 18))
+        ctx.stroke(divider, with: .color(Color.white.opacity(0.15)), lineWidth: 0.6)
+
+        // Strokes row
+        ctx.draw(Text("SHOT")
+            .font(.system(size: 6, weight: .bold, design: .monospaced))
+            .foregroundStyle(Color.white.opacity(0.55)),
+                 at: CGPoint(x: panelX + 14, y: panelY + 28), anchor: .center)
+        ctx.draw(Text("\(currentStrokes)")
+            .font(.system(size: 14, weight: .black, design: .monospaced))
+            .foregroundStyle(.white),
+                 at: CGPoint(x: panelX + 14, y: panelY + 42), anchor: .center)
+
+        // #80 Total running score
+        let svp = totalStrokes - (holeResults.count * parPerHole)
+        let totalLabel = svp == 0 ? "E" : (svp > 0 ? "+\(svp)" : "\(svp)")
+        let totalColor: Color = svp < 0 ? Color(red: 0.3, green: 0.9, blue: 0.4) : (svp == 0 ? .white : .red)
+        ctx.draw(Text("TOT")
+            .font(.system(size: 6, weight: .bold, design: .monospaced))
+            .foregroundStyle(Color.white.opacity(0.55)),
+                 at: CGPoint(x: panelX + panelW - 22, y: panelY + 28), anchor: .center)
+        ctx.draw(Text(totalLabel)
+            .font(.system(size: 14, weight: .black, design: .monospaced))
+            .foregroundStyle(totalColor),
+                 at: CGPoint(x: panelX + panelW - 22, y: panelY + 42), anchor: .center)
+    }
+
+    // MARK: - #81–#82 Wind Dial
+
+    private func drawWindDial(_ ctx: inout GraphicsContext) {
+        let dialX: CGFloat = 8 + 40
+        let dialY: CGFloat = 92
+        let dialR: CGFloat = 18
+
+        // #81 Wind dial background circle
+        ctx.fill(Path(ellipseIn: CGRect(x: dialX - dialR, y: dialY - dialR, width: dialR * 2, height: dialR * 2)),
+                 with: .color(Color.black.opacity(0.65)))
+        ctx.stroke(Path(ellipseIn: CGRect(x: dialX - dialR, y: dialY - dialR, width: dialR * 2, height: dialR * 2)),
+                   with: .color(Color.cyan.opacity(0.45)), lineWidth: 0.8)
+
+        // #82 Wind arrow on dial
+        let wr = windAngle * .pi / 180.0
+        let arrowTip = CGPoint(x: dialX + (dialR - 4) * CGFloat(cos(wr)),
+                               y: dialY + (dialR - 4) * CGFloat(sin(wr)))
+        var windArrow = Path()
+        windArrow.move(to: CGPoint(x: dialX - 4 * CGFloat(cos(wr)), y: dialY - 4 * CGFloat(sin(wr))))
+        windArrow.addLine(to: arrowTip)
+        ctx.stroke(windArrow, with: .color(Color.cyan.opacity(0.85)), lineWidth: 1.5)
+        // Speed label
+        ctx.draw(Text("\(Int(windSpeed))").font(.system(size: 6, weight: .bold, design: .monospaced))
+            .foregroundStyle(Color.cyan.opacity(0.80)),
+                 at: CGPoint(x: dialX, y: dialY + dialR + 7), anchor: .center)
+        // "W" label
+        ctx.draw(Text("W").font(.system(size: 5, weight: .black, design: .monospaced))
+            .foregroundStyle(Color.cyan.opacity(0.55)),
+                 at: CGPoint(x: dialX, y: dialY - dialR - 5), anchor: .center)
+    }
+
+    // MARK: - #83 Club Selection Display
+
+    private func drawClubDisplay(_ ctx: inout GraphicsContext) {
+        // #83 Club label inset (bottom left area)
+        let cdX: CGFloat = 8
+        let cdY: CGFloat = H - 48
+        var clubBg = Path()
+        clubBg.addRoundedRect(in: CGRect(x: cdX, y: cdY, width: 76, height: 22),
+                              cornerSize: CGSize(width: 5, height: 5))
+        ctx.fill(clubBg, with: .color(Color.black.opacity(0.62)))
+        ctx.stroke(clubBg, with: .color(Color(red: 0.8, green: 0.7, blue: 0.3).opacity(0.50)), lineWidth: 0.7)
+        ctx.draw(Text("♦ \(shotTypeLabel)")
+            .font(.system(size: 8, weight: .black, design: .monospaced))
+            .foregroundStyle(Color(red: 0.95, green: 0.85, blue: 0.45)),
+                 at: CGPoint(x: cdX + 38, y: cdY + 11), anchor: .center)
+    }
+
+    // MARK: - #84 Distance Ring Meter
+
+    private func drawDistanceRing(_ ctx: inout GraphicsContext) {
+        // #84 Semi-circular distance meter in bottom center
+        let meterCX = W / 2
+        let meterCY = H - 28
+        let meterR: CGFloat = 22
+        let arcStart: Double = .pi * 1.15
+        let arcEnd: Double = .pi * 1.85
+
+        // Background arc
+        var bgArc = Path()
+        bgArc.addArc(center: CGPoint(x: meterCX, y: meterCY),
+                     radius: meterR,
+                     startAngle: .radians(arcStart),
+                     endAngle: .radians(arcEnd),
+                     clockwise: false)
+        ctx.stroke(bgArc, with: .color(Color.white.opacity(0.18)), lineWidth: 5)
+
+        // Distance from ball to hole (normalized)
+        let dxN = ballX - Double(holePosition.x)
+        let dyN = ballY - Double(holePosition.y)
+        let distNorm = min(1.0, sqrt(dxN * dxN + dyN * dyN) / 0.9)
+        let fillEnd = arcStart + (arcEnd - arcStart) * (1.0 - distNorm)
+
+        // Fill arc
+        var fillArc = Path()
+        fillArc.addArc(center: CGPoint(x: meterCX, y: meterCY),
+                       radius: meterR,
+                       startAngle: .radians(arcStart),
+                       endAngle: .radians(fillEnd),
+                       clockwise: false)
+        ctx.stroke(fillArc, with: .color(Color(red: 0.30, green: 0.88, blue: 0.42).opacity(0.80)), lineWidth: 5)
+
+        // Distance yards label (approximate)
+        let yardsApprox = Int(distNorm * 350)
+        ctx.draw(Text("\(yardsApprox)y")
+            .font(.system(size: 7, weight: .bold, design: .monospaced))
+            .foregroundStyle(Color.white.opacity(0.70)),
+                 at: CGPoint(x: meterCX, y: meterCY + 6), anchor: .center)
+    }
+
+    // MARK: - Helpers
 
     private func lerp(_ a: CGFloat, _ b: CGFloat, _ t: CGFloat) -> CGFloat { a + (b - a) * t }
 }
@@ -539,6 +1328,14 @@ struct GolfGameView: View {
     @State private var holeCardText: String = ""
     @State private var holeCardColor: Color = .white
 
+    // MARK: Environment & FX
+    @State private var windAngle: Double = 45.0
+    @State private var windSpeed: Double = 8.0
+    @State private var showImpactFX: Bool = false
+    @State private var impactFXType: String = "driver"
+    @State private var currentShotType: ShotType = .driver
+    @State private var shotTypeLabel: String = "DRIVER"
+
     // MARK: Rewards
     @State private var rewardGranted: Bool = false
     private let aiTotalStrokes: Int = Int.random(in: 27...45)
@@ -551,7 +1348,7 @@ struct GolfGameView: View {
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
-            LinearGradient(colors: [Color(red:0.02,green:0.08,blue:0.03), Theme.deepBlack],
+            LinearGradient(colors: [Color(red: 0.02, green: 0.08, blue: 0.03), Theme.deepBlack],
                            startPoint: .top, endPoint: .bottom).ignoresSafeArea()
 
             switch phase {
@@ -577,7 +1374,17 @@ struct GolfGameView: View {
                             obstacles: obstacles,
                             aimAngle: aimAngle, pullDistance: pullDistance,
                             shotState: shotState, golferPose: golferPose,
-                            crowdExcitement: crowdExcitement
+                            crowdExcitement: crowdExcitement,
+                            currentHole: currentHole,
+                            currentStrokes: currentStrokes,
+                            totalStrokes: totalStrokes,
+                            parPerHole: parPerHole,
+                            holeResults: holeResults,
+                            windAngle: windAngle,
+                            windSpeed: windSpeed,
+                            showImpactFX: showImpactFX,
+                            impactFXType: impactFXType,
+                            shotTypeLabel: shotTypeLabel
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .gesture(
@@ -710,6 +1517,26 @@ struct GolfGameView: View {
                         .font(.system(size: 10, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
                 }.frame(maxWidth: .infinity)
+
+                // Club selector
+                VStack(spacing: 4) {
+                    Text("CLUB")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(.secondary).tracking(2)
+                    Button {
+                        cycleShotType()
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Theme.cardBackground)
+                                .frame(width: 52, height: 30)
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.cardBorder, lineWidth: 1))
+                            Text(shotTypeLabel)
+                                .font(.system(size: 6, weight: .black, design: .monospaced))
+                                .foregroundStyle(Color(red: 0.95, green: 0.85, blue: 0.45))
+                        }
+                    }
+                }
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground)
@@ -726,6 +1553,26 @@ struct GolfGameView: View {
     }
 
     private var powerRatio: CGFloat { min(1.0, pullDistance / 80.0) }
+
+    // MARK: - Club Cycling
+
+    private func cycleShotType() {
+        switch currentShotType {
+        case .driver:
+            currentShotType = .iron
+            shotTypeLabel = "IRON 7"
+        case .iron:
+            currentShotType = .wedge
+            shotTypeLabel = "WEDGE"
+        case .wedge:
+            currentShotType = .putt
+            shotTypeLabel = "PUTTER"
+        case .putt:
+            currentShotType = .driver
+            shotTypeLabel = "DRIVER"
+        }
+        hapticSoft()
+    }
 
     // MARK: - Hole Score Summary
 
@@ -824,7 +1671,26 @@ struct GolfGameView: View {
         guard shotState != .ballFlying, !ballOnGreen else { return }
         shotState = .ballFlying
         currentStrokes += 1
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
+        // Determine shot type for haptics and FX
+        let isLongShot = power > 0.7
+        let distToHole: Double = {
+            let dx = ballX - Double(holePosition.x)
+            let dy = ballY - Double(holePosition.y)
+            return sqrt(dx * dx + dy * dy)
+        }()
+        let isOnGreenApproach = distToHole < 0.15
+
+        // Select haptic based on shot type
+        if isOnGreenApproach {
+            // Putt haptic — #HAPTIC-SOFT
+            hapticSoft()
+        } else if currentShotType == .driver && isLongShot {
+            // Heavy haptic fires on impact below — no pre-fire here
+        } else {
+            // Medium for iron/approach — #HAPTIC-MEDIUM
+            hapticMedium()
+        }
 
         let radians = aimAngle * .pi / 180.0
         let dist = 0.55 * power
@@ -844,10 +1710,32 @@ struct GolfGameView: View {
         ballProgress = 0
         golferPose = "backswing"
 
+        // Randomise wind each shot
+        windAngle = Double.random(in: 0...360)
+        windSpeed = Double.random(in: 3...18)
+
         Task {
             try? await Task.sleep(nanoseconds: 40_000_000)
             await MainActor.run { golferPose = "impact" }
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+
+            // Full-driver heavy haptic on impact — #HAPTIC-HEAVY
+            if currentShotType == .driver && isLongShot {
+                hapticHeavy()
+            }
+
+            // Set impact FX type
+            await MainActor.run {
+                if let obs = hitObstacle {
+                    impactFXType = obs.type == .water ? "water" : "bunker"
+                } else if currentShotType == .driver {
+                    impactFXType = "driver"
+                } else if currentShotType == .iron {
+                    impactFXType = "iron"
+                } else {
+                    impactFXType = "driver"
+                }
+                showImpactFX = true
+            }
 
             let steps = 30
             for step in 0..<steps {
@@ -858,6 +1746,7 @@ struct GolfGameView: View {
             await MainActor.run {
                 ballProgress = -1
                 golferPose = "followthrough"
+                showImpactFX = false
                 if let obs = hitObstacle {
                     applyObstaclePenalty(obs)
                 } else {
@@ -876,8 +1765,12 @@ struct GolfGameView: View {
     private func applyObstaclePenalty(_ obs: GolfObstacleLayout) {
         currentStrokes += obs.type.strokePenalty
         if obs.type == .water {
+            // Water hazard error haptic — #HAPTIC-ERROR
+            hapticError()
             penaltyText = "Water Hazard!\n+\(obs.type.strokePenalty) Strokes · Ball Reset"
         } else {
+            // Sand trap — medium haptic
+            hapticMedium()
             ballX = ballEndX; ballY = ballEndY
             penaltyText = "Sand Trap!\n+\(obs.type.strokePenalty) Stroke"
         }
@@ -895,7 +1788,19 @@ struct GolfGameView: View {
 
         if dist < 0.10 {
             ballOnGreen = true
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            // Check for hole-in-one
+            if currentStrokes == 1 {
+                // Hole-in-one rigid haptic — #HAPTIC-RIGID
+                hapticRigid()
+                impactFXType = "holein"
+                showImpactFX = true
+                Task {
+                    try? await Task.sleep(for: .milliseconds(800))
+                    await MainActor.run { showImpactFX = false }
+                }
+            } else {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
             recordHole()
         } else if currentStrokes >= parPerHole + 3 {
             ballOnGreen = true
@@ -936,6 +1841,7 @@ struct GolfGameView: View {
         ballX = 0.5; ballY = 0.1; ballProgress = -1
         aimAngle = 0; pullDistance = 0; shotState = .idle
         golferPose = "address"
+        currentShotType = .driver; shotTypeLabel = "DRIVER"
         generateHoleLayout()
     }
 
