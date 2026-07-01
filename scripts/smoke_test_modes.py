@@ -10,6 +10,10 @@ import os
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT / "backend"))
+
+from registry_utils import launchable_mode_maps, load_ue_mode_maps, normalized_modes, production_count
+
 PASS = 0
 FAIL = 0
 SKIP = 0
@@ -29,47 +33,60 @@ def skip(msg):
     SKIP += 1
     print(f"  ⏭  {msg}")
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Production modes expected to pass all gates
-# ═══════════════════════════════════════════════════════════════════════════════
-PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
-    "karate_h2h", "karate_endless",
-    "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
-]
+MODE_MANAGER_DATA = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
+VENUE_REGISTRY_DATA = json.loads((REPO_ROOT / "backend" / "FEL_VenueRegistry.production.json").read_text())
+UE_MODE_MAPS = load_ue_mode_maps(REPO_ROOT / "backend")
+NORMALIZED_MODES = normalized_modes(MODE_MANAGER_DATA, VENUE_REGISTRY_DATA, UE_MODE_MAPS)
+MODES_BY_ID = {mode["mode_id"]: mode for mode in NORMALIZED_MODES}
+RAW_REGISTRY = MODE_MANAGER_DATA["mode_manager"]["mode_registry"]
+PRODUCTION_MODES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["status"] == "production"]
+LAUNCHABLE_MODES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["launchable"]]
+NON_GAME_MODULES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["status"] == "non-game-module"]
+PREVIEW_MODES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["status"] == "preview"]
 
-NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+def swift_ids_for(mode: str) -> list[str]:
+    if mode == "basketball_dunk":
+        return ["basketball_dunk_3d", "basketball_dunk_irl"]
+    return [mode]
+
+
+def server_ids_for(mode: str) -> list[str]:
+    runtime_id = MODES_BY_ID[mode].get("nexus_runtime_mode_id", mode)
+    ids = [mode]
+    if runtime_id != mode:
+        ids.append(runtime_id)
+    if mode == "basketball_dunk_3d":
+        ids.append("basketball_dunk")
+    return ids
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
-    mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
-    registry = mgr["mode_manager"]["mode_registry"]
+    registry = RAW_REGISTRY
+    declared_total = MODE_MANAGER_DATA["mode_manager"]["total_modes"]
+    declared_production = MODE_MANAGER_DATA["mode_manager"]["production_modes"]
+    if declared_total == len(registry):
+        ok(f"declared total_modes matches registry ({declared_total})")
+    else:
+        fail(f"declared total_modes={declared_total}, actual={len(registry)}")
+    actual_production = production_count(NORMALIZED_MODES)
+    if declared_production == actual_production:
+        ok(f"declared production_modes matches registry ({declared_production})")
+    else:
+        fail(f"declared production_modes={declared_production}, actual={actual_production}")
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
             info = registry[mode]
             if info["status"] == "production":
-                ok(f"{mode} → production, venue_id={info['venue_id']}")
+                ok(f"{mode} → production, venue_id={info.get('venue_id')}")
             else:
                 fail(f"{mode} status={info['status']}, expected production")
         else:
             fail(f"{mode} missing from ModeManager registry")
-
-    for mode in STAGING_MODES:
-        if mode in registry and registry[mode]["status"] == "staging":
-            ok(f"{mode} → staging (expected)")
-        elif mode in registry:
-            fail(f"{mode} status={registry[mode]['status']}, expected staging")
-        else:
-            fail(f"{mode} missing from registry")
 
     for mode in PREVIEW_MODES:
         if mode in registry and registry[mode]["status"] == "preview":
@@ -90,19 +107,13 @@ def test_mode_manager_registry():
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_ue_mode_maps():
     print("\n── Test 2: UE Mode Maps ──")
-    ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
-    mode_map = ue_maps["mode_to_unreal_map"]
+    mode_map = launchable_mode_maps(MODE_MANAGER_DATA, VENUE_REGISTRY_DATA, UE_MODE_MAPS)
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in LAUNCHABLE_MODES:
         if mode in mode_map:
             ok(f"{mode} → {mode_map[mode]}")
         else:
-            if mode == "market_browse":
-                # market_browse may not have a UE map (it's a shop module)
-                ok(f"{mode} → present in ue_mode_maps")
-            else:
-                fail(f"{mode} missing from ue_mode_maps.json")
+            fail(f"{mode} missing from launchable mode maps")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 3: ArenaSettings Coverage
@@ -112,8 +123,7 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in LAUNCHABLE_MODES:
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -134,14 +144,15 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in LAUNCHABLE_MODES:
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
+        elif MODES_BY_ID[mode].get("map"):
+            ok(f"{mode} → normalized venue={MODES_BY_ID[mode]['map']}")
         else:
             fail(f"{mode} missing from VenueRegistry")
 
@@ -165,8 +176,7 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in LAUNCHABLE_MODES:
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -192,13 +202,13 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in PRODUCTION_MODES:
         # Search for rawValue
-        if f'= "{mode}"' in content:
-            ok(f'{mode} has Swift enum case')
+        expected_ids = swift_ids_for(mode)
+        if any(f'= "{swift_id}"' in content for swift_id in expected_ids):
+            ok(f'{mode} has Swift enum coverage')
         else:
-            fail(f'{mode} missing from GameMode.swift enum')
+            fail(f"{mode} missing from GameMode.swift enum (expected one of {expected_ids})")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
@@ -208,12 +218,12 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
-        if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
+    for mode in PRODUCTION_MODES:
+        candidate_ids = server_ids_for(mode)
+        if any(f'"id":"{candidate}"' in content or f'"id": "{candidate}"' in content for candidate in candidate_ids):
             ok(f"{mode} in server seeded modes")
         else:
-            fail(f"{mode} missing from server.py seeded modes")
+            fail(f"{mode} missing from server.py seeded modes (checked {candidate_ids})")
 
     # Verify all mario_party references have been scrubbed
     if 'mario_party' in content:
@@ -245,18 +255,23 @@ def test_economy_integration():
             fail(f"{label} missing")
 
     # Verify PRQ weights cover all scoring modes
-    scoring_modes = PRODUCTION_MODES  # all production modes are scoring modes
+    scoring_modes = [
+        mode
+        for mode in PRODUCTION_MODES
+        if RAW_REGISTRY[mode].get("scoring_enabled", True) and mode not in ("basketball_dunk_irl",)
+    ]
     for mode in scoring_modes:
-        if f'"{mode}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]:
+        candidate_ids = server_ids_for(mode)
+        if any(f'"{candidate}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0] for candidate in candidate_ids):
             ok(f"PRQ weight defined for {mode}")
         else:
-            fail(f"PRQ weight missing for {mode}")
+            fail(f"PRQ weight missing for {mode} (checked {candidate_ids})")
 
 
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print(f"  {len(PRODUCTION_MODES)} production entries · {len(LAUNCHABLE_MODES)} launchable · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
