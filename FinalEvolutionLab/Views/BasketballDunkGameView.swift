@@ -1708,7 +1708,10 @@ struct BasketballDunkGameView: View {
     }
 
     private func advanceAfterReveal() {
-        if currentRound >= TOTAL_ROUNDS { phase = .result } else { currentRound += 1; phase = .roundTransition }
+        if currentRound >= TOTAL_ROUNDS {
+            GameResultService.saveResult(modeId: "basketball_dunk", userScore: playerTotal)
+            phase = .result
+        } else { currentRound += 1; phase = .roundTransition }
     }
 
     private func awardShards(winner: ResultScreen.ResultWinner) {

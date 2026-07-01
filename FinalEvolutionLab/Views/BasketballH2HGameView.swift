@@ -1794,6 +1794,7 @@ struct BasketballH2HGameView: View {
 
     private func endGame() {
         cancelAllTasks()
+        GameResultService.saveResult(modeId: "basketball_h2h", userScore: playerScore, opponentScore: opponentScore)
         withAnimation(.spring(response: 0.4)) { phase = .result }
     }
 

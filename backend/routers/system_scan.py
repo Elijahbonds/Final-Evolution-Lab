@@ -170,9 +170,9 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Unified
         # Best-effort distinct mode list (graceful if collection missing)
         try:
             mode_docs = await db.game_sessions.find(
-                {"user_id": user.user_id}, {"_id": 0, "mode": 1}
+                {"user_id": user.user_id}, {"_id": 0, "mode_id": 1}
             ).to_list(500)
-            modes_unlocked = list({d["mode"] for d in mode_docs if d.get("mode")})
+            modes_unlocked = list({d["mode_id"] for d in mode_docs if d.get("mode_id")})
         except Exception:
             modes_unlocked = []
 

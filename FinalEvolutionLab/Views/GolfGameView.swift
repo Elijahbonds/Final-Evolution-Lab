@@ -2694,7 +2694,7 @@ struct GolfGameView: View {
             try? await Task.sleep(for: .milliseconds(2200))
             await MainActor.run {
                 withAnimation { showHoleCard = false }
-                if currentHole < 9 { advanceHole() } else { phase = .result }
+                if currentHole < 9 { advanceHole() } else { GameResultService.saveResult(modeId: "golf", userScore: totalStrokes); phase = .result }
             }
         }
     }

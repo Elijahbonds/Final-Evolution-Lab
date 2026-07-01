@@ -2236,7 +2236,10 @@ struct SoccerGameView: View {
 
     private func advanceRound() {
         if isSuddenDeath {
-            if playerGoals != aiGoals { phase = .result }
+            if playerGoals != aiGoals {
+                GameResultService.saveResult(modeId: "soccer", userScore: playerGoals, opponentScore: aiGoals)
+                phase = .result
+            }
             else { resetRoundState(); phase = .ready }
             return
         }
@@ -2251,6 +2254,7 @@ struct SoccerGameView: View {
             } else {
                 // Check MAN OF THE MATCH
                 manOfTheMatch = playerGoals >= 3 && aiGoals <= 1
+                GameResultService.saveResult(modeId: "soccer", userScore: playerGoals, opponentScore: aiGoals)
                 phase = .result
             }
         } else {

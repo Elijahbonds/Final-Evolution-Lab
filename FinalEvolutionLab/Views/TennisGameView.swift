@@ -2452,7 +2452,7 @@ struct TennisGameView: View {
         }
     }
 
-    private func endMatch() { cancelAllTasks(); withAnimation(.spring(response: 0.4)) { phase = .result } }
+    private func endMatch() { cancelAllTasks(); GameResultService.saveResult(modeId: "tennis", userScore: playerSets, opponentScore: opponentSets); withAnimation(.spring(response: 0.4)) { phase = .result } }
 
     private func detectSwipe(from start: CGPoint, to end: CGPoint) -> SwipeDir {
         let dx = end.x - start.x; let dy = end.y - start.y

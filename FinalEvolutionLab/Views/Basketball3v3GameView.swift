@@ -2069,6 +2069,7 @@ struct Basketball3v3GameView: View {
 
     private func endGame() {
         cancelAllTasks()
+        GameResultService.saveResult(modeId: "basketball_3v3", userScore: playerTeamScore, opponentScore: opponentTeamScore)
         withAnimation(.spring(response: 0.4)) { phase = .result }
     }
 
