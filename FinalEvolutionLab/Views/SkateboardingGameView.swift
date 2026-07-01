@@ -1168,12 +1168,45 @@ struct SkateboardingGameView: View {
         }
         lastTrickIndex = index
         lastTrickTime = now
+        lastTrickLandTime = now
+
+        // If grinding, this is a grind-combo exit trick — apply multiplier to accrued grind score
+        if isGrinding {
+            let exitMultiplier: Double
+            switch index {
+            case 1: exitMultiplier = 2.0   // Kickflip out
+            case 2: exitMultiplier = 2.2   // Heelflip out
+            case 3: exitMultiplier = 3.0   // 360 Flip out
+            default: exitMultiplier = 1.5
+            }
+            let bonus = Int(Double(grindScore) * exitMultiplier)
+            comboTotal += bonus
+            currentRunScore += bonus
+            bestRunScore = max(bestRunScore, currentRunScore)
+            allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
+            let grindTypeName = currentGrindType.rawValue
+            comboString += " → \(trick.name) OUT"
+            comboText = "\(grindTypeName) → \(trick.name) x\(String(format: "%.1f", exitMultiplier))"
+            endGrind()
+            hapticHeavy()
+            // Trigger combo complete
+            triggerComboComplete(points: bonus)
+            return
+        }
+
+        // End manual if active — link bonus
+        if isManual {
+            endManual()
+        }
+
         let mult = comboMultiplier(for: comboCount)
         let points = trick.points * mult
         comboCount = min(comboCount + 1, comboMultipliers.count - 1)
+        comboTotal += points
         currentRunScore += points
         bestRunScore = max(bestRunScore, currentRunScore)
         allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
+        comboActive = true
 
         // Haptic feedback — ollie/jump: heavy takeoff; trick landing: heavy
         hapticHeavy()
@@ -1191,33 +1224,107 @@ struct SkateboardingGameView: View {
         showTrickPopup(name: trick.name, points: points)
     }
 
-    private func startGrind() {
+    // MARK: - Manual
+
+    private func activateManual() {
         guard phase == .running, !isGrinding else { return }
-        isGrinding = true
-        hapticRigid() // rail/ledge grind start: rigid feedback
-        grindTask?.cancel()
-        grindTask = Task {
-            while !Task.isCancelled && isGrinding && phase == .running {
-                try? await Task.sleep(for: .milliseconds(500))
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    if isGrinding && phase == .running {
-                        let mult = comboMultiplier(for: comboCount)
-                        let pts = Int(37.5 * Double(mult))
-                        currentRunScore += pts
-                        bestRunScore = max(bestRunScore, currentRunScore)
-                        allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
-                        hapticLight() // manual balance tap each grind tick
+        if isManual {
+            endManual()
+            return
+        }
+        isManual = true
+        comboActive = true
+        hapticMedium()
+        if comboString.isEmpty {
+            comboString = "Manual"
+        } else {
+            comboString += " → Manual"
+        }
+        showTrickPopup(name: "MANUAL", points: 0)
+        // Wobble balance indicator
+        manualBalance = 0.5
+        startManualBalance()
+        // Auto-end after 3s if no trick/grind follows
+        manualWindowTask?.cancel()
+        manualWindowTask = Task {
+            try? await Task.sleep(for: .seconds(3.0))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                if isManual {
+                    endManual()
+                    // Combo breaks if idle too long
+                    if Date().timeIntervalSince(lastTrickLandTime ?? .distantPast) > 1.5 {
+                        breakCombo()
                     }
                 }
             }
         }
-        if comboString.isEmpty {
-            comboString = "Grind"
-        } else {
-            comboString += " → Grind"
+    }
+
+    private func startManualBalance() {
+        Task {
+            while isManual && phase == .running {
+                try? await Task.sleep(for: .milliseconds(80))
+                await MainActor.run {
+                    if isManual {
+                        let drift = CGFloat.random(in: -0.04...0.04)
+                        manualBalance = max(0, min(1, manualBalance + drift))
+                    }
+                }
+            }
         }
-        showTrickPopup(name: "Grind", points: 0)
+    }
+
+    private func endManual() {
+        guard isManual else { return }
+        isManual = false
+        manualWindowTask?.cancel()
+        comboCount = min(comboCount + 1, comboMultipliers.count - 1)
+    }
+
+    private func startGrind() {
+        guard phase == .running, !isGrinding else { return }
+        isGrinding = true
+        grindScore = 0
+        grindProgress = 0
+        currentGrindType = GrindType.random()
+        hapticRigid() // rail/ledge grind start: rigid feedback
+        grindTask?.cancel()
+        // Add to combo chain
+        if comboString.isEmpty {
+            comboString = currentGrindType.rawValue
+        } else {
+            comboString += " → \(currentGrindType.rawValue)"
+        }
+        comboActive = true
+        showTrickPopup(name: currentGrindType.rawValue, points: 0)
+        grindTask = Task {
+            let totalGrindTime = Double.random(in: 1.5...3.0)
+            var elapsed = 0.0
+            while !Task.isCancelled && isGrinding && phase == .running {
+                try? await Task.sleep(for: .milliseconds(100))
+                guard !Task.isCancelled else { return }
+                elapsed += 0.1
+                await MainActor.run {
+                    if isGrinding && phase == .running {
+                        // +5 pts per 0.1s
+                        let ptsThisTick = 5
+                        grindScore += ptsThisTick
+                        comboTotal += ptsThisTick
+                        currentRunScore += ptsThisTick
+                        bestRunScore = max(bestRunScore, currentRunScore)
+                        allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
+                        grindProgress = CGFloat(min(elapsed / totalGrindTime, 1.0))
+                        hapticLight() // subtle grind tick
+                    }
+                }
+                if elapsed >= totalGrindTime {
+                    // Auto-exit grind
+                    await MainActor.run { endGrind() }
+                    break
+                }
+            }
+        }
     }
 
     private func endGrind() {
@@ -1226,16 +1333,51 @@ struct SkateboardingGameView: View {
         grindTask?.cancel()
         grindTask = nil
         comboCount = min(comboCount + 1, comboMultipliers.count - 1)
+        grindProgress = 0
+        // Award the raw grind score if not already awarded via exit trick
+        if grindScore > 0 {
+            let awarded = grindScore
+            grindScore = 0
+            currentRunScore += awarded
+            bestRunScore = max(bestRunScore, currentRunScore)
+            allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
+        }
+    }
+
+    // MARK: - Combo Complete / Break
+
+    private func triggerComboComplete(points: Int) {
+        withAnimation(.spring(response: 0.3)) { showComboComplete = true }
+        hapticSuccess()
+        Task {
+            try? await Task.sleep(for: .seconds(2.0))
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.4)) { showComboComplete = false }
+                breakCombo()
+            }
+        }
+    }
+
+    private func breakCombo() {
+        comboActive = false
+        comboTotal = 0
+        comboText = ""
     }
 
     private func triggerBail() {
         runTimer?.cancel()
         grindTask?.cancel()
+        manualWindowTask?.cancel()
         isGrinding = false
+        isManual = false
         comboCount = 0
         lastTrickIndex = nil
         hapticError() // slam/bail: error notification + heavy
         comboString = ""
+        comboActive = false
+        comboTotal = 0
+        grindScore = 0
+        grindProgress = 0
         withAnimation(.spring(response: 0.2)) { showBailFlash = true }
         phase = .bail
         Task {

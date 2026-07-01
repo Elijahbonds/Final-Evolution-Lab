@@ -192,16 +192,18 @@ private struct Draw3v3 {
     }
 
     mutating func render(into ctx: inout GraphicsContext) {
-        // ── Court Background #1–#10 ──
-        drawCourtBackground(ctx: &ctx)
-        // ── Arena #11–#22 ──
-        drawArena(ctx: &ctx)
-        // ── Player Figures #23–#50 ──
+        // ── Outdoor Streetball Court ──
+        drawOutdoorBackground(ctx: &ctx)
+        drawOutdoorCourt(ctx: &ctx)
+        drawOutdoorEnvironment(ctx: &ctx)
+        // ── Player Figures ──
         drawShadows(ctx: &ctx)
         for i in 0..<3 {
             let pose = i < opponentPoses.count ? opponentPoses[i] : "guard"
+            let isFrozen = frozenDefenderIdx == i
             drawFigure(ctx: &ctx, cx: oppXs[i], fy: floorY, pose: pose,
-                       color: Color(red: 1.0, green: 0.25, blue: 0.25), flip: true, index: i + 3)
+                       color: Color(red: 1.0, green: 0.25, blue: 0.25), flip: true, index: i + 3,
+                       isFrozen: isFrozen, isHot: false)
         }
         for i in 0..<3 {
             let pose = i < playerPoses.count ? playerPoses[i] : "idle"
@@ -209,14 +211,18 @@ private struct Draw3v3 {
             let col: Color = isActive
                 ? Color(red: 0.10, green: 0.92, blue: 0.45)
                 : Color(red: 0.18, green: 0.78, blue: 1.0)
-            drawFigure(ctx: &ctx, cx: playerXs[i], fy: floorY, pose: pose, color: col, flip: false, index: i)
+            let playerIsHot = hotPlayer == i
+            drawFigure(ctx: &ctx, cx: playerXs[i], fy: floorY, pose: pose, color: col, flip: false, index: i,
+                       isFrozen: false, isHot: playerIsHot)
         }
-        // ── Ball & Scoring #51–#64 ──
+        if isDriving && possession == .player { drawDriveRush(ctx: &ctx) }
+        // ── Ball ──
         if passProgress >= 0 { drawPassArc(ctx: &ctx) }
         else if shotProgress >= 0 { drawShotArc(ctx: &ctx) }
         else { drawDribble(ctx: &ctx) }
         drawBallScoring(ctx: &ctx)
-        // ── Atmosphere #65–#80 ──
+        // ── Hype & Atmosphere ──
+        drawHypeAtmosphere(ctx: &ctx)
         drawAtmosphere(ctx: &ctx)
     }
 
