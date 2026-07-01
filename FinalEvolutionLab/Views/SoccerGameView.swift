@@ -1330,6 +1330,11 @@ struct SoccerGameView: View {
     @State private var isCorner: Bool = false
     @State private var lastCornerTime: Double = 0
 
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     // MARK: — AI Difficulty Scaling
     @State private var aiDifficulty: Double = 0.3
     @State private var consecutivePlayerGoals: Int = 0
@@ -1381,43 +1386,54 @@ struct SoccerGameView: View {
         ZStack {
             Color(red: 0.02, green: 0.06, blue: 0.02).ignoresSafeArea()
 
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Penalty Shootout",
-                    subtitle: isSuddenDeath ? "SUDDEN DEATH" : "5-Round Shootout · Aim & Fire",
-                    countdown: 3,
-                    accentColor: accentColor,
-                    onComplete: { phase = .shooting }
-                )
-                .background(Color(red: 0.02, green: 0.06, blue: 0.02).ignoresSafeArea())
-
-            case .shooting:
-                shootingBody
-
-            case .result:
-                let playerWon = playerGoals > aiGoals
-                let isDraw = playerGoals == aiGoals
-                let isMotm = playerGoals >= 3 && aiGoals <= 1
-                VStack(spacing: 0) {
-                    // Post-match stats banner
-                    postMatchBanner(isMotm: isMotm)
-                        .padding(.horizontal, 16).padding(.top, 16)
-                    ResultScreen(
-                        winner: playerWon ? .p1 : (isDraw ? .draw : .p2),
-                        p1Score: playerGoals, p2Score: aiGoals,
-                        title: "Penalty Shootout", accentColor: accentColor,
-                        prqGain: playerWon ? 12 : (isDraw ? 5 : 2),
-                        prqCurrent: viewModel.effectiveMetrics.prqScore,
-                        modeAttributeLabel: "Accuracy",
-                        modeAttributeValue: shotsAttempted > 0
-                            ? Double(shotsMade) / Double(shotsAttempted)
-                            : 0.0,
-                        onReturn: { dismiss() }
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Penalty Shootout",
+                        subtitle: isSuddenDeath ? "SUDDEN DEATH" : "5-Round Shootout · Aim & Fire",
+                        countdown: 3,
+                        accentColor: accentColor,
+                        onComplete: { phase = .shooting }
                     )
+                    .background(Color(red: 0.02, green: 0.06, blue: 0.02).ignoresSafeArea())
+
+                case .shooting:
+                    shootingBody
+
+                case .result:
+                    let playerWon = playerGoals > aiGoals
+                    let isDraw = playerGoals == aiGoals
+                    let isMotm = playerGoals >= 3 && aiGoals <= 1
+                    VStack(spacing: 0) {
+                        // Post-match stats banner
+                        postMatchBanner(isMotm: isMotm)
+                            .padding(.horizontal, 16).padding(.top, 16)
+                        ResultScreen(
+                            winner: playerWon ? .p1 : (isDraw ? .draw : .p2),
+                            p1Score: playerGoals, p2Score: aiGoals,
+                            title: "Penalty Shootout", accentColor: accentColor,
+                            prqGain: playerWon ? 12 : (isDraw ? 5 : 2),
+                            prqCurrent: viewModel.effectiveMetrics.prqScore,
+                            modeAttributeLabel: "Accuracy",
+                            modeAttributeValue: shotsAttempted > 0
+                                ? Double(shotsMade) / Double(shotsAttempted)
+                                : 0.0,
+                            onReturn: { dismiss() }
+                        )
+                    }
+                    .onAppear { grantShards(playerWon: playerWon, isDraw: isDraw) }
                 }
-                .onAppear { grantShards(playerWon: playerWon, isDraw: isDraw) }
             }
+            .offset(x: shakeX, y: shakeY)
+
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
+            }
+            .allowsHitTesting(false)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -2232,6 +2248,7 @@ struct SoccerGameView: View {
             if isCloseCall {
                 await MainActor.run {
                     varCheckActive = true
+                    triggerShake(intensity: 8)
                 }
                 try? await Task.sleep(for: .seconds(3.0))
                 await MainActor.run { varCheckActive = false }
@@ -2247,6 +2264,8 @@ struct SoccerGameView: View {
 
                 if scored {
                     UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    triggerShake(intensity: 16)
+                    triggerBurst(color: accentColor, count: 20)
                     playerScored = true
                     playerGoals += 1
                     shotsMade += 1
@@ -2268,20 +2287,24 @@ struct SoccerGameView: View {
                     }
                 } else if goalieCovers && tackleProbability < 0.4 {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    triggerShake(intensity: 5)
                     isTackle = true
                     lastTackleTime = Date().timeIntervalSinceReferenceDate
                     consecutivePlayerGoals = 0
                 } else if !scored && cornerProbability < 0.30 {
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    triggerShake(intensity: 5)
                     isCorner = true
                     lastCornerTime = Date().timeIntervalSinceReferenceDate
                     consecutivePlayerGoals = 0
                 } else {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    triggerShake(intensity: 5)
                     consecutivePlayerGoals = 0
                 }
 
                 if aiScored {
+                    triggerShake(intensity: 10)
                     aiGoals += 1
                     consecutiveAIGoals += 1
                     consecutivePlayerGoals = 0
@@ -2301,6 +2324,7 @@ struct SoccerGameView: View {
                             // Red card = +AI advantage
                             redCardGiven = true
                             showRedCard = true
+                            triggerShake(intensity: 8)
                             aiDifficulty = min(1.0, aiDifficulty + 0.1)
                             UINotificationFeedbackGenerator().notificationOccurred(.error)
                         }
@@ -2386,6 +2410,46 @@ struct SoccerGameView: View {
         shotDragCurrent = .zero
         shotPower = 0
         keeperPosition = 0.5
+    }
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 
     private func grantShards(playerWon: Bool, isDraw: Bool) {

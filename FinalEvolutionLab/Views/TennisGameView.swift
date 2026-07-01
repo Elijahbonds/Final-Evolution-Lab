@@ -1795,6 +1795,11 @@ struct TennisGameView: View {
     private let accentColor = Color(red: 0.85, green: 0.75, blue: 0.1)
     private let opponentName = "Kai Nexus"
 
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     // MARK: - Momentum Helpers
 
     /// Effective accuracy bonus/penalty from momentum
@@ -1824,17 +1829,28 @@ struct TennisGameView: View {
             LinearGradient(colors: [Color(red: 0.04, green: 0.06, blue: 0.02), Theme.deepBlack],
                            startPoint: .top, endPoint: .bottom).ignoresSafeArea()
 
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Rally Ace", subtitle: "2-Minute Tennis Match · Swipe to return",
-                    countdown: 3, accentColor: accentColor,
-                    onComplete: { startMatch() }
-                )
-            case .serving: servingView
-            case .rally:   rallyView
-            case .result:  resultView
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Rally Ace", subtitle: "2-Minute Tennis Match · Swipe to return",
+                        countdown: 3, accentColor: accentColor,
+                        onComplete: { startMatch() }
+                    )
+                case .serving: servingView
+                case .rally:   rallyView
+                case .result:  resultView
+                }
             }
+            .offset(x: shakeX, y: shakeY)
+
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
+            }
+            .allowsHitTesting(false)
 
             // Overlays that appear across phases
             if showChallengeReview {
@@ -2233,6 +2249,8 @@ struct TennisGameView: View {
     private func triggerAce() {
         showAce = true
         TennisHaptic.ace()
+        triggerShake(intensity: 14)
+        triggerBurst(color: accentColor, count: 18)
         Task {
             try? await Task.sleep(for: .milliseconds(1200))
             await MainActor.run { showAce = false }
@@ -2242,6 +2260,8 @@ struct TennisGameView: View {
     private func triggerWinner() {
         showWinner = true
         TennisHaptic.hit()
+        triggerShake(intensity: 14)
+        triggerBurst(color: accentColor, count: 18)
         Task {
             try? await Task.sleep(for: .milliseconds(900))
             await MainActor.run { showWinner = false }
@@ -2726,6 +2746,8 @@ struct TennisGameView: View {
 
     private func playerWinsPoint() {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+        triggerShake(intensity: 9)
+        triggerBurst(color: accentColor, count: 12)
         canChallenge = false
         if isTiebreak {
             tiebreakPlayerWinsPoint()
@@ -2736,10 +2758,12 @@ struct TennisGameView: View {
             if bothAtForty || advantagePlayer != 0 {
                 // Deuce / advantage situation
                 if advantagePlayer == -1 {
+                    triggerShake(intensity: 5)
                     advantagePlayer = 0           // break opponent's advantage → back to deuce
                 } else if advantagePlayer == 1 {
                     advantagePlayer = 0; playerWinsGame()  // player had adv → wins game
                 } else {
+                    triggerShake(intensity: 5)
                     advantagePlayer = 1           // deuce → player gets advantage
                 }
             } else if playerPoints == .forty {
@@ -2752,6 +2776,7 @@ struct TennisGameView: View {
     }
 
     private func opponentWinsPoint() {
+        triggerShake(intensity: 6)
         canChallenge = false
         if isTiebreak {
             tiebreakOpponentWinsPoint()
@@ -2887,6 +2912,46 @@ struct TennisGameView: View {
         Task {
             try? await Task.sleep(for: .milliseconds(900))
             await MainActor.run { withAnimation(.easeOut(duration: 0.3)) { showFeedback = false } }
+        }
+    }
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
         }
     }
 

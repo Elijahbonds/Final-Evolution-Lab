@@ -1638,6 +1638,11 @@ struct GolfGameView: View {
     private let WIN_SHARDS = 50; private let DRAW_SHARDS = 25; private let LOSS_SHARDS = 15
     private let accentColor = Color(red: 0.3, green: 0.7, blue: 0.4)
 
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     // MARK: Per-hole par from course card
     private var parPerHole: Int { courseCard[min(currentHole - 1, courseCard.count - 1)].par }
     private var totalPar: Int { courseCard.reduce(0) { $0 + $1.par } }
@@ -1648,88 +1653,99 @@ struct GolfGameView: View {
             LinearGradient(colors: [Color(red: 0.02, green: 0.08, blue: 0.03), Theme.deepBlack],
                            startPoint: .top, endPoint: .bottom).ignoresSafeArea()
 
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Golf · Closest to Pin",
-                    subtitle: "9 Holes · Par 3 Each · Drag to Aim & Shoot",
-                    countdown: 3, accentColor: accentColor,
-                    onComplete: { startHole() }
-                )
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Golf · Closest to Pin",
+                        subtitle: "9 Holes · Par 3 Each · Drag to Aim & Shoot",
+                        countdown: 3, accentColor: accentColor,
+                        onComplete: { startHole() }
+                    )
 
-            case .aiming:
-                VStack(spacing: 0) {
-                    holeHeader.padding(.top, 8)
+                case .aiming:
+                    VStack(spacing: 0) {
+                        holeHeader.padding(.top, 8)
 
-                    ZStack {
-                        GolfCourseCanvas(
-                            ballX: ballX, ballY: ballY,
-                            ballProgress: ballProgress,
-                            ballStartX: ballStartX, ballStartY: ballStartY,
-                            ballEndX: ballEndX, ballEndY: ballEndY,
-                            holePosition: holePosition,
-                            obstacles: obstacles,
-                            aimAngle: aimAngle, pullDistance: pullDistance,
-                            shotState: shotState, golferPose: golferPose,
-                            crowdExcitement: crowdExcitement,
-                            currentHole: currentHole,
-                            currentStrokes: currentStrokes,
-                            totalStrokes: totalStrokes,
-                            parPerHole: parPerHole,
-                            holeResults: holeResults,
-                            windAngle: windAngle,
-                            windSpeed: windSpeed,
-                            showImpactFX: showImpactFX,
-                            impactFXType: impactFXType,
-                            shotTypeLabel: shotTypeLabel
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { v in onDragChanged(v) }
-                                .onEnded   { v in onDragEnded(v) }
-                        )
+                        ZStack {
+                            GolfCourseCanvas(
+                                ballX: ballX, ballY: ballY,
+                                ballProgress: ballProgress,
+                                ballStartX: ballStartX, ballStartY: ballStartY,
+                                ballEndX: ballEndX, ballEndY: ballEndY,
+                                holePosition: holePosition,
+                                obstacles: obstacles,
+                                aimAngle: aimAngle, pullDistance: pullDistance,
+                                shotState: shotState, golferPose: golferPose,
+                                crowdExcitement: crowdExcitement,
+                                currentHole: currentHole,
+                                currentStrokes: currentStrokes,
+                                totalStrokes: totalStrokes,
+                                parPerHole: parPerHole,
+                                holeResults: holeResults,
+                                windAngle: windAngle,
+                                windSpeed: windSpeed,
+                                showImpactFX: showImpactFX,
+                                impactFXType: impactFXType,
+                                shotTypeLabel: shotTypeLabel
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { v in onDragChanged(v) }
+                                    .onEnded   { v in onDragEnded(v) }
+                            )
 
-                        if showFeedback {
-                            Text(feedbackText)
-                                .font(.system(size: 22, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white)
-                                .shadow(color: accentColor.opacity(0.7), radius: 14)
-                                .transition(.scale(scale: 0.5).combined(with: .opacity))
+                            if showFeedback {
+                                Text(feedbackText)
+                                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                                    .foregroundStyle(.white)
+                                    .shadow(color: accentColor.opacity(0.7), radius: 14)
+                                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+                            }
+                            if showPenalty { penaltyOverlay }
+                            if showHoleCard { holeCardOverlay }
+                            if showingAiTurn { aiTurnOverlay }
+                            if showClubSelector { clubSelectorOverlay }
+                            if showGreenReading { greenReadingOverlay }
+                            if showFullScorecard { fullScorecardOverlay }
                         }
-                        if showPenalty { penaltyOverlay }
-                        if showHoleCard { holeCardOverlay }
-                        if showingAiTurn { aiTurnOverlay }
-                        if showClubSelector { clubSelectorOverlay }
-                        if showGreenReading { greenReadingOverlay }
-                        if showFullScorecard { fullScorecardOverlay }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .layoutPriority(1)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-
-                    controlPanel
+                        .frame(maxWidth: .infinity)
+                        .layoutPriority(1)
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 28)
-                }
+                        .padding(.vertical, 6)
 
-            case .result:
-                let playerWon = totalStrokes < aiTotalStrokes
-                let isDraw    = totalStrokes == aiTotalStrokes
-                let scoreVsPar = totalStrokes - totalPar
-                ResultScreen(
-                    winner: playerWon ? .p1 : (isDraw ? .draw : .p2),
-                    p1Score: totalStrokes, p2Score: aiTotalStrokes,
-                    title: "Golf · 9 Holes", accentColor: accentColor,
-                    prqGain: playerWon ? 10 : (isDraw ? 4 : 2),
-                    prqCurrent: viewModel.effectiveMetrics.prqScore,
-                    modeAttributeLabel: scoreVsPar <= 0 ? "Under Par" : "Over Par",
-                    modeAttributeValue: max(0, 1.0 - Double(abs(scoreVsPar)) / 18.0),
-                    onReturn: { dismiss() }
-                )
-                .onAppear { grantShards(playerWon: playerWon, isDraw: isDraw) }
+                        controlPanel
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 28)
+                    }
+
+                case .result:
+                    let playerWon = totalStrokes < aiTotalStrokes
+                    let isDraw    = totalStrokes == aiTotalStrokes
+                    let scoreVsPar = totalStrokes - totalPar
+                    ResultScreen(
+                        winner: playerWon ? .p1 : (isDraw ? .draw : .p2),
+                        p1Score: totalStrokes, p2Score: aiTotalStrokes,
+                        title: "Golf · 9 Holes", accentColor: accentColor,
+                        prqGain: playerWon ? 10 : (isDraw ? 4 : 2),
+                        prqCurrent: viewModel.effectiveMetrics.prqScore,
+                        modeAttributeLabel: scoreVsPar <= 0 ? "Under Par" : "Over Par",
+                        modeAttributeValue: max(0, 1.0 - Double(abs(scoreVsPar)) / 18.0),
+                        onReturn: { dismiss() }
+                    )
+                    .onAppear { grantShards(playerWon: playerWon, isDraw: isDraw) }
+                }
             }
+            .offset(x: shakeX, y: shakeY)
+
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
+            }
+            .allowsHitTesting(false)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -2657,6 +2673,7 @@ struct GolfGameView: View {
                     impactFXType = "driver"
                 }
                 showImpactFX = true
+                triggerShake(intensity: 8)
             }
 
             let steps = 30
@@ -2720,6 +2737,8 @@ struct GolfGameView: View {
             if currentStrokes == 1 {
                 // Hole-in-one rigid haptic — #HAPTIC-RIGID
                 hapticRigid()
+                triggerShake(intensity: 18)
+                triggerBurst(color: .yellow, count: 22)
                 impactFXType = "holein"
                 showImpactFX = true
                 Task {
@@ -2751,6 +2770,14 @@ struct GolfGameView: View {
             default:      return ("Triple Bogey+",  Color(red: 0.6, green: 0.0, blue: 0.0))
             }
         }()
+
+        if scoreVsPar <= -2 {
+            triggerShake(intensity: 18)
+            triggerBurst(color: .yellow, count: 22)
+        } else if scoreVsPar == -1 {
+            triggerShake(intensity: 10)
+            triggerBurst(color: Color(red: 0.3, green: 1.0, blue: 0.5), count: 14)
+        }
 
         holeResults.append(GolfHoleResult(hole: currentHole, strokes: currentStrokes,
                                           scoreName: name, scoreVsPar: scoreVsPar))
@@ -2919,6 +2946,46 @@ struct GolfGameView: View {
         rewardGranted = true
         let earned = playerWon ? WIN_SHARDS : (isDraw ? DRAW_SHARDS : LOSS_SHARDS)
         viewModel.profile.evolutionShards += min(earned, XP_CAP)
+    }
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 
     private func clamp(_ v: Double, _ lo: Double, _ hi: Double) -> Double { max(lo, min(hi, v)) }
