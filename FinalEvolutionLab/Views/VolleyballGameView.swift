@@ -8,6 +8,7 @@ private enum VBRallyState {
     case idle, ballIncoming, awaitingPass, awaitingSet, awaitingSpike, ballCrossing, opponentDig, opponentHitting
 }
 private enum VBPhase { case ready, playing, result }
+private enum DigResult { case perfect, good, miss }
 private struct VBBall {
     var position: CGPoint = CGPoint(x: 0.5, y: 0.5)
     var isVisible: Bool = true
@@ -27,6 +28,12 @@ private struct VBCourtCanvas: View {
     let digActive: Bool
     let serveActive: Bool
     let matchPointActive: Bool
+    let playerPositionX: CGFloat
+    let aiPositionX: CGFloat
+    let ballLandingX: CGFloat
+    let showLandingShadow: Bool
+    let digResult: DigResult?
+    let selectedSpikeZone: Int?
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -39,7 +46,13 @@ private struct VBCourtCanvas: View {
                     rallyState: rallyState, crowd: crowdLevel,
                     spikeActive: spikeActive, aceActive: aceActive,
                     digActive: digActive, serveActive: serveActive,
-                    matchPointActive: matchPointActive
+                    matchPointActive: matchPointActive,
+                    playerPositionX: playerPositionX,
+                    aiPositionX: aiPositionX,
+                    ballLandingX: ballLandingX,
+                    showLandingShadow: showLandingShadow,
+                    digResult: digResult,
+                    selectedSpikeZone: selectedSpikeZone
                 )
                 d.render(ctx: &ctx)
             }
@@ -60,6 +73,12 @@ private struct VBDrawer {
     let digActive: Bool
     let serveActive: Bool
     let matchPointActive: Bool
+    let playerPositionX: CGFloat
+    let aiPositionX: CGFloat
+    let ballLandingX: CGFloat
+    let showLandingShadow: Bool
+    let digResult: DigResult?
+    let selectedSpikeZone: Int?
 
     // Court geometry
     var cL: CGFloat { W * 0.07 }
@@ -77,10 +96,95 @@ private struct VBDrawer {
         drawCrowdScene(&ctx)
         drawSandCourt(&ctx)
         drawNetStructure(&ctx)
+        if showLandingShadow { drawLandingShadow(&ctx) }
+        if selectedSpikeZone != nil { drawSpikeZoneTargets(&ctx) }
         drawPlayerFigures(&ctx)
         if ballVisible { drawVolleyball(&ctx) }
         drawAtmosphereFX(&ctx)
         if inputOpen { drawInputZone(&ctx) }
+        if digResult != nil { drawDigResultFX(&ctx) }
+    }
+
+    // ─── Landing Shadow ────────────────────────────────────────────────────────
+
+    private func drawLandingShadow(_ ctx: inout GraphicsContext) {
+        let lx = cL + ballLandingX * (cR - cL)
+        let ly = cB - 8
+        let pulse = CGFloat(0.6 + 0.4 * sin(t * 6.0))
+        // Outer pulsing ring
+        var ringCtx = ctx; ringCtx.addFilter(.blur(radius: 4))
+        ringCtx.stroke(
+            Path(ellipseIn: CGRect(x: lx - 18 * pulse, y: ly - 7 * pulse, width: 36 * pulse, height: 14 * pulse)),
+            with: .color(Color.red.opacity(0.55)),
+            lineWidth: 2.0
+        )
+        // Inner shadow dot
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: lx - 6, y: ly - 3, width: 12, height: 6)),
+            with: .color(Color.red.opacity(0.70))
+        )
+        // Vertical drop line from ball to shadow
+        var dropLine = Path()
+        dropLine.move(to: CGPoint(x: lx, y: ballPos.y * H))
+        dropLine.addLine(to: CGPoint(x: lx, y: ly))
+        ctx.stroke(dropLine, with: .color(Color.red.opacity(0.25)), lineWidth: 1.0)
+    }
+
+    // ─── Spike Zone Targets ────────────────────────────────────────────────────
+
+    private func drawSpikeZoneTargets(_ ctx: inout GraphicsContext) {
+        guard let zone = selectedSpikeZone else { return }
+        let zones: [(CGFloat, CGFloat)] = [
+            (cL + (cR - cL) * 0.10, cL + (cR - cL) * 0.30),   // left zone
+            (cL + (cR - cL) * 0.35, cL + (cR - cL) * 0.65),   // center zone
+            (cL + (cR - cL) * 0.70, cL + (cR - cL) * 0.90)    // right zone
+        ]
+        let aiHalfT = cT + 4
+        let aiHalfB = netY - 4
+        for (i, (zl, zr)) in zones.enumerated() {
+            let isSelected = i == zone
+            let pulse = isSelected ? CGFloat(0.6 + 0.4 * sin(t * 8.0)) : CGFloat(0.3)
+            let color = isSelected ? Color.red : Color.white
+            let rect = CGRect(x: zl, y: aiHalfT, width: zr - zl, height: aiHalfB - aiHalfT)
+            if isSelected {
+                var glowCtx = ctx; glowCtx.addFilter(.blur(radius: 8))
+                glowCtx.fill(Path(roundedRect: rect, cornerRadius: 4),
+                             with: .color(color.opacity(0.25 * Double(pulse))))
+            }
+            ctx.stroke(Path(roundedRect: rect, cornerRadius: 4),
+                       with: .color(color.opacity(Double(pulse))), lineWidth: isSelected ? 2.0 : 1.0)
+            // Zone label
+            let label = ["L", "C", "R"][i]
+            ctx.draw(
+                Text(label).font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(color.opacity(Double(pulse))),
+                at: CGPoint(x: (zl + zr) / 2, y: (aiHalfT + aiHalfB) / 2), anchor: .center
+            )
+        }
+    }
+
+    // ─── Dig Result FX ────────────────────────────────────────────────────────
+
+    private func drawDigResultFX(_ ctx: inout GraphicsContext) {
+        guard let result = digResult else { return }
+        let px = cL + playerPositionX * (cR - cL)
+        let py = cB + (H - cB) * 0.28 - 30
+        let (label, color): (String, Color) = {
+            switch result {
+            case .perfect: return ("PERFECT DIG!", Color(red: 0.15, green: 0.95, blue: 0.45))
+            case .good:    return ("DIG!", Color(red: 0.98, green: 0.85, blue: 0.10))
+            case .miss:    return ("MISSED!", Color.red)
+            }
+        }()
+        let pulse = CGFloat(0.7 + 0.3 * sin(t * 10.0))
+        var glowCtx = ctx; glowCtx.addFilter(.blur(radius: 12))
+        glowCtx.fill(Path(ellipseIn: CGRect(x: px - 40, y: py - 16, width: 80, height: 32)),
+                     with: .color(color.opacity(0.35 * Double(pulse))))
+        ctx.draw(
+            Text(label).font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundStyle(color),
+            at: CGPoint(x: px, y: py), anchor: .center
+        )
     }
 
     // ─── #1–#12: Beach Background ──────────────────────────────────────────────
@@ -341,7 +445,7 @@ private struct VBDrawer {
         ctx.stroke(rightSide, with: .color(Color.white.opacity(0.60)), lineWidth: 2.0)
 
         // #24 — Foot marks in sand (small oval depressions near player positions)
-        let playerSandX = lerp(ballCX, W * 0.5, 0.35)
+        let playerSandX = cL + playerPositionX * (cR - cL)
         for fmi in -1...1 {
             let fmx = playerSandX + CGFloat(fmi) * 9
             let fmy = cB - 5
@@ -419,8 +523,8 @@ private struct VBDrawer {
     // ─── #33–#52: Player Figures ────────────────────────────────────────────────
 
     private func drawPlayerFigures(_ ctx: inout GraphicsContext) {
-        // Player at bottom (user's player)
-        let playerX = lerp(ballCX, W * 0.5, 0.35)
+        // Player at bottom (user's player) — position driven by playerPositionX
+        let playerX = cL + playerPositionX * (cR - cL)
         let playerY = cB + (H - cB) * 0.28
         let playerPose: VBTouchPhase = inputOpen ? touchPhase : .pass
         drawAthleteBottom(&ctx, x: playerX, y: playerY,
@@ -428,8 +532,8 @@ private struct VBDrawer {
                           suitColor: Color(red: 0.08, green: 0.45, blue: 0.75),
                           pose: playerPose, label: "YOU", isBottom: true)
 
-        // Opponent at top
-        let oppX = lerp(ballCX, W * 0.5, 0.50)
+        // Opponent at top — position driven by aiPositionX
+        let oppX = cL + aiPositionX * (cR - cL)
         let oppY = cT - (cT) * 0.32
         let oppPose: VBTouchPhase = (rallyState == .opponentHitting) ? .spike : .pass
         drawAthleteBottom(&ctx, x: oppX, y: oppY,
@@ -854,7 +958,7 @@ private struct VBDrawer {
 
         // #70 — Sand spray on dive (10 dots radiating)
         if digActive {
-            let playerX = lerp(ballCX, W * 0.5, 0.35)
+            let playerX = cL + playerPositionX * (cR - cL)
             let playerY = cB - 5
             for si in 0..<10 {
                 let angle = Double(si) * .pi / 5.0 - .pi * 0.3
@@ -967,7 +1071,7 @@ private struct VBDrawer {
 
         // #81 — Dig save glow (cyan tint around player when dig active)
         if digActive {
-            let playerX2 = lerp(ballCX, W * 0.5, 0.35)
+            let playerX2 = cL + playerPositionX * (cR - cL)
             let playerY2 = cB + (H - cB) * 0.28
             var digGlow = ctx; digGlow.addFilter(.blur(radius: 20))
             digGlow.fill(Path(ellipseIn: CGRect(x: playerX2 - 30, y: playerY2 - 20, width: 60, height: 50)),

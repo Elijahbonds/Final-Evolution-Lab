@@ -77,6 +77,10 @@ private struct KarateDojo: View {
     var playerHP: Double = 100
     var opponentHP: Double = 100
     var roundNumber: Int = 1
+    var playerRoundsWon: Int = 0
+    var aiRoundsWon: Int = 0
+    var superMeter: CGFloat = 0
+    var roundTimeRemaining: Double = 30.0
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -88,7 +92,11 @@ private struct KarateDojo: View {
                                    lastHitTime: lastHitTime, lastHitType: lastHitType,
                                    comboCount: comboCount,
                                    playerHP: playerHP, opponentHP: opponentHP,
-                                   roundNumber: roundNumber)
+                                   roundNumber: roundNumber,
+                                   playerRoundsWon: playerRoundsWon,
+                                   aiRoundsWon: aiRoundsWon,
+                                   superMeter: superMeter,
+                                   roundTimeRemaining: roundTimeRemaining)
                 d.render(into: &ctx)
             }
         }
@@ -103,6 +111,10 @@ private struct DojoDrawer {
     let comboCount: Int
     let playerHP: Double; let opponentHP: Double
     let roundNumber: Int
+    let playerRoundsWon: Int
+    let aiRoundsWon: Int
+    let superMeter: CGFloat
+    let roundTimeRemaining: Double
 
     var W: CGFloat { size.width }
     var H: CGFloat { size.height }
@@ -135,18 +147,22 @@ private struct DojoDrawer {
         if dragon { drawDragonEyes(ctx: &ctx) }
         // ---- Layer 11: Ground shadows ----
         drawShadows(ctx: &ctx)
-        // ---- Layer 12: Match timer arc ----
-        drawMatchTimerArc(ctx: &ctx)
+        // ---- Layer 12: Round timer arc ----
+        drawRoundTimerArc(ctx: &ctx)
         // ---- Layer 13: HP bar canvas elements ----
         drawCanvasHPBars(ctx: &ctx)
-        // ---- Layer 14: Hit impact effects ----
+        // ---- Layer 14: Round indicator circles ----
+        drawRoundIndicators(ctx: &ctx)
+        // ---- Layer 15: Super meter bar ----
+        drawSuperMeterBar(ctx: &ctx)
+        // ---- Layer 16: Hit impact effects ----
         let timeSinceHit = t - lastHitTime
         if timeSinceHit < 0.55 && lastHitTime > 0 {
             drawImpactRing(ctx: &ctx, timeSince: timeSinceHit)
             drawScreenVignette(ctx: &ctx, timeSince: timeSinceHit)
             drawHitSparks(ctx: &ctx, timeSince: timeSinceHit)
         }
-        // ---- Layer 15: Combo multiplier display ----
+        // ---- Layer 17: Combo multiplier display ----
         if comboCount >= 2 { drawComboDisplay(ctx: &ctx) }
     }
 
@@ -756,28 +772,117 @@ private struct DojoDrawer {
         }
     }
 
-    // MARK: - Match Timer Arc
+    // MARK: - Round Timer Arc
 
-    private func drawMatchTimerArc(ctx: inout GraphicsContext) {
+    private func drawRoundTimerArc(ctx: inout GraphicsContext) {
         let arcCX = W / 2
         let arcCY = H * 0.038
-        let arcR: CGFloat = 16
+        let arcR: CGFloat = 18
 
         // [DRAW 60] Timer arc background ring
         var bgRing = Path()
         bgRing.addEllipse(in: CGRect(x:arcCX-arcR, y:arcCY-arcR, width:arcR*2, height:arcR*2))
         ctx.stroke(bgRing, with:.color(Color.white.opacity(0.10)), lineWidth:3)
 
-        // [DRAW 61] Timer arc progress (animated pulse ring)
-        let pulsing = 0.6 + 0.4*sin(t * 2.5)
-        var pulseRing2 = Path()
-        pulseRing2.addEllipse(in: CGRect(x:arcCX-arcR-2, y:arcCY-arcR-2, width:(arcR+2)*2, height:(arcR+2)*2))
-        ctx.stroke(pulseRing2, with:.color(Color(red:1.0,green:0.22,blue:0.22).opacity(0.18 * pulsing)), lineWidth:1)
+        // [DRAW 61] Timer arc fill — shrinks as time runs out
+        let timerFrac = CGFloat(max(0, roundTimeRemaining / 30.0))
+        if timerFrac > 0 {
+            var timerArc = Path()
+            timerArc.addArc(center: CGPoint(x:arcCX, y:arcCY),
+                            radius: arcR,
+                            startAngle: .degrees(-90),
+                            endAngle: .degrees(-90 + Double(timerFrac) * 360.0),
+                            clockwise: false)
+            let timerColor: Color = timerFrac < 0.25 ? Color.red : (timerFrac < 0.5 ? Color.orange : Color.white)
+            ctx.stroke(timerArc, with:.color(timerColor.opacity(0.85)), lineWidth:3)
+        }
 
-        // [DRAW 62] Round indicator dot
-        var roundDot = Path()
-        roundDot.addEllipse(in: CGRect(x:arcCX-3, y:arcCY-3, width:6, height:6))
-        ctx.fill(roundDot, with:.color(Color(red:1.0,green:0.80,blue:0.20).opacity(0.80)))
+        // [DRAW 62] Round number label inside arc
+        var roundCtx = ctx
+        roundCtx.draw(Text("R\(roundNumber)").font(.system(size:9, weight:.black, design:.monospaced)).foregroundColor(Color.white.opacity(0.85)),
+                      at: CGPoint(x:arcCX, y:arcCY), anchor:.center)
+
+        // [DRAW 63] Low-time pulse ring
+        if timerFrac < 0.3 {
+            let pulsing = 0.5 + 0.5*sin(t * 4.0)
+            var pulseRing = Path()
+            pulseRing.addEllipse(in: CGRect(x:arcCX-arcR-3, y:arcCY-arcR-3, width:(arcR+3)*2, height:(arcR+3)*2))
+            ctx.stroke(pulseRing, with:.color(Color.red.opacity(0.25 * pulsing)), lineWidth:1.5)
+        }
+    }
+
+    // MARK: - Round Indicator Circles
+
+    private func drawRoundIndicators(ctx: inout GraphicsContext) {
+        let circleR: CGFloat = 5
+        let circleY = H * 0.072
+        let gap: CGFloat = 14
+
+        // Player circles (left of timer)
+        let playerStartX = W/2 - 48 - gap
+        for i in 0..<3 {
+            let cx = playerStartX - CGFloat(2 - i) * gap
+            let won = i < playerRoundsWon
+            var circle = Path()
+            circle.addEllipse(in: CGRect(x:cx-circleR, y:circleY-circleR, width:circleR*2, height:circleR*2))
+            if won {
+                ctx.fill(circle, with:.color(Color(red:0.15,green:0.85,blue:1.0).opacity(0.90)))
+            } else {
+                ctx.stroke(circle, with:.color(Color(red:0.15,green:0.85,blue:1.0).opacity(0.40)), lineWidth:1.2)
+            }
+        }
+
+        // AI circles (right of timer)
+        let aiStartX = W/2 + 48 + gap
+        for i in 0..<3 {
+            let cx = aiStartX + CGFloat(i) * gap
+            let won = i < aiRoundsWon
+            var circle = Path()
+            circle.addEllipse(in: CGRect(x:cx-circleR, y:circleY-circleR, width:circleR*2, height:circleR*2))
+            if won {
+                ctx.fill(circle, with:.color(Color(red:1.0,green:0.22,blue:0.22).opacity(0.90)))
+            } else {
+                ctx.stroke(circle, with:.color(Color(red:1.0,green:0.22,blue:0.22).opacity(0.40)), lineWidth:1.2)
+            }
+        }
+    }
+
+    // MARK: - Super Meter Bar
+
+    private func drawSuperMeterBar(ctx: inout GraphicsContext) {
+        let barY = H * 0.088
+        let barH: CGFloat = 4
+        let barW: CGFloat = W * 0.36
+        let barX: CGFloat = (W - barW) / 2
+
+        var bgTrack = Path()
+        bgTrack.addRoundedRect(in: CGRect(x:barX, y:barY, width:barW, height:barH),
+                               cornerSize: CGSize(width:2, height:2))
+        ctx.fill(bgTrack, with:.color(Color.white.opacity(0.07)))
+
+        if superMeter > 0 {
+            var fill = Path()
+            fill.addRoundedRect(in: CGRect(x:barX, y:barY, width:barW*superMeter, height:barH),
+                                cornerSize: CGSize(width:2, height:2))
+            let superColor: Color = superMeter >= 1.0 ? Color.yellow : Color(red:0.8, green:0.4, blue:1.0)
+            ctx.fill(fill, with:.linearGradient(
+                Gradient(colors:[superColor.opacity(0.9), superColor.opacity(0.6)]),
+                startPoint: CGPoint(x:barX, y:barY),
+                endPoint: CGPoint(x:barX+barW, y:barY)))
+
+            if superMeter >= 1.0 {
+                let pulse = 0.5 + 0.5*sin(t * 5.0)
+                var glowCtx = ctx
+                glowCtx.addFilter(.shadow(color:Color.yellow.opacity(0.7*pulse), radius:6))
+                glowCtx.fill(fill, with:.color(Color.yellow.opacity(0.2)))
+            }
+        }
+
+        var superLblCtx = ctx
+        superLblCtx.opacity = superMeter >= 1.0 ? 1.0 : 0.45
+        let labelColor: Color = superMeter >= 1.0 ? Color.yellow : Color.white
+        superLblCtx.draw(Text("SUPER").font(.system(size:5.5, weight:.black, design:.monospaced)).foregroundColor(labelColor),
+                         at: CGPoint(x:W/2, y:barY + barH + 5), anchor:.center)
     }
 
     // MARK: - Canvas HP Bars
@@ -1026,7 +1131,7 @@ private struct DojoDrawer {
 
 // MARK: - Phases & Outcome
 
-private enum KaratePhase { case ready, fight, result }
+private enum KaratePhase { case ready, roundAnnounce, fight, roundEnd, result }
 private enum KarateOutcome { case win, draw, loss }
 
 // MARK: - Health Bar
@@ -1083,6 +1188,72 @@ private struct ChakraMeter: View {
     }
 }
 
+// MARK: - Super Meter View
+
+private struct SuperMeterView: View {
+    let value: CGFloat  // 0→1
+    private var isFull: Bool { value >= 1.0 }
+
+    var body: some View {
+        HStack(spacing:6) {
+            Image(systemName:"bolt.fill").font(.system(size:10,weight:.bold))
+                .foregroundStyle(isFull ? .yellow : Color(red:0.8,green:0.4,blue:1.0).opacity(0.8))
+            Text("SUPER").font(.system(size:9,weight:.black,design:.monospaced))
+                .foregroundStyle(isFull ? .yellow : .secondary).tracking(2)
+            GeometryReader { geo in
+                ZStack(alignment:.leading) {
+                    RoundedRectangle(cornerRadius:3).fill(Color.white.opacity(0.06))
+                    RoundedRectangle(cornerRadius:3)
+                        .fill(LinearGradient(
+                            colors: isFull ? [.yellow,.orange] : [Color(red:0.8,green:0.4,blue:1.0), Color(red:0.5,green:0.2,blue:0.9)],
+                            startPoint:.leading, endPoint:.trailing))
+                        .frame(width:geo.size.width*value)
+                        .animation(.spring(response:0.3,dampingFraction:0.8),value:value)
+                }
+            }.frame(height:6).clipShape(RoundedRectangle(cornerRadius:3))
+            if isFull {
+                Text("READY").font(.system(size:9,weight:.black,design:.monospaced))
+                    .foregroundStyle(.yellow).tracking(1)
+            } else {
+                Text("\(Int(value*100))%").font(.system(size:9,weight:.black,design:.monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+// MARK: - Round Indicator Row
+
+private struct RoundIndicatorRow: View {
+    let playerWins: Int
+    let aiWins: Int
+    let accentColor: Color
+
+    var body: some View {
+        HStack(spacing:0) {
+            HStack(spacing:5) {
+                ForEach(0..<3, id:\.self) { i in
+                    Circle()
+                        .fill(i < playerWins ? Theme.brandBlue : Color.white.opacity(0.15))
+                        .frame(width:8, height:8)
+                        .overlay(Circle().stroke(Theme.brandBlue.opacity(0.5), lineWidth:1))
+                }
+            }
+            Spacer()
+            Text("ROUNDS").font(.system(size:8,weight:.black,design:.monospaced)).foregroundStyle(.secondary).tracking(2)
+            Spacer()
+            HStack(spacing:5) {
+                ForEach(0..<3, id:\.self) { i in
+                    Circle()
+                        .fill(i < aiWins ? accentColor : Color.white.opacity(0.15))
+                        .frame(width:8, height:8)
+                        .overlay(Circle().stroke(accentColor.opacity(0.5), lineWidth:1))
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Main View
 
 struct KarateGameView: View {
@@ -1097,8 +1268,22 @@ struct KarateGameView: View {
     private let notif        = UINotificationFeedbackGenerator()
 
     @State private var phase: KaratePhase = .ready
-    @State private var timeLeft: Int = 90
     @State private var gameTimerTask: Task<Void, Never>?
+
+    // Round structure
+    @State private var currentRound: Int = 1
+    @State private var playerRoundsWon: Int = 0
+    @State private var aiRoundsWon: Int = 0
+    @State private var roundTimeRemaining: Double = 30.0
+    @State private var roundActive: Bool = false
+    @State private var showRoundAnnounce: Bool = false
+    @State private var roundAnnounceText: String = ""
+    @State private var superMeter: CGFloat = 0     // 0→1, carries between rounds
+    @State private var superHoldTask: Task<Void, Never>?
+
+    // Momentum buffs
+    @State private var playerDamageBuff: Double = 1.0
+    @State private var isDominant: Bool = false
 
     @State private var playerHP: Double = 100
     @State private var opponentHP: Double = 100
@@ -1128,7 +1313,6 @@ struct KarateGameView: View {
     @State private var lastHitType: String = ""
     // Enhanced canvas state
     @State private var comboCount: Int = 0
-    @State private var roundNumber: Int = 1
 
     // AI
     @State private var aiAttackTask: Task<Void, Never>?
@@ -1143,10 +1327,14 @@ struct KarateGameView: View {
 
             switch phase {
             case .ready:
-                GetReadyScreen(title:"Karate · 1v1", subtitle:"90-Second Match · Beat the Opponent",
-                               countdown:3, accentColor:accentColor, onComplete:{ startFight() })
+                GetReadyScreen(title:"Karate · 1v1", subtitle:"Best of 3 Rounds · 30s Each · Beat the Opponent",
+                               countdown:3, accentColor:accentColor, onComplete:{ startRound() })
+            case .roundAnnounce:
+                roundAnnounceOverlay
             case .fight:
                 fightBody.offset(x:screenShake)
+            case .roundEnd:
+                roundEndOverlay
             case .result:
                 ResultScreen(winner:outcome == .win ? .p1 : (outcome == .draw ? .draw : .p2),
                              p1Score:playerScore, p2Score:opponentScore, title:"Karate · 1v1", accentColor:accentColor,
@@ -1168,6 +1356,51 @@ struct KarateGameView: View {
         }
         .toolbarColorScheme(.dark, for:.navigationBar)
         .onDisappear { cancelAllTasks() }
+    }
+
+    // MARK: - Round Announce Overlay
+
+    private var roundAnnounceOverlay: some View {
+        ZStack {
+            Color(red:0.06,green:0.01,blue:0.01).ignoresSafeArea()
+            VStack(spacing:16) {
+                Text(roundAnnounceText)
+                    .font(.system(size:48, weight:.black, design:.monospaced)).italic()
+                    .foregroundStyle(accentColor)
+                    .shadow(color:accentColor.opacity(0.7), radius:20)
+                if isDominant {
+                    Text("DOMINANT +10% DMG")
+                        .font(.system(size:13, weight:.black, design:.monospaced))
+                        .foregroundStyle(.yellow).tracking(2)
+                } else if playerDamageBuff > 1.0 {
+                    Text("MOMENTUM +5% DMG")
+                        .font(.system(size:13, weight:.black, design:.monospaced))
+                        .foregroundStyle(Theme.foundationGreen).tracking(2)
+                }
+                RoundIndicatorRow(playerWins:playerRoundsWon, aiWins:aiRoundsWon, accentColor:accentColor)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 8)
+            }
+        }
+    }
+
+    // MARK: - Round End Overlay
+
+    private var roundEndOverlay: some View {
+        ZStack {
+            Color(red:0.06,green:0.01,blue:0.01).ignoresSafeArea()
+            VStack(spacing:16) {
+                Text(roundAnnounceText)
+                    .font(.system(size:36, weight:.black, design:.monospaced)).italic()
+                    .foregroundStyle(accentColor)
+                    .shadow(color:accentColor.opacity(0.7), radius:16)
+                RoundIndicatorRow(playerWins:playerRoundsWon, aiWins:aiRoundsWon, accentColor:accentColor)
+                    .padding(.horizontal, 40)
+                Text("Round \(currentRound) of 3")
+                    .font(.system(size:12, weight:.black, design:.monospaced))
+                    .foregroundStyle(.secondary).tracking(2)
+            }
+        }
     }
 
     // MARK: - Fight Body

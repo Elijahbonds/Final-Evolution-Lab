@@ -912,6 +912,10 @@ private struct EndlessDojoDrawer {
         let enemyXPositions: [CGFloat] = [W * 0.72, W * 0.58, W * 0.83]
         let bossWave = waveNumber >= 5 && waveNumber % 5 == 0
 
+        // Archetype warning overlays
+        if chargeWarning { drawChargeWarningOverlay(ctx: &ctx) }
+        if grabActive { drawGrabWarningOverlay(ctx: &ctx) }
+
         for (i, enemy) in enemies.enumerated() {
             guard i < enemyXPositions.count else { break }
             guard enemy.isAlive || enemy.deathTimer < 0.5 else { continue }
@@ -919,41 +923,156 @@ private struct EndlessDojoDrawer {
             let baseX = enemyXPositions[i]
             let slideOffset = (1.0 - CGFloat(enemy.slideInProgress)) * W * 0.35
             let sideOffset: CGFloat = enemy.side == .left ? -W * 0.15 : 0
-            let ex = baseX + slideOffset + sideOffset
+            var ex = baseX + slideOffset + sideOffset
 
             let isBoss = bossWave && i == 0
             let enemyScale = isBoss ? scale * 1.35 : scale
+
+            // Archetype-distinct colors:
+            // Striker = red (aggressive), Grappler = blue gi, Rusher = orange belt
             let enemyColor: Color = {
                 switch enemy.type {
-                case .grappler: return Color(red: 0.9, green: 0.2, blue: 0.2)
-                case .striker:  return Color(red: 1.0, green: 0.5, blue: 0.1)
-                case .rusher:   return Color(red: 0.8, green: 0.1, blue: 0.8)
+                case .striker:  return Color(red: 0.95, green: 0.15, blue: 0.10)
+                case .grappler: return Color(red: 0.10, green: 0.35, blue: 0.90)
+                case .rusher:   return Color(red: 1.00, green: 0.55, blue: 0.05)
                 }
             }()
 
             let pose = EndlessPose.forName(enemy.pose)
 
-            // Charge ring (drawn behind enemy)
+            // Rusher blur trail when charging fast
+            if enemy.type == .rusher && enemy.chargeProgress > 0.7 && enemy.isAlive {
+                for ghost in 1...3 {
+                    var ghostCtx = ctx
+                    ghostCtx.opacity = 0.15
+                    drawFighter(ctx: &ghostCtx, cx: ex + CGFloat(ghost) * 8, pose: pose,
+                                color: enemyColor, flip: true, scale: enemyScale)
+                }
+            }
+
+            // Charge ring (drawn behind enemy) — archetype-tinted
             if enemy.chargeProgress > 0 && enemy.isAlive {
-                drawChargeRing(ctx: &ctx, cx: ex, charge: enemy.chargeProgress)
+                let ringColor: Color = {
+                    switch enemy.type {
+                    case .striker:  return Color(red: 1.0, green: 0.2, blue: 0.1)
+                    case .grappler: return Color(red: 0.2, green: 0.4, blue: 1.0)
+                    case .rusher:   return Color(red: 1.0, green: 0.6, blue: 0.0)
+                    }
+                }()
+                drawChargeRing(ctx: &ctx, cx: ex, charge: enemy.chargeProgress, ringColor: ringColor)
             }
 
             // Enemy figure
             if enemy.isAlive {
+                // Grappler: wide arms-out stance indicator
+                if enemy.type == .grappler { drawGrapplerWideStance(ctx: &ctx, cx: ex, enemyScale: enemyScale) }
+                // Striker: aggressive forward lean on attack
+                if enemy.type == .striker && enemy.pose == "attack" { ex -= scale * 8 }
                 drawFighter(ctx: &ctx, cx: ex, pose: pose, color: enemyColor, flip: true, scale: enemyScale)
             }
 
-            // HP bar above enemy head
+            // HP bar + archetype label above enemy head
             if enemy.isAlive {
                 drawEnemyHPBar(ctx: &ctx, cx: ex, hp: enemy.hp, enemyScale: enemyScale)
+                drawArchetypeLabel(ctx: &ctx, cx: ex, enemyType: enemy.type, waveNumber: waveNumber, enemyScale: enemyScale)
             }
         }
     }
 
-    private func drawChargeRing(ctx: inout GraphicsContext, cx: CGFloat, charge: Double) {
+    private func drawArchetypeLabel(ctx: inout GraphicsContext, cx: CGFloat, enemyType: EnemyType, waveNumber: Int, enemyScale: CGFloat) {
+        let labelY = feetY - enemyScale * 100
+        let name: String
+        switch enemyType {
+        case .striker:  name = "STRIKER"
+        case .grappler: name = "GRAPPLER"
+        case .rusher:   name = "RUSHER"
+        }
+        let labelText = "\(name) LVL \(max(1, waveNumber))"
+        let labelColor: Color = {
+            switch enemyType {
+            case .striker:  return Color(red: 1.0, green: 0.3, blue: 0.2)
+            case .grappler: return Color(red: 0.3, green: 0.6, blue: 1.0)
+            case .rusher:   return Color(red: 1.0, green: 0.65, blue: 0.1)
+            }
+        }()
+        let charW: CGFloat = 5.5
+        let textW = CGFloat(labelText.count) * charW
+        var pill = Path()
+        pill.addRoundedRect(
+            in: CGRect(x: cx - textW/2 - 5, y: labelY - 9, width: textW + 10, height: 12),
+            cornerSize: CGSize(width: 3, height: 3)
+        )
+        ctx.fill(pill, with: .color(labelColor.opacity(0.18)))
+        ctx.stroke(pill, with: .color(labelColor.opacity(0.55)), lineWidth: 0.6)
+        for ci in 0..<min(labelText.count, 20) {
+            let bx = cx - textW/2 + CGFloat(ci) * charW + charW/2
+            var bar = Path()
+            bar.addRect(CGRect(x: bx - 2, y: labelY - 8, width: 4, height: 8))
+            ctx.fill(bar, with: .color(labelColor.opacity(0.7)))
+        }
+    }
+
+    private func drawGrapplerWideStance(ctx: inout GraphicsContext, cx: CGFloat, enemyScale: CGFloat) {
+        let cy = feetY - enemyScale * 40
+        let pulse = 0.6 + 0.4 * sin(t * 2.5)
+        var leftArm = Path()
+        leftArm.move(to: CGPoint(x: cx - enemyScale * 12, y: cy))
+        leftArm.addLine(to: CGPoint(x: cx - enemyScale * 32, y: cy - enemyScale * 5))
+        var rightArm = Path()
+        rightArm.move(to: CGPoint(x: cx + enemyScale * 12, y: cy))
+        rightArm.addLine(to: CGPoint(x: cx + enemyScale * 32, y: cy - enemyScale * 5))
+        var glowCtx = ctx
+        glowCtx.addFilter(.shadow(color: Color(red: 0.1, green: 0.4, blue: 1.0).opacity(0.7 * pulse), radius: 6))
+        glowCtx.stroke(leftArm, with: .color(Color(red: 0.1, green: 0.4, blue: 1.0).opacity(0.6 * pulse)), lineWidth: 3)
+        glowCtx.stroke(rightArm, with: .color(Color(red: 0.1, green: 0.4, blue: 1.0).opacity(0.6 * pulse)), lineWidth: 3)
+    }
+
+    private func drawGrabWarningOverlay(ctx: inout GraphicsContext) {
+        let pulse = 0.7 + 0.3 * sin(t * 8.0)
+        let warnX = W * 0.5, warnY = H * 0.38
+        var warnBg = Path()
+        warnBg.addRoundedRect(
+            in: CGRect(x: warnX - 60, y: warnY - 18, width: 120, height: 30),
+            cornerSize: CGSize(width: 6, height: 6)
+        )
+        ctx.fill(warnBg, with: .color(Color(red: 0.1, green: 0.3, blue: 0.9).opacity(0.35 * pulse)))
+        ctx.stroke(warnBg, with: .color(Color(red: 0.3, green: 0.6, blue: 1.0).opacity(0.8 * pulse)), lineWidth: 1.5)
+        let grabLabel = "GRAB! TAP x3"
+        let charW: CGFloat = 7.5
+        let totalW = CGFloat(grabLabel.count) * charW
+        for ci in 0..<grabLabel.count {
+            let bx = warnX - totalW/2 + CGFloat(ci) * charW + charW/2
+            var bar = Path()
+            bar.addRoundedRect(in: CGRect(x: bx - 3, y: warnY - 12, width: 6, height: 14), cornerSize: CGSize(width: 1, height: 1))
+            ctx.fill(bar, with: .color(Color.white.opacity(0.85 * pulse)))
+        }
+    }
+
+    private func drawChargeWarningOverlay(ctx: inout GraphicsContext) {
+        let pulse = 0.65 + 0.35 * sin(t * 6.0)
+        let warnX = W * 0.5, warnY = H * 0.38
+        var warnBg = Path()
+        warnBg.addRoundedRect(
+            in: CGRect(x: warnX - 65, y: warnY - 18, width: 130, height: 30),
+            cornerSize: CGSize(width: 6, height: 6)
+        )
+        ctx.fill(warnBg, with: .color(Color(red: 1.0, green: 0.55, blue: 0.0).opacity(0.30 * pulse)))
+        ctx.stroke(warnBg, with: .color(Color(red: 1.0, green: 0.7, blue: 0.0).opacity(0.9 * pulse)), lineWidth: 1.5)
+        let warnLabel = "INCOMING! SWIPE UP"
+        let charW: CGFloat = 6.5
+        let totalW = CGFloat(warnLabel.count) * charW
+        for ci in 0..<warnLabel.count {
+            let bx = warnX - totalW/2 + CGFloat(ci) * charW + charW/2
+            var bar = Path()
+            bar.addRoundedRect(in: CGRect(x: bx - 2.5, y: warnY - 12, width: 5, height: 14), cornerSize: CGSize(width: 1, height: 1))
+            ctx.fill(bar, with: .color(Color.orange.opacity(0.85 * pulse)))
+        }
+    }
+
+    private func drawChargeRing(ctx: inout GraphicsContext, cx: CGFloat, charge: Double,
+                                 ringColor: Color = Color(red: 1.0, green: 0.3, blue: 0.1)) {
         let cy = feetY - scale * 42
         let ringR: CGFloat = scale * 22
-        let chargeColor = Color(red: 1.0, green: 0.3, blue: 0.1)
 
         // Op: charge ring outer glow
         var ringPath = Path()
@@ -965,17 +1084,17 @@ private struct EndlessDojoDrawer {
             clockwise: false
         )
         var glowCtx = ctx
-        glowCtx.addFilter(.shadow(color: chargeColor.opacity(0.8), radius: 8))
+        glowCtx.addFilter(.shadow(color: ringColor.opacity(0.8), radius: 8))
         glowCtx.stroke(
             ringPath,
-            with: .color(chargeColor.opacity(CGFloat(charge) * 0.9)),
+            with: .color(ringColor.opacity(CGFloat(charge) * 0.9)),
             lineWidth: CGFloat(charge * 4 + 1.5)
         )
 
         // Op: charge ring track
         var trackPath = Path()
         trackPath.addEllipse(in: CGRect(x: cx - ringR, y: cy - ringR, width: ringR*2, height: ringR*2))
-        ctx.stroke(trackPath, with: .color(chargeColor.opacity(0.15)), lineWidth: 1.0)
+        ctx.stroke(trackPath, with: .color(ringColor.opacity(0.15)), lineWidth: 1.0)
     }
 
     private func drawEnemyHPBar(ctx: inout GraphicsContext, cx: CGFloat, hp: Double, enemyScale: CGFloat) {
@@ -1282,6 +1401,12 @@ struct KarateEndlessGameView: View {
     @State private var waveBannerTask: Task<Void, Never>?
     @State private var particleTask: Task<Void, Never>?
 
+    // Archetype system
+    @State private var currentArchetype: EnemyArchetype = .striker
+    @State private var grabActive: Bool = false
+    @State private var grabTapCount: Int = 0
+    @State private var chargeWarning: Bool = false
+
     // AI
     @State private var aiAttackTask: Task<Void, Never>?
     @State private var lastPlayerActionTime: Date = Date()
@@ -1506,7 +1631,10 @@ struct KarateEndlessGameView: View {
                 killStreak: killStreak,
                 activePowerUp: activePowerUp,
                 hitFlash: hitFlash,
-                blockActive: blockActive
+                blockActive: blockActive,
+                currentArchetype: currentArchetype,
+                grabActive: grabActive,
+                chargeWarning: chargeWarning
             )
             .clipShape(RoundedRectangle(cornerRadius: 16))
 
@@ -1543,12 +1671,24 @@ struct KarateEndlessGameView: View {
                 .onEnded { value in
                     let dy = value.translation.height
                     let dx = value.translation.width
-                    if abs(dy) > abs(dx) && dy < -40 { handleBlock() }
+                    if abs(dy) > abs(dx) && dy < -40 {
+                        if chargeWarning {
+                            handleRusherDodge()
+                        } else {
+                            handleBlock()
+                        }
+                    } else if abs(dx) > abs(dy) && chargeWarning {
+                        handleRusherDodge()
+                    }
                 }
         )
         .simultaneousGesture(
             SpatialTapGesture()
                 .onEnded { value in
+                    if grabActive {
+                        handleGrabBreakTap()
+                        return
+                    }
                     let screenWidth = UIScreen.main.bounds.width
                     if value.location.x < screenWidth / 2 {
                         handlePunch()

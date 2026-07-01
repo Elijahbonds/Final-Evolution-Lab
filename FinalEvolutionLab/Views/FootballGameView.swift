@@ -4,33 +4,51 @@ import UIKit
 // MARK: - Enums
 
 private enum FBPhase {
-    case ready, catchRoute, run, touchdown, turnover, result
+    case ready, presnap, catchRoute, run, touchdown, turnover, result
 }
 
 private enum RouteType: String, CaseIterable {
-    case slant   = "SLANT"
-    case corner  = "CORNER"
-    case post    = "POST"
-    case fly     = "FLY"
-    case out     = "OUT"
+    case slant  = "SLANT"
+    case cross  = "CROSS"
+    case fly    = "FLY"
 
     var yards: Int {
         switch self {
-        case .slant:  return 5
-        case .corner: return 9
-        case .post:   return 12
-        case .fly:    return 20
-        case .out:    return 8
+        case .slant: return 6
+        case .cross: return 11
+        case .fly:   return 30
         }
     }
 
     var windowSeconds: Double {
         switch self {
-        case .slant:  return 1.8
-        case .corner: return 1.4
-        case .post:   return 1.2
-        case .fly:    return 1.6
-        case .out:    return 1.5
+        case .slant: return 0.8
+        case .cross: return 1.0
+        case .fly:   return 1.4
+        }
+    }
+
+    var riskLabel: String {
+        switch self {
+        case .slant: return "RISKY \u00b7 FAST"
+        case .cross: return "BALANCED"
+        case .fly:   return "BIG PLAY"
+        }
+    }
+
+    var yardRange: String {
+        switch self {
+        case .slant: return "5-8 YDS"
+        case .cross: return "8-15 YDS"
+        case .fly:   return "20-40 YDS"
+        }
+    }
+
+    var accentColor: Color {
+        switch self {
+        case .slant: return Color(red: 1.0, green: 0.40, blue: 0.20)
+        case .cross: return Color(red: 0.20, green: 0.80, blue: 1.00)
+        case .fly:   return Color(red: 0.60, green: 0.30, blue: 1.00)
         }
     }
 }
@@ -1643,6 +1661,22 @@ struct FootballGameView: View {
     @State private var awayScore: Int = 7
     @State private var quarter: Int = 2
 
+    // Pre-snap
+    @State private var selectedRoute: RouteType? = nil
+    @State private var presnapPhase: Bool = false
+    @State private var presnapTask: Task<Void, Never>? = nil
+
+    // Receiver B
+    @State private var receiver2X: CGFloat = 0.5
+    @State private var receiver2Y: CGFloat = 0.75
+    @State private var window2Open: Bool = false
+    @State private var receiverTasks: [Task<Void, Never>] = []
+
+    // Sack timer
+    @State private var sackTimeLeft: Double = 3.5
+    @State private var rushTask: Task<Void, Never>? = nil
+    @State private var sackCount: Int = 0
+
     // Effects
     @State private var tdFlash: Bool = false
     @State private var tdScale: CGFloat = 0.5
@@ -1663,6 +1697,8 @@ struct FootballGameView: View {
                     onComplete: { startDrive() }
                 )
                 .background(Color(red: 0.03, green: 0.05, blue: 0.02).ignoresSafeArea())
+            case .presnap:
+                presnapBody
             case .catchRoute:
                 catchBody
             case .run:
@@ -1690,7 +1726,176 @@ struct FootballGameView: View {
         .onDisappear { cancelAllTasks() }
     }
 
-    // MARK: HUD
+    // MARK: Pre-Snap Body
+
+    private var presnapBody: some View {
+        ZStack {
+            FootballFieldCanvas(
+                phase: .catchRoute,
+                receiverX: 0.5, receiverY: 0.75,
+                playerPosition: 0.5, defenderPosition: 0.5,
+                runMeter: 0.0,
+                windowOpen: false,
+                throwProgress: -1,
+                throwTargetX: 0.5, throwTargetY: 0.5,
+                qbPose: "idle",
+                currentRoute: selectedRoute ?? .cross,
+                tdFlash: false,
+                yardsGained: 0,
+                crowdExcitement: 0.2,
+                homeScore: homeScore,
+                awayScore: awayScore,
+                quarter: quarter
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                hudBar
+                Spacer()
+
+                VStack(spacing: 14) {
+                    Text("SELECT ROUTE")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.55))
+                        .tracking(3)
+
+                    HStack(spacing: 10) {
+                        ForEach(RouteType.allCases, id: \.self) { route in
+                            routeCard(route)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+
+                    if let route = selectedRoute {
+                        Button {
+                            presnapPhase = false
+                            phase = .catchRoute
+                            setupCatchPhase()
+                            startClock()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "football.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("HIKE!")
+                                    .font(.system(size: 18, weight: .black, design: .monospaced))
+                                    .tracking(3)
+                            }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(route.accentColor)
+                                    .overlay(RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(0.28), lineWidth: 1.5))
+                            )
+                        }
+                        .padding(.horizontal, 14)
+                        .transition(.scale.combined(with: .opacity))
+                        .animation(.spring(response: 0.25), value: selectedRoute)
+                    }
+                }
+                .padding(.bottom, 40)
+            }
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    private func routeCard(_ route: RouteType) -> some View {
+        let isSelected = selectedRoute == route
+        return Button {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.65)) {
+                selectedRoute = route
+            }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            VStack(spacing: 7) {
+                routeDiagram(route)
+                    .frame(width: 68, height: 56)
+
+                Text(route.rawValue)
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(isSelected ? route.accentColor : .white.opacity(0.80))
+                    .tracking(1)
+
+                Text(route.yardRange)
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .foregroundStyle(isSelected ? route.accentColor.opacity(0.85) : .white.opacity(0.38))
+
+                Text(route.riskLabel)
+                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .foregroundStyle(isSelected ? .white.opacity(0.70) : .white.opacity(0.28))
+
+                HStack(spacing: 2) {
+                    Image(systemName: "clock.fill").font(.system(size: 6))
+                    Text(String(format: "%.1fs", route.windowSeconds))
+                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                }
+                .foregroundStyle(isSelected ? route.accentColor.opacity(0.85) : .white.opacity(0.28))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected ? route.accentColor.opacity(0.15) : Color.black.opacity(0.58))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(isSelected ? route.accentColor : Color.white.opacity(0.10),
+                                    lineWidth: isSelected ? 2.0 : 1.0)
+                    )
+            )
+            .scaleEffect(isSelected ? 1.04 : 1.0)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func routeDiagram(_ route: RouteType) -> some View {
+        Canvas { ctx, size in
+            let W = size.width; let H = size.height
+            let qbX = W * 0.5; let qbY = H * 0.85
+            let sel = (selectedRoute == route)
+            let lineColor: Color = sel ? route.accentColor : Color.white.opacity(0.40)
+
+            // QB marker
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: qbX - 5, y: qbY - 5, width: 10, height: 10)),
+                with: .color(Color(red: 0.20, green: 0.65, blue: 0.20).opacity(0.90))
+            )
+            // Route path
+            var rp = Path()
+            switch route {
+            case .slant:
+                rp.move(to: CGPoint(x: qbX, y: qbY))
+                rp.addLine(to: CGPoint(x: W * 0.60, y: H * 0.55))
+                rp.addLine(to: CGPoint(x: W * 0.82, y: H * 0.20))
+            case .cross:
+                rp.move(to: CGPoint(x: qbX, y: qbY))
+                rp.addLine(to: CGPoint(x: W * 0.52, y: H * 0.55))
+                rp.addLine(to: CGPoint(x: W * 0.78, y: H * 0.28))
+            case .fly:
+                rp.move(to: CGPoint(x: qbX, y: qbY))
+                rp.addLine(to: CGPoint(x: qbX, y: H * 0.10))
+            }
+            ctx.stroke(rp, with: .color(lineColor),
+                       style: StrokeStyle(lineWidth: 2.0, dash: [4, 3]))
+
+            // Receiver dot at route end
+            let endPt: CGPoint
+            switch route {
+            case .slant: endPt = CGPoint(x: W * 0.82, y: H * 0.20)
+            case .cross: endPt = CGPoint(x: W * 0.78, y: H * 0.28)
+            case .fly:   endPt = CGPoint(x: qbX,      y: H * 0.10)
+            }
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: endPt.x - 5, y: endPt.y - 5, width: 10, height: 10)),
+                with: .color(lineColor)
+            )
+        }
+    }
+
+        // MARK: HUD
 
     private var hudBar: some View {
         HStack(spacing: 0) {
@@ -1741,7 +1946,36 @@ struct FootballGameView: View {
             )
             .offset(x: screenShake > 0 ? CGFloat.random(in: -screenShake...screenShake) : 0)
 
+            // Receiver B overlay (blue dot + pulsing open-window ring)
+            GeometryReader { geo in
+                ZStack {
+                    let rx2 = 0.06 + receiver2X * 0.88
+                    let ry2 = 0.20 + receiver2Y * 0.62
+                    let dotX2 = geo.size.width * rx2
+                    let dotY2 = geo.size.height * ry2
+                    if window2Open {
+                        Circle()
+                            .stroke(Color.cyan.opacity(0.35), lineWidth: 4)
+                            .frame(width: 52, height: 52)
+                            .position(x: dotX2, y: dotY2)
+                        Circle()
+                            .stroke(Color.cyan.opacity(0.75), lineWidth: 2.5)
+                            .frame(width: 38, height: 38)
+                            .position(x: dotX2, y: dotY2)
+                    }
+                    Circle()
+                        .fill(window2Open ? Color.cyan : Color.blue.opacity(0.55))
+                        .frame(width: 14, height: 14)
+                        .position(x: dotX2, y: dotY2)
+                        .onTapGesture { handleThrow(targetPrimary: false) }
+                }
+            }
+            .allowsHitTesting(!playerThrew)
+
             VStack(spacing: 0) {
+                // Sack pressure timer (red bar draining from top)
+                sackTimerBar
+
                 hudBar
                 Spacer()
                 if showPlayResult {
@@ -1756,20 +1990,51 @@ struct FootballGameView: View {
                 }
                 Spacer()
                 VStack(spacing: 6) {
-                    Text("ROUTE: \(currentRoute.rawValue)")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(gameMode.accentColor).tracking(2)
-                    Text(windowOpen ? "TAP TO THROW!" : (playerThrew ? "" : "WATCH THE ROUTE…"))
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
-                        .foregroundStyle(windowOpen ? .green : .white.opacity(0.4))
+                    HStack(spacing: 8) {
+                        Text("ROUTE: \(currentRoute.rawValue)")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(currentRoute.accentColor).tracking(2)
+                        if window2Open {
+                            Text("\u00b7 #2 OPEN")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(Color.cyan.opacity(0.85))
+                        }
+                    }
+                    Text(windowOpen ? "TAP FIELD — THROW TO #1" :
+                         (window2Open ? "TAP CYAN DOT — #2 OPEN!" :
+                          (playerThrew ? "" : "FIND YOUR RECEIVER…")))
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .foregroundStyle(windowOpen ? .green : (window2Open ? .cyan : .white.opacity(0.4)))
                 }.padding(.bottom, 24)
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture { handleThrow() }
+        .onTapGesture { handleThrow(targetPrimary: true) }
         .ignoresSafeArea(edges: .bottom)
     }
 
+    private var sackTimerBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Color.black.opacity(0.50))
+                    .frame(height: 6)
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: sackTimeLeft > 1.5
+                                ? [Color(red: 0.9, green: 0.2, blue: 0.1), Color(red: 1.0, green: 0.4, blue: 0.1)]
+                                : [Color.red, Color(red: 1.0, green: 0.15, blue: 0.15)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(0, geo.size.width * CGFloat(sackTimeLeft / 3.5)), height: 6)
+                    .animation(.linear(duration: 0.05), value: sackTimeLeft)
+            }
+        }
+        .frame(height: 6)
+    }
     // MARK: Run Body
 
     private var runBody: some View {
@@ -1952,15 +2217,71 @@ struct FootballGameView: View {
 
     private func startDrive() {
         down = 1; yardsToGo = YARDS_TO_GO_INITIAL; yardLine = 25; playClock = 40
-        phase = .catchRoute; setupCatchPhase(); startClock()
+        sackCount = 0
+        startPresnapPhase()
+    }
+
+    private func startPresnapPhase() {
+        selectedRoute = nil
+        presnapPhase = true
+        phase = .presnap
     }
 
     private func setupCatchPhase() {
-        currentRoute = RouteType.allCases.randomElement() ?? .slant
+        guard let route = selectedRoute else { return }
+        currentRoute = route
         receiverX = 0.5; receiverY = 0.75; routeProgress = 0.0
-        windowOpen = false; playerThrew = false; showPlayResult = false
+        receiver2X = 0.5; receiver2Y = 0.75
+        windowOpen = false; window2Open = false
+        playerThrew = false; showPlayResult = false
         throwProgress = -1; qbPose = "idle"
+        sackTimeLeft = 3.5
         startRoute()
+        startSackTimer()
+    }
+
+    private func startSackTimer() {
+        rushTask?.cancel()
+        rushTask = Task {
+            let tickMs = 50
+            let totalTicks = Int(3.5 * 1000 / Double(tickMs))
+            for tick in 0..<totalTicks {
+                guard !Task.isCancelled else { return }
+                try? await Task.sleep(for: .milliseconds(tickMs))
+                await MainActor.run {
+                    sackTimeLeft = max(0, 3.5 - Double(tick + 1) * Double(tickMs) / 1000.0)
+                }
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard phase == .catchRoute, !playerThrew else { return }
+                playerThrew = true
+                routeTask?.cancel(); clockTask?.cancel()
+                receiverTasks.forEach { $0.cancel() }; receiverTasks = []
+                hapticError()
+                sackCount += 1
+                yardLine = max(1, yardLine - 7)
+                let isFumble = sackCount >= 4
+                withAnimation {
+                    playResultLabel = isFumble ? "FUMBLE! TURNOVER!" : "SACKED! −7 YDS"
+                    playResultColor = .red; showPlayResult = true
+                }
+                if isFumble {
+                    phase = .turnover
+                    Task {
+                        try? await Task.sleep(for: .seconds(2.5))
+                        await MainActor.run { showPlayResult = false; phase = .result }
+                    }
+                } else {
+                    Task {
+                        try? await Task.sleep(for: .seconds(1.3))
+                        await MainActor.run {
+                            showPlayResult = false; advanceDown(yardsGained: -7)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private func startRoute() {
@@ -1994,11 +2315,17 @@ struct FootballGameView: View {
 
     private func routeEndPoint(for route: RouteType) -> (CGFloat, CGFloat) {
         switch route {
-        case .slant:   return (0.65, 0.35)
-        case .corner:  return (0.75, 0.25)
-        case .post:    return (0.5, 0.2)
-        case .fly:     return (0.5, 0.1)
-        case .out:     return (0.8, 0.5)
+        case .slant: return (0.68, 0.38)
+        case .cross: return (0.55, 0.28)
+        case .fly:   return (0.50, 0.12)
+        }
+    }
+
+    private func route2EndPoint(for route: RouteType) -> (CGFloat, CGFloat) {
+        switch route {
+        case .slant: return (0.30, 0.42)
+        case .cross: return (0.72, 0.30)
+        case .fly:   return (0.38, 0.18)
         }
     }
 

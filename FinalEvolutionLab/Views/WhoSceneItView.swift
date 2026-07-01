@@ -299,6 +299,7 @@ private struct GameShowStageCanvas: View {
     let currentRound: Int
     let totalRounds: Int
     let streakCount: Int
+    var isExpertMode: Bool = false
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -1004,17 +1005,21 @@ private struct GameShowStageCanvas: View {
                 ctx.fill(bar3, with: .color(Color.white.opacity(0.25)))
 
                 // #71 Time bar draining across top
+                // Expert mode: thinner bar (3pt vs 5pt). Color: cyan >50%, orange 25-50%, red <25%
                 let timeFraction = CGFloat(timeRemaining) / CGFloat(max(1, totalTime))
+                let timerH: CGFloat = isExpertMode ? 3 : 5
                 var timeBarBg = Path()
-                timeBarBg.addRoundedRect(in: CGRect(x: W * 0.14, y: H * 0.003, width: W * 0.72, height: 5),
+                timeBarBg.addRoundedRect(in: CGRect(x: W * 0.14, y: H * 0.003, width: W * 0.72, height: timerH),
                                          cornerSize: CGSize(width: 2, height: 2))
                 ctx.fill(timeBarBg, with: .color(Color.white.opacity(0.08)))
                 var timeBarFill = Path()
                 timeBarFill.addRoundedRect(
-                    in: CGRect(x: W * 0.14, y: H * 0.003, width: W * 0.72 * timeFraction, height: 5),
+                    in: CGRect(x: W * 0.14, y: H * 0.003, width: W * 0.72 * timeFraction, height: timerH),
                     cornerSize: CGSize(width: 2, height: 2)
                 )
-                let timeBarColor: Color = timeRemaining > 8 ? Color(red: 0.2, green: 0.8, blue: 1.0) : Color.red
+                let timeBarColor: Color = timeFraction > 0.5
+                    ? Color(red: 0.2, green: 0.8, blue: 1.0)
+                    : (timeFraction > 0.25 ? Color.orange : Color.red)
                 ctx.fill(timeBarFill, with: .color(timeBarColor.opacity(0.85)))
 
                 // #72 Time bar glow
@@ -1137,6 +1142,39 @@ private func hapticWrongAnswer() {
     UINotificationFeedbackGenerator().notificationOccurred(.error)
 }
 
+// MARK: - Difficulty Tier System
+
+private enum SceneDifficulty: Int {
+    case easy = 1, medium = 2, hard = 3, expert = 4
+
+    var label: String {
+        switch self {
+        case .easy:   return "EASY"
+        case .medium: return "MEDIUM"
+        case .hard:   return "HARD"
+        case .expert: return "EXPERT"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .easy:   return .green
+        case .medium: return .yellow
+        case .hard:   return .orange
+        case .expert: return .red
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .easy:   return "Full scene visible. 3 hints available."
+        case .medium: return "Scene fades in from center. 2 hints available."
+        case .hard:   return "Spotlight only. Timer is tighter."
+        case .expert: return "Key detail shown. Timer is very tight."
+        }
+    }
+}
+
 // MARK: - Main Game View
 
 struct WhoSceneItView: View {
@@ -1156,9 +1194,38 @@ struct WhoSceneItView: View {
     @State private var streakCount = 0
     @State private var timeWarningFired = false
 
+    // Difficulty progression state
+    @State private var showRoundBadge = false
+    @State private var showDifficultyTransition = false
+    @State private var difficultyTransitionLabel = ""
+    @State private var sceneRevealProgress: Double = 1.0
+    @State private var streakMultiplier = 1
+    @State private var showQuickStrike = false
+    @State private var questionStartTime: Date = Date()
+
     private enum WhoPhase { case ready, playing, result }
     private var questions: [WhoQuestion] { WhoSceneItQuestions.all }
     private var current: WhoQuestion { questions[min(currentIndex, questions.count - 1)] }
+
+    private var currentRound: Int { currentIndex + 1 }
+
+    private var currentDifficulty: SceneDifficulty {
+        switch currentRound {
+        case 1...2: return .easy
+        case 3...4: return .medium
+        case 5...6: return .hard
+        default:    return .expert
+        }
+    }
+
+    private var roundTimeLimit: Double {
+        switch currentDifficulty {
+        case .easy:   return 20.0
+        case .medium: return 15.0
+        case .hard:   return 12.0
+        case .expert: return 10.0
+        }
+    }
 
     private var activeCreatorCard: CreatorCard? {
         guard let state = viewModel.profile.activeCreatorCard else { return nil }
@@ -1180,14 +1247,15 @@ struct WhoSceneItView: View {
             // Full-screen game show stage canvas background
             GameShowStageCanvas(
                 timeRemaining: timeRemaining,
-                totalTime: 20,
+                totalTime: Int(roundTimeLimit),
                 playerScore: playerScore,
                 opponentScore: opponentScore,
                 showCorrect: showCorrect,
                 showWrong: showWrong,
                 currentRound: currentIndex,
                 totalRounds: questions.count,
-                streakCount: streakCount
+                streakCount: streakCount,
+                isExpertMode: currentDifficulty == .expert
             )
             .ignoresSafeArea()
             .opacity(phase == .playing ? 1.0 : 0.4)
@@ -1223,6 +1291,21 @@ struct WhoSceneItView: View {
                     modeAttributeValue: Double(playerScore) / Double(max(1, questions.count * 10)),
                     onReturn: { dismiss() }
                 )
+            }
+
+            // Round badge overlay (1.5s before question starts)
+            if showRoundBadge && phase == .playing {
+                roundBadgeOverlay
+            }
+
+            // Difficulty transition overlay (0.8s between rounds when difficulty increases)
+            if showDifficultyTransition {
+                difficultyTransitionOverlay
+            }
+
+            // Quick strike bonus overlay
+            if showQuickStrike {
+                quickStrikeOverlay
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -1270,9 +1353,22 @@ struct WhoSceneItView: View {
                     Text("\(playerScore)").font(.system(size: 32, weight: .black, design: .monospaced)).foregroundStyle(.white)
                 }
                 Spacer()
-                Text("Q \(currentIndex + 1)/\(questions.count)")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(gameMode.accentColor)
+                VStack(spacing: 2) {
+                    Text("Q \(currentRound)/\(questions.count)")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(gameMode.accentColor)
+                    // Difficulty badge
+                    HStack(spacing: 4) {
+                        Circle().fill(currentDifficulty.color).frame(width: 6, height: 6)
+                        Text(currentDifficulty.label)
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .foregroundStyle(currentDifficulty.color)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(currentDifficulty.color.opacity(0.12))
+                    .clipShape(Capsule())
+                }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("OPP").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(.secondary)
@@ -1282,18 +1378,33 @@ struct WhoSceneItView: View {
             .padding(.horizontal, 20)
             .padding(.top, 4)
 
+            // Streak multiplier display (Hard/Expert only when active)
+            if streakMultiplier > 1 {
+                streakMultiplierView
+                    .padding(.top, 4)
+            }
+
+            // Timer bar — thinner on expert, color changes at 50%/25%
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08))
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(timeRemaining > 8 ? gameMode.accentColor : Color.red)
-                        .frame(width: geo.size.width * CGFloat(timeRemaining) / 20)
+                        .fill(timerBarColor)
+                        .frame(width: geo.size.width * CGFloat(timeRemaining) / CGFloat(max(1, Int(roundTimeLimit))))
                         .animation(.linear(duration: 1), value: timeRemaining)
                 }
             }
-            .frame(height: 5)
+            .frame(height: currentDifficulty == .expert ? 3 : 5)
             .padding(.horizontal, 20)
-            .padding(.top, 10)
+            .padding(.top, 8)
+            // Pulse when under 5 seconds
+            .scaleEffect(x: 1, y: (timeRemaining <= 5 && timeRemaining > 0) ? 1.5 : 1.0)
+            .animation(
+                (timeRemaining <= 5 && timeRemaining > 0)
+                    ? .easeInOut(duration: 0.4).repeatForever(autoreverses: true)
+                    : .default,
+                value: timeRemaining
+            )
 
             Spacer()
 
@@ -1598,15 +1709,44 @@ struct WhoSceneItView: View {
 
     private func startGame() {
         playerScore = 0; opponentScore = 0; currentIndex = 0
-        streakCount = 0
+        streakCount = 0; streakMultiplier = 1
         phase = .playing
         beginQuestion()
     }
 
     private func beginQuestion() {
-        timeRemaining = 20; selectedAnswer = nil; showAnswer = false
+        let limit = Int(roundTimeLimit)
+        timeRemaining = limit
+        selectedAnswer = nil
+        showAnswer = false
         timeWarningFired = false
+        sceneRevealProgress = currentDifficulty == .medium ? 0.0 : 1.0
+        questionStartTime = Date()
         timerTask?.cancel()
+
+        // Show round badge for 1.5s
+        withAnimation(.easeInOut(duration: 0.3)) { showRoundBadge = true }
+        Task {
+            try? await Task.sleep(for: .milliseconds(1500))
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.3)) { showRoundBadge = false }
+            }
+        }
+
+        // Medium: animate scene reveal from center over 3 seconds
+        if currentDifficulty == .medium {
+            Task {
+                let steps = 30
+                for i in 1...steps {
+                    try? await Task.sleep(for: .milliseconds(100))
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        sceneRevealProgress = Double(i) / Double(steps)
+                    }
+                }
+            }
+        }
+
         timerTask = Task {
             while timeRemaining > 0 {
                 try? await Task.sleep(for: .seconds(1))
@@ -1618,6 +1758,7 @@ struct WhoSceneItView: View {
                 hapticWrongAnswer()
                 showAnswer = true
                 streakCount = 0
+                streakMultiplier = 1
                 Task { try? await Task.sleep(for: .milliseconds(1200)); await MainActor.run { advance() } }
             }
         }
@@ -1638,8 +1779,32 @@ struct WhoSceneItView: View {
         if isCorrect {
             // Haptic: buzzer press / correct answer = .heavy
             hapticBuzzerCorrect()
-            playerScore += 10 + max(0, timeRemaining - 5)
             streakCount += 1
+
+            // Streak multiplier: escalates on Hard/Expert
+            if currentDifficulty == .hard || currentDifficulty == .expert {
+                streakMultiplier = min(5, streakCount)
+            } else {
+                streakMultiplier = 1
+            }
+
+            let basePoints = 10 + max(0, timeRemaining - 5)
+            let multipliedPoints = basePoints * streakMultiplier
+            playerScore += multipliedPoints
+
+            // Expert quick strike: correct in < 3 seconds = +500
+            if currentDifficulty == .expert {
+                let elapsed = Date().timeIntervalSince(questionStartTime)
+                if elapsed < 3.0 {
+                    playerScore += 500
+                    withAnimation { showQuickStrike = true }
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(1800))
+                        await MainActor.run { withAnimation { showQuickStrike = false } }
+                    }
+                }
+            }
+
             // Haptic: bonus/jackpot round win = .rigid (on long streak or high round)
             if streakCount >= 3 || currentIndex >= questions.count - 1 {
                 hapticBonusJackpot()
@@ -1648,6 +1813,7 @@ struct WhoSceneItView: View {
             // Haptic: wrong answer = error notification
             hapticWrongAnswer()
             streakCount = 0
+            streakMultiplier = 1
         }
         Task { try? await Task.sleep(for: .milliseconds(1400)); await MainActor.run { advance() } }
     }
@@ -1656,7 +1822,33 @@ struct WhoSceneItView: View {
         if currentIndex + 1 >= questions.count {
             GameResultService.saveResult(modeId: "who_scene_it", userScore: playerScore)
             phase = .result
-        } else { currentIndex += 1; beginQuestion() }
+        } else {
+            let nextRound = currentIndex + 2
+            let nextDifficulty: SceneDifficulty
+            switch nextRound {
+            case 1...2: nextDifficulty = .easy
+            case 3...4: nextDifficulty = .medium
+            case 5...6: nextDifficulty = .hard
+            default:    nextDifficulty = .expert
+            }
+
+            // Show difficulty transition screen when difficulty tier increases
+            if nextDifficulty.rawValue > currentDifficulty.rawValue {
+                difficultyTransitionLabel = "— \(nextDifficulty.label) MODE"
+                withAnimation(.easeInOut(duration: 0.25)) { showDifficultyTransition = true }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(800))
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.25)) { showDifficultyTransition = false }
+                        currentIndex += 1
+                        beginQuestion()
+                    }
+                }
+            } else {
+                currentIndex += 1
+                beginQuestion()
+            }
+        }
     }
 }
 

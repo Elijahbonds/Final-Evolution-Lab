@@ -21,6 +21,40 @@ private struct TennisBall {
     var fromOpponent: Bool = true
 }
 
+// MARK: - Shot Placement Zone (opponent half: 3 deep × 2 wide = 6 zones)
+
+private enum ShotZone: Int, CaseIterable {
+    case topLeft = 0, topRight, midLeft, midRight, bottomLeft, bottomRight
+
+    var normalizedTarget: CGPoint {
+        switch self {
+        case .topLeft:     return CGPoint(x: 0.20, y: 0.14)
+        case .topRight:    return CGPoint(x: 0.80, y: 0.14)
+        case .midLeft:     return CGPoint(x: 0.20, y: 0.25)
+        case .midRight:    return CGPoint(x: 0.80, y: 0.25)
+        case .bottomLeft:  return CGPoint(x: 0.20, y: 0.35)
+        case .bottomRight: return CGPoint(x: 0.80, y: 0.35)
+        }
+    }
+    var isCorner: Bool { self == .topLeft || self == .topRight }
+    var isWide: Bool   { [.topLeft, .topRight, .midLeft, .midRight].contains(self) }
+    var isLeft: Bool   { [.topLeft, .midLeft, .bottomLeft].contains(self) }
+
+    static func fromAim(aimX: CGFloat, aimDepth: CGFloat) -> ShotZone {
+        let isLeft = aimX < 0.5
+        if aimDepth > 0.66 { return isLeft ? .topLeft : .topRight }
+        if aimDepth > 0.33 { return isLeft ? .midLeft : .midRight }
+        return isLeft ? .bottomLeft : .bottomRight
+    }
+}
+
+// MARK: - Mini-Court History Dot
+
+private struct ShotLandingDot {
+    let normalizedPos: CGPoint
+    let isWinner: Bool
+}
+
 // MARK: - New: Serve Type
 
 private enum ServeType: String, CaseIterable {
@@ -122,6 +156,12 @@ private struct TennisCourtCanvas: View {
     let showAce: Bool
     let showWinner: Bool
     let showFault: Bool
+    // Aim system
+    var aimReticleNorm: CGPoint = .zero
+    var isDragging: Bool = false
+    var dragStartNorm: CGPoint = .zero
+    var landingDots: [ShotLandingDot] = []
+    var targetZone: ShotZone? = nil
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -133,7 +173,10 @@ private struct TennisCourtCanvas: View {
                     swipeOpen: swipeWindowOpen,
                     playerSide: isPlayerSide,
                     phase: phase, crowd: crowdLevel,
-                    showAce: showAce, showWinner: showWinner, showFault: showFault
+                    showAce: showAce, showWinner: showWinner, showFault: showFault,
+                    aimReticleNorm: aimReticleNorm, isDragging: isDragging,
+                    dragStartNorm: dragStartNorm, landingDots: landingDots,
+                    targetZone: targetZone
                 )
                 d.render(ctx: &ctx)
             }
@@ -154,6 +197,12 @@ private struct TennisDrawer {
     let showAce: Bool
     let showWinner: Bool
     let showFault: Bool
+    // Aim system
+    var aimReticleNorm: CGPoint = .zero
+    var isDragging: Bool = false
+    var dragStartNorm: CGPoint = .zero
+    var landingDots: [ShotLandingDot] = []
+    var targetZone: ShotZone? = nil
 
     // Court geometry
     var cL: CGFloat { W * 0.06 }
@@ -189,6 +238,9 @@ private struct TennisDrawer {
         drawImpactFX(&ctx)      // #51–#62
         drawScoreUI(&ctx)       // #63–#72
         drawAtmosphere(&ctx)    // #73–#84
+        drawCourtZones(&ctx)    // 6-zone placement overlay
+        drawLandingDots(&ctx)   // mini-court history
+        if isDragging { drawAimArrow(&ctx) }
         if swipeOpen { drawSwipeZone(&ctx) }
         drawBall(&ctx)
     }
@@ -1157,6 +1209,125 @@ private struct TennisDrawer {
                 .foregroundStyle(Color(red: 0.3, green: 0.85, blue: 0.4).opacity(0.9)),
             at: CGPoint(x: W / 2, y: servB - 10), anchor: .center
         )
+    }
+
+    // MARK: Court Zones (6-zone opponent placement overlay)
+
+    private func drawCourtZones(_ ctx: inout GraphicsContext) {
+        guard swipeOpen || isDragging else { return }
+        let halfW = singR - singL
+        let halfH = netY - cT
+        let zW = halfW / 2
+        let zH = halfH / 3
+
+        for zone in ShotZone.allCases {
+            let col: Int = zone.isLeft ? 0 : 1
+            let row: Int
+            switch zone {
+            case .topLeft, .topRight:       row = 0
+            case .midLeft, .midRight:       row = 1
+            case .bottomLeft, .bottomRight: row = 2
+            }
+            let zx = singL + CGFloat(col) * zW
+            let zy = cT + CGFloat(row) * zH
+            let zRect = CGRect(x: zx + 2, y: zy + 2, width: zW - 4, height: zH - 4)
+            let isTarget = targetZone == zone
+            let isCornerZone = zone.isCorner
+            let fillColor: Color = isTarget
+                ? Color(red: 1.0, green: 0.85, blue: 0.10)
+                : Color(red: 0.20, green: 0.70, blue: 1.0)
+            let fillOpacity: Double = isTarget ? 0.32 : (isCornerZone ? 0.10 : 0.05)
+            var zoneFill = ctx
+            if isTarget { zoneFill.addFilter(.blur(radius: 4)) }
+            zoneFill.fill(Path(roundedRect: zRect, cornerRadius: 3),
+                          with: .color(fillColor.opacity(fillOpacity)))
+            ctx.stroke(Path(roundedRect: zRect, cornerRadius: 3),
+                       with: .color(fillColor.opacity(isTarget ? 0.80 : 0.25)),
+                       lineWidth: isTarget ? 1.8 : 0.8)
+            if isCornerZone {
+                ctx.draw(
+                    Text("⬛").font(.system(size: 6))
+                        .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.10).opacity(0.55)),
+                    at: CGPoint(x: zx + zW / 2, y: zy + zH / 2), anchor: .center
+                )
+            }
+        }
+    }
+
+    // MARK: Aim Arrow (dotted direction indicator during drag)
+
+    private func drawAimArrow(_ ctx: inout GraphicsContext) {
+        guard isDragging else { return }
+        let fromX = dragStartNorm.x * W, fromY = dragStartNorm.y * H
+        let toX   = aimReticleNorm.x * W, toY   = aimReticleNorm.y * H
+        let dx = toX - fromX, dy = toY - fromY
+        let dist = sqrt(dx * dx + dy * dy)
+        guard dist > 8 else { return }
+        let nx = dx / dist, ny = dy / dist
+        let dashLen: CGFloat = 8, gapLen: CGFloat = 5, totalDash = dashLen + gapLen
+        let steps = Int(dist / totalDash)
+        for i in 0..<steps {
+            let s = CGFloat(i) * totalDash
+            let ex = min(s + dashLen, dist)
+            var dash = Path()
+            dash.move(to: CGPoint(x: fromX + nx * s, y: fromY + ny * s))
+            dash.addLine(to: CGPoint(x: fromX + nx * ex, y: fromY + ny * ex))
+            ctx.stroke(dash, with: .color(Color(red: 1.0, green: 0.92, blue: 0.20).opacity(0.80)), lineWidth: 2)
+        }
+        // Arrowhead
+        let aLen: CGFloat = 10, aHalf: CGFloat = 5
+        let ax = toX - nx * aLen, ay = toY - ny * aLen
+        let px = -ny, py = nx
+        var arrow = Path()
+        arrow.move(to: CGPoint(x: toX, y: toY))
+        arrow.addLine(to: CGPoint(x: ax + px * aHalf, y: ay + py * aHalf))
+        arrow.addLine(to: CGPoint(x: ax - px * aHalf, y: ay - py * aHalf))
+        arrow.closeSubpath()
+        ctx.fill(arrow, with: .color(Color(red: 1.0, green: 0.92, blue: 0.20).opacity(0.90)))
+        // Reticle at tip
+        var glow = ctx; glow.addFilter(.blur(radius: 6))
+        glow.fill(Path(ellipseIn: CGRect(x: toX - 10, y: toY - 10, width: 20, height: 20)),
+                  with: .color(Color(red: 1.0, green: 0.92, blue: 0.20).opacity(0.40)))
+        ctx.stroke(Path(ellipseIn: CGRect(x: toX - 7, y: toY - 7, width: 14, height: 14)),
+                   with: .color(Color(red: 1.0, green: 0.92, blue: 0.20).opacity(0.90)), lineWidth: 1.8)
+        stroke(&ctx, from: CGPoint(x: toX - 10, y: toY), to: CGPoint(x: toX - 5, y: toY),
+               color: Color.white.opacity(0.75), width: 1.2)
+        stroke(&ctx, from: CGPoint(x: toX + 5, y: toY), to: CGPoint(x: toX + 10, y: toY),
+               color: Color.white.opacity(0.75), width: 1.2)
+        stroke(&ctx, from: CGPoint(x: toX, y: toY - 10), to: CGPoint(x: toX, y: toY - 5),
+               color: Color.white.opacity(0.75), width: 1.2)
+        stroke(&ctx, from: CGPoint(x: toX, y: toY + 5), to: CGPoint(x: toX, y: toY + 10),
+               color: Color.white.opacity(0.75), width: 1.2)
+    }
+
+    // MARK: Landing History Dots (mini-court overlay)
+
+    private func drawLandingDots(_ ctx: inout GraphicsContext) {
+        guard !landingDots.isEmpty else { return }
+        let mcX = W - 58, mcY = H * 0.72
+        let mcW: CGFloat = 48, mcH: CGFloat = 56
+        ctx.fill(Path(CGRect(x: mcX, y: mcY, width: mcW, height: mcH)),
+                 with: .color(Color(red: 0.10, green: 0.25, blue: 0.52).opacity(0.80)))
+        ctx.stroke(Path(CGRect(x: mcX, y: mcY, width: mcW, height: mcH)),
+                   with: .color(Color.white.opacity(0.30)), lineWidth: 0.8)
+        let netLineY = mcY + mcH / 2
+        stroke(&ctx, from: CGPoint(x: mcX, y: netLineY), to: CGPoint(x: mcX + mcW, y: netLineY),
+               color: Color.white.opacity(0.50), width: 1.0)
+        ctx.draw(
+            Text("HISTORY").font(.system(size: 5, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.white.opacity(0.55)),
+            at: CGPoint(x: mcX + mcW / 2, y: mcY - 7), anchor: .center
+        )
+        for dot in landingDots.suffix(8) {
+            let dx = mcX + dot.normalizedPos.x * mcW
+            let dy = mcY + dot.normalizedPos.y * mcH
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: dx - 2.5, y: dy - 2.5, width: 5, height: 5)),
+                with: .color(dot.isWinner
+                             ? Color(red: 1.0, green: 0.85, blue: 0.10).opacity(0.90)
+                             : Color(red: 0.30, green: 0.75, blue: 0.40).opacity(0.75))
+            )
+        }
     }
 
     // MARK: Ball
@@ -2452,7 +2623,7 @@ struct TennisGameView: View {
         }
     }
 
-    private func endMatch() { cancelAllTasks(); GameResultService.saveResult(modeId: "tennis", userScore: playerSets, opponentScore: opponentSets); withAnimation(.spring(response: 0.4)) { phase = .result } }
+    private func endMatch() { cancelAllTasks(); withAnimation(.spring(response: 0.4)) { phase = .result } }
 
     private func detectSwipe(from start: CGPoint, to end: CGPoint) -> SwipeDir {
         let dx = end.x - start.x; let dy = end.y - start.y
