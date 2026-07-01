@@ -1,0 +1,252 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://finalevolutiongroup.com/schemas/fel_event/v1.json",
+  "title": "FELEvent",
+  "description": "Universal wire format for all server-scored FEL match events. Covers all four scoring categories: JUDGED, PRECISION, COMPETITIVE, COGNITIVE.",
+  "type": "object",
+  "required": ["header", "sequence", "outcome"],
+  "additionalProperties": false,
+  "properties": {
+    "header": {
+      "type": "object",
+      "description": "Immutable match metadata generated at match creation time.",
+      "required": ["match_id", "mode_id", "server_seed", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "match_id": {
+          "type": "string",
+          "minLength": 8,
+          "description": "Unique match identifier issued by POST /api/matches/create."
+        },
+        "mode_id": {
+          "type": "string",
+          "enum": [
+            "basketball_dunk", "basketball_h2h", "basketball_3v3",
+            "gymnastics", "surfing", "skateboarding",
+            "karate", "tennis", "golf", "baseball",
+            "football", "soccer",
+            "brain_brawl", "who_scene_it"
+          ],
+          "description": "Mode discriminator. Determines which scorer class handles this event."
+        },
+        "server_seed": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "64-bit non-repeating seed from os.urandom(8) generated at match creation."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+$",
+          "description": "Schema version in MAJOR.MINOR format. Current: 1.0."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 UTC timestamp of match creation."
+        },
+        "player_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "maxItems": 6,
+          "description": "Ordered list of player user_ids participating in this match."
+        }
+      }
+    },
+    "sequence": {
+      "type": "array",
+      "description": "Ordered log of all scored events in the match.",
+      "items": {
+        "type": "object",
+        "required": ["frame", "actor_id", "action_type", "payload"],
+        "additionalProperties": false,
+        "properties": {
+          "frame": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Server-assigned monotonic frame counter (ms since match start % 1_000_000)."
+          },
+          "actor_id": {
+            "type": "string",
+            "description": "user_id of the player who performed this action."
+          },
+          "action_type": {
+            "type": "string",
+            "enum": ["judged_score", "precision_hit", "score_event", "answer_submitted", "match_start", "match_end", "timeout"],
+            "description": "Discriminator for payload structure."
+          },
+          "payload": {
+            "type": "object",
+            "description": "Action-type-specific data.",
+            "minProperties": 1
+          }
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "description": "Final server-computed match result. Written once at match completion.",
+      "required": ["score"],
+      "additionalProperties": false,
+      "properties": {
+        "score": {
+          "type": "object",
+          "description": "Final scores keyed by player_id or positional key (p1, p2, team_a, team_b).",
+          "minProperties": 1,
+          "additionalProperties": { "type": ["integer", "number"] }
+        },
+        "winner_id": {
+          "type": ["string", "null"],
+          "description": "user_id of the winner, or null for ties."
+        },
+        "judge_offsets": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": -5, "maximum": 5 },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "Three deterministic offsets derived from server_seed. Present for JUDGED modes only."
+        },
+        "verification_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256(server_seed + canonical_sequence_json). Used for replay tamper detection."
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total match duration in milliseconds."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Mode-specific extra data (perfect count, combo streak, top moment).",
+          "additionalProperties": true
+        }
+      }
+    }
+  },
+  "definitions": {
+    "judged_payload": {
+      "description": "Payload for action_type=judged_score. Produced by JudgeComponent.score().",
+      "type": "object",
+      "required": ["j1", "j2", "j3", "total", "message", "is_perfect", "mode_id"],
+      "properties": {
+        "j1": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "j2": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "j3": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "total": { "type": "integer", "minimum": 3, "maximum": 30 },
+        "message": { "type": "string" },
+        "is_perfect": { "type": "boolean" },
+        "mode_id": { "type": "string" },
+        "breakdown": {
+          "type": "object",
+          "properties": {
+            "base_score": { "type": "number" },
+            "primary_contribution": { "type": "number" },
+            "secondary_contribution": { "type": "number" },
+            "style_multiplier": { "type": "number" }
+          }
+        }
+      }
+    },
+    "precision_payload": {
+      "description": "Payload for action_type=precision_hit. Produced by PrecisionScorer.calculate_score().",
+      "type": "object",
+      "required": ["final_score", "breakdown"],
+      "properties": {
+        "final_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "breakdown": {
+          "type": "object",
+          "required": ["delta_ms", "rating"],
+          "properties": {
+            "delta_ms": { "type": "number", "minimum": 0 },
+            "rating": { "type": "string", "enum": ["PERFECT", "GREAT", "GOOD", "OK", "MISS"] }
+          }
+        }
+      }
+    },
+    "competitive_payload": {
+      "description": "Payload for action_type=score_event. Produced by CompetitiveScorer.calculate_score().",
+      "type": "object",
+      "required": ["final_score", "breakdown"],
+      "properties": {
+        "final_score": { "type": "integer", "minimum": 0 },
+        "breakdown": {
+          "type": "object",
+          "required": ["delta"],
+          "properties": {
+            "delta": { "type": "integer" },
+            "is_3pt": { "type": "boolean" },
+            "shot_type": { "type": "string" }
+          }
+        }
+      }
+    },
+    "cognitive_payload": {
+      "description": "Payload for action_type=answer_submitted. Produced by CognitiveScorer.calculate_score().",
+      "type": "object",
+      "required": ["final_score", "breakdown"],
+      "properties": {
+        "final_score": { "type": "integer", "minimum": 0 },
+        "breakdown": {
+          "type": "object",
+          "required": ["correct"],
+          "properties": {
+            "correct": { "type": "boolean" },
+            "speed_bonus": { "type": "integer", "minimum": 0 },
+            "response_ms": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "header": {
+        "match_id": "3fa85f64-5717",
+        "mode_id": "basketball_dunk",
+        "server_seed": 7823640192837465,
+        "version": "1.0",
+        "created_at": "2026-07-01T18:00:00Z",
+        "player_ids": ["user_abc123"]
+      },
+      "sequence": [
+        { "frame": 0, "actor_id": "user_abc123", "action_type": "match_start", "payload": { "judge_offsets": [2, -1, 4] } },
+        {
+          "frame": 4200, "actor_id": "user_abc123", "action_type": "judged_score",
+          "payload": { "j1": 10, "j2": 8, "j3": 10, "total": 28, "message": "OUTSTANDING", "is_perfect": false, "mode_id": "basketball_dunk", "breakdown": { "base_score": 44.0, "primary_contribution": 13.92, "secondary_contribution": 21.84, "style_multiplier": 1.0 } }
+        },
+        { "frame": 9600, "actor_id": "user_abc123", "action_type": "match_end", "payload": { "reason": "all_attempts_complete" } }
+      ],
+      "outcome": {
+        "score": { "user_abc123": 28 },
+        "winner_id": "user_abc123",
+        "judge_offsets": [2, -1, 4],
+        "verification_hash": "a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+        "duration_ms": 9600,
+        "metadata": { "perfect_count": 0, "top_moment": { "total": 28, "message": "OUTSTANDING" } }
+      }
+    },
+    {
+      "header": {
+        "match_id": "9ab12c34-8901",
+        "mode_id": "brain_brawl",
+        "server_seed": 3141592653589793,
+        "version": "1.0",
+        "created_at": "2026-07-01T19:00:00Z",
+        "player_ids": ["user_x", "user_y"]
+      },
+      "sequence": [
+        { "frame": 0, "actor_id": "user_x", "action_type": "match_start", "payload": {} },
+        { "frame": 2300, "actor_id": "user_x", "action_type": "answer_submitted", "payload": { "final_score": 135, "breakdown": { "correct": true, "speed_bonus": 35, "response_ms": 2300 } } },
+        { "frame": 3100, "actor_id": "user_y", "action_type": "answer_submitted", "payload": { "final_score": 118, "breakdown": { "correct": true, "speed_bonus": 18, "response_ms": 3100 } } }
+      ],
+      "outcome": {
+        "score": { "user_x": 135, "user_y": 118 },
+        "winner_id": "user_x",
+        "verification_hash": "b4c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9",
+        "duration_ms": 10000,
+        "metadata": { "rounds": 1 }
+      }
+    }
+  ]
+}
