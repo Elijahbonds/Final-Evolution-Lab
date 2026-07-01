@@ -301,6 +301,132 @@ private struct PointerTriangle: Shape {
     }
 }
 
+// MARK: - Brain Brawl Canvas FX
+
+private struct SpinFXCanvas: View {
+    let spinning: Bool
+
+    var body: some View {
+        TimelineView(.animation(paused: !spinning)) { tl in
+            let t = tl.date.timeIntervalSinceReferenceDate
+            Canvas { ctx, size in
+                guard spinning else { return }
+                let cx = size.width / 2
+                let cy = size.height / 2
+                let R: CGFloat = 110
+
+                var rimGC = ctx
+                rimGC.addFilter(.blur(radius: 14))
+                rimGC.stroke(Path(ellipseIn: CGRect(x: cx-R, y: cy-R, width: R*2, height: R*2)),
+                             with: .color(Color.white.opacity(0.55)), lineWidth: 8)
+
+                for i in 0..<14 {
+                    let phase = Double(i) / 14.0
+                    let pT = fmod(t * 2.8 + phase, 1.0)
+                    let angle = phase * .pi * 2.0 + t * 8.0
+                    let dist = R + CGFloat(pT) * R * 0.72
+                    let px = cx + CGFloat(cos(angle)) * dist
+                    let py = cy + CGFloat(sin(angle)) * dist
+                    var sparkGC = ctx
+                    sparkGC.addFilter(.blur(radius: 2.5))
+                    sparkGC.fill(Path(ellipseIn: CGRect(x: px-3.5, y: py-3.5, width: 7, height: 7)),
+                                 with: .color(Color.white.opacity((1.0 - pT) * 0.85)))
+                }
+            }
+        }
+    }
+}
+
+private struct NeuralBGCanvas: View {
+    let catColor: Color
+
+    var body: some View {
+        TimelineView(.animation) { tl in
+            let t = tl.date.timeIntervalSinceReferenceDate
+            Canvas { ctx, size in
+                let W = size.width; let H = size.height
+                let nx: [CGFloat] = [0.12, 0.85, 0.55, 0.28, 0.72, 0.10, 0.60, 0.90]
+                let ny: [CGFloat] = [0.12, 0.09, 0.22, 0.52, 0.44, 0.76, 0.68, 0.82]
+                let nPhase: [Double] = [0.0, 0.5, 1.1, 0.3, 1.8, 2.2, 0.7, 1.5]
+                let nSpeed: [Double] = [1.2, 0.9, 1.4, 0.8, 1.1, 1.3, 0.7, 1.0]
+                let edges: [(Int, Int)] = [(0,2),(2,1),(2,4),(3,0),(3,6),(4,7),(5,6),(5,3),(1,4),(6,7)]
+
+                var positions = [CGPoint](repeating: .zero, count: 8)
+                for i in 0..<8 {
+                    let dx = CGFloat(sin(t * nSpeed[i] + nPhase[i])) * W * 0.012
+                    let dy = CGFloat(cos(t * nSpeed[i] * 0.7 + nPhase[i])) * H * 0.012
+                    positions[i] = CGPoint(x: nx[i] * W + dx, y: ny[i] * H + dy)
+                }
+
+                for (a, b) in edges {
+                    var line = Path()
+                    line.move(to: positions[a])
+                    line.addLine(to: positions[b])
+                    ctx.stroke(line, with: .color(catColor.opacity(0.07)), lineWidth: 1)
+                }
+
+                for i in 0..<8 {
+                    let pulse = CGFloat(0.5 + sin(t * nSpeed[i] + nPhase[i]) * 0.5)
+                    let pos = positions[i]
+                    let r = 2.5 + pulse * 2.5
+                    var glowGC = ctx
+                    glowGC.addFilter(.blur(radius: 5))
+                    glowGC.fill(Path(ellipseIn: CGRect(x: pos.x-r*2, y: pos.y-r*2, width: r*4, height: r*4)),
+                                with: .color(catColor.opacity(Double(pulse) * 0.18)))
+                    ctx.fill(Path(ellipseIn: CGRect(x: pos.x-r*0.6, y: pos.y-r*0.6, width: r*1.2, height: r*1.2)),
+                             with: .color(catColor.opacity(Double(pulse) * 0.45)))
+                }
+            }
+        }
+    }
+}
+
+private struct AIThinkCanvas: View {
+    var body: some View {
+        TimelineView(.animation) { tl in
+            let t = tl.date.timeIntervalSinceReferenceDate
+            Canvas { ctx, size in
+                let cx = size.width / 2
+                let cy = size.height / 2
+
+                for i in 0..<3 {
+                    let phase = Double(i) / 3.0
+                    let pulse = fmod(t * 0.75 + phase, 1.0)
+                    let r = 20 + CGFloat(pulse) * 68
+                    let alpha = (1.0 - pulse) * 0.55
+                    var glowGC = ctx
+                    glowGC.addFilter(.blur(radius: 8))
+                    let ring = Path(ellipseIn: CGRect(x: cx-r, y: cy-r, width: r*2, height: r*2))
+                    glowGC.stroke(ring, with: .color(Color.red.opacity(alpha * 0.8)), lineWidth: 4)
+                    ctx.stroke(ring, with: .color(Color.red.opacity(alpha * 0.3)), lineWidth: 1)
+                }
+
+                for i in 0..<6 {
+                    let orbit: CGFloat = i < 3 ? 42 : 66
+                    let speed = i < 3 ? 1.4 : -1.0
+                    let angle = t * speed + Double(i % 3) * .pi * 2.0 / 3.0
+                    let px = cx + CGFloat(cos(angle)) * orbit
+                    let py = cy + CGFloat(sin(angle)) * orbit
+                    var pktGC = ctx
+                    pktGC.addFilter(.blur(radius: 3))
+                    pktGC.fill(Path(ellipseIn: CGRect(x: px-5, y: py-5, width: 10, height: 10)),
+                               with: .color(Color.red.opacity(0.65)))
+                    ctx.fill(Path(ellipseIn: CGRect(x: px-2, y: py-2, width: 4, height: 4)),
+                             with: .color(Color.white.opacity(0.9)))
+                }
+
+                var coreGC = ctx
+                coreGC.addFilter(.blur(radius: 16))
+                let coreR = 16 + CGFloat(sin(t * 3.5)) * 4
+                coreGC.fill(Path(ellipseIn: CGRect(x: cx-coreR, y: cy-coreR, width: coreR*2, height: coreR*2)),
+                            with: .color(Color.red.opacity(0.55)))
+                ctx.fill(Path(ellipseIn: CGRect(x: cx-8, y: cy-8, width: 16, height: 16)),
+                         with: .color(Color.red.opacity(0.9)))
+            }
+        }
+    }
+}
+
 // MARK: - Main View
 
 struct BrainBrawlView: View {
@@ -471,6 +597,11 @@ struct BrainBrawlView: View {
                 .frame(height: 124)
             }
             .frame(width: 220, height: 240)
+            .overlay(
+                SpinFXCanvas(spinning: spinning)
+                    .frame(width: 280, height: 280)
+                    .allowsHitTesting(false)
+            )
 
             Spacer().frame(height: 36)
 
@@ -558,6 +689,11 @@ struct BrainBrawlView: View {
 
             Spacer()
         }
+        .background(
+            NeuralBGCanvas(catColor: selectedCategory.color)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+        )
     }
 
     private func answerButton(index: Int, text: String, question: BBQuestion) -> some View {
@@ -638,15 +774,8 @@ struct BrainBrawlView: View {
             crownBar
             Spacer()
 
-            ZStack {
-                Circle()
-                    .fill(Color.red.opacity(0.1))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "brain.head.profile.fill")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(.red)
-                    .symbolEffect(.pulse)
-            }
+            AIThinkCanvas()
+                .frame(width: 160, height: 160)
 
             Text(opponentLabel)
                 .font(.system(.subheadline, weight: .medium))
@@ -735,6 +864,7 @@ struct BrainBrawlView: View {
         timerTask?.cancel()
         selectedAnswer = index
         let correct = index == question.correctIndex
+        UIImpactFeedbackGenerator(style: correct ? .heavy : .medium).impactOccurred()
         isCorrect = correct
 
         if correct {
