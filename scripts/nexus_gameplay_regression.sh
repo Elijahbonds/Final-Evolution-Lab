@@ -23,6 +23,10 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CXX=g++
+fi
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
   cmake -S . -B "${HEADLESS_DIR}" \
@@ -72,14 +76,22 @@ gameplay_code = int(sys.argv[5])
 gameplay_log = Path(sys.argv[6]).read_text(errors="replace")
 ctest_log = Path(sys.argv[7]).read_text(errors="replace")
 
-sprint_modes = [
-    "basketball_dunk", "karate_endless", "basketball_h2h", "court_carnival",
-    "gymnastics", "brain_brawl", "skateboarding", "snowboarding", "surfing",
-    "who_scene_it",
+production_modes = [
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
+    "karate_h2h", "karate_endless", "baseball", "football", "soccer", "golf",
+    "tennis", "volleyball", "gymnastics", "surfing", "skateboarding",
+    "snowboarding", "brain_brawl", "who_scene_it",
 ]
 
-modes_exercised = [m for m in sprint_modes if f"mode={m}" in gameplay_log or f"mode_id={m}" in gameplay_log]
+modes_exercised = [
+    m for m in production_modes
+    if f"mode={m}" in gameplay_log or f"mode_id={m}" in gameplay_log
+]
+missing_modes = [m for m in production_modes if m not in modes_exercised]
 fail_lines = [line.strip() for line in gameplay_log.splitlines() if line.startswith("FAIL:")]
+if missing_modes:
+    fail_lines.append("FAIL: missing production mode sprint coverage: " + ", ".join(missing_modes))
+    overall = "fail"
 
 payload = {
     "schema_version": "1",
@@ -87,9 +99,10 @@ payload = {
     "overall_status": overall,
     "ctest_exit_code": ctest_code,
     "gameplay_test_exit_code": gameplay_code,
-    "sprint_live_modes_expected": len(sprint_modes),
+    "sprint_live_modes_expected": len(production_modes),
     "sprint_live_modes_seen_in_log": len(modes_exercised),
     "sprint_live_modes": modes_exercised,
+    "missing_sprint_live_modes": missing_modes,
     "failures": fail_lines,
     "pass_banner": "PASS: nexus_gameplay_test" in gameplay_log,
     "artifacts": {

@@ -15,10 +15,11 @@ struct DemoEntry {
   std::string_view displayLabel;
 };
 
-constexpr std::array<DemoEntry, 12> kProductionDemoEntries{{
+constexpr std::array<DemoEntry, kProductionModeCount> kProductionDemoEntries{{
     {"basketball_h2h", "mod1", "Intro", "Court IQ Warmup"},
     {"basketball_dunk", "mod2", "HangTime", "Hang Time Prep"},
     {"basketball_3v3", "mod3", "TeamFlow", "Team Flow Drill"},
+    {"court_carnival", "mod18", "AgilityArcade", "Court Carnival Agility"},
     {"karate_h2h", "mod4", "Stance", "Stance & Strike"},
     {"karate_endless", "mod5", "Endurance", "Endurance Kata"},
     {"baseball", "mod6", "Swing", "Rotational Power"},
@@ -27,7 +28,12 @@ constexpr std::array<DemoEntry, 12> kProductionDemoEntries{{
     {"golf", "mod9", "Rotation", "Torso Rotation"},
     {"tennis", "mod10", "Serve", "Serve Chain"},
     {"volleyball", "mod11", "Jump", "Vertical Jump"},
+    {"gymnastics", "mod13", "Routine", "Routine Control"},
     {"surfing", "mod12", "Balance", "Balance Line"},
+    {"skateboarding", "mod14", "BoardFlow", "Board Flow"},
+    {"snowboarding", "mod15", "EdgeControl", "Edge Control"},
+    {"brain_brawl", "mod16", "CognitiveSprint", "Cognitive Sprint"},
+    {"who_scene_it", "mod17", "SceneRead", "Scene Read"},
 }};
 
 [[nodiscard]] auto findEntry(std::string_view modeId) -> const DemoEntry* {
