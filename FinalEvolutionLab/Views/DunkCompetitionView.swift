@@ -263,68 +263,149 @@ private struct DunkArenaCanvas: View {
                 let W = size.width
                 let H = size.height
 
-                // ── DARK ARENA BACKGROUND ─────────────────────────────────
-                // Background: dark navy Color(red: 0.06, green: 0.07, blue: 0.16)
-                var bgPath = Path()
-                bgPath.addRect(CGRect(x: 0, y: 0, width: W, height: H))
-                ctx.fill(bgPath, with: .color(Color(red: 0.06, green: 0.07, blue: 0.16)))
+                // ── VENICE BEACH SKY ──────────────────────────────────────
+                // California sky: deep ocean blue fading to warm horizon
+                var skyPath = Path()
+                skyPath.addRect(CGRect(x: 0, y: 0, width: W, height: H))
+                ctx.fill(skyPath, with: .linearGradient(
+                    Gradient(colors: [
+                        Color(red: 0.18, green: 0.42, blue: 0.78),
+                        Color(red: 0.42, green: 0.70, blue: 0.92),
+                        Color(red: 0.78, green: 0.88, blue: 0.96)
+                    ]),
+                    startPoint: CGPoint(x: W / 2, y: 0),
+                    endPoint: CGPoint(x: W / 2, y: H * 0.55)
+                ))
 
-                // Spotlight: radial gradient from above center — warm white fading to dark
-                var spotCtx = ctx
-                spotCtx.addFilter(.blur(radius: 65))
-                var spotPath = Path()
-                spotPath.addEllipse(in: CGRect(x: W * 0.15, y: -H * 0.32, width: W * 0.70, height: H * 0.85))
-                spotCtx.fill(spotPath, with: .color(Color(red: 1.0, green: 0.92, blue: 0.72).opacity(0.20)))
+                // Sun: warm golden disc upper-left
+                let sunX = W * 0.12, sunY = H * 0.10
+                var sunGlowCtx = ctx
+                sunGlowCtx.addFilter(.blur(radius: 28))
+                var sunGlowPath = Path()
+                sunGlowPath.addEllipse(in: CGRect(x: sunX - 30, y: sunY - 30, width: 60, height: 60))
+                sunGlowCtx.fill(sunGlowPath, with: .color(Color(red: 1.0, green: 0.92, blue: 0.30).opacity(0.75)))
+                var sunPath = Path()
+                sunPath.addEllipse(in: CGRect(x: sunX - 14, y: sunY - 14, width: 28, height: 28))
+                ctx.fill(sunPath, with: .color(Color(red: 1.0, green: 0.94, blue: 0.45)))
 
-                // ── CROWD ROWS: small colored circles in upper arc ─────────
-                let crowdPulse = CGFloat(sin(t * 3.5)) * crowdEnergy * 5
-                let crowdColors: [Color] = [.cyan, .orange, .yellow, .white, .purple, .green, .pink, .red]
-                for row in 0..<4 {
-                    let rowY = H * 0.04 + CGFloat(row) * 22 + (row == 0 ? crowdPulse : 0)
-                    let dotsInRow = 28 + row * 4
-                    for col in 0..<dotsInRow {
-                        let dotX = W * CGFloat(col) / CGFloat(dotsInRow - 1)
-                        let jitter = CGFloat(sin(t * 2.2 + Double(col) * 0.43 + Double(row) * 1.1)) * 3 * crowdEnergy
-                        let dotY = rowY + jitter
-                        let dotSize: CGFloat = 5 - CGFloat(row) * 0.4
-                        var dotPath = Path()
-                        dotPath.addEllipse(in: CGRect(x: dotX - dotSize / 2, y: dotY - dotSize / 2,
-                                                       width: dotSize, height: dotSize))
-                        let c = crowdColors[(col + row * 3) % crowdColors.count]
-                        ctx.fill(dotPath, with: .color(c.opacity(0.55 + Double(crowdEnergy) * 0.35)))
-                        // Raised arms when energy is high
-                        if crowdEnergy > 0.6 {
-                            var armL = Path()
-                            armL.move(to: CGPoint(x: dotX, y: dotY - dotSize / 2))
-                            armL.addLine(to: CGPoint(x: dotX - 5, y: dotY - dotSize / 2 - 7 + jitter * 0.4))
-                            var armR = Path()
-                            armR.move(to: CGPoint(x: dotX, y: dotY - dotSize / 2))
-                            armR.addLine(to: CGPoint(x: dotX + 5, y: dotY - dotSize / 2 - 7 + jitter * 0.4))
-                            ctx.stroke(armL, with: .color(c.opacity(0.35)), lineWidth: 0.7)
-                            ctx.stroke(armR, with: .color(c.opacity(0.35)), lineWidth: 0.7)
-                        }
+                // Ocean strip at horizon
+                let horizonY = H * 0.46
+                var oceanPath = Path()
+                oceanPath.addRect(CGRect(x: 0, y: horizonY, width: W, height: H * 0.06))
+                ctx.fill(oceanPath, with: .linearGradient(
+                    Gradient(colors: [Color(red: 0.12, green: 0.48, blue: 0.82), Color(red: 0.25, green: 0.60, blue: 0.88)]),
+                    startPoint: CGPoint(x: 0, y: horizonY),
+                    endPoint: CGPoint(x: W, y: horizonY)
+                ))
+                // Ocean shimmer
+                for wave in 0..<6 {
+                    let wx = W * CGFloat(wave) / 5.0 + CGFloat(sin(t * 1.2 + Double(wave))) * 8
+                    var wavePath = Path()
+                    wavePath.move(to: CGPoint(x: wx, y: horizonY + 8))
+                    wavePath.addCurve(to: CGPoint(x: wx + 30, y: horizonY + 8),
+                                      control1: CGPoint(x: wx + 8, y: horizonY + 3),
+                                      control2: CGPoint(x: wx + 22, y: horizonY + 3))
+                    ctx.stroke(wavePath, with: .color(.white.opacity(0.25)), lineWidth: 0.8)
+                }
+
+                // Boardwalk / concrete strip between ocean and court
+                let boardwalkY = H * 0.52
+                var bwPath = Path()
+                bwPath.addRect(CGRect(x: 0, y: boardwalkY, width: W, height: H * 0.04))
+                ctx.fill(bwPath, with: .color(Color(red: 0.72, green: 0.68, blue: 0.60)))
+
+                // ── PALM TREES ──────────────────────────────────────────────
+                let floorY = H * 0.56
+                let palmPositions: [(CGFloat, CGFloat, CGFloat)] = [
+                    (W * 0.06, floorY, 1.0),
+                    (W * 0.94, floorY, 0.85),
+                    (W * 0.88, floorY - 20, 0.7)
+                ]
+                for (px, py, scale) in palmPositions {
+                    // Trunk
+                    var trunkPath = Path()
+                    let trunkLean = (px < W / 2) ? -8.0 : 8.0
+                    trunkPath.move(to: CGPoint(x: px, y: py))
+                    trunkPath.addCurve(
+                        to: CGPoint(x: px + trunkLean, y: py - 90 * scale),
+                        control1: CGPoint(x: px - trunkLean * 0.3, y: py - 30 * scale),
+                        control2: CGPoint(x: px + trunkLean * 0.7, y: py - 60 * scale)
+                    )
+                    ctx.stroke(trunkPath, with: .color(Color(red: 0.55, green: 0.38, blue: 0.18)), lineWidth: CGFloat(6 * scale))
+                    // Fronds (5 leaves)
+                    let frondBase = CGPoint(x: px + trunkLean, y: py - 90 * scale)
+                    let frondSway = CGFloat(sin(t * 1.3 + Double(px))) * 4 * scale
+                    for f in 0..<5 {
+                        let angle = Double(f) * .pi * 2 / 5 + Double(t) * 0.15
+                        let frondLen: CGFloat = 32 * scale
+                        var frond = Path()
+                        frond.move(to: frondBase)
+                        frond.addCurve(
+                            to: CGPoint(x: frondBase.x + cos(angle) * frondLen + frondSway,
+                                        y: frondBase.y + sin(angle) * frondLen * 0.5),
+                            control1: CGPoint(x: frondBase.x + cos(angle) * frondLen * 0.4,
+                                              y: frondBase.y - 8),
+                            control2: CGPoint(x: frondBase.x + cos(angle) * frondLen * 0.8,
+                                              y: frondBase.y + sin(angle) * frondLen * 0.3)
+                        )
+                        ctx.stroke(frond, with: .color(Color(red: 0.12, green: 0.55, blue: 0.18)), lineWidth: CGFloat(2.5 * scale))
                     }
                 }
 
-                // ── HARDWOOD COURT: warm brown lanes with white key markings
-                let floorY = H * 0.55
-                var floorPath = Path()
-                floorPath.addRect(CGRect(x: 0, y: floorY, width: W, height: H - floorY))
-                ctx.fill(floorPath, with: .linearGradient(
-                    Gradient(colors: [
-                        Color(red: 0.55, green: 0.32, blue: 0.10),
-                        Color(red: 0.32, green: 0.17, blue: 0.05)
-                    ]),
-                    startPoint: CGPoint(x: W / 2, y: floorY),
-                    endPoint: CGPoint(x: W / 2, y: H)
-                ))
-                for plank in 0..<12 {
-                    let plankY = floorY + CGFloat(plank) * ((H - floorY) / 12.0)
-                    var plankLine = Path()
-                    plankLine.move(to: CGPoint(x: 0, y: plankY))
-                    plankLine.addLine(to: CGPoint(x: W, y: plankY))
-                    ctx.stroke(plankLine, with: .color(Color(red: 0.28, green: 0.14, blue: 0.03).opacity(0.5)), lineWidth: 0.6)
+                // ── VENICE BEACH COLORFUL COURT SURFACE ─────────────────────
+                // The famous mural court: colorful geometric sections
+                var courtBg = Path()
+                courtBg.addRect(CGRect(x: 0, y: floorY, width: W, height: H - floorY))
+                ctx.fill(courtBg, with: .color(Color(red: 0.22, green: 0.22, blue: 0.24))) // dark asphalt base
+
+                // Colorful mural panels on court surface (Venice Beach iconic look)
+                let panelColors: [Color] = [
+                    Color(red: 0.90, green: 0.22, blue: 0.18),  // red
+                    Color(red: 0.18, green: 0.45, blue: 0.85),  // blue
+                    Color(red: 0.95, green: 0.72, blue: 0.08),  // gold
+                    Color(red: 0.15, green: 0.65, blue: 0.30),  // green
+                    Color(red: 0.72, green: 0.18, blue: 0.78),  // purple
+                    Color(red: 0.95, green: 0.48, blue: 0.10),  // orange
+                ]
+                let courtH = H - floorY
+                let panelW = W / CGFloat(panelColors.count)
+                for (i, panelColor) in panelColors.enumerated() {
+                    var panel = Path()
+                    panel.addRect(CGRect(x: CGFloat(i) * panelW, y: floorY, width: panelW, height: courtH * 0.55))
+                    ctx.fill(panel, with: .color(panelColor.opacity(0.30)))
+                    // Panel border lines
+                    var pBorder = Path()
+                    pBorder.addRect(CGRect(x: CGFloat(i) * panelW, y: floorY, width: panelW, height: courtH * 0.55))
+                    ctx.stroke(pBorder, with: .color(panelColor.opacity(0.15)), lineWidth: 0.5)
                 }
+
+                // Court boundary white line
+                var courtLine = Path()
+                courtLine.addRect(CGRect(x: W * 0.04, y: floorY + 4, width: W * 0.92, height: courtH * 0.85))
+                ctx.stroke(courtLine, with: .color(.white.opacity(0.55)), lineWidth: 1.5)
+
+                // Three-point arc
+                var arcPath = Path()
+                arcPath.addArc(center: CGPoint(x: W * 0.80, y: floorY + courtH * 0.4),
+                               radius: W * 0.22, startAngle: .degrees(200), endAngle: .degrees(340), clockwise: false)
+                ctx.stroke(arcPath, with: .color(.white.opacity(0.45)), lineWidth: 1.2)
+
+                // Paint / key rectangle
+                let paintLeft  = W * 0.62
+                let paintRight = W * 0.88
+                var paintRect = Path()
+                paintRect.addRect(CGRect(x: paintLeft, y: floorY, width: paintRight - paintLeft, height: H - floorY))
+                ctx.stroke(paintRect, with: .color(.white.opacity(0.40)), lineWidth: 1.5)
+                // Paint fill with slight color
+                var paintFill = Path()
+                paintFill.addRect(CGRect(x: paintLeft + 1, y: floorY + 1,
+                                          width: paintRight - paintLeft - 2, height: H - floorY - 2))
+                ctx.fill(paintFill, with: .color(Color(red: 0.18, green: 0.40, blue: 0.82).opacity(0.18)))
+                var ftLine = Path()
+                ftLine.move(to: CGPoint(x: paintLeft, y: floorY + (H - floorY) * 0.38))
+                ftLine.addLine(to: CGPoint(x: paintRight, y: floorY + (H - floorY) * 0.38))
+                ctx.stroke(ftLine, with: .color(.white.opacity(0.35)), lineWidth: 1.0)
+
                 // Floor rim glow reflection
                 var floorGlow = ctx
                 floorGlow.addFilter(.blur(radius: 22))
@@ -332,16 +413,64 @@ private struct DunkArenaCanvas: View {
                 floorGlowPath.addEllipse(in: CGRect(x: W * 0.40, y: floorY - 10, width: W * 0.5, height: 60))
                 floorGlow.fill(floorGlowPath, with: .color(Color(red: 1.0, green: 0.5, blue: 0.1)
                     .opacity(0.20 + Double(rimGlow) * 0.45)))
-                // Paint / key
-                let paintLeft  = W * 0.60
-                let paintRight = W * 0.88
-                var paintRect = Path()
-                paintRect.addRect(CGRect(x: paintLeft, y: floorY, width: paintRight - paintLeft, height: H - floorY))
-                ctx.stroke(paintRect, with: .color(.white.opacity(0.12)), lineWidth: 1.2)
-                var ftLine = Path()
-                ftLine.move(to: CGPoint(x: paintLeft, y: floorY + (H - floorY) * 0.35))
-                ftLine.addLine(to: CGPoint(x: paintRight, y: floorY + (H - floorY) * 0.35))
-                ctx.stroke(ftLine, with: .color(.white.opacity(0.10)), lineWidth: 1.0)
+
+                // Chain-link fence behind basket
+                let fenceY = floorY - 80
+                for fx in stride(from: W * 0.55, through: W, by: 18.0) {
+                    var fenceV = Path()
+                    fenceV.move(to: CGPoint(x: fx, y: fenceY))
+                    fenceV.addLine(to: CGPoint(x: fx, y: floorY))
+                    ctx.stroke(fenceV, with: .color(.white.opacity(0.08)), lineWidth: 0.5)
+                }
+                for fy in stride(from: fenceY, through: floorY, by: 14.0) {
+                    var fenceH = Path()
+                    fenceH.move(to: CGPoint(x: W * 0.55, y: fy))
+                    fenceH.addLine(to: CGPoint(x: W, y: fy))
+                    ctx.stroke(fenceH, with: .color(.white.opacity(0.06)), lineWidth: 0.4)
+                }
+
+                // ── OUTDOOR CROWD (bystanders around court perimeter) ────────
+                let crowdPulse = CGFloat(sin(t * 3.5)) * crowdEnergy * 5
+                let crowdColors: [Color] = [.cyan, .orange, .yellow, .white, .purple, .green, .pink, .red]
+                // Two rows of spectators on the left side of court
+                for row in 0..<2 {
+                    let rowY = floorY + 20 + CGFloat(row) * 18
+                    for col in 0..<8 {
+                        let dotX = W * 0.04 + CGFloat(col) * (W * 0.15 / 8)
+                        let jitter = CGFloat(sin(t * 2.5 + Double(col) * 0.7)) * 3 * crowdEnergy
+                        let dotY = rowY + jitter + (row == 0 ? crowdPulse * 0.3 : 0)
+                        var dotPath = Path()
+                        dotPath.addEllipse(in: CGRect(x: dotX - 4, y: dotY - 4, width: 8, height: 8))
+                        let c = crowdColors[(col + row * 2) % crowdColors.count]
+                        ctx.fill(dotPath, with: .color(c.opacity(0.65 + Double(crowdEnergy) * 0.25)))
+                        if crowdEnergy > 0.5 {
+                            var armL = Path(); armL.move(to: CGPoint(x: dotX, y: dotY - 4))
+                            armL.addLine(to: CGPoint(x: dotX - 6, y: dotY - 11 + jitter * 0.5))
+                            var armR = Path(); armR.move(to: CGPoint(x: dotX, y: dotY - 4))
+                            armR.addLine(to: CGPoint(x: dotX + 6, y: dotY - 11 + jitter * 0.5))
+                            ctx.stroke(armL, with: .color(c.opacity(0.45)), lineWidth: 0.9)
+                            ctx.stroke(armR, with: .color(c.opacity(0.45)), lineWidth: 0.9)
+                        }
+                    }
+                }
+                // Spectators along baseline (bottom)
+                for col in 0..<16 {
+                    let dotX = W * 0.08 + CGFloat(col) * (W * 0.84 / 15.0)
+                    let jitter = CGFloat(sin(t * 2.0 + Double(col) * 0.5)) * 4 * crowdEnergy
+                    let dotY = H - 18 + jitter + crowdPulse * 0.2
+                    var dotPath = Path()
+                    dotPath.addEllipse(in: CGRect(x: dotX - 5, y: dotY - 5, width: 10, height: 10))
+                    let c = crowdColors[col % crowdColors.count]
+                    ctx.fill(dotPath, with: .color(c.opacity(0.60 + Double(crowdEnergy) * 0.30)))
+                    if crowdEnergy > 0.6 {
+                        var armL = Path(); armL.move(to: CGPoint(x: dotX, y: dotY - 5))
+                        armL.addLine(to: CGPoint(x: dotX - 7, y: dotY - 14 + jitter * 0.4))
+                        var armR = Path(); armR.move(to: CGPoint(x: dotX, y: dotY - 5))
+                        armR.addLine(to: CGPoint(x: dotX + 7, y: dotY - 14 + jitter * 0.4))
+                        ctx.stroke(armL, with: .color(c.opacity(0.40)), lineWidth: 0.8)
+                        ctx.stroke(armR, with: .color(c.opacity(0.40)), lineWidth: 0.8)
+                    }
+                }
 
                 // ── RIM: orange circle + chain net (zigzag below) ─────────
                 let basketX = W * 0.82
@@ -1156,7 +1285,7 @@ struct DunkCompetitionView: View {
     @State private var hitFeedbackScale: CGFloat = 0.5
     @State private var hitFeedbackOpacity: Double = 0
 
-    private let arenaBackground = Color(red: 0.06, green: 0.07, blue: 0.16)
+    private let arenaBackground = Color(red: 0.18, green: 0.42, blue: 0.78) // Venice Beach sky
 
     var body: some View {
         ZStack {
