@@ -851,6 +851,7 @@ struct SkateboardingGameView: View {
         .onDisappear {
             runTimer?.cancel()
             grindTask?.cancel()
+            manualWindowTask?.cancel()
         }
     }
 
@@ -1428,7 +1429,9 @@ struct SkateboardingGameView: View {
     private func finishRun() {
         runTimer?.cancel()
         grindTask?.cancel()
+        manualWindowTask?.cancel()
         isGrinding = false
+        isManual = false
         runScores.append(currentRunScore)
         bestRunScore = max(bestRunScore, currentRunScore)
         if currentRun >= totalRuns {
