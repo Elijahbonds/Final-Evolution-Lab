@@ -1740,6 +1740,18 @@ struct TennisGameView: View {
     private let XP_CAP_PER_SESSION = 500
     @State private var sessionXP: Int = 0
 
+    // MARK: Drag-to-Aim System
+    @State private var aimDirection: CGFloat = 0.5     // 0=crosscourt, 1=down-the-line
+    @State private var aimDepth: CGFloat = 0.5         // 0=short, 1=deep
+    @State private var shotDragStart: CGPoint = .zero
+    @State private var isShotDragging: Bool = false
+    @State private var aimReticlePos: CGPoint = CGPoint(x: 0.5, y: 0.25)
+    @State private var currentTargetZone: ShotZone? = nil
+    @State private var lastOpponentZone: ShotZone? = nil   // tracks where opponent covered last
+    @State private var landingDots: [ShotLandingDot] = []
+    @State private var showWinnerZoneFlash: Bool = false
+    @State private var winnerZoneText: String = ""
+
     // MARK: Serve System
     @State private var serveType: ServeType = .flat
     @State private var isFirstServe: Bool = true

@@ -1216,6 +1216,15 @@ struct VolleyballGameView: View {
     @State private var serveActive: Bool = false
     @State private var matchPointActive: Bool = false
 
+    // Court positioning state
+    @State private var playerX: CGFloat = 0.5
+    @State private var aiX: CGFloat = 0.5
+    @State private var ballLandingZone: CGFloat = 0.5
+    @State private var positioningWindow: Bool = false
+    @State private var digResult: DigResult? = nil
+    @State private var positioningTask: Task<Void, Never>? = nil
+    @State private var selectedSpikeZone: Int? = nil
+
     private let XP_CAP_PER_SESSION = 500
     private let accentColor = Color(red: 0.98, green: 0.75, blue: 0.14)
     private let opponentName = "Kai Nexus"
@@ -1311,7 +1320,13 @@ struct VolleyballGameView: View {
                         aceActive: aceActive,
                         digActive: digActive,
                         serveActive: serveActive,
-                        matchPointActive: matchPointActive
+                        matchPointActive: matchPointActive,
+                        playerPositionX: playerX,
+                        aiPositionX: aiX,
+                        ballLandingX: ballLandingZone,
+                        showLandingShadow: positioningWindow,
+                        digResult: digResult,
+                        selectedSpikeZone: selectedSpikeZone
                     )
                     .animation(.easeInOut(duration: 0.5), value: ball.position)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -1319,18 +1334,24 @@ struct VolleyballGameView: View {
                 .frame(height: 260)
                 .padding(.horizontal, 16)
 
-                Spacer().frame(height: 18)
+                Spacer().frame(height: 10)
+                movementControlRow
+                Spacer().frame(height: 6)
                 touchPromptRow
-                Spacer().frame(height: 14)
+                Spacer().frame(height: 8)
 
                 VStack(spacing: 6) {
+                    if touchPhase == .spike && inputWindowOpen {
+                        spikeZoneRow.transition(.scale.combined(with: .opacity))
+                    }
                     if inputWindowOpen { actionButton } else {
                         Text(rallyStateHint).font(.system(size: 12, design: .monospaced))
                             .foregroundStyle(.secondary).multilineTextAlignment(.center)
                     }
                 }
-                .frame(height: 60)
+                .frame(height: 68)
                 .animation(.easeInOut(duration: 0.15), value: inputWindowOpen)
+                .animation(.easeInOut(duration: 0.15), value: touchPhase)
                 Spacer()
             }
 

@@ -2286,14 +2286,15 @@ struct FootballGameView: View {
 
     private func startRoute() {
         routeTask?.cancel()
+        receiverTasks.forEach { $0.cancel() }; receiverTasks = []
+
+        // Primary receiver A
         routeTask = Task {
             let totalSteps = 60
             let windowStart = Int(Double(totalSteps) * 0.50)
             let windowEnd   = Int(Double(totalSteps) * 0.75)
             let endPoint = routeEndPoint(for: currentRoute)
-
             await MainActor.run { qbPose = "idle" }
-
             for step in 0...totalSteps {
                 guard !Task.isCancelled else { return }
                 let ep = CGFloat(step) / CGFloat(totalSteps)
@@ -2308,9 +2309,33 @@ struct FootballGameView: View {
                 try? await Task.sleep(for: .milliseconds(30))
             }
             await MainActor.run {
+                windowOpen = false
                 if !playerThrew { handleIncompletionOrSack() }
             }
         }
+
+        // Receiver B (300ms delay, slightly staggered open window)
+        let taskB = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            let totalSteps = 60
+            let windowStart2 = Int(Double(totalSteps) * 0.55)
+            let windowEnd2   = Int(Double(totalSteps) * 0.80)
+            let endPoint2 = route2EndPoint(for: currentRoute)
+            for step in 0...totalSteps {
+                guard !Task.isCancelled else { return }
+                let ep = CGFloat(step) / CGFloat(totalSteps)
+                let nx = 0.5 + (endPoint2.0 - 0.5) * ep
+                let ny = 0.75 + (endPoint2.1 - 0.75) * ep
+                let isWindow = (step >= windowStart2 && step <= windowEnd2)
+                await MainActor.run {
+                    receiver2X = nx; receiver2Y = ny
+                    window2Open = isWindow && !playerThrew
+                }
+                try? await Task.sleep(for: .milliseconds(30))
+            }
+            await MainActor.run { window2Open = false }
+        }
+        receiverTasks.append(taskB)
     }
 
     private func routeEndPoint(for route: RouteType) -> (CGFloat, CGFloat) {
@@ -2329,14 +2354,15 @@ struct FootballGameView: View {
         }
     }
 
-    private func handleThrow() {
+    private func handleThrow(targetPrimary: Bool = true) {
         guard phase == .catchRoute, !playerThrew else { return }
         playerThrew = true
-        routeTask?.cancel(); clockTask?.cancel()
+        routeTask?.cancel(); clockTask?.cancel(); rushTask?.cancel()
+        receiverTasks.forEach { $0.cancel() }; receiverTasks = []
         qbPose = "throw"
         hapticMedium()  // Haptic #3: throw / attempt
 
-        let caught = windowOpen
+        let caught = targetPrimary ? windowOpen : window2Open
         catchResult = caught
 
         if caught {
@@ -2444,7 +2470,7 @@ struct FootballGameView: View {
             Task {
                 try? await Task.sleep(for: .seconds(1.2))
                 await MainActor.run {
-                    showPlayResult = false; phase = .catchRoute; setupCatchPhase(); startClock()
+                    showPlayResult = false; startPresnapPhase()
                 }
             }
         }
@@ -2460,7 +2486,7 @@ struct FootballGameView: View {
             Task { try? await Task.sleep(for: .seconds(2.5)); await MainActor.run { phase = .result } }
             return
         }
-        playClock = 40; phase = .catchRoute; setupCatchPhase(); startClock()
+        playClock = 40; startPresnapPhase()
     }
 
     /// Called when a field goal is made (future integration point).
@@ -2485,6 +2511,9 @@ struct FootballGameView: View {
 
     private func cancelAllTasks() {
         routeTask?.cancel(); runTask?.cancel(); clockTask?.cancel()
+        rushTask?.cancel(); presnapTask?.cancel()
+        receiverTasks.forEach { $0.cancel() }
+        receiverTasks = []
     }
 
     private func grantRewards(shards: Int) {

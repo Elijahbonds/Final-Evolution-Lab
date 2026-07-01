@@ -1418,13 +1418,24 @@ struct KarateGameView: View {
     // MARK: - HUD
 
     private var hudSection: some View {
-        VStack(spacing:10) {
+        VStack(spacing:8) {
+            RoundIndicatorRow(playerWins:playerRoundsWon, aiWins:aiRoundsWon, accentColor:accentColor)
             HStack(spacing:12) {
                 KarateHealthBar(current:playerHP,max:maxHP,color:Theme.brandBlue,label:"YOU",isReversed:false).frame(maxWidth:.infinity)
                 ZStack {
-                    Circle().stroke(timeLeft <= 15 ? Color.red.opacity(0.5) : accentColor.opacity(0.3),lineWidth:2).frame(width:48,height:48)
-                    Text("\(timeLeft)").font(.system(size:18,weight:.black,design:.monospaced))
-                        .foregroundStyle(timeLeft <= 15 ? .red : .white).contentTransition(.numericText())
+                    Circle().stroke(roundTimeRemaining <= 8 ? Color.red.opacity(0.5) : accentColor.opacity(0.3),lineWidth:2).frame(width:48,height:48)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(roundTimeRemaining / 30.0))
+                        .stroke(roundTimeRemaining <= 8 ? Color.red : accentColor,
+                                style: StrokeStyle(lineWidth:2, lineCap:.round))
+                        .frame(width:48,height:48).rotationEffect(.degrees(-90))
+                        .animation(.linear(duration:0.1), value:roundTimeRemaining)
+                    VStack(spacing:0) {
+                        Text("\(Int(roundTimeRemaining))").font(.system(size:14,weight:.black,design:.monospaced))
+                            .foregroundStyle(roundTimeRemaining <= 8 ? .red : .white)
+                        Text("R\(currentRound)").font(.system(size:8,weight:.black,design:.monospaced))
+                            .foregroundStyle(.secondary)
+                    }
                 }.frame(width:48)
                 KarateHealthBar(current:opponentHP,max:maxHP,color:accentColor,label:opponentName.uppercased(),isReversed:true).frame(maxWidth:.infinity)
             }
@@ -1438,8 +1449,16 @@ struct KarateGameView: View {
                 Spacer()
                 Text("\(opponentScore)").font(.system(size:22,weight:.black,design:.monospaced)).foregroundStyle(accentColor)
             }
+            SuperMeterView(value:superMeter)
             ChakraMeter(value:chakra, accentColor:accentColor)
                 .onChange(of:chakra) { _,v in showDragonStrikeButton = v >= 100 }
+            if isDominant {
+                Text("⚡ DOMINANT — +10% DAMAGE").font(.system(size:9,weight:.black,design:.monospaced))
+                    .foregroundStyle(.yellow).tracking(1)
+            } else if playerDamageBuff > 1.0 {
+                Text("↑ MOMENTUM — +5% DAMAGE").font(.system(size:9,weight:.black,design:.monospaced))
+                    .foregroundStyle(Theme.foundationGreen).tracking(1)
+            }
         }
     }
 
@@ -1453,7 +1472,11 @@ struct KarateGameView: View {
                        lastHitTime:lastHitTime, lastHitType:lastHitType,
                        comboCount:comboCount,
                        playerHP:playerHP, opponentHP:opponentHP,
-                       roundNumber:roundNumber)
+                       roundNumber:currentRound,
+                       playerRoundsWon:playerRoundsWon,
+                       aiRoundsWon:aiRoundsWon,
+                       superMeter:superMeter,
+                       roundTimeRemaining:roundTimeRemaining)
 
             if showFightFlash {
                 Text("FIGHT!").font(.system(size:52,weight:.black,design:.monospaced)).italic()
