@@ -95,7 +95,12 @@ final class GameModeScreenshotUITests: XCTestCase {
             if modeId == "basketball_dunk_irl" {
                 XCTAssert(app.otherElements["DunkMatchmakingHeader"].waitForExistence(timeout: 12))
                 attachScreenshot(from: app, name: "smoke_dunk_irl_lobby")
-                app.buttons.matching(NSPredicate(format: "label CONTAINS 'BACK' OR label CONTAINS 'Exit' OR label CONTAINS 'DISMISS'")).firstMatch.tap()
+                let closeLobby = app.buttons["DunkMatchmakingClose"]
+                if closeLobby.waitForExistence(timeout: 4) {
+                    closeLobby.tap()
+                } else {
+                    app.buttons.matching(NSPredicate(format: "label CONTAINS 'BACK' OR label CONTAINS 'Exit' OR label CONTAINS 'DISMISS' OR label == 'Close'")).firstMatch.tap()
+                }
             } else {
                 let exit = gameplayExitButton(in: app)
                 XCTAssert(exit.waitForExistence(timeout: 18))
@@ -126,7 +131,12 @@ final class GameModeScreenshotUITests: XCTestCase {
             if modeId == "basketball_dunk_irl" {
                 XCTAssert(app.otherElements["DunkMatchmakingHeader"].waitForExistence(timeout: 12), "IRL dunk lobby failed for \(modeId)")
                 attachScreenshot(from: app, name: "smoke_dunk_irl_lobby")
-                app.buttons.matching(NSPredicate(format: "label CONTAINS 'BACK' OR label CONTAINS 'Exit' OR label CONTAINS 'DISMISS'")).firstMatch.tap()
+                let closeLobby = app.buttons["DunkMatchmakingClose"]
+                if closeLobby.waitForExistence(timeout: 4) {
+                    closeLobby.tap()
+                } else {
+                    app.buttons.matching(NSPredicate(format: "label CONTAINS 'BACK' OR label CONTAINS 'Exit' OR label CONTAINS 'DISMISS' OR label == 'Close'")).firstMatch.tap()
+                }
             } else {
                 let exit = gameplayExitButton(in: app)
                 XCTAssert(exit.waitForExistence(timeout: 18), "GamePlayView failed to open for \(modeId)")

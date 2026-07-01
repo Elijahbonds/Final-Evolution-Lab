@@ -147,6 +147,12 @@ struct DunkMatchmakingView: View {
             }
             .padding()
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Close") { dismiss() }
+                    .accessibilityIdentifier("DunkMatchmakingClose")
+            }
+        }
         .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: $showCameraLab) {
             NavigationStack {
