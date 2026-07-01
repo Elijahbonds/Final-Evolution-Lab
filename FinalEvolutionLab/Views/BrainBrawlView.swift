@@ -72,6 +72,87 @@ private enum BBPhase {
     case ready, spinning, question, feedback, opponentTurn, result
 }
 
+// MARK: - AI Personality
+
+private enum AIPersonality: CaseIterable {
+    case confident, nervous, taunting, scholarly
+
+    var name: String {
+        switch self {
+        case .confident: return "Kai Nexus"
+        case .nervous: return "Kai Nexus"
+        case .taunting: return "Kai Nexus"
+        case .scholarly: return "Kai Nexus"
+        }
+    }
+
+    var thinkingLines: [String] {
+        switch self {
+        case .confident:
+            return ["Processing...", "I know this.", "Simple.", "Calculated.", "Data confirmed."]
+        case .nervous:
+            return ["Hmm... let me think...", "I... think...", "Wait, no—", "Maybe...?", "Processing..."]
+        case .taunting:
+            return ["Too easy.", "Is that it?", "Let me not even try.", "Yawn.", "Obviously..."]
+        case .scholarly:
+            return ["Cross-referencing...", "Consulting index...", "Verifying hypothesis...", "Analyzing data...", "Computing..."]
+        }
+    }
+
+    var correctLines: [String] {
+        switch self {
+        case .confident:
+            return ["Knew it.", "Of course.", "Never in doubt.", "That's my speed.", "Crown acquired."]
+        case .nervous:
+            return ["Oh! I got it!", "Wait — really?!", "Yes! Finally!", "That... worked?", "Lucky guess!"]
+        case .taunting:
+            return ["Is that your final answer? Really?", "Too slow.", "Study harder.", "I was barely trying.", "Child's play."]
+        case .scholarly:
+            return ["Hypothesis confirmed.", "Literature supports this.", "Textbook correct.", "Academically sound.", "Peer-reviewed answer."]
+        }
+    }
+
+    var incorrectLines: [String] {
+        switch self {
+        case .confident:
+            return ["Minor error.", "Recalibrating.", "That was... a test.", "Acceptable margin.", "Noted."]
+        case .nervous:
+            return ["I knew I was wrong!", "See? I knew it.", "Ugh, why do I always—", "This is not good.", "Panic mode activated."]
+        case .taunting:
+            return ["That question was unfair.", "Irrelevant trivia.", "I don't care about that.", "Technicality.", "The phrasing was bad."]
+        case .scholarly:
+            return ["Insufficient data.", "Requires further analysis.", "Conflicting sources.", "Margin of error.", "Re-reviewing literature."]
+        }
+    }
+
+    var thinkDelay: ClosedRange<Double> {
+        switch self {
+        case .confident: return 1.0...2.2
+        case .nervous: return 3.0...4.5
+        case .taunting: return 0.8...1.6
+        case .scholarly: return 2.8...4.0
+        }
+    }
+
+    var accuracyModifier: Double {
+        switch self {
+        case .confident: return 0.05
+        case .nervous: return -0.10
+        case .taunting: return 0.0
+        case .scholarly: return 0.08
+        }
+    }
+
+    var thinkingColor: Color {
+        switch self {
+        case .confident: return Color(red: 0.2, green: 0.8, blue: 1.0)
+        case .nervous: return Color(red: 0.9, green: 0.7, blue: 0.1)
+        case .taunting: return Color(red: 1.0, green: 0.2, blue: 0.3)
+        case .scholarly: return Color(red: 0.5, green: 0.9, blue: 0.5)
+        }
+    }
+}
+
 // MARK: - Lifeline
 
 private enum BBLifeline: CaseIterable {
@@ -829,6 +910,7 @@ private struct NeuralBGCanvas: View {
 private struct AIThinkCanvas: View {
     let startTime: Date
     let confidencePercent: Int
+    var thinkingColor: Color = .red
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -853,10 +935,10 @@ private struct AIThinkCanvas: View {
                     tr.move(to: CGPoint(x: nA.0, y: nA.1))
                     tr.addLine(to: CGPoint(x: nB.0, y: nA.1))
                     tr.addLine(to: CGPoint(x: nB.0, y: nB.1))
-                    ctx.stroke(tr, with: .color(Color.red.opacity(0.08)), lineWidth: 1)
+                    ctx.stroke(tr, with: .color(thinkingColor.opacity(0.08)), lineWidth: 1)
                     let padR: CGFloat = 2
                     ctx.fill(Path(ellipseIn: CGRect(x: nB.0-padR, y: nA.1-padR, width: padR*2, height: padR*2)),
-                             with: .color(Color.red.opacity(0.12)))
+                             with: .color(thinkingColor.opacity(0.12)))
                 }
 
                 // --- Processing scan line sweeping top-to-bottom ---
@@ -867,8 +949,8 @@ private struct AIThinkCanvas: View {
                 scanLine.addLine(to: CGPoint(x: cx+75, y: scanY))
                 var scanGC = ctx
                 scanGC.addFilter(.blur(radius: 4))
-                scanGC.stroke(scanLine, with: .color(Color.red.opacity(0.25)), lineWidth: 6)
-                ctx.stroke(scanLine, with: .color(Color.red.opacity(0.45)), lineWidth: 1)
+                scanGC.stroke(scanLine, with: .color(thinkingColor.opacity(0.25)), lineWidth: 6)
+                ctx.stroke(scanLine, with: .color(thinkingColor.opacity(0.45)), lineWidth: 1)
 
                 // --- 5 dashed fractal rings, alternating rotation direction ---
                 for i in 0..<5 {
@@ -888,8 +970,8 @@ private struct AIThinkCanvas: View {
                                    startAngle: .radians(startA), endAngle: .radians(endA), clockwise: false)
                         var glowGC = ctx
                         glowGC.addFilter(.blur(radius: 6))
-                        glowGC.stroke(arc, with: .color(Color.red.opacity(alpha * 0.7)), lineWidth: 4)
-                        ctx.stroke(arc, with: .color(Color.red.opacity(alpha)), lineWidth: 1.5)
+                        glowGC.stroke(arc, with: .color(thinkingColor.opacity(alpha * 0.7)), lineWidth: 4)
+                        ctx.stroke(arc, with: .color(thinkingColor.opacity(alpha)), lineWidth: 1.5)
                     }
                 }
 
@@ -907,7 +989,7 @@ private struct AIThinkCanvas: View {
                         var pktGC = ctx
                         pktGC.addFilter(.blur(radius: 3))
                         pktGC.fill(Path(ellipseIn: CGRect(x: px-5, y: py-5, width: 10, height: 10)),
-                                   with: .color(Color.red.opacity(0.60)))
+                                   with: .color(thinkingColor.opacity(0.60)))
                         ctx.fill(Path(ellipseIn: CGRect(x: px-2.5, y: py-2.5, width: 5, height: 5)),
                                  with: .color(Color.white.opacity(0.90)))
                     }
@@ -927,14 +1009,14 @@ private struct AIThinkCanvas: View {
                                         control: CGPoint(x: eyeCenter.x, y: eyeCenter.y + eyeHalfH))
                     var eyeGlowGC = ctx
                     eyeGlowGC.addFilter(.blur(radius: 5))
-                    eyeGlowGC.fill(eyePath, with: .color(Color.red.opacity(Double(openness) * 0.4)))
+                    eyeGlowGC.fill(eyePath, with: .color(thinkingColor.opacity(Double(openness) * 0.4)))
                     ctx.stroke(eyePath, with: .color(Color.white.opacity(Double(openness) * 0.85)), lineWidth: 1.5)
                     let pupilR: CGFloat = 4 * openness
                     var pupilGC = ctx
                     pupilGC.addFilter(.blur(radius: 2))
                     pupilGC.fill(Path(ellipseIn: CGRect(x: eyeCenter.x-pupilR, y: eyeCenter.y-pupilR,
                                                          width: pupilR*2, height: pupilR*2)),
-                                 with: .color(Color.red.opacity(Double(openness) * 0.8)))
+                                 with: .color(thinkingColor.opacity(Double(openness) * 0.8)))
                     ctx.fill(Path(ellipseIn: CGRect(x: eyeCenter.x-pupilR*0.5, y: eyeCenter.y-pupilR*0.5,
                                                      width: pupilR, height: pupilR)),
                              with: .color(Color.white.opacity(Double(openness))))
@@ -950,7 +1032,7 @@ private struct AIThinkCanvas: View {
                              startAngle: .radians(Double(confStart)),
                              endAngle: .radians(Double(confStart + CGFloat.pi * 1.6)),
                              clockwise: false)
-                ctx.stroke(bgArc, with: .color(Color.red.opacity(0.10)), lineWidth: 3)
+                ctx.stroke(bgArc, with: .color(thinkingColor.opacity(0.10)), lineWidth: 3)
                 if confSweep > 0.01 {
                     var fillArc = Path()
                     fillArc.addArc(center: CGPoint(x: cx, y: cy), radius: confR,
@@ -959,8 +1041,8 @@ private struct AIThinkCanvas: View {
                                    clockwise: false)
                     var confGlowGC = ctx
                     confGlowGC.addFilter(.blur(radius: 5))
-                    confGlowGC.stroke(fillArc, with: .color(Color.red.opacity(0.4)), lineWidth: 5)
-                    ctx.stroke(fillArc, with: .color(Color.red.opacity(0.85)), lineWidth: 2.5)
+                    confGlowGC.stroke(fillArc, with: .color(thinkingColor.opacity(0.4)), lineWidth: 5)
+                    ctx.stroke(fillArc, with: .color(thinkingColor.opacity(0.85)), lineWidth: 2.5)
                 }
 
                 // --- Core glow ---
@@ -968,9 +1050,9 @@ private struct AIThinkCanvas: View {
                 coreGC.addFilter(.blur(radius: 16))
                 let coreR = 16 + CGFloat(sin(t * 3.5)) * 4
                 coreGC.fill(Path(ellipseIn: CGRect(x: cx-coreR, y: cy-coreR, width: coreR*2, height: coreR*2)),
-                            with: .color(Color.red.opacity(0.55)))
+                            with: .color(thinkingColor.opacity(0.55)))
                 ctx.fill(Path(ellipseIn: CGRect(x: cx-8, y: cy-8, width: 16, height: 16)),
-                         with: .color(Color.red.opacity(0.90)))
+                         with: .color(thinkingColor.opacity(0.90)))
 
                 // --- Loading dots cascade: 5 dots that light up sequentially while AI thinks ---
                 let dotCount = 5
@@ -987,7 +1069,7 @@ private struct AIThinkCanvas: View {
                     dotGlowGC.addFilter(.blur(radius: lit ? 5 : 1))
                     dotGlowGC.fill(Path(ellipseIn: CGRect(x: dotX-dotR*1.4, y: dotBaseY-dotR*1.4,
                                                            width: dotR*2.8, height: dotR*2.8)),
-                                   with: .color(Color.red.opacity(dotAlpha * 0.6)))
+                                   with: .color(thinkingColor.opacity(dotAlpha * 0.6)))
                     ctx.fill(Path(ellipseIn: CGRect(x: dotX-dotR, y: dotBaseY-dotR, width: dotR*2, height: dotR*2)),
                              with: .color(Color.white.opacity(dotAlpha)))
                 }
@@ -1017,7 +1099,7 @@ private struct AIThinkCanvas: View {
                     }
                     var pathGlowGC = ctx
                     pathGlowGC.addFilter(.blur(radius: 5))
-                    pathGlowGC.stroke(pathLine, with: .color(Color.red.opacity(0.55)), lineWidth: 4)
+                    pathGlowGC.stroke(pathLine, with: .color(thinkingColor.opacity(0.55)), lineWidth: 4)
                     ctx.stroke(pathLine, with: .color(Color.white.opacity(0.75)), lineWidth: 1.2)
                     // Dot at path tip
                     let tipFrac = min(pathProgress, 1.0)
@@ -1037,7 +1119,7 @@ private struct AIThinkCanvas: View {
                 ctx.draw(
                     Text(confLabel)
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Color.red.opacity(0.75)),
+                        .foregroundStyle(thinkingColor.opacity(0.75)),
                     at: CGPoint(x: cx, y: cy + confR + 38),
                     anchor: .center
                 )
@@ -1100,7 +1182,7 @@ private struct AnswerFlashCanvas: View {
                     var vigGC = ctx
                     vigGC.addFilter(.blur(radius: 30))
                     vigGC.fill(Path(CGRect(origin: .zero, size: size)),
-                               with: .color(Color.red.opacity(vigAlpha * 0.5)))
+                               with: .color(thinkingColor.opacity(vigAlpha * 0.5)))
 
                     // WRONG text with shake
                     let shakeSeed = floor(t * 12)
@@ -1109,7 +1191,7 @@ private struct AnswerFlashCanvas: View {
                     let wrongAlpha = max(0.0, min(1.0, 1.8 - fmod(t * 0.7, 1.0) * 1.8))
                     ctx.draw(Text("WRONG")
                         .font(.system(size: 36, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.red.opacity(wrongAlpha)),
+                        .foregroundStyle(thinkingColor.opacity(wrongAlpha)),
                              at: CGPoint(x: cx + shakeX, y: cy - 8 + shakeY), anchor: .center)
 
                     // Scattered spark particles
@@ -1126,7 +1208,7 @@ private struct AnswerFlashCanvas: View {
                         sparkGC.fill(Path(ellipseIn: CGRect(x: px-sR*1.5, y: py-sR*1.5, width: sR*3, height: sR*3)),
                                      with: .color(Color.orange.opacity(alpha * 0.6)))
                         ctx.fill(Path(ellipseIn: CGRect(x: px-sR*0.5, y: py-sR*0.5, width: sR, height: sR)),
-                                 with: .color(Color.red.opacity(alpha)))
+                                 with: .color(thinkingColor.opacity(alpha)))
                     }
                 }
             }
@@ -1183,7 +1265,13 @@ struct BrainBrawlView: View {
     // Round tracking for time pressure
     @State private var roundNumber: Int = 1
 
-    private let opponentName = "Kai Nexus"
+    // AI Personality
+    @State private var aiPersonality: AIPersonality = .confident
+    @State private var aiConfidence: Double = 1.0
+    @State private var aiThinkingText: String = "Processing..."
+    @State private var aiShaking: Bool = false
+
+    private var opponentName: String { aiPersonality.name }
     private let totalCrowns = BBCategory.allCases.count
 
     private let correctComments = [
@@ -1216,7 +1304,11 @@ struct BrainBrawlView: View {
                     subtitle: "6 categories · Collect all crowns · Winner takes all",
                     countdown: 3,
                     accentColor: gameMode.accentColor,
-                    onComplete: { phase = .spinning }
+                    onComplete: {
+                        aiPersonality = AIPersonality.allCases.randomElement() ?? .confident
+                        aiConfidence = 1.0
+                        phase = .spinning
+                    }
                 )
             case .spinning:
                 spinningBody
@@ -1692,8 +1784,27 @@ struct BrainBrawlView: View {
             crownBar
             Spacer()
 
-            AIThinkCanvas(startTime: opponentTurnStart, confidencePercent: Int(selectedCategory.aiAccuracy * 100))
+            // Personality label chip
+            Text(personalityLabel)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(aiPersonality.thinkingColor)
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                .background(aiPersonality.thinkingColor.opacity(0.15).cornerRadius(6))
+                .tracking(1.5)
+
+            AIThinkCanvas(startTime: opponentTurnStart,
+                          confidencePercent: Int(min(0.95, max(0.05, selectedCategory.aiAccuracy + aiPersonality.accuracyModifier * aiConfidence)) * 100),
+                          thinkingColor: aiPersonality.thinkingColor)
                 .frame(width: 200, height: 200)
+                .offset(x: aiShaking ? CGFloat.random(in: -6...6) : 0)
+                .animation(aiShaking ? .easeInOut(duration: 0.05).repeatCount(6) : .default, value: aiShaking)
+
+            // Thinking text
+            Text(aiThinkingText)
+                .font(.system(size: 14, weight: .medium, design: .monospaced))
+                .foregroundStyle(aiPersonality.thinkingColor.opacity(0.85))
+                .multilineTextAlignment(.center)
+                .italic()
 
             Text(opponentLabel)
                 .font(.system(.subheadline, weight: .medium))
@@ -1701,12 +1812,38 @@ struct BrainBrawlView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 
+            // Confidence meter
+            VStack(spacing: 4) {
+                Text("CONFIDENCE")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(2)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08)).frame(height: 6)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(aiPersonality.thinkingColor)
+                            .frame(width: geo.size.width * aiConfidence, height: 6)
+                            .animation(.spring(response: 0.5), value: aiConfidence)
+                    }
+                }.frame(width: 140, height: 6)
+            }
+
             Text("\(opponentName.uppercased()) IS ANSWERING")
                 .font(.system(size: 9, weight: .black, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .tracking(2)
 
             Spacer()
+        }
+    }
+
+    private var personalityLabel: String {
+        switch aiPersonality {
+        case .confident: return "CONFIDENT MODE"
+        case .nervous: return "NERVOUS ENERGY"
+        case .taunting: return "TRASH TALK MODE"
+        case .scholarly: return "SCHOLAR MODE"
         }
     }
 
@@ -1931,22 +2068,33 @@ struct BrainBrawlView: View {
         let pool = BBBank.all[cat] ?? []
         guard let q = pool.randomElement() else { nextPlayerTurn(); return }
         opponentLabel = "\(cat.rawValue): \u{201C}\(q.question)\u{201D}"
+        aiThinkingText = aiPersonality.thinkingLines.randomElement() ?? "Processing..."
         opponentTurnStart = .now
         phase = .opponentTurn
 
         Task {
-            try? await Task.sleep(for: .seconds(Double.random(in: 2.0...3.8)))
+            let delay = Double.random(in: aiPersonality.thinkDelay)
+            try? await Task.sleep(for: .seconds(delay))
             await MainActor.run {
-                let correct = Double.random(in: 0...1) < cat.aiAccuracy
+                let baseAccuracy = cat.aiAccuracy + aiPersonality.accuracyModifier * aiConfidence
+                let correct = Double.random(in: 0...1) < min(0.95, max(0.05, baseAccuracy))
                 if correct && !opponentCrowns.contains(cat) {
                     opponentCrowns.insert(cat)
-                    opponentLabel = "\(opponentName) answered correctly!"
+                    opponentLabel = aiPersonality.correctLines.randomElement() ?? "\(opponentName) answered correctly!"
+                    aiConfidence = min(1.0, aiConfidence + 0.1)
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } else {
-                    opponentLabel = "\(opponentName) missed it."
+                    opponentLabel = aiPersonality.incorrectLines.randomElement() ?? "\(opponentName) missed it."
+                    aiConfidence = max(0.2, aiConfidence - 0.15)
+                    aiShaking = true
+                    Task {
+                        try? await Task.sleep(for: .seconds(0.5))
+                        await MainActor.run { aiShaking = false }
+                    }
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
                 Task {
-                    try? await Task.sleep(for: .seconds(1.3))
+                    try? await Task.sleep(for: .seconds(1.5))
                     await MainActor.run {
                         if checkWin() { return }
                         nextPlayerTurn()
