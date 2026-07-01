@@ -816,6 +816,12 @@ struct SurfingGameView: View {
     @State private var judgeScores: [Double] = []
     @State private var showJudgePanel: Bool = false
 
+    // FLOW STATE meter — charges on tricks (+0.3) and barrel rides (+0.5), activates ×2.5 multiplier
+    @State private var flowMeter: Double = 0.0
+    @State private var flowStateActive: Bool = false
+    @State private var flowStateTask: Task<Void, Never>? = nil
+    @State private var showFlowActivated: Bool = false
+
     @State private var currentWaveType: SurfWaveType = .solid
     @State private var showWaveTypeBanner: Bool = false
     @State private var barrelHoldTime: Double = 0
@@ -975,6 +981,7 @@ struct SurfingGameView: View {
     private var ridingBody: some View {
         VStack(spacing: 0) {
             ridingHUD.padding(.horizontal, 20).padding(.top, 8)
+            flowStateBar.padding(.top, 4)
             Spacer()
             ZStack(alignment: .topLeading) {
                 Group {
@@ -1118,6 +1125,40 @@ struct SurfingGameView: View {
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1)))
     }
 
+    // MARK: - Flow State Bar
+
+    private var flowStateBar: some View {
+        let flowColor: Color = flowStateActive ? .cyan : Color(red: 0.2, green: 0.75, blue: 1.0)
+        return VStack(spacing: 3) {
+            HStack(spacing: 5) {
+                Image(systemName: flowStateActive ? "flame.fill" : "waveform.path")
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundStyle(flowStateActive ? .cyan : flowColor)
+                Text(flowStateActive ? "FLOW STATE  ×2.5" : "FLOW STATE")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(flowStateActive ? .cyan : flowColor).tracking(2)
+                Spacer()
+                if flowStateActive {
+                    Text("ACTIVE").font(.system(size: 7, weight: .black, design: .monospaced)).foregroundStyle(.cyan)
+                }
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.06))
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: flowStateActive ? [Color.cyan, Color.blue] : [flowColor.opacity(0.5), flowColor],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * CGFloat(min(1, flowMeter)))
+                        .animation(.spring(response: 0.4), value: flowMeter)
+                }
+            }.frame(height: 6)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 6)
+        .background(flowStateActive ? Color.cyan.opacity(0.07).clipShape(RoundedRectangle(cornerRadius: 8)) : Color.clear)
+        .animation(.easeInOut(duration: 0.3), value: flowStateActive)
+    }
+
     // MARK: - Wave Power Meter
 
     private var wavePowerMeter: some View {
@@ -1259,17 +1300,32 @@ struct SurfingGameView: View {
     // MARK: - Trick Flash Overlay
 
     private var trickFlashOverlay: some View {
-        Group {
+        ZStack {
             if showTrickFlash {
                 VStack(spacing: 4) {
                     Text(trickFlashText).font(.system(size: 36, weight: .black, design: .monospaced))
-                        .foregroundStyle(.yellow).shadow(color: .yellow.opacity(0.7), radius: 20)
-                    Text("TRICK SCORED!").font(.system(size: 12, weight: .black, design: .monospaced))
-                        .foregroundStyle(.yellow.opacity(0.7)).tracking(3)
+                        .foregroundStyle(flowStateActive ? .cyan : .yellow)
+                        .shadow(color: (flowStateActive ? Color.cyan : Color.yellow).opacity(0.7), radius: 20)
+                    Text(flowStateActive ? "FLOW ×2.5!" : "TRICK SCORED!")
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .foregroundStyle(flowStateActive ? Color.cyan.opacity(0.9) : Color.yellow.opacity(0.7))
+                        .tracking(3)
                 }
                 .allowsHitTesting(false).transition(.scale(scale: 0.3).combined(with: .opacity))
             }
-        }.animation(.spring(response: 0.22, dampingFraction: 0.5), value: showTrickFlash)
+            if showFlowActivated {
+                VStack(spacing: 6) {
+                    Text("FLOW STATE!").font(.system(size: 42, weight: .black, design: .monospaced)).italic()
+                        .foregroundStyle(.cyan).shadow(color: Color.cyan.opacity(0.8), radius: 24)
+                    Text("×2.5 SCORE · 6 SECONDS").font(.system(size: 13, weight: .black, design: .monospaced))
+                        .foregroundStyle(.cyan.opacity(0.8)).tracking(2)
+                }
+                .allowsHitTesting(false).transition(.scale(scale: 0.2).combined(with: .opacity))
+                .offset(y: -30)
+            }
+        }
+        .animation(.spring(response: 0.22, dampingFraction: 0.5), value: showTrickFlash)
+        .animation(.spring(response: 0.22, dampingFraction: 0.5), value: showFlowActivated)
     }
 
     // MARK: - Wipeout Body
@@ -1618,7 +1674,13 @@ struct SurfingGameView: View {
     private func completeBarrel() {
         cancelAllTimers()
         hapticNotification(.success); hapticImpact(.heavy)
-        let finalScore = Double(Int.random(in: 12...18)) * currentWaveType.pointMultiplier
+        // Barrel rides heavily charge the flow meter
+        if !flowStateActive {
+            flowMeter = min(1.0, flowMeter + 0.50)
+            if flowMeter >= 1.0 { activateFlowState() }
+        }
+        let flowMult: Double = flowStateActive ? 2.5 : 1.0
+        let finalScore = Double(Int.random(in: 12...18)) * currentWaveType.pointMultiplier * flowMult
         currentWaveScore = finalScore
         withAnimation { showBarrelBonus = true }
         Task {
@@ -1645,13 +1707,35 @@ struct SurfingGameView: View {
         }
     }
 
+    private func activateFlowState() {
+        flowStateActive = true
+        flowStateTask?.cancel()
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        withAnimation(.spring(response: 0.25)) { showFlowActivated = true }
+        Task {
+            try? await Task.sleep(for: .milliseconds(1200))
+            await MainActor.run { withAnimation { showFlowActivated = false } }
+        }
+        flowStateTask = Task {
+            try? await Task.sleep(for: .seconds(6.0))
+            await MainActor.run { flowStateActive = false; flowMeter = 0 }
+        }
+    }
+
     private func handleTrickSwipe(_ translation: CGSize) {
         guard phase == .trickWindow, !wipeoutTriggered else { return }
         let dx = translation.width, dy = translation.height
         let ax = abs(dx), ay = abs(dy)
         let trick: SurfTrick = ay > ax * 1.8 ? (dy < 0 ? .aerial : .tube) : .cutback
-        performedTrick = trick; trickAccumulator += trick.points
+        // Flow multiplier applied to trick points
+        let flowMult: Double = flowStateActive ? 2.5 : 1.0
+        performedTrick = trick; trickAccumulator += Int(Double(trick.points) * flowMult)
         currentWaveScore = Double(trickAccumulator) * currentBalanceMultiplier
+        // Charge flow meter per trick
+        if !flowStateActive {
+            flowMeter = min(1.0, flowMeter + 0.30)
+            if flowMeter >= 1.0 { activateFlowState() }
+        }
         switch trick {
         case .aerial:
             hapticImpact(.heavy); currentCanvasPhase = .aerial
@@ -1664,7 +1748,8 @@ struct SurfingGameView: View {
         }
         hapticImpact(.light)
         comboTricks.append(trick.rawValue)
-        trickFlashText = "\(trick.rawValue)  +\(trick.points)"
+        let displayPoints = Int(Double(trick.points) * flowMult)
+        trickFlashText = "\(trick.rawValue)  +\(displayPoints)"
         withAnimation(.spring(response: 0.2)) { showTrickFlash = true }
         Task { try? await Task.sleep(for: .milliseconds(900)); await MainActor.run { withAnimation { showTrickFlash = false } } }
         trickWindowOpen = false; phase = .riding
@@ -1693,6 +1778,8 @@ struct SurfingGameView: View {
         let ws = WaveScore(waveNumber: surfMode == .endless ? endlessWaveCount : waveNumber, rawScore: finalScore, wipeout: wipeout)
         waveScores.append(ws)
         if wipeout {
+            // Wipeout drains the flow meter
+            flowMeter = max(0, flowMeter - 0.50); flowStateActive = false
             hapticNotification(.error); hapticImpact(.heavy); currentCanvasPhase = .wipeout; phase = .wipeout
             Task {
                 try? await Task.sleep(for: .seconds(2.0))
@@ -1747,6 +1834,6 @@ struct SurfingGameView: View {
 
     private func cancelAllTimers() {
         waveTimer?.cancel(); wavePowerTimer?.cancel(); balanceDriftTimer?.cancel()
-        barrelTimer?.cancel(); endlessWaveTask?.cancel()
+        barrelTimer?.cancel(); endlessWaveTask?.cancel(); flowStateTask?.cancel()
     }
 }

@@ -1209,6 +1209,11 @@ struct VolleyballGameView: View {
     @State private var showAce: Bool = false
     @State private var touchHighlight: VBTouchPhase? = nil
 
+    // Power Surge meter — fills +0.34 per rally win (3 wins charges), resets on loss
+    @State private var powerSurgeMeter: Double = 0.0
+    @State private var powerSurgeActive: Bool = false
+    @State private var showSurgeActivated: Bool = false
+
     // Canvas FX state
     @State private var spikeActive: Bool = false
     @State private var aceActive: Bool = false
@@ -1306,6 +1311,7 @@ struct VolleyballGameView: View {
         ZStack {
             VStack(spacing: 0) {
                 scoreHeader
+                powerSurgeBar
                 Spacer()
 
                 ZStack {
@@ -1378,6 +1384,48 @@ struct VolleyballGameView: View {
                 .allowsHitTesting(false)
             }
         }
+    }
+
+    // MARK: - Power Surge Bar
+
+    private var powerSurgeBar: some View {
+        let surgeColor = powerSurgeActive ? Color.yellow : Color(red: 0.98, green: 0.75, blue: 0.14)
+        return VStack(spacing: 3) {
+            HStack(spacing: 6) {
+                Image(systemName: powerSurgeActive ? "bolt.fill" : "bolt")
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundStyle(surgeColor)
+                Text(powerSurgeActive ? "POWER SPIKE READY!" : "POWER SURGE")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(surgeColor).tracking(2)
+                Spacer()
+                Text("\(Int(powerSurgeMeter * 100))%")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(surgeColor.opacity(0.8))
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.06))
+                    Capsule()
+                        .fill(LinearGradient(colors: powerSurgeActive
+                            ? [Color.yellow, Color.orange]
+                            : [surgeColor.opacity(0.6), surgeColor],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * CGFloat(min(1, powerSurgeMeter)))
+                        .animation(.spring(response: 0.4), value: powerSurgeMeter)
+                    if powerSurgeActive {
+                        Capsule()
+                            .fill(Color.yellow.opacity(0.3))
+                            .frame(width: geo.size.width)
+                    }
+                }
+            }.frame(height: 6)
+        }
+        .padding(.horizontal, 20).padding(.vertical, 6)
+        .background(powerSurgeActive
+            ? Color.yellow.opacity(0.08).clipShape(RoundedRectangle(cornerRadius: 8))
+            : Color.clear)
+        .animation(.easeInOut(duration: 0.3), value: powerSurgeActive)
     }
 
     // MARK: - Movement Controls
@@ -1657,8 +1705,17 @@ struct VolleyballGameView: View {
     }
 
     private func executeSpike() {
-        flashFeedback("SPIKE!")
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        let isPowerSpike = powerSurgeActive
+        if isPowerSpike {
+            powerSurgeActive = false
+            powerSurgeMeter = 0
+            flashFeedback("POWER SPIKE!")
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        } else {
+            flashFeedback("SPIKE!")
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        }
         spikeActive = true
         // Directional spike targeting
         let targetZoneX: CGFloat
@@ -1687,7 +1744,8 @@ struct VolleyballGameView: View {
                 let aiDist = abs(aiX - targetZoneX)
                 let baseDig = 0.25 + (prq / 220.0)
                 let coverBonus: Double = aiDist < 0.15 ? 0.25 : 0.0
-                let digChance = baseDig + coverBonus
+                // Power spike: AI dig chance halved
+                let digChance = isPowerSpike ? (baseDig + coverBonus) * 0.4 : (baseDig + coverBonus)
                 if Double.random(in: 0...1) < digChance {
                     rallyState = .opponentDig
                     withAnimation(.easeOut(duration: 0.35)) { ball.position = CGPoint(x: CGFloat.random(in: 0.3...0.7), y: 0.18) }
@@ -1702,7 +1760,7 @@ struct VolleyballGameView: View {
                     }
                 } else {
                     withAnimation(.easeIn(duration: 0.3)) { ball.position = CGPoint(x: spikeX, y: 0.12) }
-                    playerScores(ace: true)
+                    playerScores(ace: true, powerSpikeBonus: isPowerSpike)
                 }
                 selectedSpikeZone = nil
             }
@@ -1719,9 +1777,18 @@ struct VolleyballGameView: View {
         }
     }
 
-    private func playerScores(ace: Bool) {
-        withAnimation { playerScore += 1 }
+    private func playerScores(ace: Bool, powerSpikeBonus: Bool = false) {
+        let points = powerSpikeBonus ? 2 : 1
+        withAnimation { playerScore += points }
         rallyStreak += 1; if rallyStreak > bestStreak { bestStreak = rallyStreak }
+        // Charge power surge meter on every point win
+        if !powerSurgeActive {
+            powerSurgeMeter = min(1.0, powerSurgeMeter + 0.34)
+            if powerSurgeMeter >= 1.0 {
+                powerSurgeActive = true
+                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            }
+        }
         crowdLevel = min(1.0, crowdLevel + 0.15)
         // Update match point state
         let scoreDiff = playerScore - opponentScore
@@ -1752,6 +1819,8 @@ struct VolleyballGameView: View {
     private func opponentWinsPoint() {
         withAnimation { opponentScore += 1 }
         rallyStreak = 0
+        powerSurgeMeter = max(0, powerSurgeMeter - 0.34)
+        powerSurgeActive = false
         // Haptic: error notification on point against
         UINotificationFeedbackGenerator().notificationOccurred(.error)
         scheduleNextRally()
