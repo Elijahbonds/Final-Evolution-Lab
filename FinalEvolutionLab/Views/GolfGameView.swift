@@ -1695,6 +1695,9 @@ struct GolfGameView: View {
                         }
                         if showPenalty { penaltyOverlay }
                         if showHoleCard { holeCardOverlay }
+                        if showClubSelector { clubSelectorOverlay }
+                        if showGreenReading { greenReadingOverlay }
+                        if showFullScorecard { fullScorecardOverlay }
                     }
                     .frame(maxWidth: .infinity)
                     .layoutPriority(1)
@@ -1740,17 +1743,35 @@ struct GolfGameView: View {
     // MARK: - Hole Header
 
     private var holeHeader: some View {
-        HStack(spacing: 12) {
-            statCell(label: "HOLE",  value: "\(currentHole)")
-            divider
-            statCell(label: "PAR",   value: "\(parPerHole)", color: accentColor)
-            divider
-            statCell(label: "SHOTS", value: "\(currentStrokes)")
-            divider
-            let svp = totalStrokes - (holeResults.count * parPerHole)
-            statCell(label: "TOTAL",
-                     value: svp == 0 ? "E" : (svp > 0 ? "+\(svp)" : "\(svp)"),
-                     color: svp < 0 ? accentColor : (svp == 0 ? .white : .red))
+        let hole = courseCard[min(currentHole - 1, courseCard.count - 1)]
+        let svp  = totalStrokes - holeResults.reduce(0) { $0 + courseCard[min($1.hole - 1, courseCard.count - 1)].par }
+        return VStack(spacing: 4) {
+            HStack(spacing: 12) {
+                statCell(label: "HOLE",  value: "\(currentHole)")
+                divider
+                statCell(label: "PAR",   value: "\(hole.par)", color: accentColor)
+                divider
+                statCell(label: "YARDS", value: "\(hole.yardage)y")
+                divider
+                statCell(label: "SHOTS", value: "\(currentStrokes)")
+                divider
+                statCell(label: "TOTAL",
+                         value: svp == 0 ? "E" : (svp > 0 ? "+\(svp)" : "\(svp)"),
+                         color: svp < 0 ? accentColor : (svp == 0 ? .white : .red))
+            }
+            // Hole description + difficulty badge
+            HStack(spacing: 8) {
+                Text(hole.description)
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(hole.difficulty.uppercased())
+                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                    .foregroundStyle(hole.difficulty == "Easy" ? accentColor : (hole.difficulty == "Hard" ? .red : .orange))
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(Capsule().fill(Theme.cardBackground))
+            }
+            .padding(.horizontal, 4)
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(RoundedRectangle(cornerRadius: 16).fill(Theme.cardBackground)
@@ -1775,6 +1796,7 @@ struct GolfGameView: View {
 
     private var controlPanel: some View {
         VStack(spacing: 10) {
+            // Row 1: Direction / Power / Club
             HStack(spacing: 12) {
                 VStack(spacing: 4) {
                     Text("DIRECTION")
@@ -1811,29 +1833,47 @@ struct GolfGameView: View {
                         .foregroundStyle(.white)
                 }.frame(maxWidth: .infinity)
 
-                // Club selector
+                // Club selector button — opens club picker
                 VStack(spacing: 4) {
                     Text("CLUB")
                         .font(.system(size: 8, weight: .black, design: .monospaced))
                         .foregroundStyle(.secondary).tracking(2)
                     Button {
-                        cycleShotType()
+                        withAnimation(.spring(response: 0.3)) { showClubSelector.toggle() }
+                        hapticSoft()
                     } label: {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Theme.cardBackground)
-                                .frame(width: 52, height: 30)
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.cardBorder, lineWidth: 1))
-                            Text(shotTypeLabel)
-                                .font(.system(size: 6, weight: .black, design: .monospaced))
+                        VStack(spacing: 1) {
+                            Text(selectedClub.shortName)
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
                                 .foregroundStyle(Color(red: 0.95, green: 0.85, blue: 0.45))
+                            Text("\(selectedClub.baseYardage)y")
+                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
                         }
+                        .frame(width: 52, height: 36)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Theme.cardBackground)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.cardBorder, lineWidth: 1)))
                     }
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1)))
+
+            // Row 2: Shot Shape + Spin selectors side by side
+            HStack(spacing: 10) {
+                shotShapeSelectorRow
+                if selectedClub.supportsSpinControl {
+                    Divider().frame(height: 36)
+                    spinSelectorRow
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1)))
+
+            // Row 3: Wind info + Green reading button (when close to pin)
+            windInfoRow
 
             HStack {
                 Image(systemName: "hand.draw.fill").font(.system(size: 10)).foregroundStyle(accentColor)
@@ -1846,6 +1886,149 @@ struct GolfGameView: View {
     }
 
     private var powerRatio: CGFloat { min(1.0, pullDistance / 80.0) }
+
+    // MARK: - Shot Shape Selector Row
+
+    private var shotShapeSelectorRow: some View {
+        HStack(spacing: 6) {
+            Text("SHAPE")
+                .font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+            ForEach(ShotShape.allCases, id: \.rawValue) { shape in
+                Button {
+                    shotShape = shape
+                    hapticSoft()
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: shape.icon)
+                            .font(.system(size: 10, weight: .bold))
+                        Text(shape.rawValue)
+                            .font(.system(size: 6, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(shotShape == shape ? Color(red: 0.95, green: 0.85, blue: 0.45) : .secondary)
+                    .padding(.horizontal, 7).padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 6)
+                        .fill(shotShape == shape ? Theme.cardBackground : Color.clear)
+                        .overlay(RoundedRectangle(cornerRadius: 6)
+                            .stroke(shotShape == shape ? Theme.cardBorder : Color.clear, lineWidth: 1)))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Spin Selector Row
+
+    private var spinSelectorRow: some View {
+        HStack(spacing: 6) {
+            Text("SPIN")
+                .font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+            ForEach(Spin.allCases, id: \.rawValue) { spin in
+                Button {
+                    appliedSpin = spin
+                    hapticSoft()
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: spin.icon)
+                            .font(.system(size: 10, weight: .bold))
+                        Text(spin.rawValue)
+                            .font(.system(size: 6, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(appliedSpin == spin ? Theme.brandCyan : .secondary)
+                    .padding(.horizontal, 7).padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 6)
+                        .fill(appliedSpin == spin ? Theme.cardBackground : Color.clear)
+                        .overlay(RoundedRectangle(cornerRadius: 6)
+                            .stroke(appliedSpin == spin ? Theme.brandCyan.opacity(0.5) : Color.clear, lineWidth: 1)))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Wind Info Row
+
+    private var windInfoRow: some View {
+        HStack(spacing: 12) {
+            // Wind compass
+            VStack(spacing: 2) {
+                Text("WIND")
+                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "wind")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.cyan)
+                        .rotationEffect(.degrees(windAngle))
+                    Text("\(Int(windSpeed)) mph")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.cyan)
+                }
+                Text(windDirectionLabel)
+                    .font(.system(size: 7, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider().frame(height: 36)
+
+            // Drift impact warning
+            let drift = windSpeed * sin(windAngle * .pi / 180.0) * 0.8
+            VStack(spacing: 2) {
+                Text("DRIFT")
+                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Text(drift > 0 ? "+\(Int(abs(drift)))y R" : (abs(drift) < 0.5 ? "NONE" : "-\(Int(abs(drift)))y L"))
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(abs(drift) > 3 ? .orange : .white)
+            }
+
+            Spacer()
+
+            // Green reading button (appears when within putting range)
+            if showGreenReading {
+                Button {
+                    withAnimation(.spring(response: 0.3)) { showGreenReading.toggle() }
+                    hapticSoft()
+                } label: {
+                    Label("READ GREEN", systemImage: "arrow.triangle.branch")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(accentColor)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Theme.cardBackground)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(accentColor.opacity(0.4), lineWidth: 1)))
+                }
+            }
+
+            // Scorecard button
+            Button {
+                withAnimation(.spring(response: 0.3)) { showFullScorecard.toggle() }
+                hapticSoft()
+            } label: {
+                Image(systemName: "tablecells")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground)
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1)))
+    }
+
+    private var windDirectionLabel: String {
+        let normalized = ((windAngle.truncatingRemainder(dividingBy: 360)) + 360).truncatingRemainder(dividingBy: 360)
+        switch normalized {
+        case 0..<22.5, 337.5...360: return "N"
+        case 22.5..<67.5:   return "NE"
+        case 67.5..<112.5:  return "E"
+        case 112.5..<157.5: return "SE"
+        case 157.5..<202.5: return "S"
+        case 202.5..<247.5: return "SW"
+        case 247.5..<292.5: return "W"
+        case 292.5..<337.5: return "NW"
+        default:             return "N"
+        }
+    }
 
     // MARK: - Club Cycling
 

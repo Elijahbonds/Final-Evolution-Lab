@@ -1513,37 +1513,70 @@ struct Basketball3v3GameView: View {
         playerPoses[passer] = "shoot"
         impactMed.impactOccurred()
 
-        let hitChance = min(0.85, 0.42 + (viewModel.effectiveMetrics.prqScore / 100) * 0.32 + Double(comboCount) * 0.015)
-        let is3pt = Double.random(in: 0...1) < 0.35
+        // ── Determine zone from activePasser position ──
+        let zone = activeShootingZone(for: passer)
+        playerHotZone = zone
+
+        // ── Build shot % from zone base, hot zone bonus, fatigue, shot-clock pressure ──
+        var hitChance = zone.baseShotPct
+        // PRQ skill modifier
+        hitChance += (viewModel.effectiveMetrics.prqScore / 100) * 0.22
+        // Combo hot-hand bonus
+        hitChance += Double(comboCount) * 0.012
+        // Hot zone +15%
+        if isHot { hitChance += 0.15 }
+        // Fatigue penalty
+        if teamFatigue < 0.5 { hitChance -= 0.10 }
+        // Shot clock pressure: <3 seconds left — contested, -20%
+        if shotClock <= 3 { hitChance -= 0.20 }
+        hitChance = min(0.88, max(0.12, hitChance))
+
         let made = Double.random(in: 0...1) < hitChance
+        let is3pt = zone == .threePoint || zone == .corner3
 
         shotAnimTask?.cancel()
         shotAnimTask = Task {
             await MainActor.run { shotProgress = 0 }
-            for step in 0..<32 {
+            let steps = 32
+            for step in 0..<steps {
                 try? await Task.sleep(for: .milliseconds(15))
                 guard !Task.isCancelled else { return }
-                await MainActor.run { shotProgress = Double(step + 1) / 32.0 }
+                await MainActor.run { shotProgress = Double(step + 1) / Double(steps) }
             }
             await MainActor.run {
                 shotProgress = -1; playerPoses[passer] = "idle"
                 if made {
+                    // Hot zone tracking
+                    consecutiveMakesInZone += 1
+                    if consecutiveMakesInZone >= 3 && !isHot {
+                        isHot = true
+                        flashZoneAnnouncer("ON FIRE FROM \(zone.rawValue)")
+                    } else {
+                        flashZoneAnnouncer(zone.rawValue)
+                    }
+
                     comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
-                    let pts = (is3pt ? 3 : 2) * comboMultiplier
+                    let pts = zone.pointValue * comboMultiplier
                     withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + pts, 99) }
                     lastPasser = passer != 0 ? teammateNames[passer - 1] : ""
                     flashResult(passer != 0 ? .assist : .score)
                     triggerRimShake(1.0)
+                    drainFatigue(amount: 0.01)
+
+                    // Highlight play check
+                    checkForHighlight(zone: zone, momentumCheck: false)
+
                     if is3pt {
-                        // Haptic: .rigid on 3-pointer made
                         impactRigid.impactOccurred()
                     } else {
-                        // Haptic: .heavy on made basket (dunk/layup)
                         impactHvy.impactOccurred()
                     }
                 } else {
+                    // Miss resets zone streak
+                    consecutiveMakesInZone = 0; isHot = false
                     comboCount = 0; comboMultiplier = 1; lastPasser = ""; flashResult(.miss)
                     triggerRimShake(0.5); impactMed.impactOccurred()
+                    drainFatigue(amount: 0.005)
                 }
                 possession = .opponent; activePasser = 0; resetShotClock()
                 if playerTeamScore >= targetScore { endGame(); return }
@@ -1643,15 +1676,44 @@ struct Basketball3v3GameView: View {
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 guard phase == .playing else { return }
+
+                // Defense mode: press gives steal bonus
+                if defenseMode == .press {
+                    let stealRoll = Double.random(in: 0...1)
+                    if stealRoll < defenseMode.stealBonus {
+                        // Steal! Possession flips to player immediately
+                        flashZoneAnnouncer("STEAL!")
+                        impactRigid.impactOccurred()
+                        possession = .player; activePasser = 0; resetShotClock()
+                        return
+                    }
+                    // Press foul chance
+                    let foulRoll = Double.random(in: 0...1)
+                    if foulRoll < defenseMode.foulBonus {
+                        // Foul — opponent gets easy points
+                        flashZoneAnnouncer("FOUL CALLED!")
+                        impactSoft.impactOccurred()
+                        withAnimation(.spring(response: 0.3)) { opponentTeamScore = min(opponentTeamScore + 1, 99) }
+                        possession = .player; activePasser = 0; resetShotClock()
+                        if opponentTeamScore >= targetScore { endGame() }
+                        return
+                    }
+                }
+
                 opponentPoses = ["guard", "shoot", "guard"]
-                let made = Double.random(in: 0...1) < aiShotChance
+
+                // Fatigue penalty on defense
+                var effectiveShotChance = aiShotChance * defenseMode.openShotMultiplier
+                if teamFatigue < 0.5 { effectiveShotChance *= 1.15 }   // tired defense gives up more
+                effectiveShotChance = min(0.80, effectiveShotChance)
+
+                let made = Double.random(in: 0...1) < effectiveShotChance
                 if made {
                     withAnimation(.spring(response: 0.3)) { opponentTeamScore = min(opponentTeamScore + 2, 99) }
                     triggerRimShake(0.6); flashScreenShakeFX()
-                    // Haptic: .soft on opponent score (foul call equivalent)
                     impactSoft.impactOccurred()
+                    drainFatigue(amount: 0.008)
                 } else {
-                    // Haptic: .medium on opponent blocked
                     impactMed.impactOccurred()
                 }
                 Task {
@@ -1728,6 +1790,281 @@ struct Basketball3v3GameView: View {
         cancelAllTasks()
         withAnimation(.spring(response: 0.4)) { phase = .result }
     }
+
+    // MARK: - Hot Zone Helpers
+
+    /// Map active passer index to a court zone (simple heuristic based on who has the ball)
+    private func activeShootingZone(for passerIndex: Int) -> CourtZone {
+        // Player (index 0) tends to shoot mid-range or 3s
+        // Teammate 1 (index 1) tends to paint / elbow
+        // Teammate 2 (index 2) is the corner specialist
+        switch passerIndex {
+        case 0:
+            let roll = Double.random(in: 0...1)
+            if roll < 0.30 { return .paint }
+            else if roll < 0.60 { return .midRange }
+            else { return .threePoint }
+        case 1:
+            let roll = Double.random(in: 0...1)
+            if roll < 0.50 { return .paint }
+            else { return .midRange }
+        case 2:
+            let roll = Double.random(in: 0...1)
+            if roll < 0.55 { return .corner3 }
+            else { return .threePoint }
+        default:
+            return .midRange
+        }
+    }
+
+    /// Flash the zone announcer label for 1.6 seconds
+    private func flashZoneAnnouncer(_ text: String) {
+        zoneAnnouncerText = text
+        withAnimation(.spring(response: 0.2)) { showZoneAnnouncer = true }
+        Task {
+            try? await Task.sleep(for: .milliseconds(1600))
+            await MainActor.run { withAnimation(.easeOut(duration: 0.4)) { showZoneAnnouncer = false } }
+        }
+    }
+
+    // MARK: - Fatigue System
+
+    /// Drain team fatigue, clamped to 0
+    private func drainFatigue(amount: Double) {
+        teamFatigue = max(0.0, teamFatigue - amount)
+    }
+
+    /// Perform a substitution: 10s animation, fatigue restores to 0.85
+    private func performSubstitution() {
+        guard !isSubbing, phase == .playing else { return }
+        isSubbing = true; subAnimProgress = 0.0
+        impactMed.impactOccurred()
+        subTask?.cancel()
+        subTask = Task {
+            // Animate sub progress over 10 seconds
+            for tick in 1...20 {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                await MainActor.run { subAnimProgress = Double(tick) / 20.0 }
+            }
+            await MainActor.run {
+                teamFatigue = 0.85
+                isSubbing = false; subAnimProgress = 0.0
+                flashZoneAnnouncer("FRESH LEGS!")
+                impactHvy.impactOccurred()
+            }
+        }
+    }
+
+    // MARK: - Set Play / Teammate AI
+
+    /// Cycle through set plays and execute the next one
+    private func callPlay() {
+        guard !playCallCooldown, phase == .playing, possession == .player,
+              shotProgress < 0, passProgress < 0 else { return }
+        let plays = SetPlay.allCases
+        activeSetPlay = plays[currentPlayIndex % plays.count]
+        currentPlayIndex += 1
+        playCallCooldown = true
+        guard let play = activeSetPlay else { return }
+        impactMed.impactOccurred()
+        executeSetPlay(play)
+        // Cooldown: 4 seconds between plays
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            await MainActor.run { playCallCooldown = false }
+        }
+    }
+
+    private func executeSetPlay(_ play: SetPlay) {
+        switch play {
+        case .pickAndRoll:
+            executePickAndRoll()
+        case .spotUp:
+            executeSpotUp()
+        case .iso:
+            executeISO()
+        }
+    }
+
+    private func executePickAndRoll() {
+        // Teammate 1 sets pick, then rolls to basket
+        teammate1Position = .elbow
+        playerPoses[1] = "pick"
+        flashZoneAnnouncer("PICK SET!")
+        drainFatigue(amount: 0.015)
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            await MainActor.run {
+                guard phase == .playing else { return }
+                // Roll to basket — 40% open layup
+                teammate1Position = .basket
+                playerPoses[1] = "shoot"
+                let momentum = Double(comboCount) * 0.08
+                let alleyOopChance = 0.15
+                let openLayupChance = min(0.70, 0.40 + momentum)
+                let roll = Double.random(in: 0...1)
+
+                if roll < alleyOopChance && momentum > 0.0 {
+                    // Alley oop!
+                    triggerHighlight(.alleyOop)
+                    withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + 2 * comboMultiplier, 99) }
+                    comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
+                    lastPasser = teammateNames[0]; flashResult(.assist)
+                    triggerRimShake(1.0); impactHvy.impactOccurred()
+                    possession = .opponent; activePasser = 0; resetShotClock()
+                    if playerTeamScore >= targetScore { endGame(); return }
+                    scheduleOpponentAttack()
+                } else if roll < alleyOopChance + openLayupChance {
+                    // Regular open layup
+                    showTeammateOpenFlash()
+                    withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + 2 * comboMultiplier, 99) }
+                    comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
+                    lastPasser = teammateNames[0]; flashResult(.assist)
+                    triggerRimShake(0.9); impactHvy.impactOccurred()
+                    possession = .opponent; activePasser = 0; resetShotClock()
+                    if playerTeamScore >= targetScore { endGame(); return }
+                    scheduleOpponentAttack()
+                } else {
+                    flashResult(.miss)
+                    possession = .opponent; activePasser = 0; resetShotClock()
+                    scheduleOpponentAttack()
+                }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    await MainActor.run { playerPoses[1] = "idle"; teammate1Position = .wing }
+                }
+            }
+        }
+    }
+
+    private func executeSpotUp() {
+        // Teammate 2 relocates to corner, gets open 3
+        teammate2Position = .corner
+        playerPoses[2] = "idle"
+        showTeammateOpenFlash()
+        drainFatigue(amount: 0.01)
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            await MainActor.run {
+                guard phase == .playing else { return }
+                playerPoses[2] = "shoot"
+                // 50% open corner 3 if good timing
+                let timingBonus: Double = shotClock > 10 ? 0.10 : 0.0
+                let made = Double.random(in: 0...1) < (0.50 + timingBonus + (isHot ? 0.10 : 0.0))
+                if made {
+                    withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + 3 * comboMultiplier, 99) }
+                    comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
+                    consecutiveMakesInZone += 1
+                    lastPasser = teammateNames[1]; flashResult(.assist)
+                    flashZoneAnnouncer(CourtZone.corner3.rawValue)
+                    triggerRimShake(1.0); impactRigid.impactOccurred()
+                } else {
+                    flashResult(.miss); consecutiveMakesInZone = 0; isHot = false
+                }
+                possession = .opponent; activePasser = 0; resetShotClock()
+                Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    await MainActor.run { playerPoses[2] = "idle"; teammate2Position = .elbow }
+                }
+                if playerTeamScore >= targetScore { endGame(); return }
+                scheduleOpponentAttack()
+            }
+        }
+    }
+
+    private func executeISO() {
+        // Clear out — player goes 1-on-1 based on momentum
+        teammate1Position = .wing; teammate2Position = .wing
+        flashZoneAnnouncer("ISO! GO TO WORK!")
+        drainFatigue(amount: 0.02)
+        // Momentum-based: more combos = better ISO chance
+        let momentumBonus = min(0.25, Double(comboCount) * 0.06)
+        let isoChance = min(0.75, 0.38 + momentumBonus + (viewModel.effectiveMetrics.prqScore / 100) * 0.20)
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            await MainActor.run {
+                guard phase == .playing else { return }
+                playerPoses[activePasser] = "shoot"
+                let made = Double.random(in: 0...1) < isoChance
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    await MainActor.run {
+                        playerPoses[activePasser] = "idle"
+                        if made {
+                            // Check for poster dunk on ISO
+                            if Double(comboCount) > 2 && Double.random(in: 0...1) < 0.18 {
+                                triggerHighlight(.posterDunk)
+                            }
+                            comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
+                            withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + 2 * comboMultiplier, 99) }
+                            flashResult(.score); triggerRimShake(1.0); impactHvy.impactOccurred()
+                        } else {
+                            comboCount = 0; comboMultiplier = 1
+                            flashResult(.miss); impactMed.impactOccurred()
+                        }
+                        possession = .opponent; activePasser = 0; resetShotClock()
+                        if playerTeamScore >= targetScore { endGame(); return }
+                        scheduleOpponentAttack()
+                    }
+                }
+            }
+        }
+    }
+
+    // "TEAMMATE OPEN!" banner flash
+    private func showTeammateOpenFlash() {
+        teammateOpenText = "TEAMMATE OPEN!"
+        withAnimation(.spring(response: 0.2)) { showTeammateOpen = true }
+        Task {
+            try? await Task.sleep(for: .milliseconds(1200))
+            await MainActor.run { withAnimation(.easeOut(duration: 0.3)) { showTeammateOpen = false } }
+        }
+    }
+
+    // MARK: - Highlight Plays
+
+    private func checkForHighlight(zone: CourtZone, momentumCheck: Bool) {
+        let momentum = Double(comboCount)
+        // Deep three from logo area (low probability random)
+        if zone == .threePoint && Double.random(in: 0...1) < 0.08 {
+            triggerHighlight(.deepThree); return
+        }
+        // Putback on rebound situation (after a miss + fast response)
+        if zone == .paint && Double.random(in: 0...1) < 0.10 {
+            triggerHighlight(.putback); return
+        }
+        _ = momentum
+        _ = momentumCheck
+    }
+
+    private func triggerHighlight(_ type: HighlightType) {
+        lastHighlight = type
+        highlightSlowMo = true
+        showHighlight = true
+        impactHvy.impactOccurred()
+        Task {
+            try? await Task.sleep(for: .milliseconds(120))
+            await MainActor.run { impactHvy.impactOccurred() }
+        }
+        // Slow-mo vignette for 2 seconds
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    showHighlight = false; highlightSlowMo = false
+                }
+            }
+        }
+    }
+
+    // MARK: - Computed helpers for the play button label
+
+    private var nextPlayName: String {
+        SetPlay.allCases[currentPlayIndex % SetPlay.allCases.count].rawValue
+    }
+
+    // MARK: - cancelAllTasks
 
     private func cancelAllTasks() {
         shotClockTask?.cancel(); opponentTask?.cancel()
