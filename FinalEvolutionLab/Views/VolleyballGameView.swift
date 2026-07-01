@@ -1530,7 +1530,7 @@ struct VolleyballGameView: View {
         }
     }
 
-    private func endMatch() { cancelAllTasks(); withAnimation(.spring(response: 0.4)) { phase = .result } }
+    private func endMatch() { cancelAllTasks(); GameResultService.saveResult(modeId: "volleyball", userScore: playerScore, opponentScore: opponentScore); withAnimation(.spring(response: 0.4)) { phase = .result } }
 
     private func flashFeedback(_ text: String) {
         feedbackText = text

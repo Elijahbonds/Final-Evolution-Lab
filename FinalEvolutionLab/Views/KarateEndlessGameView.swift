@@ -2189,6 +2189,7 @@ struct KarateEndlessGameView: View {
         cancelAllTasks()
         awardShards()
         saveHighScore()
+        GameResultService.saveResult(modeId: "karate_endless", userScore: score)
         withAnimation { phase = .result }
     }
 

@@ -1680,6 +1680,7 @@ struct GymnasticsGameView: View {
             let shards = playerWins ? 50 : (isDraw ? 25 : 15)
             viewModel.profile.evolutionShards += shards
         }
+        GameResultService.saveResult(modeId: "gymnastics", userScore: Int(totalScore), opponentScore: 0)
 
         Task {
             try? await Task.sleep(for: .seconds(3.2))

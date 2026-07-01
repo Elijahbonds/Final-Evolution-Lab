@@ -1455,6 +1455,7 @@ struct KarateGameView: View {
     private func awardShards() {
         guard !shardsAwarded else { return }
         shardsAwarded = true
+        GameResultService.saveResult(modeId: "karate", userScore: playerScore, opponentScore: opponentScore)
         viewModel.profile.evolutionShards += outcome == .win ? 50 : outcome == .draw ? 25 : 15
         SaveSystem.saveProfile(viewModel.profile)
     }

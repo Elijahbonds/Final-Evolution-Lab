@@ -1465,8 +1465,10 @@ struct WhoSceneItView: View {
     }
 
     private func advance() {
-        if currentIndex + 1 >= questions.count { phase = .result }
-        else { currentIndex += 1; beginQuestion() }
+        if currentIndex + 1 >= questions.count {
+            GameResultService.saveResult(modeId: "who_scene_it", userScore: playerScore)
+            phase = .result
+        } else { currentIndex += 1; beginQuestion() }
     }
 }
 

@@ -1965,6 +1965,7 @@ struct BrainBrawlView: View {
     @discardableResult
     private func checkWin() -> Bool {
         if playerCrowns.count == totalCrowns || opponentCrowns.count == totalCrowns {
+            GameResultService.saveResult(modeId: "brain_brawl", userScore: totalScore)
             phase = .result
             return true
         }

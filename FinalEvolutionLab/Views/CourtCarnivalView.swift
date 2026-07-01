@@ -1460,6 +1460,7 @@ struct CourtCarnivalView: View {
             } else {
                 hapticMedium()
             }
+            GameResultService.saveResult(modeId: "court_carnival", userScore: playerScore)
             phase = .result
         } else {
             currentMiniGame += 1
