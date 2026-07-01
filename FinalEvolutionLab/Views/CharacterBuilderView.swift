@@ -126,11 +126,18 @@ struct CharacterBuilderView: View {
             .ignoresSafeArea(edges: .top)
 
             HStack(spacing: 24) {
-                // Canvas figure
-                Canvas { ctx, size in
-                    drawAvatarFigure(ctx: ctx, size: size)
+                // 3D model when available, canvas figure fallback
+                Group {
+                    if MeshyModelRegistry.shared.isAvailable(.elijahBonds) {
+                        MeshyAvatarView(slot: .elijahBonds, autoRotate: true)
+                    } else {
+                        Canvas { ctx, size in
+                            drawAvatarFigure(ctx: ctx, size: size)
+                        }
+                    }
                 }
                 .frame(width: 100, height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 // Stats sidebar
                 VStack(alignment: .leading, spacing: 8) {
