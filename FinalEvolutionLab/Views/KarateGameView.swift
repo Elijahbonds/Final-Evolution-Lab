@@ -123,17 +123,17 @@ private struct DojoDrawer {
     mutating func render(into ctx: inout GraphicsContext) {
         // ---- Layer 1: Deep background ----
         drawBg(ctx: &ctx)
-        // ---- Layer 2: Stone walls & kanji banners ----
+        // ---- Layer 2: Ancient cedar trees, shimenawa rope, torii gate ----
         drawWalls(ctx: &ctx)
-        // ---- Layer 3: Window light shafts + dust ----
+        // ---- Layer 3: Forest canopy light shafts + mist ----
         drawLightShafts(ctx: &ctx)
-        // ---- Layer 4: Tournament bracket panel ----
+        // ---- Layer 4: Stone toro lanterns ----
         drawTournamentBracket(ctx: &ctx)
-        // ---- Layer 5: Crowd silhouettes ----
+        // ---- Layer 5: Shrine visitor silhouettes ----
         drawCrowd(ctx: &ctx)
-        // ---- Layer 6: Wood plank floor ----
+        // ---- Layer 6: Mossy stone path floor ----
         drawFloor(ctx: &ctx)
-        // ---- Layer 7: Hanging paper lanterns ----
+        // ---- Layer 7: Hanging red chochin lanterns ----
         drawLanterns(ctx: &ctx)
         // ---- Layer 8: Dragon effects (under fighters) ----
         if dragon {
@@ -177,370 +177,407 @@ private struct DojoDrawer {
         }
     }
 
-    // MARK: - Background
+    // MARK: - Background (Shimogamo Jinja shrine — outdoor forest setting)
 
     private func drawBg(ctx: inout GraphicsContext) {
-        // [DRAW 1] Deep background fill
-        ctx.fill(Path(CGRect(origin:.zero,size:size)),
-                 with:.color(Color(red:0.04,green:0.01,blue:0.01)))
+        // [DRAW 1] Forest canopy sky — deep green overhead
+        ctx.fill(Path(CGRect(origin:.zero, size:size)),
+                 with:.color(Color(red:0.12,green:0.28,blue:0.14)))
 
-        // [DRAW 2] Upper atmospheric gradient
-        var upperGrad = Path()
-        upperGrad.addRect(CGRect(x:0, y:0, width:W, height:H*0.55))
-        ctx.fill(upperGrad,
+        // [DRAW 2] Upper canopy gradient — darker at top, lighter mid-zone
+        var canopyGrad = Path()
+        canopyGrad.addRect(CGRect(x:0, y:0, width:W, height:H*0.72))
+        ctx.fill(canopyGrad,
                  with:.linearGradient(
-                    Gradient(colors:[Color(red:0.08,green:0.02,blue:0.02),
-                                     Color(red:0.04,green:0.01,blue:0.01)]),
-                    startPoint: CGPoint(x:W/2,y:0),
-                    endPoint: CGPoint(x:W/2,y:H*0.55)))
+                    Gradient(colors:[Color(red:0.06,green:0.15,blue:0.08),
+                                     Color(red:0.15,green:0.35,blue:0.18),
+                                     Color(red:0.18,green:0.40,blue:0.20)]),
+                    startPoint: CGPoint(x:W/2, y:0),
+                    endPoint: CGPoint(x:W/2, y:H*0.72)))
 
-        // [DRAW 3] Center arena glow
-        var glow = Path()
-        glow.addEllipse(in: CGRect(x:W*0.15,y:H*0.18,width:W*0.70,height:H*0.55))
-        ctx.fill(glow, with:.color(Color(red:0.55,green:0.04,blue:0.0).opacity(0.09)))
+        // [DRAW 3] Dappled sky light patches — cyan glimpses through canopy (random-seeded ellipses)
+        let skySpots: [(CGFloat,CGFloat,CGFloat,CGFloat)] = [
+            (W*0.22, H*0.03, W*0.09, H*0.06),
+            (W*0.50, H*0.01, W*0.12, H*0.05),
+            (W*0.74, H*0.04, W*0.08, H*0.05),
+            (W*0.35, H*0.07, W*0.06, H*0.04),
+            (W*0.60, H*0.08, W*0.07, H*0.04),
+            (W*0.12, H*0.09, W*0.05, H*0.03),
+            (W*0.86, H*0.07, W*0.06, H*0.035),
+        ]
+        for (sx, sy, sw, sh) in skySpots {
+            var sky = Path()
+            sky.addEllipse(in: CGRect(x:sx, y:sy, width:sw, height:sh))
+            var gc = ctx; gc.addFilter(.blur(radius: 5))
+            gc.fill(sky, with:.color(Color(red:0.55,green:0.82,blue:0.90).opacity(0.28)))
+        }
 
-        // [DRAW 4] Secondary blue tint for arena depth
-        var glow2 = Path()
-        glow2.addEllipse(in: CGRect(x:W*0.30,y:H*0.25,width:W*0.40,height:H*0.38))
-        ctx.fill(glow2, with:.color(Color(red:0.0,green:0.05,blue:0.18).opacity(0.07)))
+        // [DRAW 4] Mid-zone ambient green glow — forest air
+        var midGlow = Path()
+        midGlow.addEllipse(in: CGRect(x:W*0.10, y:H*0.15, width:W*0.80, height:H*0.55))
+        var mgCtx = ctx; mgCtx.addFilter(.blur(radius: 14))
+        mgCtx.fill(midGlow, with:.color(Color(red:0.20,green:0.48,blue:0.22).opacity(0.18)))
     }
 
-    // MARK: - Stone Walls & Kanji
+    // MARK: - Ancient Cedar Trees, Torii Gate & Shimenawa (Shimogamo Jinja)
 
     private func drawWalls(ctx: inout GraphicsContext) {
-        // [DRAW 5] Back wall stone base
-        var wallRect = Path()
-        wallRect.addRect(CGRect(x:0, y:H*0.05, width:W, height:H*0.68))
-        ctx.fill(wallRect, with:.color(Color(red:0.09,green:0.06,blue:0.05)))
+        // [DRAW 5] Left and right cedar tree clusters — tall dark trunks leaning slightly inward
+        let treeData: [(cx: CGFloat, lean: CGFloat, trunkW: CGFloat, trunkH: CGFloat)] = [
+            (W*0.04,  1.5, W*0.028, H*0.70),
+            (W*0.11, -0.5, W*0.022, H*0.65),
+            (W*0.07,  2.0, W*0.018, H*0.62),
+            (W*0.96, -1.5, W*0.028, H*0.70),
+            (W*0.89,  0.5, W*0.022, H*0.65),
+            (W*0.93, -2.0, W*0.018, H*0.62),
+        ]
+        for td in treeData {
+            let topX = td.cx + td.lean
+            var trunk = Path()
+            trunk.move(to: CGPoint(x: td.cx - td.trunkW/2, y: floorY))
+            trunk.addLine(to: CGPoint(x: td.cx + td.trunkW/2, y: floorY))
+            trunk.addLine(to: CGPoint(x: topX + td.trunkW/3, y: floorY - td.trunkH))
+            trunk.addLine(to: CGPoint(x: topX - td.trunkW/3, y: floorY - td.trunkH))
+            trunk.closeSubpath()
+            ctx.fill(trunk, with:.color(Color(red:0.22,green:0.16,blue:0.10)))
 
-        // [DRAW 6] Stone horizontal mortar lines (5 rows)
-        for row in 0..<6 {
-            let gy = H*0.05 + H*0.68 * CGFloat(row) / 6.0
-            var mortar = Path()
-            mortar.move(to: CGPoint(x:0, y:gy))
-            mortar.addLine(to: CGPoint(x:W, y:gy))
-            ctx.stroke(mortar, with:.color(Color(red:0.04,green:0.02,blue:0.02).opacity(0.7)), lineWidth:1.5)
-        }
+            // [DRAW 6] Bark texture lines on trunk
+            for bi in 0..<4 {
+                let by = floorY - td.trunkH * CGFloat(bi+1) / 5.0
+                let bxLeft = topX - td.trunkW/3 - 2
+                var bark = Path()
+                bark.move(to: CGPoint(x:bxLeft, y:by))
+                bark.addLine(to: CGPoint(x:bxLeft + td.trunkW*0.6, y:by + CGFloat(bi)*1.2))
+                ctx.stroke(bark, with:.color(Color(red:0.12,green:0.08,blue:0.04).opacity(0.35)), lineWidth:0.8)
+            }
 
-        // [DRAW 7] Stone vertical mortar lines (offset per row for realistic masonry)
-        for row in 0..<6 {
-            let rowY = H*0.05 + H*0.68 * CGFloat(row) / 6.0
-            let nextY = rowY + H*0.68/6.0
-            let offset: CGFloat = row % 2 == 0 ? 0 : W*0.075
-            let cols = 7
-            for col in 0...cols {
-                let gx = offset + W * CGFloat(col) / CGFloat(cols)
-                var vLine = Path()
-                vLine.move(to: CGPoint(x:gx, y:rowY))
-                vLine.addLine(to: CGPoint(x:gx, y:nextY))
-                ctx.stroke(vLine, with:.color(Color(red:0.03,green:0.01,blue:0.01).opacity(0.65)), lineWidth:1)
+            // [DRAW 7] Heavy foliage masses — large blurred green ellipses at top
+            let foliageY = floorY - td.trunkH - H*0.06
+            for fi in 0..<3 {
+                let fScale: CGFloat = [1.0, 0.75, 0.55][fi]
+                let fOffY: CGFloat = [0, H*0.04, H*0.08][fi]
+                var foliage = Path()
+                foliage.addEllipse(in: CGRect(
+                    x: topX - W*0.12*fScale,
+                    y: foliageY + fOffY,
+                    width: W*0.24*fScale,
+                    height: H*0.18*fScale))
+                var fc = ctx; fc.addFilter(.blur(radius: 6.0 * fScale))
+                let greenTone = Color(red: 0.08+fScale*0.08, green: 0.22+fScale*0.12, blue: 0.08+fScale*0.04)
+                fc.fill(foliage, with:.color(greenTone.opacity(0.88)))
             }
         }
 
-        // [DRAW 8] Stone surface texture — subtle noise dots (16 patches)
-        for i in 0..<16 {
-            let sx = W * CGFloat(i % 4) / 4.0 + W * 0.05
-            let sy = H*0.10 + H * CGFloat(i / 4) / 8.0
-            var patch = Path()
-            patch.addEllipse(in: CGRect(x:sx, y:sy, width:W*0.18, height:H*0.04))
-            let pAlpha = 0.025 + 0.02 * sin(Double(i)*1.3)
-            ctx.fill(patch, with:.color(Color(red:0.15,green:0.10,blue:0.08).opacity(pAlpha)))
+        // [DRAW 8] Shimenawa rope — thick braided rope across upper area with slight sag
+        let ropeY = H * 0.115
+        var rope = Path()
+        rope.move(to: CGPoint(x:0, y:ropeY))
+        rope.addQuadCurve(to: CGPoint(x:W, y:ropeY),
+                          control: CGPoint(x:W/2, y:ropeY + H*0.025))
+        ctx.stroke(rope, with:.color(Color(red:0.55,green:0.42,blue:0.28).opacity(0.75)), lineWidth:5)
+        ctx.stroke(rope, with:.color(Color(red:0.30,green:0.20,blue:0.10).opacity(0.35)), lineWidth:2)
+
+        // [DRAW 9] Shide (zig-zag white paper strips) hanging from shimenawa
+        let shidePositions: [CGFloat] = [W*0.18, W*0.30, W*0.42, W*0.50, W*0.58, W*0.70, W*0.82]
+        for shX in shidePositions {
+            let shideLen: CGFloat = H * 0.055
+            var shide = Path()
+            shide.move(to: CGPoint(x:shX, y:ropeY + 2))
+            let zigW: CGFloat = 5
+            for s in 0..<6 {
+                let sy = ropeY + 2 + shideLen * CGFloat(s+1) / 6.0
+                let sx = shX + (s % 2 == 0 ? zigW : -zigW)
+                shide.addLine(to: CGPoint(x:sx, y:sy))
+            }
+            ctx.stroke(shide, with:.color(Color.white.opacity(0.65)), lineWidth:1.8)
         }
 
-        // [DRAW 9] Left kanji banner
-        let bannerW: CGFloat = W * 0.07
-        let bannerH: CGFloat = H * 0.30
-        let lBX = W * 0.08
-        var lBanner = Path()
-        lBanner.addRect(CGRect(x:lBX, y:H*0.10, width:bannerW, height:bannerH))
-        ctx.fill(lBanner, with:.color(Color(red:0.55,green:0.04,blue:0.04).opacity(0.82)))
-        ctx.stroke(lBanner, with:.color(Color(red:0.85,green:0.65,blue:0.30).opacity(0.45)), lineWidth:1.2)
-        // Kanji "道" (way/path) as text symbol
-        var kanjiCtx1 = ctx
-        kanjiCtx1.opacity = 0.75
-        kanjiCtx1.draw(Text("道").font(.system(size:bannerW*0.78)).foregroundColor(Color(red:0.95,green:0.85,blue:0.55)),
-                       at: CGPoint(x:lBX + bannerW/2, y:H*0.10 + bannerH*0.30),
-                       anchor: .center)
-        kanjiCtx1.draw(Text("武").font(.system(size:bannerW*0.75)).foregroundColor(Color(red:0.95,green:0.85,blue:0.55)),
-                       at: CGPoint(x:lBX + bannerW/2, y:H*0.10 + bannerH*0.65),
-                       anchor: .center)
+        // [DRAW 10] Torii gate — classic vermillion red gate in background center
+        let toriiCX = W * 0.50
+        let toriiBaseY = floorY - H * 0.02
+        let toriiH = H * 0.52
+        let toriiW = W * 0.38
+        let postW: CGFloat = W * 0.022
+        let toriiColor = Color(red:0.82,green:0.18,blue:0.12)
 
-        // [DRAW 10] Right kanji banner
-        let rBX = W * 0.85
-        var rBanner = Path()
-        rBanner.addRect(CGRect(x:rBX, y:H*0.10, width:bannerW, height:bannerH))
-        ctx.fill(rBanner, with:.color(Color(red:0.04,green:0.12,blue:0.55).opacity(0.82)))
-        ctx.stroke(rBanner, with:.color(Color(red:0.30,green:0.65,blue:0.85).opacity(0.45)), lineWidth:1.2)
-        var kanjiCtx2 = ctx
-        kanjiCtx2.opacity = 0.75
-        kanjiCtx2.draw(Text("龍").font(.system(size:bannerW*0.78)).foregroundColor(Color(red:0.55,green:0.85,blue:0.95)),
-                       at: CGPoint(x:rBX + bannerW/2, y:H*0.10 + bannerH*0.30),
-                       anchor: .center)
-        kanjiCtx2.draw(Text("魂").font(.system(size:bannerW*0.75)).foregroundColor(Color(red:0.55,green:0.85,blue:0.95)),
-                       at: CGPoint(x:rBX + bannerW/2, y:H*0.10 + bannerH*0.65),
-                       anchor: .center)
+        // Left post
+        var lPost = Path()
+        lPost.addRect(CGRect(x: toriiCX - toriiW/2, y: toriiBaseY - toriiH, width: postW, height: toriiH))
+        ctx.fill(lPost, with:.color(toriiColor.opacity(0.88)))
+        // Right post
+        var rPost = Path()
+        rPost.addRect(CGRect(x: toriiCX + toriiW/2 - postW, y: toriiBaseY - toriiH, width: postW, height: toriiH))
+        ctx.fill(rPost, with:.color(toriiColor.opacity(0.88)))
 
-        // [DRAW 11] Shoji panel grid overlay (background wall detail)
-        let panelW: CGFloat = W/5
-        for i in 0..<5 {
-            let px = CGFloat(i)*panelW
-            let panelRect = CGRect(x:px+3, y:H*0.09, width:panelW-6, height:H*0.60)
-            ctx.fill(Path(panelRect), with:.color(Color(red:0.11,green:0.07,blue:0.05).opacity(0.50)))
-            ctx.stroke(Path(panelRect), with:.color(Color.white.opacity(0.04)), lineWidth:0.8)
-            let cols = 3; let rows = 5
-            for c in 1..<cols {
-                let gx = px + panelW*CGFloat(c)/CGFloat(cols)
-                var gp = Path()
-                gp.move(to: CGPoint(x:gx,y:H*0.09))
-                gp.addLine(to: CGPoint(x:gx,y:H*0.69))
-                ctx.stroke(gp, with:.color(Color.white.opacity(0.025)), lineWidth:0.5)
-            }
-            for r in 1..<rows {
-                let gy = H*0.09 + (H*0.60)*CGFloat(r)/CGFloat(rows)
-                var gp = Path()
-                gp.move(to: CGPoint(x:px+3,y:gy))
-                gp.addLine(to: CGPoint(x:px+panelW-3,y:gy))
-                ctx.stroke(gp, with:.color(Color.white.opacity(0.025)), lineWidth:0.5)
-            }
-        }
+        // Upper kasagi beam (top curved beam)
+        let kasagiY = toriiBaseY - toriiH
+        var kasagi = Path()
+        kasagi.move(to: CGPoint(x: toriiCX - toriiW/2 - W*0.02, y: kasagiY + H*0.014))
+        kasagi.addQuadCurve(
+            to: CGPoint(x: toriiCX + toriiW/2 + W*0.02, y: kasagiY + H*0.014),
+            control: CGPoint(x: toriiCX, y: kasagiY - H*0.008))
+        ctx.stroke(kasagi, with:.color(toriiColor.opacity(0.88)), lineWidth: H*0.022)
+
+        // Lower nuki cross-beam
+        let nukiY = toriiBaseY - toriiH * 0.72
+        var nuki = Path()
+        nuki.addRect(CGRect(x: toriiCX - toriiW/2 + postW*0.5,
+                             y: nukiY, width: toriiW - postW, height: H*0.016))
+        ctx.fill(nuki, with:.color(toriiColor.opacity(0.82)))
+
+        // [DRAW 11] Torii kasagi shadow/depth
+        var kasagiShadow = Path()
+        kasagiShadow.addRect(CGRect(x: toriiCX - toriiW/2 - W*0.015,
+                                    y: kasagiY + H*0.012,
+                                    width: toriiW + W*0.030, height: H*0.012))
+        ctx.fill(kasagiShadow, with:.color(Color(red:0.30,green:0.04,blue:0.02).opacity(0.45)))
     }
 
-    // MARK: - Light Shafts
+    // MARK: - Forest Canopy Light Shafts & Atmospheric Mist
 
     private func drawLightShafts(ctx: inout GraphicsContext) {
-        // [DRAW 12] Left window frame
-        let lWinX: CGFloat = W * 0.03
-        let winTop: CGFloat = H * 0.12
-        let winW: CGFloat = W * 0.10
-        let winH: CGFloat = H * 0.32
-        var lWinFrame = Path()
-        lWinFrame.addRect(CGRect(x:lWinX, y:winTop, width:winW, height:winH))
-        ctx.fill(lWinFrame, with:.color(Color(red:0.45,green:0.38,blue:0.22).opacity(0.25)))
-        ctx.stroke(lWinFrame, with:.color(Color(red:0.7,green:0.55,blue:0.30).opacity(0.5)), lineWidth:2)
-
-        // [DRAW 13] Right window frame
-        let rWinX: CGFloat = W * 0.87
-        var rWinFrame = Path()
-        rWinFrame.addRect(CGRect(x:rWinX, y:winTop, width:winW, height:winH))
-        ctx.fill(rWinFrame, with:.color(Color(red:0.45,green:0.38,blue:0.22).opacity(0.25)))
-        ctx.stroke(rWinFrame, with:.color(Color(red:0.7,green:0.55,blue:0.30).opacity(0.5)), lineWidth:2)
-
-        // [DRAW 14] Left light shaft beam
-        let lShaftCX = lWinX + winW / 2
-        var lShaft = Path()
-        lShaft.move(to: CGPoint(x:lShaftCX - winW*0.4, y:winTop))
-        lShaft.addLine(to: CGPoint(x:lShaftCX + winW*0.4, y:winTop))
-        lShaft.addLine(to: CGPoint(x:lShaftCX + winW*1.6, y:floorY))
-        lShaft.addLine(to: CGPoint(x:lShaftCX - winW*1.0, y:floorY))
-        lShaft.closeSubpath()
-        ctx.fill(lShaft, with:.color(Color(red:1.0,green:0.95,blue:0.80).opacity(0.055)))
-
-        // [DRAW 15] Right light shaft beam
-        let rShaftCX = rWinX + winW / 2
-        var rShaft = Path()
-        rShaft.move(to: CGPoint(x:rShaftCX - winW*0.4, y:winTop))
-        rShaft.addLine(to: CGPoint(x:rShaftCX + winW*0.4, y:winTop))
-        rShaft.addLine(to: CGPoint(x:rShaftCX + winW*1.0, y:floorY))
-        rShaft.addLine(to: CGPoint(x:rShaftCX - winW*1.6, y:floorY))
-        rShaft.closeSubpath()
-        ctx.fill(rShaft, with:.color(Color(red:1.0,green:0.95,blue:0.80).opacity(0.055)))
-
-        // [DRAW 16] Dust particles in left shaft (20 particles)
-        let shaftHeight = floorY - winTop
-        for i in 0..<20 {
-            let px = lShaftCX + CGFloat(sin(t * 0.3 + Double(i) * 0.8)) * 14
-            let rawFrac = t * 18.0 + Double(i) * 7.3
-            let py = winTop + CGFloat(rawFrac.truncatingRemainder(dividingBy: Double(shaftHeight)))
-            var dust = Path()
-            dust.addEllipse(in: CGRect(x:px-1, y:py-1, width:2, height:2))
-            ctx.fill(dust, with:.color(Color.white.opacity(0.28 + 0.12*sin(t*1.1+Double(i)))))
+        // [DRAW 12] Forest canopy light shafts — soft golden beams, subtle opacity 0.04-0.08
+        let shaftDefs: [(topX: CGFloat, topW: CGFloat, botX: CGFloat, botW: CGFloat)] = [
+            (W*0.18, W*0.04, W*0.22, W*0.08),
+            (W*0.30, W*0.03, W*0.32, W*0.06),
+            (W*0.44, W*0.05, W*0.40, W*0.10),
+            (W*0.56, W*0.04, W*0.60, W*0.09),
+            (W*0.68, W*0.03, W*0.66, W*0.07),
+            (W*0.80, W*0.04, W*0.78, W*0.09),
+        ]
+        for (idx, sd) in shaftDefs.enumerated() {
+            let alpha = 0.04 + 0.04 * sin(t * 0.4 + Double(idx) * 0.9)
+            var shaft = Path()
+            shaft.move(to: CGPoint(x: sd.topX - sd.topW/2, y: 0))
+            shaft.addLine(to: CGPoint(x: sd.topX + sd.topW/2, y: 0))
+            shaft.addLine(to: CGPoint(x: sd.botX + sd.botW/2, y: floorY))
+            shaft.addLine(to: CGPoint(x: sd.botX - sd.botW/2, y: floorY))
+            shaft.closeSubpath()
+            var sc = ctx; sc.addFilter(.blur(radius: 3))
+            sc.fill(shaft, with:.color(Color(red:0.95,green:0.88,blue:0.60).opacity(alpha)))
         }
 
-        // [DRAW 17] Dust particles in right shaft (20 particles)
-        for i in 0..<20 {
-            let px = rShaftCX + CGFloat(sin(t * 0.25 + Double(i) * 1.1)) * 14
-            let rawFrac = t * 15.0 + Double(i) * 6.8
-            let py = winTop + CGFloat(rawFrac.truncatingRemainder(dividingBy: Double(shaftHeight)))
-            var dust = Path()
-            dust.addEllipse(in: CGRect(x:px-1, y:py-1, width:2, height:2))
-            ctx.fill(dust, with:.color(Color.white.opacity(0.25 + 0.12*sin(t*0.9+Double(i)*1.2))))
+        // [DRAW 13] Floating forest spore/pollen particles (replace indoor dust)
+        let sporeAreaTop: CGFloat = H * 0.12
+        let sporeAreaH = floorY - sporeAreaTop
+        for i in 0..<24 {
+            let drift = CGFloat(sin(t * 0.18 + Double(i) * 0.77)) * W * 0.04
+            let px = W * CGFloat(i % 8) / 8.0 + W * 0.06 + drift
+            let rawFrac = (t * 8.0 + Double(i) * 5.6)
+            let py = sporeAreaTop + CGFloat(rawFrac.truncatingRemainder(dividingBy: Double(sporeAreaH)))
+            var spore = Path()
+            spore.addEllipse(in: CGRect(x:px-1.2, y:py-1.2, width:2.4, height:2.4))
+            let sporeAlpha = 0.18 + 0.14 * sin(t * 0.9 + Double(i) * 1.3)
+            ctx.fill(spore, with:.color(Color(red:0.88,green:0.95,blue:0.70).opacity(sporeAlpha)))
         }
 
-        // [DRAW 18] Window horizontal dividers (cross bars)
-        let midY = winTop + winH / 2
-        for lx in [lWinX, rWinX] {
-            var crossH = Path()
-            crossH.move(to: CGPoint(x:lx, y:midY))
-            crossH.addLine(to: CGPoint(x:lx+winW, y:midY))
-            ctx.stroke(crossH, with:.color(Color(red:0.7,green:0.55,blue:0.30).opacity(0.5)), lineWidth:1.5)
-            let midX = lx + winW/2
-            var crossV = Path()
-            crossV.move(to: CGPoint(x:midX, y:winTop))
-            crossV.addLine(to: CGPoint(x:midX, y:winTop+winH))
-            ctx.stroke(crossV, with:.color(Color(red:0.7,green:0.55,blue:0.30).opacity(0.5)), lineWidth:1.5)
-        }
+        // [DRAW 14] Atmospheric mist near ground — thin fog strip at floor level, opacity 0.12
+        var fog = Path()
+        fog.addRect(CGRect(x:0, y:floorY - H*0.04, width:W, height:H*0.06))
+        var fogCtx = ctx; fogCtx.addFilter(.blur(radius: 8))
+        fogCtx.fill(fog, with:.color(Color.white.opacity(0.12)))
     }
 
-    // MARK: - Tournament Bracket Panel
+    // MARK: - Stone Toro Lanterns (replaces tournament bracket)
 
     private func drawTournamentBracket(ctx: inout GraphicsContext) {
-        // [DRAW 19] Bracket panel background (far left wall)
-        let bpX: CGFloat = W * 0.015
-        let bpY: CGFloat = H * 0.48
-        let bpW: CGFloat = W * 0.065
-        let bpH: CGFloat = H * 0.22
-        var bPanel = Path()
-        bPanel.addRoundedRect(in: CGRect(x:bpX, y:bpY, width:bpW, height:bpH), cornerSize: CGSize(width:3,height:3))
-        ctx.fill(bPanel, with:.color(Color(red:0.06,green:0.05,blue:0.10).opacity(0.88)))
-        ctx.stroke(bPanel, with:.color(Color(red:0.40,green:0.30,blue:0.65).opacity(0.50)), lineWidth:1)
+        // [DRAW 19] Stone toro lanterns flanking the fight area (2 lanterns)
+        let stoneLanternDefs: [(cx: CGFloat, baseY: CGFloat)] = [
+            (W*0.06, floorY),
+            (W*0.94, floorY),
+        ]
+        for (idx, ld) in stoneLanternDefs.enumerated() {
+            let cx = ld.cx
+            let baseY = ld.baseY
+            let flicker = 0.75 + 0.25 * sin(t * 2.8 + Double(idx) * 1.7)
 
-        // [DRAW 20] Bracket header label
-        var bracketCtx = ctx
-        bracketCtx.opacity = 0.65
-        bracketCtx.draw(Text("BRACKET").font(.system(size:5.5, weight:.black, design:.monospaced)).foregroundColor(Color(red:0.70,green:0.60,blue:0.95)),
-                        at: CGPoint(x:bpX+bpW/2, y:bpY+5), anchor:.center)
+            // Ground plinth (base stone)
+            let plinthW: CGFloat = W * 0.048
+            let plinthH: CGFloat = H * 0.032
+            var plinth = Path()
+            plinth.addRect(CGRect(x:cx - plinthW/2, y:baseY - plinthH, width:plinthW, height:plinthH))
+            ctx.fill(plinth, with:.color(Color(red:0.55,green:0.53,blue:0.50)))
+            ctx.stroke(plinth, with:.color(Color(red:0.35,green:0.33,blue:0.30).opacity(0.6)), lineWidth:0.8)
 
-        // [DRAW 21] Bracket lines (simplified tournament tree)
-        let lineColor = Color(red:0.50,green:0.45,blue:0.80).opacity(0.45)
-        let leftX = bpX + bpW*0.18
-        let rightX = bpX + bpW*0.82
-        let topRow: CGFloat = bpY + 18
-        let botRow: CGFloat = bpY + bpH - 18
-        let midRow: CGFloat = (topRow + botRow) / 2.0
-        // Left bracket arm
-        var bLine1 = Path()
-        bLine1.move(to: CGPoint(x:leftX, y:topRow))
-        bLine1.addLine(to: CGPoint(x:leftX, y:botRow))
-        ctx.stroke(bLine1, with:.color(lineColor), lineWidth:1)
-        // Right bracket arm
-        var bLine2 = Path()
-        bLine2.move(to: CGPoint(x:rightX, y:topRow))
-        bLine2.addLine(to: CGPoint(x:rightX, y:botRow))
-        ctx.stroke(bLine2, with:.color(lineColor), lineWidth:1)
-        // Center connector
-        var bLine3 = Path()
-        bLine3.move(to: CGPoint(x:leftX, y:midRow))
-        bLine3.addLine(to: CGPoint(x:rightX, y:midRow))
-        ctx.stroke(bLine3, with:.color(lineColor), lineWidth:1)
-        // Round number indicator
-        var bDot = Path()
-        bDot.addEllipse(in: CGRect(x:bpX+bpW/2-3, y:midRow-3, width:6, height:6))
-        ctx.fill(bDot, with:.color(Color.yellow.opacity(0.65)))
+            // Cylindrical shaft
+            let shaftW: CGFloat = W * 0.028
+            let shaftH: CGFloat = H * 0.10
+            var shaft = Path()
+            shaft.addRect(CGRect(x:cx - shaftW/2, y:baseY - plinthH - shaftH, width:shaftW, height:shaftH))
+            ctx.fill(shaft, with:.color(Color(red:0.52,green:0.50,blue:0.47)))
+            ctx.stroke(shaft, with:.color(Color(red:0.35,green:0.33,blue:0.30).opacity(0.5)), lineWidth:0.7)
+
+            // [DRAW 20] Lantern body (hibukuro — fire chamber) with warm amber glow
+            let bodyW: CGFloat = W * 0.040
+            let bodyH: CGFloat = H * 0.065
+            let bodyY = baseY - plinthH - shaftH - bodyH
+            var body = Path()
+            body.addRect(CGRect(x:cx - bodyW/2, y:bodyY, width:bodyW, height:bodyH))
+            ctx.fill(body, with:.color(Color(red:0.55,green:0.53,blue:0.50)))
+            ctx.stroke(body, with:.color(Color(red:0.35,green:0.33,blue:0.30).opacity(0.65)), lineWidth:0.9)
+
+            // Lantern window opening with amber glow
+            let winW: CGFloat = bodyW * 0.55
+            let winH: CGFloat = bodyH * 0.45
+            let winRect = CGRect(x:cx - winW/2, y:bodyY + bodyH*0.25, width:winW, height:winH)
+            var winPath = Path(); winPath.addRect(winRect)
+            var gwCtx = ctx; gwCtx.addFilter(.blur(radius: 5))
+            gwCtx.fill(winPath, with:.color(Color(red:0.95,green:0.68,blue:0.25).opacity(0.55 * flicker)))
+            ctx.fill(winPath, with:.color(Color(red:0.95,green:0.68,blue:0.25).opacity(0.35 * flicker)))
+
+            // [DRAW 21] Top cap (kasagishi)
+            let capW: CGFloat = W * 0.054
+            let capH: CGFloat = H * 0.022
+            let capY = bodyY - capH
+            var cap = Path()
+            cap.move(to: CGPoint(x:cx - capW/2, y:capY + capH))
+            cap.addLine(to: CGPoint(x:cx + capW/2, y:capY + capH))
+            cap.addLine(to: CGPoint(x:cx + capW*0.35, y:capY))
+            cap.addLine(to: CGPoint(x:cx - capW*0.35, y:capY))
+            cap.closeSubpath()
+            ctx.fill(cap, with:.color(Color(red:0.52,green:0.50,blue:0.46)))
+            ctx.stroke(cap, with:.color(Color(red:0.35,green:0.33,blue:0.30).opacity(0.55)), lineWidth:0.8)
+
+            // Ambient glow pool on ground from stone lantern
+            var glowPool = Path()
+            glowPool.addEllipse(in: CGRect(x:cx - bodyW, y:baseY - plinthH*0.5, width:bodyW*2, height:H*0.02))
+            var gpCtx = ctx; gpCtx.addFilter(.blur(radius: 6))
+            gpCtx.fill(glowPool, with:.color(Color(red:0.95,green:0.75,blue:0.35).opacity(0.18 * flicker)))
+        }
     }
 
-    // MARK: - Crowd Silhouettes
+    // MARK: - Shrine Visitor Silhouettes (replaces indoor crowd)
 
     private func drawCrowd(ctx: inout GraphicsContext) {
-        // [DRAW 22] Crowd base band
-        var crowdBase = Path()
-        crowdBase.addRect(CGRect(x:0, y:floorY-H*0.19, width:W, height:H*0.08))
-        ctx.fill(crowdBase, with:.color(Color.black.opacity(0.22 * crowd)))
+        // [DRAW 22] Visitor depth band behind silhouettes
+        var visitorBand = Path()
+        visitorBand.addRect(CGRect(x:0, y:floorY-H*0.17, width:W, height:H*0.07))
+        ctx.fill(visitorBand, with:.color(Color(red:0.06,green:0.12,blue:0.06).opacity(0.28 * crowd)))
 
-        // 18 crowd spectator silhouettes
-        let spectatorXPositions: [CGFloat] = [
-            W*0.03, W*0.09, W*0.15, W*0.21, W*0.27,
-            W*0.33, W*0.39, W*0.46, W*0.53, W*0.60,
-            W*0.66, W*0.72, W*0.78, W*0.84, W*0.88,
-            W*0.92, W*0.96, W*0.99
+        // Shrine visitor silhouettes in dark kimono — positioned on both sides only
+        let leftVisitors: [CGFloat]  = [W*0.04, W*0.10, W*0.16]
+        let rightVisitors: [CGFloat] = [W*0.84, W*0.90, W*0.96]
+        let visitorXs = leftVisitors + rightVisitors
+        let kimonoColors: [Color] = [
+            Color(red:0.10,green:0.08,blue:0.08),
+            Color(red:0.14,green:0.10,blue:0.06),
+            Color(red:0.08,green:0.10,blue:0.12),
         ]
-        let spectatorHeights: [CGFloat] = [
-            22, 26, 20, 28, 23, 25, 21, 27, 24, 26,
-            22, 28, 20, 25, 23, 26, 21, 24
-        ]
-        let baseY = floorY - H * 0.135
+        let visitorH: CGFloat = H * 0.11
+        let visitorBaseY = floorY - H * 0.015
 
-        // [DRAW 23] Spectator bodies (18 seated silhouettes)
-        for (idx, sx) in spectatorXPositions.enumerated() {
-            let sh = spectatorHeights[idx]
-            // Crowd bounce based on combo
-            let bounceAmp: CGFloat = comboCount >= 5 ? 3.5 : (comboCount >= 2 ? 1.5 : 0.5)
-            let bounceFreq = 2.5 + Double(idx) * 0.18
-            let bounceY = CGFloat(sin(t * bounceFreq + Double(idx) * 0.6)) * bounceAmp
-            let headY = baseY - sh + bounceY
+        // [DRAW 23] Shrine visitor silhouettes (6 figures in dark kimono)
+        for (idx, vx) in visitorXs.enumerated() {
+            let col = kimonoColors[idx % kimonoColors.count]
+            let swayAmp: CGFloat = comboCount >= 3 ? 2.0 : 0.8
+            let swayFreq = 1.8 + Double(idx) * 0.22
+            let sway = CGFloat(sin(t * swayFreq + Double(idx) * 0.9)) * swayAmp
+
+            // Kimono body — wide rectangular silhouette
+            let bodyW: CGFloat = W * 0.028
+            var vBody = Path()
+            vBody.addRect(CGRect(x:vx - bodyW/2 + sway*0.3,
+                                 y:visitorBaseY - visitorH,
+                                 width:bodyW, height:visitorH * 0.80))
+            ctx.fill(vBody, with:.color(col.opacity(0.78 * crowd)))
+
             // Head
-            var head = Path()
-            head.addEllipse(in: CGRect(x:sx-4, y:headY-5, width:9, height:9))
-            ctx.fill(head, with:.color(Color.black.opacity(0.62 * crowd)))
-            // Body
-            var body = Path()
-            body.addRect(CGRect(x:sx-5, y:headY+4, width:10, height:sh*0.55))
-            ctx.fill(body, with:.color(Color.black.opacity(0.55 * crowd)))
-        }
+            var vHead = Path()
+            vHead.addEllipse(in: CGRect(x:vx - 4.5 + sway*0.3,
+                                        y:visitorBaseY - visitorH - 8,
+                                        width:9, height:9))
+            ctx.fill(vHead, with:.color(col.opacity(0.80 * crowd)))
 
-        // [DRAW 24] High-combo crowd arm waves (5+ combo)
-        if comboCount >= 5 {
-            for (idx, sx) in spectatorXPositions.enumerated() {
-                let sh = spectatorHeights[idx]
-                let bounceFreq = 2.5 + Double(idx) * 0.18
-                let armAngle = sin(t * bounceFreq * 1.2 + Double(idx) * 0.4)
-                let armBaseY = baseY - sh
-                let armTipY = armBaseY - 10 - CGFloat(armAngle) * 8
-                let armTipX = sx + CGFloat(armAngle) * 6
-                var armPath = Path()
-                armPath.move(to: CGPoint(x:sx, y:armBaseY))
-                armPath.addLine(to: CGPoint(x:armTipX, y:armTipY))
-                ctx.stroke(armPath, with:.color(Color.black.opacity(0.5 * crowd)), lineWidth:2)
+            // [DRAW 24] Bowing gesture on high combo
+            if comboCount >= 4 {
+                let bowAng = CGFloat(sin(t * 2.2 + Double(idx) * 0.5)) * 0.35 + 0.2
+                let armLen: CGFloat = 12
+                let armX = vx + armLen * bowAng
+                let armY = (visitorBaseY - visitorH) + visitorH * 0.25 + armLen * bowAng * 0.7
+                var arm = Path()
+                arm.move(to: CGPoint(x:vx + sway*0.3, y:visitorBaseY - visitorH + visitorH*0.25))
+                arm.addLine(to: CGPoint(x:armX + sway*0.3, y:armY))
+                ctx.stroke(arm, with:.color(col.opacity(0.55 * crowd)), lineWidth:2.5)
             }
         }
 
-        // [DRAW 25] Crowd ambient glow (excitement reflected light on floor edge)
-        var crowdGlow = Path()
-        crowdGlow.addRect(CGRect(x:0, y:floorY-H*0.14, width:W, height:H*0.04))
-        let glowIntensity = 0.03 + min(0.08, Double(comboCount) * 0.012)
-        ctx.fill(crowdGlow, with:.color(Color(red:0.8,green:0.6,blue:0.2).opacity(glowIntensity * crowd)))
+        // [DRAW 25] Shrine lantern ambient warm glow near visitor area
+        var shrineAmbient = Path()
+        shrineAmbient.addRect(CGRect(x:0, y:floorY-H*0.10, width:W, height:H*0.035))
+        let glowIntensity = 0.025 + min(0.06, Double(comboCount) * 0.01)
+        ctx.fill(shrineAmbient, with:.color(Color(red:0.75,green:0.55,blue:0.20).opacity(glowIntensity * crowd)))
     }
 
-    // MARK: - Wood Plank Floor
+    // MARK: - Mossy Stone Path Floor (replaces wood planks)
 
     private func drawFloor(ctx: inout GraphicsContext) {
-        // [DRAW 26] Floor base (dark wood)
+        // [DRAW 26] Stone path base — ancient weathered stone color
         var floorBase = Path()
         floorBase.addRect(CGRect(x:0, y:floorY, width:W, height:H-floorY))
-        ctx.fill(floorBase, with:.color(Color(red:0.14,green:0.08,blue:0.04)))
+        ctx.fill(floorBase, with:.color(Color(red:0.38,green:0.36,blue:0.32)))
 
-        // [DRAW 27] Wood plank grain lines (horizontal, 12 planks)
-        for i in 0..<12 {
-            let fy = floorY + CGFloat(i) * (H - floorY) / 12.0
-            var plank = Path()
-            plank.move(to: CGPoint(x:0, y:fy))
-            plank.addLine(to: CGPoint(x:W, y:fy))
-            let alpha = 0.12 + Double(i) * 0.04
-            ctx.stroke(plank, with:.color(Color(red:0.45,green:0.28,blue:0.12).opacity(alpha)), lineWidth:1.2)
+        // [DRAW 27] Stone slab divisions — horizontal seam lines
+        for i in 0..<8 {
+            let fy = floorY + CGFloat(i) * (H - floorY) / 8.0
+            var seam = Path()
+            seam.move(to: CGPoint(x:0, y:fy))
+            seam.addLine(to: CGPoint(x:W, y:fy))
+            let alpha = 0.14 + Double(i) * 0.03
+            ctx.stroke(seam, with:.color(Color(red:0.25,green:0.23,blue:0.20).opacity(alpha)), lineWidth:1.5)
         }
 
-        // [DRAW 28] Plank vertical grain texture lines (16 subtle streaks)
-        for i in 0..<16 {
-            let gx = W * CGFloat(i) / 16.0 + CGFloat(sin(Double(i)*2.1)) * 4
-            var grain = Path()
-            grain.move(to: CGPoint(x:gx, y:floorY))
-            grain.addLine(to: CGPoint(x:gx + CGFloat(sin(Double(i)*1.7))*8, y:H))
-            ctx.stroke(grain, with:.color(Color(red:0.35,green:0.20,blue:0.08).opacity(0.08)), lineWidth:0.7)
+        // [DRAW 28] Stone slab vertical cracks (offset flagstone pattern)
+        let crackOffsets: [(CGFloat, CGFloat, CGFloat)] = [
+            (W*0.15, floorY, floorY + (H-floorY)*0.5),
+            (W*0.35, floorY + (H-floorY)*0.25, floorY + (H-floorY)*0.75),
+            (W*0.55, floorY, floorY + (H-floorY)*0.5),
+            (W*0.72, floorY + (H-floorY)*0.25, floorY + (H-floorY)*0.75),
+            (W*0.88, floorY, floorY + (H-floorY)*0.6),
+        ]
+        for (crackX, y0, y1) in crackOffsets {
+            var crack = Path()
+            crack.move(to: CGPoint(x:crackX, y:y0))
+            crack.addLine(to: CGPoint(x:crackX + 3, y:y1))
+            ctx.stroke(crack, with:.color(Color(red:0.22,green:0.20,blue:0.17).opacity(0.22)), lineWidth:0.9)
         }
 
-        // [DRAW 29] Floor highlight reflection strip
+        // [DRAW 29] Moss patches — organic irregular shapes on stone
+        let mossPatches: [(CGFloat, CGFloat, CGFloat, CGFloat)] = [
+            (W*0.05, floorY + H*0.01, W*0.06, H*0.015),
+            (W*0.18, floorY + H*0.008, W*0.04, H*0.012),
+            (W*0.40, floorY + H*0.006, W*0.05, H*0.014),
+            (W*0.62, floorY + H*0.010, W*0.04, H*0.013),
+            (W*0.78, floorY + H*0.005, W*0.06, H*0.015),
+            (W*0.92, floorY + H*0.009, W*0.04, H*0.012),
+            (W*0.28, floorY + H*0.020, W*0.05, H*0.012),
+            (W*0.52, floorY + H*0.018, W*0.04, H*0.011),
+            (W*0.70, floorY + H*0.022, W*0.05, H*0.013),
+        ]
+        for (mx, my, mw, mh) in mossPatches {
+            var moss = Path()
+            moss.addEllipse(in: CGRect(x:mx, y:my, width:mw, height:mh))
+            var mc = ctx; mc.addFilter(.blur(radius: 2))
+            mc.fill(moss, with:.color(Color(red:0.22,green:0.35,blue:0.20).opacity(0.72)))
+        }
+
+        // [DRAW 30] Stone surface wetness gloss — subtle highlight at top of floor
         var highlight = Path()
-        highlight.addRect(CGRect(x:0, y:floorY, width:W, height:4))
+        highlight.addRect(CGRect(x:0, y:floorY, width:W, height:5))
         ctx.fill(highlight, with:.linearGradient(
-            Gradient(colors:[Color(red:0.80,green:0.65,blue:0.40).opacity(0.18), .clear]),
+            Gradient(colors:[Color(red:0.65,green:0.62,blue:0.55).opacity(0.22), .clear]),
             startPoint: CGPoint(x:0, y:floorY),
-            endPoint: CGPoint(x:0, y:floorY+4)))
+            endPoint: CGPoint(x:0, y:floorY+5)))
 
-        // [DRAW 30] Main floor border line
+        // [DRAW 31] Stone path edge line
         var fl = Path()
-        fl.move(to: CGPoint(x:0,y:floorY))
-        fl.addLine(to: CGPoint(x:W,y:floorY))
-        ctx.stroke(fl, with:.color(Color(red:0.65,green:0.48,blue:0.22).opacity(0.55)), lineWidth:2)
+        fl.move(to: CGPoint(x:0, y:floorY))
+        fl.addLine(to: CGPoint(x:W, y:floorY))
+        ctx.stroke(fl, with:.color(Color(red:0.28,green:0.26,blue:0.22).opacity(0.55)), lineWidth:2)
 
-        // [DRAW 31] Center match line
-        var cl = Path()
-        cl.move(to: CGPoint(x:W/2,y:floorY))
-        cl.addLine(to: CGPoint(x:W/2,y:floorY+18))
-        ctx.stroke(cl, with:.color(Color.white.opacity(0.15)), lineWidth:1.2)
-
-        // [DRAW 32] Fight zone circle outline on floor
-        var fightCircle = Path()
-        fightCircle.addEllipse(in: CGRect(x:W*0.25, y:floorY-4, width:W*0.50, height:10))
-        ctx.stroke(fightCircle, with:.color(Color(red:0.75,green:0.55,blue:0.25).opacity(0.18)), lineWidth:1)
+        // [DRAW 32] Shrine center stone marker — subtle carved circle on path
+        var centerMark = Path()
+        centerMark.addEllipse(in: CGRect(x:W*0.30, y:floorY-3, width:W*0.40, height:9))
+        ctx.stroke(centerMark, with:.color(Color(red:0.30,green:0.28,blue:0.24).opacity(0.22)), lineWidth:1)
     }
 
     // MARK: - Lanterns
