@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <cstdint>
 
 namespace nexus::gameplay {
 
