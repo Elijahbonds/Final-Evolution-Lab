@@ -112,3 +112,52 @@ nonisolated enum ConnectionQuality: String, Sendable {
         }
     }
 }
+
+nonisolated struct MatchmakingConfig: Sendable {
+    let modeId: String
+    let playersPerTeam: Int
+    let teamsCount: Int
+    let isSolo: Bool
+
+    var totalPlayers: Int { playersPerTeam * teamsCount }
+
+    // Static library of all mode configs
+    static let allConfigs: [String: MatchmakingConfig] = [
+        "basketball_h2h": MatchmakingConfig(modeId: "basketball_h2h", playersPerTeam: 1, teamsCount: 2, isSolo: false),
+        "basketball_dunk": MatchmakingConfig(modeId: "basketball_dunk", playersPerTeam: 1, teamsCount: 4, isSolo: false),
+        "basketball_3v3": MatchmakingConfig(modeId: "basketball_3v3", playersPerTeam: 3, teamsCount: 2, isSolo: false),
+        "karate_h2h": MatchmakingConfig(modeId: "karate_h2h", playersPerTeam: 1, teamsCount: 2, isSolo: false),
+        "karate_endless": MatchmakingConfig(modeId: "karate_endless", playersPerTeam: 1, teamsCount: 1, isSolo: true),
+        "baseball": MatchmakingConfig(modeId: "baseball", playersPerTeam: 1, teamsCount: 1, isSolo: true),
+        "football": MatchmakingConfig(modeId: "football", playersPerTeam: 11, teamsCount: 2, isSolo: false),
+        "soccer": MatchmakingConfig(modeId: "soccer", playersPerTeam: 5, teamsCount: 2, isSolo: false),
+        "golf": MatchmakingConfig(modeId: "golf", playersPerTeam: 1, teamsCount: 1, isSolo: true),
+        "tennis": MatchmakingConfig(modeId: "tennis", playersPerTeam: 2, teamsCount: 2, isSolo: false),
+        "volleyball": MatchmakingConfig(modeId: "volleyball", playersPerTeam: 6, teamsCount: 2, isSolo: false),
+        "surfing": MatchmakingConfig(modeId: "surfing", playersPerTeam: 1, teamsCount: 1, isSolo: true),
+        "skateboarding": MatchmakingConfig(modeId: "skateboarding", playersPerTeam: 1, teamsCount: 1, isSolo: true),
+        "snowboarding": MatchmakingConfig(modeId: "snowboarding", playersPerTeam: 1, teamsCount: 1, isSolo: true),
+        "gymnastics": MatchmakingConfig(modeId: "gymnastics", playersPerTeam: 1, teamsCount: 1, isSolo: true),
+        "brain_brawl": MatchmakingConfig(modeId: "brain_brawl", playersPerTeam: 1, teamsCount: 4, isSolo: false),
+        "who_scene_it": MatchmakingConfig(modeId: "who_scene_it", playersPerTeam: 1, teamsCount: 4, isSolo: false),
+        "court_carnival": MatchmakingConfig(modeId: "court_carnival", playersPerTeam: 1, teamsCount: 4, isSolo: false),
+    ]
+
+    static func config(for modeId: String) -> MatchmakingConfig? {
+        allConfigs[modeId]
+    }
+}
+
+nonisolated struct MatchmakingPool: Sendable {
+    let config: MatchmakingConfig
+    let basePRQ: Double
+    let queueTimeEstimate: TimeInterval
+
+    var prqBracketRange: ClosedRange<Double> {
+        max(0, basePRQ - 15)...min(100, basePRQ + 15)
+    }
+
+    func isEligible(playerPRQ: Double) -> Bool {
+        prqBracketRange.contains(playerPRQ)
+    }
+}

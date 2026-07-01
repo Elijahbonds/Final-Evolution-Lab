@@ -16,6 +16,8 @@ from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
+from routers import matches as matches_router
+from routers.games import router as games_router
 
 # PayPal config
 paypalrestsdk.configure({
@@ -1152,7 +1154,7 @@ def get_card_multimedia_assets(card_id):
     }
     return registry.get(card_id, {"ip_category": "unknown", "ip_gate": {}, "animations_3d": [], "masterclass_modules": [], "power_ups": [], "board_piece_config": {}})
 
-# ===================== GAME MODES: WHO SCENE IT & MARIO PARTY =====================
+# ===================== GAME MODES: WHO SCENE IT & COURT CARNIVAL =====================
 
 @api_router.get("/games/who-scene-it")
 async def get_who_scene_it_config():
@@ -1197,7 +1199,7 @@ async def get_who_scene_it_questions(round_num: int = 1):
 
 @api_router.get("/games/court-carnival")
 async def get_court_carnival_config():
-    """Court Carnival — board-style arcade mode (formerly mario_party_fever)"""
+    """Court Carnival — board-style arcade mode """
     return {
         "mode_id": "court_carnival",
         "display_name": "Court Carnival",
@@ -1522,16 +1524,28 @@ async def health():
 
 # ===================== WEBSOCKET MULTIPLAYER =====================
 class ConnectionManager:
+    MAX_PLAYERS_PER_ROOM = 4
+
     def __init__(self):
         self.rooms: Dict[str, List[WebSocket]] = {}
         self.player_data: Dict[str, Dict] = {}
 
-    async def connect(self, websocket: WebSocket, room_id: str, user_id: str):
+    async def connect(self, websocket: WebSocket, room_id: str, user_id: str) -> bool:
+        count = len(self.rooms.get(room_id, []))
+        if count >= self.MAX_PLAYERS_PER_ROOM:
+            await websocket.accept()
+            await websocket.send_json({"type": "error", "message": "room_full", "max": self.MAX_PLAYERS_PER_ROOM})
+            await websocket.close()
+            return False
         await websocket.accept()
         if room_id not in self.rooms:
             self.rooms[room_id] = []
         self.rooms[room_id].append(websocket)
-        self.player_data[user_id] = {"room": room_id, "score": 0, "ready": False}
+        self.player_data[user_id] = {
+            "room": room_id, "score": 0, "ready": False,
+            "max_height_inches": 0.0, "jump_count": 0, "style": None,
+        }
+        return True
 
     def disconnect(self, websocket: WebSocket, room_id: str, user_id: str):
         if room_id in self.rooms:
@@ -1541,30 +1555,79 @@ class ConnectionManager:
         self.player_data.pop(user_id, None)
 
     async def broadcast(self, room_id: str, message: dict):
-        if room_id in self.rooms:
-            for ws in self.rooms[room_id]:
-                try: await ws.send_json(message)
-                except: pass
+        dead: List[WebSocket] = []
+        for ws in self.rooms.get(room_id, []):
+            try:
+                await ws.send_json(message)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self.rooms[room_id] = [w for w in self.rooms.get(room_id, []) if w != ws]
+
+    def leaderboard(self, room_id: str) -> list:
+        return sorted(
+            [{"user_id": uid, **{k: v for k,v in d.items() if k != "room"}}
+             for uid, d in self.player_data.items() if d.get("room") == room_id],
+            key=lambda p: p.get("max_height_inches", 0), reverse=True
+        )
+
 
 manager = ConnectionManager()
 
 @app.websocket("/ws/game/{room_id}")
 async def game_websocket(websocket: WebSocket, room_id: str):
     user_id = f"player_{uuid.uuid4().hex[:8]}"
-    await manager.connect(websocket, room_id, user_id)
+    joined = await manager.connect(websocket, room_id, user_id)
+    if not joined:
+        return
     try:
-        await manager.broadcast(room_id, {"type": "player_joined", "user_id": user_id, "players": len(manager.rooms.get(room_id, []))})
+        await manager.broadcast(room_id, {
+            "type": "player_joined", "user_id": user_id,
+            "players": len(manager.rooms.get(room_id, []))
+        })
         while True:
             data = await websocket.receive_json()
-            if data.get("type") == "score_update":
+            msg_type = data.get("type")
+
+            if msg_type == "score_update":
                 manager.player_data[user_id]["score"] = data.get("score", 0)
                 await manager.broadcast(room_id, {"type": "score_update", "user_id": user_id, "score": data["score"]})
-            elif data.get("type") == "game_action":
+
+            elif msg_type == "game_action":
                 await manager.broadcast(room_id, {"type": "game_action", "user_id": user_id, "action": data.get("action")})
-            elif data.get("type") == "ready":
+
+            elif msg_type == "ready":
                 manager.player_data[user_id]["ready"] = True
-                all_ready = all(p.get("ready") for p in manager.player_data.values() if p.get("room") == room_id)
+                room_players = [p for p in manager.player_data.values() if p.get("room") == room_id]
+                all_ready = bool(room_players) and all(p.get("ready") for p in room_players)
                 await manager.broadcast(room_id, {"type": "ready_status", "user_id": user_id, "all_ready": all_ready})
+
+            elif msg_type == "dunk_jump":
+                h = float(data.get("height_inches", 0))
+                style = data.get("style_key", "two_hand_power")
+                pd = manager.player_data[user_id]
+                pd["jump_count"] = pd.get("jump_count", 0) + 1
+                if h > pd.get("max_height_inches", 0):
+                    pd["max_height_inches"] = h
+                pd["style"] = style
+                await manager.broadcast(room_id, {
+                    "type": "dunk_jump",
+                    "user_id": user_id,
+                    "height_inches": h,
+                    "style_key": style,
+                    "jump_number": pd["jump_count"],
+                    "leaderboard": manager.leaderboard(room_id),
+                })
+
+            elif msg_type == "dunk_match_complete":
+                lb = manager.leaderboard(room_id)
+                await manager.broadcast(room_id, {
+                    "type": "dunk_match_complete",
+                    "user_id": user_id,
+                    "leaderboard": lb,
+                    "winner": lb[0]["user_id"] if lb else None,
+                })
+
     except WebSocketDisconnect:
         manager.disconnect(websocket, room_id, user_id)
         await manager.broadcast(room_id, {"type": "player_left", "user_id": user_id})
@@ -2614,6 +2677,8 @@ app.include_router(education_tracks_router.router)
 app.include_router(system_scan_router.router)
 app.include_router(pass_image_router.router)
 app.include_router(biofuel_router.router)
+app.include_router(matches_router.router)
+app.include_router(games_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

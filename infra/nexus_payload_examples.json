@@ -1,0 +1,72 @@
+{
+  "description": "Sample JSON messages broadcast by FEL OS backend over WebSocket /ws/match/{match_id} and returnable via GET /api/debug/match/{match_id}/payload",
+  "ws_endpoint": "/ws/match/{match_id}",
+  "http_probe_endpoints": {
+    "match_payload": "GET /api/debug/match/{match_id}/payload",
+    "latest_system_scan": "GET /api/debug/latest-system-scan"
+  },
+  "examples": {
+    "match_state": {
+      "description": "Sent immediately on WS connect with the current match state.",
+      "type": "match_state",
+      "match": {
+        "match_id": "a1b2c3d4e5f6",
+        "status": "waiting",
+        "players": ["player_a"],
+        "score": { "player_a": 0 }
+      }
+    },
+    "match_start": {
+      "description": "Broadcast to all connected clients when a second player joins and match becomes 'active'. Includes Creator Card loadouts for each player so Nexus can apply stat modifiers.",
+      "type": "match_start",
+      "match_id": "a1b2c3d4e5f6",
+      "mode_id": "basketball_h2h",
+      "players": [
+        {
+          "user_id": "player_a",
+          "loadout": [
+            { "id": "card_kd_signature", "title": "KD Signature", "rarity": "legendary", "modifiers_summary": "Catch-and-shoot +15%" },
+            { "id": "card_midrange_master", "title": "Midrange Master", "rarity": "rare", "modifiers_summary": "Mid-range accuracy +8%" }
+          ]
+        },
+        {
+          "user_id": "player_b",
+          "loadout": [
+            { "id": "card_lockdown_d", "title": "Lockdown D", "rarity": "epic", "modifiers_summary": "Steal chance +12%" }
+          ]
+        }
+      ],
+      "start_time": "2026-07-01T01:00:00+00:00"
+    },
+    "score_event": {
+      "description": "Emitted when a player scores. seq is a monotonic counter for ordering/reconciliation. Nexus should update its scoreboard on every score_event.",
+      "type": "score_event",
+      "player_id": "player_a",
+      "points": 2,
+      "seq": 3,
+      "timestamp": "2026-07-01T01:00:07.123456+00:00",
+      "score_snapshot": { "player_a": 6, "player_b": 4 }
+    },
+    "match_end": {
+      "description": "Broadcast when all score_events have been emitted and the match is finished.",
+      "type": "match_end",
+      "match_id": "a1b2c3d4e5f6",
+      "score": { "player_a": 14, "player_b": 10 },
+      "timestamp": "2026-07-01T01:00:22.000000+00:00"
+    }
+  },
+  "nexus_integration_notes": {
+    "polling_mode": "GET /api/debug/match/{match_id}/payload returns the same data as WS in a single HTTP call. Use this if Nexus WebSocket support is not yet wired.",
+    "system_scan_probe": "GET /api/debug/latest-system-scan returns the last /api/system-scan/unified response cached in memory. Nexus can poll this to seed player PRQ/stats before match start.",
+    "creator_card_loadout": "loadout[] in match_start is the simplified card summary. Full card data is available via GET /api/user-cards?user_id=... for Nexus to apply modifiers.",
+    "sequencing": "Use seq field on score_event for ordering. Nexus should track highest seq seen and ignore events with lower seq to avoid double-counting.",
+    "mock_db_mode": "Start backend with MOCK_DB=1 to use in-memory store — no MongoDB required for local Nexus dev."
+  },
+  "curl_qa_commands": {
+    "create_match": "curl -s -X POST $API_BASE/api/matches/create -H 'Content-Type: application/json' -d '{\"mode_id\":\"basketball_h2h\"}' | jq .",
+    "join_match":   "curl -s -X POST $API_BASE/api/matches/join   -H 'Content-Type: application/json' -d '{\"match_id\":\"<MATCH_ID>\"}' | jq .",
+    "get_match":    "curl -s $API_BASE/api/matches/<MATCH_ID> | jq '{status:.status, players:.players, score:.score}'",
+    "debug_payload":"curl -s $API_BASE/api/debug/match/<MATCH_ID>/payload | jq .",
+    "debug_scan":   "curl -s $API_BASE/api/debug/latest-system-scan | jq .scan.prq_score"
+  }
+}

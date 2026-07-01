@@ -123,3 +123,31 @@ nonisolated enum BiomechanicsGrade: String, Codable, Sendable {
     case developing = "DEVELOPING"
     case foundation = "FOUNDATION"
 }
+
+nonisolated struct MovementEfficiencyScore: Sendable {
+    let kneeTracking: Double      // 0-100
+    let hipAlignment: Double      // 0-100
+    let coreEngagement: Double    // 0-100
+    let shoulderPosition: Double  // 0-100
+    let ankleStability: Double    // 0-100
+    let headPosition: Double      // 0-100
+
+    init(kneeTracking: Double, hipAlignment: Double, coreEngagement: Double,
+         shoulderPosition: Double, ankleStability: Double, headPosition: Double) {
+        self.kneeTracking = max(0, min(100, kneeTracking))
+        self.hipAlignment = max(0, min(100, hipAlignment))
+        self.coreEngagement = max(0, min(100, coreEngagement))
+        self.shoulderPosition = max(0, min(100, shoulderPosition))
+        self.ankleStability = max(0, min(100, ankleStability))
+        self.headPosition = max(0, min(100, headPosition))
+    }
+
+    var overallEfficiency: Double {
+        (kneeTracking + hipAlignment + coreEngagement + shoulderPosition + ankleStability + headPosition) / 6.0
+    }
+
+    static let perfect = MovementEfficiencyScore(
+        kneeTracking: 100, hipAlignment: 100, coreEngagement: 100,
+        shoulderPosition: 100, ankleStability: 100, headPosition: 100
+    )
+}

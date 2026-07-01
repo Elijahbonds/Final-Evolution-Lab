@@ -6,6 +6,8 @@ struct ContentView: View {
     @State private var simpleMode: Bool = UserDefaults.standard.bool(forKey: "simpleMode")
     @State private var showSettings: Bool = false
     @State private var showOnboarding: Bool = false
+    @State private var showSceneEditor: Bool = false
+    @State private var editorScene: NexusScene = NexusScene.default(for: .basketballHeadToHead, prq: 75)
     @ObservedObject private var shareCoordinator = SocialShareCoordinator.shared
 
     var body: some View {
@@ -57,10 +59,16 @@ struct ContentView: View {
                                 brandHeader
                             }
                             ToolbarItem(placement: .topBarTrailing) {
-                                shardsBadge
+                                HStack(spacing: 8) {
+                                    sceneEditorButton
+                                    shardsBadge
+                                }
                             }
                         }
                         .toolbarColorScheme(.dark, for: .navigationBar)
+                }
+                .sheet(isPresented: $showSceneEditor) {
+                    NexusEditorView(scene: $editorScene)
                 }
             }
 
@@ -122,7 +130,7 @@ struct ContentView: View {
             #endif
         }
         .overlay(alignment: .topTrailing) {
-            RorkOverlayView()
+            FELOverlayView()
                 .padding(.top, 50)
         }
         .overlay {
@@ -141,6 +149,19 @@ struct ContentView: View {
                 .italic()
                 .tracking(-0.3)
                 .foregroundStyle(.white)
+        }
+    }
+
+    private var sceneEditorButton: some View {
+        Button {
+            showSceneEditor = true
+        } label: {
+            Image(systemName: "atom")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.brandCyan)
+                .frame(width: 32, height: 32)
+                .background(Theme.brandCyan.opacity(0.08))
+                .clipShape(Circle())
         }
     }
 

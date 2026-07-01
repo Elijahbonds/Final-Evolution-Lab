@@ -138,7 +138,7 @@ class TrainingViewModel {
         labViewModel.sessions.append(session)
 
         NotificationCenter.default.post(
-            name: NSNotification.Name("RorkScoreUpdated"),
+            name: NSNotification.Name("FELScoreUpdated"),
             object: nil,
             userInfo: ["score": Int(labViewModel.profile.metrics.prqScore)]
         )

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PS2ControllerShellView: View {
+struct ArenaPadShellView: View {
     var showShoulders: Bool = true
 
     var body: some View {

@@ -66,6 +66,9 @@ enum Config {
         return 9099
     }
 
+    /// UserDefaults key: trusted gameplay session ID bound by NexusBridge after server verification.
+    static let trustedGameplaySessionDefaultsKey = "fel_trusted_gameplay_session_id"
+
     /// Cached SQL `User.id` (UUID string) for Data Connect posts; set by ``TrainingLabSocialBridge``.
     static let sqlSocialUserIdKey = "fel_sql_social_user_id"
 

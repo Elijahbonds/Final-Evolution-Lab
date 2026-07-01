@@ -15,10 +15,13 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var sport: String?
     var age: Int?
     var goal: String?
+    /// Gates public feed, HealthKit connect, and paid critique/cash competition for under-18 users.
+    var guardianConsentForMinorFeatures: Bool
     var hasCompletedOnboarding: Bool
     var systemScan: SystemScanResult?
     var activeCreatorCard: CreatorCardState?
     var ownedCardIds: [String]
+    var playerAvatarConfig: PlayerAvatarConfig?
 
     func ownsCard(_ cardId: String) -> Bool {
         ownedCardIds.contains(cardId)
@@ -41,10 +44,21 @@ extension UserProfile: Codable {
         sport = try container.decodeIfPresent(String.self, forKey: .sport)
         age = try container.decodeIfPresent(Int.self, forKey: .age)
         goal = try container.decodeIfPresent(String.self, forKey: .goal)
+        guardianConsentForMinorFeatures = (try? container.decode(Bool.self, forKey: .guardianConsentForMinorFeatures)) ?? false
         hasCompletedOnboarding = (try? container.decode(Bool.self, forKey: .hasCompletedOnboarding)) ?? false
         systemScan = try container.decodeIfPresent(SystemScanResult.self, forKey: .systemScan)
         activeCreatorCard = try container.decodeIfPresent(CreatorCardState.self, forKey: .activeCreatorCard)
         ownedCardIds = (try? container.decode([String].self, forKey: .ownedCardIds)) ?? []
+        playerAvatarConfig = try container.decodeIfPresent(PlayerAvatarConfig.self, forKey: .playerAvatarConfig)
+    }
+
+    /// The avatar config to use in-game: saved custom config, scan-derived default, or a factory default.
+    func effectiveAvatarConfig() -> PlayerAvatarConfig {
+        if let saved = playerAvatarConfig { return saved }
+        if let scan = systemScan {
+            return PlayerAvatarConfig.fromScan(scan, userId: id, displayName: displayName)
+        }
+        return PlayerAvatarConfig.makeDefault(userId: id, displayName: displayName)
     }
 
     static let guest = UserProfile(
@@ -61,10 +75,12 @@ extension UserProfile: Codable {
         sport: nil,
         age: nil,
         goal: nil,
+        guardianConsentForMinorFeatures: false,
         hasCompletedOnboarding: false,
         systemScan: nil,
         activeCreatorCard: nil,
-        ownedCardIds: []
+        ownedCardIds: [],
+        playerAvatarConfig: nil
     )
 }
 

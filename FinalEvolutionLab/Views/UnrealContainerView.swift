@@ -1,133 +1,159 @@
 import SwiftUI
-import UIKit
 
-struct UnrealContainerView: View {
-    @State private var unrealManager = UnrealManager.shared
+// MARK: - NexusContainerView
+
+/// Full-screen Nexus scene container.
+///
+/// Presents the active NexusScene from NexusRenderer when one is loaded,
+/// a boot-progress indicator during engine startup, or a placeholder when
+/// no scene is active. Replaces the former Unreal embedded-framework container.
+struct NexusContainerView: View {
+    @State private var renderer = NexusRenderer.shared
+    @State private var engine   = NexusEngine.shared
 
     var body: some View {
         ZStack {
-            if unrealManager.isUnrealActive && unrealManager.isUnrealLoaded {
-                UnrealContainerRepresentable()
-                    .ignoresSafeArea()
-            } else if unrealManager.isUnrealActive && !unrealManager.isUnrealLoaded && unrealManager.isFrameworkPresent {
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .tint(Theme.brandCyan)
-                        .scaleEffect(1.2)
-                    Text("LOADING ARENA RUNTIME…")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(Theme.brandCyan)
-                        .tracking(3)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Theme.deepBlack)
-            } else {
-                placeholder
-            }
+            if let scene = renderer.activeScene {
+                NexusSceneView(
+                    scene: scene,
+                    physics: renderer.playerPhysics
+                )
+                .ignoresSafeArea()
 
-            VStack {
-                HStack {
-                    Spacer()
-                    if unrealManager.isUnrealActive {
-                        Button {
-                            withAnimation(.spring(duration: 0.35)) {
-                                unrealManager.isUnrealActive = false
-                            }
-                        } label: {
-                            Image(systemName: "power")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(Theme.brandCyan)
-                                .frame(width: 36, height: 36)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Circle())
-                        }
-                        .padding(.trailing, 16)
-                        .padding(.top, 12)
-                    }
-                }
-                Spacer()
+                dismissButton
+            } else if case .ready = engine.bootState {
+                nexusStandbyPlaceholder
+            } else {
+                bootProgressView
             }
         }
     }
 
-    private var placeholder: some View {
+    // MARK: - Sub-views
+
+    private var bootProgressView: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(Theme.brandCyan.opacity(0.06))
+                    .frame(width: 100, height: 100)
+                ProgressView()
+                    .tint(Theme.brandCyan)
+                    .scaleEffect(1.4)
+            }
+
+            VStack(spacing: 6) {
+                Text("NEXUS ENGINE")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(Theme.brandCyan)
+                    .tracking(4)
+                Text(engine.bootState.displayLabel.uppercased())
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(2)
+                    .contentTransition(.opacity)
+                    .animation(.easeInOut, value: engine.bootState.displayLabel)
+            }
+
+            healthDots
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.deepBlack)
+    }
+
+    private var healthDots: some View {
+        HStack(spacing: 10) {
+            dot("Firebase",   ready: engine.firestoreReady)
+            dot("HealthKit",  ready: engine.healthKitAuthorized)
+            dot("Renderer",   ready: engine.nexusEngineReady)
+            dot("Arena Net",  ready: engine.emergentConnected)
+        }
+    }
+
+    private func dot(_ label: String, ready: Bool) -> some View {
+        VStack(spacing: 4) {
+            Circle()
+                .fill(ready ? Theme.neonGreen : Color.white.opacity(0.12))
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private var nexusStandbyPlaceholder: some View {
         VStack(spacing: 18) {
             ZStack {
                 Circle()
                     .fill(Theme.brandCyan.opacity(0.08))
                     .frame(width: 120, height: 120)
-
                 Circle()
                     .strokeBorder(Theme.brandCyan.opacity(0.3), lineWidth: 2)
                     .frame(width: 120, height: 120)
-
-                Image(systemName: "cube.transparent.fill")
+                Image(systemName: "atom")
                     .font(.system(size: 44, weight: .medium))
                     .foregroundStyle(Theme.brandCyan)
             }
 
             VStack(spacing: 6) {
-                Text("UNREAL ENGINE")
+                Text("NEXUS ENGINE")
                     .font(.system(size: 11, weight: .black, design: .monospaced))
                     .foregroundStyle(Theme.brandCyan)
                     .tracking(4)
 
-                Text(unrealManager.isFrameworkPresent ? "Tap to activate the Unreal runtime" : "UnrealFramework.framework not embedded yet")
-                    .font(.system(.subheadline))
+                Text("Ready — launch a game mode to load a scene")
+                    .font(.system(.subheadline, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-            }
+                    .padding(.horizontal, 32)
 
-            Button {
-                guard unrealManager.isFrameworkPresent else { return }
-                withAnimation(.spring(duration: 0.4)) {
-                    unrealManager.isUnrealActive = true
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 14, weight: .bold))
-                    Text("START UNREAL")
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
-                        .tracking(2)
-                }
-                .foregroundStyle(.black)
-                .padding(.horizontal, 28)
-                .padding(.vertical, 14)
-                .background(unrealManager.isFrameworkPresent ? Theme.brandCyan : Theme.brandCyan.opacity(0.25))
-                .clipShape(Capsule())
+                healthRow
             }
-            .disabled(!unrealManager.isFrameworkPresent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.deepBlack)
     }
-}
 
-struct UnrealContainerRepresentable: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UnrealHostViewController {
-        UnrealHostViewController()
+    private var healthRow: some View {
+        HStack(spacing: 6) {
+            let health = engine.overallHealth
+            Image(systemName: health == .optimal ? "checkmark.circle.fill" : health == .degraded ? "exclamationmark.triangle.fill" : "xmark.circle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(health == .optimal ? Theme.neonGreen : health == .degraded ? .orange : .red)
+            Text(health == .optimal ? "OPTIMAL" : health == .degraded ? "DEGRADED" : "OFFLINE")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(health == .optimal ? Theme.neonGreen : health == .degraded ? .orange : .red)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.white.opacity(0.04))
+        .clipShape(Capsule())
     }
 
-    func updateUIViewController(_ uiViewController: UnrealHostViewController, context: Context) {}
-}
-
-final class UnrealHostViewController: UIViewController {
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .black
-
-        if let unrealView = UnrealManager.shared.unrealView {
-            unrealView.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(unrealView)
-            NSLayoutConstraint.activate([
-                unrealView.topAnchor.constraint(equalTo: view.topAnchor),
-                unrealView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                unrealView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                unrealView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            ])
+    private var dismissButton: some View {
+        VStack {
+            HStack {
+                Spacer()
+                Button {
+                    withAnimation(.spring(duration: 0.35)) {
+                        NexusEngine.shared.endSession()
+                    }
+                } label: {
+                    Image(systemName: "power")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                        .frame(width: 36, height: 36)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                }
+                .padding(.trailing, 16)
+                .padding(.top, 12)
+            }
+            Spacer()
         }
     }
 }
 
+// MARK: - Backward-compat alias
+
+typealias UnrealContainerView = NexusContainerView

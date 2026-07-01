@@ -82,3 +82,85 @@ mutation DeletePost($postKey: Post_Key!) @auth(level: USER) {
 mutation DeleteComment($commentKey: Comment_Key!) @auth(level: USER) {
   comment_delete(key: $commentKey)
 }
+
+mutation AppendShardLedger(
+  $userId: UUID!
+  $deltaShards: Int!
+  $balanceAfter: Int!
+  $source: String!
+  $sessionReceiptId: String
+  $gameModeId: String
+  $note: String
+) @auth(level: USER) {
+  shardLedger_insert(
+    data: {
+      userId: $userId
+      deltaShards: $deltaShards
+      balanceAfter: $balanceAfter
+      source: $source
+      sessionReceiptId: $sessionReceiptId
+      gameModeId: $gameModeId
+      note: $note
+    }
+  )
+}
+
+mutation SpendEvolutionShards(
+  $userId: UUID!
+  $deltaShards: Int!
+  $balanceAfter: Int!
+  $source: String!
+  $note: String
+) @auth(level: USER) {
+  shardLedger_insert(
+    data: {
+      userId: $userId
+      deltaShards: $deltaShards
+      balanceAfter: $balanceAfter
+      source: $source
+      note: $note
+    }
+  )
+}
+
+mutation CreateArenaSession(
+  $player1Id: UUID!
+  $player2Id: UUID!
+  $entryTier: String!
+  $entryShardsEach: Int!
+) @auth(level: USER) {
+  arenaSession_insert(
+    data: {
+      player1Id: $player1Id
+      player2Id: $player2Id
+      entryTier: $entryTier
+      entryShardsEach: $entryShardsEach
+      status: "battle"
+    }
+  )
+}
+
+mutation UpdateArenaSessionResult(
+  $sessionKey: ArenaSession_Key!
+  $player1MaxHeightInches: Float!
+  $player2MaxHeightInches: Float!
+  $player1JumpCount: Int!
+  $player2JumpCount: Int!
+  $winnerId: UUID
+  $shardsAwarded: Int!
+  $endedAt: Timestamp!
+) @auth(level: USER) {
+  arenaSession_update(
+    key: $sessionKey
+    data: {
+      player1MaxHeightInches: $player1MaxHeightInches
+      player2MaxHeightInches: $player2MaxHeightInches
+      player1JumpCount: $player1JumpCount
+      player2JumpCount: $player2JumpCount
+      winnerId: $winnerId
+      shardsAwarded: $shardsAwarded
+      status: "result"
+      endedAt: $endedAt
+    }
+  )
+}

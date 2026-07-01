@@ -1,45 +1,173 @@
 {
   "schema": "fel-venue-registry-2",
-  "notes": "Production venue registry — 19 modes (14 production, 4 staging, 2 preview). Aligned with FEL_ModeManager, GameMode.swift, DefaultGame.ini, and ArenaSettings.json.",
+  "notes": "Production venue registry — 19 modes (12 production, 4 staging, 2 preview, 1 non-game-module). Aligned with FEL_ModeManager, GameMode.swift, DefaultGame.ini, and ArenaSettings.json.",
   "modes": [
-    { "id": "basketball_h2h", "analyticsMode": "head_to_head", "venueKey": "venice_beach_court", "displayVenue": "Venice Beach Court" },
-    { "id": "basketball_dunk", "analyticsMode": "dunk_contest", "venueKey": "venice_beach_court_dunk", "displayVenue": "Venice Beach Court" },
-    { "id": "basketball_3v3", "analyticsMode": "streetball_3v3", "venueKey": "venice_beach_court_3v3", "displayVenue": "Venice Beach Court" },
-    { "id": "karate_h2h", "analyticsMode": "karate_sparring", "venueKey": "dojo_arena", "displayVenue": "Dojo Arena" },
-    { "id": "karate_endless", "analyticsMode": "karate_endless", "venueKey": "dojo_arena", "displayVenue": "Dojo Arena" },
-    { "id": "baseball", "analyticsMode": "home_run_derby", "venueKey": "stadium_diamond", "displayVenue": "Stadium Diamond" },
-    { "id": "football", "analyticsMode": "kick_return", "venueKey": "stadium_field", "displayVenue": "Stadium Field" },
-    { "id": "soccer", "analyticsMode": "penalty_shootout", "venueKey": "stadium_pitch", "displayVenue": "Stadium Pitch" },
-    { "id": "golf", "analyticsMode": "closest_to_pin", "venueKey": "golf_green", "displayVenue": "Golf Green" },
-    { "id": "tennis", "analyticsMode": "rally_ace_tennis", "venueKey": "venice_beach_court_tennis", "displayVenue": "Venice Beach Court" },
-    { "id": "volleyball", "analyticsMode": "rally_ace_volleyball", "venueKey": "beach_court", "displayVenue": "Beach Court" },
-    { "id": "surfing", "analyticsMode": "surf_line", "venueKey": "venice_beach_surf", "displayVenue": "Venice Beach Surf" },
-    { "id": "gymnastics", "analyticsMode": "gymnastics_routine", "venueKey": "arena_floor", "displayVenue": "Arena" },
-    { "id": "skateboarding", "analyticsMode": "skate_line", "venueKey": "skate_park", "displayVenue": "Skate Park" },
-    { "id": "snowboarding", "analyticsMode": "snow_line", "venueKey": "mountain_slope", "displayVenue": "Mountain Slope" },
-    { "id": "brain_brawl", "analyticsMode": "brain_brawl", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena" },
-    { "id": "who_scene_it", "analyticsMode": "who_scene_it", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena" },
-    { "id": "court_carnival", "analyticsMode": "court_carnival", "venueKey": "venice_beach_court", "displayVenue": "Venice Beach Court" },
-    { "id": "market_browse", "analyticsMode": "market_browse", "venueKey": "luma_venice_shop", "displayVenue": "Luma Venice Shop" }
+    {
+      "id": "basketball_h2h",
+      "analyticsMode": "basketball_h2h",
+      "venueKey": "venice_beach",
+      "displayVenue": "Venice Beach",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_VeniceBeach"
+    },
+    {
+      "id": "basketball_dunk",
+      "analyticsMode": "basketball_dunk",
+      "venueKey": "venice_beach",
+      "displayVenue": "Venice Beach",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_VeniceBeach"
+    },
+    {
+      "id": "basketball_3v3",
+      "analyticsMode": "basketball_3v3",
+      "venueKey": "venice_beach",
+      "displayVenue": "Venice Beach",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_VeniceBeach"
+    },
+    {
+      "id": "karate_h2h",
+      "analyticsMode": "karate_h2h",
+      "venueKey": "dojo",
+      "displayVenue": "Martial Arts Dojo",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_Dojo"
+    },
+    {
+      "id": "karate_endless",
+      "analyticsMode": "karate_endless",
+      "venueKey": "dojo",
+      "displayVenue": "Martial Arts Dojo",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_Dojo"
+    },
+    {
+      "id": "baseball",
+      "analyticsMode": "baseball",
+      "venueKey": "baseball_park",
+      "displayVenue": "Baseball Park",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_BaseballPark"
+    },
+    {
+      "id": "football",
+      "analyticsMode": "football",
+      "venueKey": "gridiron",
+      "displayVenue": "Gridiron Stadium",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_Gridiron"
+    },
+    {
+      "id": "soccer",
+      "analyticsMode": "soccer",
+      "venueKey": "soccer_stadium",
+      "displayVenue": "Soccer Stadium",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_SoccerStadium"
+    },
+    {
+      "id": "golf",
+      "analyticsMode": "golf",
+      "venueKey": "links",
+      "displayVenue": "Golf Links",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_Links"
+    },
+    {
+      "id": "tennis",
+      "analyticsMode": "tennis",
+      "venueKey": "tennis_court",
+      "displayVenue": "Tennis Court",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_TennisCourt"
+    },
+    {
+      "id": "volleyball",
+      "analyticsMode": "volleyball",
+      "venueKey": "sand_court",
+      "displayVenue": "Sand Volleyball Court",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_SandCourt"
+    },
+    {
+      "id": "surfing",
+      "analyticsMode": "surfing",
+      "venueKey": "venice_beach",
+      "displayVenue": "Venice Beach",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_VeniceBeach"
+    },
+    {
+      "id": "skateboarding",
+      "analyticsMode": "skateboarding",
+      "venueKey": "skate_park",
+      "displayVenue": "Skate Park",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_SkatePark"
+    },
+    {
+      "id": "snowboarding",
+      "analyticsMode": "snowboarding",
+      "venueKey": "mountain_slope",
+      "displayVenue": "Mountain Slope",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_MountainSlope"
+    },
+    {
+      "id": "gymnastics",
+      "analyticsMode": "gymnastics",
+      "venueKey": "training_floor",
+      "displayVenue": "Training Floor",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_TrainingFloor"
+    },
+    {
+      "id": "brain_brawl",
+      "analyticsMode": "brain_brawl",
+      "venueKey": "neuro_arena",
+      "displayVenue": "Neuro Arena",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_NeuroArena"
+    },
+    {
+      "id": "who_scene_it",
+      "analyticsMode": "who_scene_it",
+      "venueKey": "neuro_arena",
+      "displayVenue": "Neuro Arena",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_NeuroArena"
+    },
+    {
+      "id": "court_carnival",
+      "analyticsMode": "court_carnival",
+      "venueKey": "venice_beach",
+      "displayVenue": "Venice Beach",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_VeniceBeach"
+    },
+    {
+      "id": "market_browse",
+      "analyticsMode": "market_browse",
+      "venueKey": "luma_venice_shop",
+      "displayVenue": "Luma Venice Shop",
+      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
+      "ambientSFX": "AMB_LumaVeniceShop"
+    }
   ],
   "venues": [
-    { "venueKey": "venice_beach_court", "analyticsPolicyName": "Venice Beach — H2H" },
-    { "venueKey": "venice_beach_court_dunk", "analyticsPolicyName": "Venice Beach — Dunk" },
-    { "venueKey": "venice_beach_court_3v3", "analyticsPolicyName": "Venice Beach — 3v3" },
-    { "venueKey": "venice_beach_court_tennis", "analyticsPolicyName": "Venice Beach — Tennis" },
-    { "venueKey": "venice_beach_surf", "analyticsPolicyName": "Venice Beach — Surf" },
-    { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
-    { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena" },
-    { "venueKey": "zen_dojo", "analyticsPolicyName": "Zen Dojo (UE map)" },
-    { "venueKey": "stadium_diamond", "analyticsPolicyName": "Stadium Diamond" },
-    { "venueKey": "stadium_field", "analyticsPolicyName": "Stadium Field" },
-    { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
-    { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
-    { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
+    { "venueKey": "venice_beach", "analyticsPolicyName": "Venice Beach" },
+    { "venueKey": "dojo", "analyticsPolicyName": "Martial Arts Dojo" },
+    { "venueKey": "baseball_park", "analyticsPolicyName": "Baseball Park" },
+    { "venueKey": "gridiron", "analyticsPolicyName": "Gridiron Stadium" },
+    { "venueKey": "soccer_stadium", "analyticsPolicyName": "Soccer Stadium" },
+    { "venueKey": "links", "analyticsPolicyName": "Golf Links" },
+    { "venueKey": "tennis_court", "analyticsPolicyName": "Tennis Court" },
+    { "venueKey": "sand_court", "analyticsPolicyName": "Sand Volleyball Court" },
+    { "venueKey": "training_floor", "analyticsPolicyName": "Training Floor" },
     { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },
     { "venueKey": "mountain_slope", "analyticsPolicyName": "Mountain Slope" },
     { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena" },
-    { "venueKey": "luma_venice_shop", "analyticsPolicyName": "Luma Venice Shop" },
-    { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
+    { "venueKey": "luma_venice_shop", "analyticsPolicyName": "Luma Venice Shop" }
   ]
 }

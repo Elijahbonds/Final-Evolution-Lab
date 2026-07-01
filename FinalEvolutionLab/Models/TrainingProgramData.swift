@@ -1174,4 +1174,504 @@ struct TrainingProgramData {
             isGated: true, isCompleted: false
         ),
     ]
+
+    // MARK: - Sport-Specific Programs (Basketball & Karate)
+
+    // MARK: Basketball — Beginner
+
+    static let beginnerBasketballProgram = TrainingProgram(
+        id: "bball_beginner",
+        track: .foundations,
+        equipment: .bodyweight,
+        weeks: 4,
+        days: beginnerBasketballDays
+    )
+
+    static let beginnerBasketballDays: [TrainingDay] = [
+        TrainingDay(
+            id: "bball_b_d1", dayNumber: 1, variant: "A", title: "Foundation Strength A",
+            category: .strength,
+            warmUp: [
+                tex("bball_b_w1", "Jump Rope (or Simulate)", 2, "60s", 30, .agility, ["Calves", "Ankles"], "Quick feet, stay on balls of feet, light cadence"),
+                tex("bball_b_w2", "Leg Swings (Front/Back)", 2, "10 each", 20, .mobility, ["Hips", "Hamstrings"], "Hold wall for balance, build range gradually"),
+                tex("bball_b_w3", "Arm Circles", 2, "30s", 0, .mobility, ["Shoulders"], "Forward and backward, increasing range"),
+            ],
+            mainWork: [
+                tex("bball_b_d1_1", "Bodyweight Squat", 3, "15", 60, .strength, ["Quads", "Glutes"], "Drive knees over toes, sit to parallel depth"),
+                tex("bball_b_d1_2", "Reverse Lunge", 3, "10 each", 60, .strength, ["Quads", "Glutes"], "Step back, back knee hovers an inch from floor"),
+                tex("bball_b_d1_3", "Push-Up", 3, "10", 60, .strength, ["Chest", "Triceps", "Shoulders"], "Full range, body rigid — scale to incline if needed"),
+                tex("bball_b_d1_4", "Glute Bridge", 3, "12", 45, .strength, ["Glutes", "Hamstrings"], "Drive hips up, squeeze at top, 2s hold"),
+                tex("bball_b_d1_5", "Plank Hold", 3, "30s", 45, .strength, ["Core"], "Wrists under shoulders, body straight from head to heels"),
+                tex("bball_b_d1_6", "Lateral Shuffle (Court Width)", 3, "30s", 45, .agility, ["Hips", "Quads"], "Low stance, stay on balls of feet, quick side-to-side"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_b_d2", dayNumber: 2, variant: "A", title: "Recovery + Movement",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("bball_b_d2_1", "Foam Roll — Quads + Calves", 2, "60s each", 20, .recovery, ["Quads", "Calves"], "Slow rolls, pause on tender spots"),
+                tex("bball_b_d2_2", "Hip Flexor Stretch", 3, "30s each", 20, .mobility, ["Hip Flexors"], "Low lunge position, gentle forward pressure"),
+                tex("bball_b_d2_3", "Dribbling Footwork (Stationary)", 2, "2 min", 30, .agility, ["Full Body"], "Triple-threat stance, quick jab steps and pivots"),
+                tex("bball_b_d2_4", "Wall Slides", 2, "10", 20, .mobility, ["Shoulders", "Thoracic Spine"], "Back flat on wall, slide arms overhead without arching"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_b_d3", dayNumber: 3, variant: "A", title: "Foundation Strength B",
+            category: .strength,
+            warmUp: [
+                tex("bball_b_w4", "High Knees", 2, "30s", 20, .agility, ["Hip Flexors", "Calves"], "Drive knees to hip height, pump arms"),
+                tex("bball_b_w5", "Butt Kicks", 2, "30s", 20, .agility, ["Hamstrings"], "Heels to glutes, quick tempo"),
+            ],
+            mainWork: [
+                tex("bball_b_d3_1", "Step-Up (Box or Bench)", 3, "10 each", 60, .strength, ["Quads", "Glutes"], "Drive through heel, stand fully on top before stepping down"),
+                tex("bball_b_d3_2", "Single-Leg Glute Bridge", 3, "10 each", 45, .strength, ["Glutes", "Hamstrings"], "One leg extended, drive single leg hip up"),
+                tex("bball_b_d3_3", "Inverted Row (Table or Bar)", 3, "8", 60, .strength, ["Back", "Biceps"], "Body straight, pull chest to surface"),
+                tex("bball_b_d3_4", "Calf Raise (Double-Leg)", 3, "20", 30, .strength, ["Calves"], "Full range — from deep dorsiflexion to full plantarflexion"),
+                tex("bball_b_d3_5", "Dead Bug", 3, "8 each", 45, .strength, ["Core", "Hip Flexors"], "Lower back pressed to floor, slow and controlled"),
+                tex("bball_b_d3_6", "Defensive Slide Drill", 3, "30s", 45, .agility, ["Hip Abductors", "Quads"], "Wide stance, stay low, mirror partner or cone pattern"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_b_d4", dayNumber: 4, variant: "A", title: "Jump Intro + Recovery",
+            category: .plyometrics,
+            warmUp: [
+                tex("bball_b_w6", "Dynamic Warm-Up Circuit", 1, "5 min", 30, .mobility, ["Full Body"], "Leg swings, arm circles, light jog, hip openers"),
+            ],
+            mainWork: [
+                tex("bball_b_d4_1", "Standing Broad Jump", 3, "5", 90, .plyometric, ["Full Body"], "Two-foot take-off, land softly, stick 2 seconds"),
+                tex("bball_b_d4_2", "Box Jump (Low Box)", 3, "5", 90, .plyometric, ["Full Body"], "Step off to reset, soft landing, don't drop jump"),
+                tex("bball_b_d4_3", "Ankle Mobility CARs", 2, "10 each", 20, .mobility, ["Ankles"], "Seated or standing full ankle circles"),
+                tex("bball_b_d4_4", "Static Stretching — Lower Body", 1, "8 min", 0, .recovery, ["Full Body"], "Quads, hamstrings, calves, hip flexors — 30s each"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_b_d5", dayNumber: 5, variant: "A", title: "Skills + Conditioning",
+            category: .movementEducation,
+            warmUp: [
+                tex("bball_b_w7", "Shooting Form (No Ball)", 2, "5 min", 0, .mobility, ["Shoulders", "Core"], "Elbow alignment, wrist snap, balanced base — mirror practice"),
+            ],
+            mainWork: [
+                tex("bball_b_d5_1", "Lay-Up Footwork (Slow)", 3, "10 each side", 45, .agility, ["Full Body"], "Two-step approach, focus on gather step and angle to basket"),
+                tex("bball_b_d5_2", "Cone Weave Sprint", 3, "4 lengths", 60, .agility, ["Full Body"], "Weave through 5 cones, 2m spacing, increase speed each set"),
+                tex("bball_b_d5_3", "Free Throw Form Practice", 2, "10 shots", 30, .mobility, ["Shoulders", "Core"], "Focus on consistent pre-shot routine and follow-through arc"),
+                tex("bball_b_d5_4", "Reactive Jump (Partner Cue or Own)", 3, "6", 60, .plyometric, ["Full Body"], "React on verbal/visual cue, vertical jump max intent"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    // MARK: Basketball — Intermediate
+
+    static let intermediateBasketballProgram = TrainingProgram(
+        id: "bball_intermediate",
+        track: .flight,
+        equipment: .bodyweight,
+        weeks: 4,
+        days: intermediateBasketballDays
+    )
+
+    static let intermediateBasketballDays: [TrainingDay] = [
+        TrainingDay(
+            id: "bball_i_d1", dayNumber: 1, variant: "A", title: "Explosive Strength A",
+            category: .strength,
+            warmUp: [
+                tex("bball_i_w1", "Jump Rope (Double Speed)", 3, "60s", 30, .agility, ["Calves", "Ankles"], "Quick cadence, alternate single/double legs"),
+                tex("bball_i_w2", "Hip Circles + Lateral Leg Swings", 2, "10 each", 20, .mobility, ["Hips"], "Full range in both planes"),
+                tex("bball_i_w3", "Pogos", 2, "20", 20, .plyometric, ["Calves", "Ankles"], "Stiff ankles, quick off ground"),
+            ],
+            mainWork: [
+                tex("bball_i_d1_1", "Bulgarian Split Squat", 4, "8 each", 75, .strength, ["Quads", "Glutes", "Core"], "Rear foot elevated, deep range, drive through front heel"),
+                tex("bball_i_d1_2", "Hip Thrust (Loaded)", 4, "10", 75, .strength, ["Glutes", "Hamstrings"], "Barbell or plate, pause 2s at lockout"),
+                tex("bball_i_d1_3", "Single-Leg Calf Raise", 3, "15 each", 45, .strength, ["Calves"], "Full range, 2s pause at top, control descent"),
+                tex("bball_i_d1_4", "Dumbbell Row", 3, "10 each", 60, .strength, ["Back", "Biceps"], "Pull to hip, squeeze at top"),
+                tex("bball_i_d1_5", "Side Plank (Hip Lift)", 3, "10 each", 45, .strength, ["Obliques", "Glutes"], "Raise and lower hips from side plank position"),
+                tex("bball_i_d1_6", "Lateral Change of Direction Drill", 3, "30s", 60, .agility, ["Full Body"], "5-10-5 shuttle pattern, max effort, track time"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_i_d2", dayNumber: 2, variant: "A", title: "Recovery + Isos",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("bball_i_d2_1", "Foam Roll — Full Lower Body", 2, "8 min", 0, .recovery, ["Quads", "Hamstrings", "Calves", "IT Band"], "1 min per area, slow controlled pressure"),
+                tex("bball_i_d2_2", "Maximal Yielding Hamstring Iso", 3, "30s each", 45, .strength, ["Hamstrings"], "Hold at longest tolerable length, 3-position approach"),
+                tex("bball_i_d2_3", "Spanish Squat Iso", 3, "30s", 45, .strength, ["Quads", "Knees"], "Band behind back and knees, hold deep position"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_i_d3", dayNumber: 3, variant: "A", title: "Power + Plyometrics",
+            category: .plyometrics,
+            warmUp: [
+                tex("bball_i_w4", "A-Skips", 3, "20m", 30, .agility, ["Hip Flexors", "Calves"], "Drive knee up to hip height, arm swing in opposition"),
+                tex("bball_i_w5", "Lateral Bounds (Stick)", 3, "8 each", 30, .plyometric, ["Hip Abductors", "Quads"], "Max distance, stick landing 2s each side"),
+            ],
+            mainWork: [
+                tex("bball_i_d3_1", "Depth Jump to Max Vertical", 4, "5", 120, .plyometric, ["Full Body"], "Step off box, minimal ground contact, explode up"),
+                tex("bball_i_d3_2", "Lateral Bound to Sprint", 3, "6 each", 90, .plyometric, ["Full Body"], "Max lateral bound, plant and burst forward"),
+                tex("bball_i_d3_3", "Approach Jump (1-Step)", 4, "5", 90, .plyometric, ["Full Body"], "One-step approach, focus on penultimate gather step"),
+                tex("bball_i_d3_4", "Continuous Box Jumps", 3, "8", 90, .plyometric, ["Full Body"], "Step down each time, reset stance, rapid rebound"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_i_d4", dayNumber: 4, variant: "A", title: "Recovery + Pilates",
+            category: .recoveryPilates,
+            warmUp: [],
+            mainWork: [
+                tex("bball_i_d4_1", "Cat Camel", 3, "10", 20, .mobility, ["Spine", "Core"], "Slow transitions, breathe into each position"),
+                tex("bball_i_d4_2", "Thread the Needle", 3, "8 each", 30, .mobility, ["Thoracic Spine"], "Full thoracic rotation range"),
+                tex("bball_i_d4_3", "Hip Flexor Iso Hold", 3, "30s each", 30, .strength, ["Hip Flexors"], "March position, hold knee at 90° against gravity"),
+                tex("bball_i_d4_4", "Swimming (Prone)", 3, "30s", 30, .recovery, ["Back", "Glutes"], "Alternating arm/leg lifts, core engaged"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_i_d5", dayNumber: 5, variant: "A", title: "Game Speed + Skills",
+            category: .maxIntent,
+            warmUp: [
+                tex("bball_i_w6", "Dynamic CNS Primer", 2, "5 min", 45, .mobility, ["Full Body"], "Tuck jumps, sprint build-ups, quick feet ladder"),
+            ],
+            mainWork: [
+                tex("bball_i_d5_1", "Full-Court Sprint (Suicides)", 3, "4 lengths", 120, .agility, ["Full Body"], "Touch each line, max effort, track split times"),
+                tex("bball_i_d5_2", "Pick-and-Roll Footwork", 3, "8 reps", 60, .agility, ["Full Body"], "Simulate ball-handler curl and roll, attack rim footwork"),
+                tex("bball_i_d5_3", "Shot-Release off Movement", 3, "10 shots", 45, .agility, ["Full Body"], "Catch-and-shoot off 2 lateral shuffle steps — balance and consistency"),
+                tex("bball_i_d5_4", "Jump Shot Vertical Approach", 3, "8", 90, .plyometric, ["Full Body"], "Max intent jump shot — full approach, simulated catch, release at peak"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+    ]
+
+    // MARK: Basketball — Advanced
+
+    static let advancedBasketballProgram = TrainingProgram(
+        id: "bball_advanced",
+        track: .elite,
+        equipment: .bodyweight,
+        weeks: 4,
+        days: advancedBasketballDays
+    )
+
+    static let advancedBasketballDays: [TrainingDay] = [
+        TrainingDay(
+            id: "bball_a_d1", dayNumber: 1, variant: "A", title: "Max Strength A",
+            category: .strength,
+            warmUp: [
+                tex("bball_a_w1", "CNS Primer Circuit", 2, "4 min", 60, .plyometric, ["Full Body"], "Tuck jumps, clap push-ups, sprint build-ups — prime for max output"),
+                tex("bball_a_w2", "Pogos + Lateral Bounds", 3, "20 + 6 each", 30, .plyometric, ["Calves", "Hip Abductors"], "Stiff pogos then max lateral bound — reactive chain"),
+            ],
+            mainWork: [
+                tex("bball_a_d1_1", "Trap Bar Deadlift (Heavy)", 5, "3-5", 180, .strength, ["Posterior Chain", "Quads"], "Max force, explosive concentric, full lockout"),
+                tex("bball_a_d1_2", "Rear Foot Elevated Split Squat (Loaded)", 4, "6 each", 90, .strength, ["Quads", "Glutes"], "Deep range, heavy dumbbell, drive through front heel"),
+                tex("bball_a_d1_3", "Nordic Hamstring Curl", 4, "5", 90, .strength, ["Hamstrings"], "Full eccentric control — fight the fall as long as possible"),
+                tex("bball_a_d1_4", "Barbell Hip Thrust (Heavy)", 4, "8", 90, .strength, ["Glutes", "Hamstrings"], "Heavy load, 3s pause at peak extension"),
+                tex("bball_a_d1_5", "Weighted Depth Jump", 4, "5", 120, .plyometric, ["Full Body"], "Light vest, step off box, maximize reactive output"),
+                tex("bball_a_d1_6", "Anti-Rotation Plank Complex", 3, "1 round", 60, .strength, ["Core"], "Pallof press 10 each + dead bug 10 + bird dog 10 each"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_a_d2", dayNumber: 2, variant: "A", title: "Recovery + Isos",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("bball_a_d2_1", "Side Lying Breathing Corrective", 2, "90s each", 30, .recovery, ["Core", "Diaphragm"], "4s in, 6s out, feel lateral rib expansion — CNS downregulation"),
+                tex("bball_a_d2_2", "Maximal Yielding Hamstring Iso (Extended)", 3, "45s each", 60, .strength, ["Hamstrings"], "Hold at end range with max effort, progress through 3 lengths"),
+                tex("bball_a_d2_3", "Standing 4-Way Hip Iso (Heavy Band)", 3, "25s each", 45, .strength, ["Hips", "Glutes"], "Max isometric press into resistance in all 4 directions"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_a_d3", dayNumber: 3, variant: "A", title: "Max Power + Agility",
+            category: .maxIntent,
+            warmUp: [
+                tex("bball_a_w3", "Full CNS Warm-Up", 2, "8 min", 60, .mobility, ["Full Body"], "Sprint build-ups, approach rehearsals, tuck jumps"),
+            ],
+            mainWork: [
+                tex("bball_a_d3_1", "Dunk Approach — Full Run-Up", 5, "5", 150, .plyometric, ["Full Body"], "Full approach, max intent — focus on penultimate step and arm swing"),
+                tex("bball_a_d3_2", "Reactive Change of Direction (COD)", 4, "6 each", 90, .agility, ["Full Body"], "React to visual cue — hard cut then burst, record split times"),
+                tex("bball_a_d3_3", "Depth Jump to Broad Jump", 4, "5", 120, .plyometric, ["Full Body"], "Step off box, absorb vertically, redirect horizontal — chain seamlessly"),
+                tex("bball_a_d3_4", "Neural Drive Sprint Series", 5, "20m", 120, .agility, ["Full Body"], "Max effort sprints for neural recruitment — full recovery between"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_a_d4", dayNumber: 4, variant: "A", title: "Recovery Protocol",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("bball_a_d4_1", "Foam Roll + Lacrosse Ball", 1, "12 min", 0, .recovery, ["Full Body"], "Quads, glutes, lats, calves — deep tissue focus"),
+                tex("bball_a_d4_2", "Ankle CARs + Banded Ankle CARs", 3, "10 each", 20, .mobility, ["Ankles"], "Full circles with and without band resistance"),
+                tex("bball_a_d4_3", "Diaphragmatic Breathing Protocol", 2, "5 min", 0, .recovery, ["Core", "Diaphragm"], "4s in / 4s hold / 6s out — CNS rebalance post-intensity"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "bball_a_d5", dayNumber: 5, variant: "A", title: "Game Simulation",
+            category: .maxIntent,
+            warmUp: [
+                tex("bball_a_w4", "Scrimmage Warm-Up", 1, "8 min", 30, .mobility, ["Full Body"], "3v3 half-court walk-through, touch all movement patterns"),
+            ],
+            mainWork: [
+                tex("bball_a_d5_1", "5v5 Full-Court Scrimmage or Solo Drill Set", 1, "20 min", 0, .agility, ["Full Body"], "Full intensity — defensive rotations, offensive sets, transition"),
+                tex("bball_a_d5_2", "Clutch Free-Throw Protocol", 2, "10 shots", 30, .mobility, ["Shoulders"], "After max effort sprint — simulate game fatigue shooting"),
+                tex("bball_a_d5_3", "Post-Session Jump Test", 1, "3 attempts", 60, .plyometric, ["Full Body"], "Max vertical — track, record, compare to baseline"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+    ]
+
+    // MARK: Karate — Beginner
+
+    static let beginnerKarateProgram = TrainingProgram(
+        id: "karate_beginner",
+        track: .foundations,
+        equipment: .bodyweight,
+        weeks: 4,
+        days: beginnerKarateDays
+    )
+
+    static let beginnerKarateDays: [TrainingDay] = [
+        TrainingDay(
+            id: "kar_b_d1", dayNumber: 1, variant: "A", title: "Kata Basics + Foundation",
+            category: .strength,
+            warmUp: [
+                tex("kar_b_w1", "Shiko (Sumo Squat) Stretch", 2, "30s", 20, .mobility, ["Adductors", "Hips"], "Wide stance, hands on knees, push knees out gently"),
+                tex("kar_b_w2", "Hip Rotations (Standing)", 2, "10 each", 20, .mobility, ["Hips", "Lower Back"], "Both directions, gradually increase range"),
+                tex("kar_b_w3", "Wrist and Shoulder Circles", 2, "10 each", 0, .mobility, ["Wrists", "Shoulders"], "Full range, both directions — protect joint health"),
+            ],
+            mainWork: [
+                tex("kar_b_d1_1", "Zenkutsu-Dachi (Front Stance) Hold", 3, "30s each", 45, .strength, ["Quads", "Glutes", "Core"], "Deep front stance, front knee bent at 90°, back leg straight"),
+                tex("kar_b_d1_2", "Kiba-Dachi (Horse Stance) Hold", 3, "30s", 45, .strength, ["Quads", "Adductors", "Glutes"], "Feet double shoulder-width, thighs parallel to floor"),
+                tex("kar_b_d1_3", "Oi-Tsuki (Lunge Punch) Basic", 3, "10 each", 45, .strength, ["Quads", "Shoulders", "Core"], "Reverse punch from front stance — power from hip rotation"),
+                tex("kar_b_d1_4", "Age-Uke (Rising Block)", 3, "10 each", 30, .strength, ["Shoulders", "Core"], "Rising block with hip counter-rotation, kiai on final rep"),
+                tex("kar_b_d1_5", "Squat + Rise", 3, "12", 45, .strength, ["Quads", "Glutes"], "Deep squat to full stand, prepare hip mobility for stances"),
+                tex("kar_b_d1_6", "Core Brace + Kiai Drill", 3, "10", 30, .strength, ["Core", "Diaphragm"], "Standing, brace core fully then exhale sharp kiai — condition IAP"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_b_d2", dayNumber: 2, variant: "A", title: "Recovery + Flexibility",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("kar_b_d2_1", "Standing Quadriceps Stretch", 2, "30s each", 20, .mobility, ["Quads", "Hip Flexors"], "Balance on one foot, pull heel to glute"),
+                tex("kar_b_d2_2", "Seated Hamstring Stretch", 2, "30s each", 20, .mobility, ["Hamstrings"], "Reach for toes, breathe out tension"),
+                tex("kar_b_d2_3", "Butterfly Stretch (Baddha Konasana)", 2, "60s", 20, .mobility, ["Adductors", "Groin"], "Feet together, press knees gently toward floor"),
+                tex("kar_b_d2_4", "Hip Flexor Lunge Stretch", 2, "30s each", 20, .mobility, ["Hip Flexors"], "Low lunge, push hips forward gently — maintain upright torso"),
+                tex("kar_b_d2_5", "Shoulder Cross-Body Stretch", 2, "20s each", 20, .mobility, ["Shoulders", "Rotator Cuff"], "Pull arm across body at shoulder height"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_b_d3", dayNumber: 3, variant: "A", title: "Kicks + Lower Body Power",
+            category: .strength,
+            warmUp: [
+                tex("kar_b_w4", "Leg Swings (Front + Lateral)", 2, "10 each", 0, .mobility, ["Hips", "Hamstrings"], "Hold wall, build amplitude with each rep"),
+                tex("kar_b_w5", "Hip Circles", 2, "10 each direction", 0, .mobility, ["Hips"], "Full range, keep torso still"),
+            ],
+            mainWork: [
+                tex("kar_b_d3_1", "Mae-Geri (Front Kick) Slow", 3, "8 each", 45, .strength, ["Hip Flexors", "Quads"], "Chamber knee high, extend kick slowly, control return"),
+                tex("kar_b_d3_2", "Yoko-Geri (Side Kick) Slow", 3, "6 each", 60, .strength, ["Hip Abductors", "Quads"], "Chamber knee, drive heel out to side, foot flat — slow practice"),
+                tex("kar_b_d3_3", "Single-Leg Balance", 3, "20s each", 30, .mobility, ["Ankles", "Core"], "Eyes open → eyes closed progression — stability for kicking"),
+                tex("kar_b_d3_4", "Body-Weight Squat Jump", 3, "8", 60, .plyometric, ["Quads", "Glutes"], "Full squat depth, explode to maximum height, soft landing"),
+                tex("kar_b_d3_5", "Glute Bridge (Pulsing)", 3, "30s", 30, .strength, ["Glutes"], "Small pulses at top — activate glutes for kicking power"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_b_d4", dayNumber: 4, variant: "A", title: "Kata Practice A",
+            category: .movementEducation,
+            warmUp: [
+                tex("kar_b_w6", "Full-Body Dynamic Warm-Up", 1, "5 min", 0, .mobility, ["Full Body"], "Joint circles, leg swings, light jog, breathing"),
+            ],
+            mainWork: [
+                tex("kar_b_d4_1", "Heian Shodan or Taikyoku Shodan (Slow)", 5, "1 run-through", 90, .mobility, ["Full Body"], "Every technique slow and deliberate — focus on stance depth and kime"),
+                tex("kar_b_d4_2", "Stances Transition Drill", 3, "10 each", 45, .strength, ["Quads", "Hips", "Core"], "Transition front → horse → back stance with body stay level"),
+                tex("kar_b_d4_3", "Punching Combination (3-Count)", 3, "10", 30, .strength, ["Shoulders", "Core"], "Jab-cross-reverse punch with hip rotation, kiai on last"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_b_d5", dayNumber: 5, variant: "A", title: "Recovery + Conditioning",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("kar_b_d5_1", "Light Jog or Walk", 1, "15 min", 0, .recovery, ["Full Body"], "Conversational pace — active recovery for CNS"),
+                tex("kar_b_d5_2", "Full Kata Run-Through (Normal Speed)", 3, "1 each", 60, .mobility, ["Full Body"], "Apply week's learning — add snap and kiai in correct places"),
+                tex("kar_b_d5_3", "Deep Breathing / Mokuso", 2, "3 min", 0, .recovery, ["Core", "Diaphragm"], "Eyes closed, seated seiza, 4s in / 6s out — meditative focus"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+    ]
+
+    // MARK: Karate — Intermediate
+
+    static let intermediateKarateProgram = TrainingProgram(
+        id: "karate_intermediate",
+        track: .flight,
+        equipment: .bodyweight,
+        weeks: 4,
+        days: intermediateKarateDays
+    )
+
+    static let intermediateKarateDays: [TrainingDay] = [
+        TrainingDay(
+            id: "kar_i_d1", dayNumber: 1, variant: "A", title: "Sparring Prep — Strength",
+            category: .strength,
+            warmUp: [
+                tex("kar_i_w1", "Shadow Sparring (Light)", 2, "2 min", 30, .agility, ["Full Body"], "Loose, free-form — hands up, move feet, throw light techniques"),
+                tex("kar_i_w2", "Hip Flexor + Adductor Kick Warm-Up", 2, "10 each", 20, .mobility, ["Hips", "Adductors"], "Slow kicks building range, full circles"),
+            ],
+            mainWork: [
+                tex("kar_i_d1_1", "Squat Jump (Kicking Power)", 4, "8", 60, .plyometric, ["Quads", "Glutes"], "Deep squat, explosive jump — generate power for high kicks"),
+                tex("kar_i_d1_2", "Hip Thrust (Loaded)", 4, "10", 75, .strength, ["Glutes", "Hamstrings"], "Drive for hip extension power — foundation for all kicks"),
+                tex("kar_i_d1_3", "Single-Leg Deadlift", 3, "8 each", 60, .strength, ["Hamstrings", "Glutes", "Core"], "Slow eccentric, maintain flat back — mirrors kicking balance"),
+                tex("kar_i_d1_4", "Push-Up + Rotating Hip Drive", 3, "10", 60, .strength, ["Chest", "Core", "Shoulders"], "Push-up then rotate to side plank, drive knee to chest"),
+                tex("kar_i_d1_5", "Rotational Med Ball Slam", 3, "8 each", 60, .plyometric, ["Core", "Obliques", "Shoulders"], "Mirror gyaku-tsuki rotation — develop rotational hip power"),
+                tex("kar_i_d1_6", "Kiba-Dachi Squat (Pulsing)", 3, "30s", 45, .strength, ["Quads", "Adductors"], "Deep horse stance, small pulses — build sustained stance endurance"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_i_d2", dayNumber: 2, variant: "A", title: "Recovery + Isos",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("kar_i_d2_1", "Side Lying Breathing Corrective", 2, "60s each", 30, .recovery, ["Core", "Diaphragm"], "4s inhale, 6s exhale — downregulate after training"),
+                tex("kar_i_d2_2", "Maximal Yielding Hamstring Iso", 3, "30s each", 45, .strength, ["Hamstrings"], "Kick position length — maximize flexibility for high kicks"),
+                tex("kar_i_d2_3", "Standing 4-Way Hip Iso", 3, "20s each", 30, .strength, ["Hips", "Glutes"], "Press into wall/band all 4 directions — balance hip strength"),
+                tex("kar_i_d2_4", "Adductor Iso Hold", 3, "30s", 30, .strength, ["Adductors"], "Squeeze medicine ball or pillow between knees — groin protection"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_i_d3", dayNumber: 3, variant: "A", title: "Kumite Movement + Power",
+            category: .plyometrics,
+            warmUp: [
+                tex("kar_i_w3", "Shadow Kumite (Medium Intensity)", 2, "2 min", 30, .agility, ["Full Body"], "Controlled sparring footwork — in/out, lateral, level change"),
+                tex("kar_i_w4", "Plyometric Pogos", 2, "20", 20, .plyometric, ["Calves", "Ankles"], "Stiff ankles, quick contact — mirrors kumite bounce"),
+            ],
+            mainWork: [
+                tex("kar_i_d3_1", "Mae-Geri (Front Kick) — Fast + Chamber", 4, "8 each", 45, .plyometric, ["Hip Flexors", "Quads"], "Full speed chamber and extension — snap back to chamber before lower"),
+                tex("kar_i_d3_2", "Mawashi-Geri (Roundhouse Kick) — Controlled", 4, "6 each", 60, .strength, ["Hip Abductors", "Quads", "Core"], "Hip rotation drives kick, snap back to chamber, maintain guard"),
+                tex("kar_i_d3_3", "Footwork Combination (3-Step)", 3, "10", 45, .agility, ["Full Body"], "Advance-lunge punch, retreat-block, lateral-gyaku — link seamlessly"),
+                tex("kar_i_d3_4", "Explosive Step-In Lunge Punch", 3, "10 each", 60, .plyometric, ["Full Body"], "Drive off rear foot into oi-tsuki — explosive hip extension and hip lock"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_i_d4", dayNumber: 4, variant: "A", title: "Kata + Recovery",
+            category: .movementEducation,
+            warmUp: [
+                tex("kar_i_w5", "Full-Body Dynamic Warm-Up", 1, "5 min", 0, .mobility, ["Full Body"], "Joint prep, leg swings, arm circles, light movement"),
+            ],
+            mainWork: [
+                tex("kar_i_d4_1", "Kata (Intermediate — Heian Godan or Bassai-Dai)", 5, "1 run-through", 90, .mobility, ["Full Body"], "First 3 slow, last 2 full speed with kiai and kime"),
+                tex("kar_i_d4_2", "Bunkai (Application) Partner or Solo", 3, "10 each technique", 60, .strength, ["Full Body"], "Extract 3 techniques from kata, apply in practical defense context"),
+                tex("kar_i_d4_3", "Flexibility Flow", 2, "5 min", 0, .mobility, ["Hips", "Hamstrings", "Shoulders"], "Long holds — target areas used in kata techniques"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_i_d5", dayNumber: 5, variant: "A", title: "Sparring Simulation",
+            category: .maxIntent,
+            warmUp: [
+                tex("kar_i_w6", "Karate CNS Primer", 2, "5 min", 45, .plyometric, ["Full Body"], "Fast stances, snap kicks, combination punches — ramp intensity"),
+            ],
+            mainWork: [
+                tex("kar_i_d5_1", "Light Contact Sparring or Shadow Kumite (Full)", 1, "3×2 min rounds", 60, .agility, ["Full Body"], "Control contact, practice point-scoring techniques — maai management"),
+                tex("kar_i_d5_2", "Kizami-Tsuki + Gyaku-Tsuki Combination Sprint", 3, "10 combos", 45, .plyometric, ["Full Body"], "Jab + reverse punch, explosive hip drive — max speed on each"),
+                tex("kar_i_d5_3", "Post-Training Mokuso + Stretch", 1, "5 min", 0, .recovery, ["Full Body"], "Meditative breathing, long hamstring and hip flexor stretches"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+    ]
+
+    // MARK: Karate — Advanced
+
+    static let advancedKarateProgram = TrainingProgram(
+        id: "karate_advanced",
+        track: .elite,
+        equipment: .bodyweight,
+        weeks: 4,
+        days: advancedKarateDays
+    )
+
+    static let advancedKarateDays: [TrainingDay] = [
+        TrainingDay(
+            id: "kar_a_d1", dayNumber: 1, variant: "A", title: "Competition Prep — Max Strength",
+            category: .strength,
+            warmUp: [
+                tex("kar_a_w1", "Kata CNS Primer (Full Speed)", 1, "1 run-through", 60, .mobility, ["Full Body"], "Selected competition kata at full speed — prime CNS for max output"),
+                tex("kar_a_w2", "Explosive Plyometric Warm-Up", 2, "3 min", 45, .plyometric, ["Full Body"], "Tuck jumps, broad jumps, lateral bounds — activate fast-twitch"),
+            ],
+            mainWork: [
+                tex("kar_a_d1_1", "Trap Bar Deadlift (Heavy)", 5, "3-5", 180, .strength, ["Posterior Chain", "Quads"], "Max strength foundation — peak hip extension power for all kicking"),
+                tex("kar_a_d1_2", "Rear Foot Elevated Split Squat (Loaded)", 4, "6 each", 90, .strength, ["Quads", "Glutes"], "Deep range — mirrors front stance mechanics under load"),
+                tex("kar_a_d1_3", "Nordic Hamstring Curl", 4, "5", 90, .strength, ["Hamstrings"], "Injury prevention critical for high-kick practitioners"),
+                tex("kar_a_d1_4", "Barbell Hip Thrust (Max)", 4, "6", 90, .strength, ["Glutes", "Hamstrings"], "Heavy load, 3s lockout — maximize glute drive for explosive kicks"),
+                tex("kar_a_d1_5", "Rotational Med Ball Throw (Wall)", 4, "8 each", 75, .plyometric, ["Core", "Obliques"], "Simulate gyaku-tsuki rotation velocity — max intent each throw"),
+                tex("kar_a_d1_6", "Cross Connect Core Circuit", 3, "12 each", 45, .strength, ["Core", "Obliques"], "Toe touches + chops + Pallof press — iron out rotational leakage"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_a_d2", dayNumber: 2, variant: "A", title: "Recovery + Isos",
+            category: .recoveryIso,
+            warmUp: [],
+            mainWork: [
+                tex("kar_a_d2_1", "Side Lying Breathing Corrective", 2, "90s each", 30, .recovery, ["Core", "Diaphragm"], "Extended CNS downregulation protocol — 4s in / 6s out × 10"),
+                tex("kar_a_d2_2", "Maximal Yielding Hamstring Iso (Extended)", 3, "45s each", 60, .strength, ["Hamstrings"], "End range kicks — maximize length for jodan kicks"),
+                tex("kar_a_d2_3", "Standing 4-Way Hip Iso (Heavy Band)", 3, "25s each", 45, .strength, ["Hips", "Glutes"], "Max isometric output in all 4 directions"),
+                tex("kar_a_d2_4", "Adductor Long-Length Iso", 3, "30s", 45, .strength, ["Adductors"], "Groin protection and mawashi-geri chamber strength"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_a_d3", dayNumber: 3, variant: "A", title: "Competition Kata + Kumite Power",
+            category: .maxIntent,
+            warmUp: [
+                tex("kar_a_w3", "Full CNS Warm-Up + Shadow Kumite", 2, "8 min", 60, .mobility, ["Full Body"], "Build from light shadow to 90% intensity — full competition simulation"),
+            ],
+            mainWork: [
+                tex("kar_a_d3_1", "Competition Kata — Max Effort", 5, "1 per set", 120, .mobility, ["Full Body"], "Judged run-throughs — power, rhythm, kime, zanshin"),
+                tex("kar_a_d3_2", "High-Speed Kick Combination", 4, "8 each leg", 90, .plyometric, ["Hip Flexors", "Quads", "Core"], "Mae-geri + mawashi-geri in sequence — acceleration and deceleration"),
+                tex("kar_a_d3_3", "Explosive Punch Combination (5-Count)", 4, "10", 60, .plyometric, ["Shoulders", "Core", "Full Body"], "Kizami + gyaku + uraken + empi + gyaku — max hip rotation each"),
+                tex("kar_a_d3_4", "Depth Jump → Jodan Kick Combination", 3, "5", 120, .plyometric, ["Full Body"], "Step off box, land, immediately deliver upper-level kick — explosive chain"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_a_d4", dayNumber: 4, variant: "A", title: "Neural Recovery",
+            category: .recovery,
+            warmUp: [],
+            mainWork: [
+                tex("kar_a_d4_1", "Zone 2 Cardio (Light Run / Cycle)", 1, "25 min", 0, .recovery, ["Full Body"], "Conversational pace — CNS rebalancing, avoid high intensity"),
+                tex("kar_a_d4_2", "Foam Roll + Lacrosse Ball Protocol", 1, "12 min", 0, .recovery, ["Full Body"], "Quads, glutes, lats, calves — deep tissue compression"),
+                tex("kar_a_d4_3", "Extended Mokuso + Visualization", 2, "5 min", 0, .recovery, ["Core", "Diaphragm"], "Eyes closed — visualize competition kata flawlessly executed"),
+            ],
+            isGated: false, isCompleted: false
+        ),
+        TrainingDay(
+            id: "kar_a_d5", dayNumber: 5, variant: "A", title: "Competition Simulation Day",
+            category: .maxIntent,
+            warmUp: [
+                tex("kar_a_w4", "Pre-Competition Ritual Warm-Up", 1, "10 min", 30, .mobility, ["Full Body"], "Replicate exact pre-competition warm-up sequence for neural priming"),
+            ],
+            mainWork: [
+                tex("kar_a_d5_1", "Competition Kata (Timed + Evaluated)", 3, "1 per set", 180, .mobility, ["Full Body"], "Video if possible — score kime, timing, zanshin, and spirit"),
+                tex("kar_a_d5_2", "Ippon Kumite Combinations (Full Speed)", 4, "5 each", 90, .agility, ["Full Body"], "Attacker/defender rotation — reaction speed and counter precision"),
+                tex("kar_a_d5_3", "Jiyu Kumite or Controlled Sparring", 1, "3×2 min rounds", 60, .agility, ["Full Body"], "Full competition simulation — scoring, maai, strategy"),
+                tex("kar_a_d5_4", "Post-Competition Cool Down + Mokuso", 1, "10 min", 0, .recovery, ["Full Body"], "Full body stretch, breathing, mental debrief — prepare for next cycle"),
+            ],
+            isGated: true, isCompleted: false
+        ),
+    ]
 }

@@ -121,20 +121,25 @@ struct ShardShopView: View {
         }
     }
 
+    @ViewBuilder
     private var itemsGrid: some View {
-        let items = ShopCatalog.items(for: selectedCategory)
-        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                ShopItemCard(
-                    item: item,
-                    isPurchased: purchasedIds.contains(item.id),
-                    canAfford: viewModel.profile.evolutionShards >= item.cost
-                ) {
-                    handlePurchaseTap(item)
+        if selectedCategory == .creatorCard {
+            CreatorCardBoostView(viewModel: viewModel)
+        } else {
+            let items = ShopCatalog.items(for: selectedCategory)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    ShopItemCard(
+                        item: item,
+                        isPurchased: purchasedIds.contains(item.id),
+                        canAfford: viewModel.profile.evolutionShards >= item.cost
+                    ) {
+                        handlePurchaseTap(item)
+                    }
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 15)
+                    .animation(.spring(response: 0.4).delay(Double(index) * 0.06), value: appeared)
                 }
-                .opacity(appeared ? 1 : 0)
-                .offset(y: appeared ? 0 : 15)
-                .animation(.spring(response: 0.4).delay(Double(index) * 0.06), value: appeared)
             }
         }
     }

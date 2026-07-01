@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct PS2GamepadOverlay: View {
-    let onFaceButton: (PS2FaceButton) -> Void
-    let onDPad: (PS2DPadDirection) -> Void
+struct ArenaPadOverlay: View {
+    let onFaceButton: (ArenaPadFaceButton) -> Void
+    let onDPad: (ArenaPadDPadDirection) -> Void
     var onLeftStick: (CGPoint) -> Void = { _ in }
     var onRightStick: (CGPoint) -> Void = { _ in }
     var onLeftShoulder: () -> Void = {}
@@ -16,7 +16,7 @@ struct PS2GamepadOverlay: View {
 
     var body: some View {
         ZStack {
-            PS2ControllerShellView()
+            ArenaPadShellView()
 
             HStack {
                 shoulderButton("L1", action: onLeftShoulder)
@@ -81,7 +81,7 @@ struct PS2GamepadOverlay: View {
         }
     }
 
-    private func dPadButton(_ direction: PS2DPadDirection, icon: String) -> some View {
+    private func dPadButton(_ direction: ArenaPadDPadDirection, icon: String) -> some View {
         Button {
             onDPad(direction)
         } label: {
@@ -123,7 +123,7 @@ struct PS2GamepadOverlay: View {
         }
     }
 
-    private func ps2FaceButton(_ button: PS2FaceButton, symbol: String, color: Color, size: CGFloat) -> some View {
+    private func ps2FaceButton(_ button: ArenaPadFaceButton, symbol: String, color: Color, size: CGFloat) -> some View {
         Button {
             onFaceButton(button)
         } label: {
@@ -246,14 +246,14 @@ struct PS2GamepadOverlay: View {
     }
 }
 
-nonisolated enum PS2FaceButton: String, Sendable {
+nonisolated enum ArenaPadFaceButton: String, Sendable {
     case triangle
     case square
     case circle
     case cross
 }
 
-nonisolated enum PS2DPadDirection: String, Sendable {
+nonisolated enum ArenaPadDPadDirection: String, Sendable {
     case up
     case down
     case left

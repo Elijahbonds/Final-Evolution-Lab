@@ -393,7 +393,7 @@ struct DashboardView: View {
                 Spacer()
             }
 
-            Text("Writes a mock scan to Firestore and pushes JSON to Unreal + Emergent WebSocket (if configured). Check Xcode console for [UnrealManager].")
+            Text("Writes a mock scan to Firestore and pushes JSON to Unreal + Emergent WebSocket (if configured). Check Xcode console for [NexusBridge].")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.tertiary)
 

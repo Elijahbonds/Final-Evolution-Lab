@@ -159,3 +159,33 @@ nonisolated struct AvatarStateMachine: Sendable {
         }
     }
 }
+
+nonisolated enum PRQTier: String, Sendable, CaseIterable {
+    case elite = "Elite"
+    case primed = "Primed"
+    case ready = "Ready"
+    case recovering = "Recovering"
+    case depleted = "Depleted"
+
+    static func tier(for prq: Double) -> PRQTier {
+        switch prq {
+        case 90...: return .elite
+        case 75..<90: return .primed
+        case 60..<75: return .ready
+        case 40..<60: return .recovering
+        default: return .depleted
+        }
+    }
+
+    var speedMultiplier: Double {
+        switch self {
+        case .elite: return 1.25
+        case .primed: return 1.10
+        case .ready: return 1.00
+        case .recovering: return 0.85
+        case .depleted: return 0.65
+        }
+    }
+
+    var label: String { rawValue }
+}

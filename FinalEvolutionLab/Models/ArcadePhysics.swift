@@ -1,5 +1,28 @@
 import Foundation
 
+// MARK: - PhysicsConstants
+// Caseless enum used as a namespace for shared physics simulation values.
+// Extracted from magic numbers used across ArcadePhysics and GamePhysicsConfig.
+
+nonisolated enum PhysicsConstants {
+    /// Standard gravitational acceleration (m/s²).
+    static let gravity: Double = 9.81
+    /// Surface friction coefficient applied to lateral velocity each frame.
+    static let friction: Double = 0.35
+    /// Energy retained after a bounce (coefficient of restitution).
+    static let bounceCoefficient: Double = 0.65
+    /// Aerodynamic drag coefficient for projectile / ball physics.
+    static let dragCoefficient: Double = 0.12
+    /// Hard cap on any physics-driven velocity (m/s).
+    static let maxVelocity: Double = 50.0
+    /// Velocities below this threshold are clamped to zero (m/s).
+    static let minVelocity: Double = 0.1
+    /// Default QTE input window used for timing-sensitive move resolution (seconds).
+    static let qteWindowSeconds: Double = 0.4
+    /// Multiplier applied to hang-time at maximum PRQ (normalized 1.0).
+    static let maxHangTimeMultiplier: Double = 2.8
+}
+
 nonisolated struct ArcadePhysics: Sendable {
     let hangTimeMultiplier: Double
     let explosiveFirstStep: Double

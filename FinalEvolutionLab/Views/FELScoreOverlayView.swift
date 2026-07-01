@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct RorkScoreOverlayView: View {
-    @State private var scoreManager = RorkScoreManager.shared
+struct FELScoreOverlayView: View {
+    @State private var scoreManager = FELScoreManager.shared
     @State private var showDetail: Bool = false
 
     var body: some View {

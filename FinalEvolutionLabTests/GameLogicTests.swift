@@ -109,4 +109,142 @@ struct GameLogicTests {
         #expect(draft?.clipUrl == "https://example.com/clip.mp4")
         SocialShareCoordinator.shared.dismissComposer()
     }
+
+    // MARK: - Shard Economy Tests
+
+    @Test("ShardEarningRule.matchWin rewards 50 shards")
+    func shardEarningRuleMatchWin() {
+        #expect(ShardEarningRule.matchWin.shardReward == 50)
+    }
+
+    @Test("ShardEarningRule.matchTie rewards 25 shards")
+    func shardEarningRuleMatchTie() {
+        #expect(ShardEarningRule.matchTie.shardReward == 25)
+    }
+
+    @Test("ShardEarningRule.dailyStreak rewards 20 shards")
+    func shardEarningRuleDailyStreak() {
+        #expect(ShardEarningRule.dailyStreak.shardReward == 20)
+    }
+
+    @Test("ShardEarningRule.prqMilestone rewards 100 shards")
+    func shardEarningRulePrqMilestone() {
+        #expect(ShardEarningRule.prqMilestone.shardReward == 100)
+    }
+
+    @Test("ShardLedger balance equals sum of recorded entries")
+    func shardLedgerBalanceIsSumOfEntries() {
+        var ledger = ShardLedger()
+        ledger.recordEarning(rule: .matchWin)     // 50
+        ledger.recordEarning(rule: .dailyStreak)  // 20
+        #expect(ledger.balance == 70)
+    }
+
+    // MARK: - Vault Slot Tests
+
+    @Test("VaultSlotType.bronze has unlock cost of 100")
+    func vaultSlotTypeBronzeUnlockCost() {
+        #expect(VaultSlotType.bronze.unlockCost == 100)
+    }
+
+    @Test("VaultSlotType.platinum has cooldown of 24 hours")
+    func vaultSlotTypePlatinumCooldownHours() {
+        #expect(VaultSlotType.platinum.cooldownHours == 24.0)
+    }
+
+    // MARK: - Card Rarity Tests
+
+    @Test("CardRarity.common has drop rate of 0.10")
+    func cardRarityCommonDropRate() {
+        #expect(CardRarity.common.dropRate == 0.10)
+    }
+
+    @Test("CardRarity.legendary has nil shardCost — non-purchasable")
+    func cardRarityLegendaryShardCostIsNil() {
+        #expect(CardRarity.legendary.shardCost == nil)
+    }
+
+    // MARK: - PRQTier Tests
+
+    @Test("PRQTier.tier(for: 90) returns .elite")
+    func prqTierFor90IsElite() {
+        #expect(PRQTier.tier(for: 90) == .elite)
+    }
+
+    @Test("PRQTier.tier(for: 89) returns .primed")
+    func prqTierFor89IsPrimed() {
+        #expect(PRQTier.tier(for: 89) == .primed)
+    }
+
+    @Test("PRQTier.tier(for: 39) returns .depleted")
+    func prqTierFor39IsDepleted() {
+        #expect(PRQTier.tier(for: 39) == .depleted)
+    }
+
+    @Test("PRQTier.elite speedMultiplier is 1.25")
+    func prqTierEliteSpeedMultiplier() {
+        #expect(PRQTier.elite.speedMultiplier == 1.25)
+    }
+
+    @Test("PRQTier.depleted speedMultiplier is 0.65")
+    func prqTierDepletedSpeedMultiplier() {
+        #expect(PRQTier.depleted.speedMultiplier == 0.65)
+    }
+
+    // MARK: - ComboChain Tests
+
+    @Test("ComboChain multiplier after 2 tricks is approximately 1.21 (1.1^2)")
+    func comboChainMultiplierAfterTwoTricks() {
+        var chain = ComboChain()
+        chain.recordTrick(at: 0.0)
+        chain.recordTrick(at: 1.0)
+        let expected = pow(1.1, 2.0)  // 1.21
+        #expect(abs(chain.multiplier - expected) < 0.0001)
+    }
+
+    @Test("ComboChain multiplier is capped at 5.0 regardless of chain length")
+    func comboChainMultiplierCappedAtFive() {
+        var chain = ComboChain()
+        // 50 consecutive tricks well within 3s window
+        for i in 0..<50 {
+            chain.recordTrick(at: Double(i) * 0.5)
+        }
+        #expect(chain.multiplier <= 5.0)
+        #expect(chain.multiplier == 5.0)
+    }
+
+    // MARK: - MovementEfficiencyScore Tests
+
+    @Test("MovementEfficiencyScore.overallEfficiency is average of all 6 component scores")
+    func movementEfficiencyScoreOverallIsAverage() {
+        let score = MovementEfficiencyScore(
+            kneeTracking: 80,
+            hipAlignment: 90,
+            coreEngagement: 70,
+            shoulderPosition: 85,
+            ankleStability: 75,
+            headPosition: 60
+        )
+        let expected = (80.0 + 90.0 + 70.0 + 85.0 + 75.0 + 60.0) / 6.0
+        #expect(abs(score.overallEfficiency - expected) < 0.0001)
+    }
+
+    // MARK: - MovementSnackLibrary Tests
+
+    @Test("MovementSnackLibrary.all contains at least 12 snacks")
+    func movementSnackLibraryHasAtLeast12Entries() {
+        #expect(MovementSnackLibrary.all.count >= 12)
+    }
+
+    // MARK: - PeriodizationBlock Tests
+
+    @Test("PeriodizationBlock.block(forWeek: 4) returns .deload")
+    func periodizationBlockWeek4IsDeload() {
+        #expect(PeriodizationBlock.block(forWeek: 4) == .deload)
+    }
+
+    @Test("PeriodizationBlock.block(forWeek: 1) returns .accumulation")
+    func periodizationBlockWeek1IsAccumulation() {
+        #expect(PeriodizationBlock.block(forWeek: 1) == .accumulation)
+    }
 }

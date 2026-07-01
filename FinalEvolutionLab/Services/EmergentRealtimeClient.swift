@@ -1,6 +1,6 @@
 import Foundation
 
-/// WebSocket client for the Emergent-style game backend: applies inbound PRQ payloads to `RorkScoreManager`.
+/// WebSocket client for the Emergent-style game backend: applies inbound PRQ payloads to `FELScoreManager`.
 /// URL: `EMERGENT_GAME_WS_URL` environment variable, then UserDefaults key `fel_emergent_game_ws_url`.
 ///
 /// Supported JSON shapes (examples):
@@ -97,11 +97,11 @@ final class EmergentRealtimeClient {
             SocialShareCoordinator.shared.presentGameResult(gameModeId: mode, score: score, clipUrl: clip)
         case "prq_delta":
             if let delta = obj["delta"] as? Int {
-                let current = RorkScoreManager.shared.currentPrqScore
-                RorkScoreManager.shared.applyClampedPrq(current + delta)
+                let current = FELScoreManager.shared.currentPrqScore
+                FELScoreManager.shared.applyClampedPrq(current + delta)
             } else if let delta = obj["delta"] as? Double {
-                let current = RorkScoreManager.shared.currentPrqScore
-                RorkScoreManager.shared.applyClampedPrq(current + Int(delta.rounded()))
+                let current = FELScoreManager.shared.currentPrqScore
+                FELScoreManager.shared.applyClampedPrq(current + Int(delta.rounded()))
             }
         case "prq_set", "prq_update", "prq":
             applyAbsolutePrq(from: obj)
@@ -133,7 +133,7 @@ final class EmergentRealtimeClient {
             value = nil
         }
         guard let value else { return }
-        RorkScoreManager.shared.applyClampedPrq(value)
+        FELScoreManager.shared.applyClampedPrq(value)
     }
 
     /// Sends a UTF-8 text frame when the game WebSocket is connected (no-op otherwise).

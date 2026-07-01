@@ -111,7 +111,7 @@ rork-eslint.config.js
 scripts/emulator_seed/node_modules/
 
 # Misc tooling
-.vercel
+.netlify
 .chainlit
 .ipynb_checkpoints/
 
@@ -130,3 +130,4 @@ artifacts/
 Saved/
 Intermediate/
 DerivedDataCache/
+.claude/

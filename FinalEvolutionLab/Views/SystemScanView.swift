@@ -24,6 +24,7 @@ struct SystemScanView: View {
 
     @State private var generatedResult: SystemScanResult?
     @State private var communityPostState: CommunityPostState = .idle
+    @State private var showingCharacterBuilder = false
 
     private enum CommunityPostState: Equatable {
         case idle
@@ -335,13 +336,13 @@ struct SystemScanView: View {
                     .padding(.horizontal, 24)
                 }
 
+                // Primary CTA — open character builder
                 Button {
-                    onComplete(result)
-                    dismiss()
+                    showingCharacterBuilder = true
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "bolt.fill")
-                        Text("ENTER THE LAB")
+                        Image(systemName: "person.crop.circle.badge.plus")
+                        Text("BUILD YOUR AVATAR")
                     }
                     .font(.system(.subheadline, design: .monospaced, weight: .black))
                     .foregroundStyle(.black)
@@ -351,7 +352,28 @@ struct SystemScanView: View {
                     .clipShape(.rect(cornerRadius: 14))
                 }
                 .padding(.horizontal, 24)
+
+                // Skip option
+                Button {
+                    onComplete(result)
+                    dismiss()
+                } label: {
+                    Text("SKIP → ENTER THE LAB")
+                        .font(.system(size: 11, design: .monospaced, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
                 .padding(.bottom, 32)
+                .sheet(isPresented: $showingCharacterBuilder) {
+                    CharacterBuilderView(
+                        scan: result,
+                        userId: "current_user",
+                        displayName: "Athlete"
+                    ) { avatarConfig in
+                        _ = avatarConfig
+                        onComplete(result)
+                        dismiss()
+                    }
+                }
             }
             .padding(.top, 16)
         }

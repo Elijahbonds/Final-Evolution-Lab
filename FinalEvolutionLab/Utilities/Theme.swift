@@ -39,3 +39,18 @@ nonisolated struct Theme: Sendable {
         ]
     )
 }
+
+// MARK: - Color hex convenience
+
+extension Color {
+    /// Creates a SwiftUI Color from a 6-character hex string (with or without leading `#`).
+    init?(hex: String) {
+        let cleaned = hex.trimmingCharacters(in: .init(charactersIn: "#"))
+        guard cleaned.count == 6, let value = UInt64(cleaned, radix: 16) else { return nil }
+        self.init(
+            red:   Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue:  Double(value & 0xFF) / 255
+        )
+    }
+}

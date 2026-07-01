@@ -10,10 +10,14 @@ struct GameSceneHostView: UIViewRepresentable {
     var isMidAir: Bool = false
     var isSpecialMove: Bool = false
     var isSlowMotion: Bool = false
+    /// Avatar skin color — reflects active creator card or default player aura.
+    var playerColor: UIColor = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
 
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
-        scnView.scene = GameSceneFactory.buildScene(for: gameMode)
+        let builtScene = GameSceneFactory.buildScene(for: gameMode)
+        GameSceneFactory.applyPlayerColor(playerColor, to: builtScene, forMode: gameMode)
+        scnView.scene = builtScene
         scnView.backgroundColor = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
         scnView.allowsCameraControl = false
         scnView.antialiasingMode = .multisampling4X
@@ -87,8 +91,15 @@ struct GameSceneHostView: UIViewRepresentable {
             case .golf: return "golfer"
             case .tennis: return "player"
             case .volleyball: return "vPlayer1"
-            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding: return "gymnast"
+            case .gymnastics: return "gymnast"
+            case .surfing: return "surfer"
+            case .skateboarding: return "skater"
+            case .snowboarding: return "boarder"
+            case .brainBrawl, .whoSceneIt: return "brainPlayer"
+            case .courtCarnival: return "carniPlayer"
+            case .basketballIRL: return "player1"
             case .football: return "returner"
+            case .marketBrowse: return "player1"
             }
         }
 
@@ -112,8 +123,22 @@ struct GameSceneHostView: UIViewRepresentable {
                 return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 9, lookAtY: 1.0, followSpeed: 5, targetSpeed: 7, fovNormal: 50, fovAction: 40)
             case .volleyball:
                 return CameraFollowConfig(offsetX: 0, offsetY: 5, offsetZ: 8, lookAtY: 1.5, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 38)
-            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding:
+            case .gymnastics:
                 return CameraFollowConfig(offsetX: 1, offsetY: 4, offsetZ: 8, lookAtY: 1.5, followSpeed: 4, targetSpeed: 6, fovNormal: 48, fovAction: 36)
+            case .surfing:
+                return CameraFollowConfig(offsetX: 2, offsetY: 3.5, offsetZ: 8, lookAtY: 1.0, followSpeed: 4, targetSpeed: 6, fovNormal: 50, fovAction: 40)
+            case .skateboarding:
+                return CameraFollowConfig(offsetX: 1, offsetY: 4.5, offsetZ: 9, lookAtY: 1.5, followSpeed: 5, targetSpeed: 7, fovNormal: 48, fovAction: 36)
+            case .snowboarding:
+                return CameraFollowConfig(offsetX: 1, offsetY: 5, offsetZ: 9, lookAtY: 1.5, followSpeed: 5, targetSpeed: 7, fovNormal: 50, fovAction: 38)
+            case .brainBrawl, .whoSceneIt:
+                return CameraFollowConfig(offsetX: 0, offsetY: 4, offsetZ: 9, lookAtY: 1.0, followSpeed: 3, targetSpeed: 5, fovNormal: 48, fovAction: 44)
+            case .courtCarnival:
+                return CameraFollowConfig(offsetX: 0, offsetY: 6, offsetZ: 11, lookAtY: 0.5, followSpeed: 4, targetSpeed: 5, fovNormal: 52, fovAction: 46)
+            case .basketballIRL:
+                return CameraFollowConfig(offsetX: 1.5, offsetY: 5.5, offsetZ: 9, lookAtY: 2.0, followSpeed: 6, targetSpeed: 8, fovNormal: 48, fovAction: 35)
+            case .marketBrowse:
+                return CameraFollowConfig(offsetX: 0, offsetY: 4, offsetZ: 8, lookAtY: 1.0, followSpeed: 3, targetSpeed: 4, fovNormal: 48, fovAction: 44)
             }
         }
 
@@ -121,7 +146,7 @@ struct GameSceneHostView: UIViewRepresentable {
             switch gameMode {
             case .basketballHeadToHead:
                 return MovementBounds(minX: -3.8, maxX: 3.8, minZ: -2.5, maxZ: 2.5, speed: 0.12)
-            case .basketballDunkContest:
+            case .basketballDunkContest, .basketballIRL:
                 return MovementBounds(minX: -5.0, maxX: 4.0, minZ: -3.5, maxZ: 3.5, speed: 0.14)
             case .basketball3v3:
                 return MovementBounds(minX: -4.5, maxX: 4.5, minZ: -2.8, maxZ: 2.8, speed: 0.12)
@@ -139,8 +164,10 @@ struct GameSceneHostView: UIViewRepresentable {
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -2.0, maxZ: 2.0, speed: 0.10)
             case .volleyball:
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -1.5, maxZ: 1.5, speed: 0.09)
-            case .gymnastics, .brainBrawl, .surfing, .skateboarding, .snowboarding:
+            case .gymnastics, .surfing, .skateboarding, .snowboarding:
                 return MovementBounds(minX: -3.0, maxX: 3.0, minZ: -2.0, maxZ: 2.0, speed: 0.08)
+            case .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse:
+                return MovementBounds(minX: -2.0, maxX: 2.0, minZ: -1.5, maxZ: 1.5, speed: 0.05)
             }
         }
 

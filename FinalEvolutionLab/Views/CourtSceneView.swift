@@ -73,7 +73,7 @@ struct CourtSceneView: UIViewRepresentable {
         private var isDunking = false
         private var dunkIndex = 0
         private var avatarStateMachine = AvatarStateMachine()
-        private let movementConfig = PS2MovementConfig.standard
+        private let movementConfig = ArenaPadConfig.standard
         private var smoothedCameraPosition = SCNVector3(5, 4, 8)
         private var smoothedCameraTarget = SCNVector3(0, 1.5, 0)
         private var cameraShakeIntensity: Float = 0

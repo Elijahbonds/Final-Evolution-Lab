@@ -62,9 +62,10 @@ nonisolated struct ShopItem: Identifiable, Sendable {
     let iconName: String
 
     nonisolated enum ShopCategory: String, Sendable, CaseIterable {
-        case outfit = "Outfits"
-        case blueprint = "Blueprints"
-        case critique = "Coaching"
+        case outfit      = "Outfits"
+        case blueprint   = "Blueprints"
+        case critique    = "Coaching"
+        case creatorCard = "Creator Cards"
     }
 }
 
@@ -127,6 +128,20 @@ nonisolated struct CoachEconomy: Codable, Sendable {
         totalEarned += claimed
         clearedEarnings = 0
         return claimed
+    }
+
+    /// Auto-releases held escrow entries older than `days` days so coaches
+    /// are not permanently blocked by athletes who never submit a review.
+    mutating func autoReleaseStaleEscrow(olderThanDays days: Int = 7) {
+        let cutoff = Date().addingTimeInterval(-Double(days) * 86_400)
+        for index in escrowEntries.indices where escrowEntries[index].status == .held {
+            guard escrowEntries[index].createdAt < cutoff else { continue }
+            escrowEntries[index].status = .released
+            escrowEntries[index].releasedAt = Date()
+            let shards = escrowEntries[index].shards
+            pendingEarnings = max(0, pendingEarnings - shards)
+            clearedEarnings += shards
+        }
     }
 }
 

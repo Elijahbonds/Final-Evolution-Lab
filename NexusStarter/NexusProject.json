@@ -1,0 +1,29 @@
+{
+  "nexusProjectVersion": "1.0",
+  "engineVersion": "1.0.0",
+  "projectName": "FinalEvolutionLab",
+  "bundleId": "com.finalevolutionlab.app",
+  "renderBackend": "canvas",
+  "targetPlatforms": ["ios", "ipados"],
+  "defaultSceneDir": "NexusStarter/BasketballGame/Scenes",
+  "physicsPreset": "arcade_prq",
+  "startScene": "basketball_h2h",
+  "description": "Final Evolution Lab — Native Swift game project. Replaces UE5 embedded runtime. All scenes are JSON-defined NexusScene descriptors rendered by NexusSceneView via SwiftUI Canvas.",
+  "subsystems": {
+    "firebase": { "enabled": true, "projectId": "final-evolution-lab" },
+    "healthKit": { "enabled": true, "dataTypes": ["heartRate", "hrv", "activeEnergy"] },
+    "emergentWS": { "enabled": true, "configKey": "EMERGENT_GAME_WS_URL" },
+    "nexusLoop": { "enabled": true, "targetFPS": 60 }
+  },
+  "assetPipeline": {
+    "skeletonAnimations": "canvas_procedural",
+    "sprites": "sf_symbols",
+    "venues": "nexus_environment_descriptors"
+  },
+  "replaced": {
+    "previousRuntime": "UnrealEngine5",
+    "replacedBy": "NexusEngine (Swift native)",
+    "bridgeHandshake": "FEL-SOVEREIGN-BRIDGE-v3",
+    "migrationDate": "2026-06-30"
+  }
+}

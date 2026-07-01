@@ -78,7 +78,7 @@ struct GamePlayView: View {
     @State private var showContestPill: Bool = false
     @State private var defenderSimDistance: Double = 4.0
 
-    @State private var goldenComboEngine = GoldenEraComboEngine()
+    @State private var goldenComboEngine = SignatureComboEngine()
     @State private var timeScaleManager = TimeScaleManager()
     @State private var matrixState = MatrixStateMachine()
     @State private var activeModifierState: ModifierState = .none
@@ -119,6 +119,15 @@ struct GamePlayView: View {
         gameMode.multiplayerType == .realtime
     }
 
+    /// Player avatar color — tracks active creator card so the skin persists across game modes.
+    private var activePlayerUIColor: UIColor {
+        guard let state = viewModel.profile.activeCreatorCard,
+              let card = CreatorCard.catalog.first(where: { $0.id == state.cardId }) else {
+            return UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
+        }
+        return UIColor(card.accentColor)
+    }
+
     private var isDunkContest: Bool {
         gameMode.id == .basketballDunkContest
     }
@@ -153,6 +162,21 @@ struct GamePlayView: View {
     }
 
     var body: some View {
+        switch gameMode.id {
+        case .brainBrawl:
+            BrainBrawlView(viewModel: viewModel, gameMode: gameMode)
+        case .whoSceneIt:
+            WhoSceneItView(viewModel: viewModel, gameMode: gameMode)
+        case .courtCarnival:
+            CourtCarnivalView(viewModel: viewModel, gameMode: gameMode)
+        case .basketballIRL:
+            IRLDunkView(viewModel: viewModel, gameMode: gameMode)
+        default:
+            mainGameBody
+        }
+    }
+
+    private var mainGameBody: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
 
@@ -446,6 +470,18 @@ struct GamePlayView: View {
                         .foregroundStyle(Theme.elitePurple)
                         .shadow(color: Theme.elitePurple.opacity(0.4), radius: 6)
                     }
+                    // Creator card active indicator
+                    if let state = viewModel.profile.activeCreatorCard,
+                       let card = CreatorCard.catalog.first(where: { $0.id == state.cardId }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: card.iconName)
+                                .font(.system(size: 7))
+                            Text("+\(Int(card.metricsBoost.prqScore))%")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(card.accentColor)
+                        .shadow(color: card.accentColor.opacity(0.4), radius: 4)
+                    }
                 }
 
                 VStack(alignment: .trailing, spacing: 2) {
@@ -545,7 +581,8 @@ struct GamePlayView: View {
                 rightStickInput: rightStickVector,
                 isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
                 isSpecialMove: isSlowMo || showVanishFlash || showPerfectGuard,
-                isSlowMotion: isSlowMo
+                isSlowMotion: isSlowMo,
+                playerColor: activePlayerUIColor
             )
             .clipShape(.rect(cornerRadius: 0))
 
@@ -796,13 +833,13 @@ struct GamePlayView: View {
     private var controlPanel: some View {
         VStack(spacing: 8) {
             if inputScheme == .charge {
-                PS2GamepadOverlay(
-                    onFaceButton: handlePS2FaceButton,
-                    onDPad: handlePS2DPad,
-                    onLeftStick: handlePS2LeftStick,
-                    onRightStick: handlePS2RightStick,
-                    onLeftShoulder: handlePS2LeftShoulder,
-                    onRightShoulder: handlePS2RightShoulder,
+                ArenaPadOverlay(
+                    onFaceButton: handleArenaPadFaceButton,
+                    onDPad: handleArenaPadDPad,
+                    onLeftStick: handleArenaPadLeftStick,
+                    onRightStick: handleArenaPadRightStick,
+                    onLeftShoulder: handleArenaPadLeftShoulder,
+                    onRightShoulder: handleArenaPadRightShoulder,
                     accentColor: gameMode.accentColor,
                     isActive: isActive
                 )
@@ -1978,11 +2015,11 @@ struct GamePlayView: View {
         }
     }
 
-    // MARK: - PS2-Style Action Buttons
+    // MARK: - Arena-Style Action Buttons
 
     private var ps2ActionButtons: some View {
         let actions = actionsForMode
-        let ps2Layout = ps2ButtonLayout(for: actions)
+        let ps2Layout = arenaPadButtonLayout(for: actions)
 
         return HStack(spacing: 12) {
             ForEach(Array(ps2Layout.enumerated()), id: \.offset) { index, btn in
@@ -2016,14 +2053,14 @@ struct GamePlayView: View {
         }
     }
 
-    private struct PS2Button {
+    private struct ArenaPadButton {
         let symbol: String
         let color: Color
         let label: String
         let action: String
     }
 
-    private func ps2ButtonLayout(for actions: [String]) -> [PS2Button] {
+    private func arenaPadButtonLayout(for actions: [String]) -> [ArenaPadButton] {
         let ps2Colors: [(String, Color, String)] = [
             ("△", Color(red: 0.3, green: 0.78, blue: 0.47), "Triangle"),
             ("□", Color(red: 0.96, green: 0.44, blue: 0.71), "Square"),
@@ -2033,7 +2070,7 @@ struct GamePlayView: View {
 
         return actions.enumerated().map { index, action in
             let ps2 = ps2Colors[index % ps2Colors.count]
-            return PS2Button(symbol: ps2.0, color: ps2.1, label: ps2.2, action: action)
+            return ArenaPadButton(symbol: pad.0, color: ps2.1, label: ps2.2, action: action)
         }
     }
 
@@ -2144,6 +2181,22 @@ struct GamePlayView: View {
         shardRewards.reduce(0) { $0 + $1.amount }
     }
 
+    /// Multiplicative score bonus from the active creator card. Max 15% boost.
+    private var creatorCardScoreMultiplier: Double {
+        guard let state = viewModel.profile.activeCreatorCard,
+              let card = CreatorCard.catalog.first(where: { $0.id == state.cardId }) else {
+            return 1.0
+        }
+        let boost = min(card.metricsBoost.prqScore / 100.0, 0.15)
+        return 1.0 + boost
+    }
+
+    /// Returns adjusted points including creator card bonus.
+    private func applyCreatorCardBonus(_ basePoints: Int) -> Int {
+        guard creatorCardScoreMultiplier > 1.0 else { return basePoints }
+        return Int(Double(basePoints) * creatorCardScoreMultiplier)
+    }
+
     private var prqReward: Double {
         let flags = VersusMatchOutcome.rewardFlags(playerScore: score, opponentScore: opponentScore)
         return PRQ.modeReward(
@@ -2207,7 +2260,7 @@ struct GamePlayView: View {
         showContestPill = false
         defenderSimDistance = 4.0
 
-        goldenComboEngine = GoldenEraComboEngine()
+        goldenComboEngine = SignatureComboEngine()
         timeScaleManager = TimeScaleManager()
         matrixState = MatrixStateMachine()
         activeModifierState = .none
@@ -2266,7 +2319,8 @@ struct GamePlayView: View {
         let success = Double.random(in: 0...1) < effectiveChance
         let isCritical = success && Double.random(in: 0...1) < physics.criticalHitChance
         let basePoints = pointsForAction(action, success: success)
-        let finalPoints = success ? physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical) : 0
+        let rawPoints = success ? physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical) : 0
+        let finalPoints = success ? applyCreatorCardBonus(rawPoints) : 0
 
         if success {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
@@ -3429,9 +3483,9 @@ struct GamePlayView: View {
         generator.notificationOccurred(.error)
     }
 
-    // MARK: - PS2 Controller Handlers
+    // MARK: - Arena Pad Handlers
 
-    private func handlePS2FaceButton(_ button: PS2FaceButton) {
+    private func handleArenaPadFaceButton(_ button: ArenaPadFaceButton) {
         guard isActive else { return }
         if isDunkContest {
             switch dunkEngine.phase {
@@ -3473,7 +3527,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2DPad(_ direction: PS2DPadDirection) {
+    private func handleArenaPadDPad(_ direction: ArenaPadDPadDirection) {
         guard isActive else { return }
         let comboDir: ComboDirection
         switch direction {
@@ -3491,7 +3545,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2LeftStick(_ vector: CGPoint) {
+    private func handleArenaPadLeftStick(_ vector: CGPoint) {
         guard isActive else { return }
         leftStickVector = vector
         updateDirectionFromStick(vector)
@@ -3504,7 +3558,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2RightStick(_ vector: CGPoint) {
+    private func handleArenaPadRightStick(_ vector: CGPoint) {
         guard isActive else { return }
         rightStickVector = vector
         updateDirectionFromStick(vector)
@@ -3523,7 +3577,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2LeftShoulder() {
+    private func handleArenaPadLeftShoulder() {
         guard isActive else { return }
         if isDunkContest {
             styleTriggerHeld.toggle()
@@ -3536,7 +3590,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2RightShoulder() {
+    private func handleArenaPadRightShoulder() {
         guard isActive else { return }
         if isDunkContest {
             powerTriggerHeld.toggle()

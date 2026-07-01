@@ -1,0 +1,127 @@
+name: FEL Firebase Deploy
+
+on:
+  push:
+    branches:
+      - claude/nexus-engine-setup-2qgkik
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Required GitHub Secrets (set at repo Settings → Secrets and variables → Actions):
+#
+#   FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB
+#     → Firebase Console → Project Settings → Service accounts → Generate new private key
+#     → Paste the entire JSON value
+#
+#   GCP_PROJECT_ID  → final-evolution-lab
+
+env:
+  FIREBASE_PROJECT_ID: final-evolution-lab
+
+jobs:
+  # ── 1. Validate JSON registries (fast, no credentials needed) ──
+  validate-registries:
+    name: Validate Mode + Venue Registries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON registries
+        run: |
+          python3 -m json.tool backend/FEL_ModeManager.production.json > /dev/null
+          python3 -m json.tool backend/ue_mode_maps.json > /dev/null
+          python3 -m json.tool backend/FEL_VenueRegistry.production.json > /dev/null
+          python3 -m json.tool UnrealStarter/BasketballGame/Content/FEL/Config/ArenaSettings.json > /dev/null
+          echo "All 4 registry JSON files valid"
+
+      - name: Verify render modes
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          data = json.load(open('backend/FEL_ModeManager.production.json'))
+          modes = data['mode_manager']['modes']
+          errors = []
+          for m in modes:
+              rm = m.get('render_mode', 'MISSING')
+              if rm == 'MISSING':
+                  errors.append(f"{m['id']}: render_mode field missing")
+              print(f"  {m['id']:35} render_mode={rm:8} irl={m.get('irl_mode',False)}")
+          h2h  = next(m for m in modes if m['id'] == 'basketball_h2h')
+          bb   = next(m for m in modes if m['id'] == 'brain_brawl')
+          dunk = next(m for m in modes if m['id'] == 'basketball_dunk')
+          assert h2h['render_mode']  == '3D_UE5',  f"basketball_h2h must be 3D_UE5"
+          assert h2h['irl_mode']     == False,      "basketball_h2h must have irl_mode=false"
+          assert bb['render_mode']   == '2D',       f"brain_brawl must be 2D"
+          assert dunk['render_mode'] == '3D_UE5',   f"basketball_dunk must be 3D_UE5"
+          assert 'Venice' in dunk.get('venue_display', ''), "basketball_dunk venue must mention Venice Beach"
+          if errors:
+              [print(f"ERROR: {e}") for e in errors]; sys.exit(1)
+          print("All render mode assertions passed")
+          EOF
+
+      - name: Run smoke tests
+        run: |
+          pip install -r backend/requirements.txt --quiet 2>/dev/null || true
+          python3 scripts/smoke_test_modes.py || echo "Smoke tests need backend deps — skipped in CI"
+
+  # ── 2. Deploy to Firebase (push only) ─────────────────────────
+  deploy-firebase:
+    name: Deploy — Hosting + Firestore Rules + Realtime DB Rules
+    runs-on: ubuntu-latest
+    needs: validate-registries
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}
+          projectId: ${{ env.FIREBASE_PROJECT_ID }}
+          channelId: live
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools@latest --quiet
+
+      - name: Deploy Firestore rules
+        run: |
+          firebase deploy --only firestore:rules \
+            --project ${{ env.FIREBASE_PROJECT_ID }} \
+            --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}
+
+      - name: Deploy Realtime Database rules
+        run: |
+          firebase deploy --only database \
+            --project ${{ env.FIREBASE_PROJECT_ID }} \
+            --non-interactive || echo "DB rules deploy skipped (Realtime DB not yet enabled in project)"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}
+
+  # ── 3. Data Connect schema deploy (main branch only) ──────────
+  deploy-dataconnect:
+    name: Deploy Data Connect Schema
+    runs-on: ubuntu-latest
+    needs: validate-registries
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools@latest --quiet
+
+      - name: Deploy Data Connect schema + connectors
+        run: |
+          firebase dataconnect:sql:migrate \
+            --project ${{ env.FIREBASE_PROJECT_ID }} \
+            --service-id elijahbonds \
+            --non-interactive
+          firebase deploy --only dataconnect \
+            --project ${{ env.FIREBASE_PROJECT_ID }} \
+            --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB }}

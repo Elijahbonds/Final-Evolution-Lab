@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "description": "Nexus Engine venue registry — replaces FEL_VenueRegistry.production.json. Maps game mode IDs to scene descriptors, spawn points, and ambient config.",
+  "venues": [
+    { "modeId": "basketball_h2h",      "scene": "basketball_h2h.nexus.json",      "displayVenue": "Overdrive Court",       "spawnPoint": "center_court",      "ambientSFX": "crowd_medium" },
+    { "modeId": "basketball_dunk",     "scene": "basketball_dunk.nexus.json",     "displayVenue": "Venice Beach Court",    "spawnPoint": "left_wing",         "ambientSFX": "crowd_hype" },
+    { "modeId": "basketball_3v3",      "scene": "basketball_3v3.nexus.json",      "displayVenue": "Streetball Arena",      "spawnPoint": "offense_start",     "ambientSFX": "crowd_medium" },
+    { "modeId": "basketball_irl",      "scene": "basketball_irl.nexus.json",      "displayVenue": "Your Court (IRL)",      "spawnPoint": "irl_origin",        "ambientSFX": "ambient_gym" },
+    { "modeId": "karate_h2h",          "scene": "karate_h2h.nexus.json",          "displayVenue": "Sovereign Dojo",        "spawnPoint": "dojo_center",       "ambientSFX": "dojo_ambient" },
+    { "modeId": "karate_endless",      "scene": "karate_endless.nexus.json",      "displayVenue": "Shadow Gauntlet",       "spawnPoint": "gauntlet_start",    "ambientSFX": "dojo_drums" },
+    { "modeId": "baseball",            "scene": "baseball.nexus.json",            "displayVenue": "Pro Diamond",           "spawnPoint": "home_plate",        "ambientSFX": "stadium_cheer" },
+    { "modeId": "football",            "scene": "football.nexus.json",            "displayVenue": "Gridiron Sovereign",    "spawnPoint": "scrimmage_line",    "ambientSFX": "stadium_roar" },
+    { "modeId": "soccer",              "scene": "soccer.nexus.json",              "displayVenue": "Global Pitch",          "spawnPoint": "kickoff_center",    "ambientSFX": "crowd_chant" },
+    { "modeId": "golf",                "scene": "golf.nexus.json",                "displayVenue": "Sovereign Links",       "spawnPoint": "tee_box_1",         "ambientSFX": "birds_wind" },
+    { "modeId": "tennis",              "scene": "tennis.nexus.json",              "displayVenue": "Center Court",          "spawnPoint": "service_box",       "ambientSFX": "crowd_quiet" },
+    { "modeId": "volleyball",          "scene": "volleyball.nexus.json",          "displayVenue": "Beach Pro",             "spawnPoint": "back_row_left",     "ambientSFX": "beach_crowd" },
+    { "modeId": "gymnastics",          "scene": "gymnastics.nexus.json",          "displayVenue": "Evolution Gym",         "spawnPoint": "floor_center",      "ambientSFX": "arena_quiet" },
+    { "modeId": "surfing",             "scene": "surfing.nexus.json",             "displayVenue": "Pipeline Peak",         "spawnPoint": "lineup",            "ambientSFX": "ocean_waves" },
+    { "modeId": "skateboarding",       "scene": "skateboarding.nexus.json",       "displayVenue": "Sovereign Skatepark",   "spawnPoint": "drop_in",           "ambientSFX": "skatepark_ambient" },
+    { "modeId": "snowboarding",        "scene": "snowboarding.nexus.json",        "displayVenue": "Alpine Pro",            "spawnPoint": "summit_gate",       "ambientSFX": "wind_mountain" },
+    { "modeId": "brain_brawl",         "scene": "brain_brawl.nexus.json",         "displayVenue": "Neuro Arena",           "spawnPoint": "stage_center",      "ambientSFX": "electric_hum" },
+    { "modeId": "who_scene_it",        "scene": "who_scene_it.nexus.json",        "displayVenue": "Scene Vault",           "spawnPoint": "main_stage",        "ambientSFX": "studio_ambient" },
+    { "modeId": "court_carnival",      "scene": "court_carnival.nexus.json",      "displayVenue": "Carnival Court",        "spawnPoint": "carnival_center",   "ambientSFX": "carnival_music" },
+    { "modeId": "market_browse",       "scene": null,                             "displayVenue": "Creator Market",        "spawnPoint": null,                "ambientSFX": "market_ambient" }
+  ]
+}
