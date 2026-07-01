@@ -86,6 +86,17 @@ const styles = {
     }`,
   }),
   statusLine: { color: '#6b7280', fontSize: '0.82rem', marginBottom: '8px' },
+  debugPanel: {
+    background: '#0a0c10',
+    border: '1px solid rgba(255,215,0,0.18)',
+    borderRadius: '12px',
+    padding: '12px 16px',
+    marginBottom: '16px',
+    fontSize: '0.78rem',
+    color: '#ffd700',
+    fontFamily: 'monospace',
+  },
+  debugTitle: { fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', marginBottom: '6px' },
   btn: {
     padding: '10px 24px',
     borderRadius: '8px',
@@ -150,6 +161,8 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
   const [events, setEvents] = useState([]);
   const [wsStatus, setWsStatus] = useState('disconnected');
   const [error, setError] = useState(null);
+  const [seed, setSeed] = useState(null);
+  const [judgeOffsets, setJudgeOffsets] = useState([]);
   const wsRef = useRef(null);
 
   const addEvent = useCallback((ev) => {
@@ -182,6 +195,8 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
         case 'match_start':
           setStatus('active');
           setPlayers(msg.players.map((p) => p.user_id));
+          if (msg.seed != null) setSeed(msg.seed);
+          if (msg.judge_offsets) setJudgeOffsets(msg.judge_offsets);
           const newLoadouts = {};
           msg.players.forEach((p) => { newLoadouts[p.user_id] = p.loadout || []; });
           setLoadouts(newLoadouts);
@@ -222,6 +237,24 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
     }
   };
 
+  const downloadReplay = async () => {
+    if (!matchId) return;
+    try {
+      const r = await fetch(`${API_BASE}/api/matches/${matchId}/export-replay`, { credentials: 'include' });
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `replay-${matchId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(`Replay export failed: ${err.message}`);
+    }
+  };
+
   const joinMatch = async (mid) => {
     setError(null);
     try {
@@ -253,6 +286,8 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
           setScore(data.score || {});
           setLoadouts(data.loadouts || {});
           setEvents(data.events || []);
+          if (data.seed != null) setSeed(data.seed);
+          if (data.judge_offsets) setJudgeOffsets(data.judge_offsets);
         })
         .catch(() => {});
     }
@@ -298,6 +333,21 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
             onClick={createMatch}
           >
             Create Match
+          </button>
+        </div>
+      )}
+
+      {matchId && seed != null && (
+        <div style={styles.debugPanel}>
+          <div style={styles.debugTitle}>Nexus QA — Match Seed &amp; Judge Offsets</div>
+          <div>seed: <strong>{String(seed)}</strong></div>
+          <div>judge_offsets: <strong>[{judgeOffsets.join(', ')}]</strong></div>
+          <button
+            style={{ ...styles.btn, marginTop: '8px', padding: '6px 14px', fontSize: '0.75rem',
+              background: 'rgba(255,215,0,0.12)', color: '#ffd700', border: '1px solid rgba(255,215,0,0.3)' }}
+            onClick={downloadReplay}
+          >
+            Download Replay JSON
           </button>
         </div>
       )}
