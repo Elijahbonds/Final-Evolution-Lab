@@ -6,13 +6,20 @@ struct ContentView: View {
     @State private var simpleMode: Bool = UserDefaults.standard.bool(forKey: "simpleMode")
     @State private var showSettings: Bool = false
     @State private var showOnboarding: Bool
+    @State private var agentLaunchMode: GameMode?
+    @State private var agentLaunchReadiness: Double = 75
+    @State private var showAgentLaunchedGame = false
+    @State private var showNexusStudio = false
+    @State private var router = NexusDeepLinkRouter.shared
     @ObservedObject private var shareCoordinator = SocialShareCoordinator.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         let model = LabViewModel()
         _viewModel = State(initialValue: model)
         #if targetEnvironment(simulator)
         _showOnboarding = State(initialValue: false)
+        _selectedTab = State(initialValue: .social)
         #else
         _showOnboarding = State(initialValue: !model.profile.hasCompletedOnboarding)
         #endif
@@ -20,6 +27,24 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            Tab("Play", systemImage: "gamecontroller.fill", value: .social) {
+                NavigationStack {
+                    ArenaHubView(viewModel: viewModel)
+                        .accessibilityIdentifier("ArenaHubRoot")
+                        .navigationTitle("")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                brandHeader
+                            }
+                            ToolbarItem(placement: .topBarTrailing) {
+                                shardsBadge
+                            }
+                        }
+                        .toolbarColorScheme(.dark, for: .navigationBar)
+                }
+            }
+
             Tab("Lab", systemImage: "brain.head.profile.fill", value: .lab) {
                 NavigationStack {
                     LabView(viewModel: viewModel)
@@ -40,9 +65,9 @@ struct ContentView: View {
                 }
             }
 
-            Tab("Train", systemImage: "figure.highintensity.intervaltraining", value: .training) {
+            Tab("Vault", systemImage: "lock.shield.fill", value: .vault) {
                 NavigationStack {
-                    TrainingHubView(labViewModel: viewModel)
+                    VaultView(viewModel: viewModel)
                         .navigationTitle("")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
@@ -50,24 +75,7 @@ struct ContentView: View {
                                 brandHeader
                             }
                             ToolbarItem(placement: .topBarTrailing) {
-                                shardsBadge
-                            }
-                        }
-                        .toolbarColorScheme(.dark, for: .navigationBar)
-                }
-            }
-
-            Tab("Arena", systemImage: "trophy.fill", value: .social) {
-                NavigationStack {
-                    ArenaHubView(viewModel: viewModel)
-                        .navigationTitle("")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarLeading) {
-                                brandHeader
-                            }
-                            ToolbarItem(placement: .topBarTrailing) {
-                                shardsBadge
+                                settingsButton
                             }
                         }
                         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -87,22 +95,13 @@ struct ContentView: View {
                         .toolbarColorScheme(.dark, for: .navigationBar)
                 }
             }
-
-            Tab("Profile", systemImage: "person.crop.circle.fill", value: .vault) {
-                NavigationStack {
-                    VaultView(viewModel: viewModel)
-                        .navigationTitle("")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarLeading) {
-                                brandHeader
-                            }
-                            ToolbarItem(placement: .topBarTrailing) {
-                                settingsButton
-                            }
-                        }
-                        .toolbarColorScheme(.dark, for: .navigationBar)
-                }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if FirebaseBootstrap.shouldShowOfflineBanner {
+                FELPreviewLabel(text: FELPremiumCopy.Preview.firebaseOfflineNoKey)
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.black.opacity(0.85))
             }
         }
         .accessibilityIdentifier("MainTabBar")
@@ -121,13 +120,88 @@ struct ContentView: View {
                 showOnboarding = false
             }
         }
+        .sheet(item: $router.activeCardLink) { card in
+            NexusDeepLinkCardDetailView(card: card, viewModel: viewModel)
+        }
+        .sheet(item: $router.activeSafariURL) { identifiableURL in
+            SafariView(url: identifiableURL.url)
+        }
+        .sheet(isPresented: $router.activeScanLink) {
+            SystemScanView(
+                sport: router.prefilledSport ?? viewModel.profile.sport,
+                goal: router.prefilledGoal ?? viewModel.profile.goal
+            ) { result in
+                viewModel.applyScanResult(result)
+            }
+        }
         .onAppear {
             GameplaySessionReceiptCoordinator.shared.attach(viewModel)
+            Task {
+                await SessionReceiptUploadService.uploadPendingReceipts()
+            }
             #if targetEnvironment(simulator)
             if !viewModel.profile.hasCompletedOnboarding {
                 viewModel.completeOnboarding(sport: "Basketball", age: 18, goal: "Jump Higher")
             }
             #endif
+            if Config.isUITestMode {
+                selectedTab = .social
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            Task {
+                await SessionReceiptUploadService.uploadPendingReceipts()
+            }
+        }
+        .onChange(of: NEXUSAgentCoordinator.shared.pendingLaunch?.modeId) { _, modeId in
+            guard let modeId,
+                  let parsed = GameModeId(rawValue: modeId),
+                  let mode = GameModeRegistry.all.first(where: { $0.id == parsed })
+            else { return }
+
+            agentLaunchMode = mode
+            agentLaunchReadiness = NEXUSAgentCoordinator.shared.pendingLaunchReadiness
+            NEXUSAgentCoordinator.shared.pendingLaunch = nil
+            selectedTab = .social
+            showAgentLaunchedGame = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .nexusAgentLaunchMode)) { notification in
+            guard let modeId = notification.userInfo?["mode_id"] as? String,
+                  let parsed = GameModeId(rawValue: modeId),
+                  let mode = GameModeRegistry.all.first(where: { $0.id == parsed })
+            else { return }
+
+            agentLaunchMode = mode
+            agentLaunchReadiness = (notification.userInfo?["readiness"] as? Double)
+                ?? (notification.userInfo?["readiness"] as? NSNumber)?.doubleValue
+                ?? 75
+            selectedTab = .social
+            showAgentLaunchedGame = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .nexusStudioOpen)) { _ in
+            showNexusStudio = true
+        }
+        .fullScreenCover(isPresented: $showNexusStudio) {
+            NavigationStack {
+                NexusStudioIDEView()
+            }
+        }
+        .fullScreenCover(isPresented: $showAgentLaunchedGame) {
+            if let mode = agentLaunchMode {
+                NavigationStack {
+                    GamePlayView(
+                        viewModel: viewModel,
+                        gameMode: mode,
+                        sessionReadiness: agentLaunchReadiness
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Close") { showAgentLaunchedGame = false }
+                        }
+                    }
+                }
+            }
         }
         .overlay(alignment: .topTrailing) {
             FELOverlayView()
@@ -135,6 +209,9 @@ struct ContentView: View {
         }
         .overlay {
             FelToastOverlay()
+        }
+        .onOpenURL { url in
+            _ = router.handle(url: url)
         }
     }
 
@@ -149,6 +226,23 @@ struct ContentView: View {
                 .italic()
                 .tracking(-0.3)
                 .foregroundStyle(.white)
+
+            connectionStatusDot
+        }
+    }
+
+    @ViewBuilder
+    private var connectionStatusDot: some View {
+        if NexusAIStudioBootstrap.isConfigured {
+            FELConnectionDot(
+                color: Theme.neonGreen,
+                accessibilityLabel: "AI Studio connected"
+            )
+        } else if FirebaseBootstrap.connectionStatus == .live {
+            FELConnectionDot(
+                color: Theme.brandCyan,
+                accessibilityLabel: "Firebase live"
+            )
         }
     }
 
@@ -186,5 +280,6 @@ nonisolated enum AppTab: String, Sendable {
     case training
     case dashboard
     case social
+    case agent
     case vault
 }

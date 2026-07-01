@@ -12,6 +12,8 @@ class TrainingViewModel {
 
     private let labViewModel: LabViewModel
 
+    var athleteProfile: UserProfile { labViewModel.profile }
+
     init(labViewModel: LabViewModel) {
         self.labViewModel = labViewModel
         let loadedProgress = SaveSystem.loadTrainingProgress()

@@ -3,11 +3,11 @@ import OSLog
 import FirebaseFirestore
 
 extension Notification.Name {
-    /// Posted after Firestore persist + ``UnrealManager``/Emergent bridge dispatch for a system scan.
+    /// Posted after Firestore persist + NEXUS bridge dispatch for a system scan.
     static let felSystemScanBridgeCompleted = Notification.Name("felSystemScanBridgeCompleted")
 }
 
-/// Writes System Scan snapshots to Firestore for cross-device sync and Unreal consumption.
+/// Writes System Scan snapshots to Firestore for cross-device sync and NEXUS gameplay consumption.
 /// Encoding and Firestore batches run off the main actor so large stability payloads do not block UI.
 final class SystemScanFirestoreSync {
     static let shared = SystemScanFirestoreSync()
@@ -21,7 +21,7 @@ final class SystemScanFirestoreSync {
         return Firestore.firestore()
     }
 
-    /// Persists a historical scan and upserts the latest avatar vector for UE.
+    /// Persists a historical scan and upserts the latest avatar vector for cross-device sync + NEXUS bridge.
     func syncLatestFromHealthKit(_ health: HealthKitService) async throws {
         let scan = await MainActor.run {
             SystemScanRecord.makeFromHealthKit(health)
@@ -36,7 +36,7 @@ final class SystemScanFirestoreSync {
     }
 
     /// Golden loop should not block on backend availability.
-    /// - Always: bridge to Unreal + optional WebSocket immediately.
+    /// - Always: bridge to NEXUS gameplay + optional WebSocket immediately.
     /// - Best-effort: persist to Firestore; on failure, enqueue locally and retry later.
     private func syncScanWithDegradation(_ scan: SystemScanRecord) async {
         await deliverScanToBridge(scan)
@@ -85,18 +85,21 @@ final class SystemScanFirestoreSync {
     }
 
     private func deliverScanToBridge(_ scan: SystemScanRecord) async {
+        await MainActor.run {
+            deliverScanToNexusBridge(scan)
+        }
+
         let data: Data
         do {
-            data = try scan.unrealBridgeJSON()
+            data = try scan.felScanBridgeJSON()
         } catch {
-            Self.log.error("unrealBridgeJSON encode failed — Unreal/WebSocket bridges skipped: \(error.localizedDescription, privacy: .public)")
+            Self.log.error("felScanBridgeJSON encode failed — WebSocket bridge skipped: \(error.localizedDescription, privacy: .public)")
 #if DEBUG
-            print("[SystemScanFirestoreSync] unrealBridgeJSON failed: \(error)")
+            print("[SystemScanFirestoreSync] felScanBridgeJSON failed: \(error)")
 #endif
             return
         }
         await MainActor.run {
-            UnrealManager.shared.deliverSystemScanJSON(data)
             EmergentRealtimeClient.shared.sendSystemScanBridge(data)
             NotificationCenter.default.post(name: .felSystemScanBridgeCompleted, object: nil)
         }
@@ -110,6 +113,39 @@ final class SystemScanFirestoreSync {
                 )
             }
         }
+    }
+
+    /// Pushes readiness + fitness scalars into a short-lived NEXUS gameplay session.
+    @MainActor
+    private func deliverScanToNexusBridge(_ scan: SystemScanRecord) {
+        guard NexusGameplayBridge.isLinked else {
+            Self.log.notice("NEXUS bridge not linked — system scan fitness sync skipped.")
+            return
+        }
+        guard let session = NexusGameplayBridge.createSession() else { return }
+        defer { NexusGameplayBridge.destroySession(session) }
+
+        let avatar = scan.avatar
+        NexusGameplayBridge.syncReadiness(session, readiness: Float(avatar.readinessScore))
+
+        let params: [String: Any] = [
+            "frc_mobility": avatar.biomechanicalEfficiency,
+            "frc_active_range": avatar.explosiveness,
+            "frc_control": avatar.neuralFocus,
+            "iap_engagement": avatar.endurance,
+            "iap_confidence": avatar.recovery,
+            "breath_phase": avatar.isRecoveryMode ? 0 : 1,
+        ]
+        let payload: [String: Any] = [
+            "command": "fel.fitness.update",
+            "id": "ios_system_scan_\(Int(scan.capturedAt.dateValue().timeIntervalSince1970))",
+            "params": params,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8)
+        else { return }
+        _ = NexusGameplayBridge.handleCommand(session, commandJson: json)
+        Self.log.debug("System scan delivered to NEXUS bridge (readiness=\(avatar.readinessScore, privacy: .public)).")
     }
 
     /// No celebration for pure readiness/vitals sync — require verified competitive PRQ or pose confidence (SCAN-54).

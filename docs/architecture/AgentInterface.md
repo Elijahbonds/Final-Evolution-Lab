@@ -1,6 +1,7 @@
 # NEXUS Agent Interface
 
-> Source of truth: `engine/ai_interface/` and `tests/unit/ai_interface/command_test.cpp`.
+> Source of truth: `engine/ai_interface/` and `tests/unit/ai_interface/command_test.cpp`.  
+> **External clients (Cursor, MCP):** see [NEXUS_AGENT_PROTOCOL.md](../NEXUS_AGENT_PROTOCOL.md) for `nexus_agent_cli`, HTTP `POST /nexus/agent`, and text-to-gen commands.
 
 ## Overview
 

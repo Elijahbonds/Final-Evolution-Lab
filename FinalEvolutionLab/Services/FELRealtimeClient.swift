@@ -6,7 +6,7 @@ import Foundation
 /// **Trust:** PRQ mutations and ``fel_game_result`` sharing require `game_session_id` / `ue_session_id` to match
 /// ``EmergentRealtimeTrust.bindTrustedGameplaySession`` (set when UE or server validates a session). Debug-only bypass: env `FEL_ALLOW_UNVERIFIED_EMERGENT=1`.
 ///
-/// **Outbound:** maintains a small queue and retries after reconnect (matches Unreal bridge resilience pattern).
+/// **Outbound:** maintains a small queue and retries after reconnect.
 ///
 /// Supported JSON shapes (examples):
 /// - `{ "type": "prq_update", "prq": 72 }`
@@ -255,7 +255,7 @@ final class EmergentRealtimeClient {
         pumpOutboundQueueIfNeeded(task: t)
     }
 
-    /// Wraps `UnrealSystemScanPayload` JSON in a typed envelope for UE / backend routing.
+    /// Wraps `FELScanBridgePayload` JSON in a typed envelope for backend routing.
     func sendSystemScanBridge(_ data: Data) {
         guard let obj = try? JSONSerialization.jsonObject(with: data) else { return }
         let envelope: [String: Any] = [

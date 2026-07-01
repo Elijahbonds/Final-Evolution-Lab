@@ -39,8 +39,13 @@ struct AssetRecord {
   std::string sourceDescriptor;
   std::string unrealPackage;
   std::string importedMesh;
+  std::string importedMeshMobile;
+  std::string importedMeshDesktop;
+  std::string importedMeshFull;
   ProceduralFallback fallback{ProceduralFallback::kArenaGrid};
   std::string generationMethod;
+  int vertexCount{0};
+  int triCount{0};
 };
 
 struct VenueRecord {
@@ -49,6 +54,8 @@ struct VenueRecord {
   std::string felVenueId;
   std::vector<std::string> modeIds;
   std::string environmentAssetId;
+  /// Optional distant ambient layer (e.g. Luma Venice shop skyline behind playable court).
+  std::string backdropAssetId;
   std::string unrealOpenLevel;
 };
 
@@ -65,7 +72,13 @@ public:
 
   [[nodiscard]] auto findAsset(std::string_view assetId) const -> const AssetRecord*;
   [[nodiscard]] auto findVenueForMode(std::string_view modeId) const -> const VenueRecord*;
+  [[nodiscard]] auto findVenueByKey(std::string_view venueKey) const -> const VenueRecord*;
   [[nodiscard]] auto resolveImportedPath(const AssetRecord& asset) const -> std::string;
+  [[nodiscard]] auto resolveMeshPath(const AssetRecord& asset) const -> std::string;
+  [[nodiscard]] auto resolveMeshPathForProfile(const AssetRecord& asset,
+                                                 std::string_view profile) const -> std::string;
+  [[nodiscard]] auto resolveMeshPathAtDistance(const AssetRecord& asset,
+                                                float cameraDistanceMeters) const -> std::string;
 
 private:
   std::string m_defaultMode{"basketball_h2h"};
@@ -78,5 +91,11 @@ private:
 [[nodiscard]] auto parseAssetSource(std::string_view value) -> AssetSource;
 [[nodiscard]] auto parseProceduralFallback(std::string_view value) -> ProceduralFallback;
 [[nodiscard]] auto parseAssetKind(std::string_view value) -> AssetKind;
+
+/// Active mesh profile from `NEXUS_MESH_PROFILE` (`desktop` default, `mobile` for iOS budget).
+[[nodiscard]] auto activeMeshProfileName() -> std::string_view;
+[[nodiscard]] auto meshProfilePrefersMobile() -> bool;
+[[nodiscard]] auto devDrawStatsEnabled() -> bool;
+[[nodiscard]] auto distanceLodEnabled() -> bool;
 
 } // namespace nexus::assets

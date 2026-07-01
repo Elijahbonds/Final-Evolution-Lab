@@ -324,3 +324,221 @@ mutation DeactivateCardMarketListing($listingId: UUID!) @auth(level: USER_ANON) 
   }
   cardMarketListing_update(key: { id_expr: "response.query.cardMarketListings[0].id" }, data: { active: false })
 }
+
+mutation ExecuteMarketplacePurchase(
+  $listingId: UUID!
+  $buyerId: UUID!
+  $sellerId: UUID!
+  $catalogCardId: String!
+  $buyerDeltaShards: Int!
+  $sellerDeltaShards: Int!
+) @auth(level: USER_ANON) @transaction {
+  query
+    @check(
+      expr: "response.query.buyer.size() > 0 && response.query.seller.size() > 0 && response.query.listing.size() > 0 && response.query.card.size() > 0 && response.query.buyer[0].evolutionShards + vars.buyerDeltaShards >= 0 && response.query.ownership.size() > 0 && response.query.existingOwn.size() == 0",
+      message: "Marketplace purchase validation failed: check buyer balance, card ownership, or active listing status."
+    )
+    @redact {
+    buyer: users(where: { id: { eq: $buyerId }, firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    seller: users(where: { id: { eq: $sellerId } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    listing: cardMarketListings(
+      where: { id: { eq: $listingId }, sellerId: { eq: $sellerId }, catalogCardId: { eq: $catalogCardId }, active: { eq: true } }
+      limit: 1
+    ) {
+      id
+    }
+    card: creatorCards(where: { catalogCardId: { eq: $catalogCardId } }, limit: 1) {
+      id
+    }
+    ownership: userOwnedCreatorCards(
+      where: {
+        userId: { eq: $sellerId }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      userId
+    }
+    existingOwn: userOwnedCreatorCards(
+      where: {
+        userId: { eq: $buyerId }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      userId
+    }
+  }
+
+  # 1. Debit buyer
+  buyer_update: user_update(
+    key: { id: $buyerId }
+    data: { evolutionShards_update: { inc: $buyerDeltaShards } }
+  )
+
+  # 2. Credit seller
+  seller_update: user_update(
+    key: { id: $sellerId }
+    data: { evolutionShards_update: { inc: $sellerDeltaShards } }
+  )
+
+  # 3. Revoke seller card ownership
+  revoke_ownership: userOwnedCreatorCard_delete(
+    key: { userId: $sellerId, creatorCardId_expr: "response.query.card[0].id" }
+  )
+
+  # 4. Grant buyer card ownership
+  grant_ownership: userOwnedCreatorCard_insert(
+    data: { userId: $buyerId, creatorCardId_expr: "response.query.card[0].id" }
+  )
+
+  # 5. Deactivate listing
+  deactivate_listing: cardMarketListing_update(
+    key: { id: $listingId }
+    data: { active: false }
+  )
+}
+
+# Client-callable catalog item creation for custom minted creator cards.
+mutation CreateCreatorCardCatalogItem($catalogCardId: String!, $displayName: String!, $rarityTier: String) @auth(level: USER_ANON) {
+  creatorCard_insert(
+    data: { catalogCardId: $catalogCardId, displayName: $displayName, rarityTier: $rarityTier }
+  )
+}
+
+
+# Atomic: execute marketplace purchase and credit 10% royalty to original creator
+mutation ExecuteMarketplacePurchaseWithRoyalty(
+  $listingId: UUID!
+  $buyerId: UUID!
+  $sellerId: UUID!
+  $catalogCardId: String!
+  $buyerDeltaShards: Int!
+  $sellerDeltaShards: Int!
+  $creatorId: UUID!
+  $royaltyShards: Int!
+) @auth(level: USER_ANON) @transaction {
+  query
+    @check(
+      expr: "response.query.buyer.size() > 0 && response.query.seller.size() > 0 && response.query.listing.size() > 0 && response.query.card.size() > 0 && response.query.creator.size() > 0 && response.query.buyer[0].evolutionShards + vars.buyerDeltaShards >= 0 && response.query.ownership.size() > 0 && response.query.existingOwn.size() == 0",
+      message: "Marketplace purchase validation failed: check buyer/creator status, seller balance, or listing."
+    )
+    @redact {
+    buyer: users(where: { id: { eq: $buyerId }, firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    seller: users(where: { id: { eq: $sellerId } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    creator: users(where: { id: { eq: $creatorId } }, limit: 1) {
+      id
+    }
+    listing: cardMarketListings(
+      where: { id: { eq: $listingId }, sellerId: { eq: $sellerId }, catalogCardId: { eq: $catalogCardId }, active: { eq: true } }
+      limit: 1
+    ) {
+      id
+    }
+    card: creatorCards(where: { catalogCardId: { eq: $catalogCardId } }, limit: 1) {
+      id
+    }
+    ownership: userOwnedCreatorCards(
+      where: {
+        userId: { eq: $sellerId }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      userId
+    }
+    existingOwn: userOwnedCreatorCards(
+      where: {
+        userId: { eq: $buyerId }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      userId
+    }
+  }
+
+  # 1. Debit buyer
+  buyer_update: user_update(
+    key: { id: $buyerId }
+    data: { evolutionShards_update: { inc: $buyerDeltaShards } }
+  )
+
+  # 2. Credit seller
+  seller_update: user_update(
+    key: { id: $sellerId }
+    data: { evolutionShards_update: { inc: $sellerDeltaShards } }
+  )
+
+  # 3. Credit creator royalties
+  creator_ledger_insert: shardLedger_insert(
+    data: {
+      userId: $creatorId
+      deltaShards: $royaltyShards
+      reason: "creator_royalty_credit"
+      referenceId: $catalogCardId
+      dedupeKey_expr: "vars.creatorId + '|creator_royalty_credit|' + vars.listingId"
+    }
+  )
+
+  creator_update: user_update(
+    key: { id: $creatorId }
+    data: { pendingRoyaltyShards_update: { inc: $royaltyShards } }
+  )
+
+  # 4. Revoke seller card ownership
+  revoke_ownership: userOwnedCreatorCard_delete(
+    key: { userId: $sellerId, creatorCardId_expr: "response.query.card[0].id" }
+  )
+
+  # 5. Grant buyer card ownership
+  grant_ownership: userOwnedCreatorCard_insert(
+    data: { userId: $buyerId, creatorCardId_expr: "response.query.card[0].id" }
+  )
+
+  # 6. Deactivate listing
+  deactivate_listing: cardMarketListing_update(
+    key: { id: $listingId }
+    data: { active: false }
+  )
+}
+
+# Atomic claim flow: transfers creator's pending royalties to spendable shards
+mutation ClaimRoyalties($claimId: String!, $amount: Int!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && response.query.users[0].pendingRoyaltyShards == vars.amount", message: "No pending royalties or mismatched amount.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+      pendingRoyaltyShards
+    }
+  }
+  user_update(
+    key: { id_expr: "response.query.users[0].id" }
+    data: {
+      evolutionShards_update: { inc: $amount }
+      pendingRoyaltyShards: 0
+    }
+  )
+  shardLedger_insert(
+    data: {
+      userId_expr: "response.query.users[0].id"
+      deltaShards: $amount
+      reason: "royalty_claim"
+      referenceId: $claimId
+      dedupeKey_expr: "auth.uid + '|royalty_claim|' + vars.claimId"
+    }
+  )
+}

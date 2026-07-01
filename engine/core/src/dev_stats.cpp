@@ -1,5 +1,6 @@
 #include "nexus/core/dev_stats.h"
 
+#include "nexus/core/env_flag.h"
 #include "nexus/core/log.h"
 
 #include <nlohmann/json.hpp>
@@ -11,16 +12,6 @@
 #include <string_view>
 
 namespace nexus::core {
-
-namespace {
-
-auto envTruthy(std::string_view key) -> bool {
-  const char* flag = std::getenv(std::string(key).c_str());
-  return flag != nullptr &&
-         (std::string_view{flag} == "1" || std::string_view{flag} == "true");
-}
-
-} // namespace
 
 auto devStatsLoggingEnabled() -> bool {
   const char* flag = std::getenv("NEXUS_DEV_STATS");
@@ -64,7 +55,7 @@ void logFrameDevStats(const FrameDevStats& stats) {
 }
 
 auto playtestExportEnabled() -> bool {
-  return envTruthy("NEXUS_PLAYTEST_EXPORT");
+  return envFlagEnabled("NEXUS_PLAYTEST_EXPORT");
 }
 
 auto playtestExportPath() -> std::string {

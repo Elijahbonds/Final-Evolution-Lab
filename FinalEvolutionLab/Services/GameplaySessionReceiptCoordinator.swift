@@ -4,7 +4,8 @@ import Foundation
 import FirebaseAuth
 #endif
 
-/// Bridges UE / Emergent JSON into the same local receipt path as ``GamePlayView/finalizeResults()`` (GAME-33 / Phase 5).
+/// Bridges legacy UE / Emergent JSON into the same local receipt path as ``GamePlayView/finalizeResults()`` (GAME-33 / Phase 5).
+/// **NEXUS ship:** prefer ``NexusGameplayEngine/flushReceipts`` + ``SessionReceiptUploadService``.
 ///
 /// Use ``GameSessionTrustLevel``: default bridge payloads are ``sessionBound`` (history only in Release). Set ``fel_trust_level``
 /// / ``trust_level`` to ``server_verified`` when the backend certifies the session. Cryptographic signing is future work.
@@ -20,7 +21,7 @@ final class GameplaySessionReceiptCoordinator {
         labViewModel = viewModel
     }
 
-    /// Parses server/UE JSON (transport may be authenticated; see file header — not a signed gameplay receipt). Emergent WS or ``UnrealManager`` bridge.
+    /// Parses Emergent / legacy UE JSON (transport may be authenticated; see file header — not a signed gameplay receipt). NEXUS ship prefers ``NexusGameplayEngine/flushReceipts``.
     func applyVerifiedPayload(_ obj: [String: Any]) {
         guard let vm = labViewModel else {
             Self.persistReceiptWithoutViewModel(obj)
@@ -70,34 +71,11 @@ final class GameplaySessionReceiptCoordinator {
     }
 
     private static func postSessionReceipt(body: [String: Any]) async -> [String: Any]? {
-        guard let url = URL(string: Config.gameplaySessionReceiptURL) else { return nil }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 12
-
-        do {
-            try await FirebaseIdentity.ensureUserSignedIn()
-        } catch {
-            return nil
-        }
-
-        #if canImport(FirebaseAuth)
-        guard let token = try? await Auth.auth().currentUser?.getIDToken() else { return nil }
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        #else
-        return nil
-        #endif
-
-        guard let httpBody = try? JSONSerialization.data(withJSONObject: body) else { return nil }
-        request.httpBody = httpBody
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return nil }
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
-            return Self.nativeReceiptPayload(from: json, requestBody: body)
-        } catch {
+        let outcome = await NexusBackendClient.postSessionReceipt(body: body, timeout: 12)
+        switch outcome {
+        case .success(let json):
+            return nativeReceiptPayload(from: json, requestBody: body)
+        case .previewQueuedLocally, .authUnavailable, .invalidURL, .networkError, .serverError:
             return nil
         }
     }

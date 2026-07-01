@@ -36,6 +36,7 @@ struct CookbookView: View {
                             .foregroundStyle(.white)
                     }
                     Spacer()
+                    FELPreviewLabel(text: FELPremiumCopy.Preview.bioFuelStub)
                     Button {
                         dismiss()
                     } label: {

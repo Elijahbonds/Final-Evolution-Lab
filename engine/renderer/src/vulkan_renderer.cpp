@@ -1,7 +1,10 @@
 #include "nexus/renderer/vulkan_renderer.h"
 
+#include "nexus/assets/asset_manifest.h"
+#include "nexus/core/result.h"
 #include "nexus/renderer/arena_shader_spv.h"
 #include "nexus/renderer/mesh.h"
+#include "nexus/renderer/mesh_lod.h"
 #include "nexus/core/log.h"
 
 #include <SDL3/SDL.h>
@@ -123,7 +126,8 @@ auto chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 
 auto VulkanRenderer::init(const RendererConfig& config) -> Result<void> {
   if (!SDL_Init(SDL_INIT_VIDEO)) {
-    return Result<void>::err(SDL_GetError());
+    return Result<void>::err(
+        formatEngineError("VulkanRenderer::init", "SDL video init failed", SDL_GetError()));
   }
 
 #if defined(__APPLE__)
@@ -223,7 +227,12 @@ auto VulkanRenderer::init(const RendererConfig& config) -> Result<void> {
     return renderPassResult;
   }
 
-  m_scene = RenderScene::createFromManifest("assets/nexus/manifests/nexus_asset_manifest.json");
+  m_scene = RenderScene::createFromManifest(config.manifestPath, config.modeId);
+  m_manifestPath = config.manifestPath;
+  m_modeId = config.modeId;
+  m_activeMeshProfile = std::string(assets::activeMeshProfileName());
+  m_shadowRuntime = ShadowPassRuntimeFlags::fromEnvironment();
+  m_bloomRuntime = BloomPassRuntimeFlags::fromEnvironment();
 
   const auto pipelineResult = createPipelineResources();
   if (pipelineResult.isErr()) {
@@ -238,9 +247,38 @@ auto VulkanRenderer::init(const RendererConfig& config) -> Result<void> {
   }
 
   NEXUS_LOG_INFO(LogChannel::kRenderer, "Vulkan renderer initialized with 3D arena scene");
+  NEXUS_LOG_INFO(LogChannel::kRenderer,
+                 "Lighting: directional sun shadow-map=" +
+                     std::string(m_lighting.shouldRecordShadowPass() ? "preview-stub" : "off") +
+                     " size=" + std::to_string(m_lighting.shadowPass().mapSize) + " label=" +
+                     std::string(m_shadowRuntime.previewLabel()));
+  const auto ppOrder = m_postProcess.passOrder();
+  NEXUS_LOG_INFO(LogChannel::kRenderer,
+                 "Post-process chain: " + std::to_string(ppOrder.size()) + " stages (bloom=" +
+                     std::string(m_postProcess.bloom().enabled ? "on" : "off") + " tonemap=ACES)");
   NEXUS_LOG_WARN(LogChannel::kRenderer,
-                 "NEXUS dev runtime: orbit camera + voxel cube field (Vulkan/MoltenVK). "
+                 "NEXUS dev runtime: orbit camera + venue mesh (Vulkan/MoltenVK). "
                  "Product UI remains FinalEvolutionLab on iOS.");
+  return Result<void>::ok();
+}
+
+auto VulkanRenderer::loadVenue(std::string_view modeId) -> Result<void> {
+  if (m_device == VK_NULL_HANDLE) {
+    return Result<void>::err("Renderer not initialized");
+  }
+
+  m_modeId = std::string(modeId);
+  m_scene = RenderScene::createFromManifest(m_manifestPath, modeId);
+  m_activeMeshProfile = std::string(assets::activeMeshProfileName());
+
+  vkDeviceWaitIdle(m_device);
+  const auto meshUploadResult = uploadSceneMeshes();
+  if (meshUploadResult.isErr()) {
+    return meshUploadResult;
+  }
+
+  updateUniformBuffer();
+  NEXUS_LOG_INFO(LogChannel::kRenderer, "Venue reloaded for mode=" + m_modeId);
   return Result<void>::ok();
 }
 
@@ -460,7 +498,7 @@ auto VulkanRenderer::createPipelineResources() -> Result<void> {
   bindingDescription.stride = sizeof(MeshVertex);
   bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-  std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+  std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
   attributeDescriptions[0].binding = 0;
   attributeDescriptions[0].location = 0;
   attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -468,7 +506,15 @@ auto VulkanRenderer::createPipelineResources() -> Result<void> {
   attributeDescriptions[1].binding = 0;
   attributeDescriptions[1].location = 1;
   attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attributeDescriptions[1].offset = offsetof(MeshVertex, color);
+  attributeDescriptions[1].offset = offsetof(MeshVertex, normal);
+  attributeDescriptions[2].binding = 0;
+  attributeDescriptions[2].location = 2;
+  attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+  attributeDescriptions[2].offset = offsetof(MeshVertex, color);
+  attributeDescriptions[3].binding = 0;
+  attributeDescriptions[3].location = 3;
+  attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+  attributeDescriptions[3].offset = offsetof(MeshVertex, uv);
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -605,7 +651,9 @@ auto VulkanRenderer::uploadSceneMeshes() -> Result<void> {
 
     const VkResult bufferResult = vkCreateBuffer(m_device, &bufferInfo, nullptr, &outBuffer);
     if (bufferResult != VK_SUCCESS) {
-      return Result<void>::err("Failed to create GPU mesh buffer");
+      return Result<void>::err(formatEngineError("VulkanRenderer::uploadSceneMeshes",
+                                                   "failed to create GPU vertex buffer",
+                                                   "VkResult=" + std::to_string(bufferResult)));
     }
 
     VkMemoryRequirements memoryRequirements{};
@@ -637,9 +685,13 @@ auto VulkanRenderer::uploadSceneMeshes() -> Result<void> {
   };
 
   for (std::size_t meshIndex = 0; meshIndex < m_scene.meshCount(); ++meshIndex) {
-    const Mesh& mesh = m_scene.mesh(meshIndex);
-    if (mesh.vertices.empty() || mesh.indices.empty()) {
-      return Result<void>::err("Scene mesh has no geometry");
+    const Mesh sourceMesh = m_scene.mesh(meshIndex);
+    const Mesh mesh = Mesh::ensureValidGeometry(sourceMesh);
+    if (mesh.vertices.size() != sourceMesh.vertices.size()) {
+      NEXUS_LOG_WARN(LogChannel::kRenderer,
+                     formatEngineError("VulkanRenderer::uploadSceneMeshes",
+                                       "mesh has no geometry — substituting fallback placeholder",
+                                       "mesh_index=" + std::to_string(meshIndex)));
     }
 
     GpuMesh& gpuMesh = m_gpuMeshes[meshIndex];
@@ -827,6 +879,90 @@ void VulkanRenderer::updateUniformBuffer() {
 
 void VulkanRenderer::advanceScene(double deltaSeconds) {
   m_scene.camera().advanceOrbit(static_cast<float>(deltaSeconds) * 0.35F);
+  maybeLogDistanceLodExtension();
+}
+
+void VulkanRenderer::logDrawStats(const RenderScene::DrawStats& stats) const {
+  if (!assets::devDrawStatsEnabled()) {
+    return;
+  }
+  NEXUS_LOG_INFO(LogChannel::kRenderer,
+                 "draw visible=" + std::to_string(stats.visibleDraws) + " culled=" +
+                     std::to_string(stats.culledDraws) + " tris=" +
+                     std::to_string(stats.triangleCount) + " budget=" +
+                     (stats.withinBudget() ? "ok" : "EXCEEDED"));
+}
+
+auto VulkanRenderer::lastFrameDrawStats() const -> RenderScene::DrawStats {
+  return m_lastDrawStats;
+}
+
+void VulkanRenderer::maybeLogDistanceLodExtension() {
+  if (!assets::distanceLodEnabled()) {
+    return;
+  }
+
+  const MeshLodSelector selector;
+  const char* desiredProfile = selector.selectProfileName(m_scene.camera().orbitDistance());
+  if (std::string_view{desiredProfile} == m_activeMeshProfile) {
+    return;
+  }
+
+  NEXUS_LOG_WARN(LogChannel::kRenderer,
+                 std::string("Request for Engine API Extension: runtime venue mesh LOD swap (") +
+                     m_activeMeshProfile + " -> " + desiredProfile +
+                     ") requires hot-reload in loadVenue()");
+  m_activeMeshProfile = desiredProfile;
+}
+
+void VulkanRenderer::recordShadowPassStub(VkCommandBuffer commandBuffer) {
+  (void)commandBuffer;
+  if (!m_lighting.shouldRecordShadowPass()) {
+    return;
+  }
+
+  if (!m_shadowPassExtensionLogged && m_shadowRuntime.shouldLogPreviewOnce()) {
+    const auto& shadow = m_lighting.shadowPass();
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   std::string(m_shadowRuntime.previewLabel()) + " (" +
+                       std::to_string(shadow.mapSize) + "x" + std::to_string(shadow.mapSize) +
+                       " depth stub, bias=" + std::to_string(shadow.bias) + ")");
+    m_shadowPassExtensionLogged = true;
+  }
+
+  if (m_shadowRuntime.gpuDepthResolveEnabled) {
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   "Request for Engine API Extension: VkFramebuffer depth resolve for shadow pass");
+  }
+}
+
+void VulkanRenderer::recordPostProcessStub(VkCommandBuffer commandBuffer) {
+  (void)commandBuffer;
+  if (m_postProcessExtensionLogged) {
+    return;
+  }
+
+  const auto order = m_postProcess.passOrder();
+  if (order.size() <= 1) {
+    return;
+  }
+
+  const auto& aa = m_postProcess.antialiasing();
+  const std::string aaMode =
+      aa.enabled ? (aa.mode == AntialiasingMode::kFxaa ? "FXAA" : "MSAA") : "off";
+
+  const std::string bloomLabel =
+      m_bloomRuntime.gpuBloomResolveEnabled
+          ? std::string(m_bloomRuntime.previewLabel())
+          : std::string(m_bloomRuntime.previewLabel()) + " (threshold=" +
+                std::to_string(m_postProcess.bloom().threshold) + ", mips=" +
+                std::to_string(m_postProcess.bloom().mipLevels) + ")";
+
+  NEXUS_LOG_WARN(LogChannel::kRenderer,
+                 "Request for Engine API Extension: GPU post-process chain (" + bloomLabel +
+                     ", AA=" + aaMode +
+                     ") — arena.frag ACES active; FXAA/MSAA resolve pass stub after tonemap");
+  m_postProcessExtensionLogged = true;
 }
 
 auto VulkanRenderer::createSwapchainResources() -> Result<void> {
@@ -1274,6 +1410,8 @@ void VulkanRenderer::renderFrame() {
     return;
   }
 
+  recordShadowPassStub(commandBuffer);
+
   VkClearValue clearValues[2]{};
   clearValues[0].color = {{0.05F, 0.08F, 0.14F, 1.0F}};
   clearValues[1].depthStencil = {1.0F, 0};
@@ -1315,8 +1453,10 @@ void VulkanRenderer::renderFrame() {
 
   updateUniformBuffer();
 
-  const auto drawCommands = m_scene.collectDrawCommands();
-  for (const RenderScene::DrawCommand& drawCommand : drawCommands) {
+  const auto drawBatch = m_scene.collectDrawCommandBatch();
+  m_lastDrawStats = drawBatch.stats;
+  logDrawStats(drawBatch.stats);
+  for (const RenderScene::DrawCommand& drawCommand : drawBatch.commands) {
     if (drawCommand.meshIndex >= m_gpuMeshes.size()) {
       continue;
     }
@@ -1337,6 +1477,8 @@ void VulkanRenderer::renderFrame() {
   }
 
   vkCmdEndRenderPass(commandBuffer);
+
+  recordPostProcessStub(commandBuffer);
 
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
     NEXUS_LOG_WARN(LogChannel::kRenderer, "Failed to record command buffer");

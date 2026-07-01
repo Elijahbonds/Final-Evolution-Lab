@@ -74,6 +74,9 @@ struct DoorDashOrderBridgeView: View {
                         .foregroundStyle(Theme.neonGreen)
                         .font(.system(.body, design: .monospaced))
                 }
+                ToolbarItem(placement: .principal) {
+                    FELPreviewLabel(text: FELPremiumCopy.Preview.doorDashBridge)
+                }
             }
             .onAppear {
                 loadInitialBudget()

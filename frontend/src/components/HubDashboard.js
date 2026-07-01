@@ -6,9 +6,39 @@ import {
   Heart, TrendingUp, Target, Flame, Brain, Dumbbell, Play,
   AlertTriangle, Eye, User, Award, ChevronUp
 } from "lucide-react";
+import { API_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
+
+// Offline/standby snapshot so the Hub view always renders even when the
+// local command-center endpoints are unreachable (no live backend / web shell).
+const FALLBACK_HUB_STATUS = {
+  websocket: { status: "standby", connected_clients: [], total_messages: 0 },
+  database: {
+    status: "ready",
+    total_venues: 12,
+    venues: [
+      "VeniceBeach", "Dojo", "BaseballPark", "Gridiron", "SoccerStadium",
+      "Links", "TennisCourt", "SandCourt", "TrainingFloor", "NeuroArena",
+      "Luma_Venice_Shop", "SecureEnclave",
+    ],
+  },
+  integrity: { status: "AWAITING AUTH", hardware_auth: null },
+  telemetry: null,
+  active_creator_card: null,
+  server: { version: "1.0.0", uptime_seconds: 0 },
+};
+const FALLBACK_HUB_HEALTH = {
+  status: "STANDBY",
+  checks: { mode_manager: { production_modes: 19 } },
+};
+const FALLBACK_HUB_HANDSHAKE = {
+  handshake_status: "STANDBY",
+  log: [
+    { ts: Date.now(), level: "WAIT", msg: "Local command center offline — showing shell standby snapshot." },
+    { ts: Date.now(), level: "INFO", msg: "Open the Final Evolution Hub binary on port 8888 to go live." },
+  ],
+};
 
 export const HubDashboard = () => {
   const [status, setStatus] = useState(null);
@@ -30,7 +60,14 @@ export const HubDashboard = () => {
       setHealth(h.data);
       setHandshake(hs.data);
       if (t.data) setTelemetry(t.data);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      // No live command center — render the standby snapshot instead of
+      // spinning forever. Only seed fallbacks once so we don't clobber a
+      // previously connected state.
+      setStatus((prev) => prev || FALLBACK_HUB_STATUS);
+      setHealth((prev) => prev || FALLBACK_HUB_HEALTH);
+      setHandshake((prev) => prev || FALLBACK_HUB_HANDSHAKE);
+    }
     setLoading(false);
   };
 

@@ -19,13 +19,75 @@ import { FELOSDashboard, EducationTracksPortal } from "@/components/FELOSDashboa
 import { LandingPage as RedesignedLandingPage } from "@/components/LandingPage";
 import DownloadPage from "@/components/DownloadPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
-import FELHud from "@/components/hud/FELHud";
+import Phase3HUD from "@/components/hud/Phase3HUD";
+import { FEL_ARENA_MODES } from "@/lib/arenaModes";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 const API = `${BACKEND_URL}/api`;
 axios.defaults.withCredentials = true;
+
+const FALLBACK_PRQ = { strength: 75, speed: 72, endurance: 70, agility: 73, power: 76, flexibility: 68, recovery: 80, mental: 78 };
+const FALLBACK_WORKOUTS = [
+  {
+    id: "local-athlete-primer",
+    name: "Athlete Shell Primer",
+    sport: "training",
+    difficulty: "Foundation",
+    duration_minutes: 12,
+    exercises: [
+      { name: "Dynamic Warmup", sets: 1, reps: "3 min", rest: "30s" },
+      { name: "Lateral Bounds", sets: 3, reps: "8/side", rest: "45s" },
+      { name: "Reaction Drops", sets: 3, reps: "10", rest: "45s" },
+    ],
+  },
+];
+const FALLBACK_COACHES = [
+  { name: "FEL Movement Coach", specialty: "Biomechanics", sport: "training", rate: 25, rating: 4.9, sessions: 128 },
+  { name: "Bio-Fuel Coach", specialty: "Performance Nutrition", sport: "nutrition", rate: 20, rating: 4.8, sessions: 96 },
+];
+const FALLBACK_LEADERS = [
+  { rank: 1, user_id: "dev-athlete", name: "FEL Athlete", prq_score: 75, level: 1, sport: "basketball" },
+  { rank: 2, user_id: "coach-sim", name: "Coach Simulator", prq_score: 72, level: 2, sport: "training" },
+  { rank: 3, user_id: "arena-bot", name: "Arena Bot", prq_score: 70, level: 1, sport: "soccer" },
+];
+const FALLBACK_PROGRESS = { total_workouts: 0, total_games: 0, total_brawls: 0, xp: 0 };
+
+// Mirror of the server-authoritative economy formulas (backend/app/utils).
+// Used only as an offline fallback so completed sessions always surface
+// XP / Shards / PRQ / MRI rewards even when the backend is unreachable.
+const SHARD_BASE_BY_OUTCOME = { win: 50, draw: 25, loss: 15 };
+const PRQ_MODE_WEIGHTS = {
+  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_3v3: 1.3,
+  karate: 1.4, karate_h2h: 1.4, karate_endless: 1.4,
+  baseball: 1.0, football: 1.5, soccer: 1.1, golf: 0.9, tennis: 1.1,
+  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 0.8, surfing: 1.05,
+  skateboarding: 1.0, snowboarding: 1.0, market_browse: 0.0,
+};
+function computeLocalReward({ mode_id, score, outcome, duration_seconds = 30, combo = 0, critical = 0, pacing = 0 }) {
+  const xp = Math.min(500, Math.max(10, Math.floor(score / 5)));
+  const base = SHARD_BASE_BY_OUTCOME[outcome] ?? 15;
+  let shards = base + Math.max(0, combo - 3) * 5 + Math.max(0, critical) * 10;
+  const pacingBonus = pacing >= 75;
+  if (pacingBonus) shards = Math.floor(shards * 1.05);
+  const weight = PRQ_MODE_WEIGHTS[mode_id] ?? 1.0;
+  const timeFactor = Math.min(1, Math.max(0, duration_seconds) / 60);
+  const prq_delta = Math.round(Math.min(100, Math.max(0, score) * 0.1 * weight * 1.25 * timeFactor) * 100) / 100;
+  const mri = Math.round((37.5 + 0.25 * Math.min(100, pacing)) * 100) / 100;
+  return { xp, shards, prq_delta, mri, pacing_bonus_applied: pacingBonus, source: "local" };
+}
+function normalizeServerReward(data) {
+  const economy = data?.economy || {};
+  return {
+    xp: economy.xp ?? data?.xp_earned ?? 0,
+    shards: economy.shards ?? data?.shards_earned ?? 0,
+    prq_delta: economy.prq_delta ?? data?.prq_delta ?? 0,
+    mri: economy.mri ?? data?.mri ?? 0,
+    pacing_bonus_applied: economy.pacing_bonus_applied ?? false,
+    source: "server",
+  };
+}
 
 // Initialize Firebase SDK
 const firebaseConfig = {
@@ -220,6 +282,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {id:'cards',icon:Users,label:'Creator Cards'},{id:'coach',icon:Trophy,label:'Coach Hub'},
     {id:'ai-coach',icon:MessageCircle,label:'AI Coach'},
     {id:'education',icon:GraduationCap,label:'Education'},{id:'brain-brawl',icon:Brain,label:'Brain Brawl'},
+    {id:'trivia',icon:Award,label:'Trivia Arena'},{id:'hud',icon:Radio,label:'HUD Overlay'},
     {id:'streaks',icon:Flame,label:'Streaks'},{id:'social',icon:UserPlus,label:'Social'},
     {id:'tournaments',icon:Swords,label:'Tournaments'},{id:'avatar',icon:Palette,label:'Avatar'},
     {id:'critique',icon:Video,label:'Video Critique'},{id:'referral',icon:Gift,label:'Referrals'},
@@ -266,7 +329,10 @@ const DashboardView = ({ setActiveTab }) => {
   const [stats, setStats] = useState(null);
   useEffect(() => {
     Promise.all([axios.get(`${API}/prq/metrics`), axios.get(`${API}/stats/overview`)])
-      .then(([p, s]) => { setPrq(p.data); setStats(s.data); }).catch(console.error);
+      .then(([p, s]) => { setPrq(p.data); setStats(s.data); }).catch(() => {
+        setPrq({ ...FALLBACK_PRQ, overall_score: 75 });
+        setStats({ total_workouts: 0, game_sessions: 0, brain_brawl_sessions: 0, xp: 0 });
+      });
   }, []);
   return (
     <div className="space-y-8 fade-in" data-testid="dashboard-view">
@@ -293,7 +359,7 @@ const DashboardView = ({ setActiveTab }) => {
       <div>
         <h2 className="text-2xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>QUICK START</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[{t:'Play Game',d:'17 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
+          {[{t:'Play Game',d:'19 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
             <button key={idx} data-testid={`quick-${i.a}`} onClick={()=>setActiveTab(i.a)} className="surface-card p-5 text-left card-hover flex items-center gap-4">
               <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center flex-shrink-0"><i.icon className="w-6 h-6 text-cyan-400" /></div>
               <div className="flex-1 min-w-0"><div className="font-bold">{i.t}</div><div className="text-sm text-zinc-500">{i.d}</div></div>
@@ -318,7 +384,7 @@ const SystemScanView = () => {
 
   useEffect(() => {
     Promise.all([axios.get(`${API}/prq/metrics`), axios.get(`${API}/workouts/recommended`)])
-      .then(([p,w]) => {setPrq(p.data);setWorkouts(w.data);}).catch(console.error);
+      .then(([p,w]) => {setPrq(p.data);setWorkouts(w.data);}).catch(() => { setPrq(FALLBACK_PRQ); setWorkouts(FALLBACK_WORKOUTS); });
   }, []);
 
   useEffect(() => {
@@ -408,12 +474,15 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
   const [gameActive, setGameActive] = useState(true);
   const [targets, setTargets] = useState([]);
   const [combo, setCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
   const [floaters, setFloaters] = useState([]);
   const [bgLoaded, setBgLoaded] = useState(false);
   const [consoleLogs, setConsoleLogs] = useState([]);
+  const [reward, setReward] = useState(null);
   const timerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const logContainerRef = useRef(null);
+  const submittedRef = useRef(false);
 
   // Dynamic asset pre-caching
   useEffect(() => {
@@ -517,10 +586,6 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
   useEffect(() => {
     if (gameActive && timeLeft > 0) {
       timerRef.current = setInterval(() => setTimeLeft(t => t - 1), 1000);
-    } else if (timeLeft <= 0) {
-      setGameActive(false);
-      clearInterval(timerRef.current);
-      playSound('gameover');
     }
     return () => clearInterval(timerRef.current);
   }, [gameActive, timeLeft]);
@@ -565,7 +630,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     const totalPoints = points + comboBonus;
     
     setScore(s => s + totalPoints);
-    setCombo(c => c + 1);
+    setCombo(c => { const next = c + 1; setMaxCombo(m => Math.max(m, next)); return next; });
     setTargets(prev => prev.filter(t => t.id !== target.id));
     
     setFloaters(prev => [...prev, {
@@ -587,16 +652,27 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     addLog(`[Telemetry] Input miss registered. Combo reset.`);
   };
 
-  const endGame = () => {
+  const finalizeGame = useCallback(async () => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
     setGameActive(false);
     clearInterval(timerRef.current);
     playSound('gameover');
-    onComplete(score);
-  };
+    addLog(`[Ledger] Session ended. Committing receipt for ${mode.id}...`);
+    try {
+      const result = await onComplete(score, maxCombo);
+      if (result) {
+        setReward(result);
+        addLog(`[Ledger] Rewards: +${result.xp} XP · +${result.shards} Shards · PRQ ${result.prq_delta >= 0 ? '+' : ''}${result.prq_delta}`);
+      }
+    } catch (_e) {
+      addLog(`[Error] Reward commit failed; showing local estimate.`);
+    }
+  }, [mode.id, score, maxCombo, onComplete]);
 
   useEffect(() => {
-    if (timeLeft <= 0 && score > 0) { endGame(); }
-  }, [timeLeft]);
+    if (timeLeft <= 0 && gameActive) { finalizeGame(); }
+  }, [timeLeft, gameActive, finalizeGame]);
 
   const getGameTitle = () => {
     const titles = {
@@ -658,19 +734,33 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
         <h2 className="text-4xl font-black tracking-wider text-white" style={{fontFamily:'Barlow Condensed'}}>UNREAL MODULE COMPLETE</h2>
         <div className="metric-value text-6xl text-cyan-400 drop-shadow-[0_0_15px_rgba(0,229,255,0.4)]">{score}</div>
         <div className="metric-label text-zinc-400 tracking-wider">REPLICATED LEDGER SCORE</div>
-        
+
+        {/* Server-authoritative economy rewards (XP / Shards / PRQ / MRI) */}
+        {reward ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto" data-testid="game-rewards">
+            <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="metric-value text-2xl text-yellow-400 font-bold">+{reward.xp}</div><div className="metric-label text-xs">XP</div></div>
+            <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="metric-value text-2xl text-cyan-400 font-bold">+{reward.shards}</div><div className="metric-label text-xs">SHARDS</div></div>
+            <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className={`metric-value text-2xl font-bold ${reward.prq_delta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{reward.prq_delta >= 0 ? `+${reward.prq_delta}` : reward.prq_delta}</div><div className="metric-label text-xs">PRQ Δ</div></div>
+            <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="metric-value text-2xl text-purple-400 font-bold">{reward.mri}</div><div className="metric-label text-xs">MRI</div></div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 text-zinc-500 text-sm" data-testid="game-rewards-pending">
+            <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+            Committing session receipt...
+          </div>
+        )}
+
         <div className="bg-black/30 p-4 border border-white/5 rounded-xl font-mono text-left text-xs text-zinc-400 space-y-1 max-w-lg mx-auto">
-          <div><span className="text-zinc-600">»</span> [Ledger] Session confirmation code: <span className="text-cyan-400 font-bold">{Math.random().toString(36).substring(2, 10).toUpperCase()}</span></div>
           <div><span className="text-zinc-600">»</span> [Ledger] Sync Target: M4 Pro Mac Mini (LocalHub Mode)</div>
-          <div><span className="text-zinc-600">»</span> [Ledger] DB insertion complete. Shards and XP awarded.</div>
+          <div><span className="text-zinc-600">»</span> [Ledger] {reward?.source === 'server' ? 'Server-verified receipt committed.' : reward?.source === 'local' ? 'Offline estimate (backend unreachable).' : 'Awaiting receipt...'}{reward?.pacing_bonus_applied ? ' · Pacing bonus applied.' : ''}</div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
-          <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="metric-value text-3xl text-cyan-400 font-bold">{combo}</div><div className="metric-label text-xs">MAX COMBO</div></div>
+          <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="metric-value text-3xl text-cyan-400 font-bold">{maxCombo}</div><div className="metric-label text-xs">MAX COMBO</div></div>
           <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="text-md font-bold text-white truncate">{mode.name}</div><div className="metric-label text-xs">MODE</div></div>
         </div>
         <div className="flex gap-4 max-w-lg mx-auto pt-4">
-          <button data-testid="play-again-btn" onClick={() => {setScore(0);setTimeLeft(30);setCombo(0);setGameActive(true);}} className="btn-primary flex-1 shadow-lg shadow-cyan-500/20">Re-Initialize</button>
+          <button data-testid="play-again-btn" onClick={() => {submittedRef.current=false;setReward(null);setScore(0);setTimeLeft(30);setCombo(0);setMaxCombo(0);setGameActive(true);}} className="btn-primary flex-1 shadow-lg shadow-cyan-500/20">Re-Initialize</button>
           <button data-testid="back-to-modes" onClick={onBack} className="btn-secondary flex-1">Back to Lobbies</button>
         </div>
       </div>
@@ -879,7 +969,12 @@ const GameModesView = () => {
   const wsRef = useRef(null);
 
   // Fetch modes from centralized venue registry (not hardcoded)
-  useEffect(() => { axios.get(`${API}/games/modes`).then(r => setModes(r.data)).catch(console.error); }, []);
+  useEffect(() => {
+    axios
+      .get(`${API}/games/modes`)
+      .then(r => setModes(Array.isArray(r.data) && r.data.length ? r.data : FEL_ARENA_MODES))
+      .catch(() => setModes(FEL_ARENA_MODES));
+  }, []);
 
   const launchNativeMode = async (mode) => {
     setLaunchingMode(mode.id);
@@ -936,13 +1031,25 @@ const GameModesView = () => {
     }
   };
 
-  const handleGameComplete = async (score) => {
+  const handleGameComplete = async (score, combo = 0) => {
+    const safeScore = Math.max(0, Math.min(10000, Math.round(score || 0)));
+    const outcome = safeScore >= 500 ? 'win' : safeScore >= 200 ? 'draw' : 'loss';
+    const pacing = Math.min(100, combo * 12);
+    const critical = Math.floor(combo / 3);
+    const payload = {
+      mode_id: playingMode.id, score: safeScore, outcome,
+      duration_seconds: 30, completed: true,
+      combo_count: combo, critical_count: critical, pacing_score: pacing,
+    };
     try {
-      await axios.post(`${API}/games/session`, {mode_id: playingMode.id, score, duration_seconds: 30, completed: true});
+      const r = await axios.post(`${API}/games/session`, payload);
       if (sessionState?.session_id) {
-        await axios.post(`${API}/session/state`, {session_id: sessionState.session_id, state: 'completed', score});
+        axios.post(`${API}/session/state`, {session_id: sessionState.session_id, state: 'completed', score: safeScore}).catch(() => {});
       }
-    } catch {}
+      return normalizeServerReward(r.data);
+    } catch {
+      return computeLocalReward({ mode_id: playingMode.id, score: safeScore, outcome, duration_seconds: 30, combo, critical, pacing });
+    }
   };
 
   if (launchingMode || launchStatus === 'timeout') {
@@ -1024,7 +1131,13 @@ const GameModesView = () => {
 const CreatorCardsView = () => {
   const [cards, setCards] = useState([]);
   const [selected, setSelected] = useState(null);
-  useEffect(() => { axios.get(`${API}/cards`).then(r => setCards(r.data)).catch(console.error); }, []);
+  const [purchaseState, setPurchaseState] = useState(null);
+  useEffect(() => {
+    axios
+      .get(`${API}/marketplace/cards`)
+      .then(r => setCards(r.data))
+      .catch(() => axios.get(`${API}/cards`).then(r => setCards(r.data)).catch(console.error));
+  }, []);
 
   if (selected) {
     return (
@@ -1069,11 +1182,30 @@ const CreatorCardsView = () => {
                     </button>
                   </div>
                 ) : (
-                  <button data-testid="purchase-card" className="btn-primary" onClick={() => {
-                    axios.post(`${API}/payments/create-order`, {item_type: 'card', item_id: selected.id, return_url: window.location.href, cancel_url: window.location.href}).then(r => {
-                      if (r.data.approval_url) window.open(r.data.approval_url, '_blank');
-                    }).catch(console.error);
-                  }}>Purchase via PayPal</button>
+                  <div className="space-y-2">
+                    <button data-testid="purchase-card" className="btn-primary w-full" onClick={() => {
+                      setPurchaseState({status:'pending', card:selected.id});
+                      axios.post(`${API}/marketplace/purchase`, {item_type: 'creator_card', item_id: selected.id, payment_method: 'stripe', return_url: window.location.href, cancel_url: window.location.href}).then(r => {
+                        setPurchaseState({status:r.data.status, card:selected.id, checkout_url:r.data.checkout_url, offline: r.data.checkout_url?.includes('offline')});
+                        if (r.data.checkout_url) window.open(r.data.checkout_url, '_blank');
+                      }).catch(err => {
+                        setPurchaseState({status:'error', card:selected.id, message: err?.response?.data?.detail || err.message});
+                      });
+                    }}>Purchase via Stripe</button>
+                    <button data-testid="purchase-card-shards" className="btn-secondary w-full text-sm" onClick={() => {
+                      setPurchaseState({status:'spending_shards', card:selected.id});
+                      axios.post(`${API}/marketplace/purchase`, {item_type: 'creator_card', item_id: selected.id, payment_method: 'shards'}).then(r => {
+                        setPurchaseState({status:r.data.status, card:selected.id, message:`Spent ${r.data.amount_shards || selected.price_shards} Shards`});
+                      }).catch(err => {
+                        setPurchaseState({status:'error', card:selected.id, message: err?.response?.data?.detail || err.message});
+                      });
+                    }}>Buy with {selected.price_shards} Shards</button>
+                    {purchaseState?.card === selected.id && (
+                      <p className="text-xs text-zinc-500 font-mono">
+                        PAYMENT: {purchaseState.status}{purchaseState.offline ? ' · OFFLINE SANDBOX' : ''}{purchaseState.message ? ` · ${purchaseState.message}` : ''}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -1191,7 +1323,7 @@ const CoachHubView = () => {
   const [sessions, setSessions] = useState([]);
   useEffect(() => {
     Promise.all([axios.get(`${API}/coach/available`), axios.get(`${API}/coach/sessions`)])
-      .then(([c,s]) => {setCoaches(c.data);setSessions(s.data);}).catch(console.error);
+      .then(([c,s]) => {setCoaches(c.data);setSessions(s.data);}).catch(() => { setCoaches(FALLBACK_COACHES); setSessions([]); });
   }, []);
   return (
     <div className="space-y-8 fade-in">
@@ -1225,6 +1357,27 @@ const CoachHubView = () => {
 };
 
 // ===================== BRAIN BRAWL =====================
+const LOCAL_BRAIN_BRAWL_QUESTIONS = [
+  {
+    question: "Which training quality is most tied to reaction drills?",
+    options: ["Decision speed", "Ignoring cues", "Static posture only", "No feedback"],
+    answer: 0,
+    difficulty: "Cognitive",
+  },
+  {
+    question: "What should an athlete prioritize before increasing speed?",
+    options: ["Movement control", "Random reps", "Skipping warmups", "Fatigue only"],
+    answer: 0,
+    difficulty: "Foundational",
+  },
+  {
+    question: "Which plane is most associated with rotational skills?",
+    options: ["Transverse", "Sagittal", "Frontal", "None"],
+    answer: 0,
+    difficulty: "Kinesiology",
+  },
+];
+
 const BrainBrawlView = ({ onBack }) => {
   const [questions, setQuestions] = useState([]);
   const [sessionId, setSessionId] = useState(null);
@@ -1255,7 +1408,15 @@ const BrainBrawlView = ({ onBack }) => {
       setVerified(null);
       setTimeLeft(15);
       setGameState('playing');
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      setSessionId('local-brain-brawl');
+      setQuestions(LOCAL_BRAIN_BRAWL_QUESTIONS);
+      setCurrentQ(0);
+      setPicked([]);
+      setVerified(null);
+      setTimeLeft(15);
+      setGameState('playing');
+    }
   };
 
   const answerQuestion = (index) => {
@@ -1269,7 +1430,17 @@ const BrainBrawlView = ({ onBack }) => {
           setVerified(res.data);
           setGameState('results');
         })
-        .catch(console.error);
+        .catch(() => {
+          const activeQuestions = questions.length ? questions : LOCAL_BRAIN_BRAWL_QUESTIONS;
+          const correct = activeQuestions.reduce((sum, q, i) => sum + (next[i] === (q.answer ?? 0) ? 1 : 0), 0);
+          setVerified({
+            score: correct * 100,
+            xp_earned: correct * 50,
+            questions_correct: correct,
+            questions_total: activeQuestions.length,
+          });
+          setGameState('results');
+        });
     } else {
       setCurrentQ((c) => c + 1);
       setTimeLeft(15);
@@ -1345,7 +1516,7 @@ const BrainBrawlView = ({ onBack }) => {
 const LeaderboardView = () => {
   const [leaders, setLeaders] = useState([]);
   const { user } = useAuth();
-  useEffect(() => { axios.get(`${API}/leaderboard`).then(r => setLeaders(r.data)).catch(console.error); }, []);
+  useEffect(() => { axios.get(`${API}/leaderboard`).then(r => setLeaders(r.data)).catch(() => setLeaders(FALLBACK_LEADERS)); }, []);
   return (
     <div className="space-y-8 fade-in">
       <div><p className="overline mb-1">GLOBAL RANKINGS</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>LEADERBOARD</h1></div>
@@ -1464,7 +1635,7 @@ const ProfileView = () => {
   const [bio, setBio] = useState(user?.bio || '');
   const [sport, setSport] = useState(user?.sport || 'basketball');
 
-  useEffect(() => { axios.get(`${API}/profile/progress`).then(r => setProgress(r.data)).catch(console.error); }, []);
+  useEffect(() => { axios.get(`${API}/profile/progress`).then(r => setProgress(r.data)).catch(() => setProgress(FALLBACK_PROGRESS)); }, []);
 
   const saveProfile = async () => {
     try { await axios.put(`${API}/profile`, {bio, sport}); setEditing(false); } catch (e) { console.error(e); }
@@ -1531,6 +1702,8 @@ const Dashboard = () => {
       case 'ai-coach': return <AICoachView />;
       case 'education': return <EducationTracksPortal setActiveTab={setActiveTab} />;
       case 'brain-brawl': return <BrainBrawlView />;
+      case 'trivia': return <TriviaArenaView onBack={() => setActiveTab('games')} />;
+      case 'hud': return <Phase3HUD />;
       case 'streaks': return <StreaksView />;
       case 'social': return <SocialView />;
       case 'tournaments': return <TournamentsView />;
@@ -1564,7 +1737,7 @@ function AppRouter() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/hud" element={<FELHud />} />
+      <Route path="/hud" element={<Phase3HUD />} />
       <Route path="/download" element={<DownloadPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

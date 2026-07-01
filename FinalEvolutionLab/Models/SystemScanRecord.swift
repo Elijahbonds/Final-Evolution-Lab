@@ -11,7 +11,7 @@ struct SystemScanRecord: Codable {
     var capturedAt: Timestamp
     var vitals: VitalsSnapshot
     var readiness: ReadinessSnapshot
-    /// Denormalized avatar knobs for Unreal + latest doc at `avatar_performance/current`.
+    /// Denormalized avatar knobs for Firestore + latest doc at `avatar_performance/current`.
     var avatar: AvatarPerformanceAttributes
     /// Optional pose / stability metrics (ARKit or future CV). When nil, bridge sends nulls — UE must not infer APT/valgus from avatar scalars alone.
     var stability: BiomechanicsStabilitySnapshot?
@@ -45,7 +45,7 @@ struct BiomechanicsStabilitySnapshot: Codable, Sendable {
     var pressureReleaseRaw: String?
 }
 
-/// Normalized **0...1** performance vector shared by Swift UI, Firestore, and Unreal (via JSON).
+/// Normalized **0...1** performance vector shared by Swift UI, Firestore, and NEXUS bridge JSON.
 struct AvatarPerformanceAttributes: Codable, Sendable {
     var schemaVersion: Int
     var updatedAt: Timestamp
@@ -384,16 +384,16 @@ extension AvatarPerformanceAttributes {
     }
 }
 
-// MARK: - Unreal JSON (stable field names for FJsonObject / bridge)
+// MARK: - FEL scan bridge JSON (stable field names for WebSocket / backend routing)
 
-/// Numeric times only — UE-friendly; keep in sync with `infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md`.
-struct UnrealSystemScanPayload: Codable, Sendable {
+/// Numeric times only; keep in sync with `infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md`.
+struct FELScanBridgePayload: Codable, Sendable {
     var schemaVersion: Int
     var capturedAtEpochMs: Int64
     var vitals: VitalsDTO
     var readiness: ReadinessDTO
     var avatar: AvatarDTO
-    /// Optional pose / stability pass-through for UE (null when not measured).
+    /// Optional pose / stability pass-through for bridge consumers (null when not measured).
     var stability: StabilityDTO?
 
     struct VitalsDTO: Codable, Sendable {
@@ -440,12 +440,12 @@ struct UnrealSystemScanPayload: Codable, Sendable {
 }
 
 extension SystemScanRecord {
-    func unrealBridgePayload() -> UnrealSystemScanPayload {
+    func felScanBridgePayload() -> FELScanBridgePayload {
         let v = vitals
         let r = readiness
         let a = avatar
         let stab = stability.map { s in
-            UnrealSystemScanPayload.StabilityDTO(
+            FELScanBridgePayload.StabilityDTO(
                 anteriorPelvicTiltEvidence01: s.anteriorPelvicTiltEvidence01,
                 ribFlareEvidence01: s.ribFlareEvidence01,
                 rearLegInternalRotation01: s.rearLegInternalRotation01,
@@ -454,10 +454,10 @@ extension SystemScanRecord {
                 pressureRelease: s.pressureReleaseRaw
             )
         }
-        return UnrealSystemScanPayload(
+        return FELScanBridgePayload(
             schemaVersion: schemaVersion,
             capturedAtEpochMs: Int64(capturedAt.dateValue().timeIntervalSince1970 * 1000),
-            vitals: UnrealSystemScanPayload.VitalsDTO(
+            vitals: FELScanBridgePayload.VitalsDTO(
                 heartRateBpm: v.heartRateBpm,
                 restingHeartRateBpm: v.restingHeartRateBpm,
                 hrvSdnnMs: v.hrvSdnnMs,
@@ -465,13 +465,13 @@ extension SystemScanRecord {
                 weeklyHrvAverageMs: v.weeklyHrvAverageMs,
                 sleepHoursLastNight: v.sleepHoursLastNight
             ),
-            readiness: UnrealSystemScanPayload.ReadinessDTO(
+            readiness: FELScanBridgePayload.ReadinessDTO(
                 neuralReadinessScore: r.neuralReadinessScore,
                 grade: r.grade,
                 hrvTrend: r.hrvTrend,
                 recoveryEstimateHours: r.recoveryEstimateHours
             ),
-            avatar: UnrealSystemScanPayload.AvatarDTO(
+            avatar: FELScanBridgePayload.AvatarDTO(
                 schemaVersion: a.schemaVersion,
                 updatedAtEpochMs: Int64(a.updatedAt.dateValue().timeIntervalSince1970 * 1000),
                 explosiveness: a.explosiveness,
@@ -491,9 +491,9 @@ extension SystemScanRecord {
         )
     }
 
-    func unrealBridgeJSON() throws -> Data {
+    func felScanBridgeJSON() throws -> Data {
         let enc = JSONEncoder()
         enc.outputFormatting = [.sortedKeys]
-        return try enc.encode(unrealBridgePayload())
+        return try enc.encode(felScanBridgePayload())
     }
 }

@@ -88,6 +88,15 @@ struct BrainBrawl2DView: View {
     @State private var levelUpOccurred = false
     @State private var animateXpBar = 0.0
     @State private var playerWon = false
+    @State private var crownPulseScale: CGFloat = 0.6
+
+    private var questionTimerLimit: Double {
+        switch selectedDifficulty {
+        case .easy: return 18.0
+        case .medium: return 15.0
+        case .hard: return 12.0
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -115,6 +124,11 @@ struct BrainBrawl2DView: View {
             .animation(.easeInOut(duration: 0.35), value: currentState)
         }
         .statusBar(hidden: true)
+        .onDisappear {
+            timerTask?.cancel()
+            aiThinkingTask?.cancel()
+            FELSoundscapeEngine.shared.stop()
+        }
     }
 
     // MARK: - Selection
@@ -122,7 +136,7 @@ struct BrainBrawl2DView: View {
     private var selectionScreen: some View {
         ScrollView {
             VStack(spacing: 22) {
-                headerBar(title: "TRIVIA CRACK MODE")
+                headerBar(title: "CROWN DUEL")
 
                 VStack(spacing: 6) {
                     Text("COLLECT ALL CROWNS")
@@ -149,6 +163,11 @@ struct BrainBrawl2DView: View {
 
                 difficultyPicker
                     .padding(.horizontal)
+
+                if let tier = gameMode.felHonestTierLabel {
+                    FELPreviewLabel(text: tier)
+                        .accessibilityIdentifier("BrainBrawlHonestTierLabel")
+                }
 
                 Button(action: launchMatch) {
                     Text("START CROWN DUEL")
@@ -451,7 +470,7 @@ struct BrainBrawl2DView: View {
                     .stroke(Color.white.opacity(0.06), lineWidth: 4)
                     .frame(width: 48, height: 48)
                 Circle()
-                    .trim(from: 0, to: CGFloat(timerValue / 15.0))
+                    .trim(from: 0, to: CGFloat(timerValue / questionTimerLimit))
                     .stroke(timerValue > 4 ? Theme.brandCyan : Color.red, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .frame(width: 48, height: 48)
@@ -618,6 +637,7 @@ struct BrainBrawl2DView: View {
                     .font(.system(size: 64))
                     .foregroundStyle(.yellow)
                     .shadow(color: .yellow.opacity(0.6), radius: 20)
+                    .scaleEffect(crownPulseScale)
                 Text("CROWN EARNED!")
                     .font(FELTypography.display(28))
                     .foregroundStyle(.yellow)
@@ -625,10 +645,25 @@ struct BrainBrawl2DView: View {
                     Text(cat.displayName.uppercased())
                         .font(FELTypography.mono(12, weight: .black))
                         .foregroundStyle(categoryColor(cat))
+                    Text("3 IN A ROW · \(cat.displayName)")
+                        .font(FELTypography.mono(9, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.6))
                 }
             }
         }
         .onAppear {
+            crownPulseScale = 0.6
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
+                crownPulseScale = 1.15
+            }
+            FELHaptics.actionSuccess(isCritical: true)
+            FELSoundscapeEngine.shared.triggerApplause(intensity: 1.0)
+            Task {
+                try? await Task.sleep(for: .milliseconds(350))
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    crownPulseScale = 1.0
+                }
+            }
             Task {
                 try? await Task.sleep(for: .seconds(1.8))
                 if checkMatchEnd() {
@@ -810,6 +845,8 @@ struct BrainBrawl2DView: View {
 
     private func launchMatch() {
         resetMatchState()
+        FELSoundscapeEngine.shared.start(for: .brainBrawl)
+        FELHaptics.modeSelect()
         currentState = .wheel
     }
 
@@ -897,7 +934,7 @@ struct BrainBrawl2DView: View {
     }
 
     private func startQuestionTimer() {
-        timerValue = 15.0
+        timerValue = questionTimerLimit
         timerTask?.cancel()
         timerTask = Task {
             while timerValue > 0 {

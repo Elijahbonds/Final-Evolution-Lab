@@ -73,6 +73,9 @@ struct HlsPlayerView: View {
                     .foregroundStyle(Theme.brandCyan)
                 }
             }
+            ToolbarItem(placement: .principal) {
+                FELPreviewLabel(text: FELPremiumCopy.Preview.hlsDemo)
+            }
         }
         .onAppear {
             setupPlayer()

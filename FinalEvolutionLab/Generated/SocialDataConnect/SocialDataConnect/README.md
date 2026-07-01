@@ -379,6 +379,47 @@ DataConnect.socialConnector.listActiveCardMarketListingsQuery.execute(...)
 ```
 
 
+## GetCreatorCardCreatorQuery
+### Variables
+#### Required
+```swift
+
+let catalogCardId: String = ...
+```
+
+
+
+
+### Using the Query Reference
+```
+struct MyView: View {
+   var getCreatorCardCreatorQueryRef = DataConnect.socialConnector.getCreatorCardCreatorQuery.ref(...)
+
+  var body: some View {
+    VStack {
+      if let data = getCreatorCardCreatorQueryRef.data {
+        // use data in View
+      }
+      else {
+        Text("Loading...")
+      }
+    }
+    .task {
+        do {
+          let _ = try await getCreatorCardCreatorQueryRef.execute()
+        } catch {
+        }
+      }
+  }
+}
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.getCreatorCardCreatorQuery.execute(...)
+```
+
+
 # Mutations
 ## RegisterSignedInUserMutation
 
@@ -625,5 +666,89 @@ let listingId: UUID = ...
 ### One-shot execute
 ```
 DataConnect.socialConnector.deactivateCardMarketListingMutation.execute(...)
+```
+
+## ExecuteMarketplacePurchaseMutation
+
+### Variables
+
+#### Required
+```swift
+
+let listingId: UUID = ...
+let buyerId: UUID = ...
+let sellerId: UUID = ...
+let catalogCardId: String = ...
+let buyerDeltaShards: Int = ...
+let sellerDeltaShards: Int = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.executeMarketplacePurchaseMutation.execute(...)
+```
+
+## CreateCreatorCardCatalogItemMutation
+
+### Variables
+
+#### Required
+```swift
+
+let catalogCardId: String = ...
+let displayName: String = ...
+```
+ 
+
+#### Optional
+```swift
+
+let rarityTier: String = ...
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.createCreatorCardCatalogItemMutation.execute(...)
+```
+
+## ExecuteMarketplacePurchaseWithRoyaltyMutation
+
+### Variables
+
+#### Required
+```swift
+
+let listingId: UUID = ...
+let buyerId: UUID = ...
+let sellerId: UUID = ...
+let catalogCardId: String = ...
+let buyerDeltaShards: Int = ...
+let sellerDeltaShards: Int = ...
+let creatorId: UUID = ...
+let royaltyShards: Int = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.executeMarketplacePurchaseWithRoyaltyMutation.execute(...)
+```
+
+## ClaimRoyaltiesMutation
+
+### Variables
+
+#### Required
+```swift
+
+let claimId: String = ...
+let amount: Int = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.claimRoyaltiesMutation.execute(...)
 ```
 

@@ -64,7 +64,8 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "test": "craco test"
+    "test": "craco test",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting:fel-dashboard"
   },
   "browserslist": {
     "production": [

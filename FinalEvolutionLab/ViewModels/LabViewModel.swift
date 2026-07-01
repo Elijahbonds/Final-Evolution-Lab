@@ -246,6 +246,7 @@ class LabViewModel {
     }
 
     func applyCreatorCard(_ card: CreatorCard) {
+        profile.avatarConfig = NexusGameplayAvatarLoader.mergeCreatorCardVisuals(card, into: profile.avatarConfig)
         let alreadyOwned = profile.ownsCard(card.id)
         if alreadyOwned {
             profile.activeCreatorCard = CreatorCardState(

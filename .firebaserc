@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "final-evolution-lab"
+  },
+  "targets": {
+    "final-evolution-lab": {
+      "hosting": {
+        "fel-dashboard": [
+          "final-evolution-lab"
+        ]
+      }
+    }
   }
 }

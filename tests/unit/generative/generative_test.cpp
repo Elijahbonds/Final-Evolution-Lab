@@ -1,5 +1,6 @@
 #include "nexus/ai/agent_server.h"
 #include "nexus/ai/command_router.h"
+#include "nexus/ai/text_prompt_adapter.h"
 #include "nexus/creative/voxel_world.h"
 #include "nexus/creative/world_manipulator.h"
 #include "nexus/generative/generative_pipeline.h"
@@ -10,6 +11,10 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+
+#include <chrono>
+#include <thread>
+#include <unistd.h>
 
 #include <nlohmann/json.hpp>
 
@@ -22,14 +27,26 @@ void require(bool condition, const char* message) {
   }
 }
 
+
+void removeTreeBestEffort(const std::filesystem::path& root) {
+  for (int attempt = 0; attempt < 5; ++attempt) {
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+    if (!ec || !std::filesystem::exists(root)) {
+      return;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
+  }
+}
+
 struct TempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
   std::string importRoot;
 
   explicit TempWorkspace(const std::string& name) {
-    root = std::filesystem::temp_directory_path() / name;
-    std::filesystem::remove_all(root);
+    root = std::filesystem::temp_directory_path() / (name + "_" + std::to_string(getpid()));
+    removeTreeBestEffort(root);
     std::filesystem::create_directories(root / "imported");
     std::filesystem::create_directories(root / "manifests");
 
@@ -49,7 +66,7 @@ struct TempWorkspace {
     })json";
   }
 
-  ~TempWorkspace() { std::filesystem::remove_all(root); }
+  ~TempWorkspace() { removeTreeBestEffort(root); }
 };
 
 void model_generator_completes_procedural_job() {
@@ -296,6 +313,25 @@ void agent_router_handles_environment_scan_command() {
   router.shutdown();
 }
 
+void text_prompt_adapter_builds_template_plan_without_llm() {
+  const auto plan = nexus::ai::parseTextPrompt("Raise a large grass hill at north with a bench prop");
+  require(plan.isOk(), "parse prompt ok");
+  require(plan.value().intent == "mixed" || plan.value().intent == "terrain",
+          "hill prompt classified");
+  require(plan.value().metadata["adapter"] == "template_mvp", "template adapter tag");
+  require(plan.value().metadata["import_pipeline"] == "scripts/nexus_import_assets.py",
+          "import pipeline referenced");
+
+  bool sawRaise = false;
+  for (const nexus::ai::ParsedAgentStep& step : plan.value().steps) {
+    if (step.command == "fel.creative.raise_terrain") {
+      sawRaise = true;
+      require(step.params["position"][2].get<int>() == -6, "north offset applied");
+    }
+  }
+  require(sawRaise, "raise terrain planned");
+}
+
 } // namespace
 
 auto main() -> int {
@@ -305,5 +341,6 @@ auto main() -> int {
   environment_scan_import_registers_manifest_and_voxel_chunks();
   environment_chunk_import_upserts_manifest_entry();
   agent_router_handles_environment_scan_command();
+  text_prompt_adapter_builds_template_plan_without_llm();
   return 0;
 }

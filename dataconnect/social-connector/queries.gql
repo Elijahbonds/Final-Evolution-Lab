@@ -66,6 +66,7 @@ query GetUserByFirebaseUid @auth(level: USER_ANON) {
     avatarUrl
     topPRQScore
     evolutionShards
+    pendingRoyaltyShards
     firebaseUid
   }
 }
@@ -80,6 +81,7 @@ query GetMyPrivateProfile @auth(level: USER_ANON) {
     avatarUrl
     topPRQScore
     evolutionShards
+    pendingRoyaltyShards
     firebaseUid
   }
 }
@@ -92,6 +94,7 @@ query GetUserProfile($userId: UUID!) @auth(level: USER_ANON) {
     avatarUrl
     topPRQScore
     evolutionShards
+    pendingRoyaltyShards
   }
   posts(
     where: { author: { id: { eq: $userId } } }
@@ -143,6 +146,10 @@ query ListCreatorCards($limit: Int) @auth(level: USER_ANON) {
     displayName
     rarityTier
     createdAt
+    creator {
+      id
+      username
+    }
   }
 }
 
@@ -157,6 +164,16 @@ query ListActiveCardMarketListings($limit: Int) @auth(level: USER_ANON) {
       id
       username
       avatarUrl
+    }
+  }
+}
+
+query GetCreatorCardCreator($catalogCardId: String!) @auth(level: USER_ANON) {
+  creatorCards(where: { catalogCardId: { eq: $catalogCardId } }, limit: 1) {
+    id
+    creator {
+      id
+      username
     }
   }
 }

@@ -4,15 +4,27 @@
 
 This repo contains multiple shells and integrations. **Follow this lock when changing runtime wiring.**
 
-## Production shipping target & Hybrid UI Architecture
+> **Production decision (2026-06):** Retail ship is **NEXUS only** — custom C++20 engine + Swift iOS app in this repo. See **`NEXUS_ONLY_PIVOT.md`**.
 
-We adopt a **hybrid UI design and runtime architecture** to decouple high-fidelity physics simulations from standard user administration interfaces:
+## Production shipping target (NEXUS)
 
-- **Core Simulation Engine (Canonical Host):** Unreal Engine 5.7 (`~/Developer/FinalEvolutionLab57/FinalEvolutionLab.uproject`) serves as the authoritative engine for physics, biotensegrity joint simulations, and direct low-latency hardware integration.
-- **Decoupled UI Layer:** A decoupled frontend shell (React-based HUD plugin or unified cross-platform Flutter/web frame) manages non-performance-critical flows: user profiles, streaks, coaching chat logs, and secondary HUD telemetry overlays.
-- **Low-Latency Telemetry Bridge:** Unreal Engine utilizes a high-frequency WebSocket and loopback IPC connection to synchronize physics results, joint-angle computations, and biometric events to the UI layer at >90Hz to prevent telemetry lag.
-- **Unified Deployment Path:** The decoupled UI and web shell target a single codebase that builds and deploys consistently across macOS Standalone, iOS, and Android, maintaining the **"arcade-technical"** aesthetic (translucent glassmorphism gauges, neon borders, and live console stream panels).
-- **Unity 6 & Swift-First Shells:** Deprecated/reference tracks only; not the active shipping hosts.
+Retail iOS / TestFlight ships **NEXUS** — not Unreal Engine or Unity:
+
+- **Core simulation engine (canonical):** NEXUS C++20 engine (`engine/`, `app/gameplay/`, `runtime/`) — physics, arena modes, session receipts, native bridges.
+- **iOS app shell (canonical):** SwiftUI + SceneKit/Metal embed (`FinalEvolutionLab/`, `scripts/build-nexus-ios.sh`, `scripts/archive-ios-testflight.sh`) distributed via **App Store Connect / TestFlight**.
+- **Decoupled UI layer:** React/web shells (`sites/`, `web/`) for marketing, dashboard, and non-gameplay flows; Firebase Hosting for static assets.
+- **Telemetry bridge:** WebSocket + native bridge (`NexusGameplayBridge`, `fel_bridge_service`) synchronizes gameplay events to UI/backend.
+- **Honest preview labeling:** Features not yet meeting **`DELIVERY_BAR_FINAL_EVOLUTION.md`** must be labeled preview/beta in UI and marketing — see **`NEXUS_DELIVERY_MATRIX.md`** for gaps (Metal PBR embed, live Firebase POST, TestFlight artifact).
+
+**Canonical build/run:** `./scripts/nexus_build_gate.sh` · `./scripts/build-nexus-ios.sh` · `./scripts/archive-ios-testflight.sh` — details in **`NEXUS_RESUME.md`** and **`infra/SHIPPING.md`**.
+
+## Legacy / archived (not production)
+
+These paths remain in-repo for reference only — **do not** extend for retail ship:
+
+- **Unreal Engine 5.7:** archived legacy host (`UnrealIntegration/`, `UnrealStarter/`, `fel_ue5_ios_shipping_package.sh`). Superseded by NEXUS.
+- **Unity 6:** archived prototype (`Unity6-FinalEvolutionLab/`). Not a shipping host.
+- **Legacy FEL/UE monorepo:** `~/Documents/rork-final-evolution-lab` — reference mirror; canonical docs live here.
 
 ## Cloud Infrastructure Transition
 

@@ -69,3 +69,31 @@ def test_hud_relay_echoes_frame_for_user() -> None:
         ws.send_json(frame)
         assert ws.receive_json() == frame
 
+
+def test_hud_relay_normalizes_fel_hud_frame_envelope() -> None:
+    client = TestClient(app)
+
+    ios_frame = {
+        "type": "fel.hud.frame",
+        "event": "fel.hud.frame",
+        "seq": 128,
+        "payload": {
+            "mode_id": "basketball_dunk",
+            "score": 7,
+            "session_state": "active",
+            "mode_state": {
+                "dunk": {"player_score": 7, "timing_grade": "great"},
+            },
+        },
+    }
+
+    with client.websocket_connect("/ws/hud?user_id=ios-player") as ws:
+        ws.receive_json()
+        ws.send_json(ios_frame)
+        relayed = ws.receive_json()
+
+    assert relayed["event"] == "fel.hud.frame"
+    assert relayed["seq"] == 128
+    assert relayed["frame"]["mode_id"] == "basketball_dunk"
+    assert relayed["mode_state"]["dunk"]["timing_grade"] == "great"
+

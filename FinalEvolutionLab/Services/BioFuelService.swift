@@ -6,7 +6,7 @@ final class BioFuelService: ObservableObject {
     static let shared = BioFuelService()
     
     @Published var sessionToken: String = "sess_edu_1777958291132"
-    @Published var apiBaseURL: String = "http://localhost:8000"
+    @Published var apiBaseURL: String = Config.felBackendApiBaseURL
     
     private init() {}
     

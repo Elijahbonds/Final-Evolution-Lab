@@ -80,6 +80,11 @@ struct StreamingPortalView: View {
         .background(Theme.deepBlack)
         .navigationTitle("Streaming Portal")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                FELPreviewLabel(text: FELPremiumCopy.Preview.streamingStub)
+            }
+        }
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onReceive(leaderboardTimer) { _ in
             simulateLeaderboardActivity()

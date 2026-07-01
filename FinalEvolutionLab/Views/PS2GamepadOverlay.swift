@@ -11,51 +11,71 @@ struct PS2GamepadOverlay: View {
     var isActive: Bool = true
     @State private var leftStickOffset: CGSize = .zero
     @State private var rightStickOffset: CGSize = .zero
+    @State private var pressedFaceButton: PS2FaceButton? = nil
+    @State private var pressedDPadDirection: PS2DPadDirection? = nil
 
-    private let analogRange: CGFloat = 20
+    private let analogRange: CGFloat = 18
 
     var body: some View {
-        ZStack {
-            PS2ControllerShellView()
+        GeometryReader { geo in
+            let gutterWidth = min(geo.size.width * 0.22, 100)
+            let bottomInset = max(geo.safeAreaInsets.bottom, 10)
+            let sideInset = max(geo.safeAreaInsets.leading, 8)
 
-            HStack {
-                shoulderButton("L1", action: onLeftShoulder)
-                    .padding(.leading, 14)
-                Spacer()
-                shoulderButton("R1", action: onRightShoulder)
-                    .padding(.trailing, 14)
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
-            .padding(.top, 4)
-
-            HStack(alignment: .bottom, spacing: 0) {
-                VStack(spacing: 6) {
-                    dPadCluster
-                    analogStick(
-                        title: "L",
-                        offset: $leftStickOffset,
-                        onChanged: onLeftStick
-                    )
+            Color.clear
+                .allowsHitTesting(false)
+                .overlay(alignment: .top) {
+                    HStack {
+                        shoulderButton("L1", action: onLeftShoulder)
+                        Spacer(minLength: 0)
+                            .allowsHitTesting(false)
+                        shoulderButton("R1", action: onRightShoulder)
+                    }
+                    .padding(.horizontal, sideInset + 4)
+                    .padding(.top, 2)
+                    .allowsHitTesting(true)
                 }
-                .padding(.leading, 10)
-                .padding(.bottom, 14)
-
-                Spacer()
-
-                VStack(spacing: 6) {
-                    faceButtonCluster
-                    analogStick(
-                        title: "R",
-                        offset: $rightStickOffset,
-                        onChanged: onRightStick
-                    )
+                .overlay(alignment: .bottomLeading) {
+                    leftGutter(width: gutterWidth)
+                        .padding(.leading, sideInset)
+                        .padding(.bottom, bottomInset)
+                        .allowsHitTesting(true)
                 }
-                .padding(.trailing, 10)
-                .padding(.bottom, 14)
-            }
-            .frame(maxHeight: .infinity, alignment: .bottom)
+                .overlay(alignment: .bottomTrailing) {
+                    rightGutter(width: gutterWidth)
+                        .padding(.trailing, max(geo.safeAreaInsets.trailing, 8))
+                        .padding(.bottom, bottomInset)
+                        .allowsHitTesting(true)
+                }
         }
-        .opacity(isActive ? 1 : 0.3)
+        .allowsHitTesting(false)
+        .opacity(isActive ? 1 : 0.35)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Game controller")
+    }
+
+    private func leftGutter(width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            dPadCluster
+            analogStick(
+                title: "L",
+                offset: $leftStickOffset,
+                onChanged: onLeftStick
+            )
+        }
+        .frame(width: width, alignment: .leading)
+    }
+
+    private func rightGutter(width: CGFloat) -> some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            faceButtonCluster
+            analogStick(
+                title: "R",
+                offset: $rightStickOffset,
+                onChanged: onRightStick
+            )
+        }
+        .frame(width: width, alignment: .trailing)
     }
 
     private var dPadCluster: some View {
@@ -65,105 +85,114 @@ struct PS2GamepadOverlay: View {
             HStack(spacing: 1) {
                 dPadButton(.left, icon: "chevron.left")
 
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(white: 0.10).opacity(0.6))
-                    .frame(width: 16, height: 16)
-                    .overlay(
-                        Circle()
-                            .fill(Color(white: 0.08))
-                            .frame(width: 6, height: 6)
-                    )
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(white: 0.10).opacity(0.45))
+                    .frame(width: 12, height: 12)
 
                 dPadButton(.right, icon: "chevron.right")
             }
 
             dPadButton(.down, icon: "chevron.down")
         }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.black.opacity(0.28))
+        )
     }
 
     private func dPadButton(_ direction: PS2DPadDirection, icon: String) -> some View {
-        Button {
-            onDPad(direction)
-        } label: {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.white.opacity(0.75))
-                .frame(width: 44, height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(white: 0.22).opacity(0.9), Color(white: 0.12).opacity(0.9)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(Color(white: 0.08), lineWidth: 0.5)
-                )
-        }
-        .disabled(!isActive)
-        .sensoryFeedback(.impact(weight: .light), trigger: direction.rawValue)
+        let isPressed = pressedDPadDirection == direction
+        return Image(systemName: icon)
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(.white.opacity(isPressed ? 1.0 : 0.8))
+            .frame(width: 34, height: 34)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(white: isPressed ? 0.35 : 0.18).opacity(0.75))
+            )
+            .scaleEffect(isPressed ? 0.92 : 1.0)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard isActive else { return }
+                        if pressedDPadDirection != direction {
+                            pressedDPadDirection = direction
+                            onDPad(direction)
+                            FELHaptics.dunkChargeRelease()
+                        }
+                    }
+                    .onEnded { _ in
+                        pressedDPadDirection = nil
+                    }
+            )
+            .disabled(!isActive)
     }
 
     private var faceButtonCluster: some View {
-        let btnSize: CGFloat = 46
+        let btnSize: CGFloat = 40
 
-        return VStack(spacing: 3) {
+        return VStack(spacing: 2) {
             ps2FaceButton(.triangle, symbol: "△", color: Color(red: 0.3, green: 0.78, blue: 0.47), size: btnSize)
 
-            HStack(spacing: 18) {
+            HStack(spacing: 14) {
                 ps2FaceButton(.square, symbol: "□", color: Color(red: 0.96, green: 0.44, blue: 0.71), size: btnSize)
                 ps2FaceButton(.circle, symbol: "○", color: Color(red: 0.97, green: 0.44, blue: 0.44), size: btnSize)
             }
 
             ps2FaceButton(.cross, symbol: "✕", color: Color(red: 0.38, green: 0.65, blue: 0.98), size: btnSize)
         }
+        .padding(6)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.black.opacity(0.22))
+        )
     }
 
     private func ps2FaceButton(_ button: PS2FaceButton, symbol: String, color: Color, size: CGFloat) -> some View {
-        Button {
-            onFaceButton(button)
-        } label: {
-            Text(symbol)
-                .font(.system(size: 18, weight: .black))
-                .foregroundStyle(color)
-                .frame(width: size, height: size)
-                .background(
-                    Circle()
-                        .fill(color.opacity(0.12))
-                        .overlay(
-                            Circle()
-                                .stroke(color.opacity(0.45), lineWidth: 2)
-                        )
-                )
-                .shadow(color: color.opacity(0.3), radius: 4)
-        }
-        .disabled(!isActive)
-        .sensoryFeedback(.impact(weight: .medium), trigger: button.rawValue)
+        let isPressed = pressedFaceButton == button
+        return Text(symbol)
+            .font(.system(size: 16, weight: .black))
+            .foregroundStyle(isPressed ? .white : color)
+            .frame(width: size, height: size)
+            .background(
+                Circle()
+                    .fill(isPressed ? color : color.opacity(0.14))
+                    .overlay(
+                        Circle()
+                            .stroke(color.opacity(0.5), lineWidth: 1.5)
+                    )
+            )
+            .shadow(color: color.opacity(0.25), radius: 3)
+            .scaleEffect(isPressed ? 0.92 : 1.0)
+            .contentShape(Circle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard isActive else { return }
+                        if pressedFaceButton != button {
+                            pressedFaceButton = button
+                            onFaceButton(button)
+                            FELHaptics.actionSuccess(isCritical: false)
+                        }
+                    }
+                    .onEnded { _ in
+                        pressedFaceButton = nil
+                    }
+            )
+            .disabled(!isActive)
     }
 
     private func shoulderButton(_ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.8))
-                .frame(width: 50, height: 22)
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.75))
+                .frame(width: 44, height: 20)
                 .background(
                     Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(white: 0.26).opacity(0.9), Color(white: 0.15).opacity(0.9)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(Color(white: 0.10), lineWidth: 0.5)
+                        .fill(Color(white: 0.16).opacity(0.65))
                 )
         }
         .disabled(!isActive)
@@ -177,43 +206,36 @@ struct PS2GamepadOverlay: View {
     ) -> some View {
         ZStack {
             Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Color(white: 0.15).opacity(0.8), Color(white: 0.08).opacity(0.8)],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 24
-                    )
-                )
-                .frame(width: 48, height: 48)
+                .fill(Color(white: 0.12).opacity(0.55))
+                .frame(width: 56, height: 56)
                 .overlay(
                     Circle()
-                        .stroke(Color(white: 0.06), lineWidth: 1.5)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
                 )
 
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [Color(white: 0.32), Color(white: 0.20), Color(white: 0.15)],
+                        colors: [Color(white: 0.30), Color(white: 0.18)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: 24, height: 24)
+                .frame(width: 26, height: 26)
                 .overlay(
                     Circle()
                         .stroke(Color(white: 0.24), lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
                 .offset(offset.wrappedValue)
 
             Text(title)
-                .font(.system(size: 7, weight: .black, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.3))
-                .offset(y: 20)
+                .font(.system(size: 6, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.25))
+                .offset(y: 22)
         }
-        .contentShape(Circle().size(width: 60, height: 60))
-        .frame(width: 60, height: 60)
+        .contentShape(Circle().size(width: 56, height: 56))
+        .frame(width: 56, height: 56)
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in

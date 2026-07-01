@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Body IQ Education Lab — Bonds Standard prescriptions, Unreal hooks, optional feed discovery post.
+/// Body IQ Education Lab — Bonds Standard prescriptions, NEXUS education preview, optional feed discovery post.
 struct BodyIQEducationLabView: View {
     let viewModel: LabViewModel
 
@@ -31,6 +31,7 @@ struct BodyIQEducationLabView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
+                movementMiniSelfSection
                 NavigationLink {
                     DrawingInTutorialView()
                 } label: {
@@ -99,6 +100,40 @@ struct BodyIQEducationLabView: View {
                 }
                 .buttonStyle(.plain)
 
+                NavigationLink {
+                    AcademicLessonRunnerView(viewModel: viewModel)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "book.closed.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(Theme.brandBlue)
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(Theme.brandBlue.opacity(0.12)))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("ACADEMIC LESSON RUNNER")
+                                .font(.system(.caption2, design: .monospaced, weight: .black))
+                                .foregroundStyle(Theme.brandBlue)
+                                .tracking(2)
+                            Text("Common Core & STEM Sports Science Tracks")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.65))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.white.opacity(0.35))
+                    }
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(Theme.cardBackground)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18)
+                                    .stroke(Theme.brandBlue.opacity(0.28), lineWidth: 1)
+                            )
+                    )
+                }
+                .buttonStyle(.plain)
+
                 // APPLIED KINESIOLOGY CERTIFICATION SECTION
                 certificationSection
 
@@ -146,6 +181,15 @@ struct BodyIQEducationLabView: View {
         .background(Theme.deepBlack)
         .navigationTitle("Body IQ Lab")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 4) {
+                    Text("Body IQ Lab")
+                        .font(.headline)
+                    FELPreviewLabel(text: FELPremiumCopy.Preview.nexusEducation)
+                }
+            }
+        }
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             reloadSnacks()
@@ -417,6 +461,14 @@ extension BodyIQEducationLabView {
         }
     }
 
+    private var movementMiniSelfSection: some View {
+        NexusMiniSelfPreviewView(
+            profile: viewModel.profile,
+            motionNote: FELPremiumCopy.Preview.simulatedPose,
+            prqLabel: NexusMiniSelfPreviewView.prqPrescriptionLabel(for: viewModel.profile)
+        )
+    }
+
     private var pulseCaption: String {
         let period = MovementSnackEngine.proprioceptivePulsePeriodSeconds(neuralFocus01: neuralFocus01)
         if neuralFocus01 < 0.42 {
@@ -451,19 +503,19 @@ extension BodyIQEducationLabView {
             }
 
             phaseRow("A · MAP", snack.phaseMappingCarsCue, color: Theme.brandBlue)
-            phaseRow("B · POSITION", "Unreal: \(snack.unrealCorrectivePoseAssetID)", color: Theme.elitePurple)
+            phaseRow("B · POSITION", "NEXUS: \(snack.correctivePoseAssetID)", color: Theme.elitePurple)
             phaseRow("C · BREATH", snack.phaseBreathCue, color: Theme.brandCyan)
 
-            Text("UE · \(snack.requiredUnrealAnimationAssetID)")
+            Text("Early Access · \(snack.requiredAnimationAssetID)")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.45))
 
             HStack(spacing: 10) {
                 Button {
-                    UnrealManager.shared.deliverBodyIQSnackJSON(snack)
-                    FelToastCenter.shared.show("Cue stack sent to Unreal bridge", isError: false)
+                    // NEXUS education preview — cue retained for future C++ education port.
+                    FelToastCenter.shared.show("Cue queued for NEXUS education preview", isError: false)
                 } label: {
-                    Text("SEND TO UNREAL")
+                    Text("QUEUE NEXUS CUE")
                         .font(.system(.caption, design: .monospaced, weight: .heavy))
                         .foregroundStyle(.black)
                         .padding(.horizontal, 14)

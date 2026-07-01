@@ -53,12 +53,37 @@ public:
     std::array<float, 16> modelMatrix{};
   };
 
-  [[nodiscard]] auto collectDrawCommands() const -> std::vector<DrawCommand>;
+  struct DrawStats {
+    std::size_t totalDraws{0};
+    std::size_t visibleDraws{0};
+    std::size_t culledDraws{0};
+    std::size_t triangleCount{0};
+
+    [[nodiscard]] static constexpr std::size_t kSceneTriangleBudget() { return 130'000; }
+    [[nodiscard]] auto withinBudget() const -> bool {
+      return triangleCount <= kSceneTriangleBudget();
+    }
+  };
+
+  struct DrawCommandBatch {
+    std::vector<DrawCommand> commands;
+    DrawStats stats{};
+  };
+
+  [[nodiscard]] auto collectDrawCommands(bool frustumCull = true) const -> std::vector<DrawCommand>;
+  [[nodiscard]] auto collectDrawCommandBatch(bool frustumCull = true) const -> DrawCommandBatch;
 
   static auto createDefaultArena() -> RenderScene;
   static auto createProceduralArena(ProceduralFallback fallback) -> RenderScene;
   static auto createFromManifest(const std::string& manifestPath,
                                  std::string_view modeId = {}) -> RenderScene;
+  static auto createFromVenueKey(const std::string& manifestPath,
+                                 std::string_view venueKey) -> RenderScene;
+
+  /// Frames orbit camera from mesh bounds (used after venue import).
+  static auto frameCameraToBounds(Camera& camera,
+                                  const MeshBounds& bounds,
+                                  std::string_view modeId = {}) -> void;
 
   /// Stub: attaches chunked environment scan meshes as scene entities (Luma parity path).
   static auto attachEnvironmentChunks(RenderScene& scene,
@@ -70,6 +95,7 @@ public:
       -> std::array<float, 16>;
 
 private:
+  [[nodiscard]] auto collectAllDrawCommands() const -> std::vector<DrawCommand>;
   void collectFromEntity(const SceneEntity& entity,
                          const std::array<float, 16>& parentWorld,
                          std::vector<DrawCommand>& out) const;

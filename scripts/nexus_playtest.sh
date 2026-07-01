@@ -95,9 +95,6 @@ set -e
 GAMEPLAY_STATUS="fail"
 if [[ ${GAMEPLAY_CODE} -eq 0 ]]; then
   GAMEPLAY_STATUS="pass"
-elif grep -q 'Arena session ended mode=basketball_dunk outcome=win' "${ARTIFACT_DIR}/gameplay_test.log"; then
-  # Playtest gate: dunk lifecycle OK even if later suite cases fail (smoke_v1 runs full ctest separately).
-  GAMEPLAY_STATUS="pass"
 fi
 
 RUNTIME_STATUS="skipped"

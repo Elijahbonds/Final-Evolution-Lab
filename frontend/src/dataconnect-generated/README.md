@@ -17,6 +17,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListShardLedgerForUser*](#listshardledgerforuser)
   - [*ListCreatorCards*](#listcreatorcards)
   - [*ListActiveCardMarketListings*](#listactivecardmarketlistings)
+  - [*GetCreatorCardCreator*](#getcreatorcardcreator)
 - [**Mutations**](#mutations)
   - [*RegisterSignedInUser*](#registersignedinuser)
   - [*UpdateMyTrainingProfile*](#updatemytrainingprofile)
@@ -31,6 +32,10 @@ This README will guide you through the process of using the generated JavaScript
   - [*CreateCritiqueRequestWithEscrow*](#createcritiquerequestwithescrow)
   - [*CreateCardMarketListing*](#createcardmarketlisting)
   - [*DeactivateCardMarketListing*](#deactivatecardmarketlisting)
+  - [*ExecuteMarketplacePurchase*](#executemarketplacepurchase)
+  - [*CreateCreatorCardCatalogItem*](#createcreatorcardcatalogitem)
+  - [*ExecuteMarketplacePurchaseWithRoyalty*](#executemarketplacepurchasewithroyalty)
+  - [*ClaimRoyalties*](#claimroyalties)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `social`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -241,24 +246,24 @@ export interface GetPostWithThreadData {
       avatarUrl?: string | null;
       topPRQScore?: number | null;
     } & User_Key;
-      comments_on_post: ({
+    comments_on_post: ({
+      id: UUIDString;
+      content: string;
+      createdAt: TimestampString;
+      author: {
         id: UUIDString;
-        content: string;
-        createdAt: TimestampString;
-        author: {
-          id: UUIDString;
-          username: string;
-          profilePictureUrl?: string | null;
-          avatarUrl?: string | null;
-        } & User_Key;
-      } & Comment_Key)[];
-        postLikes_on_post: ({
-          createdAt: TimestampString;
-          user: {
-            id: UUIDString;
-            username: string;
-          } & User_Key;
-        })[];
+        username: string;
+        profilePictureUrl?: string | null;
+        avatarUrl?: string | null;
+      } & User_Key;
+    } & Comment_Key)[];
+    postLikes_on_post: ({
+      createdAt: TimestampString;
+      user: {
+        id: UUIDString;
+        username: string;
+      } & User_Key;
+    })[];
   } & Post_Key;
 }
 ```
@@ -369,6 +374,7 @@ export interface GetUserByFirebaseUidData {
     avatarUrl?: string | null;
     topPRQScore?: number | null;
     evolutionShards: number;
+    pendingRoyaltyShards: number;
     firebaseUid?: string | null;
   } & User_Key)[];
 }
@@ -469,6 +475,7 @@ export interface GetMyPrivateProfileData {
     avatarUrl?: string | null;
     topPRQScore?: number | null;
     evolutionShards: number;
+    pendingRoyaltyShards: number;
     firebaseUid?: string | null;
   } & User_Key)[];
 }
@@ -574,15 +581,16 @@ export interface GetUserProfileData {
     avatarUrl?: string | null;
     topPRQScore?: number | null;
     evolutionShards: number;
+    pendingRoyaltyShards: number;
   } & User_Key;
-    posts: ({
-      id: UUIDString;
-      content: string;
-      createdAt: TimestampString;
-      gameModeId?: string | null;
-      trainingScore?: number | null;
-      feedSource?: string | null;
-    } & Post_Key)[];
+  posts: ({
+    id: UUIDString;
+    content: string;
+    createdAt: TimestampString;
+    gameModeId?: string | null;
+    trainingScore?: number | null;
+    feedSource?: string | null;
+  } & Post_Key)[];
 }
 ```
 ### Using `GetUserProfile`'s action shortcut function
@@ -939,6 +947,10 @@ export interface ListCreatorCardsData {
     displayName: string;
     rarityTier?: string | null;
     createdAt: TimestampString;
+    creator?: {
+      id: UUIDString;
+      username: string;
+    } & User_Key;
   } & CreatorCard_Key)[];
 }
 ```
@@ -1130,6 +1142,121 @@ console.log(data.cardMarketListings);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.cardMarketListings);
+});
+```
+
+## GetCreatorCardCreator
+You can execute the `GetCreatorCardCreator` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+getCreatorCardCreator(vars: GetCreatorCardCreatorVariables, options?: ExecuteQueryOptions): QueryPromise<GetCreatorCardCreatorData, GetCreatorCardCreatorVariables>;
+
+interface GetCreatorCardCreatorRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetCreatorCardCreatorVariables): QueryRef<GetCreatorCardCreatorData, GetCreatorCardCreatorVariables>;
+}
+export const getCreatorCardCreatorRef: GetCreatorCardCreatorRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getCreatorCardCreator(dc: DataConnect, vars: GetCreatorCardCreatorVariables, options?: ExecuteQueryOptions): QueryPromise<GetCreatorCardCreatorData, GetCreatorCardCreatorVariables>;
+
+interface GetCreatorCardCreatorRef {
+  ...
+  (dc: DataConnect, vars: GetCreatorCardCreatorVariables): QueryRef<GetCreatorCardCreatorData, GetCreatorCardCreatorVariables>;
+}
+export const getCreatorCardCreatorRef: GetCreatorCardCreatorRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getCreatorCardCreatorRef:
+```typescript
+const name = getCreatorCardCreatorRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetCreatorCardCreator` query requires an argument of type `GetCreatorCardCreatorVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetCreatorCardCreatorVariables {
+  catalogCardId: string;
+}
+```
+### Return Type
+Recall that executing the `GetCreatorCardCreator` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetCreatorCardCreatorData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetCreatorCardCreatorData {
+  creatorCards: ({
+    id: UUIDString;
+    creator?: {
+      id: UUIDString;
+      username: string;
+    } & User_Key;
+  } & CreatorCard_Key)[];
+}
+```
+### Using `GetCreatorCardCreator`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getCreatorCardCreator, GetCreatorCardCreatorVariables } from '@dataconnect/generated';
+
+// The `GetCreatorCardCreator` query requires an argument of type `GetCreatorCardCreatorVariables`:
+const getCreatorCardCreatorVars: GetCreatorCardCreatorVariables = {
+  catalogCardId: ..., 
+};
+
+// Call the `getCreatorCardCreator()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getCreatorCardCreator(getCreatorCardCreatorVars);
+// Variables can be defined inline as well.
+const { data } = await getCreatorCardCreator({ catalogCardId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getCreatorCardCreator(dataConnect, getCreatorCardCreatorVars);
+
+console.log(data.creatorCards);
+
+// Or, you can use the `Promise` API.
+getCreatorCardCreator(getCreatorCardCreatorVars).then((response) => {
+  const data = response.data;
+  console.log(data.creatorCards);
+});
+```
+
+### Using `GetCreatorCardCreator`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getCreatorCardCreatorRef, GetCreatorCardCreatorVariables } from '@dataconnect/generated';
+
+// The `GetCreatorCardCreator` query requires an argument of type `GetCreatorCardCreatorVariables`:
+const getCreatorCardCreatorVars: GetCreatorCardCreatorVariables = {
+  catalogCardId: ..., 
+};
+
+// Call the `getCreatorCardCreatorRef()` function to get a reference to the query.
+const ref = getCreatorCardCreatorRef(getCreatorCardCreatorVars);
+// Variables can be defined inline as well.
+const ref = getCreatorCardCreatorRef({ catalogCardId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getCreatorCardCreatorRef(dataConnect, getCreatorCardCreatorVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.creatorCards);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.creatorCards);
 });
 ```
 
@@ -2619,6 +2746,542 @@ console.log(data.cardMarketListing_update);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.cardMarketListing_update);
+});
+```
+
+## ExecuteMarketplacePurchase
+You can execute the `ExecuteMarketplacePurchase` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+executeMarketplacePurchase(vars: ExecuteMarketplacePurchaseVariables): MutationPromise<ExecuteMarketplacePurchaseData, ExecuteMarketplacePurchaseVariables>;
+
+interface ExecuteMarketplacePurchaseRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ExecuteMarketplacePurchaseVariables): MutationRef<ExecuteMarketplacePurchaseData, ExecuteMarketplacePurchaseVariables>;
+}
+export const executeMarketplacePurchaseRef: ExecuteMarketplacePurchaseRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+executeMarketplacePurchase(dc: DataConnect, vars: ExecuteMarketplacePurchaseVariables): MutationPromise<ExecuteMarketplacePurchaseData, ExecuteMarketplacePurchaseVariables>;
+
+interface ExecuteMarketplacePurchaseRef {
+  ...
+  (dc: DataConnect, vars: ExecuteMarketplacePurchaseVariables): MutationRef<ExecuteMarketplacePurchaseData, ExecuteMarketplacePurchaseVariables>;
+}
+export const executeMarketplacePurchaseRef: ExecuteMarketplacePurchaseRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the executeMarketplacePurchaseRef:
+```typescript
+const name = executeMarketplacePurchaseRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ExecuteMarketplacePurchase` mutation requires an argument of type `ExecuteMarketplacePurchaseVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ExecuteMarketplacePurchaseVariables {
+  listingId: UUIDString;
+  buyerId: UUIDString;
+  sellerId: UUIDString;
+  catalogCardId: string;
+  buyerDeltaShards: number;
+  sellerDeltaShards: number;
+}
+```
+### Return Type
+Recall that executing the `ExecuteMarketplacePurchase` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ExecuteMarketplacePurchaseData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ExecuteMarketplacePurchaseData {
+  buyer_update?: User_Key | null;
+  seller_update?: User_Key | null;
+  revoke_ownership?: UserOwnedCreatorCard_Key | null;
+  grant_ownership: UserOwnedCreatorCard_Key;
+  deactivate_listing?: CardMarketListing_Key | null;
+}
+```
+### Using `ExecuteMarketplacePurchase`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, executeMarketplacePurchase, ExecuteMarketplacePurchaseVariables } from '@dataconnect/generated';
+
+// The `ExecuteMarketplacePurchase` mutation requires an argument of type `ExecuteMarketplacePurchaseVariables`:
+const executeMarketplacePurchaseVars: ExecuteMarketplacePurchaseVariables = {
+  listingId: ..., 
+  buyerId: ..., 
+  sellerId: ..., 
+  catalogCardId: ..., 
+  buyerDeltaShards: ..., 
+  sellerDeltaShards: ..., 
+};
+
+// Call the `executeMarketplacePurchase()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMarketplacePurchase(executeMarketplacePurchaseVars);
+// Variables can be defined inline as well.
+const { data } = await executeMarketplacePurchase({ listingId: ..., buyerId: ..., sellerId: ..., catalogCardId: ..., buyerDeltaShards: ..., sellerDeltaShards: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await executeMarketplacePurchase(dataConnect, executeMarketplacePurchaseVars);
+
+console.log(data.buyer_update);
+console.log(data.seller_update);
+console.log(data.revoke_ownership);
+console.log(data.grant_ownership);
+console.log(data.deactivate_listing);
+
+// Or, you can use the `Promise` API.
+executeMarketplacePurchase(executeMarketplacePurchaseVars).then((response) => {
+  const data = response.data;
+  console.log(data.buyer_update);
+  console.log(data.seller_update);
+  console.log(data.revoke_ownership);
+  console.log(data.grant_ownership);
+  console.log(data.deactivate_listing);
+});
+```
+
+### Using `ExecuteMarketplacePurchase`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, executeMarketplacePurchaseRef, ExecuteMarketplacePurchaseVariables } from '@dataconnect/generated';
+
+// The `ExecuteMarketplacePurchase` mutation requires an argument of type `ExecuteMarketplacePurchaseVariables`:
+const executeMarketplacePurchaseVars: ExecuteMarketplacePurchaseVariables = {
+  listingId: ..., 
+  buyerId: ..., 
+  sellerId: ..., 
+  catalogCardId: ..., 
+  buyerDeltaShards: ..., 
+  sellerDeltaShards: ..., 
+};
+
+// Call the `executeMarketplacePurchaseRef()` function to get a reference to the mutation.
+const ref = executeMarketplacePurchaseRef(executeMarketplacePurchaseVars);
+// Variables can be defined inline as well.
+const ref = executeMarketplacePurchaseRef({ listingId: ..., buyerId: ..., sellerId: ..., catalogCardId: ..., buyerDeltaShards: ..., sellerDeltaShards: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = executeMarketplacePurchaseRef(dataConnect, executeMarketplacePurchaseVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.buyer_update);
+console.log(data.seller_update);
+console.log(data.revoke_ownership);
+console.log(data.grant_ownership);
+console.log(data.deactivate_listing);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.buyer_update);
+  console.log(data.seller_update);
+  console.log(data.revoke_ownership);
+  console.log(data.grant_ownership);
+  console.log(data.deactivate_listing);
+});
+```
+
+## CreateCreatorCardCatalogItem
+You can execute the `CreateCreatorCardCatalogItem` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+createCreatorCardCatalogItem(vars: CreateCreatorCardCatalogItemVariables): MutationPromise<CreateCreatorCardCatalogItemData, CreateCreatorCardCatalogItemVariables>;
+
+interface CreateCreatorCardCatalogItemRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateCreatorCardCatalogItemVariables): MutationRef<CreateCreatorCardCatalogItemData, CreateCreatorCardCatalogItemVariables>;
+}
+export const createCreatorCardCatalogItemRef: CreateCreatorCardCatalogItemRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+createCreatorCardCatalogItem(dc: DataConnect, vars: CreateCreatorCardCatalogItemVariables): MutationPromise<CreateCreatorCardCatalogItemData, CreateCreatorCardCatalogItemVariables>;
+
+interface CreateCreatorCardCatalogItemRef {
+  ...
+  (dc: DataConnect, vars: CreateCreatorCardCatalogItemVariables): MutationRef<CreateCreatorCardCatalogItemData, CreateCreatorCardCatalogItemVariables>;
+}
+export const createCreatorCardCatalogItemRef: CreateCreatorCardCatalogItemRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the createCreatorCardCatalogItemRef:
+```typescript
+const name = createCreatorCardCatalogItemRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `CreateCreatorCardCatalogItem` mutation requires an argument of type `CreateCreatorCardCatalogItemVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface CreateCreatorCardCatalogItemVariables {
+  catalogCardId: string;
+  displayName: string;
+  rarityTier?: string | null;
+}
+```
+### Return Type
+Recall that executing the `CreateCreatorCardCatalogItem` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `CreateCreatorCardCatalogItemData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface CreateCreatorCardCatalogItemData {
+  creatorCard_insert: CreatorCard_Key;
+}
+```
+### Using `CreateCreatorCardCatalogItem`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, createCreatorCardCatalogItem, CreateCreatorCardCatalogItemVariables } from '@dataconnect/generated';
+
+// The `CreateCreatorCardCatalogItem` mutation requires an argument of type `CreateCreatorCardCatalogItemVariables`:
+const createCreatorCardCatalogItemVars: CreateCreatorCardCatalogItemVariables = {
+  catalogCardId: ..., 
+  displayName: ..., 
+  rarityTier: ..., // optional
+};
+
+// Call the `createCreatorCardCatalogItem()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await createCreatorCardCatalogItem(createCreatorCardCatalogItemVars);
+// Variables can be defined inline as well.
+const { data } = await createCreatorCardCatalogItem({ catalogCardId: ..., displayName: ..., rarityTier: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await createCreatorCardCatalogItem(dataConnect, createCreatorCardCatalogItemVars);
+
+console.log(data.creatorCard_insert);
+
+// Or, you can use the `Promise` API.
+createCreatorCardCatalogItem(createCreatorCardCatalogItemVars).then((response) => {
+  const data = response.data;
+  console.log(data.creatorCard_insert);
+});
+```
+
+### Using `CreateCreatorCardCatalogItem`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, createCreatorCardCatalogItemRef, CreateCreatorCardCatalogItemVariables } from '@dataconnect/generated';
+
+// The `CreateCreatorCardCatalogItem` mutation requires an argument of type `CreateCreatorCardCatalogItemVariables`:
+const createCreatorCardCatalogItemVars: CreateCreatorCardCatalogItemVariables = {
+  catalogCardId: ..., 
+  displayName: ..., 
+  rarityTier: ..., // optional
+};
+
+// Call the `createCreatorCardCatalogItemRef()` function to get a reference to the mutation.
+const ref = createCreatorCardCatalogItemRef(createCreatorCardCatalogItemVars);
+// Variables can be defined inline as well.
+const ref = createCreatorCardCatalogItemRef({ catalogCardId: ..., displayName: ..., rarityTier: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = createCreatorCardCatalogItemRef(dataConnect, createCreatorCardCatalogItemVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.creatorCard_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.creatorCard_insert);
+});
+```
+
+## ExecuteMarketplacePurchaseWithRoyalty
+You can execute the `ExecuteMarketplacePurchaseWithRoyalty` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+executeMarketplacePurchaseWithRoyalty(vars: ExecuteMarketplacePurchaseWithRoyaltyVariables): MutationPromise<ExecuteMarketplacePurchaseWithRoyaltyData, ExecuteMarketplacePurchaseWithRoyaltyVariables>;
+
+interface ExecuteMarketplacePurchaseWithRoyaltyRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ExecuteMarketplacePurchaseWithRoyaltyVariables): MutationRef<ExecuteMarketplacePurchaseWithRoyaltyData, ExecuteMarketplacePurchaseWithRoyaltyVariables>;
+}
+export const executeMarketplacePurchaseWithRoyaltyRef: ExecuteMarketplacePurchaseWithRoyaltyRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+executeMarketplacePurchaseWithRoyalty(dc: DataConnect, vars: ExecuteMarketplacePurchaseWithRoyaltyVariables): MutationPromise<ExecuteMarketplacePurchaseWithRoyaltyData, ExecuteMarketplacePurchaseWithRoyaltyVariables>;
+
+interface ExecuteMarketplacePurchaseWithRoyaltyRef {
+  ...
+  (dc: DataConnect, vars: ExecuteMarketplacePurchaseWithRoyaltyVariables): MutationRef<ExecuteMarketplacePurchaseWithRoyaltyData, ExecuteMarketplacePurchaseWithRoyaltyVariables>;
+}
+export const executeMarketplacePurchaseWithRoyaltyRef: ExecuteMarketplacePurchaseWithRoyaltyRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the executeMarketplacePurchaseWithRoyaltyRef:
+```typescript
+const name = executeMarketplacePurchaseWithRoyaltyRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ExecuteMarketplacePurchaseWithRoyalty` mutation requires an argument of type `ExecuteMarketplacePurchaseWithRoyaltyVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ExecuteMarketplacePurchaseWithRoyaltyVariables {
+  listingId: UUIDString;
+  buyerId: UUIDString;
+  sellerId: UUIDString;
+  catalogCardId: string;
+  buyerDeltaShards: number;
+  sellerDeltaShards: number;
+  creatorId: UUIDString;
+  royaltyShards: number;
+}
+```
+### Return Type
+Recall that executing the `ExecuteMarketplacePurchaseWithRoyalty` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ExecuteMarketplacePurchaseWithRoyaltyData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ExecuteMarketplacePurchaseWithRoyaltyData {
+  buyer_update?: User_Key | null;
+  seller_update?: User_Key | null;
+  creator_ledger_insert: ShardLedger_Key;
+  creator_update?: User_Key | null;
+  revoke_ownership?: UserOwnedCreatorCard_Key | null;
+  grant_ownership: UserOwnedCreatorCard_Key;
+  deactivate_listing?: CardMarketListing_Key | null;
+}
+```
+### Using `ExecuteMarketplacePurchaseWithRoyalty`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, executeMarketplacePurchaseWithRoyalty, ExecuteMarketplacePurchaseWithRoyaltyVariables } from '@dataconnect/generated';
+
+// The `ExecuteMarketplacePurchaseWithRoyalty` mutation requires an argument of type `ExecuteMarketplacePurchaseWithRoyaltyVariables`:
+const executeMarketplacePurchaseWithRoyaltyVars: ExecuteMarketplacePurchaseWithRoyaltyVariables = {
+  listingId: ..., 
+  buyerId: ..., 
+  sellerId: ..., 
+  catalogCardId: ..., 
+  buyerDeltaShards: ..., 
+  sellerDeltaShards: ..., 
+  creatorId: ..., 
+  royaltyShards: ..., 
+};
+
+// Call the `executeMarketplacePurchaseWithRoyalty()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMarketplacePurchaseWithRoyalty(executeMarketplacePurchaseWithRoyaltyVars);
+// Variables can be defined inline as well.
+const { data } = await executeMarketplacePurchaseWithRoyalty({ listingId: ..., buyerId: ..., sellerId: ..., catalogCardId: ..., buyerDeltaShards: ..., sellerDeltaShards: ..., creatorId: ..., royaltyShards: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await executeMarketplacePurchaseWithRoyalty(dataConnect, executeMarketplacePurchaseWithRoyaltyVars);
+
+console.log(data.buyer_update);
+console.log(data.seller_update);
+console.log(data.creator_ledger_insert);
+console.log(data.creator_update);
+console.log(data.revoke_ownership);
+console.log(data.grant_ownership);
+console.log(data.deactivate_listing);
+
+// Or, you can use the `Promise` API.
+executeMarketplacePurchaseWithRoyalty(executeMarketplacePurchaseWithRoyaltyVars).then((response) => {
+  const data = response.data;
+  console.log(data.buyer_update);
+  console.log(data.seller_update);
+  console.log(data.creator_ledger_insert);
+  console.log(data.creator_update);
+  console.log(data.revoke_ownership);
+  console.log(data.grant_ownership);
+  console.log(data.deactivate_listing);
+});
+```
+
+### Using `ExecuteMarketplacePurchaseWithRoyalty`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, executeMarketplacePurchaseWithRoyaltyRef, ExecuteMarketplacePurchaseWithRoyaltyVariables } from '@dataconnect/generated';
+
+// The `ExecuteMarketplacePurchaseWithRoyalty` mutation requires an argument of type `ExecuteMarketplacePurchaseWithRoyaltyVariables`:
+const executeMarketplacePurchaseWithRoyaltyVars: ExecuteMarketplacePurchaseWithRoyaltyVariables = {
+  listingId: ..., 
+  buyerId: ..., 
+  sellerId: ..., 
+  catalogCardId: ..., 
+  buyerDeltaShards: ..., 
+  sellerDeltaShards: ..., 
+  creatorId: ..., 
+  royaltyShards: ..., 
+};
+
+// Call the `executeMarketplacePurchaseWithRoyaltyRef()` function to get a reference to the mutation.
+const ref = executeMarketplacePurchaseWithRoyaltyRef(executeMarketplacePurchaseWithRoyaltyVars);
+// Variables can be defined inline as well.
+const ref = executeMarketplacePurchaseWithRoyaltyRef({ listingId: ..., buyerId: ..., sellerId: ..., catalogCardId: ..., buyerDeltaShards: ..., sellerDeltaShards: ..., creatorId: ..., royaltyShards: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = executeMarketplacePurchaseWithRoyaltyRef(dataConnect, executeMarketplacePurchaseWithRoyaltyVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.buyer_update);
+console.log(data.seller_update);
+console.log(data.creator_ledger_insert);
+console.log(data.creator_update);
+console.log(data.revoke_ownership);
+console.log(data.grant_ownership);
+console.log(data.deactivate_listing);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.buyer_update);
+  console.log(data.seller_update);
+  console.log(data.creator_ledger_insert);
+  console.log(data.creator_update);
+  console.log(data.revoke_ownership);
+  console.log(data.grant_ownership);
+  console.log(data.deactivate_listing);
+});
+```
+
+## ClaimRoyalties
+You can execute the `ClaimRoyalties` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+claimRoyalties(vars: ClaimRoyaltiesVariables): MutationPromise<ClaimRoyaltiesData, ClaimRoyaltiesVariables>;
+
+interface ClaimRoyaltiesRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ClaimRoyaltiesVariables): MutationRef<ClaimRoyaltiesData, ClaimRoyaltiesVariables>;
+}
+export const claimRoyaltiesRef: ClaimRoyaltiesRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+claimRoyalties(dc: DataConnect, vars: ClaimRoyaltiesVariables): MutationPromise<ClaimRoyaltiesData, ClaimRoyaltiesVariables>;
+
+interface ClaimRoyaltiesRef {
+  ...
+  (dc: DataConnect, vars: ClaimRoyaltiesVariables): MutationRef<ClaimRoyaltiesData, ClaimRoyaltiesVariables>;
+}
+export const claimRoyaltiesRef: ClaimRoyaltiesRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the claimRoyaltiesRef:
+```typescript
+const name = claimRoyaltiesRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ClaimRoyalties` mutation requires an argument of type `ClaimRoyaltiesVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ClaimRoyaltiesVariables {
+  claimId: string;
+  amount: number;
+}
+```
+### Return Type
+Recall that executing the `ClaimRoyalties` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ClaimRoyaltiesData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ClaimRoyaltiesData {
+  user_update?: User_Key | null;
+  shardLedger_insert: ShardLedger_Key;
+}
+```
+### Using `ClaimRoyalties`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, claimRoyalties, ClaimRoyaltiesVariables } from '@dataconnect/generated';
+
+// The `ClaimRoyalties` mutation requires an argument of type `ClaimRoyaltiesVariables`:
+const claimRoyaltiesVars: ClaimRoyaltiesVariables = {
+  claimId: ..., 
+  amount: ..., 
+};
+
+// Call the `claimRoyalties()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await claimRoyalties(claimRoyaltiesVars);
+// Variables can be defined inline as well.
+const { data } = await claimRoyalties({ claimId: ..., amount: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await claimRoyalties(dataConnect, claimRoyaltiesVars);
+
+console.log(data.user_update);
+console.log(data.shardLedger_insert);
+
+// Or, you can use the `Promise` API.
+claimRoyalties(claimRoyaltiesVars).then((response) => {
+  const data = response.data;
+  console.log(data.user_update);
+  console.log(data.shardLedger_insert);
+});
+```
+
+### Using `ClaimRoyalties`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, claimRoyaltiesRef, ClaimRoyaltiesVariables } from '@dataconnect/generated';
+
+// The `ClaimRoyalties` mutation requires an argument of type `ClaimRoyaltiesVariables`:
+const claimRoyaltiesVars: ClaimRoyaltiesVariables = {
+  claimId: ..., 
+  amount: ..., 
+};
+
+// Call the `claimRoyaltiesRef()` function to get a reference to the mutation.
+const ref = claimRoyaltiesRef(claimRoyaltiesVars);
+// Variables can be defined inline as well.
+const ref = claimRoyaltiesRef({ claimId: ..., amount: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = claimRoyaltiesRef(dataConnect, claimRoyaltiesVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.user_update);
+console.log(data.shardLedger_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.user_update);
+  console.log(data.shardLedger_insert);
 });
 ```
 

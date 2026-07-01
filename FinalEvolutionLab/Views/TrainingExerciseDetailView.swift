@@ -5,6 +5,7 @@ struct TrainingExerciseDetailView: View {
     let level: Int
     let isCompleted: Bool
     let onComplete: () -> Void
+    var athleteProfile: UserProfile = SaveSystem.loadProfile()
 
     @Environment(\.dismiss) private var dismiss
     @State private var currentSet: Int = 1
@@ -18,6 +19,13 @@ struct TrainingExerciseDetailView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     exerciseHeader
+                    NexusMiniSelfPreviewView(
+                        profile: athleteProfile,
+                        layout: .compact,
+                        previewHeight: 140,
+                        motionNote: exerciseMotionNote,
+                        prqLabel: NexusMiniSelfPreviewView.prqPrescriptionLabel(for: athleteProfile)
+                    )
                     levelIndicator
                     cuesCard
                     muscleGroupTags
@@ -293,6 +301,10 @@ struct TrainingExerciseDetailView: View {
         case .agility: .orange
         case .recovery: .purple
         }
+    }
+
+    private var exerciseMotionNote: String {
+        "Simulated \(exercise.category.rawValue.lowercased()) preview · \(exercise.name)."
     }
 
     private func statPill(label: String, value: String) -> some View {

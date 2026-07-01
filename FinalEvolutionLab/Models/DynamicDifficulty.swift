@@ -119,8 +119,8 @@ nonisolated struct DynamicDifficulty: Sendable {
         let normalized = min(max(playerPRQ / 100.0, 0), 1)
         let modeScale: Double
         switch mode {
-        case .basketballHeadToHead, .basketball3v3: modeScale = 1.0
-        case .basketballDunkContest: modeScale = 0.8
+        case .basketballHeadToHead, .basketball3v3, .venicePickup: modeScale = 1.0
+        case .basketballDunkContestIRL, .basketballDunkContest3D: modeScale = 0.8
         case .karate, .karateEndless: modeScale = 1.2
         case .baseball: modeScale = 0.7
         case .football: modeScale = 1.5

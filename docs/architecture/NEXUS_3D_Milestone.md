@@ -1,6 +1,6 @@
 # NEXUS 3D Milestone (M1)
 
-> **Decision:** Ship first visible 3D gameplay on the **NEXUS macOS dev runtime** (Path A). UE embed (Path B) and iOS hybrid bridge (Path C) remain documented follow-ups.
+> **Decision:** Ship first visible 3D gameplay on the **NEXUS macOS dev runtime** (Path A). UE embed (Path B) is **archived** — not retail ship. iOS hybrid bridge (Path C) uses NEXUS + SceneKit/Metal preview.
 
 ## What shipped
 
@@ -63,17 +63,19 @@ flowchart LR
 ### M2 — Scene ↔ gameplay sync
 - Drive cube mesh from live `VoxelWorld` dirty chunks (not static procedural mesh).
 - Expose `fel.query.get_scene_snapshot` with camera pose + chunk diff.
+- **UE parity:** arena session + vault bridge stubs landed in `app/gameplay/` (see [NEXUS_UE_Port_Inventory.md](./NEXUS_UE_Port_Inventory.md)).
 
 ### M3 — Input + physics coupling
 - SDL camera controls (orbit/zoom); ray pick → `fel.creative.set_voxel`.
 - Jolt or custom rigid bodies for throw-catch props in the arena.
 
-### M4 — UE embed on device
-- Drop `UnrealFramework` per `FinalEvolutionLab/EmbeddedFrameworks/README.md`.
-- `UnrealManager` placeholder → live embed; `GamePlayView` prefers UE when framework present.
+### M4 — iOS Metal / SceneKit preview (NEXUS ship path)
+- Device preview via SceneKit + Metal embed (`GameSceneHostView`, `GamePlayView`); venue assets from `.nexusmesh.json`.
+- `NexusGameplayBridge` forwards `fel.*` commands to linked NEXUS gameplay session.
+- **Archived (not retail ship):** UE framework embed per `FinalEvolutionLab/EmbeddedFrameworks/README.md` — `UnrealManager` gated `NEXUS_LEGACY` only; see `NEXUS_ONLY_PIVOT.md`.
 
 ### M5 — Hybrid iOS bridge
-- `GamePlayView` detects NEXUS (Mac TCP) vs UE vs SceneKit fallback.
+- `GamePlayView` detects NEXUS (Mac TCP / linked bridge) vs SceneKit fallback.
 - Forward `fel.*` JSON to Mac agent when NEXUS transport reachable.
 
 ### M6 — Production renderer

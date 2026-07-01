@@ -189,7 +189,7 @@ nonisolated struct TrickCombo: Sendable, Identifiable {
 
     static func combos(for mode: GameModeId) -> [TrickCombo] {
         switch mode {
-        case .basketballDunkContest, .basketballHeadToHead, .basketball3v3:
+        case .basketballDunkContest3D, .basketballDunkContestIRL, .basketballHeadToHead, .basketball3v3, .venicePickup:
             return dunkCombos
         case .karate, .karateEndless:
             return karateCombos
@@ -220,8 +220,8 @@ nonisolated struct GamePhysicsConfig: Sendable {
         let ki = Float(NeuroGameplayTuning.karateImpactScale01(mode: mode, audit: audit, metrics: m))
 
         switch mode {
-        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3, .courtCarnival:
-            let dunkBoost = mode == .basketballDunkContest ? pm : 1.0
+        case .basketballHeadToHead, .basketballDunkContest3D, .basketballDunkContestIRL, .basketball3v3, .venicePickup, .courtCarnival:
+            let dunkBoost = mode.is3DDunkContest ? pm : 1.0
             return GamePhysicsConfig(
                 jumpHeight: (1.8 + primedDrive * 2.2) * dunkBoost,
                 moveSpeed: 0.65 + primedDrive * 0.75,

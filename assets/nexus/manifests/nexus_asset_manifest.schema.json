@@ -61,6 +61,16 @@
           "type": "string",
           "description": "Relative path under import_root (.nexusmesh, .glb, .gltf, .fbx)"
         },
+        "imported_mesh_mobile": {
+          "type": "string",
+          "description": "Mobile LOD mesh path (iOS default, ≤50k verts)"
+        },
+        "imported_mesh_full": {
+          "type": "string",
+          "description": "Full-resolution mesh path (dev/desktop; set NEXUS_MESH_LOD=full)"
+        },
+        "vertex_count": { "type": "integer", "minimum": 0 },
+        "tri_count": { "type": "integer", "minimum": 0 },
         "fallback": {
           "type": "string",
           "enum": ["arena_grid", "flat_plane", "none"],

@@ -3,9 +3,13 @@
 #include "nexus/assets/asset_manifest.h"
 #include "nexus/assets/mesh_importer.h"
 #include "nexus/core/log.h"
+#include "nexus/renderer/frustum.h"
+#include "nexus/renderer/mesh_lod.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <optional>
 
 namespace nexus::renderer {
 
@@ -17,6 +21,142 @@ constexpr int kArenaFloorHalfExtent = 10;
 auto arenaColumnHeight(int gridX, int gridZ) -> int {
   const int manhattan = std::abs(gridX) + std::abs(gridZ);
   return 1 + (manhattan % 3);
+}
+
+auto importEnvironmentMesh(const assets::AssetManifest& manifest,
+                           const assets::AssetRecord& asset) -> std::optional<Mesh> {
+  if (asset.importedMesh.empty()) {
+    return std::nullopt;
+  }
+  const float cameraDistance = 0.0F;
+  const std::string meshPath = manifest.resolveMeshPathAtDistance(asset, cameraDistance);
+  assets::MeshImportOptions importOptions{};
+  importOptions.cameraDistanceMeters = cameraDistance;
+  importOptions.applyDecimation =
+      !assets::meshProfilePrefersMobile() && !assets::distanceLodEnabled();
+
+  const auto meshResult = assets::MeshImporter::importFile(meshPath, importOptions);
+  if (meshResult.isErr()) {
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   "Environment mesh unavailable (" + meshResult.error() + "): " + meshPath);
+    return std::nullopt;
+  }
+
+  Mesh importedMesh = Mesh::ensureValidGeometry(meshResult.value());
+  if (assets::meshProfilePrefersMobile() &&
+      importedMesh.vertexCount() > MeshLodPolicy{}.heroMaxVertices) {
+    importedMesh.decimateToVertexBudget(MeshLodPolicy{}.heroMaxVertices);
+  }
+  return importedMesh;
+}
+
+enum class ViewpointCluster { kBasketball, kDojo, kStadium, kOutdoor, kIndoor };
+
+struct ClusterViewpointTuning {
+  float fovDegrees;
+  float orbitRadiusScale;
+  float eyeHeightBoost;
+  float backdropScale;
+  float backdropZExtra;
+};
+
+auto clusterForMode(std::string_view modeId) -> ViewpointCluster {
+  if (modeId == "basketball_h2h" || modeId == "basketball_dunk" || modeId == "basketball_3v3" ||
+      modeId == "court_carnival" || modeId == "surfing" || modeId == "tennis") {
+    return ViewpointCluster::kBasketball;
+  }
+  if (modeId == "karate_h2h" || modeId == "karate_endless") {
+    return ViewpointCluster::kDojo;
+  }
+  if (modeId == "baseball" || modeId == "football" || modeId == "soccer") {
+    return ViewpointCluster::kStadium;
+  }
+  if (modeId == "golf" || modeId == "volleyball" || modeId == "skateboarding" ||
+      modeId == "snowboarding") {
+    return ViewpointCluster::kOutdoor;
+  }
+  return ViewpointCluster::kIndoor;
+}
+
+auto tuningForCluster(ViewpointCluster cluster) -> ClusterViewpointTuning {
+  switch (cluster) {
+  case ViewpointCluster::kBasketball:
+    return {54.0F, 1.08F, 0.55F, 2.85F, 15.0F};
+  case ViewpointCluster::kDojo:
+    return {52.0F, 0.98F, 0.35F, 2.45F, 13.0F};
+  case ViewpointCluster::kStadium:
+    return {56.0F, 1.18F, 1.1F, 3.05F, 17.0F};
+  case ViewpointCluster::kOutdoor:
+    return {54.0F, 1.05F, 0.5F, 2.75F, 16.0F};
+  case ViewpointCluster::kIndoor:
+    return {52.0F, 1.0F, 0.3F, 2.35F, 12.0F};
+  }
+  return {54.0F, 1.05F, 0.5F, 2.75F, 14.0F};
+}
+
+auto attachVenueBackdrop(RenderScene& scene,
+                         const assets::AssetManifest& manifest,
+                         const assets::VenueRecord& venue,
+                         const MeshBounds& courtBounds,
+                         std::size_t courtTriCount,
+                         std::string_view modeId) -> void {
+  if (venue.backdropAssetId.empty()) {
+    return;
+  }
+
+  const assets::AssetRecord* backdropAsset = manifest.findAsset(venue.backdropAssetId);
+  if (backdropAsset == nullptr) {
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   "Backdrop asset missing for venue=" + venue.venueKey + " id=" +
+                       venue.backdropAssetId);
+    return;
+  }
+
+  auto backdropMeshOpt = importEnvironmentMesh(manifest, *backdropAsset);
+  if (!backdropMeshOpt.has_value()) {
+    return;
+  }
+
+  Mesh backdropMesh = std::move(*backdropMeshOpt);
+  constexpr std::size_t kTriBudget = RenderScene::DrawStats::kSceneTriangleBudget();
+  constexpr std::size_t kBudgetMargin = 2'000;
+  const std::size_t triBudgetRemaining =
+      courtTriCount >= kTriBudget ? 0 : kTriBudget - courtTriCount - kBudgetMargin;
+  if (triBudgetRemaining < 4'000) {
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   "Skipping venue backdrop — triangle budget exhausted for venue=" +
+                       venue.venueKey);
+    return;
+  }
+
+  const std::size_t maxBackdropVerts = std::max<std::size_t>(triBudgetRemaining / 2, 4'000);
+  if (backdropMesh.vertexCount() > maxBackdropVerts) {
+    backdropMesh.decimateToVertexBudget(maxBackdropVerts);
+    NEXUS_LOG_INFO(LogChannel::kRenderer,
+                   "Backdrop decimated for budget verts=" +
+                       std::to_string(backdropMesh.vertexCount()) + " venue=" + venue.venueKey);
+  }
+
+  const std::size_t backdropMeshIndex = scene.addMesh(std::move(backdropMesh));
+  const ClusterViewpointTuning tuning = tuningForCluster(clusterForMode(modeId));
+
+  SceneEntity backdropEntity;
+  backdropEntity.transform.translation[0] = courtBounds.center[0];
+  backdropEntity.transform.translation[1] = courtBounds.center[1];
+  backdropEntity.transform.translation[2] =
+      courtBounds.center[2] - courtBounds.extent[2] * 2.2F - tuning.backdropZExtra;
+  backdropEntity.transform.scale[0] = tuning.backdropScale;
+  backdropEntity.transform.scale[1] = tuning.backdropScale;
+  backdropEntity.transform.scale[2] = tuning.backdropScale;
+
+  MeshInstance backdropInstance;
+  backdropInstance.meshIndex = backdropMeshIndex;
+  backdropEntity.meshInstances.push_back(backdropInstance);
+  scene.addRootEntity(std::move(backdropEntity));
+
+  NEXUS_LOG_INFO(LogChannel::kRenderer,
+                 "Attached venue backdrop id=" + venue.backdropAssetId +
+                     " for venue=" + venue.venueKey);
 }
 
 auto identityMatrix() -> std::array<float, 16> {
@@ -89,7 +229,7 @@ void RenderScene::collectFromEntity(const SceneEntity& entity,
   }
 }
 
-auto RenderScene::collectDrawCommands() const -> std::vector<DrawCommand> {
+auto RenderScene::collectAllDrawCommands() const -> std::vector<DrawCommand> {
   std::vector<DrawCommand> commands;
   commands.reserve(m_rootEntities.size() * 4);
   const auto identity = identityMatrix();
@@ -97,6 +237,46 @@ auto RenderScene::collectDrawCommands() const -> std::vector<DrawCommand> {
     collectFromEntity(entity, identity, commands);
   }
   return commands;
+}
+
+auto RenderScene::collectDrawCommandBatch(bool frustumCull) const -> DrawCommandBatch {
+  DrawCommandBatch batch{};
+  batch.commands = collectAllDrawCommands();
+  batch.stats.totalDraws = batch.commands.size();
+
+  if (frustumCull && !batch.commands.empty()) {
+    const Frustum frustum = Frustum::fromViewProjection(m_camera.viewProjectionMatrix());
+    std::vector<DrawCommand> visible;
+    visible.reserve(batch.commands.size());
+
+    for (const DrawCommand& command : batch.commands) {
+      if (command.meshIndex >= m_meshes.size()) {
+        continue;
+      }
+      const MeshBounds localBounds = m_meshes[command.meshIndex].computeBounds();
+      if (frustum.intersectsBounds(command.modelMatrix, localBounds)) {
+        visible.push_back(command);
+      }
+    }
+
+    batch.stats.visibleDraws = visible.size();
+    batch.stats.culledDraws = batch.stats.totalDraws - batch.stats.visibleDraws;
+    batch.commands = std::move(visible);
+  } else {
+    batch.stats.visibleDraws = batch.stats.totalDraws;
+    batch.stats.culledDraws = 0;
+  }
+
+  for (const DrawCommand& command : batch.commands) {
+    if (command.meshIndex < m_meshes.size()) {
+      batch.stats.triangleCount += m_meshes[command.meshIndex].triangleCount();
+    }
+  }
+  return batch;
+}
+
+auto RenderScene::collectDrawCommands(bool frustumCull) const -> std::vector<DrawCommand> {
+  return collectDrawCommandBatch(frustumCull).commands;
 }
 
 auto RenderScene::createProceduralArena(ProceduralFallback fallback) -> RenderScene {
@@ -162,6 +342,39 @@ auto RenderScene::createProceduralArena(ProceduralFallback fallback) -> RenderSc
   return scene;
 }
 
+auto RenderScene::frameCameraToBounds(Camera& camera, const MeshBounds& bounds, std::string_view modeId)
+    -> void {
+  const ClusterViewpointTuning tuning = tuningForCluster(clusterForMode(modeId));
+  const float horizontalExtent =
+      std::max({bounds.extent[0], bounds.extent[2], 1.0F});
+  const float verticalExtent = std::max(bounds.extent[1], 0.5F);
+  const float radius = std::max(horizontalExtent * 1.75F * tuning.orbitRadiusScale, 6.0F);
+  const float eyeHeight =
+      bounds.center[1] + verticalExtent * 0.75F + 2.0F + tuning.eyeHeightBoost;
+
+  camera.setOrbitTarget(bounds.center[0], bounds.center[1], bounds.center[2]);
+  camera.setOrbit(radius, eyeHeight, 0.0F);
+  camera.setPerspective(tuning.fovDegrees, 16.0F / 9.0F, 0.1F, std::max(radius * 4.0F, 100.0F));
+}
+
+auto RenderScene::createFromVenueKey(const std::string& manifestPath, std::string_view venueKey)
+    -> RenderScene {
+  const auto manifestResult = assets::AssetManifest::loadFromFile(manifestPath);
+  if (manifestResult.isErr()) {
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   "Asset manifest unavailable (" + manifestResult.error() + "); using procedural arena");
+    return createDefaultArena();
+  }
+
+  const assets::AssetManifest& manifest = manifestResult.value();
+  const assets::VenueRecord* venue = manifest.findVenueByKey(venueKey);
+  if (venue == nullptr || venue->modeIds.empty()) {
+    NEXUS_LOG_WARN(LogChannel::kRenderer, "No venue key in manifest; using procedural arena");
+    return createDefaultArena();
+  }
+  return createFromManifest(manifestPath, venue->modeIds.front());
+}
+
 auto RenderScene::createFromManifest(const std::string& manifestPath, std::string_view modeId)
     -> RenderScene {
   const auto manifestResult = assets::AssetManifest::loadFromFile(manifestPath);
@@ -184,6 +397,9 @@ auto RenderScene::createFromManifest(const std::string& manifestPath, std::strin
 
   const assets::AssetRecord* environmentAsset = manifest.findAsset(venue->environmentAssetId);
   if (environmentAsset == nullptr) {
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   "Environment asset missing for mode=" + std::string(resolvedMode) +
+                       "; using procedural fallback");
     return createDefaultArena();
   }
 
@@ -200,30 +416,69 @@ auto RenderScene::createFromManifest(const std::string& manifestPath, std::strin
     break;
   }
 
-  RenderScene scene = createProceduralArena(fallback);
-
   if (!environmentAsset->importedMesh.empty()) {
-    const std::string meshPath = manifest.resolveImportedPath(*environmentAsset);
-    const auto meshResult = assets::MeshImporter::importFile(meshPath);
+    const float cameraDistance = 0.0F;
+    const std::string meshPath =
+        manifest.resolveMeshPathAtDistance(*environmentAsset, cameraDistance);
+    assets::MeshImportOptions importOptions{};
+    importOptions.cameraDistanceMeters = cameraDistance;
+    importOptions.applyDecimation =
+        !assets::meshProfilePrefersMobile() && !assets::distanceLodEnabled();
+
+    const auto meshResult = assets::MeshImporter::importFile(meshPath, importOptions);
     if (meshResult.isOk()) {
-      const std::size_t importedMeshIndex = scene.addMesh(meshResult.value());
-      SceneEntity markerEntity;
-      markerEntity.transform.translation[1] = 0.5F;
-      MeshInstance markerInstance;
-      markerInstance.meshIndex = importedMeshIndex;
-      markerInstance.localTransform.scale[0] = 1.2F;
-      markerInstance.localTransform.scale[1] = 1.2F;
-      markerInstance.localTransform.scale[2] = 1.2F;
-      markerEntity.meshInstances.push_back(markerInstance);
-      scene.addRootEntity(std::move(markerEntity));
-      NEXUS_LOG_INFO(LogChannel::kRenderer, "Loaded imported mesh: " + meshPath);
-    } else {
-      NEXUS_LOG_WARN(LogChannel::kRenderer,
-                     "Imported mesh missing (" + meshResult.error() + "); procedural fallback only");
+      RenderScene scene;
+      renderer::Mesh importedMesh = Mesh::ensureValidGeometry(meshResult.value());
+      if (importedMesh.vertices.size() != meshResult.value().vertices.size()) {
+        NEXUS_LOG_WARN(LogChannel::kRenderer,
+                       "Venue mesh empty after import; substituted fallback placeholder for " +
+                           meshPath);
+      }
+      if (assets::meshProfilePrefersMobile() &&
+          importedMesh.vertexCount() > MeshLodPolicy{}.heroMaxVertices) {
+        importedMesh.decimateToVertexBudget(MeshLodPolicy{}.heroMaxVertices);
+        NEXUS_LOG_INFO(LogChannel::kRenderer,
+                       "Runtime mobile decimation applied verts=" +
+                           std::to_string(importedMesh.vertexCount()));
+      }
+      const MeshBounds bounds = importedMesh.computeBounds();
+      const std::size_t courtTriCount = importedMesh.triangleCount();
+      const std::size_t venueMeshIndex = scene.addMesh(std::move(importedMesh));
+
+      attachVenueBackdrop(scene, manifest, *venue, bounds, courtTriCount, resolvedMode);
+
+      SceneEntity venueEntity;
+      MeshInstance venueInstance;
+      venueInstance.meshIndex = venueMeshIndex;
+      venueEntity.meshInstances.push_back(venueInstance);
+      scene.addRootEntity(std::move(venueEntity));
+
+      frameCameraToBounds(scene.camera(), bounds, resolvedMode);
+      NEXUS_LOG_INFO(LogChannel::kRenderer,
+                     std::string("Loaded venue mesh (profile=") +
+                         std::string(assets::activeMeshProfileName()) + ") for mode=" +
+                         std::string(resolvedMode) + ": " + meshPath);
+      return scene;
     }
+
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   "Imported mesh unavailable (" + meshResult.error() +
+                       "); using fallback placeholder for mode=" + std::string(resolvedMode));
+
+    RenderScene scene;
+    const std::size_t fallbackMeshIndex = scene.addMesh(Mesh::createFallbackPlaceholder());
+    SceneEntity venueEntity;
+    MeshInstance venueInstance;
+    venueInstance.meshIndex = fallbackMeshIndex;
+    venueEntity.meshInstances.push_back(venueInstance);
+    scene.addRootEntity(std::move(venueEntity));
+    scene.camera().setOrbitTarget(0.0F, 1.5F, 0.0F);
+    scene.camera().setOrbit(12.0F, 6.5F, 0.0F);
+    scene.camera().setPerspective(50.0F, 16.0F / 9.0F, 0.1F, 100.0F);
+    return scene;
   }
 
-  return scene;
+  return createProceduralArena(fallback);
 }
 
 void RenderScene::attachEnvironmentChunks(RenderScene& scene,

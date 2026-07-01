@@ -183,10 +183,10 @@ final class TrainingLabSocialBridge {
 #endif
     }
 
-    /// Persists a shard **spend** (negative `deltaShards`) via Data Connect. Allowlisted `reason` values include `creator_card_purchase` and `shard_shop`. Positive deltas are rejected; earn flows use server-side grants.
+    /// Persists a shard **spend** (negative `deltaShards`) or gameplay reward (positive `deltaShards`) via Data Connect.
     func recordShardLedgerDelta(deltaShards: Int, reason: String, referenceId: String) async throws {
         guard deltaShards != 0 else { return }
-        guard deltaShards < 0 else {
+        guard deltaShards < 0 || reason.contains("brain_brawl") || reason.contains("gameplay") || reason.contains("reward") else {
             throw TrainingLabSocialBridgeError.shardIncreasesRequireServerGrant
         }
         guard FirebaseBootstrap.isConfigured else {
@@ -218,6 +218,69 @@ final class TrainingLabSocialBridge {
         _ = try await DataConnect.socialConnector.claimCreatorCardOwnershipMutation.execute(
             catalogCardId: String(catalogCardId.prefix(64))
         )
+    }
+
+    /// Executes an atomic marketplace purchase: debits the buyer, credits the seller, revokes seller ownership, grants buyer ownership, and deactivates the listing.
+    func executeMarketplacePurchase(
+        listingId: UUID,
+        buyerId: UUID,
+        sellerId: UUID,
+        catalogCardId: String,
+        priceShards: Int
+    ) async throws {
+        guard FirebaseBootstrap.isConfigured else {
+            throw TrainingLabSocialBridgeError.firebaseNotConfigured
+        }
+        configureConnectorIfNeeded()
+        try await FirebaseIdentity.ensureUserSignedIn()
+        
+        _ = try await DataConnect.socialConnector.executeMarketplacePurchaseMutation.execute(
+            listingId: listingId,
+            buyerId: buyerId,
+            sellerId: sellerId,
+            catalogCardId: catalogCardId,
+            buyerDeltaShards: -priceShards,
+            sellerDeltaShards: priceShards
+        )
+    }
+
+    /// Executes an atomic marketplace purchase with a 10% royalty to the original creator.
+    func executeMarketplacePurchaseWithRoyalty(
+        listingId: UUID,
+        buyerId: UUID,
+        sellerId: UUID,
+        catalogCardId: String,
+        priceShards: Int,
+        creatorId: UUID,
+        royaltyShards: Int
+    ) async throws {
+        guard FirebaseBootstrap.isConfigured else {
+            throw TrainingLabSocialBridgeError.firebaseNotConfigured
+        }
+        configureConnectorIfNeeded()
+        try await FirebaseIdentity.ensureUserSignedIn()
+        
+        _ = try await DataConnect.socialConnector.executeMarketplacePurchaseWithRoyaltyMutation.execute(
+            listingId: listingId,
+            buyerId: buyerId,
+            sellerId: sellerId,
+            catalogCardId: catalogCardId,
+            buyerDeltaShards: -priceShards,
+            sellerDeltaShards: priceShards,
+            creatorId: creatorId,
+            royaltyShards: royaltyShards
+        )
+    }
+
+    /// Claims the pending royalties for the current user and moves them to the spendable shard balance.
+    func claimRoyalties(claimId: String, amount: Int? = nil) async throws {
+        guard FirebaseBootstrap.isConfigured else {
+            throw TrainingLabSocialBridgeError.firebaseNotConfigured
+        }
+        configureConnectorIfNeeded()
+        try await FirebaseIdentity.ensureUserSignedIn()
+        let claimAmount = amount ?? SaveSystem.loadProfile().pendingRoyaltyShards
+        _ = try await DataConnect.socialConnector.claimRoyaltiesMutation.execute(claimId: claimId, amount: claimAmount)
     }
 
     /// Atomic 500-shard escrow + `CoachCritiqueRequest` row (ledger reason `critique_escrow`). `requestKey` must be unique (e.g. `UUID().uuidString`).
@@ -262,12 +325,12 @@ final class TrainingLabSocialBridge {
                     ? "Staying primed with a maintenance Movement Snack."
                     : "Just patched kinetic leakage focus: \(targets)."
                 return (
-                    "\(athleteDisplayName) — \(leakageBit) Snack: \(snack.title). UE \(snack.requiredUnrealAnimationAssetID).",
+                    "\(athleteDisplayName) — \(leakageBit) Snack: \(snack.title). NEXUS \(snack.requiredAnimationAssetID).",
                     "body_iq_discovery"
                 )
             case .generalEducation:
                 return (
-                    "Education lab · general Movement Snack idea (not from a measured pose audit): \(snack.title). UE \(snack.requiredUnrealAnimationAssetID).",
+                    "Education lab · general Movement Snack idea (not from a measured pose audit): \(snack.title). NEXUS \(snack.requiredAnimationAssetID).",
                     "body_iq_discovery_general"
                 )
             }
@@ -278,6 +341,30 @@ final class TrainingLabSocialBridge {
             trainingScore: Double(snack.durationSeconds),
             clipUrl: nil,
             feedSource: feedSource
+        )
+    }
+
+    func publishKinesiologyCertification(
+        athleteDisplayName: String,
+        certificateId: String,
+        scorePct: Double
+    ) async throws {
+        try AthleteSafetyPolicy.assertSensitiveMinorGate(profile: SaveSystem.loadProfile())
+        guard FirebaseBootstrap.isConfigured else {
+            throw TrainingLabSocialBridgeError.firebaseNotConfigured
+        }
+        configureConnectorIfNeeded()
+        try await FirebaseIdentity.ensureUserSignedIn()
+        _ = try await ensureSqlUserRegistration(displayName: athleteDisplayName)
+        
+        let content = "🎓 KINESIOLOGY CERTIFIED! \(athleteDisplayName) has passed the Applied Kinesiology Board Examination with a score of \(String(format: "%.1f%%", scorePct))! Verification Credential ID: \(certificateId). #AppliedKinesiology #BondsStandard #FinalEvolution"
+        
+        try await createFeedPost(
+            content: content,
+            gameModeId: "education_lab",
+            trainingScore: scorePct,
+            clipUrl: nil,
+            feedSource: "kinesiology_certification"
         )
     }
 }
@@ -292,10 +379,16 @@ enum TrainingLabSocialBridgeError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .noFirebaseUid:
+            return "Sign in is required before training lab features can sync."
+        case .emptyDataConnectResult:
+            return "Training lab sync returned no data (cloud sync may be offline)."
+        case .firebaseNotConfigured:
+            return "Firebase is not configured in this build (PREVIEW)."
+        case .shardIncreasesRequireServerGrant:
+            return "Shard credits require server verification (saved on device until you sign in)."
         case .minorRequiresGuardianConsent:
             return "Parent/guardian consent is required for athletes under 18. Turn it on in Settings → Safety."
-        default:
-            return nil
         }
     }
 }

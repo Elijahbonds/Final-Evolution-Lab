@@ -4,9 +4,9 @@ import {
   Trophy, Brain, HelpCircle, Award, Play, RotateCcw, 
   Coins, Star, Volume2, VolumeX, Timer, ChevronRight, Check, X, ShieldAlert 
 } from "lucide-react";
+import { API_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 export function TriviaArenaView({ onBack }) {
   const [gameState, setGameState] = useState("start"); // start, spinning, question, grading, results

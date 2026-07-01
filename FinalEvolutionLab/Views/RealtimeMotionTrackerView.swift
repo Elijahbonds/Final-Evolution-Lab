@@ -9,6 +9,7 @@ import Combine
 struct RealtimeMotionTrackerView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var cameraManager = CameraManager()
+    @State private var miniSelfProfile: UserProfile = SaveSystem.loadProfile()
     
     // Toggle for Simulation mode. Defaults to true on Simulator or if camera is unauthorized/unavailable.
     @State private var isSimulationMode: Bool = {
@@ -85,6 +86,8 @@ struct RealtimeMotionTrackerView: View {
                 bottomHUD
             }
             .padding()
+
+            miniSelfPreviewOverlay
         }
         .navigationTitle("AI Stance Tracker")
         .navigationBarTitleDisplayMode(.inline)
@@ -120,6 +123,7 @@ struct RealtimeMotionTrackerView: View {
             }
         }
         .onAppear {
+            miniSelfProfile = SaveSystem.loadProfile()
             if !isSimulationMode {
                 cameraManager.startSession()
             }
@@ -138,6 +142,30 @@ struct RealtimeMotionTrackerView: View {
     }
     
     // MARK: - Subviews
+
+    private var miniSelfPreviewOverlay: some View {
+        VStack {
+            HStack {
+                Spacer()
+                NexusMiniSelfPreviewView(
+                    profile: miniSelfProfile,
+                    layout: .compact,
+                    previewHeight: 128,
+                    motionNote: isSimulationMode
+                        ? FELPremiumCopy.Preview.simulatedPose
+                        : "Live camera tracks your body · mini-self shows scan skin."
+                )
+                .frame(width: 148)
+                .padding(10)
+                .background(Color.black.opacity(0.45))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+            }
+            .padding(.top, 56)
+            .padding(.trailing, 8)
+            Spacer()
+        }
+    }
     
     private var simulatedCameraBackground: some View {
         ZStack {

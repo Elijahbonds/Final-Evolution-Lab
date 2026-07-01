@@ -5,9 +5,22 @@ import {
   Gift, Zap, Clock, BarChart3, Play, Pause, Eye, Radio,
   ArrowRight, Share2, DollarSign, Shield, Database, RefreshCw
 } from "lucide-react";
+import { API_URL, BACKEND_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
+const FALLBACK_ANALYTICS = {
+  vault_sync: { sync_target: "Local shell", synced: 0, pending_sync: 0 },
+  overview: { total_sessions: 0, total_minutes: 0 },
+  mode_stats: [],
+};
+const FALLBACK_POLICY = {
+  vault_sync_protocol: {
+    flow: ["1. Local shell captures session receipts", "2. Vault sync queues private performance data", "3. Backend reconciles when services are online"],
+    private_signaling_server: { auth: "JWT or local shell session", data_format: "JSON session receipt" },
+    retention: "User controlled",
+    data_policy: { third_party_access: "None by default" },
+  },
+};
 
 // ===================== MULTIPLAYER LOBBY =====================
 export const MultiplayerView = () => {
@@ -23,7 +36,7 @@ export const MultiplayerView = () => {
 
   useEffect(() => { fetchRooms(); }, []);
 
-  const fetchRooms = () => { axios.get(`${API}/multiplayer/rooms`).then(r => setRooms(r.data)).catch(console.error); };
+  const fetchRooms = () => { axios.get(`${API}/multiplayer/rooms`).then(r => setRooms(r.data)).catch(() => setRooms([])); };
 
   const createRoom = async () => {
     setCreating(true);
@@ -31,7 +44,10 @@ export const MultiplayerView = () => {
       const r = await axios.post(`${API}/multiplayer/create-room`, { game_mode: gameMode, max_players: 2, allow_spectators: true });
       setActiveRoom(r.data);
       connectWS(r.data.id);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      setActiveRoom({ id: `local-${gameMode}`, game_mode: gameMode, max_players: 2 });
+      setPlayers(["me"]);
+    }
     setCreating(false);
   };
 
@@ -40,7 +56,7 @@ export const MultiplayerView = () => {
       await axios.post(`${API}/multiplayer/rooms/${roomId}/join`);
       setActiveRoom({ id: roomId });
       connectWS(roomId);
-    } catch (e) { console.error(e); }
+    } catch (e) { setActiveRoom({ id: roomId }); setPlayers(["me"]); }
   };
 
   const spectateRoom = async (roomId) => {
@@ -54,6 +70,7 @@ export const MultiplayerView = () => {
   const connectWS = (roomId) => {
     const wsUrl = `${BACKEND_URL.replace('https', 'wss').replace('http', 'ws')}/ws/game/${roomId}`;
     const socket = new WebSocket(wsUrl);
+    socket.onerror = () => setPlayers((p) => (p.length ? p : ["me"]));
     socket.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.type === 'player_joined') setPlayers(p => [...p, data.user_id]);
@@ -148,7 +165,10 @@ export const ReferralView = () => {
       } else {
         setCode(s.data.code);
       }
-    } catch { }
+    } catch {
+      setStats({ total_referrals: 0, total_coins_earned: 0, pending_payout: 0, code: "FEL-SHELL" });
+      setCode("FEL-SHELL");
+    }
   };
 
   const copyCode = () => {
@@ -222,7 +242,7 @@ export const AnalyticsView = () => {
 
   useEffect(() => {
     Promise.all([axios.get(`${API}/analytics/dashboard`), axios.get(`${API}/analytics/policy`)])
-      .then(([d, p]) => { setData(d.data); setPolicy(p.data); }).catch(console.error);
+      .then(([d, p]) => { setData(d.data); setPolicy(p.data); }).catch(() => { setData(FALLBACK_ANALYTICS); setPolicy(FALLBACK_POLICY); });
   }, []);
 
   const triggerSync = async () => {

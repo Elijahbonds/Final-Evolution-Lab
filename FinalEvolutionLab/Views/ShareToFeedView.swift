@@ -29,6 +29,11 @@ struct ShareToFeedView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                FELPreviewLabel(text: FELPremiumCopy.Preview.nexusFeed)
+                Spacer()
+            }
+
             Text("SHARE TO FEED")
                 .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(Theme.neonGreen)
@@ -195,12 +200,12 @@ struct ShareToFeedView: View {
             .disabled(isCapturing)
 
             Button {
-                screenshot = UnrealManager.shared.isUnrealLoaded ? UnrealManager.shared.takeScreenshot() : UnityManager.shared.takeScreenshot()
+                FelToastCenter.shared.show("Arena capture uses NEXUS SceneKit — play a match first", isError: false)
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "camera.viewfinder")
                         .font(.system(size: 12, weight: .semibold))
-                    Text("CAPTURE TRAINING VIEW")
+                    Text("CAPTURE ARENA (NEXUS)")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
                         .tracking(1)
                 }
@@ -215,9 +220,7 @@ struct ShareToFeedView: View {
 
     private func captureAndShare() {
         isCapturing = true
-        if screenshot == nil {
-            screenshot = UnrealManager.shared.isUnrealLoaded ? UnrealManager.shared.takeScreenshot() : UnityManager.shared.takeScreenshot()
-        }
+        // NEXUS ship: social card layout only (UE/Unity screenshot paths archived).
         Task {
             try? await Task.sleep(for: .milliseconds(300))
             isCapturing = false

@@ -61,6 +61,9 @@ struct SystemScanView: View {
                     Button("Close") { dismiss() }
                         .foregroundStyle(Theme.brandBlue)
                 }
+                ToolbarItem(placement: .principal) {
+                    FELPreviewLabel(text: FELPremiumCopy.Preview.systemScan)
+                }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
             .onDisappear { cancelAnalysis() }

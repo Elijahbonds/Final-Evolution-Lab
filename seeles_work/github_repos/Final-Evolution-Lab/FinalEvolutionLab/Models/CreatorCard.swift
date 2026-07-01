@@ -11,6 +11,34 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
     let accentColor: Color
     let metricsBoost: PerformanceMetrics
     let movementSignature: MovementSignature
+    let masterclassURL: String?
+    let productURL: String?
+
+    init(
+        id: String,
+        creatorName: String,
+        title: String,
+        description: String,
+        costShards: Int,
+        iconName: String,
+        accentColor: Color,
+        metricsBoost: PerformanceMetrics,
+        movementSignature: MovementSignature,
+        masterclassURL: String? = nil,
+        productURL: String? = nil
+    ) {
+        self.id = id
+        self.creatorName = creatorName
+        self.title = title
+        self.description = description
+        self.costShards = costShards
+        self.iconName = iconName
+        self.accentColor = accentColor
+        self.metricsBoost = metricsBoost
+        self.movementSignature = movementSignature
+        self.masterclassURL = masterclassURL
+        self.productURL = productURL
+    }
 
     static let catalog: [CreatorCard] = [
         CreatorCard(
@@ -36,7 +64,8 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 firstStepBurst: 1.2,
                 limbEmission: 0.5,
                 trailColor: .yellow
-            )
+            ),
+            productURL: "https://finalevolutiongroup.com/products/coach-v-elite"
         ),
         CreatorCard(
             id: "bonds_bounce",
@@ -61,7 +90,8 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 firstStepBurst: 1.0,
                 limbEmission: 0.6,
                 trailColor: Color(red: 0.95, green: 0.49, blue: 0.15)
-            )
+            ),
+            masterclassURL: "https://finalevolutiongroup.com/masterclass/bonds-bounce"
         ),
         CreatorCard(
             id: "flight_lab",

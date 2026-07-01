@@ -189,6 +189,62 @@ exports.deactivateCardMarketListing = function deactivateCardMarketListing(dcOrV
 }
 ;
 
+const executeMarketplacePurchaseRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ExecuteMarketplacePurchase', inputVars);
+}
+executeMarketplacePurchaseRef.operationName = 'ExecuteMarketplacePurchase';
+exports.executeMarketplacePurchaseRef = executeMarketplacePurchaseRef;
+
+exports.executeMarketplacePurchase = function executeMarketplacePurchase(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(executeMarketplacePurchaseRef(dcInstance, inputVars));
+}
+;
+
+const createCreatorCardCatalogItemRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateCreatorCardCatalogItem', inputVars);
+}
+createCreatorCardCatalogItemRef.operationName = 'CreateCreatorCardCatalogItem';
+exports.createCreatorCardCatalogItemRef = createCreatorCardCatalogItemRef;
+
+exports.createCreatorCardCatalogItem = function createCreatorCardCatalogItem(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createCreatorCardCatalogItemRef(dcInstance, inputVars));
+}
+;
+
+const executeMarketplacePurchaseWithRoyaltyRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ExecuteMarketplacePurchaseWithRoyalty', inputVars);
+}
+executeMarketplacePurchaseWithRoyaltyRef.operationName = 'ExecuteMarketplacePurchaseWithRoyalty';
+exports.executeMarketplacePurchaseWithRoyaltyRef = executeMarketplacePurchaseWithRoyaltyRef;
+
+exports.executeMarketplacePurchaseWithRoyalty = function executeMarketplacePurchaseWithRoyalty(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(executeMarketplacePurchaseWithRoyaltyRef(dcInstance, inputVars));
+}
+;
+
+const claimRoyaltiesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ClaimRoyalties', inputVars);
+}
+claimRoyaltiesRef.operationName = 'ClaimRoyalties';
+exports.claimRoyaltiesRef = claimRoyaltiesRef;
+
+exports.claimRoyalties = function claimRoyalties(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(claimRoyaltiesRef(dcInstance, inputVars));
+}
+;
+
 const listRecentPostsRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
@@ -200,7 +256,7 @@ exports.listRecentPostsRef = listRecentPostsRef;
 exports.listRecentPosts = function listRecentPosts(dcOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
-  return executeQuery(listRecentPostsRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(listRecentPostsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -215,7 +271,7 @@ exports.getPostWithThreadRef = getPostWithThreadRef;
 exports.getPostWithThread = function getPostWithThread(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  return executeQuery(getPostWithThreadRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(getPostWithThreadRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -230,7 +286,7 @@ exports.getUserByFirebaseUidRef = getUserByFirebaseUidRef;
 exports.getUserByFirebaseUid = function getUserByFirebaseUid(dcOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
-  return executeQuery(getUserByFirebaseUidRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(getUserByFirebaseUidRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -245,7 +301,7 @@ exports.getMyPrivateProfileRef = getMyPrivateProfileRef;
 exports.getMyPrivateProfile = function getMyPrivateProfile(dcOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
-  return executeQuery(getMyPrivateProfileRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(getMyPrivateProfileRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -260,7 +316,7 @@ exports.getUserProfileRef = getUserProfileRef;
 exports.getUserProfile = function getUserProfile(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  return executeQuery(getUserProfileRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(getUserProfileRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -275,7 +331,7 @@ exports.listCommentsForPostRef = listCommentsForPostRef;
 exports.listCommentsForPost = function listCommentsForPost(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  return executeQuery(listCommentsForPostRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(listCommentsForPostRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -290,7 +346,7 @@ exports.listShardLedgerForUserRef = listShardLedgerForUserRef;
 exports.listShardLedgerForUser = function listShardLedgerForUser(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
-  return executeQuery(listShardLedgerForUserRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(listShardLedgerForUserRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -305,7 +361,7 @@ exports.listCreatorCardsRef = listCreatorCardsRef;
 exports.listCreatorCards = function listCreatorCards(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
-  return executeQuery(listCreatorCardsRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(listCreatorCardsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -320,6 +376,21 @@ exports.listActiveCardMarketListingsRef = listActiveCardMarketListingsRef;
 exports.listActiveCardMarketListings = function listActiveCardMarketListings(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
-  return executeQuery(listActiveCardMarketListingsRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+  return executeQuery(listActiveCardMarketListingsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getCreatorCardCreatorRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetCreatorCardCreator', inputVars);
+}
+getCreatorCardCreatorRef.operationName = 'GetCreatorCardCreator';
+exports.getCreatorCardCreatorRef = getCreatorCardCreatorRef;
+
+exports.getCreatorCardCreator = function getCreatorCardCreator(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getCreatorCardCreatorRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

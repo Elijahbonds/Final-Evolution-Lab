@@ -18,7 +18,7 @@ nonisolated enum NeuroGameplayTuning {
 
     /// Drives dunk **power meter** scale (Basketball_Dunk).
     static func powerMeterScale01(mode: GameModeId, audit: BiomechanicsAudit?, metrics: PerformanceMetrics) -> Double {
-        guard mode == .basketballDunkContest else { return 1.0 }
+        guard mode.is3DDunkContest else { return 1.0 }
         let leak = kineticLeakageComposite01(audit: audit)
         let iap = iapStability01(metrics: metrics)
         let prqN = min(1.0, max(0.0, metrics.prqScore / 100.0))

@@ -36,6 +36,10 @@ public class SocialConnector {
     self.createCritiqueRequestWithEscrowMutation = CreateCritiqueRequestWithEscrowMutation(dataConnect: dataConnect)
     self.createCardMarketListingMutation = CreateCardMarketListingMutation(dataConnect: dataConnect)
     self.deactivateCardMarketListingMutation = DeactivateCardMarketListingMutation(dataConnect: dataConnect)
+    self.executeMarketplacePurchaseMutation = ExecuteMarketplacePurchaseMutation(dataConnect: dataConnect)
+    self.createCreatorCardCatalogItemMutation = CreateCreatorCardCatalogItemMutation(dataConnect: dataConnect)
+    self.executeMarketplacePurchaseWithRoyaltyMutation = ExecuteMarketplacePurchaseWithRoyaltyMutation(dataConnect: dataConnect)
+    self.claimRoyaltiesMutation = ClaimRoyaltiesMutation(dataConnect: dataConnect)
     self.listRecentPostsQuery = ListRecentPostsQuery(dataConnect: dataConnect)
     self.getPostWithThreadQuery = GetPostWithThreadQuery(dataConnect: dataConnect)
     self.getUserByFirebaseUidQuery = GetUserByFirebaseUidQuery(dataConnect: dataConnect)
@@ -45,6 +49,7 @@ public class SocialConnector {
     self.listShardLedgerForUserQuery = ListShardLedgerForUserQuery(dataConnect: dataConnect)
     self.listCreatorCardsQuery = ListCreatorCardsQuery(dataConnect: dataConnect)
     self.listActiveCardMarketListingsQuery = ListActiveCardMarketListingsQuery(dataConnect: dataConnect)
+    self.getCreatorCardCreatorQuery = GetCreatorCardCreatorQuery(dataConnect: dataConnect)
     
   }
 
@@ -66,6 +71,10 @@ public let claimCreatorCardOwnershipMutation: ClaimCreatorCardOwnershipMutation
 public let createCritiqueRequestWithEscrowMutation: CreateCritiqueRequestWithEscrowMutation
 public let createCardMarketListingMutation: CreateCardMarketListingMutation
 public let deactivateCardMarketListingMutation: DeactivateCardMarketListingMutation
+public let executeMarketplacePurchaseMutation: ExecuteMarketplacePurchaseMutation
+public let createCreatorCardCatalogItemMutation: CreateCreatorCardCatalogItemMutation
+public let executeMarketplacePurchaseWithRoyaltyMutation: ExecuteMarketplacePurchaseWithRoyaltyMutation
+public let claimRoyaltiesMutation: ClaimRoyaltiesMutation
 public let listRecentPostsQuery: ListRecentPostsQuery
 public let getPostWithThreadQuery: GetPostWithThreadQuery
 public let getUserByFirebaseUidQuery: GetUserByFirebaseUidQuery
@@ -75,6 +84,7 @@ public let listCommentsForPostQuery: ListCommentsForPostQuery
 public let listShardLedgerForUserQuery: ListShardLedgerForUserQuery
 public let listCreatorCardsQuery: ListCreatorCardsQuery
 public let listActiveCardMarketListingsQuery: ListActiveCardMarketListingsQuery
+public let getCreatorCardCreatorQuery: GetCreatorCardCreatorQuery
 
 
 }

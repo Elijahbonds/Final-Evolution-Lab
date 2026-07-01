@@ -21,12 +21,12 @@ struct FFELMediaEntry
 static TArray<FFELMediaEntry> BuildMockMediaBank()
 {
     TArray<FFELMediaEntry> Bank;
-    Bank.Add({"m_01","image","https://finalevolutiongroup.com/media/mock_dunk.jpg",
-              {"Baseline Dunk","Alley-oop","Fade-away","Windmill"}, "", "play"});
-    Bank.Add({"m_02","video_clip","https://finalevolutiongroup.com/media/mock_sprint.mp4",
-              {"100m Sprint","Long Jump","400m Hurdles","Triple Jump"}, "", "sport_moment"});
-    Bank.Add({"m_03","image","https://finalevolutiongroup.com/media/mock_court.jpg",
-              {"Venice Beach Court","Zen Dojo","Neuro Arena","Gridiron Stadium"}, "", "venue"});
+    Bank.Add({"m_01","image","https://finalevolutiongroup.com/media/mock_monologue.jpg",
+              {"Director's Cut Monologue","Method Acting Dialogue Drill","Action Sequence Cue","Shakespearean Soliloquy"}, "", "acting_drill"});
+    Bank.Add({"m_02","video_clip","https://finalevolutiongroup.com/media/mock_dialogue.mp4",
+              {"Dialogue Cue","Dramatic Pause","Improvised Reaction","Subtext Delivery"}, "", "performance_challenge"});
+    Bank.Add({"m_03","image","https://finalevolutiongroup.com/media/mock_camera.jpg",
+              {"Close-up Intensity","Wide-angle Blocking","Dutch Tilt Tension","Tracking Shot Focus"}, "", "camera_angle"});
     return Bank;
 }
 

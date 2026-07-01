@@ -20,6 +20,25 @@ def _hud_user_id(websocket: WebSocket) -> str:
     )
 
 
+def _normalize_hud_frame(frame: dict[str, Any]) -> dict[str, Any]:
+    """Accept iOS `fel.hud.frame` envelopes or legacy flat HUD payloads."""
+
+    event = frame.get("event") or frame.get("type")
+    if event == "fel.hud.frame":
+        inner = frame.get("payload")
+        if isinstance(inner, dict):
+            normalized: dict[str, Any] = {
+                "event": "fel.hud.frame",
+                "seq": frame.get("seq", 0),
+                "frame": inner,
+            }
+            if "mode_state" in inner:
+                normalized["mode_state"] = inner["mode_state"]
+            return normalized
+        return frame
+    return frame
+
+
 @hud_ws_router.websocket("/ws/hud")
 async def hud_websocket(websocket: WebSocket) -> None:
     """Relay HUD frames from game client to every HUD consumer for the same user."""
@@ -33,7 +52,8 @@ async def hud_websocket(websocket: WebSocket) -> None:
             if frame.get("event") == "ping":
                 await websocket.send_json({"event": "pong"})
                 continue
-            delivered = await hud_manager.send_to_user(user_id, frame)
+            relay = _normalize_hud_frame(frame)
+            delivered = await hud_manager.send_to_user(user_id, relay)
             if frame.get("event") == "frame_ack_request":
                 await websocket.send_json({"event": "frame_ack", "delivered": delivered})
     except WebSocketDisconnect:

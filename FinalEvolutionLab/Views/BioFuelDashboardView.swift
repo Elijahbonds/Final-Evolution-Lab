@@ -83,6 +83,8 @@ struct BioFuelDashboardView: View {
     
     private func contentView(_ today: BioFuelToday) -> some View {
         VStack(alignment: .leading, spacing: 14) {
+            FELPreviewLabel(text: FELPremiumCopy.Preview.bioFuelStub)
+
             // Header: Title & Actions
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {

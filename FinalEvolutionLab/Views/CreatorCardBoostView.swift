@@ -7,6 +7,7 @@ struct CreatorCardBoostView: View {
     @State private var showInsufficientShards = false
     @State private var showMarketplace = false
     @State private var appeared = false
+    @State private var showcaseCard: CreatorCard?
 
     private var activeCard: CreatorCardState? {
         viewModel.profile.activeCreatorCard
@@ -14,6 +15,8 @@ struct CreatorCardBoostView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            FELPreviewLabel(text: FELPremiumCopy.Preview.economyStub)
+
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("CREATOR CARDS")
@@ -78,7 +81,8 @@ struct CreatorCardBoostView: View {
                             card: card,
                             isActive: activeCard?.cardId == card.id,
                             isOwned: isOwned,
-                            canAfford: isOwned || viewModel.profile.evolutionShards >= card.costShards
+                            canAfford: isOwned || viewModel.profile.evolutionShards >= card.costShards,
+                            onViewIP: { showcaseCard = card }
                         ) {
                             if activeCard?.cardId == card.id { return }
                             if isOwned {
@@ -127,6 +131,9 @@ struct CreatorCardBoostView: View {
         }
         .sheet(isPresented: $showMarketplace) {
             CardMarketplaceView(viewModel: viewModel)
+        }
+        .sheet(item: $showcaseCard) { card in
+            CreatorCardShowcaseView(card: card)
         }
     }
 }
@@ -213,6 +220,7 @@ struct CreatorCardCell: View {
     let isActive: Bool
     var isOwned: Bool = false
     let canAfford: Bool
+    var onViewIP: (() -> Void)? = nil
     let onTap: () -> Void
 
     var body: some View {
@@ -274,6 +282,21 @@ struct CreatorCardCell: View {
                     Text(isActive ? "EQUIPPED" : (isOwned ? "OWNED" : "\(card.costShards)"))
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(isActive ? .green : (isOwned ? .green.opacity(0.8) : (canAfford ? .white : .red)))
+                }
+
+                if let viewIP = onViewIP {
+                    Button(action: viewIP) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "play.rectangle.fill").font(.system(size: 8))
+                            Text("VIEW IP").font(.system(size: 8, weight: .black, design: .monospaced))
+                        }
+                        .foregroundStyle(card.accentColor)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 5)
+                        .background(card.accentColor.opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(14)

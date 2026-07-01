@@ -12,6 +12,8 @@ public:
   void setOrbit(float radius, float eyeHeight, float orbitRadians);
   void advanceOrbit(float deltaRadians);
 
+  [[nodiscard]] auto orbitDistance() const -> float { return m_orbitRadius; }
+
   [[nodiscard]] auto viewMatrix() const -> std::array<float, 16>;
   [[nodiscard]] auto projectionMatrix() const -> std::array<float, 16>;
   [[nodiscard]] auto viewProjectionMatrix() const -> std::array<float, 16>;

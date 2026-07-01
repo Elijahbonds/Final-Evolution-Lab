@@ -23,6 +23,16 @@ export interface ClaimCreatorCardOwnershipVariables {
   catalogCardId: string;
 }
 
+export interface ClaimRoyaltiesData {
+  user_update?: User_Key | null;
+  shardLedger_insert: ShardLedger_Key;
+}
+
+export interface ClaimRoyaltiesVariables {
+  claimId: string;
+  amount: number;
+}
+
 export interface CoachCritiqueRequest_Key {
   id: UUIDString;
   __typename?: 'CoachCritiqueRequest_Key';
@@ -49,6 +59,16 @@ export interface CreateCommentData {
 export interface CreateCommentVariables {
   postId: UUIDString;
   content: string;
+}
+
+export interface CreateCreatorCardCatalogItemData {
+  creatorCard_insert: CreatorCard_Key;
+}
+
+export interface CreateCreatorCardCatalogItemVariables {
+  catalogCardId: string;
+  displayName: string;
+  rarityTier?: string | null;
 }
 
 export interface CreateCritiqueRequestWithEscrowData {
@@ -104,6 +124,58 @@ export interface DeletePostVariables {
   postId: UUIDString;
 }
 
+export interface ExecuteMarketplacePurchaseData {
+  buyer_update?: User_Key | null;
+  seller_update?: User_Key | null;
+  revoke_ownership?: UserOwnedCreatorCard_Key | null;
+  grant_ownership: UserOwnedCreatorCard_Key;
+  deactivate_listing?: CardMarketListing_Key | null;
+}
+
+export interface ExecuteMarketplacePurchaseVariables {
+  listingId: UUIDString;
+  buyerId: UUIDString;
+  sellerId: UUIDString;
+  catalogCardId: string;
+  buyerDeltaShards: number;
+  sellerDeltaShards: number;
+}
+
+export interface ExecuteMarketplacePurchaseWithRoyaltyData {
+  buyer_update?: User_Key | null;
+  seller_update?: User_Key | null;
+  creator_ledger_insert: ShardLedger_Key;
+  creator_update?: User_Key | null;
+  revoke_ownership?: UserOwnedCreatorCard_Key | null;
+  grant_ownership: UserOwnedCreatorCard_Key;
+  deactivate_listing?: CardMarketListing_Key | null;
+}
+
+export interface ExecuteMarketplacePurchaseWithRoyaltyVariables {
+  listingId: UUIDString;
+  buyerId: UUIDString;
+  sellerId: UUIDString;
+  catalogCardId: string;
+  buyerDeltaShards: number;
+  sellerDeltaShards: number;
+  creatorId: UUIDString;
+  royaltyShards: number;
+}
+
+export interface GetCreatorCardCreatorData {
+  creatorCards: ({
+    id: UUIDString;
+    creator?: {
+      id: UUIDString;
+      username: string;
+    } & User_Key;
+  } & CreatorCard_Key)[];
+}
+
+export interface GetCreatorCardCreatorVariables {
+  catalogCardId: string;
+}
+
 export interface GetMyPrivateProfileData {
   users: ({
     id: UUIDString;
@@ -113,6 +185,7 @@ export interface GetMyPrivateProfileData {
     avatarUrl?: string | null;
     topPRQScore?: number | null;
     evolutionShards: number;
+    pendingRoyaltyShards: number;
     firebaseUid?: string | null;
   } & User_Key)[];
 }
@@ -133,24 +206,24 @@ export interface GetPostWithThreadData {
       avatarUrl?: string | null;
       topPRQScore?: number | null;
     } & User_Key;
-      comments_on_post: ({
+    comments_on_post: ({
+      id: UUIDString;
+      content: string;
+      createdAt: TimestampString;
+      author: {
         id: UUIDString;
-        content: string;
-        createdAt: TimestampString;
-        author: {
-          id: UUIDString;
-          username: string;
-          profilePictureUrl?: string | null;
-          avatarUrl?: string | null;
-        } & User_Key;
-      } & Comment_Key)[];
-        postLikes_on_post: ({
-          createdAt: TimestampString;
-          user: {
-            id: UUIDString;
-            username: string;
-          } & User_Key;
-        })[];
+        username: string;
+        profilePictureUrl?: string | null;
+        avatarUrl?: string | null;
+      } & User_Key;
+    } & Comment_Key)[];
+    postLikes_on_post: ({
+      createdAt: TimestampString;
+      user: {
+        id: UUIDString;
+        username: string;
+      } & User_Key;
+    })[];
   } & Post_Key;
 }
 
@@ -166,6 +239,7 @@ export interface GetUserByFirebaseUidData {
     avatarUrl?: string | null;
     topPRQScore?: number | null;
     evolutionShards: number;
+    pendingRoyaltyShards: number;
     firebaseUid?: string | null;
   } & User_Key)[];
 }
@@ -178,15 +252,16 @@ export interface GetUserProfileData {
     avatarUrl?: string | null;
     topPRQScore?: number | null;
     evolutionShards: number;
+    pendingRoyaltyShards: number;
   } & User_Key;
-    posts: ({
-      id: UUIDString;
-      content: string;
-      createdAt: TimestampString;
-      gameModeId?: string | null;
-      trainingScore?: number | null;
-      feedSource?: string | null;
-    } & Post_Key)[];
+  posts: ({
+    id: UUIDString;
+    content: string;
+    createdAt: TimestampString;
+    gameModeId?: string | null;
+    trainingScore?: number | null;
+    feedSource?: string | null;
+  } & Post_Key)[];
 }
 
 export interface GetUserProfileVariables {
@@ -245,6 +320,10 @@ export interface ListCreatorCardsData {
     displayName: string;
     rarityTier?: string | null;
     createdAt: TimestampString;
+    creator?: {
+      id: UUIDString;
+      username: string;
+    } & User_Key;
   } & CreatorCard_Key)[];
 }
 
@@ -507,6 +586,54 @@ export const deactivateCardMarketListingRef: DeactivateCardMarketListingRef;
 export function deactivateCardMarketListing(vars: DeactivateCardMarketListingVariables): MutationPromise<DeactivateCardMarketListingData, DeactivateCardMarketListingVariables>;
 export function deactivateCardMarketListing(dc: DataConnect, vars: DeactivateCardMarketListingVariables): MutationPromise<DeactivateCardMarketListingData, DeactivateCardMarketListingVariables>;
 
+interface ExecuteMarketplacePurchaseRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ExecuteMarketplacePurchaseVariables): MutationRef<ExecuteMarketplacePurchaseData, ExecuteMarketplacePurchaseVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ExecuteMarketplacePurchaseVariables): MutationRef<ExecuteMarketplacePurchaseData, ExecuteMarketplacePurchaseVariables>;
+  operationName: string;
+}
+export const executeMarketplacePurchaseRef: ExecuteMarketplacePurchaseRef;
+
+export function executeMarketplacePurchase(vars: ExecuteMarketplacePurchaseVariables): MutationPromise<ExecuteMarketplacePurchaseData, ExecuteMarketplacePurchaseVariables>;
+export function executeMarketplacePurchase(dc: DataConnect, vars: ExecuteMarketplacePurchaseVariables): MutationPromise<ExecuteMarketplacePurchaseData, ExecuteMarketplacePurchaseVariables>;
+
+interface CreateCreatorCardCatalogItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateCreatorCardCatalogItemVariables): MutationRef<CreateCreatorCardCatalogItemData, CreateCreatorCardCatalogItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateCreatorCardCatalogItemVariables): MutationRef<CreateCreatorCardCatalogItemData, CreateCreatorCardCatalogItemVariables>;
+  operationName: string;
+}
+export const createCreatorCardCatalogItemRef: CreateCreatorCardCatalogItemRef;
+
+export function createCreatorCardCatalogItem(vars: CreateCreatorCardCatalogItemVariables): MutationPromise<CreateCreatorCardCatalogItemData, CreateCreatorCardCatalogItemVariables>;
+export function createCreatorCardCatalogItem(dc: DataConnect, vars: CreateCreatorCardCatalogItemVariables): MutationPromise<CreateCreatorCardCatalogItemData, CreateCreatorCardCatalogItemVariables>;
+
+interface ExecuteMarketplacePurchaseWithRoyaltyRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ExecuteMarketplacePurchaseWithRoyaltyVariables): MutationRef<ExecuteMarketplacePurchaseWithRoyaltyData, ExecuteMarketplacePurchaseWithRoyaltyVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ExecuteMarketplacePurchaseWithRoyaltyVariables): MutationRef<ExecuteMarketplacePurchaseWithRoyaltyData, ExecuteMarketplacePurchaseWithRoyaltyVariables>;
+  operationName: string;
+}
+export const executeMarketplacePurchaseWithRoyaltyRef: ExecuteMarketplacePurchaseWithRoyaltyRef;
+
+export function executeMarketplacePurchaseWithRoyalty(vars: ExecuteMarketplacePurchaseWithRoyaltyVariables): MutationPromise<ExecuteMarketplacePurchaseWithRoyaltyData, ExecuteMarketplacePurchaseWithRoyaltyVariables>;
+export function executeMarketplacePurchaseWithRoyalty(dc: DataConnect, vars: ExecuteMarketplacePurchaseWithRoyaltyVariables): MutationPromise<ExecuteMarketplacePurchaseWithRoyaltyData, ExecuteMarketplacePurchaseWithRoyaltyVariables>;
+
+interface ClaimRoyaltiesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ClaimRoyaltiesVariables): MutationRef<ClaimRoyaltiesData, ClaimRoyaltiesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ClaimRoyaltiesVariables): MutationRef<ClaimRoyaltiesData, ClaimRoyaltiesVariables>;
+  operationName: string;
+}
+export const claimRoyaltiesRef: ClaimRoyaltiesRef;
+
+export function claimRoyalties(vars: ClaimRoyaltiesVariables): MutationPromise<ClaimRoyaltiesData, ClaimRoyaltiesVariables>;
+export function claimRoyalties(dc: DataConnect, vars: ClaimRoyaltiesVariables): MutationPromise<ClaimRoyaltiesData, ClaimRoyaltiesVariables>;
+
 interface ListRecentPostsRef {
   /* Allow users to create refs without passing in DataConnect */
   (): QueryRef<ListRecentPostsData, undefined>;
@@ -614,4 +741,16 @@ export const listActiveCardMarketListingsRef: ListActiveCardMarketListingsRef;
 
 export function listActiveCardMarketListings(vars?: ListActiveCardMarketListingsVariables, options?: ExecuteQueryOptions): QueryPromise<ListActiveCardMarketListingsData, ListActiveCardMarketListingsVariables>;
 export function listActiveCardMarketListings(dc: DataConnect, vars?: ListActiveCardMarketListingsVariables, options?: ExecuteQueryOptions): QueryPromise<ListActiveCardMarketListingsData, ListActiveCardMarketListingsVariables>;
+
+interface GetCreatorCardCreatorRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetCreatorCardCreatorVariables): QueryRef<GetCreatorCardCreatorData, GetCreatorCardCreatorVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetCreatorCardCreatorVariables): QueryRef<GetCreatorCardCreatorData, GetCreatorCardCreatorVariables>;
+  operationName: string;
+}
+export const getCreatorCardCreatorRef: GetCreatorCardCreatorRef;
+
+export function getCreatorCardCreator(vars: GetCreatorCardCreatorVariables, options?: ExecuteQueryOptions): QueryPromise<GetCreatorCardCreatorData, GetCreatorCardCreatorVariables>;
+export function getCreatorCardCreator(dc: DataConnect, vars: GetCreatorCardCreatorVariables, options?: ExecuteQueryOptions): QueryPromise<GetCreatorCardCreatorData, GetCreatorCardCreatorVariables>;
 

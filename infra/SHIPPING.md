@@ -1,20 +1,45 @@
 # Final Evolution Lab — iOS Shipping and Release Guidelines
 
-Goal: Ship the Unreal Engine 5.7 iOS build through App Store Connect / TestFlight, and Google Play when Android build target is active, utilizing official landing page links at finalevolutiongroup.com.
+Goal: Ship the **NEXUS** iOS app (C++20 engine + Swift shell) through App Store Connect / TestFlight, utilizing official landing page links at finalevolutiongroup.com.
 
-## Canonical constraints (Unreal Engine 5.7)
+> **Production decision (2026-06):** NEXUS is the only retail ship path. See **`NEXUS_ONLY_PIVOT.md`**.
 
-- **Unreal Engine 5.7 (Canonical):** Unreal Engine 5.7 is the production target.
-  - The shipping app shell is Unreal host + native WKWebView dashboard overlay.
-  - The authoritative build script is `./fel_ue5_ios_shipping_package.sh`.
-- Branch from `setup-healthkit`; do not wholesale merge old Cursor, Unity, or Xcode experiment branches.
-- Preserve the Unreal-hosted one-app architecture, WKWebView dashboard overlay, `finalevolution://` deep links, HealthKit usage strings, and descriptor-safe cooked payload packaging.
-- Use App Store Connect / TestFlight, or an approved Apple enterprise path if one is formally selected.
-- Do not add AltStore, SideStore, OTA manifest feeds, sideload install pages, or direct IPA install URLs.
+## Canonical constraints (NEXUS iOS)
 
-## Legacy / prototype Unity migration
+- **NEXUS (production):** Custom C++20 engine static libs embedded in the Swift iOS app (`FinalEvolutionLab/`).
+- **Authoritative scripts:** `./scripts/nexus_build_gate.sh` (preflight) · `./scripts/build-nexus-ios.sh` (static `.a` libs) · `./scripts/archive-ios-testflight.sh` (archive/export).
+- Preserve `finalevolution://` deep links, HealthKit usage strings, and session-receipt fail-closed posture per **`SHIPPING_ARCHITECTURE.md`**.
+- Use App Store Connect / TestFlight only — no AltStore, SideStore, OTA manifest feeds, sideload install pages, or direct IPA install URLs.
+- **Honest labeling:** Until **`NEXUS_DELIVERY_MATRIX.md`** gaps close (signed archive, Metal PBR embed, live Firebase POST), label retail builds **preview/beta** where applicable.
 
-- **Unity 6 (Reference/Prototype):** reference/prototype track only; not the production shipping host. Do not implement new production gameplay in Unity. Do not use Unity export, SwiftUI-first hosting, Unreal-as-a-Library, or XCFramework embedding as the default shipping path.
+### NEXUS build, archive, and export
+
+Preflight:
+
+```bash
+./scripts/nexus_build_gate.sh
+./scripts/build-nexus-ios.sh
+ALLOW_GOOGLE_SERVICE_PLACEHOLDER=1 ./scripts/archive-ios-testflight.sh --dry-run
+```
+
+Archive and export (requires real `GoogleService-Info.plist` + signing):
+
+```bash
+./scripts/archive-ios-testflight.sh
+./scripts/archive-ios-testflight.sh --export
+```
+
+See **`NEXUS_RESUME.md`** for full command matrix and known blockers.
+
+## Legacy / archived — Unreal Engine 5.7 (not production)
+
+- **Unreal Engine 5.7:** archived reference only. The shipping app was formerly UE host + WKWebView overlay; superseded by NEXUS.
+- Legacy build script (do not use for retail): `./fel_ue5_ios_shipping_package.sh`.
+- Branch from `setup-healthkit` if maintaining legacy UE reference builds only.
+
+## Legacy / archived — Unity 6 (not production)
+
+- **Unity 6:** archived prototype (`Unity6-FinalEvolutionLab/`). Do not implement new production gameplay in Unity.
 
 ## Release tracking metadata
 
@@ -54,7 +79,11 @@ Default output: `artifacts/release/final-evolution-lab-ios-release.json`.
 
 If needed by downstream release tools, register exactly this JSON payload; do not replace it with direct IPA URLs or unofficial install manifests.
 
-## Fresh Mac prerequisites
+### Legacy UE reference — build steps (archived, not retail)
+
+The sections below document the former Unreal Engine 5.7 ship path for reference only.
+
+## Fresh Mac prerequisites (legacy UE)
 
 | Tool | Requirement |
 |---|---|

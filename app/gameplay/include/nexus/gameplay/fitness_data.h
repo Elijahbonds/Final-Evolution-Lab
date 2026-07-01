@@ -3,8 +3,12 @@
 // Spec: 02 Fitness Data Schema, 10 Phase 2 Biometric Integration
 #pragma once
 
+#include "nexus/core/result.h"
+
+#include <nlohmann/json.hpp>
 #include <cstdint>
 #include <mutex>
+#include <string_view>
 
 namespace nexus::gameplay {
 
@@ -31,6 +35,12 @@ struct FitnessSnapshot {
   FRCMetrics frc;
   // IAP metrics copied atomically from the app fitness container.
   IAPMetrics iap;
+  // Mean of mobility, active range, and control (HUD + throw-catch input).
+  float frcComposite{0.0F};
+  // engagement × confidence (HUD + throw-catch input).
+  float iapComposite{0.0F};
+  // Combined readiness score for gameplay impulse scaling (0.0–1.0).
+  float powerReadiness{0.0F};
   // Monotonic revision incremented on each fitness update.
   std::uint64_t revision{0};
 };
@@ -66,8 +76,29 @@ public:
   [[nodiscard]] auto read_view() const -> FitnessReadView;
 
 private:
+  void commitSnapshot(FRCMetrics frc, IAPMetrics iap);
+
   mutable std::mutex m_mutex;
   FitnessSnapshot m_snapshot;
 };
+
+/// Validates a normalized fitness scalar (finite, clamped 0–1).
+[[nodiscard]] auto validateFitnessScalar(float value, std::string_view fieldName)
+    -> Result<float>;
+
+/// Validates breath phase is −1, 0, or 1.
+[[nodiscard]] auto validateBreathPhase(int value) -> Result<std::int8_t>;
+
+/// Computes HUD/physics aggregates from raw FRC metrics.
+[[nodiscard]] auto computeFrcComposite(const FRCMetrics& frc) -> float;
+
+/// Computes HUD/physics aggregates from raw IAP metrics.
+[[nodiscard]] auto computeIapComposite(const IAPMetrics& iap) -> float;
+
+/// Combined readiness used by throw-catch impulse and HUD meters.
+[[nodiscard]] auto computePowerReadiness(const FRCMetrics& frc, const IAPMetrics& iap) -> float;
+
+/// Serializes a fitness snapshot for agent/HUD consumers.
+[[nodiscard]] auto fitnessSnapshotToJson(const FitnessSnapshot& snapshot) -> nlohmann::json;
 
 } // namespace nexus::gameplay

@@ -30,10 +30,64 @@ private struct TrainingHubContent: View {
     @Binding var selectedDay: TrainingDay?
     @Binding var appeared: Bool
 
+    private var educationPreviewCard: some View {
+        NavigationLink {
+            BodyIQEducationLabView(viewModel: labViewModel)
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.elitePurple.opacity(0.12))
+                        .frame(width: 56, height: 56)
+                    Image(systemName: "figure.flexibility")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.elitePurple)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Text("BODY IQ · ANATOMY")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(Theme.elitePurple)
+                            .tracking(2)
+                        FELPreviewLabel(text: "PREVIEW")
+                    }
+                    Text("Movement snacks, drawing-in module, Bio-Digital anatomy")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Theme.elitePurple.opacity(0.25), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
+                NexusMiniSelfPreviewView(
+                    profile: labViewModel.profile,
+                    previewHeight: 180,
+                    motionNote: "Simulated exercise preview · your mini-self performs prescribed movements.",
+                    prqLabel: NexusMiniSelfPreviewView.prqPrescriptionLabel(for: labViewModel.profile)
+                )
+                educationPreviewCard
                 equipmentSelector
                 trackSelector
                 streamingPortalCard

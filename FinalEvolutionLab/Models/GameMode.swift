@@ -373,7 +373,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0, green: 0.83, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Blue Court",
-            hint: "On the blue court · dunk catalog · swipe timing · 3-judge panel · crowd momentum — NBA Live 07 style",
+            hint: "On the blue court · dunk catalog · swipe timing · 3-judge panel · crowd momentum",
             releaseState: .production
         ),
         GameMode(
@@ -413,7 +413,7 @@ struct GameModeRegistry {
         GameMode(
             id: .baseball,
             name: "Home Run Derby",
-            subtitle: "Wii-Style Swing",
+            subtitle: "Arcade Swing",
             sport: .field,
             iconName: "figure.baseball",
             accentColor: Color(red: 0.1, green: 0.5, blue: 0.9),
@@ -446,7 +446,7 @@ struct GameModeRegistry {
         GameMode(
             id: .golf,
             name: "Closest to Pin",
-            subtitle: "Wii-Style Swing",
+            subtitle: "Swipe to Pin",
             sport: .precision,
             iconName: "figure.golf",
             accentColor: Color(red: 0.3, green: 0.7, blue: 0.4),

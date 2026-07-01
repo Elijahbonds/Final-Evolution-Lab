@@ -16,6 +16,8 @@ type User @table {
   topPRQScore: Float
   # Canonical shard balance (SQL); keep in sync with SpendEvolutionShards / admin grants / local profile when offline.
   evolutionShards: Int! @default(expr: "0")
+  # Pending royalties credited to creator
+  pendingRoyaltyShards: Int! @default(expr: "0")
   # Nullable: reserved for seeded rows without Auth. Normal app users always set firebaseUid via mutations.
   # Postgres UNIQUE treats NULL as distinct — avoid relying on uniqueness for multiple NULL firebaseUids when seeding test data.
   firebaseUid: String @unique @col(dataType: "varchar(128)")
@@ -55,6 +57,7 @@ type CreatorCard @table {
   displayName: String! @col(dataType: "varchar(128)")
   rarityTier: String @col(dataType: "varchar(32)")
   createdAt: Timestamp! @default(expr: "request.time")
+  creator: User
 }
 
 # Deploy: add `dedupeKey` with backfill for existing rows before `firebase deploy` of Data Connect / SQL.

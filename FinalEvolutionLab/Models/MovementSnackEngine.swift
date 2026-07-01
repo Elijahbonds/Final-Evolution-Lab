@@ -35,17 +35,17 @@ nonisolated enum KineticLeakageCategory: String, Codable, Sendable, CaseIterable
 
 // MARK: - Movement Snack (bite-sized prescription)
 
-/// A single **Movement Snack**: 60–90s, game-framed corrective loop with Unreal asset hooks.
+/// A single **Movement Snack**: 60–90s, game-framed corrective loop with NEXUS animation asset hooks.
 nonisolated struct MovementSnack: Identifiable, Codable, Sendable, Hashable {
     var id: String
-    /// Primary UE animation Montage / Sequence id (required for Phase B playback contract).
-    var requiredUnrealAnimationAssetID: String
+    /// Primary animation montage / sequence id (required for Phase B playback contract).
+    var requiredAnimationAssetID: String
     /// Phase A — capsule CARS / FRC-style joint prep.
     var phaseMappingCarsCue: String
-    /// Phase B — corrective posture demonstrated in Unreal (may equal `requiredUnrealAnimationAssetID` or a paired pose).
-    var unrealCorrectivePoseAssetID: String
+    /// Phase B — corrective posture demonstrated in NEXUS (may equal `requiredAnimationAssetID` or a paired pose).
+    var correctivePoseAssetID: String
     /// Phase C — diaphragm / IAP breath loop in-engine.
-    var unrealDiaphragmBreathAssetID: String
+    var diaphragmBreathAssetID: String
     var title: String
     var subtitle: String
     var targetedCategories: [KineticLeakageCategory]
@@ -59,11 +59,11 @@ nonisolated struct MovementSnack: Identifiable, Codable, Sendable, Hashable {
     static func sampleCoreLeakPatch() -> MovementSnack {
         MovementSnack(
             id: "snack_core_kinetic_patch_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_CoreSequence_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_CoreSequence_v1",
             phaseMappingCarsCue:
                 "Hip CARS: slow circles — internal→external rotation, pain-free range only. 45s · 3 reps each direction.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_Corrective_DeepSquatHold_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_Corrective_DeepSquatHold_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
             title: "Core Kinetic Patch",
             subtitle: "Close the loop — capsule map → stack → breath.",
             targetedCategories: [.corePelvicChain],
@@ -120,10 +120,10 @@ nonisolated enum MovementSnackEngine {
     private static func primedMaintenanceSnack(neuralFocus01: Double?) -> MovementSnack {
         MovementSnack(
             id: "snack_maintenance_cars_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_Maintenance_JointCircles_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_Maintenance_JointCircles_v1",
             phaseMappingCarsCue: "Full-body CARS lite: ankle, knee, hip — one slow rep each plane.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_NeutralStand_Alignment_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_BoxBreath_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_NeutralStand_Alignment_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_BoxBreath_Loop_v1",
             title: "Primed Maintenance",
             subtitle: "No major leakage — keep the chassis tuned.",
             targetedCategories: [],
@@ -136,10 +136,10 @@ nonisolated enum MovementSnackEngine {
     private static func ankleStabilitySnack(neuralFocus01: Double?) -> MovementSnack {
         MovementSnack(
             id: "snack_ankle_stability_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_Ankle_CARSequence_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_Ankle_CARSequence_v1",
             phaseMappingCarsCue: "Ankle CARS: dorsi/plantar + inversion/eversion in half-kneel, controlled.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_SplitSquat_IsometricHold_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_SplitSquat_IsometricHold_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
             title: "Ankle Stack Snack",
             subtitle: "Reclaim ground contact quality.",
             targetedCategories: [.ankleInstability],
@@ -152,10 +152,10 @@ nonisolated enum MovementSnackEngine {
     private static func kneeStackSnack(neuralFocus01: Double?) -> MovementSnack {
         MovementSnack(
             id: "snack_knee_tracking_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_Knee_TrackSequence_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_Knee_TrackSequence_v1",
             phaseMappingCarsCue: "Tibia / hip rotation CARS — own the knee window without frontal-plane collapse (pose-informed coaching only).",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_Corrective_SplitSquatKneeLine_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_RibAnchor_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_Corrective_SplitSquatKneeLine_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_RibAnchor_Loop_v1",
             title: "Knee Line Snack",
             subtitle: "Bias tracking without losing torque.",
             targetedCategories: [.kneeTracking],
@@ -168,10 +168,10 @@ nonisolated enum MovementSnackEngine {
     private static func hipDriveSnack(neuralFocus01: Double?) -> MovementSnack {
         MovementSnack(
             id: "snack_hip_extension_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_Hip_CARSequence_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_Hip_CARSequence_v1",
             phaseMappingCarsCue: "Hip flex/extension CARS in quadruped → tall-kneel transitions.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_Corrective_HipExtensionWallDrill_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_Corrective_HipExtensionWallDrill_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
             title: "Hip Drive Snack",
             subtitle: "Expose length without losing intra-abdominal pressure.",
             targetedCategories: [.hipExtensionPower],

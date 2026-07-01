@@ -12,7 +12,24 @@
       "basketball_dunk": {
         "status": "production",
         "venue_id": "VeniceBeach",
+        "prq_weight": 1.0,
+        "note": "Legacy alias → basketball_dunk_3d (NEXUS C++ runtime id)"
+      },
+      "basketball_dunk_3d": {
+        "status": "production",
+        "render_mode": "3D_UE5",
+        "venue_id": "VeniceBeach",
+        "court_color": "venice_blue",
+        "nexus_runtime_mode_id": "basketball_dunk",
         "prq_weight": 1.0
+      },
+      "basketball_dunk_irl": {
+        "status": "production",
+        "render_mode": "IRL",
+        "venue_id": null,
+        "healthkit_tracked": true,
+        "prq_weight": 1.5,
+        "note": "Reconciled from claude branch basketball_irl — no UE map"
       },
       "basketball_3v3": {
         "status": "production",
@@ -80,9 +97,10 @@
         "prq_weight": 1.1
       },
       "court_carnival": {
-        "status": "preview",
+        "status": "production",
         "venue_id": "VeniceBeach",
-        "prq_weight": 1.0
+        "prq_weight": 1.0,
+        "scoring_enabled": true
       },
       "skateboarding": {
         "status": "staging",

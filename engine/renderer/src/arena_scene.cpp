@@ -39,6 +39,11 @@ auto buildArenaMeshVertices() -> std::vector<SceneVertex> {
         transformed.color[0] = source.color[0];
         transformed.color[1] = source.color[1];
         transformed.color[2] = source.color[2];
+        transformed.normal[0] = source.normal[0];
+        transformed.normal[1] = source.normal[1];
+        transformed.normal[2] = source.normal[2];
+        transformed.uv[0] = source.uv[0];
+        transformed.uv[1] = source.uv[1];
         flattened.push_back(transformed);
       }
     }

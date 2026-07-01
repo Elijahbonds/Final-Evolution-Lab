@@ -26,10 +26,13 @@ struct BioDigitalAnatomyView: View {
                 // Header
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("BIO-DIGITAL ANATOMY STUDY")
-                            .font(.system(.caption2, design: .monospaced, weight: .bold))
-                            .foregroundStyle(Theme.brandCyan)
-                            .tracking(2)
+                        HStack(spacing: 8) {
+                            Text("BIO-DIGITAL ANATOMY STUDY")
+                                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                                .foregroundStyle(Theme.brandCyan)
+                                .tracking(2)
+                            FELPreviewLabel(text: FELPremiumCopy.Preview.sceneKitStub)
+                        }
                         Text(moduleTitle)
                             .font(.system(.title2, design: .monospaced, weight: .black))
                             .foregroundStyle(.white)

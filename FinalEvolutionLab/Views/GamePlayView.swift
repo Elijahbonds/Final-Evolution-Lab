@@ -237,6 +237,7 @@ struct GamePlayView: View {
 
             VStack(spacing: 0) {
                 hudBar
+                gameplayHonestyStrip
                 Spacer()
                 controlPanel
             }
@@ -496,6 +497,40 @@ struct GamePlayView: View {
             filmTimerTask?.cancel()
             courtCarnivalTapTimerTask?.cancel()
         }
+    }
+
+    // MARK: - HUD Honesty
+
+    private var gameplayHonestyStrip: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 8) {
+                Text(gameMode.subtitle.uppercased())
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .accessibilityIdentifier("GameplayModeSubtitle")
+                Spacer(minLength: 0)
+                if let tier = gameMode.felHonestTierLabel {
+                    FELPreviewLabel(text: tier)
+                        .accessibilityIdentifier("GameplayHonestTierLabel")
+                }
+            }
+            if let proxyNote = gameMode.id.venueMeshProxyNote {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 8, weight: .bold))
+                    Text(proxyNote)
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .multilineTextAlignment(.leading)
+                }
+                .foregroundStyle(.white.opacity(0.45))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("GameplayVenueProxyNote")
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 6)
     }
 
     // MARK: - HUD Bar
@@ -1271,6 +1306,10 @@ struct GamePlayView: View {
                     Text(gameMode.id == .tennis ? "Time your returns" : "Spike over the net")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundStyle(.secondary)
+                    if let tier = gameMode.felHonestTierLabel {
+                        FELPreviewLabel(text: tier)
+                            .padding(.top, 2)
+                    }
                 }
                 Spacer()
             }
@@ -4083,7 +4122,7 @@ struct GamePlayView: View {
         }
     }
 
-    // MARK: - Wii-Style Input Handlers
+    // MARK: - Arcade Swing Input Handlers
 
     private func applyOutcomeFromCharge(_ chargeValue: Double) {
         guard isActive else { return }
@@ -4129,12 +4168,21 @@ struct GamePlayView: View {
             }
             triggerImpactFlash()
             resetStreakTimer()
+            hapticSuccess(isCritical: isCritical)
+            FELGameplayEventBus.postScored()
+            FELSoundscapeEngine.shared.triggerCheer(intensity: isCritical ? 1.0 : 0.65)
+            FELSoundscapeEngine.shared.combo = combo
         } else {
             withAnimation(.spring(response: 0.3)) {
                 combo = 0
                 lastAction = modeFeedbackFail()
                 lastActionIsCritical = false
                 lastActionIsBurst = false
+            }
+            hapticFail()
+            if gameMode.id == .soccer || gameMode.id == .volleyball {
+                FELGameplayEventBus.postPenalty()
+                FELSoundscapeEngine.shared.triggerGasp(intensity: 0.7)
             }
 
             if gameMode.id == .football {
@@ -4173,6 +4221,7 @@ struct GamePlayView: View {
                     withAnimation(.spring(response: 0.25)) {
                         opponentScore += aiPoints
                     }
+                    FELGameplayEventBus.postOpponentScored()
                 }
             }
         }
@@ -4317,6 +4366,7 @@ struct GamePlayView: View {
         case .golf: strings = ["Nice!", "Close!", "Gimme!"]
         case .football: strings = ["TOUCHDOWN!", "HOUSE!", "GONE!"]
         case .soccer: strings = ["GOAL!", "TOP CORNER!", "NET!"]
+        case .tennis: strings = ["ACE!", "WINNER!", "RALLY!", "VOLLEY!"]
         case .volleyball: strings = ["Point!", "Spike!", "Ace!", "Block!"]
         default: return isCritical ? "CRITICAL +\(points)" : "+\(points)"
         }
@@ -4331,6 +4381,7 @@ struct GamePlayView: View {
         case .golf: strings = ["Short", "Long", "Lip out"]
         case .football: strings = ["Tackled", "Out of bounds"]
         case .soccer: strings = ["Saved", "Wide", "Over"]
+        case .tennis: strings = ["Out", "Net", "Fault"]
         case .volleyball: strings = ["Out", "Net", "Dig"]
         default: return "MISSED"
         }

@@ -77,6 +77,48 @@ void logCreativeCommand(std::string_view command) {
   NEXUS_LOG_INFO(LogChannel::kCreative, message);
 }
 
+auto boundsJson(std::array<int, 3> minPosition, std::array<int, 3> maxPosition) -> nlohmann::json {
+  return {
+      {"min", minPosition},
+      {"max", maxPosition},
+  };
+}
+
+auto wrapCreativeEnvelope(std::string_view command,
+                          const nlohmann::json& regionBounds,
+                          int clampedRadius,
+                          int clampedHeight,
+                          const nlohmann::json& inner) -> nlohmann::json {
+  const std::size_t edited = inner.value("edited_voxels", 0);
+  const std::size_t chunks = inner.value("dirty_chunks", 0);
+  const std::size_t painted = inner.value("painted_voxels", 0);
+
+  std::string summary = std::string(command) + ": edited " + std::to_string(edited) +
+                        " voxel(s) across " + std::to_string(chunks) + " chunk(s)";
+  if (painted > 0) {
+    summary += ", painted " + std::to_string(painted);
+  }
+  if (clampedRadius > 0) {
+    summary += " (radius=" + std::to_string(clampedRadius) + ")";
+  }
+
+  nlohmann::json envelope = inner;
+  envelope["creative"] = {
+      {"command", std::string(command)},
+      {"region_bounds", regionBounds},
+      {"chunk_count", chunks},
+      {"edited_voxels", edited},
+      {"clamped_radius", clampedRadius},
+      {"clamped_height", clampedHeight},
+  };
+  if (painted > 0) {
+    envelope["creative"]["painted_voxels"] = painted;
+  }
+  envelope["agent_summary"] = summary;
+  envelope["status"] = edited > 0 || painted > 0 ? "applied" : "no_op";
+  return envelope;
+}
+
 } // namespace
 
 VoxelCommandParser::VoxelCommandParser(creative::WorldManipulator& manipulator,
@@ -87,11 +129,56 @@ auto VoxelCommandParser::apply_command(std::string_view command, const nlohmann:
     -> Result<nlohmann::json> {
   if (command == "fel.creative.set_voxels") {
     logCreativeCommand(command);
-    return m_manipulator.applyCommand("terrain.set_voxels", params);
+    auto result = m_manipulator.applyCommand("terrain.set_voxels", params);
+    if (result.isErr()) {
+      return result;
+    }
+    nlohmann::json bounds = nlohmann::json::object();
+    if (params.contains("voxels") && params["voxels"].is_array() && !params["voxels"].empty()) {
+      std::array<int, 3> minPos{0, 0, 0};
+      std::array<int, 3> maxPos{0, 0, 0};
+      bool initialized = false;
+      for (const auto& edit : params["voxels"]) {
+        if (!edit.contains("position") || !edit["position"].is_array()) {
+          continue;
+        }
+        const std::array<int, 3> pos = {
+            edit["position"][0].get<int>(),
+            edit["position"][1].get<int>(),
+            edit["position"][2].get<int>(),
+        };
+        if (!initialized) {
+          minPos = pos;
+          maxPos = pos;
+          initialized = true;
+        } else {
+          for (int axis = 0; axis < 3; ++axis) {
+            minPos[static_cast<std::size_t>(axis)] =
+                std::min(minPos[static_cast<std::size_t>(axis)], pos[axis]);
+            maxPos[static_cast<std::size_t>(axis)] =
+                std::max(maxPos[static_cast<std::size_t>(axis)], pos[axis]);
+          }
+        }
+      }
+      if (initialized) {
+        bounds = boundsJson(minPos, maxPos);
+      }
+    }
+    return Result<nlohmann::json>::ok(
+        wrapCreativeEnvelope(command, bounds, 0, 0, result.value()));
   }
   if (command == "fel.creative.fill_region") {
     logCreativeCommand(command);
-    return m_manipulator.applyCommand("terrain.fill_region", params);
+    auto result = m_manipulator.applyCommand("terrain.fill_region", params);
+    if (result.isErr()) {
+      return result;
+    }
+    nlohmann::json bounds = nlohmann::json::object();
+    if (params.contains("min") && params.contains("max")) {
+      bounds = {{"min", params["min"]}, {"max", params["max"]}};
+    }
+    return Result<nlohmann::json>::ok(
+        wrapCreativeEnvelope(command, bounds, 0, 0, result.value()));
   }
   if (command == "fel.creative.raise_terrain") {
     return apply_raise_or_lower(true, params);
@@ -133,13 +220,22 @@ auto VoxelCommandParser::apply_raise_or_lower(bool raise, const nlohmann::json& 
   const int minY = raise ? position.value()[1] : position.value()[1] - clampedHeight + 1;
   const int maxY = raise ? position.value()[1] + clampedHeight - 1 : position.value()[1];
   const int fillMaterial = raise ? material.value() : 0;
+  const auto minPos = std::array<int, 3>{
+      position.value()[0] - clampedRadius, minY, position.value()[2] - clampedRadius};
+  const auto maxPos = std::array<int, 3>{
+      position.value()[0] + clampedRadius, maxY, position.value()[2] + clampedRadius};
 
   logCreativeCommand(raise ? "fel.creative.raise_terrain" : "fel.creative.lower_terrain");
-  return m_manipulator.applyCommand(
-      "terrain.fill_region",
-      fillParams({position.value()[0] - clampedRadius, minY, position.value()[2] - clampedRadius},
-                 {position.value()[0] + clampedRadius, maxY, position.value()[2] + clampedRadius},
-                 fillMaterial));
+  auto applied = m_manipulator.applyCommand("terrain.fill_region", fillParams(minPos, maxPos, fillMaterial));
+  if (applied.isErr()) {
+    return applied;
+  }
+  return Result<nlohmann::json>::ok(wrapCreativeEnvelope(
+      raise ? "fel.creative.raise_terrain" : "fel.creative.lower_terrain",
+      boundsJson(minPos, maxPos),
+      clampedRadius,
+      clampedHeight,
+      applied.value()));
 }
 
 auto VoxelCommandParser::apply_flatten(const nlohmann::json& params) -> Result<nlohmann::json> {
@@ -160,22 +256,37 @@ auto VoxelCommandParser::apply_flatten(const nlohmann::json& params) -> Result<n
   const int x = position.value()[0];
   const int y = position.value()[1];
   const int z = position.value()[2];
+  const auto clearMin = std::array<int, 3>{x - clampedRadius, y + 1, z - clampedRadius};
+  const auto clearMax = std::array<int, 3>{x + clampedRadius, y + kMaxCreativeRadius, z + clampedRadius};
+  const auto floorMin = std::array<int, 3>{x - clampedRadius, y, z - clampedRadius};
+  const auto floorMax = std::array<int, 3>{x + clampedRadius, y, z + clampedRadius};
 
   logCreativeCommand("fel.creative.flatten_terrain");
   auto clearAbove = m_manipulator.applyCommand(
       "terrain.fill_region",
-      fillParams({x - clampedRadius, y + 1, z - clampedRadius},
-                 {x + clampedRadius, y + kMaxCreativeRadius, z + clampedRadius},
-                 0));
+      fillParams(clearMin, clearMax, 0));
   if (clearAbove.isErr()) {
     return clearAbove;
   }
 
-  return m_manipulator.applyCommand(
+  auto flattened = m_manipulator.applyCommand(
       "terrain.fill_region",
-      fillParams({x - clampedRadius, y, z - clampedRadius},
-                 {x + clampedRadius, y, z + clampedRadius},
-                 material.value()));
+      fillParams(floorMin, floorMax, material.value()));
+  if (flattened.isErr()) {
+    return flattened;
+  }
+
+  nlohmann::json merged = flattened.value();
+  merged["edited_voxels"] =
+      clearAbove.value()["edited_voxels"].get<std::size_t>() +
+      flattened.value()["edited_voxels"].get<std::size_t>();
+  merged["dirty_chunks"] = flattened.value()["dirty_chunks"];
+  return Result<nlohmann::json>::ok(wrapCreativeEnvelope(
+      "fel.creative.flatten_terrain",
+      boundsJson(floorMin, clearMax),
+      clampedRadius,
+      1,
+      merged));
 }
 
 auto VoxelCommandParser::apply_paint(const nlohmann::json& params) -> Result<nlohmann::json> {
@@ -196,6 +307,8 @@ auto VoxelCommandParser::apply_paint(const nlohmann::json& params) -> Result<nlo
   const int x = position.value()[0];
   const int y = position.value()[1];
   const int z = position.value()[2];
+  const auto minPos = std::array<int, 3>{x - clampedRadius, y, z - clampedRadius};
+  const auto maxPos = std::array<int, 3>{x + clampedRadius, y, z + clampedRadius};
 
   nlohmann::json voxels = nlohmann::json::array();
   for (int dz = -clampedRadius; dz <= clampedRadius; ++dz) {
@@ -213,10 +326,16 @@ auto VoxelCommandParser::apply_paint(const nlohmann::json& params) -> Result<nlo
   }
 
   if (voxels.empty()) {
-    return Result<nlohmann::json>::ok({
-        {"edited_voxels", 0},
-        {"painted_voxels", 0},
-    });
+    return Result<nlohmann::json>::ok(wrapCreativeEnvelope(
+        "fel.creative.paint_terrain",
+        boundsJson(minPos, maxPos),
+        clampedRadius,
+        1,
+        {
+            {"edited_voxels", 0},
+            {"painted_voxels", 0},
+            {"dirty_chunks", 0},
+        }));
   }
 
   logCreativeCommand("fel.creative.paint_terrain");
@@ -224,8 +343,14 @@ auto VoxelCommandParser::apply_paint(const nlohmann::json& params) -> Result<nlo
   if (painted.isErr()) {
     return painted;
   }
-  painted.value()["painted_voxels"] = voxels.size();
-  return painted;
+  nlohmann::json applied = painted.value();
+  applied["painted_voxels"] = voxels.size();
+  return Result<nlohmann::json>::ok(wrapCreativeEnvelope(
+      "fel.creative.paint_terrain",
+      boundsJson(minPos, maxPos),
+      clampedRadius,
+      1,
+      std::move(applied)));
 }
 
 } // namespace nexus::gameplay

@@ -78,6 +78,7 @@ struct BioFuelScannerView: View {
     
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 6) {
+            FELPreviewLabel(text: FELPremiumCopy.Preview.bioFuelScan)
             Text("AI VISION MEAL SCANNER")
                 .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(Theme.neonGreen)

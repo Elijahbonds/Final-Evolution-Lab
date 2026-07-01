@@ -37,11 +37,12 @@ PRODUCTION_MODES = [
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
+    "gymnastics", "skateboarding", "snowboarding",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["skateboarding", "snowboarding", "gymnastics", "brain_brawl"]
+STAGING_MODES = ["brain_brawl"]
 PREVIEW_MODES = ["who_scene_it", "court_carnival"]
 
 # ═══════════════════════════════════════════════════════════════════════════════

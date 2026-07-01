@@ -62,6 +62,7 @@ struct MatchmakingView: View {
 
     private var header: some View {
         VStack(spacing: 8) {
+            FELPreviewLabel(text: FELPremiumCopy.Preview.matchmakingStub)
             HStack(spacing: 8) {
                 Image(systemName: "globe")
                     .font(.system(size: 14, weight: .bold))

@@ -8,6 +8,8 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var evolutionShards: Int
     /// Shards credited locally from arena/coach flows until a server ledger grant exists (GAME-43 / GAME-46).
     var pendingUnverifiedShardCredits: Int
+    /// Pending creator royalty shards
+    var pendingRoyaltyShards: Int
     var totalWorkouts: Int
     var streakDays: Int
     var joinDate: Date
@@ -23,9 +25,23 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var systemScan: SystemScanResult?
     var activeCreatorCard: CreatorCardState?
     var ownedCardIds: [String]
+    var ownedCosmetics: [String]
+    var avatarConfig: AvatarSkinConfig
+    var brainBrawlProgression: BrainBrawlProgression?
+    var academicProgress: AcademicProgress?
+    var competitionAnimations: [NexusAnimationAsset]
+    var mintedCreatorCards: [MintedCreatorCard]
+    var activeSignatureAnimationId: String?
+    var pendingShardRoyalties: Int
+    var totalRoyaltySales: Int
+    var totalRoyaltyEarnings: Int
 
     func ownsCard(_ cardId: String) -> Bool {
         ownedCardIds.contains(cardId)
+    }
+
+    func ownsCosmetic(_ cosmeticId: String) -> Bool {
+        ownedCosmetics.contains(cosmeticId)
     }
 }
 
@@ -38,6 +54,7 @@ extension UserProfile: Codable {
         metrics = try container.decode(PerformanceMetrics.self, forKey: .metrics)
         evolutionShards = try container.decode(Int.self, forKey: .evolutionShards)
         pendingUnverifiedShardCredits = (try? container.decode(Int.self, forKey: .pendingUnverifiedShardCredits)) ?? 0
+        pendingRoyaltyShards = (try? container.decode(Int.self, forKey: .pendingRoyaltyShards)) ?? 0
         totalWorkouts = try container.decode(Int.self, forKey: .totalWorkouts)
         streakDays = try container.decode(Int.self, forKey: .streakDays)
         joinDate = try container.decode(Date.self, forKey: .joinDate)
@@ -51,6 +68,16 @@ extension UserProfile: Codable {
         systemScan = try container.decodeIfPresent(SystemScanResult.self, forKey: .systemScan)
         activeCreatorCard = try container.decodeIfPresent(CreatorCardState.self, forKey: .activeCreatorCard)
         ownedCardIds = (try? container.decode([String].self, forKey: .ownedCardIds)) ?? []
+        ownedCosmetics = (try? container.decode([String].self, forKey: .ownedCosmetics)) ?? []
+        avatarConfig = (try? container.decode(AvatarSkinConfig.self, forKey: .avatarConfig)) ?? systemScan?.avatarConfig ?? .default
+        brainBrawlProgression = try container.decodeIfPresent(BrainBrawlProgression.self, forKey: .brainBrawlProgression)
+        academicProgress = try container.decodeIfPresent(AcademicProgress.self, forKey: .academicProgress)
+        competitionAnimations = (try? container.decode([NexusAnimationAsset].self, forKey: .competitionAnimations)) ?? []
+        mintedCreatorCards = (try? container.decode([MintedCreatorCard].self, forKey: .mintedCreatorCards)) ?? []
+        activeSignatureAnimationId = try container.decodeIfPresent(String.self, forKey: .activeSignatureAnimationId)
+        pendingShardRoyalties = (try? container.decode(Int.self, forKey: .pendingShardRoyalties)) ?? 0
+        totalRoyaltySales = (try? container.decode(Int.self, forKey: .totalRoyaltySales)) ?? 0
+        totalRoyaltyEarnings = (try? container.decode(Int.self, forKey: .totalRoyaltyEarnings)) ?? 0
     }
 
     static let guest = UserProfile(
@@ -60,19 +87,30 @@ extension UserProfile: Codable {
         metrics: .empty,
         evolutionShards: 0,
         pendingUnverifiedShardCredits: 0,
+        pendingRoyaltyShards: 0,
         totalWorkouts: 0,
         streakDays: 0,
         joinDate: Date(),
         avatarSystemName: "figure.run",
         blueprintCredits: 0,
-        sport: nil,
-        age: nil,
-        goal: nil,
+        sport: nil as String?,
+        age: nil as Int?,
+        goal: nil as String?,
         guardianConsentForMinorFeatures: false,
         hasCompletedOnboarding: false,
-        systemScan: nil,
-        activeCreatorCard: nil,
-        ownedCardIds: []
+        systemScan: nil as SystemScanResult?,
+        activeCreatorCard: nil as CreatorCardState?,
+        ownedCardIds: [] as [String],
+        ownedCosmetics: [] as [String],
+        avatarConfig: AvatarSkinConfig.default,
+        brainBrawlProgression: nil as BrainBrawlProgression?,
+        academicProgress: nil as AcademicProgress?,
+        competitionAnimations: [] as [NexusAnimationAsset],
+        mintedCreatorCards: [] as [MintedCreatorCard],
+        activeSignatureAnimationId: nil as String?,
+        pendingShardRoyalties: 0,
+        totalRoyaltySales: 0,
+        totalRoyaltyEarnings: 0
     )
 }
 
@@ -172,6 +210,15 @@ nonisolated struct SystemScanResult: Codable, Sendable {
     }
 }
 
+nonisolated enum AvatarHairstyle: String, Codable, Sendable, CaseIterable {
+    case buzzcut = "Buzzcut"
+    case dreadlocks = "Dreadlocks"
+    case mohawk = "Mohawk"
+    case undercut = "Undercut"
+    case ponytail = "Ponytail"
+    case none = "None"
+}
+
 nonisolated struct AvatarSkinConfig: Codable, Sendable {
     var heightScale: Double
     var weightScale: Double
@@ -182,6 +229,7 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
     var auraColorG: Double
     var auraColorB: Double
     var trailIntensity: Double
+    var hairstyle: AvatarHairstyle
 
     static let `default` = AvatarSkinConfig(
         heightScale: 1.0,
@@ -192,8 +240,51 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
         auraColorR: 0,
         auraColorG: 0.83,
         auraColorB: 1.0,
-        trailIntensity: 0.3
+        trailIntensity: 0.3,
+        hairstyle: .none
     )
+
+    private enum CodingKeys: String, CodingKey {
+        case heightScale, weightScale, limbLength, skinTone, outfitStyle, auraColorR, auraColorG, auraColorB, trailIntensity, hairstyle
+    }
+
+    nonisolated init(
+        heightScale: Double,
+        weightScale: Double,
+        limbLength: Double,
+        skinTone: AvatarSkinTone,
+        outfitStyle: AvatarOutfitStyle,
+        auraColorR: Double,
+        auraColorG: Double,
+        auraColorB: Double,
+        trailIntensity: Double,
+        hairstyle: AvatarHairstyle = .none
+    ) {
+        self.heightScale = heightScale
+        self.weightScale = weightScale
+        self.limbLength = limbLength
+        self.skinTone = skinTone
+        self.outfitStyle = outfitStyle
+        self.auraColorR = auraColorR
+        self.auraColorG = auraColorG
+        self.auraColorB = auraColorB
+        self.trailIntensity = trailIntensity
+        self.hairstyle = hairstyle
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        heightScale = (try? container.decode(Double.self, forKey: .heightScale)) ?? 1.0
+        weightScale = (try? container.decode(Double.self, forKey: .weightScale)) ?? 1.0
+        limbLength = (try? container.decode(Double.self, forKey: .limbLength)) ?? 1.0
+        skinTone = (try? container.decode(AvatarSkinTone.self, forKey: .skinTone)) ?? .cyan
+        outfitStyle = (try? container.decode(AvatarOutfitStyle.self, forKey: .outfitStyle)) ?? .standard
+        auraColorR = (try? container.decode(Double.self, forKey: .auraColorR)) ?? 0.0
+        auraColorG = (try? container.decode(Double.self, forKey: .auraColorG)) ?? 0.83
+        auraColorB = (try? container.decode(Double.self, forKey: .auraColorB)) ?? 1.0
+        trailIntensity = (try? container.decode(Double.self, forKey: .trailIntensity)) ?? 0.3
+        hairstyle = (try? container.decode(AvatarHairstyle.self, forKey: .hairstyle)) ?? .none
+    }
 
     static func fromScan(prq: Double, vertical: Double, flight: Double, sport: String?) -> AvatarSkinConfig {
         let normalizedPRQ = min(max(prq / 100.0, 0), 1)
@@ -242,12 +333,13 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
             auraColorR: auraR,
             auraColorG: auraG,
             auraColorB: auraB,
-            trailIntensity: 0.2 + normalizedPRQ * 0.6
+            trailIntensity: 0.2 + normalizedPRQ * 0.6,
+            hairstyle: .none
         )
     }
 }
 
-nonisolated enum AvatarSkinTone: String, Codable, Sendable {
+nonisolated enum AvatarSkinTone: String, Codable, Sendable, CaseIterable {
     case cyan
     case blue
     case green
@@ -255,11 +347,15 @@ nonisolated enum AvatarSkinTone: String, Codable, Sendable {
     case orange
 }
 
-nonisolated enum AvatarOutfitStyle: String, Codable, Sendable {
+nonisolated enum AvatarOutfitStyle: String, Codable, Sendable, CaseIterable {
     case standard
     case developing
     case flight
     case elite
+    case neon
+    case shadow
+    case chrome
+    case gold
 }
 
 nonisolated struct CreatorCardState: Codable, Sendable {

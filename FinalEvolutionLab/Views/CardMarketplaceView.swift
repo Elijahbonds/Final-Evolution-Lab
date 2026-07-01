@@ -33,38 +33,39 @@ struct CardMarketplaceView: View {
             ZStack {
                 Theme.deepBlack.ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    // Shard Balance & Title Row
-                    balanceHeader
-                        .padding(.horizontal)
-                        .padding(.top, 12)
-                    
-                    // Custom Navigation Tabs
-                    tabSelector
-                        .padding(.horizontal)
-                        .padding(.top, 14)
-                    
-                    // Content
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            if isLoading {
-                                loadingSpinner
-                            } else if let error = errorMessage {
-                                errorOverlay(error)
-                            } else {
-                                switch selectedTab {
-                                case .buy:
-                                    buyTabContent
-                                case .sell:
-                                    sellTabContent
-                                case .myListings:
-                                    myListingsTabContent
-                                }
+                ScrollView {
+                    VStack(spacing: 16) {
+                        FELLumaShopViewport(
+                            height: 168,
+                            caption: FELEconomyLabels.marketplaceTitle,
+                            subtitle: "Trade creator cards with other athletes",
+                            accent: Theme.brandCyan,
+                            neuralDrive: viewModel.effectiveMetrics.neuralDrive
+                        )
+                        .padding(.top, 4)
+
+                        balanceHeader
+                        tabSelector
+                        
+                        if isLoading {
+                            loadingSpinner
+                        } else if let error = errorMessage {
+                            errorOverlay(error)
+                        } else {
+                            switch selectedTab {
+                            case .buy:
+                                buyTabContent
+                            case .sell:
+                                sellTabContent
+                            case .myListings:
+                                myListingsTabContent
                             }
                         }
-                        .padding(16)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
                 }
+                .scrollIndicators(.hidden)
                 
                 // Listing modal overlay
                 if let card = listingCard {
@@ -76,13 +77,16 @@ struct CardMarketplaceView: View {
                     purchaseConfirmationDialog(for: listing)
                 }
             }
-            .navigationTitle("CREATOR MARKETPLACE")
+            .navigationTitle(FELEconomyLabels.marketplaceTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(Theme.brandCyan)
                         .font(.system(.body, design: .monospaced))
+                }
+                ToolbarItem(placement: .principal) {
+                    FELPreviewLabel(text: FELPremiumCopy.Preview.cardMarket)
                 }
             }
             .onAppear {
@@ -92,39 +96,70 @@ struct CardMarketplaceView: View {
     }
     
     private var balanceHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("CURRENT SHARD DECK")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
-                
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.brandCyan)
-                    Text("\(viewModel.profile.evolutionShards)")
-                        .font(.system(size: 18, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                    Text("SHARDS")
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(FELEconomyLabels.shardBalance.uppercased())
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.brandCyan)
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.brandCyan)
+                        Text("\(viewModel.profile.evolutionShards)")
+                            .font(.system(size: 18, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text(FELEconomyLabels.shards.lowercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                
+                Text(FELEconomyLabels.marketplaceConnected.uppercased())
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Theme.brandCyan.opacity(0.12))
+                    .foregroundStyle(Theme.brandCyan)
+                    .clipShape(Capsule())
+            }
+            
+            if viewModel.profile.pendingRoyaltyShards > 0 {
+                Divider()
+                    .background(Theme.cardBorder)
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("PENDING ROYALTIES")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Theme.brandCyan)
+                        Text("\(viewModel.profile.pendingRoyaltyShards) Shards")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                    Spacer()
+                    
+                    Button {
+                        claimRoyaltiesFlow()
+                    } label: {
+                        Text("Claim Royalties")
+                            .font(.system(size: 11, weight: .bold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(Theme.brandCyan)
+                            .foregroundStyle(.black)
+                            .clipShape(Capsule())
+                    }
                 }
             }
-            Spacer()
-            
-            Text("P2P ESCROW SYNCED")
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Theme.brandCyan.opacity(0.12))
-                .foregroundStyle(Theme.brandCyan)
-                .cornerRadius(4)
         }
         .padding()
         .background(Theme.cardBackground)
-        .cornerRadius(12)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Theme.cardBorder, lineWidth: 1)
         )
     }
@@ -142,15 +177,15 @@ struct CardMarketplaceView: View {
     
     private func tabButton(title: String, target: MarketplaceTab) -> some View {
         Button {
-            selectedTab = target
+            withAnimation(.snappy) { selectedTab = target }
         } label: {
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
                 .background(selectedTab == target ? Theme.brandCyan : Color.clear)
                 .foregroundStyle(selectedTab == target ? .black : .white.opacity(0.7))
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
     }
     
@@ -158,8 +193,8 @@ struct CardMarketplaceView: View {
         VStack(spacing: 12) {
             ProgressView()
                 .tint(Theme.brandCyan)
-            Text("COMMUNICATING WITH SOCIAL DDC...")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+            Text(FELEconomyLabels.loadingMarketplace)
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Theme.brandCyan)
         }
         .frame(maxWidth: .infinity, minHeight: 200)
@@ -170,17 +205,17 @@ struct CardMarketplaceView: View {
             Image(systemName: "wifi.exclamationmark")
                 .font(.system(size: 32))
                 .foregroundStyle(.red)
-            Text("SQL CONNECTION SYNC FAULT")
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
+            Text(FELEconomyLabels.connectionError)
+                .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(.red)
             Text(msg)
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button("RELOAD") {
+            Button("Try Again") {
                 initializeMarketplace()
             }
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
+            .font(.system(size: 12, weight: .bold))
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(Color.white.opacity(0.1))
@@ -193,33 +228,29 @@ struct CardMarketplaceView: View {
     
     private var buyTabContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("ACTIVE MARKET OFFERINGS")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+            Text("Available Now")
+                .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(.secondary)
             
             let listings = activeListings.filter { listing in
-                // Don't show listings sold by the current player
                 guard let myId = mySqlUserId else { return true }
                 return listing.seller.id != myId
             }
             
             if listings.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "square.grid.2x2.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
-                    Text("NO ACTIVE LISTINGS FOR SALE")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Text("Check back later or list one of your owned cards.")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, minHeight: 180)
+                marketplaceEmptyState(
+                    icon: "square.grid.2x2.fill",
+                    title: "No cards for sale yet",
+                    subtitle: "Check back later or list one of your owned cards."
+                )
             } else {
-                ForEach(listings) { listing in
-                    marketListingCard(listing, isOwnListing: false)
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                    spacing: 12
+                ) {
+                    ForEach(listings) { listing in
+                        marketListingCard(listing, isOwnListing: false, compact: true)
+                    }
                 }
             }
         }
@@ -229,22 +260,18 @@ struct CardMarketplaceView: View {
     
     private var sellTabContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("YOUR OWNED CARDS AVAILABLE")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+            Text("Your Cards")
+                .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(.secondary)
             
             let ownedCards = CreatorCard.catalog.filter { viewModel.profile.ownsCard($0.id) }
             
             if ownedCards.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
-                    Text("YOU DON'T OWN ANY CREATOR CARDS YET")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 180)
+                marketplaceEmptyState(
+                    icon: "lock.fill",
+                    title: "No creator cards yet",
+                    subtitle: "Purchase cards in the shop or marketplace to list them here."
+                )
             } else {
                 ForEach(ownedCards) { card in
                     ownedCardMarketRow(card)
@@ -257,8 +284,8 @@ struct CardMarketplaceView: View {
     
     private var myListingsTabContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("YOUR ACTIVE OFFERS")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+            Text("Your Listings")
+                .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(.secondary)
             
             let myListings = activeListings.filter { listing in
@@ -267,119 +294,131 @@ struct CardMarketplaceView: View {
             }
             
             if myListings.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "list.bullet.clipboard")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
-                    Text("NO ACTIVE SALES LISTINGS")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 180)
+                marketplaceEmptyState(
+                    icon: "list.bullet.clipboard",
+                    title: "No active listings",
+                    subtitle: "List a card from the Sell tab to get started."
+                )
             } else {
                 ForEach(myListings) { listing in
-                    marketListingCard(listing, isOwnListing: true)
+                    marketListingCard(listing, isOwnListing: true, compact: false)
                 }
             }
         }
     }
     
+    private func marketplaceEmptyState(icon: String, title: String, subtitle: String) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 28))
+                .foregroundStyle(.secondary)
+            Text(title)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(.secondary)
+            Text(subtitle)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary.opacity(0.8))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, minHeight: 180)
+        .padding(.horizontal, 8)
+    }
+    
     // MARK: - Subviews
     
-    private func marketListingCard(_ listing: ListActiveCardMarketListingsQuery.Data.CardMarketListing, isOwnListing: Bool) -> some View {
+    private func marketListingCard(
+        _ listing: ListActiveCardMarketListingsQuery.Data.CardMarketListing,
+        isOwnListing: Bool,
+        compact: Bool = false
+    ) -> some View {
         let matchingCard = CreatorCard.catalog.first(where: { $0.id == listing.catalogCardId })
         let accentColor = matchingCard?.accentColor ?? Theme.brandCyan
         
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: compact ? 10 : 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Image(systemName: matchingCard?.iconName ?? "crown")
                             .foregroundStyle(accentColor)
-                        Text(matchingCard?.creatorName.uppercased() ?? "CREATOR")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        Text(matchingCard?.creatorName ?? "Creator")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(accentColor)
                     }
                     
-                    Text(matchingCard?.title ?? "Custom Creator Card")
-                        .font(.system(size: 16, weight: .black))
+                    Text(matchingCard?.title ?? "Creator Card")
+                        .font(.system(size: compact ? 14 : 16, weight: .black))
                         .foregroundStyle(.white)
+                        .lineLimit(compact ? 2 : 3)
                     
-                    Text(matchingCard?.description ?? "Offers unique biomechanics style multipliers and physics modifiers.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                    if !compact {
+                        Text(matchingCard?.description ?? "Unique style multipliers and physics modifiers.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
                 }
-                Spacer()
-                
-                // Rarity tier or accent badge
-                Text("P2P")
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(accentColor.opacity(0.12))
-                    .foregroundStyle(accentColor)
-                    .cornerRadius(4)
+                Spacer(minLength: 0)
             }
             
-            Divider()
-                .background(Theme.cardBorder)
+            if !compact {
+                Divider()
+                    .background(Theme.cardBorder)
+            }
             
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("SELLER")
-                        .font(.system(size: 8, design: .monospaced))
+                    Text("Seller")
+                        .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                     Text(listing.seller.username)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white)
+                        .lineLimit(1)
                 }
                 Spacer()
                 
-                HStack(spacing: 8) {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("PRICE")
-                            .font(.system(size: 8, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                        Text("\(listing.priceShards) SHARDS")
-                            .font(.system(size: 13, weight: .black, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan)
-                    }
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(FELEconomyLabels.shardCost(listing.priceShards))
+                        .font(.system(size: compact ? 12 : 13, weight: .black))
+                        .foregroundStyle(Theme.brandCyan)
                     
                     if isOwnListing {
                         Button {
                             deactivateListing(listing)
                         } label: {
-                            Text("CANCEL")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text("Cancel")
+                                .font(.system(size: 10, weight: .bold))
                                 .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 7)
                                 .background(Color.red.opacity(0.15))
                                 .foregroundStyle(.red)
-                                .cornerRadius(6)
+                                .clipShape(Capsule())
                         }
                     } else {
                         Button {
                             buyingCard = listing
                         } label: {
-                            Text("BUY")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text("Buy")
+                                .font(.system(size: 10, weight: .bold))
                                 .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 7)
                                 .background(Theme.brandCyan)
                                 .foregroundStyle(.black)
-                                .cornerRadius(6)
+                                .clipShape(Capsule())
                         }
                     }
                 }
             }
         }
-        .padding()
-        .background(Theme.slateCard)
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Theme.cardBorder, lineWidth: 1)
+        .padding(compact ? 12 : 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(accentColor.opacity(0.12), lineWidth: 0.5)
+                )
         )
     }
     
@@ -405,8 +444,8 @@ struct CardMarketplaceView: View {
                 listingCard = card
                 listingPriceString = ""
             } label: {
-                Text("LIST CARD")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                Text("List for Sale")
+                    .font(.system(size: 10, weight: .bold))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(Theme.brandCyan.opacity(0.1))
@@ -429,13 +468,13 @@ struct CardMarketplaceView: View {
             Color.black.opacity(0.8).ignoresSafeArea()
             
             VStack(spacing: 18) {
-                Text("CREATE MARKET OFFER")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                Text("List Card for Sale")
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.brandCyan)
                 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("CARD TO LIST")
-                        .font(.system(size: 8, design: .monospaced))
+                    Text("Card")
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                     Text(card.title)
                         .font(.system(size: 14, weight: .bold))
@@ -444,10 +483,10 @@ struct CardMarketplaceView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("LISTING PRICE (SHARDS)")
-                        .font(.system(size: 8, design: .monospaced))
+                    Text("Price (\(FELEconomyLabels.shards.lowercased()))")
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
-                    TextField("Enter Shard Amount", text: $listingPriceString)
+                    TextField("Enter amount", text: $listingPriceString)
                         .keyboardType(.numberPad)
                         .font(.system(size: 15, design: .monospaced))
                         .padding(10)
@@ -475,9 +514,9 @@ struct CardMarketplaceView: View {
                                 ProgressView()
                                     .tint(.black)
                             }
-                            Text("CONFIRM LISTING")
+                            Text("Confirm Listing")
                         }
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.black)
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
@@ -498,20 +537,20 @@ struct CardMarketplaceView: View {
         }
     }
     
-    private func purchaseConfirmationDialog(for listing: ListActiveCardMarketMarketListing) -> some View {
+    private func purchaseConfirmationDialog(for listing: ListActiveCardMarketListingsQuery.Data.CardMarketListing) -> some View {
         let matchingCard = CreatorCard.catalog.first(where: { $0.id == listing.catalogCardId })
         
         return ZStack {
             Color.black.opacity(0.8).ignoresSafeArea()
             
             VStack(spacing: 18) {
-                Text("BUY CREATOR CARD")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                Text("Buy Creator Card")
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.brandCyan)
                 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("CARD TITLE")
-                        .font(.system(size: 8, design: .monospaced))
+                    Text("Card")
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                     Text(matchingCard?.title ?? "Creator Card")
                         .font(.system(size: 14, weight: .bold))
@@ -521,8 +560,8 @@ struct CardMarketplaceView: View {
                 
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("SELLER")
-                            .font(.system(size: 8, design: .monospaced))
+                        Text("Seller")
+                            .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.secondary)
                         Text(listing.seller.username)
                             .font(.system(size: 12, weight: .bold))
@@ -530,28 +569,28 @@ struct CardMarketplaceView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("TOTAL COST")
-                            .font(.system(size: 8, design: .monospaced))
+                        Text("Total")
+                            .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.secondary)
-                        Text("\(listing.priceShards) SHARDS")
-                            .font(.system(size: 14, weight: .black, design: .monospaced))
+                        Text(FELEconomyLabels.shardCost(listing.priceShards))
+                            .font(.system(size: 14, weight: .black))
                             .foregroundStyle(Theme.brandCyan)
                     }
                 }
                 .padding(10)
                 .background(Color.white.opacity(0.04))
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 
                 HStack(spacing: 12) {
-                    Button("CANCEL") {
+                    Button("Cancel") {
                         buyingCard = nil
                     }
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)
                     .padding(.vertical, 10)
                     .frame(maxWidth: .infinity)
                     .background(Color.white.opacity(0.1))
-                    .cornerRadius(6)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     
                     Button {
                         executePurchase(listing: listing)
@@ -561,9 +600,9 @@ struct CardMarketplaceView: View {
                                 ProgressView()
                                     .tint(.black)
                             }
-                            Text("CONFIRM DECK SPEND")
+                            Text("Confirm Purchase")
                         }
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.black)
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
@@ -678,9 +717,14 @@ struct CardMarketplaceView: View {
     }
     
     private func executePurchase(listing: ListActiveCardMarketListingsQuery.Data.CardMarketListing) {
+        guard let buyerId = mySqlUserId else {
+            FelToastCenter.shared.show("User not registered in SQL database.", isError: true)
+            return
+        }
+        
         guard viewModel.profile.evolutionShards >= listing.priceShards else {
             buyingCard = nil
-            FelToastCenter.shared.show("Insufficient evolution shards.", isError: true)
+            FelToastCenter.shared.show(FELEconomyLabels.insufficientShards + ". " + FELEconomyLabels.earnShardsHint, isError: true)
             return
         }
         
@@ -690,26 +734,37 @@ struct CardMarketplaceView: View {
             do {
                 let spent = listing.priceShards
                 let cardId = listing.catalogCardId
-                
-                // 1. Spend shards in escrow
-                try await TrainingLabSocialBridge.shared.recordShardLedgerDelta(
-                    deltaShards: -spent,
-                    reason: "creator_card_purchase",
-                    referenceId: cardId
-                )
-                
-                // 2. Claim ownership in SQL
-                try await TrainingLabSocialBridge.shared.claimCreatorCardOwnership(catalogCardId: cardId)
-                
-                // 3. Mark listing as deactivated
-                _ = try await DataConnect.socialConnector.deactivateCardMarketListingMutation.execute(
-                    listingId: listing.id
-                )
+                let royaltyShards = spent / 10 // 10% royalty
+
+                // Fetch creator of the card from Data Connect to check if royalty applies
+                let creatorResult = try await DataConnect.socialConnector.getCreatorCardCreatorQuery.execute(catalogCardId: cardId)
+                if let creatorRow = creatorResult.data?.creatorCards.first,
+                   let creatorUser = creatorRow.creator {
+                    // Purchase with royalty
+                    try await TrainingLabSocialBridge.shared.executeMarketplacePurchaseWithRoyalty(
+                        listingId: listing.id,
+                        buyerId: buyerId,
+                        sellerId: listing.seller.id,
+                        catalogCardId: cardId,
+                        priceShards: spent,
+                        creatorId: creatorUser.id,
+                        royaltyShards: royaltyShards
+                    )
+                } else {
+                    // Fallback to normal purchase (no creator tracked)
+                    try await TrainingLabSocialBridge.shared.executeMarketplacePurchase(
+                        listingId: listing.id,
+                        buyerId: buyerId,
+                        sellerId: listing.seller.id,
+                        catalogCardId: cardId,
+                        priceShards: spent
+                    )
+                }
                 
                 // Refresh list
                 try await refreshListings()
                 
-                // 4. Update local user profile state
+                // Update local user profile state
                 await MainActor.run {
                     viewModel.profile.evolutionShards -= spent
                     if !viewModel.profile.ownsCard(cardId) {
@@ -731,7 +786,35 @@ struct CardMarketplaceView: View {
             }
         }
     }
+
+    private func claimRoyaltiesFlow() {
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                let claimId = UUID().uuidString
+                let pendingAmount = viewModel.profile.pendingRoyaltyShards
+                
+                // Call Claim Royalties mutation
+                try await TrainingLabSocialBridge.shared.claimRoyalties(claimId: claimId)
+                
+                // Update local user profile state
+                await MainActor.run {
+                    viewModel.profile.evolutionShards += pendingAmount
+                    viewModel.profile.pendingRoyaltyShards = 0
+                    SaveSystem.saveProfile(viewModel.profile)
+                    
+                    self.isLoading = false
+                    FelToastCenter.shared.show("Claimed \(pendingAmount) royalties successfully!")
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                    FelToastCenter.shared.show("Claim failed: \(error.localizedDescription)", isError: true)
+                }
+            }
+        }
+    }
 }
 
-// Type alias helpers to avoid long generated nested namespaces in the SwiftUI code
-typealias ListActiveCardMarketMarketListing = ListActiveCardMarketListingsQuery.Data.CardMarketListing

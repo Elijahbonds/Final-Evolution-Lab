@@ -7,6 +7,8 @@ struct SettingsSheet: View {
     @State private var showExportAlert: Bool = false
     @State private var exportJSON: String = ""
     @AppStorage(Config.useFirebaseEmulatorsDefaultsKey) private var useFirebaseEmulators: Bool = false
+    @AppStorage(Config.emulatorShellDefaultsKey) private var useEmulatorShell: Bool = true
+    @AppStorage(Config.crtScanlineDefaultsKey) private var crtScanlinesEnabled: Bool = true
 
     private var emulatorToggleBinding: Binding<Bool> {
         Binding(
@@ -41,6 +43,39 @@ struct SettingsSheet: View {
 #endif
 
                 Section {
+                    Toggle(isOn: $useEmulatorShell) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Emulator shell")
+                                    .font(.body.weight(.semibold))
+                                Text("Cartridge library, boot splash, and in-game quick-switch")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "gamecontroller.fill")
+                                .foregroundStyle(Theme.brandCyan)
+                        }
+                    }
+                    .tint(Theme.brandCyan)
+
+                    Toggle(isOn: $crtScanlinesEnabled) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("CRT scanlines")
+                                    .font(.body.weight(.semibold))
+                                Text("Subtle retro overlay on library and gameplay")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "tv")
+                                .foregroundStyle(Theme.brandBlue)
+                        }
+                    }
+                    .tint(Theme.brandBlue)
+                    .disabled(!useEmulatorShell)
+
                     Toggle(isOn: $simpleMode) {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {

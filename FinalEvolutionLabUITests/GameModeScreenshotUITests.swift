@@ -123,11 +123,17 @@ final class GameModeScreenshotUITests: XCTestCase {
                 Thread.sleep(forTimeInterval: 0.25)
             }
             modeButton.tap()
-            let exit = gameplayExitButton(in: app)
-            XCTAssert(exit.waitForExistence(timeout: 18), "GamePlayView failed to open for \(modeId)")
-            waitForSceneViewportReady(from: app)
-            attachScreenshot(from: app, name: "smoke_gameplay_\(modeId)")
-            exit.tap()
+            if modeId == "basketball_dunk_irl" {
+                XCTAssert(app.otherElements["DunkMatchmakingHeader"].waitForExistence(timeout: 12), "IRL dunk lobby failed for \(modeId)")
+                attachScreenshot(from: app, name: "smoke_dunk_irl_lobby")
+                app.buttons.matching(NSPredicate(format: "label CONTAINS 'BACK' OR label CONTAINS 'Exit' OR label CONTAINS 'DISMISS'")).firstMatch.tap()
+            } else {
+                let exit = gameplayExitButton(in: app)
+                XCTAssert(exit.waitForExistence(timeout: 18), "GamePlayView failed to open for \(modeId)")
+                waitForSceneViewportReady(from: app)
+                attachScreenshot(from: app, name: "smoke_gameplay_\(modeId)")
+                exit.tap()
+            }
             XCTAssert(arcadeLibraryReady(in: app), "Arcade library did not return after exit for \(modeId)")
             Thread.sleep(forTimeInterval: 0.35)
         }

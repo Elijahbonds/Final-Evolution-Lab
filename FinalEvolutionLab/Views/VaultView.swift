@@ -5,12 +5,19 @@ struct VaultView: View {
 
     @State private var showEditProfile = false
     @State private var showShardShop = false
+    @State private var showCharacterEditor = false
+    @State private var showCreatorHub = false
+    @State private var showTriumphLobby = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 headerSection
+                lumaHeroSection
                 profileCard
+                performanceStrip
+                creatorHubEntry
+                triumphCashTournamentEntry
                 healthKitSection
                 masterVaultSection
                 equipmentSection
@@ -28,10 +35,21 @@ struct VaultView: View {
         .sheet(isPresented: $showShardShop) {
             ShardShopView(viewModel: viewModel)
         }
+        .sheet(isPresented: $showCharacterEditor) {
+            SystemScanCharacterEditorView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showCreatorHub) {
+            NexusCreatorHubView(viewModel: viewModel)
+        }
+        .fullScreenCover(isPresented: $showTriumphLobby) {
+            TriumphTournamentLobbyView(viewModel: viewModel)
+        }
     }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
+            FELPreviewLabel(text: FELPremiumCopy.Preview.vaultProfile)
+
             Text("ATHLETE PROFILE")
                 .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(Theme.brandBlue)
@@ -44,6 +62,136 @@ struct VaultView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)
+    }
+
+    private var lumaHeroSection: some View {
+        FELLumaShopViewport(
+            height: 176,
+            caption: "Venice Showroom",
+            subtitle: "Browse rewards in 3D",
+            neuralDrive: viewModel.effectiveMetrics.neuralDrive
+        )
+    }
+
+    private var performanceStrip: some View {
+        HStack(spacing: 10) {
+            VaultMetricPill(
+                label: FELEconomyLabels.performanceScore,
+                value: "\(Int(viewModel.competitivePRQScore))",
+                icon: "chart.line.uptrend.xyaxis",
+                color: Theme.neonGreen
+            )
+            VaultMetricPill(
+                label: FELEconomyLabels.shards,
+                value: "\(viewModel.profile.evolutionShards)",
+                icon: "diamond.fill",
+                color: Theme.brandCyan
+            )
+            VaultMetricPill(
+                label: FELEconomyLabels.focusEnergyShort,
+                value: "\(Int(viewModel.effectiveMetrics.neuralDrive))",
+                icon: "brain.head.profile.fill",
+                color: Theme.brandBlue
+            )
+        }
+    }
+
+    private var creatorHubEntry: some View {
+        Button {
+            showCreatorHub = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.brandCyan.opacity(0.14))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "video.badge.plus")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("MOCAP CREATOR HUB")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: "MINTING")
+                    }
+                    Text("Mint custom cards · Track shard royalties")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan.opacity(0.45), Theme.elitePurple.opacity(0.25)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var triumphCashTournamentEntry: some View {
+        Button {
+            showTriumphLobby = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.brandCyan.opacity(0.14))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "dollarsign.circle.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("COMPETITIVE CASH ARENA")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: "CASH")
+                    }
+                    Text("Manage cash balance · View tournament ledger")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan.opacity(0.45), Theme.elitePurple.opacity(0.25)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var profileCard: some View {
@@ -79,33 +227,54 @@ struct VaultView: View {
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
 
-            HStack(spacing: 12) {
-                Button {
-                    showEditProfile = true
-                } label: {
-                    Text("EDIT PROFILE")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .padding(.horizontal, 20)
+            VStack(spacing: 10) {
+                HStack(spacing: 12) {
+                    Button {
+                        showEditProfile = true
+                    } label: {
+                        Text("EDIT PROFILE")
+                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(Capsule())
+                            .foregroundStyle(.white)
+                    }
+
+                    Button {
+                        showShardShop = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "diamond.fill")
+                                .font(.system(size: 10))
+                            Text("Shop")
+                        }
+                        .font(.system(.caption, weight: .bold))
+                        .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color.white.opacity(0.06))
+                        .background(Theme.brandCyan.opacity(0.12))
                         .clipShape(Capsule())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.brandCyan)
+                    }
                 }
 
                 Button {
-                    showShardShop = true
+                    showCharacterEditor = true
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "diamond.fill")
-                            .font(.system(size: 10))
-                        Text("SHOP")
+                    HStack(spacing: 6) {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                        Text("CHARACTER CUSTOMIZATION")
                     }
                     .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(Theme.brandCyan.opacity(0.12))
+                    .background(Theme.brandBlue.opacity(0.15))
                     .clipShape(Capsule())
-                    .foregroundStyle(Theme.brandCyan)
+                    .foregroundStyle(Theme.brandBlue)
+                    .overlay(
+                        Capsule()
+                            .stroke(Theme.brandBlue.opacity(0.4), lineWidth: 1)
+                    )
                 }
             }
         }
@@ -185,10 +354,10 @@ struct VaultView: View {
                 .tracking(2)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                StatCell(label: "TOTAL WORKOUTS", value: "\(viewModel.profile.totalWorkouts)", icon: "figure.run")
-                StatCell(label: "EVOLUTION SHARDS", value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill")
-                StatCell(label: "DAY STREAK", value: "\(viewModel.profile.streakDays)", icon: "flame.fill")
-                StatCell(label: "SESSIONS TODAY", value: "\(viewModel.todaysSessions.count)", icon: "clock.fill")
+                StatCell(label: "Total Workouts", value: "\(viewModel.profile.totalWorkouts)", icon: "figure.run")
+                StatCell(label: FELEconomyLabels.shards, value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill")
+                StatCell(label: "Day Streak", value: "\(viewModel.profile.streakDays)", icon: "flame.fill")
+                StatCell(label: "Sessions Today", value: "\(viewModel.todaysSessions.count)", icon: "clock.fill")
             }
         }
     }
@@ -326,12 +495,51 @@ struct VaultView: View {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                 AchievementBadge(name: "First Rep", icon: "1.circle.fill", unlocked: viewModel.profile.totalWorkouts >= 1)
                 AchievementBadge(name: "Week Warrior", icon: "7.circle.fill", unlocked: viewModel.profile.streakDays >= 7)
-                AchievementBadge(name: "Shard Hunter", icon: "diamond.fill", unlocked: viewModel.profile.evolutionShards >= 100)
-                AchievementBadge(name: "Neural Link", icon: "brain.head.profile.fill", unlocked: viewModel.profile.metrics.neuralDrive >= 50)
-                AchievementBadge(name: "Flight Ready", icon: "airplane.departure", unlocked: viewModel.profile.metrics.prqScore >= 50)
-                AchievementBadge(name: "Elite Status", icon: "crown.fill", unlocked: viewModel.profile.metrics.prqScore >= 90)
+                AchievementBadge(name: "Shard Collector", icon: "diamond.fill", unlocked: viewModel.profile.evolutionShards >= 100)
+                AchievementBadge(name: "Focus Master", icon: "brain.head.profile.fill", unlocked: viewModel.profile.metrics.neuralDrive >= 50)
+                AchievementBadge(name: "Performance Ready", icon: "airplane.departure", unlocked: viewModel.profile.metrics.prqScore >= 50)
+                AchievementBadge(name: "Top Performer", icon: "crown.fill", unlocked: viewModel.profile.metrics.prqScore >= 90)
             }
         }
+    }
+}
+
+struct VaultMetricPill: View {
+    let label: String
+    let value: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(color)
+
+            Text(value)
+                .font(.system(.subheadline, design: .rounded, weight: .black))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Theme.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(color.opacity(0.12), lineWidth: 0.5)
+                )
+        )
     }
 }
 

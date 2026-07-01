@@ -1799,6 +1799,843 @@ listingId: UUID
 
 
 
+public class ExecuteMarketplacePurchaseMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "ExecuteMarketplacePurchase"
+
+  public typealias Ref = MutationRef<ExecuteMarketplacePurchaseMutation.Data,ExecuteMarketplacePurchaseMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+listingId: UUID
+
+  
+        
+        public var
+buyerId: UUID
+
+  
+        
+        public var
+sellerId: UUID
+
+  
+        
+        public var
+catalogCardId: String
+
+  
+        
+        public var
+buyerDeltaShards: Int
+
+  
+        
+        public var
+sellerDeltaShards: Int
+
+
+    
+    
+    
+    public init (
+        
+listingId: UUID
+,
+        
+buyerId: UUID
+,
+        
+sellerId: UUID
+,
+        
+catalogCardId: String
+,
+        
+buyerDeltaShards: Int
+,
+        
+sellerDeltaShards: Int
+
+        
+        ) {
+        self.listingId = listingId
+        self.buyerId = buyerId
+        self.sellerId = sellerId
+        self.catalogCardId = catalogCardId
+        self.buyerDeltaShards = buyerDeltaShards
+        self.sellerDeltaShards = sellerDeltaShards
+        
+
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.listingId == rhs.listingId && 
+              lhs.buyerId == rhs.buyerId && 
+              lhs.sellerId == rhs.sellerId && 
+              lhs.catalogCardId == rhs.catalogCardId && 
+              lhs.buyerDeltaShards == rhs.buyerDeltaShards && 
+              lhs.sellerDeltaShards == rhs.sellerDeltaShards
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(listingId)
+  
+  hasher.combine(buyerId)
+  
+  hasher.combine(sellerId)
+  
+  hasher.combine(catalogCardId)
+  
+  hasher.combine(buyerDeltaShards)
+  
+  hasher.combine(sellerDeltaShards)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case listingId
+      
+      case buyerId
+      
+      case sellerId
+      
+      case catalogCardId
+      
+      case buyerDeltaShards
+      
+      case sellerDeltaShards
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(listingId, forKey: .listingId, container: &container)
+      
+      
+      
+      try codecHelper.encode(buyerId, forKey: .buyerId, container: &container)
+      
+      
+      
+      try codecHelper.encode(sellerId, forKey: .sellerId, container: &container)
+      
+      
+      
+      try codecHelper.encode(catalogCardId, forKey: .catalogCardId, container: &container)
+      
+      
+      
+      try codecHelper.encode(buyerDeltaShards, forKey: .buyerDeltaShards, container: &container)
+      
+      
+      
+      try codecHelper.encode(sellerDeltaShards, forKey: .sellerDeltaShards, container: &container)
+      
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+buyer_update: UserKey?
+
+
+
+
+public var 
+seller_update: UserKey?
+
+
+
+
+public var 
+revoke_ownership: UserOwnedCreatorCardKey?
+
+
+
+
+public var 
+grant_ownership: UserOwnedCreatorCardKey
+
+
+
+
+public var 
+deactivate_listing: CardMarketListingKey?
+
+  }
+
+  public func ref(
+        
+listingId: UUID
+,
+buyerId: UUID
+,
+sellerId: UUID
+,
+catalogCardId: String
+,
+buyerDeltaShards: Int
+,
+sellerDeltaShards: Int
+
+        ) -> MutationRef<ExecuteMarketplacePurchaseMutation.Data,ExecuteMarketplacePurchaseMutation.Variables>  {
+        var variables = ExecuteMarketplacePurchaseMutation.Variables(listingId:listingId,buyerId:buyerId,sellerId:sellerId,catalogCardId:catalogCardId,buyerDeltaShards:buyerDeltaShards,sellerDeltaShards:sellerDeltaShards)
+        
+
+        let ref = dataConnect.mutation(name: "ExecuteMarketplacePurchase", variables: variables, resultsDataType:ExecuteMarketplacePurchaseMutation.Data.self)
+        return ref as MutationRef<ExecuteMarketplacePurchaseMutation.Data,ExecuteMarketplacePurchaseMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+listingId: UUID
+,
+buyerId: UUID
+,
+sellerId: UUID
+,
+catalogCardId: String
+,
+buyerDeltaShards: Int
+,
+sellerDeltaShards: Int
+
+        ) async throws -> OperationResult<ExecuteMarketplacePurchaseMutation.Data> {
+        var variables = ExecuteMarketplacePurchaseMutation.Variables(listingId:listingId,buyerId:buyerId,sellerId:sellerId,catalogCardId:catalogCardId,buyerDeltaShards:buyerDeltaShards,sellerDeltaShards:sellerDeltaShards)
+        
+
+        let ref = dataConnect.mutation(name: "ExecuteMarketplacePurchase", variables: variables, resultsDataType:ExecuteMarketplacePurchaseMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
+public class CreateCreatorCardCatalogItemMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "CreateCreatorCardCatalogItem"
+
+  public typealias Ref = MutationRef<CreateCreatorCardCatalogItemMutation.Data,CreateCreatorCardCatalogItemMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+catalogCardId: String
+
+  
+        
+        public var
+displayName: String
+
+  
+        @OptionalVariable
+        public var
+rarityTier: String?
+
+
+    
+    
+    
+    public init (
+        
+catalogCardId: String
+,
+        
+displayName: String
+
+        
+        
+        ,
+        _ optionalVars: ((inout Variables)->())? = nil
+        ) {
+        self.catalogCardId = catalogCardId
+        self.displayName = displayName
+        
+
+        
+        if let optionalVars {
+            optionalVars(&self)
+        }
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.catalogCardId == rhs.catalogCardId && 
+              lhs.displayName == rhs.displayName && 
+              lhs.rarityTier == rhs.rarityTier
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(catalogCardId)
+  
+  hasher.combine(displayName)
+  
+  hasher.combine(rarityTier)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case catalogCardId
+      
+      case displayName
+      
+      case rarityTier
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(catalogCardId, forKey: .catalogCardId, container: &container)
+      
+      
+      
+      try codecHelper.encode(displayName, forKey: .displayName, container: &container)
+      
+      
+      if $rarityTier.isSet { 
+      try codecHelper.encode(rarityTier, forKey: .rarityTier, container: &container)
+      }
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+creatorCard_insert: CreatorCardKey
+
+  }
+
+  public func ref(
+        
+catalogCardId: String
+,
+displayName: String
+
+        
+        ,
+        _ optionalVars: ((inout CreateCreatorCardCatalogItemMutation.Variables)->())? = nil
+        ) -> MutationRef<CreateCreatorCardCatalogItemMutation.Data,CreateCreatorCardCatalogItemMutation.Variables>  {
+        var variables = CreateCreatorCardCatalogItemMutation.Variables(catalogCardId:catalogCardId,displayName:displayName)
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.mutation(name: "CreateCreatorCardCatalogItem", variables: variables, resultsDataType:CreateCreatorCardCatalogItemMutation.Data.self)
+        return ref as MutationRef<CreateCreatorCardCatalogItemMutation.Data,CreateCreatorCardCatalogItemMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+catalogCardId: String
+,
+displayName: String
+
+        
+        ,
+        _ optionalVars: (@MainActor (inout CreateCreatorCardCatalogItemMutation.Variables)->())? = nil
+        ) async throws -> OperationResult<CreateCreatorCardCatalogItemMutation.Data> {
+        var variables = CreateCreatorCardCatalogItemMutation.Variables(catalogCardId:catalogCardId,displayName:displayName)
+        
+        if let optionalVars {
+            optionalVars(&variables)
+        }
+        
+
+        let ref = dataConnect.mutation(name: "CreateCreatorCardCatalogItem", variables: variables, resultsDataType:CreateCreatorCardCatalogItemMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
+public class ExecuteMarketplacePurchaseWithRoyaltyMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "ExecuteMarketplacePurchaseWithRoyalty"
+
+  public typealias Ref = MutationRef<ExecuteMarketplacePurchaseWithRoyaltyMutation.Data,ExecuteMarketplacePurchaseWithRoyaltyMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+listingId: UUID
+
+  
+        
+        public var
+buyerId: UUID
+
+  
+        
+        public var
+sellerId: UUID
+
+  
+        
+        public var
+catalogCardId: String
+
+  
+        
+        public var
+buyerDeltaShards: Int
+
+  
+        
+        public var
+sellerDeltaShards: Int
+
+  
+        
+        public var
+creatorId: UUID
+
+  
+        
+        public var
+royaltyShards: Int
+
+
+    
+    
+    
+    public init (
+        
+listingId: UUID
+,
+        
+buyerId: UUID
+,
+        
+sellerId: UUID
+,
+        
+catalogCardId: String
+,
+        
+buyerDeltaShards: Int
+,
+        
+sellerDeltaShards: Int
+,
+        
+creatorId: UUID
+,
+        
+royaltyShards: Int
+
+        
+        ) {
+        self.listingId = listingId
+        self.buyerId = buyerId
+        self.sellerId = sellerId
+        self.catalogCardId = catalogCardId
+        self.buyerDeltaShards = buyerDeltaShards
+        self.sellerDeltaShards = sellerDeltaShards
+        self.creatorId = creatorId
+        self.royaltyShards = royaltyShards
+        
+
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.listingId == rhs.listingId && 
+              lhs.buyerId == rhs.buyerId && 
+              lhs.sellerId == rhs.sellerId && 
+              lhs.catalogCardId == rhs.catalogCardId && 
+              lhs.buyerDeltaShards == rhs.buyerDeltaShards && 
+              lhs.sellerDeltaShards == rhs.sellerDeltaShards && 
+              lhs.creatorId == rhs.creatorId && 
+              lhs.royaltyShards == rhs.royaltyShards
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(listingId)
+  
+  hasher.combine(buyerId)
+  
+  hasher.combine(sellerId)
+  
+  hasher.combine(catalogCardId)
+  
+  hasher.combine(buyerDeltaShards)
+  
+  hasher.combine(sellerDeltaShards)
+  
+  hasher.combine(creatorId)
+  
+  hasher.combine(royaltyShards)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case listingId
+      
+      case buyerId
+      
+      case sellerId
+      
+      case catalogCardId
+      
+      case buyerDeltaShards
+      
+      case sellerDeltaShards
+      
+      case creatorId
+      
+      case royaltyShards
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(listingId, forKey: .listingId, container: &container)
+      
+      
+      
+      try codecHelper.encode(buyerId, forKey: .buyerId, container: &container)
+      
+      
+      
+      try codecHelper.encode(sellerId, forKey: .sellerId, container: &container)
+      
+      
+      
+      try codecHelper.encode(catalogCardId, forKey: .catalogCardId, container: &container)
+      
+      
+      
+      try codecHelper.encode(buyerDeltaShards, forKey: .buyerDeltaShards, container: &container)
+      
+      
+      
+      try codecHelper.encode(sellerDeltaShards, forKey: .sellerDeltaShards, container: &container)
+      
+      
+      
+      try codecHelper.encode(creatorId, forKey: .creatorId, container: &container)
+      
+      
+      
+      try codecHelper.encode(royaltyShards, forKey: .royaltyShards, container: &container)
+      
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+buyer_update: UserKey?
+
+
+
+
+public var 
+seller_update: UserKey?
+
+
+
+
+public var 
+creator_ledger_insert: ShardLedgerKey
+
+
+
+
+public var 
+creator_update: UserKey?
+
+
+
+
+public var 
+revoke_ownership: UserOwnedCreatorCardKey?
+
+
+
+
+public var 
+grant_ownership: UserOwnedCreatorCardKey
+
+
+
+
+public var 
+deactivate_listing: CardMarketListingKey?
+
+  }
+
+  public func ref(
+        
+listingId: UUID
+,
+buyerId: UUID
+,
+sellerId: UUID
+,
+catalogCardId: String
+,
+buyerDeltaShards: Int
+,
+sellerDeltaShards: Int
+,
+creatorId: UUID
+,
+royaltyShards: Int
+
+        ) -> MutationRef<ExecuteMarketplacePurchaseWithRoyaltyMutation.Data,ExecuteMarketplacePurchaseWithRoyaltyMutation.Variables>  {
+        var variables = ExecuteMarketplacePurchaseWithRoyaltyMutation.Variables(listingId:listingId,buyerId:buyerId,sellerId:sellerId,catalogCardId:catalogCardId,buyerDeltaShards:buyerDeltaShards,sellerDeltaShards:sellerDeltaShards,creatorId:creatorId,royaltyShards:royaltyShards)
+        
+
+        let ref = dataConnect.mutation(name: "ExecuteMarketplacePurchaseWithRoyalty", variables: variables, resultsDataType:ExecuteMarketplacePurchaseWithRoyaltyMutation.Data.self)
+        return ref as MutationRef<ExecuteMarketplacePurchaseWithRoyaltyMutation.Data,ExecuteMarketplacePurchaseWithRoyaltyMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+listingId: UUID
+,
+buyerId: UUID
+,
+sellerId: UUID
+,
+catalogCardId: String
+,
+buyerDeltaShards: Int
+,
+sellerDeltaShards: Int
+,
+creatorId: UUID
+,
+royaltyShards: Int
+
+        ) async throws -> OperationResult<ExecuteMarketplacePurchaseWithRoyaltyMutation.Data> {
+        var variables = ExecuteMarketplacePurchaseWithRoyaltyMutation.Variables(listingId:listingId,buyerId:buyerId,sellerId:sellerId,catalogCardId:catalogCardId,buyerDeltaShards:buyerDeltaShards,sellerDeltaShards:sellerDeltaShards,creatorId:creatorId,royaltyShards:royaltyShards)
+        
+
+        let ref = dataConnect.mutation(name: "ExecuteMarketplacePurchaseWithRoyalty", variables: variables, resultsDataType:ExecuteMarketplacePurchaseWithRoyaltyMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
+public class ClaimRoyaltiesMutation{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "ClaimRoyalties"
+
+  public typealias Ref = MutationRef<ClaimRoyaltiesMutation.Data,ClaimRoyaltiesMutation.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+claimId: String
+
+  
+        
+        public var
+amount: Int
+
+
+    
+    
+    
+    public init (
+        
+claimId: String
+,
+        
+amount: Int
+
+        
+        ) {
+        self.claimId = claimId
+        self.amount = amount
+        
+
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.claimId == rhs.claimId && 
+              lhs.amount == rhs.amount
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(claimId)
+  
+  hasher.combine(amount)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case claimId
+      
+      case amount
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(claimId, forKey: .claimId, container: &container)
+      
+      
+      
+      try codecHelper.encode(amount, forKey: .amount, container: &container)
+      
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+public var 
+user_update: UserKey?
+
+
+
+
+public var 
+shardLedger_insert: ShardLedgerKey
+
+  }
+
+  public func ref(
+        
+claimId: String
+,
+amount: Int
+
+        ) -> MutationRef<ClaimRoyaltiesMutation.Data,ClaimRoyaltiesMutation.Variables>  {
+        var variables = ClaimRoyaltiesMutation.Variables(claimId:claimId,amount:amount)
+        
+
+        let ref = dataConnect.mutation(name: "ClaimRoyalties", variables: variables, resultsDataType:ClaimRoyaltiesMutation.Data.self)
+        return ref as MutationRef<ClaimRoyaltiesMutation.Data,ClaimRoyaltiesMutation.Variables>
+   }
+
+  @MainActor
+   public func execute( 
+        
+claimId: String
+,
+amount: Int
+
+        ) async throws -> OperationResult<ClaimRoyaltiesMutation.Data> {
+        var variables = ClaimRoyaltiesMutation.Variables(claimId:claimId,amount:amount)
+        
+
+        let ref = dataConnect.mutation(name: "ClaimRoyalties", variables: variables, resultsDataType:ClaimRoyaltiesMutation.Data.self)
+        
+        return try await ref.execute()
+        
+   }
+}
+
+
+
+
+
+
 public class ListRecentPostsQuery{
 
   let dataConnect: DataConnect
@@ -2752,6 +3589,11 @@ evolutionShards: Int
 
 
 public var 
+pendingRoyaltyShards: Int
+
+
+
+public var 
 firebaseUid: String?
 
 
@@ -2792,6 +3634,8 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     case evolutionShards
     
+    case pendingRoyaltyShards
+    
     case firebaseUid
     
   }
@@ -2823,6 +3667,10 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     
     self.evolutionShards = try codecHelper.decode(Int.self, forKey: .evolutionShards, container: &container)
+    
+    
+    
+    self.pendingRoyaltyShards = try codecHelper.decode(Int.self, forKey: .pendingRoyaltyShards, container: &container)
     
     
     
@@ -2929,6 +3777,11 @@ evolutionShards: Int
 
 
 public var 
+pendingRoyaltyShards: Int
+
+
+
+public var 
 firebaseUid: String?
 
 
@@ -2971,6 +3824,8 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     case evolutionShards
     
+    case pendingRoyaltyShards
+    
     case firebaseUid
     
   }
@@ -3006,6 +3861,10 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     
     self.evolutionShards = try codecHelper.decode(Int.self, forKey: .evolutionShards, container: &container)
+    
+    
+    
+    self.pendingRoyaltyShards = try codecHelper.decode(Int.self, forKey: .pendingRoyaltyShards, container: &container)
     
     
     
@@ -3152,6 +4011,11 @@ public var
 evolutionShards: Int
 
 
+
+public var 
+pendingRoyaltyShards: Int
+
+
   
   public var userKey: UserKey {
     return UserKey(
@@ -3189,6 +4053,8 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     case evolutionShards
     
+    case pendingRoyaltyShards
+    
   }
 
   public init(from decoder: any Decoder) throws {
@@ -3218,6 +4084,10 @@ public static func == (lhs: User, rhs: User) -> Bool {
     
     
     self.evolutionShards = try codecHelper.decode(Int.self, forKey: .evolutionShards, container: &container)
+    
+    
+    
+    self.pendingRoyaltyShards = try codecHelper.decode(Int.self, forKey: .pendingRoyaltyShards, container: &container)
     
     
   }
@@ -3959,6 +4829,72 @@ public var
 createdAt: Timestamp
 
 
+
+
+
+public struct User: Decodable, Sendable ,Hashable, Equatable, Identifiable {
+  
+
+
+public var 
+id: UUID
+
+
+
+public var 
+username: String
+
+
+  
+  public var userKey: UserKey {
+    return UserKey(
+      
+      id: id
+    )
+  }
+
+  
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(id)
+  
+}
+public static func == (lhs: User, rhs: User) -> Bool {
+    
+    return lhs.id == rhs.id 
+        
+  }
+
+  
+
+  
+  enum CodingKeys: String, CodingKey {
+    
+    case id
+    
+    case username
+    
+  }
+
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+    
+    
+    self.username = try codecHelper.decode(String.self, forKey: .username, container: &container)
+    
+    
+  }
+}
+public var 
+creator: User?
+
+
   
   public var creatorCardKey: CreatorCardKey {
     return CreatorCardKey(
@@ -3994,6 +4930,8 @@ public static func == (lhs: CreatorCard, rhs: CreatorCard) -> Bool {
     
     case createdAt
     
+    case creator
+    
   }
 
   public init(from decoder: any Decoder) throws {
@@ -4019,6 +4957,10 @@ public static func == (lhs: CreatorCard, rhs: CreatorCard) -> Bool {
     
     
     self.createdAt = try codecHelper.decode(Timestamp.self, forKey: .createdAt, container: &container)
+    
+    
+    
+    self.creator = try codecHelper.decode(User?.self, forKey: .creator, container: &container)
     
     
   }
@@ -4359,6 +5301,235 @@ cardMarketListings: [CardMarketListing]
         let ref = dataConnect.query(name: "ListActiveCardMarketListings", variables: variables, resultsDataType:ListActiveCardMarketListingsQuery.Data.self, publisher: .observableMacro)
         
         let refCast = ref as! QueryRefObservation<ListActiveCardMarketListingsQuery.Data,ListActiveCardMarketListingsQuery.Variables>
+        return try await refCast.execute(fetchPolicy: fetchPolicy)
+        
+   }
+}
+
+
+
+
+
+
+public class GetCreatorCardCreatorQuery{
+
+  let dataConnect: DataConnect
+
+  init(dataConnect: DataConnect) {
+    self.dataConnect = dataConnect
+  }
+
+  public static let OperationName = "GetCreatorCardCreator"
+
+  public typealias Ref = QueryRefObservation<GetCreatorCardCreatorQuery.Data,GetCreatorCardCreatorQuery.Variables>
+
+  public struct Variables: OperationVariable {
+  
+        
+        public var
+catalogCardId: String
+
+
+    
+    
+    
+    public init (
+        
+catalogCardId: String
+
+        
+        ) {
+        self.catalogCardId = catalogCardId
+        
+
+        
+    }
+
+    public static func == (lhs: Variables, rhs: Variables) -> Bool {
+      
+        return lhs.catalogCardId == rhs.catalogCardId
+              
+    }
+
+    
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(catalogCardId)
+  
+}
+
+    enum CodingKeys: String, CodingKey {
+      
+      case catalogCardId
+      
+    }
+
+    public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(catalogCardId, forKey: .catalogCardId, container: &container)
+      
+      
+    }
+
+  }
+
+  public struct Data: Decodable, Sendable {
+
+
+
+
+public struct CreatorCard: Decodable, Sendable ,Hashable, Equatable, Identifiable {
+  
+
+
+public var 
+id: UUID
+
+
+
+
+
+public struct User: Decodable, Sendable ,Hashable, Equatable, Identifiable {
+  
+
+
+public var 
+id: UUID
+
+
+
+public var 
+username: String
+
+
+  
+  public var userKey: UserKey {
+    return UserKey(
+      
+      id: id
+    )
+  }
+
+  
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(id)
+  
+}
+public static func == (lhs: User, rhs: User) -> Bool {
+    
+    return lhs.id == rhs.id 
+        
+  }
+
+  
+
+  
+  enum CodingKeys: String, CodingKey {
+    
+    case id
+    
+    case username
+    
+  }
+
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+    
+    
+    self.username = try codecHelper.decode(String.self, forKey: .username, container: &container)
+    
+    
+  }
+}
+public var 
+creator: User?
+
+
+  
+  public var creatorCardKey: CreatorCardKey {
+    return CreatorCardKey(
+      
+      id: id
+    )
+  }
+
+  
+public func hash(into hasher: inout Hasher) {
+  
+  hasher.combine(id)
+  
+}
+public static func == (lhs: CreatorCard, rhs: CreatorCard) -> Bool {
+    
+    return lhs.id == rhs.id 
+        
+  }
+
+  
+
+  
+  enum CodingKeys: String, CodingKey {
+    
+    case id
+    
+    case creator
+    
+  }
+
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+    
+    
+    self.creator = try codecHelper.decode(User?.self, forKey: .creator, container: &container)
+    
+    
+  }
+}
+public var 
+creatorCards: [CreatorCard]
+
+  }
+
+  public func ref(
+        
+catalogCardId: String
+
+        ) -> QueryRefObservation<GetCreatorCardCreatorQuery.Data,GetCreatorCardCreatorQuery.Variables>  {
+        var variables = GetCreatorCardCreatorQuery.Variables(catalogCardId:catalogCardId)
+        
+
+        let ref = dataConnect.query(name: "GetCreatorCardCreator", variables: variables, resultsDataType:GetCreatorCardCreatorQuery.Data.self, publisher: .observableMacro)
+        return ref as! QueryRefObservation<GetCreatorCardCreatorQuery.Data,GetCreatorCardCreatorQuery.Variables>
+   }
+
+  @MainActor
+   public func execute( fetchPolicy: QueryFetchPolicy = .preferCache,  
+        
+catalogCardId: String
+
+        ) async throws -> OperationResult<GetCreatorCardCreatorQuery.Data> {
+        var variables = GetCreatorCardCreatorQuery.Variables(catalogCardId:catalogCardId)
+        
+
+        let ref = dataConnect.query(name: "GetCreatorCardCreator", variables: variables, resultsDataType:GetCreatorCardCreatorQuery.Data.self, publisher: .observableMacro)
+        
+        let refCast = ref as! QueryRefObservation<GetCreatorCardCreatorQuery.Data,GetCreatorCardCreatorQuery.Variables>
         return try await refCast.execute(fetchPolicy: fetchPolicy)
         
    }

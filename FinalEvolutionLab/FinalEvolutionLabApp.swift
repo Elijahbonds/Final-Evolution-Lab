@@ -13,13 +13,17 @@ struct FinalEvolutionLabApp: App {
     }
 
     init() {
+        FELPerformanceMonitor.shared.start()
+        NexusAIStudioBootstrap.configureIfNeeded()
         FirebaseBootstrap.configureIfNeeded()
         Task { @MainActor in
             TrainingLabSocialBridge.shared.configureConnectorIfNeeded()
-            UnrealManager.shared.startFirebaseIdentityObservation()
         }
         _ = FELScoreManager.shared
         EmergentRealtimeClient.shared.startIfConfigured()
+        Task {
+            _ = await NexusBackendClient.fetchMobileConfig()
+        }
     }
 
     var body: some Scene {

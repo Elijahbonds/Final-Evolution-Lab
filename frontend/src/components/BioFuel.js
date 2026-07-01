@@ -10,11 +10,19 @@ import {
   Camera, Soup, Truck, Sparkles, Loader2, X, ChefHat, Beef, Droplet,
   Moon, Wind, Scale, Apple, ChevronRight, Upload, ShoppingCart, Plus
 } from "lucide-react";
+import { API_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const CUE_ICON = { Beef, Droplet, Moon, Wind, Scale, Sparkles, Soup };
+const FALLBACK_TODAY = {
+  intent_label: "Performance baseline",
+  targets_confidence: "default_assumption",
+  assumption_note: "Local shell fallback until BioFuel API is online.",
+  consumed: { calories: 0, protein_g: 0, carbs_g: 0, fats_g: 0 },
+  target: { calories: 2400, protein_g: 160, carbs_g: 280, fats_g: 75 },
+  pct: { calories: 0, protein_g: 0, carbs_g: 0, fats_g: 0 },
+};
 
 // ============================================================
 // BIOFUEL STRIPE (compact horizontal bar above the 4 quadrants)
@@ -24,8 +32,8 @@ export const BioFuelStripe = ({ onOpenScanner, onOpenCookbook, onOpenDoorDash })
   const [cues, setCues] = useState([]);
 
   const refresh = () => {
-    axios.get(`${API}/biofuel/today`).then((r) => setToday(r.data)).catch(console.error);
-    axios.get(`${API}/biofuel/cues`).then((r) => setCues(r.data.cues || [])).catch(console.error);
+    axios.get(`${API}/biofuel/today`).then((r) => setToday(r.data)).catch(() => setToday(FALLBACK_TODAY));
+    axios.get(`${API}/biofuel/cues`).then((r) => setCues(r.data.cues || [])).catch(() => setCues([]));
   };
   useEffect(() => { refresh(); }, []);
 

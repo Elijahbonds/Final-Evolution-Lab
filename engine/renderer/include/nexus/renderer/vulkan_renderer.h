@@ -1,6 +1,10 @@
 #pragma once
 
 #include "nexus/core/result.h"
+#include "nexus/renderer/bloom_runtime.h"
+#include "nexus/renderer/lighting.h"
+#include "nexus/renderer/post_process.h"
+#include "nexus/renderer/shadow_runtime.h"
 #include "nexus/renderer/scene.h"
 
 #include <vulkan/vulkan.h>
@@ -17,15 +21,19 @@ struct RendererConfig {
   std::uint32_t width{1280};
   std::uint32_t height{720};
   bool enableValidation{true};
+  const char* manifestPath{"assets/nexus/manifests/nexus_asset_manifest.json"};
+  const char* modeId{"basketball_dunk"};
 };
 
 class VulkanRenderer {
 public:
   auto init(const RendererConfig& config) -> Result<void>;
+  auto loadVenue(std::string_view modeId) -> Result<void>;
   void pollInput();
   void advanceScene(double deltaSeconds);
   void renderFrame();
   [[nodiscard]] auto shouldClose() const -> bool;
+  [[nodiscard]] auto lastFrameDrawStats() const -> RenderScene::DrawStats;
   void shutdown();
 
 private:
@@ -92,6 +100,20 @@ private:
   bool m_swapchainReady{false};
   bool m_framebufferResized{false};
   bool m_shouldClose{false};
+  std::string m_manifestPath;
+  std::string m_modeId;
+  std::string m_activeMeshProfile{"desktop"};
+  RenderScene::DrawStats m_lastDrawStats{};
+  LightingSetup m_lighting{};
+  PostProcessChain m_postProcess{};
+  ShadowPassRuntimeFlags m_shadowRuntime{};
+  BloomPassRuntimeFlags m_bloomRuntime{};
+  bool m_shadowPassExtensionLogged{false};
+  bool m_postProcessExtensionLogged{false};
+  void logDrawStats(const RenderScene::DrawStats& stats) const;
+  void maybeLogDistanceLodExtension();
+  void recordShadowPassStub(VkCommandBuffer commandBuffer);
+  void recordPostProcessStub(VkCommandBuffer commandBuffer);
 };
 
 } // namespace nexus::renderer

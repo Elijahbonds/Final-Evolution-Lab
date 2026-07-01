@@ -111,6 +111,7 @@ struct CoachView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
+            FELPreviewLabel(text: FELPremiumCopy.Preview.coachLibrary)
             Text("EXERCISE LIBRARY")
                 .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(Theme.brandBlue)
