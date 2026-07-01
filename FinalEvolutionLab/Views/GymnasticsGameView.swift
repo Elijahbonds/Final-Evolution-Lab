@@ -144,260 +144,467 @@ private struct ArenaDrawer {
     var cy: CGFloat   { matY - 2 }
 
     mutating func render(ctx: inout GraphicsContext) {
-        drawArenaBG(&ctx)       // 1
-        drawCeilingTruss(&ctx)  // 2
-        drawSpotlightCones(&ctx)// 3-8 (6 lights)
-        drawBanners(&ctx)       // 9-12 (4 banners)
-        drawJumboTrons(&ctx)    // 13-16 (left+right panels)
-        drawCrowdRows(&ctx)     // 17-22 (60 crowd dots across 3 rows)
-        drawMatSurface(&ctx)    // 23-27
-        drawSpringGrid(&ctx)    // 28-32
-        drawGymnast(&ctx)       // 33-60+
-        drawScorePopEffects(&ctx)// 61-70
-        if showFlash { drawScreenFlash(&ctx) } // 71
+        drawMuscleBSky(&ctx)        // 1 — California sky + sun
+        drawOceanStrip(&ctx)        // 2 — ocean horizon + waves
+        drawBoardwalk(&ctx)         // 3 — concrete boardwalk
+        drawSandBehindFence(&ctx)   // 4 — beach sand strip
+        drawChainLinkFence(&ctx)    // 5 — chain-link backdrop
+        drawPalmTrees(&ctx)         // 6 — 3 palm trees with swaying fronds
+        drawPerformanceStage(&ctx)  // 7 — outdoor concrete platform + scaffolding
+        drawGymnasticsRings(&ctx)   // 8 — iconic Muscle Beach rings apparatus
+        drawOutdoorCrowd(&ctx)      // 9 — Venice Beach spectators
+        drawVignette(&ctx)          // 10 — edge depth vignette
+        drawMatSurface(&ctx)        // 11-15
+        drawSpringGrid(&ctx)        // 16-20
+        drawGymnast(&ctx)           // 21-50+
+        drawScorePopEffects(&ctx)   // 51-60
+        if showFlash { drawScreenFlash(&ctx) } // 61
     }
 
-    // MARK: 1 — Arena background gradient
-    private func drawArenaBG(_ ctx: inout GraphicsContext) {
-        // Deep arena background
+    // MARK: 1 — Muscle Beach California sky gradient + sun glow
+    private func drawMuscleBSky(_ ctx: inout GraphicsContext) {
+        // Sky: warm California blue from top to horizon
+        let horizonY = H * 0.38
         ctx.fill(
-            Path(CGRect(x: 0, y: 0, width: W, height: H)),
+            Path(CGRect(x: 0, y: 0, width: W, height: horizonY)),
             with: .linearGradient(
                 Gradient(stops: [
-                    .init(color: Color(red: 0.03, green: 0.01, blue: 0.16), location: 0),
-                    .init(color: Color(red: 0.06, green: 0.03, blue: 0.22), location: 0.5),
-                    .init(color: Color(red: 0.09, green: 0.05, blue: 0.28), location: 1.0),
+                    .init(color: Color(red: 0.25, green: 0.52, blue: 0.85), location: 0),
+                    .init(color: Color(red: 0.65, green: 0.82, blue: 0.95), location: 1.0),
                 ]),
                 startPoint: .zero,
-                endPoint: CGPoint(x: 0, y: H)
+                endPoint: CGPoint(x: 0, y: horizonY)
             )
         )
-        // Subtle vignette darkening at edges
-        var vign = ctx
-        vign.addFilter(.blur(radius: 40))
-        vign.fill(
-            Path(CGRect(x: 0, y: 0, width: W * 0.3, height: H)),
-            with: .color(Color.black.opacity(0.35))
+        // Below horizon — concrete/ground zone fills rest of bg
+        ctx.fill(
+            Path(CGRect(x: 0, y: horizonY, width: W, height: H - horizonY)),
+            with: .color(Color(red: 0.78, green: 0.76, blue: 0.72))
         )
-        vign.fill(
-            Path(CGRect(x: W * 0.7, y: 0, width: W * 0.3, height: H)),
-            with: .color(Color.black.opacity(0.35))
+        // Sun glow in upper-right corner
+        var sunGlow = ctx
+        sunGlow.addFilter(.blur(radius: 38))
+        sunGlow.fill(
+            Path(ellipseIn: CGRect(x: W * 0.72, y: -18, width: 90, height: 90)),
+            with: .color(Color(red: 1.0, green: 0.78, blue: 0.30).opacity(0.72))
+        )
+        // Crisp sun disc
+        var sunDisc = ctx
+        sunDisc.addFilter(.blur(radius: 5))
+        sunDisc.fill(
+            Path(ellipseIn: CGRect(x: W * 0.82, y: 6, width: 36, height: 36)),
+            with: .color(Color(red: 1.0, green: 0.95, blue: 0.70).opacity(0.90))
         )
     }
 
-    // MARK: 2 — Ceiling truss bar
-    private func drawCeilingTruss(_ ctx: inout GraphicsContext) {
-        // Main horizontal truss bar
+    // MARK: 2 — Ocean strip at horizon with wave shimmer
+    private func drawOceanStrip(_ ctx: inout GraphicsContext) {
+        let horizonY = H * 0.38
+        let oceanH: CGFloat = H * 0.055
+        // Flat ocean fill
         ctx.fill(
-            Path(CGRect(x: 0, y: 0, width: W, height: 8)),
+            Path(CGRect(x: 0, y: horizonY, width: W, height: oceanH)),
             with: .linearGradient(
                 Gradient(colors: [
-                    Color(red: 0.25, green: 0.25, blue: 0.32),
-                    Color(red: 0.18, green: 0.18, blue: 0.24),
+                    Color(red: 0.35, green: 0.62, blue: 0.88),
+                    Color(red: 0.42, green: 0.68, blue: 0.90),
                 ]),
-                startPoint: CGPoint(x: 0, y: 0),
-                endPoint: CGPoint(x: 0, y: 8)
+                startPoint: CGPoint(x: 0, y: horizonY),
+                endPoint: CGPoint(x: 0, y: horizonY + oceanH)
             )
         )
-        // Truss vertical supports
-        let trussCount = 7
-        for i in 0..<trussCount {
-            let tx = W * CGFloat(i) / CGFloat(trussCount - 1)
-            var support = Path()
-            support.move(to: CGPoint(x: tx, y: 0))
-            support.addLine(to: CGPoint(x: tx, y: 14))
-            ctx.stroke(support, with: .color(Color(red: 0.30, green: 0.30, blue: 0.40).opacity(0.7)), lineWidth: 1.5)
-        }
-        // Cross-brace diagonals on truss
-        for i in 0..<(trussCount - 1) {
-            let x0 = W * CGFloat(i) / CGFloat(trussCount - 1)
-            let x1 = W * CGFloat(i + 1) / CGFloat(trussCount - 1)
-            var brace = Path()
-            brace.move(to: CGPoint(x: x0, y: 0))
-            brace.addLine(to: CGPoint(x: x1, y: 14))
-            ctx.stroke(brace, with: .color(Color(red: 0.22, green: 0.22, blue: 0.30).opacity(0.5)), lineWidth: 0.8)
-        }
-    }
-
-    // MARK: 3-8 — 6 Spotlights with cone beams
-    private func drawSpotlightCones(_ ctx: inout GraphicsContext) {
-        let targetX = cx
-        let targetY = matY + matH * 0.5
-        let lightXPositions: [CGFloat] = [W*0.08, W*0.22, W*0.38, W*0.62, W*0.78, W*0.92]
-        let lightColors: [Color] = [
-            Color(red: 1.0, green: 0.97, blue: 0.82),
-            Color(red: 0.82, green: 0.90, blue: 1.0),
-            Color(red: 1.0, green: 0.97, blue: 0.82),
-            Color(red: 0.82, green: 0.90, blue: 1.0),
-            Color(red: 1.0, green: 0.97, blue: 0.82),
-            Color(red: 0.82, green: 0.90, blue: 1.0),
-        ]
-        for (i, lx) in lightXPositions.enumerated() {
-            let lc = lightColors[i]
-            let flicker = 1.0 + 0.04 * CGFloat(sin(t * 3.7 + Double(i) * 1.3))
-
-            // Spotlight cone (wide trapezoid toward mat)
-            var cone = Path()
-            let coneHalfTopW: CGFloat = 4
-            let coneHalfBotW: CGFloat = 32
-            cone.move(to: CGPoint(x: lx - coneHalfTopW, y: 0))
-            cone.addLine(to: CGPoint(x: lx + coneHalfTopW, y: 0))
-            cone.addLine(to: CGPoint(x: targetX + coneHalfBotW, y: targetY))
-            cone.addLine(to: CGPoint(x: targetX - coneHalfBotW, y: targetY))
-            cone.closeSubpath()
-            var gc = ctx
-            gc.addFilter(.blur(radius: 14))
-            gc.fill(cone, with: .color(lc.opacity(0.055 * flicker)))
-
-            // Lamp housing (small rectangle at top)
-            ctx.fill(
-                Path(CGRect(x: lx - 6, y: 0, width: 12, height: 5)),
-                with: .color(Color(red: 0.20, green: 0.20, blue: 0.26))
-            )
-
-            // Bloom at source
-            var bloom = ctx
-            bloom.addFilter(.blur(radius: 6))
-            bloom.fill(
-                Path(ellipseIn: CGRect(x: lx - 5, y: -3, width: 10, height: 10)),
-                with: .color(lc.opacity(0.55 * flicker))
-            )
-
-            // Small dot at center of lamp
-            ctx.fill(
-                Path(ellipseIn: CGRect(x: lx - 2, y: 0, width: 4, height: 4)),
-                with: .color(Color.white.opacity(0.9))
-            )
-        }
-    }
-
-    // MARK: 9-12 — Hanging banners with sway
-    private func drawBanners(_ ctx: inout GraphicsContext) {
-        let bannerData: [(CGFloat, Color, String)] = [
-            (W * 0.08, Color(red: 0.65, green: 0.12, blue: 0.12), "FIG"),
-            (W * 0.22, Color(red: 0.12, green: 0.30, blue: 0.65), "2025"),
-            (W * 0.78, Color(red: 0.12, green: 0.30, blue: 0.65), "GALA"),
-            (W * 0.92, Color(red: 0.65, green: 0.12, blue: 0.12), "GYM"),
-        ]
-        for (bx, bc, label) in bannerData {
-            let sway = CGFloat(sin(t * 0.7 + Double(bx / W) * 6.28)) * 3.0
-            let bw: CGFloat = 18
-            let bh: CGFloat = 38
-            let btx = bx + sway
-
-            // Banner cord
-            var cord = Path()
-            cord.move(to: CGPoint(x: bx, y: 0))
-            cord.addLine(to: CGPoint(x: btx, y: 10))
-            ctx.stroke(cord, with: .color(Color.white.opacity(0.3)), lineWidth: 0.8)
-
-            // Banner body
-            var banner = Path()
-            banner.move(to: CGPoint(x: btx - bw/2, y: 10))
-            banner.addLine(to: CGPoint(x: btx + bw/2, y: 10))
-            banner.addLine(to: CGPoint(x: btx + bw/2 + 2, y: 10 + bh))
-            banner.addLine(to: CGPoint(x: btx,           y: 10 + bh + 6)) // V-cut bottom
-            banner.addLine(to: CGPoint(x: btx - bw/2 - 2, y: 10 + bh))
-            banner.closeSubpath()
-            ctx.fill(banner, with: .color(bc.opacity(0.85)))
-            ctx.stroke(banner, with: .color(Color.white.opacity(0.25)), lineWidth: 0.7)
-
-            // Label on banner (drawn as small dots approximation — no text in Canvas)
-            // Decorative horizontal stripes instead
-            for stripe in 0..<3 {
-                let sy = 14 + CGFloat(stripe) * 9
-                var sl = Path()
-                sl.move(to: CGPoint(x: btx - bw/2 + 2, y: sy))
-                sl.addLine(to: CGPoint(x: btx + bw/2 - 2, y: sy))
-                ctx.stroke(sl, with: .color(Color.white.opacity(0.30)), lineWidth: 0.8)
+        // Wave shimmer lines
+        let waveCount = 5
+        for i in 0..<waveCount {
+            let phase = Double(i) * 0.9
+            let wy = horizonY + oceanH * CGFloat(i + 1) / CGFloat(waveCount + 1)
+            var wave = Path()
+            let steps = 24
+            for s in 0...steps {
+                let wx = W * CGFloat(s) / CGFloat(steps)
+                let amp: CGFloat = 2.0
+                let wOffset = CGFloat(sin(t * 0.7 + phase + Double(s) * 0.55)) * amp
+                if s == 0 {
+                    wave.move(to: CGPoint(x: wx, y: wy + wOffset))
+                } else {
+                    wave.addLine(to: CGPoint(x: wx, y: wy + wOffset))
+                }
             }
+            ctx.stroke(wave, with: .color(Color.white.opacity(0.22)), lineWidth: 0.8)
         }
     }
 
-    // MARK: 13-16 — JumboTron score panels (left + right)
-    private func drawJumboTrons(_ ctx: inout GraphicsContext) {
-        let panelH: CGFloat = 44
-        let panelW: CGFloat = W * 0.16
-        let panelY: CGFloat = H * 0.10
-        // LEFT panel
-        let leftX: CGFloat = W * 0.01
-        drawSinglePanel(&ctx, x: leftX, y: panelY, w: panelW, h: panelH, label: "D", value: 7.2)
-        // RIGHT panel
-        let rightX: CGFloat = W - panelW - W * 0.01
-        drawSinglePanel(&ctx, x: rightX, y: panelY, w: panelW, h: panelH, label: "E", value: 8.5)
+    // MARK: 3 — Boardwalk concrete strip below ocean
+    private func drawBoardwalk(_ ctx: inout GraphicsContext) {
+        let boardwalkY = H * 0.435
+        let boardwalkH: CGFloat = H * 0.06
+        ctx.fill(
+            Path(CGRect(x: 0, y: boardwalkY, width: W, height: boardwalkH)),
+            with: .color(Color(red: 0.78, green: 0.76, blue: 0.72))
+        )
+        // Concrete seam lines
+        for i in 0..<5 {
+            let sy = boardwalkY + boardwalkH * CGFloat(i) / 4.0
+            var seam = Path()
+            seam.move(to: CGPoint(x: 0, y: sy))
+            seam.addLine(to: CGPoint(x: W, y: sy))
+            ctx.stroke(seam, with: .color(Color(red: 0.65, green: 0.63, blue: 0.60).opacity(0.45)), lineWidth: 0.6)
+        }
     }
 
-    private func drawSinglePanel(_ ctx: inout GraphicsContext, x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, label: String, value: Double) {
-        // Panel body
+    // MARK: 4 — Sand/beach visible behind fence in distance
+    private func drawSandBehindFence(_ ctx: inout GraphicsContext) {
+        let sandY = H * 0.435
+        let sandH: CGFloat = H * 0.055
         ctx.fill(
-            Path(roundedRect: CGRect(x: x, y: y, width: w, height: h), cornerRadius: 6),
-            with: .color(Color(red: 0.08, green: 0.08, blue: 0.18))
+            Path(CGRect(x: 0, y: sandY, width: W, height: sandH)),
+            with: .linearGradient(
+                Gradient(colors: [
+                    Color(red: 0.82, green: 0.76, blue: 0.60),
+                    Color(red: 0.76, green: 0.70, blue: 0.55),
+                ]),
+                startPoint: CGPoint(x: 0, y: sandY),
+                endPoint: CGPoint(x: 0, y: sandY + sandH)
+            )
         )
-        // Panel border
+    }
+
+    // MARK: 5 — Chain-link fence backdrop
+    private func drawChainLinkFence(_ ctx: inout GraphicsContext) {
+        let fenceTop: CGFloat = H * 0.30
+        let fenceBot: CGFloat = H * 0.50
+        let fenceH = fenceBot - fenceTop
+        // Fence background tint
+        ctx.fill(
+            Path(CGRect(x: 0, y: fenceTop, width: W, height: fenceH)),
+            with: .color(Color(red: 0.32, green: 0.33, blue: 0.34).opacity(0.18))
+        )
+        // Vertical wire lines
+        let cellW: CGFloat = 14
+        let colCount = Int(W / cellW) + 1
+        for c in 0..<colCount {
+            let fx = CGFloat(c) * cellW
+            var vline = Path()
+            vline.move(to: CGPoint(x: fx, y: fenceTop))
+            vline.addLine(to: CGPoint(x: fx, y: fenceBot))
+            ctx.stroke(vline, with: .color(Color(red: 0.45, green: 0.46, blue: 0.47).opacity(0.30)), lineWidth: 0.5)
+        }
+        // Horizontal wire lines
+        let cellH: CGFloat = 12
+        let rowCount = Int(fenceH / cellH) + 1
+        for r in 0..<rowCount {
+            let fy = fenceTop + CGFloat(r) * cellH
+            var hline = Path()
+            hline.move(to: CGPoint(x: 0, y: fy))
+            hline.addLine(to: CGPoint(x: W, y: fy))
+            ctx.stroke(hline, with: .color(Color(red: 0.45, green: 0.46, blue: 0.47).opacity(0.25)), lineWidth: 0.5)
+        }
+        // Top fence rail
+        ctx.fill(
+            Path(CGRect(x: 0, y: fenceTop - 2, width: W, height: 4)),
+            with: .color(Color(red: 0.50, green: 0.50, blue: 0.52).opacity(0.70))
+        )
+        // Bottom fence rail
+        ctx.fill(
+            Path(CGRect(x: 0, y: fenceBot - 2, width: W, height: 4)),
+            with: .color(Color(red: 0.50, green: 0.50, blue: 0.52).opacity(0.70))
+        )
+    }
+
+    // MARK: 6 — Palm trees: 2 left side, 1 right
+    private func drawPalmTrees(_ ctx: inout GraphicsContext) {
+        let trunkColor  = Color(red: 0.38, green: 0.26, blue: 0.14)
+        let frondColor  = Color(red: 0.22, green: 0.55, blue: 0.20)
+        let treeData: [(baseX: CGFloat, baseY: CGFloat, tilt: CGFloat, idx: Int)] = [
+            (W * 0.04, H * 0.62, -0.12, 0),
+            (W * 0.14, H * 0.60, 0.08,  1),
+            (W * 0.90, H * 0.61, 0.10,  2),
+        ]
+        for tree in treeData {
+            let sway = CGFloat(sin(t * 0.9 + Double(tree.idx) * 1.4)) * 3.0 * (.pi / 180)
+            let totalAngle = tree.tilt + sway
+
+            // Draw segmented trunk
+            let trunkH: CGFloat = H * 0.25
+            let segments = 8
+            var prevX = tree.baseX
+            var prevY = tree.baseY
+            for seg in 0..<segments {
+                let progress = CGFloat(seg + 1) / CGFloat(segments)
+                let segSway = CGFloat(sin(t * 0.9 + Double(tree.idx) * 1.4 + Double(seg) * 0.3)) * 1.5 * (.pi / 180) * progress
+                let angle = totalAngle + segSway - (.pi / 2)
+                let segLen = trunkH / CGFloat(segments)
+                let nextX = prevX + cos(angle) * segLen
+                let nextY = prevY + sin(angle) * segLen
+                let segW = 6.0 * (1.0 - progress * 0.4)
+                var seg_path = Path()
+                seg_path.move(to: CGPoint(x: prevX, y: prevY))
+                seg_path.addLine(to: CGPoint(x: nextX, y: nextY))
+                ctx.stroke(seg_path, with: .color(trunkColor.opacity(0.90)), lineWidth: segW)
+                // Trunk ring marks
+                if seg % 2 == 1 {
+                    ctx.stroke(seg_path, with: .color(Color(red: 0.28, green: 0.18, blue: 0.08).opacity(0.40)), lineWidth: segW * 0.4)
+                }
+                prevX = nextX
+                prevY = nextY
+            }
+
+            let tipX = prevX
+            let tipY = prevY
+
+            // Draw palm fronds radiating from tip
+            let frondAngles: [CGFloat] = [-1.4, -0.9, -0.4, 0.1, 0.6, 1.1, 1.6, -1.9]
+            for (fi, baseAngle) in frondAngles.enumerated() {
+                let frondSway = CGFloat(sin(t * 0.9 + Double(tree.idx) * 1.4 + Double(fi) * 0.7)) * 3.0 * (.pi / 180)
+                let angle = baseAngle + frondSway + totalAngle
+                let frondLen: CGFloat = 26
+                let midX = tipX + cos(angle) * frondLen * 0.55
+                let midY = tipY + sin(angle) * frondLen * 0.55
+                let endX = tipX + cos(angle) * frondLen
+                let endY = tipY + sin(angle + 0.3) * frondLen  // slight droop
+                var frond = Path()
+                frond.move(to: CGPoint(x: tipX, y: tipY))
+                frond.addQuadCurve(to: CGPoint(x: endX, y: endY), control: CGPoint(x: midX, y: midY))
+                let frondOpacity = 0.75 + 0.15 * CGFloat(sin(Double(fi) * 0.8))
+                ctx.stroke(frond, with: .color(frondColor.opacity(frondOpacity)), lineWidth: 2.2)
+            }
+            // Coconut dot cluster at tip
+            var gc2 = ctx
+            gc2.addFilter(.blur(radius: 2))
+            gc2.fill(
+                Path(ellipseIn: CGRect(x: tipX - 4, y: tipY - 4, width: 8, height: 8)),
+                with: .color(Color(red: 0.48, green: 0.34, blue: 0.16).opacity(0.80))
+            )
+        }
+    }
+
+    // MARK: 7 — Performance stage: concrete base + metal pipe scaffolding frame
+    private func drawPerformanceStage(_ ctx: inout GraphicsContext) {
+        // Stage base platform — sits just above mat area
+        let stageY = matY + matH - 4
+        let stageH: CGFloat = H * 0.032
+        let stageX = matX - 8
+        let stageW = matW + 16
+        // Stage shadow
+        var stageShadow = ctx
+        stageShadow.addFilter(.blur(radius: 8))
+        stageShadow.fill(
+            Path(CGRect(x: stageX + 6, y: stageY + 6, width: stageW, height: stageH)),
+            with: .color(Color.black.opacity(0.35))
+        )
+        // Platform surface
+        ctx.fill(
+            Path(CGRect(x: stageX, y: stageY, width: stageW, height: stageH)),
+            with: .linearGradient(
+                Gradient(colors: [
+                    Color(red: 0.60, green: 0.59, blue: 0.57),
+                    Color(red: 0.52, green: 0.51, blue: 0.49),
+                ]),
+                startPoint: CGPoint(x: stageX, y: stageY),
+                endPoint: CGPoint(x: stageX, y: stageY + stageH)
+            )
+        )
         ctx.stroke(
-            Path(roundedRect: CGRect(x: x, y: y, width: w, height: h), cornerRadius: 6),
-            with: .color(Color(red: 0.30, green: 0.30, blue: 0.55).opacity(0.6)),
+            Path(CGRect(x: stageX, y: stageY, width: stageW, height: stageH)),
+            with: .color(Color(red: 0.40, green: 0.40, blue: 0.38).opacity(0.60)),
             lineWidth: 1.2
         )
-        // Inner LED screen glow
-        var screenGlow = ctx
-        screenGlow.addFilter(.blur(radius: 3))
-        screenGlow.fill(
-            Path(roundedRect: CGRect(x: x + 3, y: y + 3, width: w - 6, height: h - 6), cornerRadius: 4),
-            with: .color(Color(red: 0.0, green: 0.5, blue: 0.8).opacity(0.25))
-        )
-        // Scoreboard top separator line
-        var sep = Path()
-        sep.move(to: CGPoint(x: x + 3, y: y + 16))
-        sep.addLine(to: CGPoint(x: x + w - 3, y: y + 16))
-        ctx.stroke(sep, with: .color(Color(red: 0.30, green: 0.30, blue: 0.55).opacity(0.4)), lineWidth: 0.5)
-        // Horizontal scan line animation on LED
-        let scanY = y + 3 + CGFloat(fmod(t * 18, Double(h - 6)))
-        var scan = Path()
-        scan.move(to: CGPoint(x: x + 3, y: scanY))
-        scan.addLine(to: CGPoint(x: x + w - 3, y: scanY))
-        ctx.stroke(scan, with: .color(Color.white.opacity(0.06)), lineWidth: 1)
+        // Platform edge highlight
+        var edgeLine = Path()
+        edgeLine.move(to: CGPoint(x: stageX, y: stageY))
+        edgeLine.addLine(to: CGPoint(x: stageX + stageW, y: stageY))
+        ctx.stroke(edgeLine, with: .color(Color.white.opacity(0.25)), lineWidth: 1.0)
+
+        // Metal pipe scaffolding frame above stage (two uprights + crossbar)
+        let pipeColor = Color(red: 0.55, green: 0.56, blue: 0.58)
+        let frameH: CGFloat = H * 0.16
+        let leftPost  = stageX + stageW * 0.12
+        let rightPost = stageX + stageW * 0.88
+        let frameTopY = stageY - frameH
+
+        // Left upright
+        var leftUpright = Path()
+        leftUpright.move(to: CGPoint(x: leftPost, y: stageY))
+        leftUpright.addLine(to: CGPoint(x: leftPost, y: frameTopY))
+        ctx.stroke(leftUpright, with: .color(pipeColor.opacity(0.80)), lineWidth: 4)
+
+        // Right upright
+        var rightUpright = Path()
+        rightUpright.move(to: CGPoint(x: rightPost, y: stageY))
+        rightUpright.addLine(to: CGPoint(x: rightPost, y: frameTopY))
+        ctx.stroke(rightUpright, with: .color(pipeColor.opacity(0.80)), lineWidth: 4)
+
+        // Top crossbar
+        var crossbar = Path()
+        crossbar.move(to: CGPoint(x: leftPost - 4, y: frameTopY))
+        crossbar.addLine(to: CGPoint(x: rightPost + 4, y: frameTopY))
+        ctx.stroke(crossbar, with: .color(pipeColor.opacity(0.85)), lineWidth: 5)
+
+        // Pipe joint caps
+        ctx.fill(Path(ellipseIn: CGRect(x: leftPost - 5, y: frameTopY - 5, width: 10, height: 10)), with: .color(pipeColor))
+        ctx.fill(Path(ellipseIn: CGRect(x: rightPost - 5, y: frameTopY - 5, width: 10, height: 10)), with: .color(pipeColor))
+
+        // Diagonal braces
+        var brace1 = Path()
+        brace1.move(to: CGPoint(x: leftPost, y: stageY))
+        brace1.addLine(to: CGPoint(x: leftPost + 18, y: frameTopY + frameH * 0.3))
+        ctx.stroke(brace1, with: .color(pipeColor.opacity(0.55)), lineWidth: 2)
+
+        var brace2 = Path()
+        brace2.move(to: CGPoint(x: rightPost, y: stageY))
+        brace2.addLine(to: CGPoint(x: rightPost - 18, y: frameTopY + frameH * 0.3))
+        ctx.stroke(brace2, with: .color(pipeColor.opacity(0.55)), lineWidth: 2)
     }
 
-    // MARK: 17-22 — Crowd rows (60 dots)
-    private func drawCrowdRows(_ ctx: inout GraphicsContext) {
-        let rowConfigs: [(y: CGFloat, count: Int, scale: CGFloat)] = [
-            (H * 0.08, 20, 1.0),
-            (H * 0.16, 22, 0.9),
-            (H * 0.23, 18, 0.8),
-        ]
-        let jerseyColors: [Color] = [
-            Color(red: 0.75, green: 0.15, blue: 0.15),
-            Color(red: 0.15, green: 0.38, blue: 0.75),
-            Color(red: 0.60, green: 0.50, blue: 0.12),
-            Color(red: 0.28, green: 0.28, blue: 0.32),
-            Color(red: 0.15, green: 0.55, blue: 0.35),
-            Color(red: 0.65, green: 0.32, blue: 0.65),
-        ]
-        for (rowIdx, rowCfg) in rowConfigs.enumerated() {
-            for col in 0..<rowCfg.count {
-                let dotX = W * CGFloat(col + 1) / CGFloat(rowCfg.count + 1)
-                // Wave bob animation
-                let wave = CGFloat(sin(t * 0.8 + Double(col) * 0.52 + Double(rowIdx) * 1.1)) * 1.8 * rowCfg.scale
-                // Crowd pulse when show flash (good/perfect hit)
-                let pulseMult: CGFloat = showFlash ? 1.6 : 1.0
-                let r = 4.5 * rowCfg.scale * pulseMult
-                let dotY = rowCfg.y + wave
+    // MARK: 8 — Gymnastics rings apparatus (iconic Muscle Beach rings)
+    private func drawGymnasticsRings(_ ctx: inout GraphicsContext) {
+        // Overhead bar from which rings hang
+        let barY: CGFloat = matY - H * 0.165
+        let barLeftX  = cx - 55
+        let barRightX = cx + 55
+        let barColor = Color(red: 0.50, green: 0.51, blue: 0.53)
 
-                let jc = jerseyColors[(col * 3 + rowIdx * 7) % jerseyColors.count]
+        // Bar
+        ctx.fill(
+            Path(CGRect(x: barLeftX - 4, y: barY - 4, width: (barRightX - barLeftX) + 8, height: 8)),
+            with: .linearGradient(
+                Gradient(colors: [
+                    Color(red: 0.62, green: 0.63, blue: 0.65),
+                    Color(red: 0.42, green: 0.43, blue: 0.45),
+                ]),
+                startPoint: CGPoint(x: 0, y: barY - 4),
+                endPoint: CGPoint(x: 0, y: barY + 4)
+            )
+        )
 
-                // Head
+        // Two rings hanging from bar
+        let ringPositions: [CGFloat] = [cx - 30, cx + 30]
+        let ropeDropY: CGFloat = H * 0.08
+        let ringRadius: CGFloat = 10
+        let ringColor = Color(red: 0.62, green: 0.50, blue: 0.32)  // wooden/leather rings
+
+        for (ri, rx) in ringPositions.enumerated() {
+            // Gentle swing sway on rings
+            let swingPhase = CGFloat(sin(t * 0.6 + Double(ri) * 1.2)) * 3.0
+            let ringX = rx + swingPhase
+
+            // Rope/strap from bar to ring top
+            var rope = Path()
+            rope.move(to: CGPoint(x: rx, y: barY + 4))
+            rope.addLine(to: CGPoint(x: ringX, y: barY + ropeDropY - ringRadius))
+            ctx.stroke(rope, with: .color(Color(red: 0.70, green: 0.65, blue: 0.55).opacity(0.85)), lineWidth: 1.8)
+
+            // Ring circle
+            let ringRect = CGRect(
+                x: ringX - ringRadius,
+                y: barY + ropeDropY - ringRadius,
+                width: ringRadius * 2,
+                height: ringRadius * 2
+            )
+            // Ring glow
+            var ringGlow = ctx
+            ringGlow.addFilter(.blur(radius: 3))
+            ringGlow.stroke(
+                Path(ellipseIn: ringRect),
+                with: .color(ringColor.opacity(0.45)),
+                lineWidth: 5
+            )
+            // Ring body
+            ctx.stroke(
+                Path(ellipseIn: ringRect),
+                with: .color(ringColor),
+                lineWidth: 3.5
+            )
+            // Ring highlight
+            ctx.stroke(
+                Path(ellipseIn: CGRect(
+                    x: ringRect.minX + 2, y: ringRect.minY + 1,
+                    width: ringRadius * 2 - 4, height: ringRadius - 2
+                )),
+                with: .color(Color.white.opacity(0.25)),
+                lineWidth: 1.0
+            )
+        }
+
+        // Small anchor brackets on bar
+        let barColor2 = Color(red: 0.42, green: 0.43, blue: 0.45)
+        for rx in ringPositions {
+            ctx.fill(
+                Path(CGRect(x: rx - 4, y: barY - 5, width: 8, height: 10)),
+                with: .color(barColor2.opacity(0.70))
+            )
+        }
+        _ = barColor  // suppress unused warning
+    }
+
+    // MARK: 9 — Outdoor Venice Beach spectators along sides
+    private func drawOutdoorCrowd(_ ctx: inout GraphicsContext) {
+        // Bleacher-style rows on left and right flanks only (beach casual)
+        let rowConfigs: [(xStart: CGFloat, xEnd: CGFloat, y: CGFloat, count: Int, scale: CGFloat)] = [
+            (0,         W * 0.18, H * 0.52, 7,  1.0),
+            (0,         W * 0.14, H * 0.58, 6,  0.9),
+            (W * 0.82,  W,        H * 0.52, 7,  1.0),
+            (W * 0.86,  W,        H * 0.58, 6,  0.9),
+        ]
+        // Venice Beach bright casual colors
+        let beachColors: [Color] = [
+            Color(red: 0.95, green: 0.35, blue: 0.20),  // coral red
+            Color(red: 0.20, green: 0.70, blue: 0.85),  // aqua
+            Color(red: 0.98, green: 0.82, blue: 0.10),  // sun yellow
+            Color(red: 0.45, green: 0.85, blue: 0.45),  // lime green
+            Color(red: 0.85, green: 0.45, blue: 0.85),  // hot pink
+            Color(red: 1.00, green: 0.60, blue: 0.20),  // orange
+            Color(red: 0.40, green: 0.55, blue: 0.90),  // blue
+        ]
+        for (rowIdx, row) in rowConfigs.enumerated() {
+            for col in 0..<row.count {
+                let xRange = row.xEnd - row.xStart
+                let figX = row.xStart + xRange * CGFloat(col + 1) / CGFloat(row.count + 1)
+                let bob = CGFloat(sin(t * 0.85 + Double(col) * 0.6 + Double(rowIdx) * 1.3)) * 1.5 * row.scale
+                let pulseMult: CGFloat = showFlash ? 1.5 : 1.0
+                let r = 4.0 * row.scale * pulseMult
+                let figY = row.y + bob
+                let fc = beachColors[(col * 3 + rowIdx * 5) % beachColors.count]
+                // Head (skin tone)
                 ctx.fill(
-                    Path(ellipseIn: CGRect(x: dotX - r, y: dotY - r, width: r*2, height: r*2)),
-                    with: .color(jc.opacity(0.65))
+                    Path(ellipseIn: CGRect(x: figX - r, y: figY - r, width: r*2, height: r*2)),
+                    with: .color(Color(red: 0.88, green: 0.74, blue: 0.60).opacity(0.80))
                 )
-                // Small body stub below head
-                var body = Path()
-                body.move(to: CGPoint(x: dotX, y: dotY + r))
-                body.addLine(to: CGPoint(x: dotX, y: dotY + r + 5 * rowCfg.scale))
-                ctx.stroke(body, with: .color(jc.opacity(0.40)), lineWidth: 2.5 * rowCfg.scale)
+                // Colorful shirt body
+                var shirt = Path()
+                shirt.move(to: CGPoint(x: figX, y: figY + r))
+                shirt.addLine(to: CGPoint(x: figX, y: figY + r + 6 * row.scale))
+                ctx.stroke(shirt, with: .color(fc.opacity(0.70)), lineWidth: 3.5 * row.scale)
+                // Arms spread slightly
+                var armL = Path()
+                armL.move(to: CGPoint(x: figX, y: figY + r + 2 * row.scale))
+                armL.addLine(to: CGPoint(x: figX - r * 1.2, y: figY + r + 4 * row.scale))
+                ctx.stroke(armL, with: .color(fc.opacity(0.55)), lineWidth: 1.8 * row.scale)
+                var armR = Path()
+                armR.move(to: CGPoint(x: figX, y: figY + r + 2 * row.scale))
+                armR.addLine(to: CGPoint(x: figX + r * 1.2, y: figY + r + 4 * row.scale))
+                ctx.stroke(armR, with: .color(fc.opacity(0.55)), lineWidth: 1.8 * row.scale)
             }
         }
+    }
+
+    // MARK: 10 — Edge vignette for outdoor depth
+    private func drawVignette(_ ctx: inout GraphicsContext) {
+        var vign = ctx
+        vign.addFilter(.blur(radius: 35))
+        vign.fill(
+            Path(CGRect(x: 0, y: 0, width: W * 0.22, height: H)),
+            with: .color(Color.black.opacity(0.28))
+        )
+        vign.fill(
+            Path(CGRect(x: W * 0.78, y: 0, width: W * 0.22, height: H)),
+            with: .color(Color.black.opacity(0.28))
+        )
+        // Bottom vignette
+        vign.fill(
+            Path(CGRect(x: 0, y: H * 0.80, width: W, height: H * 0.20)),
+            with: .color(Color.black.opacity(0.20))
+        )
     }
 
     // MARK: 23-27 — Mat surface with shadow + border
