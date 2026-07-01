@@ -765,12 +765,51 @@ private struct SoccerFieldDrawer {
         )
     }
 
+    // Returns points along a parabolic arc from `from` to `to`
+    private func arcPoints(from: CGPoint, to: CGPoint, steps: Int = 12) -> [CGPoint] {
+        return (0..<steps).map { i in
+            let tStep = CGFloat(i) / CGFloat(steps - 1)
+            let x = from.x + (to.x - from.x) * tStep
+            let peak = min(from.y, to.y) - abs(to.x - from.x) * 0.22
+            let y = from.y + (to.y - from.y) * tStep - 4 * (peak - from.y) * tStep * (tStep - 1)
+            return CGPoint(x: x, y: y)
+        }
+    }
+
     private func drawAimIndicator(ctx: inout GraphicsContext) {
         let tx = goalLeft + CGFloat(aimValue * 0.5 + 0.5) * goalWidth
         let ty = goalBot - CGFloat(power / 100.0) * (goalBot - goalTop - 24) - 12
         let pulse = 0.55 + 0.30 * CGFloat(sin(t * 5.0))
 
-        // #51 — aim crosshair
+        // When drag-to-aim is active, draw dotted arc from ball to drag point
+        if isShotDragging {
+            let ballFrom = CGPoint(x: penaltySpotX, y: penaltySpotY)
+            let points = arcPoints(from: ballFrom, to: shotDragCurrent)
+            for (i, pt) in points.enumerated() {
+                let alpha = CGFloat(i + 1) / CGFloat(points.count)
+                let dotR: CGFloat = 2.5 + alpha * 1.5
+                var dc = ctx; dc.opacity = Double(alpha * 0.82)
+                dc.fill(
+                    Path(ellipseIn: CGRect(x: pt.x - dotR, y: pt.y - dotR,
+                                          width: dotR * 2, height: dotR * 2)),
+                    with: .color(.white)
+                )
+            }
+            // Target crosshair at drag destination
+            let cx = shotDragCurrent.x; let cy = shotDragCurrent.y
+            var hDrag = Path()
+            hDrag.move(to: CGPoint(x: cx - 12, y: cy))
+            hDrag.addLine(to: CGPoint(x: cx + 12, y: cy))
+            var vDrag = Path()
+            vDrag.move(to: CGPoint(x: cx, y: cy - 12))
+            vDrag.addLine(to: CGPoint(x: cx, y: cy + 12))
+            var dragCtx = ctx; dragCtx.opacity = Double(pulse * 0.9)
+            dragCtx.stroke(hDrag, with: .color(.white), lineWidth: 1.5)
+            dragCtx.stroke(vDrag, with: .color(.white), lineWidth: 1.5)
+            return
+        }
+
+        // #51 — aim crosshair (slider-based)
         var hLine = Path()
         hLine.move(to: CGPoint(x: tx - 12, y: ty))
         hLine.addLine(to: CGPoint(x: tx + 12, y: ty))

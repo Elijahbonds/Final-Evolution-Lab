@@ -1503,13 +1503,14 @@ struct GymnasticsGameView: View {
                     .padding(.horizontal, 4)
 
                     HStack {
-                        Text("AI SCORE")
+                        Text("ARIA SCORE")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
-                            .foregroundStyle(.secondary).tracking(2)
+                            .foregroundStyle(Color.orange.opacity(0.7)).tracking(2)
                         Spacer()
-                        Text(String(format: "%.0f.0", frozenAIScore))
+                        Text("\(aiCurrentScore)")
                             .font(.system(size: 22, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Color.orange.opacity(0.85))
+                            .contentTransition(.numericText())
                     }
                     .padding(.horizontal, 4)
                 }
