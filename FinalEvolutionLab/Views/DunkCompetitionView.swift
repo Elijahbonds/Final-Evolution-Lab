@@ -414,6 +414,65 @@ private struct DunkArenaCanvas: View {
                 floorGlow.fill(floorGlowPath, with: .color(Color(red: 1.0, green: 0.5, blue: 0.1)
                     .opacity(0.20 + Double(rimGlow) * 0.45)))
 
+                // ── VENICE BALL SHOP (boardwalk vendor stall, left side) ────
+                let shopX = W * 0.02
+                let shopY = boardwalkY - 55
+                // Stall awning
+                var awningPath = Path()
+                awningPath.move(to: CGPoint(x: shopX, y: shopY))
+                awningPath.addLine(to: CGPoint(x: shopX + 70, y: shopY))
+                awningPath.addLine(to: CGPoint(x: shopX + 65, y: shopY + 14))
+                awningPath.addLine(to: CGPoint(x: shopX + 5, y: shopY + 14))
+                awningPath.closeSubpath()
+                ctx.fill(awningPath, with: .linearGradient(
+                    Gradient(colors: [Color(red: 0.92, green: 0.18, blue: 0.18), Color(red: 0.75, green: 0.10, blue: 0.10)]),
+                    startPoint: CGPoint(x: shopX, y: shopY),
+                    endPoint: CGPoint(x: shopX + 70, y: shopY)
+                ))
+                // Awning stripes
+                for s in 0..<5 {
+                    let sx = shopX + CGFloat(s) * 13
+                    var stripe = Path()
+                    stripe.move(to: CGPoint(x: sx, y: shopY))
+                    stripe.addLine(to: CGPoint(x: sx + 5, y: shopY + 14))
+                    ctx.stroke(stripe, with: .color(.white.opacity(0.35)), lineWidth: 2)
+                }
+                // Awning fringe
+                for f in 0..<8 {
+                    let fx2 = shopX + 5 + CGFloat(f) * 9
+                    let fSway = CGFloat(sin(t * 2.0 + Double(f) * 0.8)) * 2
+                    var fringe = Path()
+                    fringe.move(to: CGPoint(x: fx2, y: shopY + 14))
+                    fringe.addLine(to: CGPoint(x: fx2 + fSway, y: shopY + 22))
+                    ctx.stroke(fringe, with: .color(Color(red: 0.92, green: 0.18, blue: 0.18)), lineWidth: 2)
+                }
+                // Stall counter / table
+                var tableTop = Path()
+                tableTop.addRoundedRect(in: CGRect(x: shopX, y: shopY + 14, width: 70, height: 8),
+                                         cornerSize: CGSize(width: 2, height: 2))
+                ctx.fill(tableTop, with: .color(Color(red: 0.55, green: 0.35, blue: 0.15)))
+                // Basketballs on display (3 balls)
+                for b in 0..<3 {
+                    let bx = shopX + 12 + CGFloat(b) * 22
+                    let by = shopY + 14 - 9
+                    var ballPath = Path()
+                    ballPath.addEllipse(in: CGRect(x: bx - 8, y: by - 8, width: 16, height: 16))
+                    ctx.fill(ballPath, with: .color(Color(red: 0.90, green: 0.42, blue: 0.08)))
+                    // Ball lines
+                    var ballLineH = Path()
+                    ballLineH.move(to: CGPoint(x: bx - 7, y: by)); ballLineH.addLine(to: CGPoint(x: bx + 7, y: by))
+                    ctx.stroke(ballLineH, with: .color(.black.opacity(0.35)), lineWidth: 0.8)
+                    var ballLineV = Path()
+                    ballLineV.move(to: CGPoint(x: bx, y: by - 7)); ballLineV.addLine(to: CGPoint(x: bx, y: by + 7))
+                    ctx.stroke(ballLineV, with: .color(.black.opacity(0.35)), lineWidth: 0.8)
+                }
+                // Shop sign
+                var signPath = Path()
+                signPath.addRoundedRect(in: CGRect(x: shopX + 5, y: shopY - 22, width: 60, height: 16),
+                                         cornerSize: CGSize(width: 3, height: 3))
+                ctx.fill(signPath, with: .color(Color(red: 0.10, green: 0.10, blue: 0.10).opacity(0.85)))
+                ctx.stroke(signPath, with: .color(.white.opacity(0.4)), lineWidth: 0.8)
+
                 // Chain-link fence behind basket
                 let fenceY = floorY - 80
                 for fx in stride(from: W * 0.55, through: W, by: 18.0) {
