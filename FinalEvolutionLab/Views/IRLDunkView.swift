@@ -1,157 +1,173 @@
 import SwiftUI
+import AVFoundation
 
-// MARK: - IRL Dunk Canvas
+// MARK: - Camera Session
 
-private struct IRLReadyCanvas: View {
-    let accentColor: Color
+private final class IRLCameraSession: NSObject, ObservableObject {
+    let session = AVCaptureSession()
+    @Published var isAuthorized = false
+
+    override init() {
+        super.init()
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            isAuthorized = true
+            configure()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.isAuthorized = granted
+                    if granted { self?.configure() }
+                }
+            }
+        default:
+            break
+        }
+    }
+
+    private func configure() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            self.session.beginConfiguration()
+            self.session.sessionPreset = .high
+            if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
+               let input = try? AVCaptureDeviceInput(device: device),
+               self.session.canAddInput(input) {
+                self.session.addInput(input)
+            }
+            self.session.commitConfiguration()
+        }
+    }
+
+    func start() {
+        guard !session.isRunning else { return }
+        DispatchQueue.global(qos: .background).async { self.session.startRunning() }
+    }
+
+    func stop() {
+        guard session.isRunning else { return }
+        DispatchQueue.global(qos: .background).async { self.session.stopRunning() }
+    }
+}
+
+// MARK: - Camera Preview
+
+private struct CameraPreviewView: UIViewRepresentable {
+    let session: AVCaptureSession
+
+    func makeUIView(context: Context) -> PreviewView { PreviewView(session: session) }
+    func updateUIView(_ uiView: PreviewView, context: Context) {}
+
+    final class PreviewView: UIView {
+        override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+        private var previewLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+
+        init(session: AVCaptureSession) {
+            super.init(frame: .zero)
+            previewLayer.session = session
+            previewLayer.videoGravity = .resizeAspectFill
+        }
+        required init?(coder: NSCoder) { fatalError() }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            previewLayer.frame = bounds
+        }
+    }
+}
+
+// MARK: - Kai Proctor Canvas
+
+private struct KaiProctorCanvas: View {
+    let isActive: Bool
 
     var body: some View {
-        TimelineView(.animation) { tl in
+        TimelineView(.animation(paused: !isActive)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             Canvas { ctx, size in
-                let W = size.width; let H = size.height; let cx = W / 2
-                ctx.fill(Path(CGRect(width:W,height:H)),
-                         with: .color(Color(red:0.04,green:0.04,blue:0.08)))
-                for i in 0..<6 {
-                    let angle = Double(i) * .pi / 3.0 + t * 0.2
-                    let beamX = cx + CGFloat(cos(angle)) * W * 0.14
-                    var beam = Path(); beam.move(to: CGPoint(x:beamX, y:0))
-                    beam.addLine(to: CGPoint(x:cx, y:H*0.38))
-                    var bGC = ctx; bGC.addFilter(.blur(radius: 8))
-                    bGC.stroke(beam, with: .color(accentColor.opacity(0.08)), lineWidth: 16)
+                let W = size.width; let H = size.height
+                let cx = W / 2; let cy = H * 0.44
+                let acc = Color(red: 0.0, green: 0.9, blue: 1.0)
+
+                ctx.fill(Path(CGRect(width: W, height: H)),
+                         with: .color(Color(red: 0.04, green: 0.06, blue: 0.10)))
+
+                ctx.stroke(Path(ellipseIn: CGRect(x: cx-22, y: cy-28, width: 44, height: 52)),
+                           with: .color(acc.opacity(0.52)), lineWidth: 1.5)
+
+                var ibW = Path()
+                ibW.addRect(CGRect(x: cx-12, y: cy-32, width: 24, height: 8))
+                ctx.fill(ibW, with: .color(Color(red:0.04,green:0.06,blue:0.10)))
+
+                let blink = sin(t * 3.5) > 0.92
+                if !blink {
+                    for ex in [cx - 8.5, cx + 8.5] as [CGFloat] {
+                        var eGC = ctx; eGC.addFilter(.blur(radius: 2))
+                        eGC.fill(Path(ellipseIn: CGRect(x: ex-4, y: cy-13, width: 8, height: 5)),
+                                 with: .color(acc.opacity(0.90)))
+                    }
                 }
-                let bW = W*0.55; let bH = H*0.17; let bX = cx-bW/2; let bY = H*0.04
-                ctx.stroke(Path(CGRect(x:bX,y:bY,width:bW,height:bH)),
-                           with: .color(Color.white.opacity(0.55)), lineWidth: 2.5)
-                let iBW = bW*0.34; let iBH = bH*0.54
-                ctx.stroke(Path(CGRect(x:cx-iBW/2,y:bY+bH*0.22,width:iBW,height:iBH)),
-                           with: .color(Color.white.opacity(0.28)), lineWidth: 1.5)
-                let rW = W*0.42; let rH = rW*0.22; let rY = bY+bH+H*0.03
-                var rGC = ctx; rGC.addFilter(.blur(radius: 3))
-                rGC.stroke(Path(ellipseIn: CGRect(x:cx-rW/2,y:rY,width:rW,height:rH)),
-                           with: .color(Color.orange.opacity(0.70)), lineWidth: 4)
-                ctx.stroke(Path(ellipseIn: CGRect(x:cx-rW/2,y:rY,width:rW,height:rH)),
-                           with: .color(Color.orange.opacity(0.95)), lineWidth: 2.5)
-                let rimCY = rY + rH/2; let netB = rimCY + H*0.18
-                let tL = CGPoint(x:cx-rW/2,y:rimCY); let tR = CGPoint(x:cx+rW/2,y:rimCY)
-                let bL = CGPoint(x:cx-W*0.07,y:netB); let bR = CGPoint(x:cx+W*0.07,y:netB)
-                for i in 0..<6 {
-                    let f = CGFloat(i) / 5.0
-                    var nl = Path()
-                    nl.move(to: CGPoint(x:tL.x+(tR.x-tL.x)*f,y:rimCY))
-                    nl.addLine(to: CGPoint(x:bL.x+(bR.x-bL.x)*f,y:netB))
-                    ctx.stroke(nl, with: .color(Color.white.opacity(0.18)), lineWidth: 1)
+
+                let scanY = cy - 28 + CGFloat(fmod(t * 0.9, 1.0)) * 52
+                var scanLine = Path()
+                scanLine.move(to: CGPoint(x: cx-20, y: scanY))
+                scanLine.addLine(to: CGPoint(x: cx+20, y: scanY))
+                var sGC = ctx; sGC.addFilter(.blur(radius: 1.5))
+                sGC.stroke(scanLine, with: .color(acc.opacity(0.35)), lineWidth: 1.5)
+
+                for i in 0..<3 {
+                    let dp = fmod(t * 2.0 + Double(i) * 0.4, 1.0)
+                    let dx = cx - 8 + CGFloat(i) * 8
+                    ctx.fill(Path(ellipseIn: CGRect(x: dx-2, y: cy+26, width: 4, height: 4)),
+                             with: .color(acc.opacity(dp < 0.5 ? 0.85 : 0.18)))
                 }
-                let ballY = H * CGFloat(0.72 + sin(t * 0.8) * 0.04)
-                let ballR = W * CGFloat(0.12)
-                ctx.fill(Path(ellipseIn: CGRect(x:cx-ballR,y:ballY-ballR,width:ballR*2,height:ballR*2)),
-                         with: .color(Color(red:1.0,green:0.55,blue:0.0).opacity(0.90)))
-                var seam = Path()
-                seam.addArc(center: CGPoint(x:cx,y:ballY), radius: ballR*0.92,
-                            startAngle: .degrees(-40+t*20), endAngle: .degrees(140+t*20), clockwise: false)
-                ctx.stroke(seam, with: .color(Color.black.opacity(0.35)), lineWidth: 1.5)
             }
         }
     }
 }
 
-private struct IRLDunkCanvas: View {
-    let jumpFlash: Bool
-    let heartRate: Double
-    let accentColor: Color
-
-    var body: some View {
-        TimelineView(.animation) { tl in
-            let t = tl.date.timeIntervalSinceReferenceDate
-            Canvas { ctx, size in
-                let W = size.width; let H = size.height; let cx = W / 2
-                ctx.fill(Path(CGRect(width:W,height:H)),
-                         with: .color(Color(red:0.04,green:0.02,blue:0.02)))
-                let floorY = H * 0.74
-                ctx.fill(Path(CGRect(x:0,y:floorY,width:W,height:H-floorY)),
-                         with: .color(Color(red:0.10,green:0.18,blue:0.35)))
-                var fl = Path(); fl.move(to: CGPoint(x:0,y:floorY)); fl.addLine(to: CGPoint(x:W,y:floorY))
-                ctx.stroke(fl, with: .color(Color.white.opacity(0.18)), lineWidth: 1.5)
-                var arc = Path()
-                arc.addArc(center: CGPoint(x:cx,y:H), radius: W*0.44,
-                           startAngle: .degrees(200), endAngle: .degrees(340), clockwise: false)
-                ctx.stroke(arc, with: .color(Color.white.opacity(0.10)), lineWidth: 1)
-                let bW = W*0.32; let bH = H*0.09; let bY = H*0.06
-                ctx.stroke(Path(CGRect(x:cx-bW/2,y:bY,width:bW,height:bH)),
-                           with: .color(Color.white.opacity(0.45)), lineWidth: 1.5)
-                let rW = W*0.24; let rH = rW*0.22; let rY = bY+bH+H*0.02
-                ctx.stroke(Path(ellipseIn: CGRect(x:cx-rW/2,y:rY,width:rW,height:rH)),
-                           with: .color(Color.orange.opacity(0.85)), lineWidth: 2)
-                let spotPulse = CGFloat(0.5 + sin(t * 2.0) * 0.15)
-                var spGC = ctx; spGC.addFilter(.blur(radius: 18))
-                spGC.fill(Path(ellipseIn: CGRect(x:cx-38,y:H*0.26-38,width:76,height:76)),
-                          with: .color(Color.yellow.opacity(Double(spotPulse)*0.18)))
-                let hrPulse = CGFloat(0.7 + sin(t * (heartRate / 60.0) * .pi) * 0.30)
-                let ringR = W * 0.42
-                var hrGC = ctx; hrGC.addFilter(.blur(radius: 5))
-                hrGC.stroke(Path(ellipseIn: CGRect(x:cx-ringR,y:H/2-ringR,width:ringR*2,height:ringR*2)),
-                            with: .color(Color.red.opacity(Double(hrPulse)*0.32)), lineWidth: 5)
-                if jumpFlash {
-                    var fGC = ctx; fGC.addFilter(.blur(radius: 22))
-                    fGC.fill(Path(ellipseIn: CGRect(x:cx-62,y:H/2-62,width:124,height:124)),
-                             with: .color(accentColor.opacity(0.55)))
-                }
-                let ballBaseY = H * 0.54
-                let lift = jumpFlash ? H * 0.28 : 0
-                let ballY = ballBaseY - lift - CGFloat(sin(t * 1.2)) * H * 0.02
-                let ballR = CGFloat(20) - lift * 0.04
-                ctx.fill(Path(ellipseIn: CGRect(x:cx-ballR,y:ballY-ballR,width:ballR*2,height:ballR*2)),
-                         with: .color(Color(red:1.0,green:0.55,blue:0.0).opacity(0.90)))
-                var sm = Path()
-                sm.addArc(center: CGPoint(x:cx,y:ballY), radius: ballR*0.92,
-                          startAngle: .degrees(t*30), endAngle: .degrees(180+t*30), clockwise: false)
-                ctx.stroke(sm, with: .color(Color.black.opacity(0.35)), lineWidth: 1)
-                let ss = max(CGFloat(0.12), 1.0 - lift / (H*0.28) * 0.88)
-                ctx.fill(Path(ellipseIn: CGRect(x:cx-22*ss,y:floorY-5,width:44*ss,height:8)),
-                         with: .color(Color.black.opacity(Double(ss)*0.38)))
-            }
-        }
-    }
-}
+// MARK: - IRLDunkView
 
 struct IRLDunkView: View {
     let viewModel: LabViewModel
     let gameMode: GameMode
 
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var camera = IRLCameraSession()
     @StateObject private var healthKit = HealthKitService()
     @State private var phase: IRLPhase = .ready
     @State private var jumpCount = 0
-    @State private var maxJumpHeight: Double = 0
-    @State private var sessionTime = 120
-    @State private var timerTask: Task<Void, Never>?
-    @State private var lastJumpLabel = ""
+    @State private var scores: [Double] = []
+    @State private var lastScore: Double? = nil
+    @State private var kaiFeedback = ""
+    @State private var showPopup = false
+    @State private var sessionTime = 90
     @State private var heartRate: Double = 72
-    @State private var jumpFlash = false
+    @State private var timerTask: Task<Void, Never>?
 
     private enum IRLPhase { case ready, active, result }
+
+    private let kaiReactions = [
+        "ELEVATION!", "HANG TIME!", "PURE POWER!", "CLEAN FORM",
+        "EXPLOSIVE!", "LOCKED IN!", "TEXTBOOK!", "NASTY!", "HEAT CHECK!", "MAXIMUM EFFORT"
+    ]
+
+    private var totalScore: Double { scores.sorted(by: >).prefix(5).reduce(0, +) }
+    private var bestScore: Double { scores.max() ?? 0 }
 
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
-            LinearGradient(
-                colors: [Color(red: 0.06, green: 0.02, blue: 0.02), Color(red: 0.02, green: 0.02, blue: 0.05)],
-                startPoint: .top, endPoint: .bottom
-            ).ignoresSafeArea()
-
             switch phase {
-            case .ready:
-                readyScreen
-            case .active:
-                activeScreen
-            case .result:
-                resultScreen
+            case .ready:  readyScreen
+            case .active: activeScreen
+            case .result: resultScreen
             }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button { timerTask?.cancel(); dismiss() } label: {
+                Button { camera.stop(); timerTask?.cancel(); dismiss() } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left").font(.system(size: 14, weight: .bold))
                         Text("EXIT").font(.system(.caption, design: .monospaced, weight: .bold))
@@ -160,157 +176,332 @@ struct IRLDunkView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .onDisappear { timerTask?.cancel() }
+        .onDisappear { camera.stop(); timerTask?.cancel() }
     }
+
+    // MARK: - Ready Screen
 
     private var readyScreen: some View {
-        VStack(spacing: 28) {
+        VStack(spacing: 0) {
             Spacer()
 
-            IRLReadyCanvas(accentColor: gameMode.accentColor)
-                .frame(width: 180, height: 180)
-                .clipShape(Circle())
+            HStack(spacing: 16) {
+                KaiProctorCanvas(isActive: true)
+                    .frame(width: 72, height: 72)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(red:0.0,green:0.9,blue:1.0).opacity(0.30), lineWidth: 1))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("YOUR PROCTOR")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.secondary).tracking(2)
+                    Text("Kai Nexus")
+                        .font(.system(.title2, weight: .black)).italic().foregroundStyle(.white)
+                    Text("AI JUDGE · LIVE SCORING")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color(red:0.0,green:0.9,blue:1.0)).tracking(1)
+                }
+                Spacer()
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Theme.cardBackground)
+                    .overlay(RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color(red:0.0,green:0.9,blue:1.0).opacity(0.14), lineWidth: 1))
+            )
+            .padding(.horizontal, 24)
+
+            Spacer().frame(height: 28)
 
             VStack(spacing: 8) {
-                Text("IRL DUNK CONTEST").font(.system(size: 13, weight: .black, design: .monospaced)).foregroundStyle(gameMode.accentColor).tracking(3)
-                Text("Regulation Rim · HealthKit").font(.system(.title2, weight: .black)).italic().foregroundStyle(.white)
-                Text("Find a regulation 10-ft rim. This mode tracks your real jumps, hang time, and heart rate using HealthKit.").font(.system(.subheadline)).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 32)
+                Text("IRL DUNK CONTEST")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundStyle(gameMode.accentColor).tracking(3)
+                Text("Proctored Competition")
+                    .font(.system(.title2, weight: .black)).italic().foregroundStyle(.white)
+                Text("Find a regulation 10-ft rim · Camera captures your run · Kai judges every jump live")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
             }
+
+            Spacer().frame(height: 28)
 
             VStack(spacing: 10) {
-                if healthKit.isAuthorized {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                        Text("HealthKit authorized").font(.system(size: 11, design: .monospaced)).foregroundStyle(.green)
-                    }
-                } else {
-                    Button { healthKit.requestAuthorization() } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "heart.fill")
-                            Text("CONNECT HEALTHKIT")
-                        }
-                        .font(.system(.subheadline, weight: .black))
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(gameMode.accentColor)
-                        .clipShape(.rect(cornerRadius: 14))
-                    }
-                    .padding(.horizontal, 24)
-                }
-
-                Button {
-                    phase = .active
-                    startSession()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "figure.highintensity.intervaltraining")
-                        Text(healthKit.isAuthorized ? "START IRL SESSION" : "START SIMULATION")
-                    }
-                    .font(.system(.subheadline, weight: .black))
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(healthKit.isAuthorized ? gameMode.accentColor : Color.white.opacity(0.2))
-                    .clipShape(.rect(cornerRadius: 14))
-                }
-                .padding(.horizontal, 24)
+                ruleRow(icon: "camera.fill",            text: "Front camera opens — you're on screen")
+                ruleRow(icon: "waveform.path.ecg",      text: "HealthKit auto-detects each jump")
+                ruleRow(icon: "clock",                  text: "90 second competition window")
+                ruleRow(icon: "star.fill",              text: "Best 5 scores count toward your total")
+                ruleRow(icon: "person.fill.badge.plus",  text: "Kai scores 6.0–10.0 per jump")
             }
+            .padding(.horizontal, 28)
+
+            Spacer().frame(height: 32)
+
+            Button {
+                phase = .active
+                camera.start()
+                startSession()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "camera.fill")
+                    Text(camera.isAuthorized ? "START COMPETITION" : "ENABLE CAMERA + START")
+                }
+                .font(.system(.subheadline, weight: .black))
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(gameMode.accentColor)
+                .clipShape(.rect(cornerRadius: 16))
+            }
+            .padding(.horizontal, 24)
 
             Spacer()
         }
     }
+
+    private func ruleRow(icon: String, text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(gameMode.accentColor)
+                .frame(width: 20)
+            Text(text)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.68))
+            Spacer()
+        }
+    }
+
+    // MARK: - Active Screen (Camera + Overlay)
 
     private var activeScreen: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 20) {
-                statPill(label: "JUMPS", value: "\(jumpCount)", color: gameMode.accentColor)
-                statPill(label: "BEST", value: String(format: "%.1f\"", maxJumpHeight), color: .yellow)
-                statPill(label: "HR", value: "\(Int(heartRate))", color: .red)
-                statPill(label: "TIME", value: timeFormatted, color: .white.opacity(0.6))
+        ZStack {
+            // Camera feed
+            if camera.isAuthorized {
+                CameraPreviewView(session: camera.session)
+                    .ignoresSafeArea()
+            } else {
+                Color(red: 0.04, green: 0.02, blue: 0.02).ignoresSafeArea()
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
 
-            Spacer()
+            // Gradient overlays for readability
+            VStack(spacing: 0) {
+                LinearGradient(colors: [Color.black.opacity(0.75), Color.clear],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 160)
+                Spacer()
+                LinearGradient(colors: [Color.clear, Color.black.opacity(0.80)],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 180)
+            }
+            .ignoresSafeArea()
 
-            ZStack {
-                IRLDunkCanvas(jumpFlash: jumpFlash, heartRate: heartRate, accentColor: gameMode.accentColor)
-                    .frame(width: 240, height: 240)
-                    .clipShape(Circle())
+            VStack(spacing: 0) {
+                // ── Top HUD ──────────────────────────────────────────
+                HStack(alignment: .top, spacing: 14) {
+                    // Kai panel
+                    VStack(spacing: 4) {
+                        KaiProctorCanvas(isActive: true)
+                            .frame(width: 52, height: 52)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(red:0.0,green:0.9,blue:1.0).opacity(0.40), lineWidth: 1))
+                        HStack(spacing: 3) {
+                            Circle().fill(Color.green).frame(width: 5, height: 5)
+                            Text("LIVE").font(.system(size: 7, weight: .black, design: .monospaced)).foregroundStyle(.green)
+                        }
+                    }
 
-                VStack(spacing: 8) {
-                    Text("JUMP NOW").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundStyle(gameMode.accentColor.opacity(0.8)).tracking(2)
-                    Text("\(jumpCount)").font(.system(size: 72, weight: .black, design: .monospaced)).foregroundStyle(.white).contentTransition(.numericText())
-                    if !lastJumpLabel.isEmpty {
-                        Text(lastJumpLabel).font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(gameMode.accentColor)
+                    Spacer()
+
+                    VStack(spacing: 2) {
+                        Text(timeFormatted)
+                            .font(.system(size: 28, weight: .black, design: .monospaced))
+                            .foregroundStyle(sessionTime < 20 ? .red : .white)
+                            .contentTransition(.numericText())
+                        Text("REMAINING")
+                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary).tracking(1)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(String(format: "%.1f", totalScore))
+                            .font(.system(size: 28, weight: .black, design: .monospaced))
+                            .foregroundStyle(gameMode.accentColor)
+                        Text("\(jumpCount) JUMPS")
+                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary).tracking(1)
                     }
                 }
-            }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
 
-            Spacer()
+                Spacer()
 
-            if healthKit.isAuthorized {
-                Text("Jump on the real rim — HealthKit is counting.").font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 32)
-            } else {
-                Button { recordSimulatedJump() } label: {
-                    Text("RECORD JUMP (Simulation)")
-                        .font(.system(.subheadline, weight: .black))
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(gameMode.accentColor)
-                        .clipShape(.rect(cornerRadius: 16))
+                // ── Score Popup ──────────────────────────────────────
+                if showPopup, let sc = lastScore {
+                    VStack(spacing: 6) {
+                        Text(String(format: "%.1f", sc))
+                            .font(.system(size: 72, weight: .black, design: .monospaced))
+                            .foregroundStyle(sc >= 9.0 ? .yellow : sc >= 8.0 ? gameMode.accentColor : .white)
+                        Text(kaiFeedback)
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white).tracking(2)
+                        Text("KAI NEXUS")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary).tracking(3)
+                    }
+                    .padding(.horizontal, 36)
+                    .padding(.vertical, 22)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.black.opacity(0.78))
+                            .overlay(RoundedRectangle(cornerRadius: 20)
+                                .stroke(sc >= 9.0 ? Color.yellow.opacity(0.55) : gameMode.accentColor.opacity(0.45),
+                                        lineWidth: 1.5))
+                    )
+                    .transition(.scale(scale: 0.85).combined(with: .opacity))
                 }
-                .padding(.horizontal, 24)
-            }
 
-            Button { endSession() } label: {
-                Text("END SESSION")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
-                    .background(Color.red.opacity(0.1))
-                    .clipShape(Capsule())
+                Spacer()
+
+                // ── Bottom Controls ──────────────────────────────────
+                VStack(spacing: 12) {
+                    if healthKit.isAuthorized {
+                        HStack(spacing: 6) {
+                            Circle().fill(Color.green).frame(width: 6, height: 6)
+                            Text("HEALTHKIT · AUTO-DETECTING JUMPS")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.green).tracking(1)
+                        }
+                    } else {
+                        Button { recordSimulatedJump() } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.up.circle.fill")
+                                Text("RECORD JUMP")
+                            }
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(gameMode.accentColor)
+                            .clipShape(.rect(cornerRadius: 16))
+                        }
+                        .padding(.horizontal, 24)
+                    }
+
+                    Button { endSession() } label: {
+                        Text("END SESSION")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 20).padding(.vertical, 8)
+                            .background(Color.red.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(.bottom, 32)
             }
-            .padding(.bottom, 24)
         }
+        .animation(.spring(response: 0.28, dampingFraction: 0.72), value: showPopup)
     }
+
+    // MARK: - Result Screen
 
     private var resultScreen: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                VStack(spacing: 8) {
+            VStack(spacing: 20) {
+                VStack(spacing: 6) {
                     Text("SESSION COMPLETE")
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .foregroundStyle(gameMode.accentColor)
-                        .tracking(3)
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(gameMode.accentColor).tracking(3)
                     Text("IRL Dunk Recap")
-                        .font(.system(size: 32, weight: .black))
-                        .italic()
-                        .foregroundStyle(.white)
+                        .font(.system(size: 32, weight: .black)).italic().foregroundStyle(.white)
                 }
-                .padding(.top, 32)
+                .padding(.top, 28)
 
-                HStack(spacing: 16) {
-                    resultStat(label: "Total Jumps", value: "\(jumpCount)", icon: "arrow.up.circle.fill", color: gameMode.accentColor)
-                    resultStat(label: "Best Height", value: String(format: "%.1f\"", maxJumpHeight), icon: "ruler", color: .yellow)
-                    resultStat(label: "Peak HR", value: "\(Int(heartRate))", icon: "heart.fill", color: .red)
+                // Kai verdict
+                HStack(spacing: 14) {
+                    KaiProctorCanvas(isActive: false)
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(red:0.0,green:0.9,blue:1.0).opacity(0.25), lineWidth: 1))
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("KAI NEXUS — FINAL VERDICT")
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary).tracking(2)
+                        Text(kaiVerdict)
+                            .font(.system(.subheadline, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                }
+                .padding(16)
+                .background(RoundedRectangle(cornerRadius: 16).fill(Theme.cardBackground)
+                    .overlay(RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color(red:0.0,green:0.9,blue:1.0).opacity(0.12), lineWidth: 1)))
+                .padding(.horizontal, 20)
+
+                // Stats row
+                HStack(spacing: 12) {
+                    recapStat(label: "TOTAL", value: String(format: "%.1f", totalScore), color: gameMode.accentColor)
+                    recapStat(label: "BEST", value: String(format: "%.1f", bestScore), color: .yellow)
+                    recapStat(label: "JUMPS", value: "\(jumpCount)", color: .white)
                 }
                 .padding(.horizontal, 20)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("PERFORMANCE ANALYSIS")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .tracking(2)
-                    Text(performanceAnalysis)
-                        .font(.system(.subheadline))
-                        .foregroundStyle(.white.opacity(0.8))
+                // Individual score cards
+                if !scores.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("JUDGE SCORES — BEST 5 COUNT")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary).tracking(2)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 8) {
+                            ForEach(scores.indices, id: \.self) { i in
+                                VStack(spacing: 3) {
+                                    Text(String(format: "%.1f", scores[i]))
+                                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                                        .foregroundStyle(scores[i] >= 9.0 ? .yellow : .white)
+                                    Text("J\(i+1)")
+                                        .font(.system(size: 7, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.04)))
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .background(RoundedRectangle(cornerRadius: 16).fill(Theme.cardBackground))
+                    .padding(.horizontal, 20)
+                }
+
+                // PRQ gain banner
+                HStack(spacing: 12) {
+                    Image(systemName: "bolt.circle.fill")
+                        .font(.system(size: 22)).foregroundStyle(.yellow)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("+\(prqGain) PRQ")
+                            .font(.system(size: 18, weight: .black, design: .monospaced))
+                            .foregroundStyle(.yellow)
+                        Text("Added to your Performance Readiness Quotient")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
                 }
                 .padding(16)
-                .background(RoundedRectangle(cornerRadius: 16).fill(Theme.cardBackground))
+                .background(RoundedRectangle(cornerRadius: 16).fill(Color.yellow.opacity(0.07))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.yellow.opacity(0.18), lineWidth: 1)))
                 .padding(.horizontal, 20)
 
                 Button { dismiss() } label: {
@@ -328,81 +519,86 @@ struct IRLDunkView: View {
         }
     }
 
-    private func statPill(label: String, value: String, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Text(value).font(.system(size: 20, weight: .black, design: .monospaced)).foregroundStyle(color)
-            Text(label).font(.system(size: 8, weight: .bold, design: .monospaced)).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(color.opacity(0.06)).overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.15), lineWidth: 0.5)))
+    // MARK: - Helpers
+
+    private var timeFormatted: String {
+        String(format: "%d:%02d", sessionTime / 60, sessionTime % 60)
     }
 
-    private func resultStat(label: String, value: String, icon: String, color: Color) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon).font(.system(size: 20, weight: .bold)).foregroundStyle(color)
-            Text(value).font(.system(size: 22, weight: .black, design: .monospaced)).foregroundStyle(.white)
-            Text(label).font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+    private var prqGain: Int {
+        if totalScore >= 45 { return 18 }
+        if totalScore >= 35 { return 12 }
+        if totalScore >= 20 { return 6 }
+        return jumpCount > 0 ? 3 : 0
+    }
+
+    private var kaiVerdict: String {
+        guard jumpCount > 0 else {
+            return "No jumps detected. Find a regulation rim and try again."
+        }
+        if totalScore >= 45 { return "Elite performance. \(jumpCount) dunks, \(String(format: "%.1f", bestScore)) peak. Exceptional athleticism." }
+        if totalScore >= 35 { return "\(jumpCount) jumps, \(String(format: "%.1f", totalScore)) total. Advanced form. Strength training will push you further." }
+        if totalScore >= 20 { return "Solid session. \(jumpCount) jumps recorded. Conditioning and plyometrics will elevate your vertical." }
+        return "Session complete. \(jumpCount) jumps recorded. Keep training — the rim will feel lower."
+    }
+
+    private func recapStat(label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 6) {
+            Text(value)
+                .font(.system(size: 22, weight: .black, design: .monospaced))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(.secondary).tracking(1)
         }
         .frame(maxWidth: .infinity)
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 14).fill(color.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(color.opacity(0.06)))
     }
 
-    private var timeFormatted: String {
-        let m = sessionTime / 60; let s = sessionTime % 60
-        return String(format: "%d:%02d", m, s)
-    }
-
-    private var performanceAnalysis: String {
-        if jumpCount == 0 { return "No jumps recorded. Head to a regulation rim and try again." }
-        let tier = maxJumpHeight > 36 ? "Elite" : (maxJumpHeight > 28 ? "Advanced" : (maxJumpHeight > 20 ? "Intermediate" : "Developing"))
-        return "You recorded \(jumpCount) jumps with a peak height of \(String(format: "%.1f", maxJumpHeight)) inches. Performance tier: \(tier). Your heart rate peaked at \(Int(heartRate)) BPM — \(heartRate > 160 ? "high intensity session" : "solid aerobic effort")."
-    }
+    // MARK: - Logic
 
     private func startSession() {
-        sessionTime = 120
-        jumpCount = 0
-        maxJumpHeight = 0
+        sessionTime = 90; jumpCount = 0; scores = []
+        timerTask?.cancel()
         timerTask = Task {
             while sessionTime > 0 {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    sessionTime -= 1
-                    if !healthKit.isAuthorized { heartRate = 72 + Double(jumpCount) * 0.8 + Double.random(in: -2...2) }
-                }
+                await MainActor.run { sessionTime -= 1 }
             }
             await MainActor.run { endSession() }
         }
         if healthKit.isAuthorized {
             healthKit.startJumpTracking { height in
-                Task { @MainActor in
-                    jumpCount += 1
-                    maxJumpHeight = max(maxJumpHeight, height)
-                    lastJumpLabel = String(format: "%.1f\" height", height)
-                    jumpFlash = true
-                    heartRate = 80 + Double(jumpCount) * 1.2 + Double.random(in: -3...3)
-                    Task { try? await Task.sleep(for: .milliseconds(350)); jumpFlash = false }
-                }
+                Task { @MainActor in self.recordJump(height: height) }
             }
         }
     }
 
-    private func recordSimulatedJump() {
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        let height = Double.random(in: 18...44)
+    private func recordJump(height: Double) {
+        let score = min(10.0, max(6.0, height * 0.145 + 3.5))
+        scores.append(score)
         jumpCount += 1
-        maxJumpHeight = max(maxJumpHeight, height)
-        lastJumpLabel = String(format: "%.1f\" height", height)
-        heartRate = 80 + Double(jumpCount) * 1.5 + Double.random(in: -4...4)
-        jumpFlash = true
-        Task { try? await Task.sleep(for: .milliseconds(350)); await MainActor.run { jumpFlash = false } }
+        lastScore = score
+        kaiFeedback = kaiReactions.randomElement() ?? "NICE!"
+        heartRate = 80 + Double(jumpCount) * 1.2 + Double.random(in: -3...3)
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        withAnimation(.spring(response: 0.28)) { showPopup = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2.0))
+            await MainActor.run { withAnimation { showPopup = false } }
+        }
+    }
+
+    private func recordSimulatedJump() {
+        recordJump(height: Double.random(in: 18...44))
     }
 
     private func endSession() {
         timerTask?.cancel()
         healthKit.stopJumpTracking()
+        camera.stop()
         phase = .result
     }
 }
