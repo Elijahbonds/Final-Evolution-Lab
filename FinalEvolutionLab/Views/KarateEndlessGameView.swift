@@ -174,6 +174,9 @@ private struct EndlessDojoCanvas: View {
     let activePowerUp: PowerUpType?
     let hitFlash: Bool
     let blockActive: Bool
+    var currentArchetype: EnemyArchetype = .striker
+    var grabActive: Bool = false
+    var chargeWarning: Bool = false
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -192,7 +195,10 @@ private struct EndlessDojoCanvas: View {
                     killStreak: killStreak,
                     activePowerUp: activePowerUp,
                     hitFlash: hitFlash,
-                    blockActive: blockActive
+                    blockActive: blockActive,
+                    currentArchetype: currentArchetype,
+                    grabActive: grabActive,
+                    chargeWarning: chargeWarning
                 )
                 d.render(into: &ctx)
             }
@@ -326,19 +332,26 @@ private struct EndlessDojoDrawer {
     let activePowerUp: PowerUpType?
     let hitFlash: Bool
     let blockActive: Bool
+    let currentArchetype: EnemyArchetype
+    let grabActive: Bool
+    let chargeWarning: Bool
     var feetY: CGFloat { H * 0.82 }
     var scale: CGFloat { H * 0.0028 }
 
     init(size: CGSize, t: Double, enemies: [EnemyState], particles: [KillParticle],
          playerPose: String, waveNumber: Int, dragon: Bool, accent: Color,
          playerHP: Double, combo: Int, killStreak: Int, activePowerUp: PowerUpType?,
-         hitFlash: Bool, blockActive: Bool) {
+         hitFlash: Bool, blockActive: Bool,
+         currentArchetype: EnemyArchetype = .striker,
+         grabActive: Bool = false, chargeWarning: Bool = false) {
         self.W = size.width; self.H = size.height; self.t = t
         self.enemies = enemies; self.particles = particles
         self.playerPose = playerPose
         self.waveNumber = waveNumber; self.dragon = dragon; self.accent = accent
         self.playerHP = playerHP; self.combo = combo; self.killStreak = killStreak
         self.activePowerUp = activePowerUp; self.hitFlash = hitFlash; self.blockActive = blockActive
+        self.currentArchetype = currentArchetype
+        self.grabActive = grabActive; self.chargeWarning = chargeWarning
     }
 
     // ── MAIN RENDER ─────────────────────────────────────────────────────────────

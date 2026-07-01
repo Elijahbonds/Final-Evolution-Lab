@@ -837,6 +837,7 @@ struct SkateboardingGameView: View {
                 Button {
                     runTimer?.cancel()
                     grindTask?.cancel()
+                    manualWindowTask?.cancel()
                     dismiss()
                 } label: {
                     HStack(spacing: 4) {
@@ -1396,10 +1397,18 @@ struct SkateboardingGameView: View {
         comboCount = 0
         lastTrickIndex = nil
         lastTrickTime = nil
+        lastTrickLandTime = nil
         timeLeft = runDuration
         phase = .running
         trickPopup = nil
         isGrinding = false
+        isManual = false
+        grindScore = 0
+        grindProgress = 0
+        comboActive = false
+        comboTotal = 0
+        comboText = ""
+        showComboComplete = false
         comboString = ""
         runTimer?.cancel()
         runTimer = Task {

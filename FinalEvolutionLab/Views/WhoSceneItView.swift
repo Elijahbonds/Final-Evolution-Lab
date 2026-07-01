@@ -1350,8 +1350,13 @@ struct WhoSceneItView: View {
     private var questionArea: some View {
         VStack(spacing: 12) {
             ZStack {
+                // Base scene canvas
                 WhoSceneCanvas(sceneType: WhoSceneType.infer(from: current.sceneDescription))
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                // Difficulty-based reveal overlays
+                sceneRevealOverlay
+
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.black.opacity(0.42))
                 Text(current.sceneDescription)
@@ -1367,6 +1372,189 @@ struct WhoSceneItView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private var sceneRevealOverlay: some View {
+        switch currentDifficulty {
+        case .easy:
+            EmptyView()
+
+        case .medium:
+            // Edge vignette fading out from center over sceneRevealProgress
+            GeometryReader { geo in
+                let edgeAlpha = max(0.0, 0.85 * (1.0 - sceneRevealProgress))
+                Canvas { ctx, size in
+                    var edge = Path()
+                    edge.addRect(CGRect(origin: .zero, size: size))
+                    ctx.fill(edge, with: .radialGradient(
+                        Gradient(colors: [
+                            Color.black.opacity(0),
+                            Color.black.opacity(edgeAlpha)
+                        ]),
+                        center: CGPoint(x: size.width / 2, y: size.height / 2),
+                        startRadius: size.width * 0.2,
+                        endRadius: size.width * 0.7
+                    ))
+                }
+                .allowsHitTesting(false)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+
+        case .hard:
+            // Dark overlay with circular spotlight cutout at center
+            GeometryReader { geo in
+                let W = geo.size.width
+                let H = geo.size.height
+                ZStack {
+                    // Dark background
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.black.opacity(0.82))
+                    // Spotlight circle reveal via blendMode mask
+                    Circle()
+                        .fill(Color.black)
+                        .frame(width: min(W, H) * 0.76, height: min(W, H) * 0.76)
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
+                .allowsHitTesting(false)
+            }
+
+        case .expert:
+            // Only center band visible — covers top/bottom/side strips
+            GeometryReader { geo in
+                Canvas { ctx, size in
+                    let H = size.height
+                    // Top cover
+                    ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: H * 0.28)),
+                             with: .color(Color.black.opacity(0.92)))
+                    // Bottom cover
+                    ctx.fill(Path(CGRect(x: 0, y: H * 0.72, width: size.width, height: H * 0.28)),
+                             with: .color(Color.black.opacity(0.92)))
+                    // Left cover
+                    ctx.fill(Path(CGRect(x: 0, y: H * 0.28, width: size.width * 0.15, height: H * 0.44)),
+                             with: .color(Color.black.opacity(0.92)))
+                    // Right cover
+                    ctx.fill(Path(CGRect(x: size.width * 0.85, y: H * 0.28, width: size.width * 0.15, height: H * 0.44)),
+                             with: .color(Color.black.opacity(0.92)))
+                    // Expert frame
+                    var frame = Path()
+                    frame.addRoundedRect(
+                        in: CGRect(x: size.width * 0.15, y: H * 0.28, width: size.width * 0.70, height: H * 0.44),
+                        cornerSize: CGSize(width: 4, height: 4)
+                    )
+                    ctx.stroke(frame, with: .color(Color.red.opacity(0.6)), lineWidth: 1.5)
+                }
+                .allowsHitTesting(false)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+    }
+
+    // MARK: - Computed UI Helpers
+
+    private var timerBarColor: Color {
+        let total = max(1, Int(roundTimeLimit))
+        let fraction = Double(timeRemaining) / Double(total)
+        if fraction > 0.5 { return gameMode.accentColor }
+        if fraction > 0.25 { return .orange }
+        return .red
+    }
+
+    private var streakMultiplierView: some View {
+        HStack(spacing: 6) {
+            let iconName: String = streakMultiplier >= 5 ? "crown.fill" : "flame.fill"
+            let iconColor: Color = streakMultiplier >= 5 ? .yellow : .orange
+            Image(systemName: iconName)
+                .font(.system(size: 12, weight: .black))
+                .foregroundStyle(iconColor)
+                .shadow(color: iconColor, radius: 4)
+            if streakMultiplier >= 3 {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(Color.yellow)
+                    .shadow(color: .yellow, radius: 4)
+            }
+            Text("\(streakMultiplier)x STREAK")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(iconColor)
+            Text("(\(streakCount) in a row)")
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background(Color.orange.opacity(0.10))
+        .clipShape(Capsule())
+    }
+
+    // MARK: - Overlay Views
+
+    private var roundBadgeOverlay: some View {
+        VStack {
+            Spacer()
+            HStack(spacing: 10) {
+                Circle()
+                    .stroke(currentDifficulty.color, lineWidth: 3)
+                    .frame(width: 28, height: 28)
+                    .overlay(
+                        Text("\(currentRound)")
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                            .foregroundStyle(currentDifficulty.color)
+                    )
+                Text("ROUND \(currentRound) — \(currentDifficulty.label)")
+                    .font(.system(size: 16, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.black.opacity(0.85))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(currentDifficulty.color.opacity(0.6), lineWidth: 2)
+                    )
+            )
+            Spacer()
+        }
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    private var difficultyTransitionOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.88).ignoresSafeArea()
+            VStack(spacing: 16) {
+                Text("LEVEL UP")
+                    .font(.system(size: 28, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                Text(difficultyTransitionLabel)
+                    .font(.system(size: 20, weight: .black, design: .monospaced))
+                    .foregroundStyle(currentDifficulty.color)
+                Text(currentDifficulty.description)
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+        }
+        .transition(.opacity)
+    }
+
+    private var quickStrikeOverlay: some View {
+        VStack {
+            Spacer()
+            Text("+500 QUICK STRIKE!")
+                .font(.system(size: 22, weight: .black, design: .monospaced))
+                .foregroundStyle(.yellow)
+                .shadow(color: .yellow, radius: 8)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(Color.black.opacity(0.7))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.bottom, 120)
+                .transition(.scale.combined(with: .opacity))
         }
     }
 
