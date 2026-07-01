@@ -28,12 +28,12 @@ if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
 fi
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
-  echo "==> Configure + build headless gameplay tests"
+  echo "==> Configure + build full headless test matrix"
   cmake -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
@@ -105,6 +105,13 @@ payload = {
 ctest_summary = re.search(r"(\d+)% tests passed", ctest_log)
 if ctest_summary:
     payload["ctest_summary"] = ctest_summary.group(0)
+
+failed_tests = re.findall(r"^\s*\d+\s+-\s+([^\s]+)\s+\(([^)]+)\)", ctest_log, flags=re.MULTILINE)
+if failed_tests:
+    payload["ctest_failures"] = [
+        {"name": name, "status": status}
+        for name, status in failed_tests
+    ]
 
 out_path.write_text(json.dumps(payload, indent=2) + "\n")
 print(json.dumps(payload, indent=2))

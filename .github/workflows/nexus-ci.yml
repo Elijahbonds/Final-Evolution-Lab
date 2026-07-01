@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - cursor/app-quality-and-completion-c4d7
+      - 'cursor/**'
   pull_request:
     branches:
       - main
