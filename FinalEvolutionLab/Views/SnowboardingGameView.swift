@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Phase
 
@@ -28,6 +29,24 @@ private enum SnowSwipeDir {
     case up, right, left, down
 }
 
+// MARK: - Haptics
+
+private func hapticLight() {
+    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+}
+private func hapticMedium() {
+    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+}
+private func hapticHeavy() {
+    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+}
+private func hapticRigid() {
+    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+}
+private func hapticError() {
+    UINotificationFeedbackGenerator().notificationOccurred(.error)
+}
+
 // MARK: - Snow Slope Drawer
 
 private struct SnowSlopeDrawer {
@@ -35,14 +54,21 @@ private struct SnowSlopeDrawer {
     let H: CGFloat
     let speed: Double
     let t: Double
+    // State for crowd celebration
+    var gatePassActive: Bool = false
 
     mutating func render(ctx: inout GraphicsContext) {
         drawSky(ctx: &ctx)
+        drawMountainSkyline(ctx: &ctx)
         drawMountains(ctx: &ctx)
         drawSlope(ctx: &ctx)
+        drawSnowParticles(ctx: &ctx)
         drawGates(ctx: &ctx)
+        drawCrowd(ctx: &ctx)
+        drawBoarderShadow(ctx: &ctx)
         drawBoarder(ctx: &ctx)
         if speed > 35 { drawSpeedLines(ctx: &ctx) }
+        drawSpeedGauge(ctx: &ctx)
     }
 
     private func drawSky(ctx: inout GraphicsContext) {
@@ -54,6 +80,44 @@ private struct SnowSlopeDrawer {
                     ]),
                     startPoint: .zero,
                     endPoint: CGPoint(x: 0, y: H * 0.42)))
+    }
+
+    // Deep blue/purple distant mountain silhouettes at horizon
+    private func drawMountainSkyline(ctx: inout GraphicsContext) {
+        var far = Path()
+        far.move(to: CGPoint(x: 0, y: H * 0.38))
+        far.addLine(to: CGPoint(x: W * 0.04, y: H * 0.26))
+        far.addLine(to: CGPoint(x: W * 0.12, y: H * 0.34))
+        far.addLine(to: CGPoint(x: W * 0.21, y: H * 0.21))
+        far.addLine(to: CGPoint(x: W * 0.30, y: H * 0.33))
+        far.addLine(to: CGPoint(x: W * 0.42, y: H * 0.17))
+        far.addLine(to: CGPoint(x: W * 0.53, y: H * 0.31))
+        far.addLine(to: CGPoint(x: W * 0.62, y: H * 0.20))
+        far.addLine(to: CGPoint(x: W * 0.73, y: H * 0.34))
+        far.addLine(to: CGPoint(x: W * 0.84, y: H * 0.22))
+        far.addLine(to: CGPoint(x: W * 0.93, y: H * 0.36))
+        far.addLine(to: CGPoint(x: W, y: H * 0.28))
+        far.addLine(to: CGPoint(x: W, y: H * 0.42))
+        far.addLine(to: CGPoint(x: 0, y: H * 0.42))
+        far.closeSubpath()
+        ctx.fill(far, with: .color(Color(red: 0.10, green: 0.08, blue: 0.22).opacity(0.82)))
+
+        // Snow caps on distant peaks
+        var caps = Path()
+        caps.move(to: CGPoint(x: W * 0.38, y: H * 0.17))
+        caps.addLine(to: CGPoint(x: W * 0.42, y: H * 0.17))
+        caps.addLine(to: CGPoint(x: W * 0.45, y: H * 0.22))
+        caps.addLine(to: CGPoint(x: W * 0.39, y: H * 0.22))
+        caps.closeSubpath()
+        ctx.fill(caps, with: .color(.white.opacity(0.55)))
+
+        var caps2 = Path()
+        caps2.move(to: CGPoint(x: W * 0.59, y: H * 0.20))
+        caps2.addLine(to: CGPoint(x: W * 0.62, y: H * 0.20))
+        caps2.addLine(to: CGPoint(x: W * 0.65, y: H * 0.26))
+        caps2.addLine(to: CGPoint(x: W * 0.58, y: H * 0.26))
+        caps2.closeSubpath()
+        ctx.fill(caps2, with: .color(.white.opacity(0.50)))
     }
 
     private func drawMountains(ctx: inout GraphicsContext) {
@@ -124,6 +188,18 @@ private struct SnowSlopeDrawer {
         }
     }
 
+    // 30 snow particles falling diagonally, driven by t
+    private func drawSnowParticles(ctx: inout GraphicsContext) {
+        for i in 0..<30 {
+            let px = CGFloat(fmod(Double(i) * 73.1 + t * 80, Double(W)))
+            let py = CGFloat(fmod(Double(i) * 47.3 + t * 120, Double(H)))
+            ctx.fill(
+                Circle().path(in: CGRect(x: px - 1.5, y: py - 1.5, width: 3, height: 3)),
+                with: .color(.white.opacity(0.55))
+            )
+        }
+    }
+
     private func drawGates(ctx: inout GraphicsContext) {
         let slopeTop = H * 0.42
         let speedRate = 0.3 + speed / 200.0
@@ -138,27 +214,116 @@ private struct SnowSlopeDrawer {
 
             let lx = W * 0.5 - spread
             let rx = W * 0.5 + spread
+            let flagW = spread * 0.38
+            let flagH = poleH * 0.30
+
             // Left pole
             ctx.fill(Path(CGRect(x: lx - poleW / 2, y: gY - poleH, width: poleW, height: poleH)),
                      with: .color(gateColor.opacity(alpha)))
+            // Left pole shadow on snow
+            ctx.fill(Path(CGRect(x: lx, y: gY - 3, width: poleW * 0.6, height: 3)),
+                     with: .color(.black.opacity(0.18 * alpha)))
+            // Left flag panel
+            ctx.fill(Path(CGRect(x: lx - flagW / 2, y: gY - poleH * 0.80, width: flagW, height: flagH)),
+                     with: .color(gateColor.opacity(alpha + 0.2)))
+            // Left pole cap
             ctx.fill(Path(ellipseIn: CGRect(x: lx - poleW, y: gY - poleH - 4, width: poleW * 2, height: poleW * 2)),
                      with: .color(gateColor.opacity(alpha + 0.1)))
+
             // Right pole
             ctx.fill(Path(CGRect(x: rx - poleW / 2, y: gY - poleH, width: poleW, height: poleH)),
                      with: .color(gateColor.opacity(alpha)))
+            // Right pole shadow on snow
+            ctx.fill(Path(CGRect(x: rx, y: gY - 3, width: poleW * 0.6, height: 3)),
+                     with: .color(.black.opacity(0.18 * alpha)))
+            // Right flag panel
+            ctx.fill(Path(CGRect(x: rx - flagW / 2, y: gY - poleH * 0.80, width: flagW, height: flagH)),
+                     with: .color(gateColor.opacity(alpha + 0.2)))
+            // Right pole cap
             ctx.fill(Path(ellipseIn: CGRect(x: rx - poleW, y: gY - poleH - 4, width: poleW * 2, height: poleW * 2)),
                      with: .color(gateColor.opacity(alpha + 0.1)))
-            // Banner
+
+            // Banner between poles
             var banner = Path()
             banner.move(to: CGPoint(x: lx, y: gY - poleH * 0.75))
             banner.addLine(to: CGPoint(x: rx, y: gY - poleH * 0.75))
             ctx.stroke(banner, with: .color(.white.opacity(alpha * 0.5)), lineWidth: 1)
+
+            // Gate number label (small dot indicator)
+            let labelSize = CGFloat(5 + gatePhase * 4)
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: W * 0.5 - labelSize / 2, y: gY - poleH * 0.75 - labelSize / 2,
+                                       width: labelSize, height: labelSize)),
+                with: .color(.white.opacity(alpha * 0.85))
+            )
         }
+    }
+
+    // 8 spectator silhouettes on each side, arms raised on good gate pass
+    private func drawCrowd(ctx: inout GraphicsContext) {
+        let slopeTop = H * 0.42
+        let groundY = H * 0.94
+        let armsUp = gatePassActive
+        let crowdAlpha: CGFloat = 0.72
+
+        for side in 0..<2 {
+            let baseX: CGFloat = side == 0 ? W * 0.04 : W * 0.70
+            let spacing: CGFloat = W * 0.033
+            for i in 0..<8 {
+                let cx = baseX + CGFloat(i) * spacing
+                let cy = groundY - CGFloat(i % 3) * H * 0.022
+                let scale: CGFloat = 0.55 + CGFloat(i % 3) * 0.08
+                let bodyH = H * 0.065 * scale
+                let headR = bodyH * 0.25
+
+                // Body silhouette
+                ctx.fill(
+                    Path(CGRect(x: cx - 3 * scale, y: cy - bodyH, width: 6 * scale, height: bodyH)),
+                    with: .color(Color(red: 0.12, green: 0.08, blue: 0.20).opacity(crowdAlpha))
+                )
+                // Head
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: cx - headR, y: cy - bodyH - headR * 2,
+                                           width: headR * 2, height: headR * 2)),
+                    with: .color(Color(red: 0.12, green: 0.08, blue: 0.20).opacity(crowdAlpha))
+                )
+                // Arms — raised if gate pass active, else neutral
+                let armY = cy - bodyH * 0.65
+                let armLen: CGFloat = armsUp ? bodyH * 0.55 : bodyH * 0.35
+                let armAngle: CGFloat = armsUp ? -0.9 : 0.2
+                var arms = Path()
+                arms.move(to: CGPoint(x: cx - 3 * scale, y: armY))
+                arms.addLine(to: CGPoint(x: cx - 3 * scale - CGFloat(cos(armAngle)) * armLen,
+                                          y: armY - CGFloat(sin(armAngle)) * armLen))
+                arms.move(to: CGPoint(x: cx + 3 * scale, y: armY))
+                arms.addLine(to: CGPoint(x: cx + 3 * scale + CGFloat(cos(armAngle)) * armLen,
+                                          y: armY - CGFloat(sin(armAngle)) * armLen))
+                ctx.stroke(arms,
+                           with: .color(Color(red: 0.12, green: 0.08, blue: 0.20).opacity(crowdAlpha)),
+                           lineWidth: 1.5 * scale)
+            }
+        }
+    }
+
+    // Ellipse shadow under snowboard on snow surface
+    private func drawBoarderShadow(ctx: inout GraphicsContext) {
+        let bx = W * 0.50
+        let shadowY = H * 0.695
+        let shadowW: CGFloat = 44
+        let shadowH: CGFloat = 8
+        var shadowGC = ctx
+        shadowGC.addFilter(.blur(radius: 3))
+        shadowGC.fill(
+            Path(ellipseIn: CGRect(x: bx - shadowW / 2, y: shadowY, width: shadowW, height: shadowH)),
+            with: .color(.black.opacity(0.30))
+        )
     }
 
     private func drawBoarder(ctx: inout GraphicsContext) {
         let bx = W * 0.50, by = H * 0.66
         let lean = CGFloat((speed - 50) * 0.004)
+        // Crouch: lower center of mass at higher speeds
+        let crouchOffset = CGFloat(speed / 100.0) * 4.0
 
         var gc = ctx
         gc.translateBy(x: bx, y: by)
@@ -168,6 +333,7 @@ private struct SnowSlopeDrawer {
         let skin = GraphicsContext.Shading.color(Color(red: 0.88, green: 0.65, blue: 0.44))
         let dark = GraphicsContext.Shading.color(Color(red: 0.08, green: 0.06, blue: 0.12))
 
+        // Board — tinted with jacket color hint
         gc.fill(Path(roundedRect: CGRect(x: -22, y: 4, width: 44, height: 7),
                      cornerRadius: CGSize(width: 3, height: 3)),
                 with: .color(.white.opacity(0.90)))
@@ -175,29 +341,33 @@ private struct SnowSlopeDrawer {
                      cornerRadius: CGSize(width: 1, height: 1)),
                 with: blue)
 
+        // Legs — crouched at high speed
         var legs = Path()
         legs.move(to: CGPoint(x: -6, y: 4))
-        legs.addLine(to: CGPoint(x: -3, y: -5))
-        legs.addLine(to: CGPoint(x: 0, y: -10))
+        legs.addLine(to: CGPoint(x: -3, y: -5 + crouchOffset))
+        legs.addLine(to: CGPoint(x: 0, y: -10 + crouchOffset))
         legs.move(to: CGPoint(x: 6, y: 4))
-        legs.addLine(to: CGPoint(x: 3, y: -5))
-        legs.addLine(to: CGPoint(x: 0, y: -10))
+        legs.addLine(to: CGPoint(x: 3, y: -5 + crouchOffset))
+        legs.addLine(to: CGPoint(x: 0, y: -10 + crouchOffset))
         gc.stroke(legs, with: blue, lineWidth: 3)
 
         var torso = Path()
-        torso.move(to: CGPoint(x: 0, y: -10))
-        torso.addLine(to: CGPoint(x: 0, y: -20))
+        torso.move(to: CGPoint(x: 0, y: -10 + crouchOffset))
+        torso.addLine(to: CGPoint(x: 0, y: -20 + crouchOffset))
         gc.stroke(torso, with: blue, lineWidth: 3)
 
+        // Arms — extended outward for balance at higher speeds
+        let armExtend: CGFloat = CGFloat(speed / 100.0) * 5.0
         var arms = Path()
-        arms.move(to: CGPoint(x: -12, y: -16))
-        arms.addLine(to: CGPoint(x: 0, y: -15))
-        arms.addLine(to: CGPoint(x: 12, y: -16))
+        arms.move(to: CGPoint(x: -12 - armExtend, y: -16 + crouchOffset))
+        arms.addLine(to: CGPoint(x: 0, y: -15 + crouchOffset))
+        arms.addLine(to: CGPoint(x: 12 + armExtend, y: -16 + crouchOffset))
         gc.stroke(arms, with: skin, lineWidth: 2.5)
 
-        gc.fill(Path(ellipseIn: CGRect(x: -5, y: -29, width: 10, height: 10)), with: blue)
-        gc.fill(Path(CGRect(x: -5, y: -27, width: 10, height: 4)), with: dark)
+        gc.fill(Path(ellipseIn: CGRect(x: -5, y: -29 + crouchOffset, width: 10, height: 10)), with: blue)
+        gc.fill(Path(CGRect(x: -5, y: -27 + crouchOffset, width: 10, height: 4)), with: dark)
 
+        // Powder spray arc when carving hard
         if speed > 28 {
             for i in 0..<5 {
                 let sa = Double(i) * .pi / 4.0 + .pi * 1.1
@@ -224,6 +394,62 @@ private struct SnowSlopeDrawer {
                                       y: by + CGFloat(sin(angle)) * len))
             ctx.stroke(line, with: .color(.white.opacity(alpha)), lineWidth: 0.8)
         }
+
+        // 6 radial speed lines from near-center, length scales with speed
+        let cx = W * 0.50, cy = H * 0.55
+        let speedFactor = speed / 100.0
+        for i in 0..<6 {
+            let angle = Double(i) * .pi / 3.0 + t * 0.5
+            let lineLen = speedFactor * 60
+            var p = Path()
+            p.move(to: CGPoint(x: cx, y: cy))
+            p.addLine(to: CGPoint(x: cx + CGFloat(cos(angle) * lineLen),
+                                   y: cy + CGFloat(sin(angle) * lineLen)))
+            ctx.stroke(p, with: .color(.white.opacity(0.25)), lineWidth: 1.5)
+        }
+    }
+
+    // Glowing speed gauge arc in bottom corner
+    private func drawSpeedGauge(ctx: inout GraphicsContext) {
+        let cx = W - 28, cy = H - 28
+        let radius: CGFloat = 18
+        let lineW: CGFloat = 3.5
+        let fillFraction = CGFloat(speed / 100.0)
+
+        // Background arc
+        var bgArc = Path()
+        bgArc.addArc(center: CGPoint(x: cx, y: cy),
+                     radius: radius,
+                     startAngle: .degrees(145),
+                     endAngle: .degrees(35),
+                     clockwise: false)
+        ctx.stroke(bgArc, with: .color(.white.opacity(0.15)), lineWidth: lineW)
+
+        // Fill arc (speed proportion)
+        if fillFraction > 0 {
+            let endDeg = 145.0 + fillFraction * 250.0
+            var fillArc = Path()
+            fillArc.addArc(center: CGPoint(x: cx, y: cy),
+                           radius: radius,
+                           startAngle: .degrees(145),
+                           endAngle: .degrees(endDeg),
+                           clockwise: false)
+            let gaugeColor = speed > 70
+                ? Color(red: 0.2, green: 1.0, blue: 0.5)
+                : Color(red: 0.4, green: 0.7, blue: 1.0)
+            ctx.stroke(fillArc, with: .color(gaugeColor.opacity(0.88)), lineWidth: lineW)
+
+            // Glow halo
+            var glowGC = ctx
+            glowGC.addFilter(.blur(radius: 4))
+            glowGC.stroke(fillArc, with: .color(gaugeColor.opacity(0.40)), lineWidth: lineW + 2)
+        }
+
+        // Center dot
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: cx - 3, y: cy - 3, width: 6, height: 6)),
+            with: .color(.white.opacity(0.70))
+        )
     }
 }
 
@@ -231,12 +457,15 @@ private struct SnowSlopeDrawer {
 
 private struct SnowSlopeCanvas: View {
     let speed: Double
+    let gatePassActive: Bool
 
     var body: some View {
         TimelineView(.animation) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             Canvas { ctx, size in
-                var drawer = SnowSlopeDrawer(W: size.width, H: size.height, speed: speed, t: t)
+                var drawer = SnowSlopeDrawer(W: size.width, H: size.height,
+                                             speed: speed, t: t,
+                                             gatePassActive: gatePassActive)
                 drawer.render(ctx: &ctx)
             }
         }
@@ -251,27 +480,95 @@ private struct SnowJumpDrawer {
     let jumpHeight: Double
     let isTrickPhase: Bool
     let trickName: String?
+    let trickPoints: Int
+    let rotationFraction: Double   // 0…1 trick rotation progress
+    let judgeScores: [Int]         // revealed scores (0-10 each)
     let t: Double
 
     mutating func render(ctx: inout GraphicsContext) {
         drawSky(ctx: &ctx)
+        drawHalfpipeWalls(ctx: &ctx)
         drawMountains(ctx: &ctx)
-        drawSpray(ctx: &ctx)
+        drawSnowSpray(ctx: &ctx)
         drawBoarder(ctx: &ctx)
+        if isTrickPhase && jumpHeight > 0.25 { drawRotationIndicator(ctx: &ctx) }
+        if let name = trickName { drawTrickBanner(ctx: &ctx, name: name) }
+        drawJudgePanel(ctx: &ctx)
+        drawCrowdReaction(ctx: &ctx)
     }
 
     private func drawSky(ctx: inout GraphicsContext) {
+        // Sky gradient: light blue at horizon → deep blue overhead
         ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
                  with: .linearGradient(
                     Gradient(colors: [
-                        Color(red: 0.30, green: 0.55, blue: 0.88),
-                        Color(red: 0.55, green: 0.76, blue: 0.96)
+                        Color(red: 0.05, green: 0.10, blue: 0.42),   // deep blue overhead
+                        Color(red: 0.30, green: 0.55, blue: 0.88),   // mid sky
+                        Color(red: 0.55, green: 0.76, blue: 0.96)    // light blue horizon
                     ]),
                     startPoint: .zero, endPoint: CGPoint(x: 0, y: H)))
         var sunGC = ctx
         sunGC.addFilter(.blur(radius: 20))
         sunGC.fill(Path(ellipseIn: CGRect(x: W * 0.72, y: H * 0.06, width: 32, height: 26)),
                    with: .color(Color(red: 1.0, green: 0.97, blue: 0.80).opacity(0.48)))
+    }
+
+    // Halfpipe quarter-pipe walls on left and right
+    private func drawHalfpipeWalls(ctx: inout GraphicsContext) {
+        let lift = CGFloat(jumpHeight) * H * 0.22
+        let groundY = H * 0.84 - lift
+        let wallH = H * 0.28
+        let wallW = W * 0.12
+
+        // Left wall — curved quarter pipe
+        var leftWall = Path()
+        leftWall.move(to: CGPoint(x: 0, y: groundY))
+        leftWall.addQuadCurve(to: CGPoint(x: wallW, y: groundY - wallH),
+                               control: CGPoint(x: 0, y: groundY - wallH))
+        leftWall.addLine(to: CGPoint(x: wallW * 0.6, y: groundY - wallH))
+        leftWall.addQuadCurve(to: CGPoint(x: 0, y: groundY + H * 0.04),
+                               control: CGPoint(x: 0, y: groundY - wallH * 0.7))
+        leftWall.closeSubpath()
+        ctx.fill(leftWall, with: .linearGradient(
+            Gradient(colors: [Color(red: 0.82, green: 0.88, blue: 0.96),
+                               Color(red: 0.70, green: 0.78, blue: 0.92)]),
+            startPoint: CGPoint(x: 0, y: groundY - wallH),
+            endPoint: CGPoint(x: wallW, y: groundY)))
+        // Wall shadow gradient
+        ctx.fill(leftWall, with: .linearGradient(
+            Gradient(colors: [.black.opacity(0.18), .clear]),
+            startPoint: CGPoint(x: 0, y: groundY - wallH),
+            endPoint: CGPoint(x: wallW, y: groundY)))
+
+        // Right wall
+        var rightWall = Path()
+        rightWall.move(to: CGPoint(x: W, y: groundY))
+        rightWall.addQuadCurve(to: CGPoint(x: W - wallW, y: groundY - wallH),
+                                control: CGPoint(x: W, y: groundY - wallH))
+        rightWall.addLine(to: CGPoint(x: W - wallW * 0.6, y: groundY - wallH))
+        rightWall.addQuadCurve(to: CGPoint(x: W, y: groundY + H * 0.04),
+                                control: CGPoint(x: W, y: groundY - wallH * 0.7))
+        rightWall.closeSubpath()
+        ctx.fill(rightWall, with: .linearGradient(
+            Gradient(colors: [Color(red: 0.82, green: 0.88, blue: 0.96),
+                               Color(red: 0.70, green: 0.78, blue: 0.92)]),
+            startPoint: CGPoint(x: W, y: groundY - wallH),
+            endPoint: CGPoint(x: W - wallW, y: groundY)))
+        ctx.fill(rightWall, with: .linearGradient(
+            Gradient(colors: [.black.opacity(0.18), .clear]),
+            startPoint: CGPoint(x: W, y: groundY - wallH),
+            endPoint: CGPoint(x: W - wallW, y: groundY)))
+
+        // Lip line on top of each wall
+        var leftLip = Path()
+        leftLip.move(to: CGPoint(x: 0, y: groundY - wallH))
+        leftLip.addLine(to: CGPoint(x: wallW, y: groundY - wallH))
+        ctx.stroke(leftLip, with: .color(.white.opacity(0.55)), lineWidth: 1.5)
+
+        var rightLip = Path()
+        rightLip.move(to: CGPoint(x: W, y: groundY - wallH))
+        rightLip.addLine(to: CGPoint(x: W - wallW, y: groundY - wallH))
+        ctx.stroke(rightLip, with: .color(.white.opacity(0.55)), lineWidth: 1.5)
     }
 
     private func drawMountains(ctx: inout GraphicsContext) {
@@ -297,10 +594,12 @@ private struct SnowJumpDrawer {
             endPoint: CGPoint(x: W, y: groundY)))
     }
 
-    private func drawSpray(ctx: inout GraphicsContext) {
+    // 12 snow spray particles kick up when board is near lip
+    private func drawSnowSpray(ctx: inout GraphicsContext) {
         let lift = CGFloat(jumpHeight) * H * 0.22
         let groundY = H * 0.84 - lift
         let intensity = CGFloat(jumpHeight)
+        // Original 8-particle spray
         for i in 0..<8 {
             let phase = fmod(t * 1.6 + Double(i) * 0.35, 1.0)
             let angle = Double(i) * .pi / 4.0 + .pi * 0.58
@@ -311,6 +610,162 @@ private struct SnowJumpDrawer {
             ctx.fill(Path(ellipseIn: CGRect(x: px - dot / 2, y: py - dot / 2, width: dot, height: dot)),
                      with: .color(.white.opacity(CGFloat(0.5 * (1.0 - phase)) * intensity)))
         }
+        // 4 extra spray particles at lip exit
+        for i in 0..<4 {
+            let phase = fmod(t * 2.2 + Double(i) * 0.55, 1.0)
+            let angle = Double(i) * .pi / 2.5 + .pi * 0.35
+            let r = CGFloat(phase * 18)
+            let px = W * 0.5 + CGFloat(cos(angle)) * r
+            let py = groundY - CGFloat(phase) * H * 0.06
+            let dot = CGFloat(1.5 + phase * 3.0)
+            ctx.fill(Path(ellipseIn: CGRect(x: px - dot / 2, y: py - dot / 2, width: dot, height: dot)),
+                     with: .color(.white.opacity(CGFloat(0.4 * (1.0 - phase)) * intensity)))
+        }
+    }
+
+    // Arc showing rotation angle during trick
+    private func drawRotationIndicator(ctx: inout GraphicsContext) {
+        let bY = H * 0.84 - CGFloat(jumpHeight) * H * 0.22 - CGFloat(jumpHeight) * H * 0.52
+        let bX = W * 0.5
+        let indicatorR: CGFloat = 32
+        let rotEnd = rotationFraction * 360.0
+
+        var arcPath = Path()
+        arcPath.addArc(center: CGPoint(x: bX, y: bY),
+                       radius: indicatorR,
+                       startAngle: .degrees(-90),
+                       endAngle: .degrees(-90 + rotEnd),
+                       clockwise: false)
+        ctx.stroke(arcPath, with: .color(Color(red: 0.4, green: 0.9, blue: 1.0).opacity(0.72)), lineWidth: 2)
+
+        // Arrowhead dot at end
+        let endAngle = (-90 + rotEnd) * .pi / 180.0
+        let dotX = bX + indicatorR * CGFloat(cos(endAngle))
+        let dotY = bY + indicatorR * CGFloat(sin(endAngle))
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: dotX - 3, y: dotY - 3, width: 6, height: 6)),
+            with: .color(Color(red: 0.4, green: 0.9, blue: 1.0).opacity(0.88))
+        )
+    }
+
+    // Trick name banner flashes center screen with glow
+    private func drawTrickBanner(ctx: inout GraphicsContext, name: String) {
+        // Glow background pill
+        let pillW: CGFloat = W * 0.65
+        let pillH: CGFloat = H * 0.10
+        let pillX = W * 0.175
+        let pillY = H * 0.38
+
+        var glowGC = ctx
+        glowGC.addFilter(.blur(radius: 12))
+        glowGC.fill(
+            Path(roundedRect: CGRect(x: pillX, y: pillY, width: pillW, height: pillH),
+                 cornerRadius: pillH / 2),
+            with: .color(Color(red: 0.3, green: 0.7, blue: 1.0).opacity(0.60))
+        )
+
+        ctx.fill(
+            Path(roundedRect: CGRect(x: pillX, y: pillY, width: pillW, height: pillH),
+                 cornerRadius: pillH / 2),
+            with: .color(Color(red: 0.05, green: 0.10, blue: 0.28).opacity(0.80))
+        )
+        ctx.stroke(
+            Path(roundedRect: CGRect(x: pillX, y: pillY, width: pillW, height: pillH),
+                 cornerRadius: pillH / 2),
+            with: .color(Color(red: 0.4, green: 0.7, blue: 1.0).opacity(0.75)),
+            lineWidth: 1.5
+        )
+
+        // Trick name text resolved as image
+        let label = Text(name.uppercased())
+            .font(.system(size: 16, weight: .black, design: .monospaced))
+            .foregroundColor(Color(red: 0.85, green: 0.95, blue: 1.0))
+        let resolved = ctx.resolve(label)
+        let textSize = resolved.measure(in: CGSize(width: pillW, height: pillH))
+        ctx.draw(resolved, at: CGPoint(x: pillX + pillW / 2 - textSize.width / 2,
+                                        y: pillY + pillH / 2 - textSize.height / 2),
+                 anchor: .topLeading)
+
+        // Points sub-label
+        let ptsLabel = Text("+\(trickPoints) pts")
+            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .foregroundColor(.white.opacity(0.80))
+        let ptsResolved = ctx.resolve(ptsLabel)
+        let ptsSize = ptsResolved.measure(in: CGSize(width: pillW, height: 20))
+        ctx.draw(ptsResolved,
+                 at: CGPoint(x: pillX + pillW / 2 - ptsSize.width / 2,
+                              y: pillY + pillH - ptsSize.height - 4),
+                 anchor: .topLeading)
+    }
+
+    // 5 judge score cards at bottom, revealed after landing
+    private func drawJudgePanel(ctx: inout GraphicsContext) {
+        guard !judgeScores.isEmpty else { return }
+        let cardW: CGFloat = W * 0.13
+        let cardH: CGFloat = H * 0.085
+        let totalPanelW = cardW * 5 + W * 0.025 * 4
+        let startX = (W - totalPanelW) / 2
+        let cardY = H - cardH - H * 0.03
+
+        for i in 0..<5 {
+            let cardX = startX + CGFloat(i) * (cardW + W * 0.025)
+            let score = i < judgeScores.count ? judgeScores[i] : 0
+            let isPerfect = score >= 9
+
+            // Card background
+            ctx.fill(
+                Path(roundedRect: CGRect(x: cardX, y: cardY, width: cardW, height: cardH),
+                     cornerRadius: 4),
+                with: .color(isPerfect
+                    ? Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.90)
+                    : Color(red: 0.10, green: 0.12, blue: 0.22).opacity(0.88))
+            )
+            ctx.stroke(
+                Path(roundedRect: CGRect(x: cardX, y: cardY, width: cardW, height: cardH),
+                     cornerRadius: 4),
+                with: .color(isPerfect
+                    ? Color(red: 0.4, green: 1.0, blue: 0.6).opacity(0.80)
+                    : Color(red: 0.4, green: 0.7, blue: 1.0).opacity(0.50)),
+                lineWidth: 1
+            )
+
+            // Score number
+            let scoreLabel = Text("\(score)")
+                .font(.system(size: 14, weight: .black, design: .monospaced))
+                .foregroundColor(isPerfect ? .black : Color(red: 0.85, green: 0.95, blue: 1.0))
+            let sResolved = ctx.resolve(scoreLabel)
+            let sSize = sResolved.measure(in: CGSize(width: cardW, height: cardH))
+            ctx.draw(sResolved,
+                     at: CGPoint(x: cardX + cardW / 2 - sSize.width / 2,
+                                  y: cardY + cardH / 2 - sSize.height / 2),
+                     anchor: .topLeading)
+        }
+    }
+
+    // Crowd brightness flares on perfect trick timing
+    private func drawCrowdReaction(ctx: inout GraphicsContext) {
+        let lift = CGFloat(jumpHeight) * H * 0.22
+        let groundY = H * 0.84 - lift
+        let flareAlpha = CGFloat(jumpHeight) * 0.35
+        guard flareAlpha > 0.05 else { return }
+
+        // Left crowd flare
+        var leftFlare = Path()
+        leftFlare.addEllipse(in: CGRect(x: -W * 0.05, y: groundY - H * 0.18,
+                                         width: W * 0.18, height: H * 0.16))
+        var leftGC = ctx
+        leftGC.addFilter(.blur(radius: 14))
+        leftGC.fill(leftFlare,
+                    with: .color(Color(red: 1.0, green: 0.9, blue: 0.3).opacity(flareAlpha)))
+
+        // Right crowd flare
+        var rightFlare = Path()
+        rightFlare.addEllipse(in: CGRect(x: W * 0.87, y: groundY - H * 0.18,
+                                          width: W * 0.18, height: H * 0.16))
+        var rightGC = ctx
+        rightGC.addFilter(.blur(radius: 14))
+        rightGC.fill(rightFlare,
+                     with: .color(Color(red: 1.0, green: 0.9, blue: 0.3).opacity(flareAlpha)))
     }
 
     private func drawBoarder(ctx: inout GraphicsContext) {
@@ -321,6 +776,7 @@ private struct SnowJumpDrawer {
 
         var spinAngle: Double = 0
         var boardTilt: Double = 0
+        let isGrab = trickName == "Grab" || trickName == "Indy"
         if isTrickPhase && jumpHeight > 0.25 {
             if trickName == "Spin" {
                 spinAngle = fmod(t * 3.2, .pi * 2.0)
@@ -354,6 +810,7 @@ private struct SnowJumpDrawer {
         boardGC.fill(Path(roundedRect: CGRect(x: -24, y: 8, width: 48, height: 3),
                           cornerRadius: CGSize(width: 2, height: 2)), with: blue)
 
+        // Legs — arms extend for grab tricks
         var legs = Path()
         legs.move(to: CGPoint(x: -8, y: 8))
         legs.addLine(to: CGPoint(x: -4, y: -2))
@@ -368,10 +825,12 @@ private struct SnowJumpDrawer {
         torso.addLine(to: CGPoint(x: 0, y: -20))
         gc.stroke(torso, with: blue, lineWidth: 3.5)
 
+        // Arms — extended wide for grabs
+        let armExtend: CGFloat = isGrab ? 8 : 0
         var arms = Path()
-        arms.move(to: CGPoint(x: -15, y: -15))
+        arms.move(to: CGPoint(x: -15 - armExtend, y: -15))
         arms.addLine(to: CGPoint(x: 0, y: -14))
-        arms.addLine(to: CGPoint(x: 15, y: -15))
+        arms.addLine(to: CGPoint(x: 15 + armExtend, y: -15))
         gc.stroke(arms, with: skin, lineWidth: 3)
 
         gc.fill(Path(ellipseIn: CGRect(x: -5.5, y: -30, width: 11, height: 11)), with: blue)
@@ -385,15 +844,21 @@ private struct SnowJumpCanvas: View {
     let jumpHeight: Double
     let isTrickPhase: Bool
     let trickName: String?
+    let trickPoints: Int
+    let judgeScores: [Int]
 
     var body: some View {
         TimelineView(.animation) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             Canvas { ctx, size in
+                let rotFraction = isTrickPhase ? fmod(t * 0.6, 1.0) : 0.0
                 var drawer = SnowJumpDrawer(
                     W: size.width, H: size.height,
                     jumpHeight: jumpHeight, isTrickPhase: isTrickPhase,
-                    trickName: trickName, t: t)
+                    trickName: trickName, trickPoints: trickPoints,
+                    rotationFraction: rotFraction,
+                    judgeScores: judgeScores,
+                    t: t)
                 drawer.render(ctx: &ctx)
             }
         }
@@ -423,6 +888,7 @@ struct SnowboardingGameView: View {
     @State private var tapLeftCount = 0
     @State private var tapRightCount = 0
     @State private var lastGateMissed = false
+    @State private var gatePassActive = false
 
     @State private var airTime: Double = 0
     @State private var airTimeLeft: Double = 0
@@ -447,6 +913,9 @@ struct SnowboardingGameView: View {
     @State private var shardsEarned = 0
 
     @State private var showGatePenalty = false
+
+    // Judge scores revealed after each jump
+    @State private var judgeScores: [Int] = []
 
     var body: some View {
         ZStack {
@@ -559,7 +1028,7 @@ struct SnowboardingGameView: View {
     }
 
     private var slopeVisual: some View {
-        SnowSlopeCanvas(speed: speed)
+        SnowSlopeCanvas(speed: speed, gatePassActive: gatePassActive)
             .frame(height: 160)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.15), lineWidth: 1))
@@ -695,7 +1164,11 @@ struct SnowboardingGameView: View {
                 }
             }
 
-            SnowJumpCanvas(jumpHeight: jumpHeight, isTrickPhase: phase == .trick, trickName: trickPopup)
+            SnowJumpCanvas(jumpHeight: jumpHeight,
+                           isTrickPhase: phase == .trick,
+                           trickName: trickPopup,
+                           trickPoints: trickPopupPoints,
+                           judgeScores: judgeScores)
                 .frame(width: 160, height: 200)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.15), lineWidth: 1))
@@ -792,6 +1265,8 @@ struct SnowboardingGameView: View {
         tapLeftCount = 0
         tapRightCount = 0
         lastGateMissed = false
+        gatePassActive = false
+        judgeScores = []
         slopeTimeLeft = slopeDuration
         roundTrickPoints = 0
         roundTrickNames = []
@@ -807,6 +1282,8 @@ struct SnowboardingGameView: View {
                     slopeTimeLeft = max(0, slopeTimeLeft - tick)
                     speed = max(0, speed - 0.15)
                     if Int.random(in: 0...200) == 0 { missGate() }
+                    // Gate pass event (random, ~every 1s at normal speed)
+                    if Int.random(in: 0...100) == 0 { passGate() }
                 }
             }
             await MainActor.run { guard phase == .slope else { return }; launchJump() }
@@ -817,18 +1294,44 @@ struct SnowboardingGameView: View {
         guard phase == .slope else { return }
         tapLeftCount += 1
         speed = min(100, speed + Double.random(in: 2.5...4.5))
+        // Speed boost haptic when crossing 70% threshold
+        if speed >= 70 && speed - Double.random(in: 2.5...4.5) < 70 {
+            hapticRigid()
+        }
     }
 
     private func tapRight() {
         guard phase == .slope else { return }
         tapRightCount += 1
         speed = min(100, speed + Double.random(in: 2.5...4.5))
+        // Speed boost haptic when crossing 70% threshold
+        if speed >= 70 && speed - Double.random(in: 2.5...4.5) < 70 {
+            hapticRigid()
+        }
+    }
+
+    private func passGate() {
+        // Gate pass haptic — light impact
+        hapticLight()
+        gatePassActive = true
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            await MainActor.run { gatePassActive = false }
+        }
+        // Speed bonus for clean gate
+        if speed < 95 {
+            speed = min(100, speed + 5.0)
+            hapticRigid()
+        }
     }
 
     private func missGate() {
         lastGateMissed = true
         speed = max(0, speed - 20)
         withAnimation { showGatePenalty = true }
+        // Crash/wipeout haptics
+        hapticError()
+        hapticHeavy()
         Task {
             try? await Task.sleep(for: .milliseconds(600))
             await MainActor.run { withAnimation { showGatePenalty = false }; lastGateMissed = false }
@@ -845,7 +1348,12 @@ struct SnowboardingGameView: View {
         phase = .jump
         Task {
             try? await Task.sleep(for: .milliseconds(600))
-            await MainActor.run { guard phase == .jump else { return }; phase = .trick }
+            await MainActor.run {
+                guard phase == .jump else { return }
+                phase = .trick
+                // Trick execution at peak jump — medium haptic
+                hapticMedium()
+            }
         }
         airTimer?.cancel()
         airTimer = Task {
@@ -866,6 +1374,13 @@ struct SnowboardingGameView: View {
     private func landJump() {
         airTimer?.cancel()
         jumpHeight = 0
+        // Trick landing haptic — heavy impact
+        hapticHeavy()
+
+        // Generate judge scores based on round trick points
+        let baseScore = min(10, max(1, roundTrickPoints / 20))
+        judgeScores = (0..<5).map { _ in max(1, min(10, baseScore + Int.random(in: -1...2))) }
+
         roundScores.append(roundTrickPoints)
         totalScore += roundTrickPoints
         if currentRound >= totalRounds {
@@ -903,6 +1418,8 @@ struct SnowboardingGameView: View {
         trickDoneThisAir = true
         roundTrickPoints += trick.points
         roundTrickNames.append(trick.name)
+        // Trick execution haptic — medium
+        hapticMedium()
         showTrickPopup(name: trick.name, points: trick.points)
         Task {
             try? await Task.sleep(for: .milliseconds(800))
