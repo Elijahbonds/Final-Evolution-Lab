@@ -1749,43 +1749,133 @@ struct FootballGameView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                hudBar
-                Spacer()
+            if down == 4 {
+                fourthDownDecisionPanel
+            } else {
+                routeSelectPanel
+            }
+        }
+    }
 
-                VStack(spacing: 14) {
-                    Text("SELECT ROUTE")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.55))
-                        .tracking(3)
+    private var fourthDownDecisionPanel: some View {
+        VStack(spacing: 0) {
+            hudBar
+            Spacer()
+            VStack(spacing: 18) {
+                VStack(spacing: 4) {
+                    Text("4TH DOWN")
+                        .font(.system(size: 22, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color(red: 1.0, green: 0.30, blue: 0.15))
+                        .shadow(color: Color(red: 1.0, green: 0.30, blue: 0.15).opacity(0.6), radius: 8)
+                        .tracking(4)
+                    Text("& \(yardLine >= 90 ? "GOAL" : "\(yardsToGo)")")
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
 
-                    HStack(spacing: 10) {
-                        ForEach(RouteType.allCases, id: \.self) { route in
-                            routeCard(route)
+                HStack(spacing: 14) {
+                    // Go for it
+                    Button {
+                        presnapPhase = false
+                        phase = .catchRoute
+                        setupCatchPhase()
+                        startClock()
+                    } label: {
+                        VStack(spacing: 8) {
+                            Image(systemName: "arrow.up.forward.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundStyle(Color(red: 0.2, green: 0.8, blue: 1.0))
+                            Text("GO FOR IT")
+                                .font(.system(size: 13, weight: .black, design: .monospaced))
+                                .tracking(2)
+                                .foregroundStyle(.white)
+                            Text("HIGH RISK")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(Color(red: 1.0, green: 0.4, blue: 0.2).opacity(0.85))
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(red: 0.2, green: 0.8, blue: 1.0).opacity(0.12))
+                                .overlay(RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color(red: 0.2, green: 0.8, blue: 1.0).opacity(0.45), lineWidth: 1.5))
+                        )
                     }
-                    .padding(.horizontal, 14)
 
-                    if let route = selectedRoute {
-                        Button {
-                            presnapPhase = false
-                            phase = .catchRoute
-                            setupCatchPhase()
-                            startClock()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "football.fill")
-                                    .font(.system(size: 14, weight: .bold))
-                                Text("HIKE!")
-                                    .font(.system(size: 18, weight: .black, design: .monospaced))
-                                    .tracking(3)
-                            }
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(route.accentColor)
+                    // Field Goal (if in range: yard line >= 60)
+                    Button {
+                        kickFieldGoal()
+                    } label: {
+                        VStack(spacing: 8) {
+                            Image(systemName: "trophy.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundStyle(yardLine >= 60 ? Color(red: 1.0, green: 0.85, blue: 0.2) : Color.white.opacity(0.3))
+                            Text("FIELD GOAL")
+                                .font(.system(size: 13, weight: .black, design: .monospaced))
+                                .tracking(2)
+                                .foregroundStyle(yardLine >= 60 ? .white : .white.opacity(0.4))
+                            Text(yardLine >= 60 ? "\(100 - yardLine + 17) YD ATTEMPT" : "OUT OF RANGE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(yardLine >= 60
+                                    ? Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.85)
+                                    : Color.white.opacity(0.25))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(red: 1.0, green: 0.85, blue: 0.2).opacity(yardLine >= 60 ? 0.12 : 0.04))
+                                .overlay(RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color(red: 1.0, green: 0.85, blue: 0.2).opacity(yardLine >= 60 ? 0.45 : 0.12), lineWidth: 1.5))
+                        )
+                    }
+                    .disabled(yardLine < 60)
+                }
+                .padding(.horizontal, 20)
+            }
+            .padding(.bottom, 40)
+        }
+    }
+
+    private var routeSelectPanel: some View {
+        VStack(spacing: 0) {
+            hudBar
+            Spacer()
+
+            VStack(spacing: 14) {
+                Text("SELECT ROUTE")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .tracking(3)
+
+                HStack(spacing: 10) {
+                    ForEach(RouteType.allCases, id: \.self) { route in
+                        routeCard(route)
+                    }
+                }
+                .padding(.horizontal, 14)
+
+                if let route = selectedRoute {
+                    Button {
+                        presnapPhase = false
+                        phase = .catchRoute
+                        setupCatchPhase()
+                        startClock()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "football.fill")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("HIKE!")
+                                .font(.system(size: 18, weight: .black, design: .monospaced))
+                                .tracking(3)
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(route.accentColor)
                                     .overlay(RoundedRectangle(cornerRadius: 16)
                                         .stroke(Color.white.opacity(0.28), lineWidth: 1.5))
                             )
@@ -2491,8 +2581,44 @@ struct FootballGameView: View {
 
     /// Called when a field goal is made (future integration point).
     private func handleFieldGoalMade() {
-        hapticRigid()  // Haptic #2: field goal .rigid
+        hapticRigid()
         homeScore += 3
+    }
+
+    /// 4th-down field goal attempt — success rate scales with field position.
+    private func kickFieldGoal() {
+        guard yardLine >= 60 else { return }
+        cancelAllTasks()
+        let attemptYards = 100 - yardLine + 17
+        let successRate = max(0.30, 1.0 - Double(attemptYards - 20) * 0.022)
+        let made = Double.random(in: 0...1) < successRate
+
+        if made {
+            hapticRigid()
+            homeScore += 3
+            withAnimation(.spring(response: 0.3)) {
+                showPlayResult = true
+                playResultLabel = "FIELD GOAL! +3 PTS"
+                playResultColor = Color(red: 1.0, green: 0.85, blue: 0.2)
+                crowdExcitement = min(1.0, crowdExcitement + 0.35)
+            }
+        } else {
+            hapticError()
+            withAnimation(.spring(response: 0.3)) {
+                showPlayResult = true
+                playResultLabel = "FIELD GOAL NO GOOD!"
+                playResultColor = .red
+                crowdExcitement = max(0, crowdExcitement - 0.2)
+            }
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(2.2))
+            await MainActor.run {
+                showPlayResult = false
+                phase = .result
+            }
+        }
     }
 
     private func startClock() {
