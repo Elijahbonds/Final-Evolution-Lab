@@ -63,6 +63,9 @@
     "build": "craco build",
     "test": "craco test"
   },
+  "engines": {
+    "node": "18.x"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
