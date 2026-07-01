@@ -655,7 +655,10 @@ private struct SoccerFieldDrawer {
         let skin = Color(red: 0.85, green: 0.68, blue: 0.52)
         let r: CGFloat = 9
 
-        let baseX = W * 0.5 + (goalieDived ? CGFloat(goalieDir) * goalWidth * 0.38 : 0)
+        // keeperPosition 0=far left, 0.5=center, 1=far right
+        // When not dived, keeper slides toward drag direction (0.3s delay handled in view)
+        let keeperOffset = goalieDived ? 0 : (keeperPosition - 0.5) * goalWidth * 0.6
+        let baseX = W * 0.5 + keeperOffset + (goalieDived ? CGFloat(goalieDir) * goalWidth * 0.38 : 0)
         let baseY = goalMidY + 6
 
         // #39 — goalkeeper shadow
