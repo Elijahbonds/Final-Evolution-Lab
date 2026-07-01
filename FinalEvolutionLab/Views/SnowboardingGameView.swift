@@ -942,6 +942,12 @@ struct SnowboardingGameView: View {
     // Judge scores revealed after each jump
     @State private var judgeScores: [Int] = []
 
+    // SSX-style TRICKY boost meter
+    @State private var boostMeter: Double = 0.0          // 0.0–1.0; fills on tricks
+    @State private var trickyActive: Bool = false         // TRICKY mode multiplier (3×)
+    @State private var trickyTask: Task<Void, Never>? = nil
+    @State private var trickyFlash: Bool = false
+
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
@@ -1013,6 +1019,7 @@ struct SnowboardingGameView: View {
     private var slopeBody: some View {
         VStack(spacing: 0) {
             slopeHeader.padding(.horizontal, 20).padding(.top, 12)
+            trickyMeterBar.padding(.horizontal, 20).padding(.top, 6)
             Spacer()
             slopeVisual
             Spacer()
@@ -1058,6 +1065,66 @@ struct SnowboardingGameView: View {
             .clipShape(.rect(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.15), lineWidth: 1))
             .padding(.horizontal, 16)
+    }
+
+    private var trickyMeterBar: some View {
+        HStack(spacing: 10) {
+            Text("TRICKY")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(trickyActive
+                    ? Color(red: 1.0, green: 0.3, blue: 0.9)
+                    : (boostMeter >= 1.0 ? Color(red: 1.0, green: 0.8, blue: 0.1) : accentColor.opacity(0.6)))
+                .tracking(2)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4).fill(Theme.cardBorder).frame(height: 8)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(LinearGradient(
+                            colors: trickyActive
+                                ? [Color(red: 1.0, green: 0.3, blue: 0.9), Color(red: 0.6, green: 0.1, blue: 1.0)]
+                                : [Color(red: 1.0, green: 0.8, blue: 0.1), Color(red: 1.0, green: 0.4, blue: 0.1)],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * CGFloat(min(boostMeter, 1.0)), height: 8)
+                        .animation(.spring(response: 0.25), value: boostMeter)
+                }
+            }
+            .frame(height: 8)
+
+            if boostMeter >= 1.0 && !trickyActive {
+                Button { activateTricky() } label: {
+                    Text("GO!")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(Color(red: 1.0, green: 0.8, blue: 0.1))
+                        .clipShape(Capsule())
+                }
+                .scaleEffect(trickyFlash ? 1.15 : 1.0)
+                .animation(.spring(response: 0.2).repeatForever(autoreverses: true), value: trickyFlash)
+                .onAppear { trickyFlash = true }
+                .onDisappear { trickyFlash = false }
+            } else if trickyActive {
+                Text("×3")
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 1.0, green: 0.3, blue: 0.9))
+                    .shadow(color: Color(red: 1.0, green: 0.3, blue: 0.9).opacity(0.8), radius: 6)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func activateTricky() {
+        guard boostMeter >= 1.0, !trickyActive else { return }
+        trickyActive = true
+        boostMeter = 0
+        hapticHeavy()
+        trickyTask?.cancel()
+        trickyTask = Task {
+            // TRICKY mode lasts 8 seconds
+            try? await Task.sleep(for: .seconds(8))
+            await MainActor.run { trickyActive = false }
+        }
     }
 
     private var speedMeterView: some View {
@@ -1595,12 +1662,17 @@ struct SnowboardingGameView: View {
         tricksThisJump.append(trick.name)
         roundTrickNames.append(trick.name)
 
-        // Combo multiplier: each additional trick adds 0.3x
+        // Combo multiplier: each additional trick adds 0.3x; TRICKY mode adds ×3
         comboMultiplier = 1.0 + CGFloat(chainLength) * 0.3
-        let multipliedPoints = Int(Double(trick.points) * comboMultiplier)
+        let trickyMult: Double = trickyActive ? 3.0 : 1.0
+        let multipliedPoints = Int(Double(trick.points) * Double(comboMultiplier) * trickyMult)
         roundTrickPoints += multipliedPoints
 
+        // Each trick fills 25% of the TRICKY boost meter
+        boostMeter = min(1.0, boostMeter + 0.25)
+
         hapticMedium()
+        if trickyActive { hapticRigid() }
         showTrickPopup(name: trick.name, points: multipliedPoints)
 
         // Update combo text
