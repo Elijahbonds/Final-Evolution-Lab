@@ -4,7 +4,7 @@ import UIKit
 // MARK: - Enums
 
 private enum BBallPhase {
-    case ready, batting, pitching, inningBreak, result
+    case ready, batting, fielding, pitching, inningBreak, result
 }
 
 private enum PitchType: String, CaseIterable {
@@ -1241,6 +1241,14 @@ struct BaseballGameView: View {
     @State private var screenShake: CGFloat = 0
     @State private var bannerScale: CGFloat = 0.6
 
+    // Fielding state
+    @State private var fieldingZone: Int = 0          // 0=LF, 1=CF, 2=RF
+    @State private var ballTrajectory: CGFloat = 0    // 0.0→1.0 animation
+    @State private var fieldingWindow: Bool = false
+    @State private var fieldingSuccess: Bool? = nil
+    @State private var isGrounder: Bool = false
+    @State private var fieldingTask: Task<Void, Never>? = nil
+
     private var swingWindowOpen: Bool { pitchProgress >= 0.46 && pitchProgress < 1.0 }
     private let perfectZone: ClosedRange<Double> = 0.62...0.82
     private let goodZone: ClosedRange<Double> = 0.50...0.90
@@ -1258,6 +1266,7 @@ struct BaseballGameView: View {
                 )
                 .background(Color(red: 0.03, green: 0.04, blue: 0.18).ignoresSafeArea())
             case .batting:  battingBody
+            case .fielding: fieldingBody
             case .pitching: pitchingBody
             case .inningBreak: inningBreakBody
             case .result:   resultBody
@@ -1275,7 +1284,7 @@ struct BaseballGameView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .onDisappear { pitchTask?.cancel(); aiAtBatTask?.cancel() }
+        .onDisappear { pitchTask?.cancel(); aiAtBatTask?.cancel(); fieldingTask?.cancel() }
     }
 
     // MARK: HUD
@@ -1398,6 +1407,181 @@ struct BaseballGameView: View {
         if aiResultLabel.contains("HIT") { return .yellow }
         if aiResultLabel.contains("OUT") { return .green }
         return .secondary
+    }
+
+    // MARK: Fielding Body
+
+    private var fieldingBody: some View {
+        let zoneLabels = ["LF", "CF", "RF"]
+        let zoneColors: [Color] = [.green, .mint, .teal]
+        return ZStack {
+            // Outfield background
+            TimelineView(.animation) { tl in
+                Canvas { ctx, size in
+                    let t = tl.date.timeIntervalSinceReferenceDate
+
+                    // Green outfield
+                    ctx.fill(Path(CGRect(origin: .zero, size: size)),
+                             with: .linearGradient(
+                                Gradient(colors: [
+                                    Color(red: 0.06, green: 0.28, blue: 0.10),
+                                    Color(red: 0.04, green: 0.20, blue: 0.07)
+                                ]),
+                                startPoint: .init(x: size.width * 0.5, y: 0),
+                                endPoint: .init(x: size.width * 0.5, y: size.height)
+                             ))
+
+                    // Foul lines
+                    var foulPath = Path()
+                    foulPath.move(to: CGPoint(x: size.width * 0.5, y: size.height))
+                    foulPath.addLine(to: CGPoint(x: size.width * 0.08, y: 0))
+                    foulPath.move(to: CGPoint(x: size.width * 0.5, y: size.height))
+                    foulPath.addLine(to: CGPoint(x: size.width * 0.92, y: 0))
+                    ctx.stroke(foulPath, with: .color(.white.opacity(0.35)), lineWidth: 2)
+
+                    // Grass stripes
+                    for i in 0..<8 {
+                        let stripeAlpha = i.isMultiple(of: 2) ? 0.05 : 0.0
+                        let stripeW = size.width / 8
+                        ctx.fill(Path(CGRect(x: CGFloat(i) * stripeW, y: 0,
+                                             width: stripeW, height: size.height)),
+                                 with: .color(.white.opacity(stripeAlpha)))
+                    }
+
+                    // Home plate marker
+                    var platePath = Path()
+                    platePath.move(to: CGPoint(x: size.width * 0.50, y: size.height - 20))
+                    platePath.addLine(to: CGPoint(x: size.width * 0.46, y: size.height - 30))
+                    platePath.addLine(to: CGPoint(x: size.width * 0.54, y: size.height - 30))
+                    platePath.closeSubpath()
+                    ctx.fill(platePath, with: .color(.white.opacity(0.6)))
+
+                    // Fielder zone circles
+                    let zoneXs: [CGFloat] = [size.width * 0.18, size.width * 0.50, size.width * 0.82]
+                    let zoneY: CGFloat = size.height * 0.30
+                    let zoneR: CGFloat = 38
+
+                    for (idx, zx) in zoneXs.enumerated() {
+                        let isTarget = idx == fieldingZone
+                        let nearBall = ballTrajectory > 0.6 && isTarget
+                        let pulse = CGFloat(0.5 + 0.5 * sin(t * 6))
+                        let circleRect = CGRect(x: zx - zoneR, y: zoneY - zoneR,
+                                                width: zoneR * 2, height: zoneR * 2)
+
+                        // Glow on target when ball is near
+                        if nearBall && fieldingWindow {
+                            var gc = ctx
+                            gc.addFilter(.blur(radius: 14))
+                            gc.opacity = Double(0.6 * pulse)
+                            gc.fill(Path(ellipseIn: circleRect.insetBy(dx: -8, dy: -8)),
+                                    with: .color(.yellow))
+                        }
+
+                        // Zone fill
+                        let zoneAlpha: CGFloat = isTarget && fieldingWindow ? 0.55 : 0.28
+                        ctx.fill(Path(ellipseIn: circleRect),
+                                 with: .color(zoneColors[idx].opacity(Double(zoneAlpha))))
+                        ctx.stroke(Path(ellipseIn: circleRect),
+                                   with: .color(isTarget && fieldingWindow ? .yellow : .white.opacity(0.4)),
+                                   lineWidth: isTarget && fieldingWindow ? 2.5 : 1.5)
+
+                        // Zone label
+                        ctx.draw(Text(zoneLabels[idx])
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.white),
+                                 at: CGPoint(x: zx, y: zoneY + 60))
+                    }
+
+                    // Animated ball arc (home plate → target zone)
+                    if ballTrajectory > 0 {
+                        let prog = ballTrajectory
+                        let targetX = zoneXs[fieldingZone]
+                        let startX = size.width * 0.50
+                        let startY = size.height - 30
+                        let endY = size.height * 0.30
+                        // Bezier arc
+                        let ctrlX = (startX + targetX) * 0.5
+                        let ctrlY = size.height * 0.05
+                        // Linear interpolation along bezier
+                        let bx = (1 - prog) * (1 - prog) * startX
+                              + 2 * (1 - prog) * prog * ctrlX
+                              + prog * prog * targetX
+                        let by = (1 - prog) * (1 - prog) * startY
+                              + 2 * (1 - prog) * prog * ctrlY
+                              + prog * prog * endY
+                        let ballR: CGFloat = isGrounder ? 6 : 8
+                        let ballRect = CGRect(x: bx - ballR, y: by - ballR,
+                                             width: ballR * 2, height: ballR * 2)
+                        // Ball shadow
+                        var sc = ctx; sc.addFilter(.blur(radius: 4)); sc.opacity = 0.4
+                        sc.fill(Path(ellipseIn: ballRect.offsetBy(dx: 3, dy: 3)),
+                                with: .color(.black))
+                        // Ball
+                        ctx.fill(Path(ellipseIn: ballRect), with: .color(.white))
+                        ctx.stroke(Path(ellipseIn: ballRect), with: .color(.red.opacity(0.7)), lineWidth: 1)
+
+                        // Grounder: draw ground bounce effect
+                        if isGrounder && prog > 0.4 {
+                            var bouncePath = Path()
+                            bouncePath.move(to: CGPoint(x: bx - 12, y: by + ballR))
+                            bouncePath.addLine(to: CGPoint(x: bx + 12, y: by + ballR))
+                            ctx.stroke(bouncePath, with: .color(.yellow.opacity(0.5)), lineWidth: 2)
+                        }
+                    }
+
+                    // Result overlay
+                    if let success = fieldingSuccess {
+                        let label = success ? "CAUGHT! OUT!" : (isGrounder ? "GROUNDER — HIT" : "FLY BALL — HIT")
+                        let color: Color = success ? .green : .red
+                        ctx.draw(Text(label)
+                            .font(.system(size: 22, weight: .black, design: .monospaced))
+                            .foregroundStyle(color),
+                                 at: CGPoint(x: size.width * 0.5, y: size.height * 0.55))
+                    }
+                }
+            }
+            .ignoresSafeArea()
+
+            // HUD overlay
+            VStack(spacing: 0) {
+                scoreHUD
+                Spacer()
+                if fieldingWindow && fieldingSuccess == nil {
+                    Text(isGrounder ? "GROUNDER — TAP FAST!" : "FLY BALL — TAP TO CATCH")
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
+                        .foregroundStyle(.yellow)
+                        .shadow(color: .yellow.opacity(0.6), radius: 8)
+                        .padding(.vertical, 8).padding(.horizontal, 18)
+                        .background(Color.black.opacity(0.55))
+                        .clipShape(.rect(cornerRadius: 10))
+                        .transition(.opacity)
+                }
+                Spacer()
+                // Tap zones row
+                HStack(spacing: 0) {
+                    ForEach(0..<3) { idx in
+                        Button {
+                            handleFieldingTap(zone: idx)
+                        } label: {
+                            Text(zoneLabels[idx])
+                                .font(.system(size: 14, weight: .black, design: .monospaced))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(zoneColors[idx].opacity(fieldingWindow ? 0.45 : 0.20))
+                                .overlay(
+                                    Rectangle()
+                                        .frame(height: 2)
+                                        .foregroundStyle(zoneColors[idx].opacity(0.8)),
+                                    alignment: .top
+                                )
+                        }
+                        .disabled(!fieldingWindow || fieldingSuccess != nil)
+                    }
+                }
+            }
+        }
+        .ignoresSafeArea(edges: .bottom)
     }
 
     // MARK: Inning Break
@@ -1607,32 +1791,127 @@ struct BaseballGameView: View {
                 try? await Task.sleep(for: .seconds(Double.random(in: 1.1...1.8)))
                 guard !Task.isCancelled else { return }
                 let roll = Double.random(in: 0...1)
-                let label: String
                 if roll < 0.08 {
-                    label = "HOME RUN! 💥"
-                    await MainActor.run { aiScore += Int.random(in: 1...2); aiBatterPhase = "swing" }
+                    // Home run — no fielding possible
+                    await MainActor.run {
+                        aiBatterPhase = "swing"
+                        aiResultLabel = "HOME RUN! 💥"
+                        aiScore += Int.random(in: 1...2)
+                        crowdLevel = min(1.0, crowdLevel + 0.3)
+                        withAnimation(.spring(response: 0.25)) { showAIResult = true }
+                    }
+                    try? await Task.sleep(for: .seconds(1.4))
+                    await MainActor.run { withAnimation { showAIResult = false }; aiBatterPhase = "ready" }
                 } else if roll < 0.30 {
-                    label = "BASE HIT"
-                    await MainActor.run { aiScore += 1; aiBatterPhase = "swing" }
-                } else if roll < 0.52 {
-                    label = "FOUL BALL"
+                    // AI hit — trigger fielding phase; player can field it
+                    let grounder = Bool.random()
                     await MainActor.run { aiBatterPhase = "swing" }
+                    try? await Task.sleep(for: .seconds(0.3))
+                    guard !Task.isCancelled else { return }
+                    // Hand off to fielding phase; wait for it to resolve
+                    let caught = await triggerFieldingPhase(grounder: grounder)
+                    guard !Task.isCancelled else { return }
+                    if caught {
+                        aiOuts += 1
+                        await MainActor.run {
+                            aiBatterPhase = "miss"
+                            aiResultLabel = "CAUGHT! OUT (\(aiOuts)/3)"
+                            withAnimation(.spring(response: 0.25)) { showAIResult = true }
+                        }
+                    } else {
+                        await MainActor.run {
+                            aiScore += 1
+                            aiBatterPhase = "swing"
+                            aiResultLabel = grounder ? "GROUNDER — HIT" : "FLY BALL — HIT"
+                            withAnimation(.spring(response: 0.25)) { showAIResult = true }
+                        }
+                    }
+                    try? await Task.sleep(for: .seconds(1.1))
+                    await MainActor.run { withAnimation { showAIResult = false }; aiBatterPhase = "ready"; phase = .pitching }
+                } else if roll < 0.52 {
+                    await MainActor.run {
+                        aiBatterPhase = "swing"
+                        aiResultLabel = "FOUL BALL"
+                        withAnimation(.spring(response: 0.25)) { showAIResult = true }
+                    }
+                    try? await Task.sleep(for: .seconds(1.1))
+                    await MainActor.run { withAnimation { showAIResult = false }; aiBatterPhase = "ready" }
                 } else {
-                    label = "OUT (\(aiOuts + 1)/3)"
                     aiOuts += 1
-                    await MainActor.run { aiBatterPhase = "miss" }
+                    await MainActor.run {
+                        aiBatterPhase = "miss"
+                        aiResultLabel = "OUT (\(aiOuts)/3)"
+                        withAnimation(.spring(response: 0.25)) { showAIResult = true }
+                    }
+                    try? await Task.sleep(for: .seconds(1.1))
+                    await MainActor.run { withAnimation { showAIResult = false }; aiBatterPhase = "ready" }
                 }
-                await MainActor.run {
-                    aiResultLabel = label
-                    withAnimation(.spring(response: 0.25)) { showAIResult = true }
-                }
-                try? await Task.sleep(for: .seconds(1.1))
-                await MainActor.run { withAnimation { showAIResult = false }; aiBatterPhase = "ready" }
             }
             await MainActor.run {
                 if inning >= INNINGS { phase = .result } else { inning += 1; phase = .inningBreak }
             }
         }
+    }
+
+    /// Switch to fielding phase, animate ball to a random zone, wait for player response.
+    /// Returns true if player successfully caught the ball.
+    private func triggerFieldingPhase(grounder: Bool) async -> Bool {
+        let targetZone = Int.random(in: 0...2)
+        let window = grounder ? 0.8 : 1.5
+
+        await MainActor.run {
+            fieldingZone = targetZone
+            ballTrajectory = 0
+            fieldingWindow = false
+            fieldingSuccess = nil
+            isGrounder = grounder
+            phase = .fielding
+        }
+
+        // Animate ball arc (0→1 over ~0.8s)
+        let arcSteps = 48
+        for step in 0..<arcSteps {
+            try? await Task.sleep(nanoseconds: 16_666_667)
+            let prog = CGFloat(step + 1) / CGFloat(arcSteps)
+            await MainActor.run { ballTrajectory = prog }
+        }
+
+        // Open fielding window
+        await MainActor.run { fieldingWindow = true }
+
+        // Wait for tap or timeout
+        let tickNs: UInt64 = 50_000_000
+        let ticks = Int(window / 0.05)
+        for _ in 0..<ticks {
+            try? await Task.sleep(nanoseconds: tickNs)
+            if await MainActor.run(body: { fieldingSuccess != nil }) { break }
+        }
+
+        // Close window if player didn't tap
+        let caught = await MainActor.run { () -> Bool in
+            if fieldingSuccess == nil {
+                fieldingSuccess = false
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            }
+            fieldingWindow = false
+            return fieldingSuccess == true
+        }
+
+        // Show result briefly then return to pitching
+        try? await Task.sleep(for: .seconds(1.1))
+        return caught
+    }
+
+    private func handleFieldingTap(zone: Int) {
+        guard fieldingWindow, fieldingSuccess == nil else { return }
+        if zone == fieldingZone {
+            fieldingSuccess = true
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        } else {
+            fieldingSuccess = false
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+        fieldingWindow = false
     }
 
     private func triggerShake(intensity: CGFloat) {
