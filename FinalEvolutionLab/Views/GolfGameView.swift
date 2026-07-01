@@ -1629,8 +1629,11 @@ struct GolfGameView: View {
 
     // MARK: Rewards
     @State private var rewardGranted: Bool = false
-    // AI opponent shoots 2–8 over par on a par-36 course (38–44 total)
-    private let aiTotalStrokes: Int = Int.random(in: 38...44)
+    // AI opponent — live per-hole scoring
+    @State private var aiHoleScores: [Int] = []
+    @State private var aiTotalStrokes: Int = 0
+    @State private var showingAiTurn: Bool = false
+    @State private var aiShotResultText: String = ""
     private let XP_CAP = 500
     private let WIN_SHARDS = 50; private let DRAW_SHARDS = 25; private let LOSS_SHARDS = 15
     private let accentColor = Color(red: 0.3, green: 0.7, blue: 0.4)
@@ -1696,6 +1699,7 @@ struct GolfGameView: View {
                         }
                         if showPenalty { penaltyOverlay }
                         if showHoleCard { holeCardOverlay }
+                        if showingAiTurn { aiTurnOverlay }
                         if showClubSelector { clubSelectorOverlay }
                         if showGreenReading { greenReadingOverlay }
                         if showFullScorecard { fullScorecardOverlay }
@@ -1775,11 +1779,40 @@ struct GolfGameView: View {
                     .background(Capsule().fill(Theme.cardBackground))
             }
             .padding(.horizontal, 4)
+            // Live leaderboard widget
+            if aiTotalStrokes > 0 || !aiHoleScores.isEmpty {
+                liveLeaderboard
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
         .background(RoundedRectangle(cornerRadius: 16).fill(Theme.cardBackground)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1)))
         .padding(.horizontal, 16)
+    }
+
+    private var liveLeaderboard: some View {
+        let playerVsPar = totalStrokes - holeResults.reduce(0) { $0 + courseCard[min($1.hole - 1, courseCard.count - 1)].par }
+        let aiPlayedPar = aiHoleScores.indices.reduce(0) { $0 + courseCard[min($1, courseCard.count - 1)].par }
+        let aiVsPar = aiTotalStrokes - aiPlayedPar
+        let playerStr = playerVsPar == 0 ? "E" : (playerVsPar > 0 ? "+\(playerVsPar)" : "\(playerVsPar)")
+        let aiStr     = aiVsPar == 0 ? "E" : (aiVsPar > 0 ? "+\(aiVsPar)" : "\(aiVsPar)")
+        return HStack(spacing: 0) {
+            Text("YOU: ")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+            Text(playerStr)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(playerVsPar < 0 ? accentColor : (playerVsPar == 0 ? .white : .red))
+            Text("  |  RIVAL: ")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+            Text(aiStr)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(aiVsPar < 0 ? accentColor : (aiVsPar == 0 ? .white : .red))
+                .animation(.easeInOut(duration: 0.3), value: aiTotalStrokes)
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 2)
     }
 
     private func compactStatCell(label: String, value: String, color: Color = .white) -> some View {
@@ -2166,6 +2199,42 @@ struct GolfGameView: View {
             .overlay(RoundedRectangle(cornerRadius: 20).stroke(holeCardColor.opacity(0.3), lineWidth: 1)))
         .shadow(color: .black.opacity(0.5), radius: 24)
         .transition(.scale(scale: 0.7).combined(with: .opacity))
+    }
+
+    // MARK: - AI Turn Overlay
+
+    private var aiTurnOverlay: some View {
+        let (labelColor, bgBorder): (Color, Color) = {
+            if aiShotResultText.contains("EAGLE") { return (accentColor, accentColor.opacity(0.4)) }
+            if aiShotResultText.contains("BIRDIE") { return (Theme.brandCyan, Theme.brandCyan.opacity(0.4)) }
+            if aiShotResultText.contains("BOGEY") { return (.orange, Color.orange.opacity(0.4)) }
+            return (.white, Color.white.opacity(0.2))
+        }()
+        return VStack(spacing: 10) {
+            Text("RIVAL'S TURN")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary).tracking(3)
+            Image(systemName: "person.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(Color.red.opacity(0.85))
+            if !aiShotResultText.isEmpty {
+                Text(aiShotResultText)
+                    .font(.system(size: 26, weight: .black, design: .monospaced)).italic()
+                    .foregroundStyle(labelColor)
+                    .shadow(color: labelColor.opacity(0.6), radius: 12)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+            } else {
+                Text("Calculating…")
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(24)
+        .background(RoundedRectangle(cornerRadius: 20).fill(Theme.cardBackground.opacity(0.95))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(bgBorder, lineWidth: 1)))
+        .shadow(color: .black.opacity(0.5), radius: 24)
+        .transition(.scale(scale: 0.7).combined(with: .opacity))
+        .animation(.spring(response: 0.3), value: aiShotResultText)
     }
 
     // MARK: - Club Selector Overlay (14 clubs wheel/list)
@@ -2694,7 +2763,59 @@ struct GolfGameView: View {
             try? await Task.sleep(for: .milliseconds(2200))
             await MainActor.run {
                 withAnimation { showHoleCard = false }
-                if currentHole < 9 { advanceHole() } else { GameResultService.saveResult(modeId: "golf", userScore: totalStrokes); phase = .result }
+                showingAiTurn = true
+                playAiHole()
+            }
+        }
+    }
+
+    private func playAiHole() {
+        let holePar = courseCard[min(currentHole - 1, courseCard.count - 1)].par
+        // Weighted random: bogey 30%, par 50%, birdie 15%, eagle 5%
+        // Holes 7-9: AI improves slightly (lower bogey chance)
+        let isLateHole = currentHole >= 7
+        let roll = Double.random(in: 0..<1)
+        let aiScoreVsPar: Int
+        if isLateHole {
+            // Holes 7-9: bogey 20%, par 55%, birdie 20%, eagle 5%
+            if roll < 0.05 { aiScoreVsPar = -2 }
+            else if roll < 0.25 { aiScoreVsPar = -1 }
+            else if roll < 0.80 { aiScoreVsPar = 0 }
+            else { aiScoreVsPar = 1 }
+        } else {
+            if roll < 0.05 { aiScoreVsPar = -2 }
+            else if roll < 0.20 { aiScoreVsPar = -1 }
+            else if roll < 0.70 { aiScoreVsPar = 0 }
+            else { aiScoreVsPar = 1 }
+        }
+        let aiStrokes = holePar + aiScoreVsPar
+        let (resultLabel, _): (String, Color) = {
+            switch aiScoreVsPar {
+            case -2: return ("EAGLE -2", accentColor)
+            case -1: return ("BIRDIE -1", Theme.brandCyan)
+            case 0:  return ("PAR", .white)
+            default: return ("BOGEY +1", .orange)
+            }
+        }()
+        aiShotResultText = ""
+        Task {
+            // Brief delay — rival is "calculating" shot
+            try? await Task.sleep(for: .milliseconds(600))
+            await MainActor.run {
+                withAnimation(.spring(response: 0.3)) { aiShotResultText = resultLabel }
+            }
+            try? await Task.sleep(for: .milliseconds(1600))
+            await MainActor.run {
+                withAnimation(.spring(response: 0.3)) {
+                    aiHoleScores.append(aiStrokes)
+                    aiTotalStrokes += aiStrokes
+                }
+                showingAiTurn = false
+                aiShotResultText = ""
+                if currentHole < 9 { advanceHole() } else {
+                    GameResultService.saveResult(modeId: "golf", userScore: totalStrokes)
+                    phase = .result
+                }
             }
         }
     }

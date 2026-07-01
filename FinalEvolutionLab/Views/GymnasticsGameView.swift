@@ -1032,12 +1032,26 @@ struct GymnasticsGameView: View {
     @State private var frozenAIScore: Double = 46.0
     @State private var rewardApplied: Bool = false
 
+    // MARK: - Live AI Rival State
+    @State private var aiRoutineProgress: Int = 0
+    @State private var aiElementResults: [Int] = []           // 10 / 7 / 0 per element
+    @State private var aiCurrentScore: Int = 0
+    @State private var aiPerforming: Bool = false
+    @State private var aiElementFlash: Color = .clear
+    @State private var showAiFlash: Bool = false
+    @State private var aiGradeText: String = ""
+    @State private var aiScorePopText: String = ""
+    @State private var showAIScorePop: Bool = false
+    @State private var aiTimerTask: Task<Void, Never>? = nil
+    @State private var preDeterminedAIResults: [Int] = []     // pre-rolled 65%/25%/10%
+    @State private var showFinalJudgment: Bool = false
+
     private let accentColor = Color(red: 0.39, green: 0.4, blue: 0.95)
     private let totalElements = kRoutineElements.count
 
     private var totalScore: Double { elementResults.reduce(0) { $0 + $1.finalPoints } }
-    private var playerWins: Bool { totalScore > frozenAIScore }
-    private var isDraw: Bool { Int(totalScore) == Int(frozenAIScore) }
+    private var playerWins: Bool { totalScore > Double(aiCurrentScore) }
+    private var isDraw: Bool { Int(totalScore) == aiCurrentScore }
 
     // MARK: Haptics
 
@@ -1071,6 +1085,17 @@ struct GymnasticsGameView: View {
                     accentColor: accentColor,
                     onComplete: {
                         frozenAIScore = Double(Int.random(in: 38...54))
+                        preDeterminedAIResults = (0..<totalElements).map { _ -> Int in
+                            let r = Double.random(in: 0..<1)
+                            if r < 0.65 { return 10 }
+                            else if r < 0.90 { return 7 }
+                            else { return 0 }
+                        }
+                        aiRoutineProgress = 0
+                        aiCurrentScore = 0
+                        aiElementResults = []
+                        aiPerforming = true
+                        startAITimer()
                         phase = .active
                         startElement()
                     }
@@ -1086,24 +1111,29 @@ struct GymnasticsGameView: View {
                 judgingBody
 
             case .result:
-                ResultScreen(
-                    winner: playerWins ? .p1 : (isDraw ? .draw : .p2),
-                    p1Score: Int(totalScore),
-                    p2Score: Int(frozenAIScore),
-                    title: "Gymnastics",
-                    accentColor: accentColor,
-                    prqGain: playerWins ? 12 : (isDraw ? 5 : 3),
-                    prqCurrent: viewModel.effectiveMetrics.prqScore,
-                    modeAttributeLabel: "Execution",
-                    modeAttributeValue: executionBar,
-                    onReturn: { dismiss() }
-                )
+                ZStack {
+                    ResultScreen(
+                        winner: playerWins ? .p1 : (isDraw ? .draw : .p2),
+                        p1Score: Int(totalScore),
+                        p2Score: aiCurrentScore,
+                        title: "Gymnastics",
+                        accentColor: accentColor,
+                        prqGain: playerWins ? 12 : (isDraw ? 5 : 3),
+                        prqCurrent: viewModel.effectiveMetrics.prqScore,
+                        modeAttributeLabel: "Execution",
+                        modeAttributeValue: executionBar,
+                        onReturn: { dismiss() }
+                    )
+                    if showFinalJudgment {
+                        finalJudgmentOverlay
+                    }
+                }
             }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button { elementTimer?.cancel(); dismiss() } label: {
+                Button { elementTimer?.cancel(); aiTimerTask?.cancel(); dismiss() } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left").font(.system(size: 14, weight: .bold))
                         Text("EXIT").font(.system(.caption, design: .monospaced, weight: .bold))
@@ -1112,7 +1142,7 @@ struct GymnasticsGameView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .onDisappear { elementTimer?.cancel() }
+        .onDisappear { elementTimer?.cancel(); aiTimerTask?.cancel() }
     }
 
     // MARK: - Active Body
@@ -1132,9 +1162,13 @@ struct GymnasticsGameView: View {
             }
 
             VStack(spacing: 0) {
-                arenaHUD
+                dualScoreHUD
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
+
+                arenaHUD
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
 
                 Spacer()
 

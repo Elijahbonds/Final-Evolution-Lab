@@ -17,11 +17,28 @@ private struct SnowTrick: Identifiable {
 }
 
 private let snowTricks: [SnowTrick] = [
-    SnowTrick(name: "Grab",   points: 50,  icon: "hand.point.up.left.fill"),
-    SnowTrick(name: "Spin",   points: 100, icon: "arrow.clockwise.circle"),
-    SnowTrick(name: "Indy",   points: 120, icon: "figure.snowboarding"),
-    SnowTrick(name: "Method", points: 140, icon: "star.fill"),
+    SnowTrick(name: "Grab",     points: 50,  icon: "hand.point.up.left.fill"),
+    SnowTrick(name: "180",      points: 80,  icon: "arrow.clockwise.circle"),
+    SnowTrick(name: "360",      points: 120, icon: "arrow.2.circlepath"),
+    SnowTrick(name: "540",      points: 180, icon: "arrow.3.trianglepath"),
+    SnowTrick(name: "Backflip", points: 150, icon: "figure.snowboarding"),
+    SnowTrick(name: "Frontflip",points: 140, icon: "star.fill"),
+    SnowTrick(name: "Rodeo",    points: 200, icon: "flame.fill"),
+    SnowTrick(name: "Indy",     points: 100, icon: "hand.raised.fill"),
 ]
+
+// MARK: - TrickType
+
+private enum TrickType: String {
+    case grab = "Grab"
+    case spin180 = "180"
+    case spin360 = "360"
+    case spin540 = "540"
+    case backflip = "Backflip"
+    case frontflip = "Frontflip"
+    case rodeo = "Rodeo"
+    case indy = "Indy"
+}
 
 // MARK: - Swipe direction
 
@@ -894,6 +911,14 @@ struct SnowboardingGameView: View {
     @State private var airTimeLeft: Double = 0
     @State private var jumpHeight: Double = 0
     @State private var airTimer: Task<Void, Never>? = nil
+    @State private var inAir: Bool = false
+
+    // Combo chain system
+    @State private var tricksThisJump: [String] = []
+    @State private var comboMultiplier: CGFloat = 1.0
+    @State private var airComboText: String = ""
+    @State private var perfectLandingWindow: Bool = false
+    @State private var landingBonus: Bool = false
 
     @State private var roundTrickPoints = 0
     @State private var roundTrickNames: [String] = []
@@ -1104,8 +1129,14 @@ struct SnowboardingGameView: View {
         VStack(spacing: 0) {
             jumpHeader.padding(.horizontal, 20).padding(.top, 12)
             Spacer()
+            // Live combo chain display while in air
+            if !tricksThisJump.isEmpty {
+                comboChainBanner.padding(.horizontal, 20)
+            }
             jumpHeightVisual
             Spacer()
+            // Air time bar
+            airTimeBar.padding(.horizontal, 24).padding(.bottom, 6)
             jumpTrickPopup.frame(height: 80)
             if phase == .trick {
                 trickButtonGrid.padding(.horizontal, 20).padding(.bottom, 32)
@@ -1121,10 +1152,60 @@ struct SnowboardingGameView: View {
         .gesture(
             DragGesture(minimumDistance: 20)
                 .onEnded { value in
-                    let dir = swipeDirectionFromDrag(dx: value.translation.width, dy: value.translation.height)
-                    handleAirTrick(dir: dir)
+                    let dx = value.translation.width
+                    let dy = value.translation.height
+                    let dir = swipeDirectionFromDrag(dx: dx, dy: dy)
+                    handleAirTrickWithDistance(dx: dx, dy: dy, dir: dir)
                 }
         )
+        .simultaneousGesture(SpatialTapGesture().onEnded { _ in handleAirTap() })
+    }
+
+    // MARK: - Combo Chain Banner
+
+    private var comboChainBanner: some View {
+        let chainText = tricksThisJump.joined(separator: " > ")
+        return VStack(spacing: 4) {
+            Text(chainText)
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundStyle(accentColor)
+                .shadow(color: accentColor.opacity(0.6), radius: 6)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            if comboMultiplier > 1.0 {
+                Text("×\(String(format: "%.1f", comboMultiplier)) COMBO")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.yellow)
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .background(Color.black.opacity(0.5))
+        .clipShape(.rect(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(accentColor.opacity(0.3), lineWidth: 1))
+    }
+
+    // MARK: - Air Time Bar
+
+    private var airTimeBar: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Text("AIR TIME").font(.system(size: 8, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(2)
+                Spacer()
+                let maxTricks = airTime >= 1.8 ? 4 : 2
+                Text("\(tricksThisJump.count)/\(maxTricks) TRICKS").font(.system(size: 8, weight: .black, design: .monospaced)).foregroundStyle(accentColor)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08)).frame(height: 6)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(LinearGradient(colors: airTimeLeft / airTime < 0.3 ? [Color.red, Color.orange] : [accentColor, snowBlue],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(0, geo.size.width * CGFloat(airTime > 0 ? airTimeLeft / airTime : 0)), height: 6)
+                        .animation(.linear(duration: 0.05), value: airTimeLeft)
+                }
+            }
+            .frame(height: 6)
+        }
     }
 
     private var jumpHeader: some View {
@@ -1205,21 +1286,29 @@ struct SnowboardingGameView: View {
     }
 
     private var trickButtonGrid: some View {
-        VStack(spacing: 12) {
-            Text("SWIPE OR TAP A TRICK").font(.system(size: 9, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(2)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(snowTricks) { trick in
+        let maxTricks = airTime >= 1.8 ? 4 : 2
+        let canDoMore = tricksThisJump.count < maxTricks
+        return VStack(spacing: 10) {
+            HStack {
+                Text("SWIPE OR TAP — CHAIN TRICKS").font(.system(size: 9, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(1)
+                Spacer()
+                if !canDoMore {
+                    Text("MAX REACHED").font(.system(size: 9, weight: .black, design: .monospaced)).foregroundStyle(.red)
+                }
+            }
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(snowTricks.prefix(8)) { trick in
                     Button { performSnowTrick(trick) } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: trick.icon).font(.system(size: 18, weight: .bold)).foregroundStyle(accentColor)
-                            Text(trick.name.uppercased()).font(.system(size: 10, weight: .black, design: .monospaced)).foregroundStyle(.white)
-                            Text("+\(trick.points)").font(.system(size: 11, weight: .black, design: .monospaced)).foregroundStyle(accentColor)
+                        VStack(spacing: 4) {
+                            Image(systemName: trick.icon).font(.system(size: 14, weight: .bold)).foregroundStyle(accentColor)
+                            Text(trick.name.uppercased()).font(.system(size: 8, weight: .black, design: .monospaced)).foregroundStyle(.white)
+                            Text("+\(trick.points)").font(.system(size: 9, weight: .black, design: .monospaced)).foregroundStyle(accentColor)
                         }
-                        .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(Theme.cardBackground).clipShape(.rect(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accentColor.opacity(0.25), lineWidth: 1))
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                        .background(Theme.cardBackground).clipShape(.rect(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(canDoMore ? accentColor.opacity(0.25) : Color.red.opacity(0.2), lineWidth: 1))
                     }
-                    .buttonStyle(.plain).disabled(trickDoneThisAir).opacity(trickDoneThisAir ? 0.4 : 1.0)
+                    .buttonStyle(.plain).disabled(!canDoMore).opacity(canDoMore ? 1.0 : 0.35)
                 }
             }
         }
@@ -1228,16 +1317,29 @@ struct SnowboardingGameView: View {
     // MARK: - Round Result
 
     private var roundResultBody: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Spacer()
             Text("JUMP \(currentRound - 1) SCORE").font(.system(size: 10, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(3)
             Text("\(roundScores.last ?? 0)").font(.system(size: 60, weight: .black, design: .monospaced)).foregroundStyle(accentColor).shadow(color: accentColor.opacity(0.4), radius: 16)
             Text("PTS").font(.system(size: 12, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(4)
             if !roundTrickNames.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(roundTrickNames.prefix(4), id: \.self) { name in
-                        Text(name).font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(.black)
-                            .padding(.horizontal, 10).padding(.vertical, 5).background(accentColor).clipShape(.capsule)
+                VStack(spacing: 6) {
+                    Text(roundTrickNames.joined(separator: " > "))
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(accentColor)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                        .padding(.horizontal, 20)
+                    if comboMultiplier > 1.0 {
+                        Text("×\(String(format: "%.1f", comboMultiplier)) COMBO MULTIPLIER")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(.yellow)
+                    }
+                    if landingBonus {
+                        Text("PERFECT LANDING +20%")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(Theme.foundationGreen)
                     }
                 }
             }
@@ -1245,14 +1347,14 @@ struct SnowboardingGameView: View {
                 Text("TOTAL SO FAR").font(.system(size: 9, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(2)
                 Text("\(totalScore) pts").font(.system(size: 24, weight: .black, design: .monospaced)).foregroundStyle(Theme.foundationGreen)
             }
-            .padding(.top, 8)
+            .padding(.top, 4)
             if currentRound <= totalRounds {
                 Button { startSlope() } label: {
                     Text("JUMP \(currentRound) — RIDE")
                         .font(.system(size: 15, weight: .black, design: .monospaced)).foregroundStyle(.black)
                         .frame(maxWidth: .infinity).padding(.vertical, 16).background(accentColor).clipShape(.rect(cornerRadius: 14))
                 }
-                .padding(.horizontal, 40).padding(.top, 12)
+                .padding(.horizontal, 40).padding(.top, 8)
             }
             Spacer()
         }
@@ -1271,6 +1373,12 @@ struct SnowboardingGameView: View {
         roundTrickPoints = 0
         roundTrickNames = []
         trickDoneThisAir = false
+        tricksThisJump = []
+        comboMultiplier = 1.0
+        airComboText = ""
+        inAir = false
+        perfectLandingWindow = false
+        landingBonus = false
         phase = .slope
         slopeTimer?.cancel()
         slopeTimer = Task {
@@ -1342,16 +1450,21 @@ struct SnowboardingGameView: View {
 
     private func launchJump() {
         slopeTimer?.cancel()
-        airTime = 1.0 + (speed / 100.0) * 3.0
+        // Air time gate: small jump (speed < 50%) = 1.2s, big jump = 2.0s
+        airTime = speed < 50 ? 1.2 : 2.0
         airTimeLeft = airTime
         jumpHeight = speed / 100.0
+        inAir = true
+        tricksThisJump = []
+        comboMultiplier = 1.0
+        airComboText = ""
+        trickDoneThisAir = false
         phase = .jump
         Task {
             try? await Task.sleep(for: .milliseconds(600))
             await MainActor.run {
                 guard phase == .jump else { return }
                 phase = .trick
-                // Trick execution at peak jump — medium haptic
                 hapticMedium()
             }
         }
@@ -1365,19 +1478,43 @@ struct SnowboardingGameView: View {
                     airTimeLeft = max(0, airTimeLeft - tick)
                     let progress = 1.0 - (airTimeLeft / airTime)
                     jumpHeight = sin(progress * .pi) * (speed / 100.0)
+                    // Open perfect landing window in last 0.3s
+                    if airTimeLeft <= 0.3 && !perfectLandingWindow {
+                        perfectLandingWindow = true
+                    }
                 }
             }
-            await MainActor.run { guard phase == .jump || phase == .trick else { return }; landJump() }
+            await MainActor.run { guard phase == .jump || phase == .trick else { return }; landJump(tappedLanding: false) }
         }
     }
 
-    private func landJump() {
+    private func landJump(tappedLanding: Bool) {
         airTimer?.cancel()
         jumpHeight = 0
-        // Trick landing haptic — heavy impact
+        inAir = false
         hapticHeavy()
 
-        // Generate judge scores based on round trick points
+        // Apply combo multiplier and perfect landing bonus
+        var finalPoints = roundTrickPoints
+        if comboMultiplier > 1.0 {
+            finalPoints = Int(Double(finalPoints) * comboMultiplier)
+        }
+        let bonusApplied = tappedLanding && perfectLandingWindow
+        if bonusApplied {
+            finalPoints = Int(Double(finalPoints) * 1.2)
+            landingBonus = true
+        }
+        perfectLandingWindow = false
+        roundTrickPoints = finalPoints
+
+        // Show score popup text
+        if !roundTrickNames.isEmpty {
+            let comboDesc = roundTrickNames.joined(separator: " > ")
+            let bonusStr = bonusApplied ? " — PERFECT LANDING!" : ""
+            showTrickPopup(name: "\(comboDesc)\(bonusStr)", points: finalPoints)
+        }
+
+        // Generate judge scores based on final trick points
         let baseScore = min(10, max(1, roundTrickPoints / 20))
         judgeScores = (0..<5).map { _ in max(1, min(10, baseScore + Int.random(in: -1...2))) }
 
@@ -1404,28 +1541,70 @@ struct SnowboardingGameView: View {
         return .down
     }
 
-    private func handleAirTrick(dir: SnowSwipeDir) {
+    private func handleAirTrickWithDistance(dx: CGFloat, dy: CGFloat, dir: SnowSwipeDir) {
         guard phase == .trick else { return }
+        let dist = sqrt(dx*dx + dy*dy)
         switch dir {
-        case .up:    performSnowTrick(snowTricks[2])
-        case .right: performSnowTrick(snowTricks[1])
-        case .left:  performSnowTrick(snowTricks[0])
-        case .down:  performSnowTrick(snowTricks[3])
+        case .up:
+            // Frontflip
+            performSnowTrick(snowTricks.first(where: { $0.name == "Frontflip" }) ?? snowTricks[5])
+        case .down:
+            // Backflip
+            performSnowTrick(snowTricks.first(where: { $0.name == "Backflip" }) ?? snowTricks[4])
+        case .left, .right:
+            // Spin: short swipe = 180, medium = 360, long = 540
+            if dist < 60 {
+                performSnowTrick(snowTricks.first(where: { $0.name == "180" }) ?? snowTricks[1])
+            } else if dist < 120 {
+                performSnowTrick(snowTricks.first(where: { $0.name == "360" }) ?? snowTricks[2])
+            } else {
+                performSnowTrick(snowTricks.first(where: { $0.name == "540" }) ?? snowTricks[3])
+            }
         }
     }
 
-    private func performSnowTrick(_ trick: SnowTrick) {
-        guard (phase == .jump || phase == .trick) && !trickDoneThisAir else { return }
-        trickDoneThisAir = true
-        roundTrickPoints += trick.points
-        roundTrickNames.append(trick.name)
-        // Trick execution haptic — medium
-        hapticMedium()
-        showTrickPopup(name: trick.name, points: trick.points)
-        Task {
-            try? await Task.sleep(for: .milliseconds(800))
-            await MainActor.run { if phase == .trick { trickDoneThisAir = false } }
+    private func handleAirTrick(dir: SnowSwipeDir) {
+        guard phase == .trick else { return }
+        switch dir {
+        case .up:    performSnowTrick(snowTricks.first(where: { $0.name == "Frontflip" }) ?? snowTricks[5])
+        case .right: performSnowTrick(snowTricks.first(where: { $0.name == "360" }) ?? snowTricks[2])
+        case .left:  performSnowTrick(snowTricks.first(where: { $0.name == "Grab" }) ?? snowTricks[0])
+        case .down:  performSnowTrick(snowTricks.first(where: { $0.name == "Backflip" }) ?? snowTricks[4])
         }
+    }
+
+    private func handleAirTap() {
+        guard phase == .trick else {
+            // Check for perfect landing tap
+            if (phase == .jump || phase == .trick) && perfectLandingWindow && inAir {
+                airTimer?.cancel()
+                landJump(tappedLanding: true)
+            }
+            return
+        }
+        // Tap = Grab
+        performSnowTrick(snowTricks.first(where: { $0.name == "Grab" }) ?? snowTricks[0])
+    }
+
+    private func performSnowTrick(_ trick: SnowTrick) {
+        guard phase == .jump || phase == .trick else { return }
+        let maxTricks = airTime >= 1.8 ? 4 : 2
+        guard tricksThisJump.count < maxTricks else { return }
+
+        let chainLength = tricksThisJump.count
+        tricksThisJump.append(trick.name)
+        roundTrickNames.append(trick.name)
+
+        // Combo multiplier: each additional trick adds 0.3x
+        comboMultiplier = 1.0 + CGFloat(chainLength) * 0.3
+        let multipliedPoints = Int(Double(trick.points) * comboMultiplier)
+        roundTrickPoints += multipliedPoints
+
+        hapticMedium()
+        showTrickPopup(name: trick.name, points: multipliedPoints)
+
+        // Update combo text
+        airComboText = tricksThisJump.joined(separator: " > ")
     }
 
     // MARK: - Trick popup
