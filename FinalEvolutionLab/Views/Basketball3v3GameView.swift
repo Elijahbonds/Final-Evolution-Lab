@@ -7,6 +7,100 @@ private enum v3Phase { case ready, playing, result }
 private enum v3ShotResult: String { case score = "SCORE!", blocked = "BLOCKED", miss = "MISS", assist = "ASSIST" }
 private enum v3Team { case player, opponent }
 
+// MARK: - New Mechanic Enums
+
+/// Court zones for the Hot Zone system
+private enum CourtZone: String, CaseIterable {
+    case paint      = "IN THE PAINT!"
+    case midRange   = "MID-RANGE!"
+    case threePoint = "FROM DEEP!"
+    case corner3    = "FROM THE CORNER!"
+
+    /// Base shot percentage for each zone
+    var baseShotPct: Double {
+        switch self {
+        case .paint:      return 0.72
+        case .midRange:   return 0.45
+        case .threePoint: return 0.36
+        case .corner3:    return 0.40
+        }
+    }
+
+    /// Points awarded
+    var pointValue: Int {
+        switch self {
+        case .paint:      return 2
+        case .midRange:   return 2
+        case .threePoint: return 3
+        case .corner3:    return 3
+        }
+    }
+}
+
+/// Teammate positions for AI play calling
+private enum CourtPosition: String {
+    case wing   = "WING"
+    case elbow  = "ELBOW"
+    case corner = "CORNER"
+    case basket = "BASKET"
+    case top    = "TOP OF KEY"
+}
+
+/// Named set plays for the CALL PLAY button
+private enum SetPlay: String, CaseIterable {
+    case pickAndRoll = "PICK & ROLL"
+    case spotUp      = "SPOT UP"
+    case iso         = "ISO"
+}
+
+/// Defensive formations the player can toggle
+private enum DefenseMode: String, CaseIterable {
+    case zone     = "ZONE"
+    case manToMan = "MAN-TO-MAN"
+    case press    = "FULL PRESS"
+
+    var icon: String {
+        switch self {
+        case .zone:     return "shield.lefthalf.filled"
+        case .manToMan: return "figure.stand"
+        case .press:    return "bolt.fill"
+        }
+    }
+
+    /// Extra steal chance for press
+    var stealBonus: Double {
+        switch self {
+        case .press: return 0.20
+        default:     return 0.0
+        }
+    }
+
+    /// Extra foul chance for press
+    var foulBonus: Double {
+        switch self {
+        case .press: return 0.15
+        default:     return 0.0
+        }
+    }
+
+    /// Shot percentage multiplier given up to opponent on open looks
+    var openShotMultiplier: Double {
+        switch self {
+        case .zone:     return 1.18   // more open 3s
+        case .manToMan: return 1.0
+        case .press:    return 0.90   // contested but risky
+        }
+    }
+}
+
+/// Special highlight play types
+private enum HighlightType: String {
+    case alleyOop    = "ALLEY OOP!"
+    case posterDunk  = "POSTER DUNK!"
+    case deepThree   = "FROM HALF COURT!"
+    case putback     = "PUTBACK SLAM!"
+}
+
 // MARK: - 3v3 Court Canvas
 
 private struct Court3v3Canvas: View {
