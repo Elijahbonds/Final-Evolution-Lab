@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Enums / Data
 
@@ -24,6 +25,14 @@ private struct SoccerStadiumCanvas: View {
     let playerScored: Bool
     let lastScoreTime: Double
     let crowdExcitement: Double
+    let showRedCard: Bool
+    let showYellowCard: Bool
+    let isTackle: Bool
+    let lastTackleTime: Double
+    let isRaining: Bool
+    let isPenaltyAwarded: Bool
+    let isCorner: Bool
+    let lastCornerTime: Double
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -36,7 +45,15 @@ private struct SoccerStadiumCanvas: View {
                     goalieDir: goalieDir, goalieDived: goalieDived,
                     playerScored: playerScored,
                     lastScoreTime: lastScoreTime,
-                    crowdExcitement: crowdExcitement
+                    crowdExcitement: crowdExcitement,
+                    showRedCard: showRedCard,
+                    showYellowCard: showYellowCard,
+                    isTackle: isTackle,
+                    lastTackleTime: lastTackleTime,
+                    isRaining: isRaining,
+                    isPenaltyAwarded: isPenaltyAwarded,
+                    isCorner: isCorner,
+                    lastCornerTime: lastCornerTime
                 )
                 d.render(ctx: &ctx)
             }
@@ -58,6 +75,14 @@ private struct SoccerFieldDrawer {
     let playerScored: Bool
     let lastScoreTime: Double
     let crowdExcitement: Double
+    let showRedCard: Bool
+    let showYellowCard: Bool
+    let isTackle: Bool
+    let lastTackleTime: Double
+    let isRaining: Bool
+    let isPenaltyAwarded: Bool
+    let isCorner: Bool
+    let lastCornerTime: Double
 
     var W: CGFloat { size.width }
     var H: CGFloat { size.height }
@@ -77,258 +102,661 @@ private struct SoccerFieldDrawer {
     }
 
     mutating func render(ctx: inout GraphicsContext) {
-        drawSky(ctx: &ctx)
-        drawStands(ctx: &ctx)
-        drawPitch(ctx: &ctx)
-        drawNet(ctx: &ctx)
+        // MARK: Pitch BG (#1–#12)
+        drawPitchStripes(ctx: &ctx)
+        drawPitchLines(ctx: &ctx)
+        drawCornerArcs(ctx: &ctx)
+        drawGoalBox(ctx: &ctx)
+        drawGoalNetBackground(ctx: &ctx)
         drawGoalPosts(ctx: &ctx)
+        drawCornerFlags(ctx: &ctx)
+
+        // MARK: Stadium (#13–#24)
+        drawStadiumSky(ctx: &ctx)
+        drawFloodlightTowers(ctx: &ctx)
+        drawCrowdTiers(ctx: &ctx)
+        drawScoreboardEnd(ctx: &ctx)
+        drawSponsorBoards(ctx: &ctx)
+        drawTVCameraPlatform(ctx: &ctx)
+        drawVARScreenIndicator(ctx: &ctx)
+
+        // MARK: Player figures (#25–#48)
+        drawPlayerFigure(ctx: &ctx)
         drawGoalie(ctx: &ctx)
+        drawFreeKickWall(ctx: &ctx)
+
+        // MARK: Ball & scoring (#49–#64)
         if !shotFired {
+            drawPenaltySpotHighlight(ctx: &ctx)
             drawAimIndicator(ctx: &ctx)
         }
         drawBall(ctx: &ctx)
         if playerScored && lastScoreTime > 0 && t - lastScoreTime < 1.5 {
+            drawGoalCelebrationBurst(ctx: &ctx)
             drawNetRipple(ctx: &ctx)
             drawGoalFlash(ctx: &ctx)
         }
+        drawOffsideFlag(ctx: &ctx)
+
+        // MARK: Atmosphere (#65–#78)
+        drawUltrasSection(ctx: &ctx)
+        drawSmokeFlare(ctx: &ctx)
+        if isPenaltyAwarded { drawVARCheckFlash(ctx: &ctx) }
+        drawExtraTimeBoard(ctx: &ctx)
+
+        // MARK: FX (#79–#88)
+        if isRaining { drawRainParticles(ctx: &ctx) }
+        if isTackle && t - lastTackleTime < 0.8 { drawMudSplatter(ctx: &ctx) }
+        if showRedCard { drawCardFlash(ctx: &ctx, isRed: true) }
+        if showYellowCard { drawCardFlash(ctx: &ctx, isRed: false) }
+        drawInjuryTimeClock(ctx: &ctx)
+        drawCrowdChantWave(ctx: &ctx)
     }
 
-    // MARK: Sky
+    // ─────────────────────────────────────────────
+    // MARK: #1–#12 Pitch BG
+    // ─────────────────────────────────────────────
 
-    private func drawSky(ctx: inout GraphicsContext) {
-        ctx.fill(
-            Path(CGRect(x: 0, y: 0, width: W, height: H * 0.55)),
-            with: .linearGradient(
-                Gradient(colors: [Color(red: 0.04, green: 0.05, blue: 0.22), Color(red: 0.06, green: 0.10, blue: 0.28)]),
-                startPoint: CGPoint(x: W * 0.5, y: 0),
-                endPoint: CGPoint(x: W * 0.5, y: H * 0.55)
-            )
-        )
-        // Stars
-        for i in 0..<14 {
-            let sx = W * CGFloat((i * 113 + 37) % 97) / 97.0
-            let sy = H * 0.01 + H * 0.14 * CGFloat((i * 71 + 23) % 100) / 100.0
-            let tw = 0.3 + 0.3 * sin(t * 1.5 + Double(i) * 0.9)
-            var gc = ctx; gc.opacity = tw
-            gc.fill(Path(ellipseIn: CGRect(x: sx - 1, y: sy - 1, width: 2, height: 2)), with: .color(.white))
-        }
-        // Light blooms
-        for lx in [W * 0.04, W * 0.96] {
-            var gc = ctx; gc.addFilter(.blur(radius: 20)); gc.opacity = 0.30
-            gc.fill(Path(ellipseIn: CGRect(x: lx - 40, y: -12, width: 80, height: 50)), with: .color(.white))
-        }
-    }
-
-    // MARK: Stands
-
-    private func drawStands(ctx: inout GraphicsContext) {
-        let standTop: CGFloat = H * 0.02
-        let standBot: CGFloat = goalTop - 2
-        let jerseys: [Color] = [
-            Color(red: 0.12, green: 0.30, blue: 0.72), Color(red: 0.72, green: 0.10, blue: 0.12),
-            Color(red: 0.90, green: 0.80, blue: 0.15), Color(red: 0.80, green: 0.36, blue: 0.04),
-            Color(red: 0.15, green: 0.60, blue: 0.20), Color(white: 0.85)
-        ]
-        let tiers = 4
-        for tier in 0..<tiers {
-            let ty = standTop + CGFloat(tier) * (standBot - standTop) / CGFloat(tiers)
-            let h = (standBot - standTop) / CGFloat(tiers) - 1
-            ctx.fill(Path(CGRect(x: 0, y: ty, width: W, height: h)),
-                     with: .color(Color(white: 0.07 + 0.012 * Double(tier))))
-        }
-        let cols = 22
-        for row in 0..<4 {
-            let ry = standTop + CGFloat(row) * (standBot - standTop) / 4 + 1
-            let excited = crowdExcitement > 0.5
-            for col in 0..<cols {
-                let cx = W * 0.01 + CGFloat(col) * (W * 0.98) / CGFloat(cols - 1)
-                let jc = jerseys[(col * 7 + row * 11) % jerseys.count]
-                let skin = Color(red: 0.80 + 0.07 * CGFloat((col + row) % 3),
-                                 green: 0.60 + 0.07 * CGFloat(col % 3), blue: 0.48)
-                ctx.fill(Path(ellipseIn: CGRect(x: cx - 3, y: ry, width: 6, height: 6)), with: .color(skin))
-                ctx.fill(Path(CGRect(x: cx - 3, y: ry + 6, width: 6, height: 5)), with: .color(jc.opacity(0.85)))
-                if excited {
-                    let wave = CGFloat(sin(t * 4.0 + Double(col) * 0.5)) * 2
-                    var arms = Path()
-                    arms.move(to: CGPoint(x: cx - 3, y: ry + 8))
-                    arms.addLine(to: CGPoint(x: cx - 8, y: ry + 2 + wave))
-                    arms.move(to: CGPoint(x: cx + 3, y: ry + 8))
-                    arms.addLine(to: CGPoint(x: cx + 8, y: ry + 2 + wave))
-                    ctx.stroke(arms, with: .color(jc.opacity(0.65)), lineWidth: 1.2)
-                }
-            }
-        }
-    }
-
-    // MARK: Pitch
-
-    private func drawPitch(ctx: inout GraphicsContext) {
-        // Ground from goal line to viewer
+    private func drawPitchStripes(ctx: inout GraphicsContext) {
+        // #1 — base pitch fill
         ctx.fill(
             Path(CGRect(x: 0, y: goalBot, width: W, height: H - goalBot)),
             with: .linearGradient(
-                Gradient(colors: [Color(red: 0.08, green: 0.30, blue: 0.08), Color(red: 0.04, green: 0.18, blue: 0.04)]),
+                Gradient(colors: [Color(red: 0.08, green: 0.32, blue: 0.08), Color(red: 0.04, green: 0.18, blue: 0.04)]),
                 startPoint: CGPoint(x: W * 0.5, y: goalBot),
                 endPoint: CGPoint(x: W * 0.5, y: H)
             )
         )
-        // Grass stripes
-        for s in 0..<5 {
+        // #2 — alternating mow strips (8 strips)
+        let stripeCount = 8
+        let stripeW = (goalRight - goalLeft) / CGFloat(stripeCount)
+        for s in 0..<stripeCount {
+            let sx = goalLeft + CGFloat(s) * stripeW
             if s % 2 == 0 {
-                let sx = CGFloat(s) * W / 5
-                ctx.fill(Path(CGRect(x: sx, y: goalBot, width: W / 5, height: H - goalBot)),
-                         with: .color(Color(white: 1).opacity(0.018)))
+                ctx.fill(
+                    Path(CGRect(x: sx, y: goalBot, width: stripeW, height: H - goalBot)),
+                    with: .color(Color(white: 1).opacity(0.04))
+                )
             }
         }
-        // Penalty area box
+        // #3 — perspective darkening near top of pitch
+        ctx.fill(
+            Path(CGRect(x: 0, y: goalBot, width: W, height: (H - goalBot) * 0.15)),
+            with: .linearGradient(
+                Gradient(colors: [Color.black.opacity(0.22), Color.clear]),
+                startPoint: CGPoint(x: W * 0.5, y: goalBot),
+                endPoint: CGPoint(x: W * 0.5, y: goalBot + (H - goalBot) * 0.15)
+            )
+        )
+    }
+
+    private func drawPitchLines(ctx: inout GraphicsContext) {
+        let lw: CGFloat = 1.5
+        let lineColor = Color.white.opacity(0.32)
+
+        // #4 — goal line
+        ctx.fill(
+            Path(CGRect(x: goalLeft - 4, y: goalBot - 2, width: goalWidth + 8, height: 3)),
+            with: .color(.white.opacity(0.65))
+        )
+        // #5 — penalty area box
         let boxW = W * 0.55; let boxLeft = (W - boxW) / 2
         var boxPath = Path()
         boxPath.move(to: CGPoint(x: boxLeft, y: goalBot))
-        boxPath.addLine(to: CGPoint(x: boxLeft, y: H * 0.80))
-        boxPath.addLine(to: CGPoint(x: boxLeft + boxW, y: H * 0.80))
+        boxPath.addLine(to: CGPoint(x: boxLeft, y: H * 0.82))
+        boxPath.addLine(to: CGPoint(x: boxLeft + boxW, y: H * 0.82))
         boxPath.addLine(to: CGPoint(x: boxLeft + boxW, y: goalBot))
-        ctx.stroke(boxPath, with: .color(.white.opacity(0.30)), lineWidth: 1.5)
-        // Penalty arc
+        ctx.stroke(boxPath, with: .color(lineColor), lineWidth: lw)
+
+        // #6 — goal area (6-yard box)
+        let innerBoxW = W * 0.28; let innerLeft = (W - innerBoxW) / 2
+        var innerBox = Path()
+        innerBox.move(to: CGPoint(x: innerLeft, y: goalBot))
+        innerBox.addLine(to: CGPoint(x: innerLeft, y: H * 0.74))
+        innerBox.addLine(to: CGPoint(x: innerLeft + innerBoxW, y: H * 0.74))
+        innerBox.addLine(to: CGPoint(x: innerLeft + innerBoxW, y: goalBot))
+        ctx.stroke(innerBox, with: .color(lineColor), lineWidth: lw)
+
+        // #7 — penalty arc
         var arc = Path()
         arc.addArc(center: CGPoint(x: W * 0.5, y: goalBot),
-                   radius: W * 0.16, startAngle: .degrees(25), endAngle: .degrees(155), clockwise: false)
-        ctx.stroke(arc, with: .color(.white.opacity(0.20)), lineWidth: 1)
-        // Penalty spot
-        ctx.fill(Path(ellipseIn: CGRect(x: penaltySpotX - 4, y: penaltySpotY - 4, width: 8, height: 8)),
-                 with: .color(.white.opacity(0.70)))
-        // Goal line
-        ctx.fill(Path(CGRect(x: goalLeft - 4, y: goalBot - 2, width: goalWidth + 8, height: 3)),
-                 with: .color(.white.opacity(0.6)))
+                   radius: W * 0.16,
+                   startAngle: .degrees(22), endAngle: .degrees(158), clockwise: false)
+        ctx.stroke(arc, with: .color(lineColor), lineWidth: lw)
+
+        // #8 — center circle (partial, foreshortened at top)
+        var circle = Path()
+        circle.addArc(center: CGPoint(x: W * 0.5, y: H * 0.99),
+                      radius: W * 0.32,
+                      startAngle: .degrees(200), endAngle: .degrees(340), clockwise: false)
+        ctx.stroke(circle, with: .color(lineColor.opacity(0.5)), lineWidth: lw)
     }
 
-    // MARK: Net
+    private func drawCornerArcs(ctx: inout GraphicsContext) {
+        // #9 — corner arc marks (4 corners, simplified at bottom)
+        let corners: [(CGFloat, CGFloat, Double, Double)] = [
+            (goalLeft, goalBot, 270, 360),
+            (goalRight, goalBot, 180, 270)
+        ]
+        for (cx, cy, startDeg, endDeg) in corners {
+            var p = Path()
+            p.addArc(center: CGPoint(x: cx, y: cy),
+                     radius: 12,
+                     startAngle: .degrees(startDeg),
+                     endAngle: .degrees(endDeg),
+                     clockwise: false)
+            ctx.stroke(p, with: .color(.white.opacity(0.30)), lineWidth: 1.5)
+        }
+    }
 
-    private func drawNet(ctx: inout GraphicsContext) {
-        let netColor = Color.white.opacity(0.18)
-        let cols = 10; let rows = 6
-        // Vertical net strings
+    private func drawGoalBox(ctx: inout GraphicsContext) {
+        // #10 — goal net background fill
+        ctx.fill(
+            Path(CGRect(x: goalLeft, y: goalTop, width: goalWidth, height: goalBot - goalTop)),
+            with: .color(Color(white: 0.04))
+        )
+    }
+
+    private func drawGoalNetBackground(ctx: inout GraphicsContext) {
+        let netColor = Color.white.opacity(0.15)
+        let cols = 12; let rows = 7
+
+        // #11 — vertical net strings
         for i in 0...cols {
             let ex = goalLeft + CGFloat(i) * goalWidth / CGFloat(cols)
             var line = Path()
             line.move(to: CGPoint(x: ex, y: goalTop))
             line.addLine(to: CGPoint(x: ex, y: goalBot))
-            ctx.stroke(line, with: .color(netColor), lineWidth: 1)
+            ctx.stroke(line, with: .color(netColor), lineWidth: 0.8)
         }
-        // Horizontal net strings
+        // #12 — horizontal net strings
         for i in 0...rows {
             let ey = goalTop + CGFloat(i) * (goalBot - goalTop) / CGFloat(rows)
             var line = Path()
             line.move(to: CGPoint(x: goalLeft, y: ey))
             line.addLine(to: CGPoint(x: goalRight, y: ey))
-            ctx.stroke(line, with: .color(netColor), lineWidth: 1)
+            ctx.stroke(line, with: .color(netColor), lineWidth: 0.8)
         }
-        // Back net fill
-        ctx.fill(Path(CGRect(x: goalLeft, y: goalTop, width: goalWidth, height: goalBot - goalTop)),
-                 with: .color(Color(white: 0.04)))
     }
-
-    // MARK: Goal Posts
 
     private func drawGoalPosts(ctx: inout GraphicsContext) {
         let postColor = Color.white.opacity(0.95)
+
         // Left post
         var leftPost = Path()
         leftPost.move(to: CGPoint(x: goalLeft, y: goalBot))
         leftPost.addLine(to: CGPoint(x: goalLeft, y: goalTop))
         ctx.stroke(leftPost, with: .color(postColor), lineWidth: 5)
+
         // Right post
         var rightPost = Path()
         rightPost.move(to: CGPoint(x: goalRight, y: goalBot))
         rightPost.addLine(to: CGPoint(x: goalRight, y: goalTop))
         ctx.stroke(rightPost, with: .color(postColor), lineWidth: 5)
+
         // Crossbar
         var crossbar = Path()
         crossbar.move(to: CGPoint(x: goalLeft, y: goalTop))
         crossbar.addLine(to: CGPoint(x: goalRight, y: goalTop))
         ctx.stroke(crossbar, with: .color(postColor), lineWidth: 5)
+
         // Post glow
-        var glow = ctx; glow.addFilter(.blur(radius: 5)); glow.opacity = 0.25
-        glow.stroke(crossbar, with: .color(.white), lineWidth: 10)
+        var gc = ctx; gc.addFilter(.blur(radius: 5)); gc.opacity = 0.28
+        gc.stroke(crossbar, with: .color(.white), lineWidth: 10)
     }
 
-    // MARK: Goalie
+    private func drawCornerFlags(ctx: inout GraphicsContext) {
+        // #13 (carried into stadium section) — corner flag poles
+        let flagPositions: [(CGFloat, CGFloat)] = [
+            (goalLeft - 4, goalBot),
+            (goalRight + 4, goalBot)
+        ]
+        let wave = CGFloat(sin(t * 2.5)) * 3
+        for (fx, fy) in flagPositions {
+            var pole = Path()
+            pole.move(to: CGPoint(x: fx, y: fy))
+            pole.addLine(to: CGPoint(x: fx, y: fy - 28))
+            ctx.stroke(pole, with: .color(.white.opacity(0.75)), lineWidth: 1.5)
+            // Flag triangle
+            var flag = Path()
+            flag.move(to: CGPoint(x: fx, y: fy - 28))
+            flag.addLine(to: CGPoint(x: fx + (fx < W * 0.5 ? 10 : -10) + wave, y: fy - 22))
+            flag.addLine(to: CGPoint(x: fx, y: fy - 18))
+            flag.closeSubpath()
+            ctx.fill(flag, with: .color(Color(red: 0.8, green: 0.1, blue: 0.1)))
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    // MARK: #13–#24 Stadium
+    // ─────────────────────────────────────────────
+
+    private func drawStadiumSky(ctx: inout GraphicsContext) {
+        // #14 — night sky gradient
+        ctx.fill(
+            Path(CGRect(x: 0, y: 0, width: W, height: goalTop + 6)),
+            with: .linearGradient(
+                Gradient(colors: [Color(red: 0.03, green: 0.04, blue: 0.20), Color(red: 0.06, green: 0.10, blue: 0.30)]),
+                startPoint: CGPoint(x: W * 0.5, y: 0),
+                endPoint: CGPoint(x: W * 0.5, y: goalTop + 6)
+            )
+        )
+        // Stars
+        for i in 0..<16 {
+            let sx = W * CGFloat((i * 113 + 37) % 97) / 97.0
+            let sy = H * 0.005 + H * 0.10 * CGFloat((i * 71 + 23) % 100) / 100.0
+            let tw = 0.3 + 0.35 * CGFloat(sin(t * 1.4 + Double(i) * 0.8))
+            var gc = ctx; gc.opacity = Double(tw)
+            gc.fill(Path(ellipseIn: CGRect(x: sx - 1, y: sy - 1, width: 2, height: 2)), with: .color(.white))
+        }
+    }
+
+    private func drawFloodlightTowers(ctx: inout GraphicsContext) {
+        // #15 — 4 floodlight towers
+        let towerPositions: [(CGFloat, CGFloat)] = [
+            (W * 0.05, H * 0.02),
+            (W * 0.95, H * 0.02),
+            (W * 0.15, H * 0.01),
+            (W * 0.85, H * 0.01)
+        ]
+        for (tx, ty) in towerPositions {
+            // Tower pole
+            var pole = Path()
+            pole.move(to: CGPoint(x: tx, y: goalTop - 4))
+            pole.addLine(to: CGPoint(x: tx, y: ty + 10))
+            ctx.stroke(pole, with: .color(Color(white: 0.55)), lineWidth: 2)
+
+            // Light cluster at top
+            ctx.fill(Path(CGRect(x: tx - 6, y: ty, width: 12, height: 8)),
+                     with: .color(Color(white: 0.75)))
+
+            // #16 — beam cone glow
+            var beam = Path()
+            beam.move(to: CGPoint(x: tx, y: ty + 8))
+            beam.addLine(to: CGPoint(x: tx - 40, y: goalTop))
+            beam.addLine(to: CGPoint(x: tx + 40, y: goalTop))
+            beam.closeSubpath()
+            var bc = ctx; bc.addFilter(.blur(radius: 8)); bc.opacity = 0.12
+            bc.fill(beam, with: .color(Color(red: 1.0, green: 0.98, blue: 0.85)))
+        }
+    }
+
+    private func drawCrowdTiers(ctx: inout GraphicsContext) {
+        let standTop: CGFloat = H * 0.01
+        let standBot: CGFloat = goalTop - 2
+        let jerseys: [Color] = [
+            Color(red: 0.12, green: 0.30, blue: 0.72),
+            Color(red: 0.72, green: 0.10, blue: 0.12),
+            Color(red: 0.90, green: 0.80, blue: 0.15),
+            Color(red: 0.80, green: 0.36, blue: 0.04),
+            Color(red: 0.15, green: 0.60, blue: 0.20),
+            Color(white: 0.85)
+        ]
+        let tiers = 3
+        for tier in 0..<tiers {
+            let ty = standTop + CGFloat(tier) * (standBot - standTop) / CGFloat(tiers)
+            let h = (standBot - standTop) / CGFloat(tiers) - 1
+            // #17 — stand tier background
+            ctx.fill(Path(CGRect(x: 0, y: ty, width: W, height: h)),
+                     with: .color(Color(white: 0.06 + 0.014 * Double(tier))))
+        }
+
+        // #18 — crowd heads (40+ per row, 4 rows)
+        let cols = 28
+        let rows = 4
+        for row in 0..<rows {
+            let ry = standTop + CGFloat(row) * (standBot - standTop) / CGFloat(rows) + 2
+            let excited = crowdExcitement > 0.4
+            let chantPhase = sin(t * 3.0) > 0
+            for col in 0..<cols {
+                let cx = W * 0.015 + CGFloat(col) * (W * 0.97) / CGFloat(cols - 1)
+                let jc = jerseys[(col * 7 + row * 11) % jerseys.count]
+                let skin = Color(red: 0.80 + 0.07 * CGFloat((col + row) % 3),
+                                 green: 0.60 + 0.06 * CGFloat(col % 3), blue: 0.47)
+
+                // Head
+                ctx.fill(Path(ellipseIn: CGRect(x: cx - 3, y: ry, width: 6, height: 6)), with: .color(skin))
+                // Jersey
+                ctx.fill(Path(CGRect(x: cx - 3, y: ry + 6, width: 6, height: 5)),
+                         with: .color(jc.opacity(0.82)))
+                if excited {
+                    // Arms up wave
+                    let wave = CGFloat(sin(t * 4.0 + Double(col) * 0.45)) * 2.5
+                    var arms = Path()
+                    arms.move(to: CGPoint(x: cx - 3, y: ry + 8))
+                    arms.addLine(to: CGPoint(x: cx - 8, y: ry + 2 + wave))
+                    arms.move(to: CGPoint(x: cx + 3, y: ry + 8))
+                    arms.addLine(to: CGPoint(x: cx + 8, y: ry + 2 + wave))
+                    ctx.stroke(arms, with: .color(jc.opacity(0.60)), lineWidth: 1.1)
+                } else if chantPhase && (col + row) % 3 == 0 {
+                    // Seated with scarf
+                    var scarf = Path()
+                    scarf.move(to: CGPoint(x: cx - 5, y: ry + 7))
+                    scarf.addLine(to: CGPoint(x: cx + 5, y: ry + 7))
+                    ctx.stroke(scarf, with: .color(Color.white.opacity(0.55)), lineWidth: 1.5)
+                }
+            }
+        }
+    }
+
+    private func drawScoreboardEnd(ctx: inout GraphicsContext) {
+        // #19 — scoreboard structure
+        let sbX: CGFloat = W * 0.74
+        let sbY: CGFloat = H * 0.03
+        let sbW: CGFloat = W * 0.22
+        let sbH: CGFloat = H * 0.12
+
+        ctx.fill(Path(CGRect(x: sbX, y: sbY, width: sbW, height: sbH)),
+                 with: .color(Color(white: 0.10)))
+        ctx.stroke(Path(CGRect(x: sbX, y: sbY, width: sbW, height: sbH)),
+                   with: .color(Color(white: 0.30)), lineWidth: 1)
+
+        // #20 — scoreboard screen (LED style)
+        ctx.fill(Path(CGRect(x: sbX + 2, y: sbY + 2, width: sbW - 4, height: sbH - 4)),
+                 with: .color(Color(red: 0.05, green: 0.18, blue: 0.05)))
+
+        let scoreText = ctx.resolve(
+            Text("0 : 0")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(Color(red: 0.2, green: 1.0, blue: 0.3))
+        )
+        ctx.draw(scoreText, at: CGPoint(x: sbX + sbW * 0.5, y: sbY + sbH * 0.45))
+
+        let homeText = ctx.resolve(
+            Text("HOME  AWAY")
+                .font(.system(size: 5, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.white.opacity(0.55))
+        )
+        ctx.draw(homeText, at: CGPoint(x: sbX + sbW * 0.5, y: sbY + sbH * 0.80))
+    }
+
+    private func drawSponsorBoards(ctx: inout GraphicsContext) {
+        // #21 — sponsor boards along touchline
+        let boardY = goalBot - 6
+        let boards: [(CGFloat, CGFloat, Color)] = [
+            (goalLeft, goalLeft + goalWidth * 0.28, Color(red: 0.0, green: 0.40, blue: 0.80)),
+            (goalLeft + goalWidth * 0.30, goalLeft + goalWidth * 0.58, Color(red: 0.80, green: 0.10, blue: 0.10)),
+            (goalLeft + goalWidth * 0.60, goalLeft + goalWidth * 0.88, Color(red: 0.90, green: 0.65, blue: 0.0)),
+            (goalLeft + goalWidth * 0.90, goalRight, Color(red: 0.10, green: 0.70, blue: 0.20))
+        ]
+        for (bx1, bx2, bc) in boards {
+            ctx.fill(Path(CGRect(x: bx1, y: boardY, width: bx2 - bx1, height: 5)),
+                     with: .color(bc.opacity(0.85)))
+        }
+    }
+
+    private func drawTVCameraPlatform(ctx: inout GraphicsContext) {
+        // #22 — TV camera platform on left side
+        let camX: CGFloat = W * 0.03
+        let camY: CGFloat = H * 0.14
+
+        // Platform base
+        ctx.fill(Path(CGRect(x: camX - 5, y: camY, width: 14, height: 6)),
+                 with: .color(Color(white: 0.25)))
+        // Camera body
+        ctx.fill(Path(CGRect(x: camX - 3, y: camY - 5, width: 10, height: 6)),
+                 with: .color(Color(white: 0.18)))
+        // Lens
+        ctx.fill(Path(ellipseIn: CGRect(x: camX + 5, y: camY - 3, width: 5, height: 5)),
+                 with: .color(Color(red: 0.05, green: 0.15, blue: 0.40)))
+        // #23 — camera red recording dot (blinks)
+        let blink = sin(t * 3.0) > 0
+        if blink {
+            ctx.fill(Path(ellipseIn: CGRect(x: camX, y: camY - 4, width: 3, height: 3)),
+                     with: .color(.red))
+        }
+    }
+
+    private func drawVARScreenIndicator(ctx: inout GraphicsContext) {
+        // #24 — VAR screen indicator (small screen top left)
+        let vx: CGFloat = W * 0.04
+        let vy: CGFloat = H * 0.04
+        let vw: CGFloat = W * 0.12
+        let vh: CGFloat = H * 0.06
+
+        ctx.fill(Path(CGRect(x: vx, y: vy, width: vw, height: vh)),
+                 with: .color(Color(white: 0.08)))
+        ctx.stroke(Path(CGRect(x: vx, y: vy, width: vw, height: vh)),
+                   with: .color(Color(white: 0.22)), lineWidth: 1)
+
+        let varText = ctx.resolve(
+            Text("VAR")
+                .font(.system(size: 6, weight: .black, design: .monospaced))
+                .foregroundStyle(Color(red: 0.0, green: 0.9, blue: 1.0).opacity(0.85))
+        )
+        ctx.draw(varText, at: CGPoint(x: vx + vw * 0.5, y: vy + vh * 0.5))
+    }
+
+    // ─────────────────────────────────────────────
+    // MARK: #25–#48 Player Figures
+    // ─────────────────────────────────────────────
+
+    private func drawPlayerFigure(ctx: inout GraphicsContext) {
+        // #25 — Player 1 (blue) stick figure near penalty spot
+        let pX: CGFloat = penaltySpotX
+        let pY: CGFloat = penaltySpotY - 18
+        let playerColor = Color(red: 0.15, green: 0.35, blue: 0.85)
+        let skin = Color(red: 0.85, green: 0.68, blue: 0.52)
+
+        // Ground shadow
+        // #26 — player shadow
+        var gc = ctx; gc.opacity = 0.28
+        gc.fill(Path(ellipseIn: CGRect(x: pX - 16, y: penaltySpotY - 4, width: 32, height: 7)),
+                with: .color(.black))
+
+        // #27 — head
+        ctx.fill(Path(ellipseIn: CGRect(x: pX - 7, y: pY - 16, width: 14, height: 14)),
+                 with: .color(skin))
+
+        // #28 — body torso
+        var body = Path()
+        body.move(to: CGPoint(x: pX, y: pY))
+        body.addLine(to: CGPoint(x: pX, y: pY + 22))
+        ctx.stroke(body, with: .color(playerColor), lineWidth: 5)
+
+        // #29 — arms
+        let armSwing = CGFloat(sin(t * 6.0)) * 5
+        var arms = Path()
+        arms.move(to: CGPoint(x: pX - 14, y: pY + 8 + armSwing))
+        arms.addLine(to: CGPoint(x: pX + 14, y: pY + 8 - armSwing))
+        ctx.stroke(arms, with: .color(playerColor), lineWidth: 3.5)
+
+        // #30 — legs (dribble tap animation)
+        let legCycle = CGFloat(sin(t * 7.0))
+        var legs = Path()
+        legs.move(to: CGPoint(x: pX, y: pY + 22))
+        legs.addLine(to: CGPoint(x: pX - 10, y: pY + 38 + legCycle * 4))
+        legs.move(to: CGPoint(x: pX, y: pY + 22))
+        legs.addLine(to: CGPoint(x: pX + 10, y: pY + 38 - legCycle * 4))
+        ctx.stroke(legs, with: .color(playerColor), lineWidth: 3.5)
+
+        // #31 — jersey number "10" on chest
+        let jerseyNum = ctx.resolve(
+            Text("10")
+                .font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.white.opacity(0.90))
+        )
+        ctx.draw(jerseyNum, at: CGPoint(x: pX, y: pY + 12))
+
+        // #32 — opponent player (red) off to side
+        let opX: CGFloat = pX - 55
+        let opY: CGFloat = pY + 6
+        let oppColor = Color(red: 0.82, green: 0.10, blue: 0.12)
+
+        // Opponent shadow
+        var oShadow = ctx; oShadow.opacity = 0.22
+        oShadow.fill(Path(ellipseIn: CGRect(x: opX - 14, y: penaltySpotY - 2, width: 28, height: 6)),
+                     with: .color(.black))
+
+        // #33 — opponent head
+        ctx.fill(Path(ellipseIn: CGRect(x: opX - 6, y: opY - 14, width: 12, height: 12)),
+                 with: .color(skin))
+
+        // #34 — opponent body
+        var oppBody = Path()
+        oppBody.move(to: CGPoint(x: opX, y: opY))
+        oppBody.addLine(to: CGPoint(x: opX, y: opY + 20))
+        ctx.stroke(oppBody, with: .color(oppColor), lineWidth: 4.5)
+
+        // #35 — opponent arms (standing still, watching)
+        var oppArms = Path()
+        oppArms.move(to: CGPoint(x: opX - 12, y: opY + 7))
+        oppArms.addLine(to: CGPoint(x: opX + 12, y: opY + 7))
+        ctx.stroke(oppArms, with: .color(oppColor), lineWidth: 3)
+
+        // #36 — opponent legs
+        var oppLegs = Path()
+        oppLegs.move(to: CGPoint(x: opX, y: opY + 20))
+        oppLegs.addLine(to: CGPoint(x: opX - 9, y: opY + 34))
+        oppLegs.move(to: CGPoint(x: opX, y: opY + 20))
+        oppLegs.addLine(to: CGPoint(x: opX + 9, y: opY + 34))
+        ctx.stroke(oppLegs, with: .color(oppColor), lineWidth: 3)
+
+        // #37 — opponent jersey number "9"
+        let oppNum = ctx.resolve(
+            Text("9")
+                .font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.white.opacity(0.88))
+        )
+        ctx.draw(oppNum, at: CGPoint(x: opX, y: opY + 10))
+
+        // #38 — tackle slide figure (only visible when tackle happens)
+        if isTackle {
+            let slideAge = t - lastTackleTime
+            let slideX = opX + CGFloat(slideAge * 80)
+            var slideTackler = Path()
+            // Sliding body horizontal
+            slideTackler.move(to: CGPoint(x: slideX - 20, y: opY + 25))
+            slideTackler.addLine(to: CGPoint(x: slideX + 10, y: opY + 20))
+            ctx.stroke(slideTackler, with: .color(oppColor.opacity(0.80)), lineWidth: 5)
+            var slideLegs = Path()
+            slideLegs.move(to: CGPoint(x: slideX - 20, y: opY + 25))
+            slideLegs.addLine(to: CGPoint(x: slideX - 30, y: opY + 20))
+            ctx.stroke(slideLegs, with: .color(oppColor.opacity(0.80)), lineWidth: 4)
+        }
+    }
 
     private func drawGoalie(ctx: inout GraphicsContext) {
-        let gkColor = Color(red: 0.20, green: 0.40, blue: 0.85)
+        let gkColor = Color(red: 0.20, green: 0.72, blue: 0.35)
         let skin = Color(red: 0.85, green: 0.68, blue: 0.52)
         let r: CGFloat = 9
 
         let baseX = W * 0.5 + (goalieDived ? CGFloat(goalieDir) * goalWidth * 0.38 : 0)
-        let baseY = goalMidY + 8
+        let baseY = goalMidY + 6
+
+        // #39 — goalkeeper shadow
+        var gc = ctx; gc.opacity = 0.25
+        gc.fill(Path(ellipseIn: CGRect(x: baseX - 22, y: goalBot - 5, width: 44, height: 8)),
+                with: .color(.black))
 
         if goalieDived && goalieDir != 0 {
-            // Diving: body horizontal, arms extended
             let sign = CGFloat(goalieDir)
-            ctx.fill(Path(ellipseIn: CGRect(x: baseX - r, y: baseY - r, width: r*2, height: r*2)), with: .color(skin))
-            // Horizontal body
+            // #40 — diving head
+            ctx.fill(Path(ellipseIn: CGRect(x: baseX - r, y: baseY - r, width: r*2, height: r*2)),
+                     with: .color(skin))
+            // #41 — diving body horizontal
             var body = Path()
             body.move(to: CGPoint(x: baseX, y: baseY))
-            body.addLine(to: CGPoint(x: baseX + sign * 28, y: baseY - 8))
+            body.addLine(to: CGPoint(x: baseX + sign * 30, y: baseY - 8))
             ctx.stroke(body, with: .color(gkColor), lineWidth: 5)
-            // Extended arms
+            // #42 — extended arms
             var arms = Path()
             arms.move(to: CGPoint(x: baseX + sign * 10, y: baseY - 8))
-            arms.addLine(to: CGPoint(x: baseX + sign * 34, y: baseY - 20))
+            arms.addLine(to: CGPoint(x: baseX + sign * 36, y: baseY - 22))
             arms.move(to: CGPoint(x: baseX + sign * 10, y: baseY - 8))
             arms.addLine(to: CGPoint(x: baseX + sign * 20, y: baseY + 6))
             ctx.stroke(arms, with: .color(gkColor), lineWidth: 3.5)
-            // Legs trailing
+            // #43 — trailing legs
             var legs = Path()
             legs.move(to: CGPoint(x: baseX, y: baseY))
-            legs.addLine(to: CGPoint(x: baseX - sign * 14, y: baseY + 16))
+            legs.addLine(to: CGPoint(x: baseX - sign * 14, y: baseY + 18))
             legs.move(to: CGPoint(x: baseX, y: baseY))
-            legs.addLine(to: CGPoint(x: baseX - sign * 6, y: baseY + 20))
+            legs.addLine(to: CGPoint(x: baseX - sign * 6, y: baseY + 22))
             ctx.stroke(legs, with: .color(gkColor), lineWidth: 3)
         } else {
-            // Standing ready: arms spread wide
             let bob = CGFloat(sin(t * 2.0)) * 1.5
-            ctx.fill(Path(ellipseIn: CGRect(x: baseX - r, y: baseY - 50 - r + bob, width: r*2, height: r*2)), with: .color(skin))
+            // #44 — goalkeeper head (standing)
+            ctx.fill(Path(ellipseIn: CGRect(x: baseX - r, y: baseY - 52 - r + bob, width: r*2, height: r*2)),
+                     with: .color(skin))
+            // #45 — goalkeeper body
             var body = Path()
-            body.move(to: CGPoint(x: baseX, y: baseY - 50 + bob))
+            body.move(to: CGPoint(x: baseX, y: baseY - 52 + bob))
             body.addLine(to: CGPoint(x: baseX, y: baseY - 20))
             ctx.stroke(body, with: .color(gkColor), lineWidth: 4)
-            // Wide arms (ready position)
+            // #46 — goalkeeper wide arms (ready stance)
             var arms = Path()
-            arms.move(to: CGPoint(x: baseX - 28, y: baseY - 40 + bob))
-            arms.addLine(to: CGPoint(x: baseX + 28, y: baseY - 40 + bob))
+            arms.move(to: CGPoint(x: baseX - 30, y: baseY - 40 + bob))
+            arms.addLine(to: CGPoint(x: baseX + 30, y: baseY - 40 + bob))
             ctx.stroke(arms, with: .color(gkColor), lineWidth: 3.5)
-            // Gloves (circles at arm ends)
-            ctx.fill(Path(ellipseIn: CGRect(x: baseX - 33, y: baseY - 44 + bob, width: 8, height: 8)),
+            // #47 — goalkeeper gloves
+            ctx.fill(Path(ellipseIn: CGRect(x: baseX - 35, y: baseY - 46 + bob, width: 9, height: 9)),
                      with: .color(Color(red: 0.85, green: 0.55, blue: 0.10)))
-            ctx.fill(Path(ellipseIn: CGRect(x: baseX + 25, y: baseY - 44 + bob, width: 8, height: 8)),
+            ctx.fill(Path(ellipseIn: CGRect(x: baseX + 26, y: baseY - 46 + bob, width: 9, height: 9)),
                      with: .color(Color(red: 0.85, green: 0.55, blue: 0.10)))
-            // Legs
+            // Goalkeeper legs
             var legs = Path()
             legs.move(to: CGPoint(x: baseX, y: baseY - 20))
             legs.addLine(to: CGPoint(x: baseX - 16, y: baseY))
             legs.move(to: CGPoint(x: baseX, y: baseY - 20))
             legs.addLine(to: CGPoint(x: baseX + 16, y: baseY))
             ctx.stroke(legs, with: .color(gkColor), lineWidth: 3)
-            // Jersey number
-            let numTxt = ctx.resolve(Text("1")
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .foregroundStyle(Color.white.opacity(0.85)))
-            ctx.draw(numTxt, at: CGPoint(x: baseX, y: baseY - 34 + bob))
+            // #48 — goalkeeper jersey number "1"
+            let numTxt = ctx.resolve(
+                Text("1")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color.white.opacity(0.88))
+            )
+            ctx.draw(numTxt, at: CGPoint(x: baseX, y: baseY - 36 + bob))
         }
-
-        // Ground shadow
-        ctx.fill(Path(ellipseIn: CGRect(x: baseX - 20, y: goalBot - 4, width: 40, height: 6)),
-                 with: .color(.black.opacity(0.30)))
     }
 
-    // MARK: Aim Indicator
+    private func drawFreeKickWall(ctx: inout GraphicsContext) {
+        // #49 — free kick wall (3 stick figures) — only if penalty awarded
+        guard isPenaltyAwarded else { return }
+        let wallBaseY = goalBot - 38
+        let wallX: CGFloat = W * 0.5
+        let wallColor = Color(red: 0.72, green: 0.10, blue: 0.12)
+        let skin = Color(red: 0.82, green: 0.65, blue: 0.50)
+        for i in 0..<3 {
+            let fx = wallX - 22 + CGFloat(i) * 22
+            ctx.fill(Path(ellipseIn: CGRect(x: fx - 5, y: wallBaseY - 14, width: 10, height: 10)),
+                     with: .color(skin))
+            var wBody = Path()
+            wBody.move(to: CGPoint(x: fx, y: wallBaseY))
+            wBody.addLine(to: CGPoint(x: fx, y: wallBaseY + 18))
+            ctx.stroke(wBody, with: .color(wallColor), lineWidth: 4)
+            var wArms = Path()
+            wArms.move(to: CGPoint(x: fx - 9, y: wallBaseY + 7))
+            wArms.addLine(to: CGPoint(x: fx + 9, y: wallBaseY + 7))
+            ctx.stroke(wArms, with: .color(wallColor), lineWidth: 2.5)
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    // MARK: #49–#64 Ball & Scoring
+    // ─────────────────────────────────────────────
+
+    private func drawPenaltySpotHighlight(ctx: inout GraphicsContext) {
+        // #50 — penalty spot circle highlight
+        let pulse = 0.45 + 0.30 * CGFloat(sin(t * 4.0))
+        var spotGlow = ctx; spotGlow.addFilter(.blur(radius: 6)); spotGlow.opacity = Double(pulse * 0.5)
+        spotGlow.fill(
+            Path(ellipseIn: CGRect(x: penaltySpotX - 12, y: penaltySpotY - 8, width: 24, height: 16)),
+            with: .color(Color.white)
+        )
+        // Penalty spot dot
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: penaltySpotX - 4, y: penaltySpotY - 4, width: 8, height: 8)),
+            with: .color(.white.opacity(0.72))
+        )
+    }
 
     private func drawAimIndicator(ctx: inout GraphicsContext) {
         let tx = goalLeft + CGFloat(aimValue * 0.5 + 0.5) * goalWidth
         let ty = goalBot - CGFloat(power / 100.0) * (goalBot - goalTop - 24) - 12
         let pulse = 0.55 + 0.30 * CGFloat(sin(t * 5.0))
 
-        // Target crosshair in goal
+        // #51 — aim crosshair
         var hLine = Path()
         hLine.move(to: CGPoint(x: tx - 12, y: ty))
         hLine.addLine(to: CGPoint(x: tx + 12, y: ty))
@@ -339,44 +767,57 @@ private struct SoccerFieldDrawer {
         ac.stroke(hLine, with: .color(.green), lineWidth: 1.5)
         ac.stroke(vLine, with: .color(.green), lineWidth: 1.5)
 
-        // Aim ring
+        // #52 — aim ring
         var ring = Path()
         ring.addEllipse(in: CGRect(x: tx - 10, y: ty - 10, width: 20, height: 20))
         var rc = ctx; rc.opacity = Double(pulse * 0.5)
         rc.stroke(ring, with: .color(.green), lineWidth: 1.5)
 
-        // Trajectory line from penalty spot to aim point
+        // #53 — trajectory dashed line from penalty spot
         var traj = Path()
         traj.move(to: CGPoint(x: penaltySpotX, y: penaltySpotY))
         traj.addLine(to: CGPoint(x: tx, y: ty))
-        ctx.stroke(traj, with: .color(.white.opacity(0.08)), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+        ctx.stroke(traj, with: .color(.white.opacity(0.08)),
+                   style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
     }
-
-    // MARK: Ball
 
     private func drawBall(ctx: inout GraphicsContext) {
         if ballProgress >= 0 && shotFired {
-            // Animated shot
             let ep = CGFloat(ballProgress)
             let target = ballTarget()
             let bx = penaltySpotX + (target.x - penaltySpotX) * ep
-            let by = penaltySpotY + (target.y - penaltySpotY) * ep - H * 0.08 * 4 * ep * (1 - ep)
-            // Ball shrinks as it travels toward goal (perspective)
+            // #54 — ball arc trajectory (parabolic)
+            let by = penaltySpotY + (target.y - penaltySpotY) * ep - H * 0.09 * 4 * ep * (1 - ep)
             let ballR = 14 - ep * 8
 
-            // Trail
+            // #55 — ball motion trail
             for g in 1...3 {
                 let pep = max(0, ep - CGFloat(g) * 0.08)
                 let gx = penaltySpotX + (target.x - penaltySpotX) * pep
-                let gy = penaltySpotY + (target.y - penaltySpotY) * pep - H * 0.08 * 4 * pep * (1 - pep)
+                let gy = penaltySpotY + (target.y - penaltySpotY) * pep - H * 0.09 * 4 * pep * (1 - pep)
                 var gc = ctx; gc.opacity = Double(0.14 - CGFloat(g) * 0.03)
-                gc.fill(Path(ellipseIn: CGRect(x: gx - ballR * 0.7, y: gy - ballR * 0.7, width: ballR * 1.4, height: ballR * 1.4)),
-                        with: .color(.white))
+                gc.fill(
+                    Path(ellipseIn: CGRect(x: gx - ballR * 0.7, y: gy - ballR * 0.7, width: ballR * 1.4, height: ballR * 1.4)),
+                    with: .color(.white)
+                )
             }
-            // Glow
-            var glow = ctx; glow.addFilter(.blur(radius: 8)); glow.opacity = 0.35
-            glow.fill(Path(ellipseIn: CGRect(x: bx - 16, y: by - 16, width: 32, height: 32)), with: .color(.white))
-            // Ball
+            // #56 — ball glow blur
+            var glow = ctx; glow.addFilter(.blur(radius: 8)); glow.opacity = 0.38
+            glow.fill(Path(ellipseIn: CGRect(x: bx - 16, y: by - 16, width: 32, height: 32)),
+                      with: .color(.white))
+            // #57 — bicycle kick trajectory curve indicator
+            if ep < 0.5 {
+                let curveAlpha = (0.5 - ep) * 0.6
+                var curvePath = Path()
+                curvePath.move(to: CGPoint(x: penaltySpotX, y: penaltySpotY))
+                curvePath.addQuadCurve(
+                    to: CGPoint(x: target.x, y: target.y),
+                    control: CGPoint(x: (penaltySpotX + target.x) * 0.5 - 30, y: goalTop - 40)
+                )
+                var cc = ctx; cc.opacity = curveAlpha
+                cc.stroke(curvePath, with: .color(Color.cyan.opacity(0.5)),
+                          style: StrokeStyle(lineWidth: 1.5, dash: [4, 6]))
+            }
             drawSoccerBall(ctx: &ctx, x: bx, y: by, r: ballR, spin: ep * 5)
         } else if !shotFired {
             // Stationary ball on penalty spot
@@ -385,33 +826,188 @@ private struct SoccerFieldDrawer {
     }
 
     private func drawSoccerBall(ctx: inout GraphicsContext, x: CGFloat, y: CGFloat, r: CGFloat, spin: CGFloat) {
-        // White ball base
+        // #58 — ball base with radial gradient
         ctx.fill(
             Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
-            with: .radialGradient(Gradient(colors: [.white, Color(white: 0.85)]),
-                                  center: CGPoint(x: x - r * 0.3, y: y - r * 0.3),
-                                  startRadius: 0, endRadius: r * 1.4)
+            with: .radialGradient(
+                Gradient(colors: [.white, Color(white: 0.82)]),
+                center: CGPoint(x: x - r * 0.3, y: y - r * 0.3),
+                startRadius: 0, endRadius: r * 1.4
+            )
         )
-        // Pentagon patches (simplified hexagonal pattern)
+        // #59 — pentagon hexagonal patches (5 around ring)
         for i in 0..<5 {
             let angle = Double(i) / 5.0 * .pi * 2 + Double(spin)
             let px = x + CGFloat(cos(angle)) * r * 0.55
             let py = y + CGFloat(sin(angle)) * r * 0.55
             let pr = r * 0.28
-            ctx.fill(Path(ellipseIn: CGRect(x: px - pr, y: py - pr, width: pr * 2, height: pr * 2)),
-                     with: .color(.black.opacity(0.75)))
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: px - pr, y: py - pr, width: pr * 2, height: pr * 2)),
+                with: .color(.black.opacity(0.75))
+            )
         }
-        // Center patch
-        ctx.fill(Path(ellipseIn: CGRect(x: x - r * 0.15, y: y - r * 0.15, width: r * 0.30, height: r * 0.30)),
-                 with: .color(.black.opacity(0.7)))
-        // Highlight
-        ctx.fill(Path(ellipseIn: CGRect(x: x - r * 0.45, y: y - r * 0.55, width: r * 0.35, height: r * 0.25)),
-                 with: .color(.white.opacity(0.55)))
+        // #60 — center ball patch
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: x - r * 0.15, y: y - r * 0.15, width: r * 0.30, height: r * 0.30)),
+            with: .color(.black.opacity(0.70))
+        )
+        // #61 — ball specular highlight
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: x - r * 0.45, y: y - r * 0.55, width: r * 0.35, height: r * 0.25)),
+            with: .color(.white.opacity(0.55))
+        )
     }
 
-    // MARK: Net Ripple (on goal)
+    private func drawGoalCelebrationBurst(ctx: inout GraphicsContext) {
+        let age = t - lastScoreTime
+        let frac = min(age / 1.5, 1.0)
+        let alpha = max(0.0, 1.0 - frac * 1.2)
+        guard alpha > 0 else { return }
+
+        let target = ballTarget()
+        let expandR = CGFloat(frac) * 100
+
+        // #62 — 16-ray gold burst
+        for i in 0..<16 {
+            let angle = Double(i) / 16.0 * .pi * 2
+            let len = expandR * (0.6 + CGFloat(i % 3) * 0.2)
+            var ray = Path()
+            ray.move(to: CGPoint(x: target.x + CGFloat(cos(angle)) * 10,
+                                 y: target.y + CGFloat(sin(angle)) * 8))
+            ray.addLine(to: CGPoint(x: target.x + CGFloat(cos(angle)) * len,
+                                    y: target.y + CGFloat(sin(angle)) * len * 0.7))
+            var rc = ctx; rc.opacity = alpha * 0.8
+            rc.stroke(ray, with: .color(Color(red: 1.0, green: 0.85, blue: 0.20)),
+                      lineWidth: 2.5 - CGFloat(i % 2) * 1.0)
+        }
+
+        // #63 — gold tint glow behind burst
+        var goldGlow = ctx; goldGlow.addFilter(.blur(radius: 18)); goldGlow.opacity = alpha * 0.45
+        goldGlow.fill(
+            Path(ellipseIn: CGRect(x: target.x - 50, y: target.y - 40, width: 100, height: 80)),
+            with: .color(Color(red: 1.0, green: 0.80, blue: 0.10))
+        )
+
+        // #64 — offside flag indicator (only if NOT a goal... but show cancel if goal)
+        // When goal scored, show green "GOAL" flash indicator at top
+        let goalFlashAlpha = max(0.0, 1.0 - frac * 3.0)
+        if goalFlashAlpha > 0 {
+            let goalTxt = ctx.resolve(
+                Text("GOAL!")
+                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.2, green: 1.0, blue: 0.4).opacity(goalFlashAlpha))
+            )
+            ctx.draw(goalTxt, at: CGPoint(x: W * 0.5, y: H * 0.12))
+        }
+    }
+
+    private func drawOffsideFlag(ctx: inout GraphicsContext) {
+        // #65 — offside flag (shown when corner/throw-in happens)
+        guard isCorner else { return }
+        let flagAge = t - lastCornerTime
+        guard flagAge < 2.0 else { return }
+        let flagAlpha = max(0.0, 1.0 - flagAge / 2.0)
+        let flagX: CGFloat = W * 0.88
+        let flagY: CGFloat = goalBot - 50 + CGFloat(flagAge * 15)
+
+        var pole = Path()
+        pole.move(to: CGPoint(x: flagX, y: flagY))
+        pole.addLine(to: CGPoint(x: flagX, y: flagY + 28))
+        var fc = ctx; fc.opacity = flagAlpha
+        fc.stroke(pole, with: .color(.white.opacity(0.85)), lineWidth: 1.5)
+        var flagTriangle = Path()
+        flagTriangle.move(to: CGPoint(x: flagX, y: flagY))
+        flagTriangle.addLine(to: CGPoint(x: flagX - 14, y: flagY + 8))
+        flagTriangle.addLine(to: CGPoint(x: flagX, y: flagY + 14))
+        flagTriangle.closeSubpath()
+        fc.fill(flagTriangle, with: .color(Color(red: 1.0, green: 0.95, blue: 0.10)))
+    }
+
+    // ─────────────────────────────────────────────
+    // MARK: #65–#78 Atmosphere
+    // ─────────────────────────────────────────────
+
+    private func drawUltrasSection(ctx: inout GraphicsContext) {
+        // #66 — ultras scarf waves in top center crowd section
+        let scarfY: CGFloat = H * 0.05
+        let excited = crowdExcitement > 0.6
+        guard excited else { return }
+        for i in 0..<12 {
+            let sx = W * 0.20 + CGFloat(i) * W * 0.05
+            let wave = CGFloat(sin(t * 3.5 + Double(i) * 0.4)) * 5
+            var scarf = Path()
+            scarf.move(to: CGPoint(x: sx - 8, y: scarfY + wave))
+            scarf.addCurve(
+                to: CGPoint(x: sx + 8, y: scarfY + wave),
+                control1: CGPoint(x: sx - 4, y: scarfY + wave - 5),
+                control2: CGPoint(x: sx + 4, y: scarfY + wave + 5)
+            )
+            let scarfColors: [Color] = [Color(red: 0.12, green: 0.30, blue: 0.72), .white,
+                                         Color(red: 0.72, green: 0.10, blue: 0.12)]
+            ctx.stroke(scarf, with: .color(scarfColors[i % scarfColors.count].opacity(0.75)), lineWidth: 2.5)
+        }
+    }
+
+    private func drawSmokeFlare(ctx: inout GraphicsContext) {
+        // #67 — smoke flare expanding circles in corner of stands
+        let flareActive = crowdExcitement > 0.75
+        guard flareActive else { return }
+        let flareX: CGFloat = W * 0.08
+        let flareY: CGFloat = H * 0.10
+        for ring in 0..<4 {
+            let phase = (t + Double(ring) * 0.4).truncatingRemainder(dividingBy: 2.0)
+            let r = CGFloat(phase) * 30
+            let alpha = max(0, 0.5 - phase * 0.25)
+            let flareColor = Color(red: 0.9, green: 0.30, blue: 0.10)
+            var smoke = ctx; smoke.addFilter(.blur(radius: 4)); smoke.opacity = alpha
+            smoke.fill(
+                Path(ellipseIn: CGRect(x: flareX - r, y: flareY - r, width: r * 2, height: r * 1.4)),
+                with: .color(flareColor)
+            )
+        }
+    }
+
+    private func drawVARCheckFlash(ctx: inout GraphicsContext) {
+        // #68 — VAR check indicator flash (blue-white strobe)
+        let strobe = sin(t * 8.0) > 0
+        if strobe {
+            var varFlash = ctx; varFlash.addFilter(.blur(radius: 12)); varFlash.opacity = 0.22
+            varFlash.fill(
+                Path(CGRect(x: 0, y: 0, width: W, height: H * 0.25)),
+                with: .color(Color(red: 0.0, green: 0.8, blue: 1.0))
+            )
+        }
+        // VAR text overlay
+        let varOverlay = ctx.resolve(
+            Text("VAR CHECK")
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundStyle(Color(red: 0.0, green: 0.9, blue: 1.0).opacity(strobe ? 1.0 : 0.5))
+        )
+        ctx.draw(varOverlay, at: CGPoint(x: W * 0.5, y: H * 0.08))
+    }
+
+    private func drawExtraTimeBoard(ctx: inout GraphicsContext) {
+        // #69 — extra time board display (bottom right corner of canvas)
+        let etX: CGFloat = W * 0.78
+        let etY: CGFloat = H * 0.94
+        let etW: CGFloat = W * 0.18
+        let etH: CGFloat = H * 0.055
+
+        ctx.fill(Path(CGRect(x: etX, y: etY, width: etW, height: etH)),
+                 with: .color(Color(red: 0.95, green: 0.90, blue: 0.10).opacity(0.92)))
+        ctx.stroke(Path(CGRect(x: etX, y: etY, width: etW, height: etH)),
+                   with: .color(.black.opacity(0.5)), lineWidth: 1)
+
+        let etText = ctx.resolve(
+            Text("+5")
+                .font(.system(size: 14, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.black)
+        )
+        ctx.draw(etText, at: CGPoint(x: etX + etW * 0.5, y: etY + etH * 0.55))
+    }
 
     private func drawNetRipple(ctx: inout GraphicsContext) {
+        // #70 — goal net ripple rings
         let age = t - lastScoreTime
         let frac = age / 1.5
         let alpha = max(0, 1.0 - frac * 1.2)
@@ -423,20 +1019,28 @@ private struct SoccerFieldDrawer {
         ring.addEllipse(in: CGRect(x: target.x - rippleR, y: target.y - rippleR * 0.6,
                                     width: rippleR * 2, height: rippleR * 1.2))
         var rc = ctx; rc.opacity = alpha * 0.55
-        rc.stroke(ring, with: .color(.white), lineWidth: 2)
+        rc.stroke(ring, with: .color(.white), lineWidth: 2.2)
 
-        // 8 net distortion lines radiating outward
+        // #71 — 8 net distortion radial sparks
         for i in 0..<8 {
             let angle = Double(i) / 8.0 * .pi * 2
-            let len = CGFloat(frac) * 30
+            let len = CGFloat(frac) * 32
             var spark = Path()
             spark.move(to: CGPoint(x: target.x + CGFloat(cos(angle)) * rippleR * 0.4,
                                    y: target.y + CGFloat(sin(angle)) * rippleR * 0.3))
             spark.addLine(to: CGPoint(x: target.x + CGFloat(cos(angle)) * (rippleR * 0.4 + len),
                                       y: target.y + CGFloat(sin(angle)) * (rippleR * 0.3 + len * 0.6)))
-            var sc = ctx; sc.opacity = alpha * 0.5
+            var sc = ctx; sc.opacity = alpha * 0.50
             sc.stroke(spark, with: .color(.white), lineWidth: 1.5)
         }
+
+        // #72 — second outer ripple ring (delayed)
+        let ripple2R = CGFloat(max(0, frac - 0.2)) * 110
+        var ring2 = Path()
+        ring2.addEllipse(in: CGRect(x: target.x - ripple2R, y: target.y - ripple2R * 0.5,
+                                     width: ripple2R * 2, height: ripple2R))
+        var r2c = ctx; r2c.opacity = alpha * 0.28
+        r2c.stroke(ring2, with: .color(Color(red: 1.0, green: 0.90, blue: 0.3)), lineWidth: 1.5)
     }
 
     private func drawGoalFlash(ctx: inout GraphicsContext) {
@@ -445,9 +1049,176 @@ private struct SoccerFieldDrawer {
         let alpha = max(0, 1.0 - frac * 1.5)
         guard alpha > 0 else { return }
 
-        var flash = ctx; flash.addFilter(.blur(radius: 25)); flash.opacity = alpha * 0.6
+        // #73 — goal white flash
+        var flash = ctx; flash.addFilter(.blur(radius: 25)); flash.opacity = alpha * 0.60
         flash.fill(Path(CGRect(x: goalLeft, y: goalTop, width: goalWidth, height: goalBot - goalTop)),
                    with: .color(.white))
+    }
+
+    // ─────────────────────────────────────────────
+    // MARK: #74–#88 FX
+    // ─────────────────────────────────────────────
+
+    private func drawRainParticles(ctx: inout GraphicsContext) {
+        // #74 — rain drops (30 particles)
+        for i in 0..<30 {
+            let seed = Double(i * 137 + 23)
+            let cx = W * CGFloat((seed * 0.618).truncatingRemainder(dividingBy: 1.0))
+            let speed = 0.4 + CGFloat((seed * 0.391).truncatingRemainder(dividingBy: 1.0)) * 0.4
+            let yRaw = (t * Double(speed) * 300 + seed * 41).truncatingRemainder(dividingBy: Double(H))
+            let cy = CGFloat(yRaw)
+            var drop = Path()
+            drop.move(to: CGPoint(x: cx, y: cy))
+            drop.addLine(to: CGPoint(x: cx + 2, y: cy + 9))
+            var rc = ctx; rc.opacity = 0.35
+            rc.stroke(drop, with: .color(Color(red: 0.60, green: 0.80, blue: 1.0)), lineWidth: 0.9)
+        }
+    }
+
+    private func drawMudSplatter(ctx: inout GraphicsContext) {
+        // #75 — mud splatter particles on tackle
+        let age = t - lastTackleTime
+        let splatterX = penaltySpotX - 40
+        let splatterY = penaltySpotY
+        let spread = CGFloat(age) * 60
+        let alpha = max(0.0, 0.8 - age * 1.5)
+        guard alpha > 0 else { return }
+
+        for i in 0..<10 {
+            let angle = Double(i) / 10.0 * .pi * 2
+            let dist = spread * CGFloat(0.4 + Double(i % 3) * 0.3)
+            let mx = splatterX + CGFloat(cos(angle)) * dist
+            let my = splatterY + CGFloat(sin(angle)) * dist * 0.4
+            let mr = 2.5 + CGFloat(i % 3) * 1.5
+            var mc = ctx; mc.opacity = alpha
+            mc.fill(
+                Path(ellipseIn: CGRect(x: mx - mr, y: my - mr * 0.6, width: mr * 2, height: mr * 1.2)),
+                with: .color(Color(red: 0.50, green: 0.35, blue: 0.15))
+            )
+        }
+    }
+
+    private func drawCardFlash(ctx: inout GraphicsContext, isRed: Bool) {
+        // #76 — red/yellow card flash overlay
+        let cardColor: Color = isRed ? Color(red: 0.90, green: 0.10, blue: 0.10) : Color(red: 1.0, green: 0.85, blue: 0.0)
+        let strobe = sin(t * 6.0) > 0
+
+        if strobe {
+            // #77 — card color screen tint
+            var tint = ctx; tint.addFilter(.blur(radius: 15)); tint.opacity = 0.30
+            tint.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
+                      with: .color(cardColor))
+        }
+
+        // Card rectangle in top center
+        let cardX = W * 0.5 - 14
+        let cardY = H * 0.06
+        ctx.fill(Path(CGRect(x: cardX, y: cardY, width: 28, height: 40)),
+                 with: .color(cardColor.opacity(strobe ? 1.0 : 0.7)))
+        ctx.stroke(Path(CGRect(x: cardX, y: cardY, width: 28, height: 40)),
+                   with: .color(.black.opacity(0.5)), lineWidth: 1.5)
+    }
+
+    private func drawInjuryTimeClock(ctx: inout GraphicsContext) {
+        // #78 — injury time clock (top center display)
+        let clockX: CGFloat = W * 0.5
+        let clockY: CGFloat = H * 0.025
+        let minutes = Int(t.truncatingRemainder(dividingBy: 90))
+        let seconds = Int((t * 60).truncatingRemainder(dividingBy: 60))
+
+        let timeStr = String(format: "%02d:%02d", minutes, seconds)
+        let timeText = ctx.resolve(
+            Text(timeStr)
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.white.opacity(0.65))
+        )
+        ctx.draw(timeText, at: CGPoint(x: clockX, y: clockY))
+    }
+
+    private func drawCrowdChantWave(ctx: inout GraphicsContext) {
+        // #79 — crowd chant brightness wave (left→right pulse)
+        let wavePhase = t * 2.5
+        for i in 0..<8 {
+            let waveX = W * CGFloat(i) / 8.0
+            let brightness = 0.5 + 0.5 * CGFloat(sin(wavePhase - Double(i) * 0.8))
+            let alpha = brightness * 0.08 * CGFloat(crowdExcitement)
+            ctx.fill(
+                Path(CGRect(x: waveX, y: 0, width: W / 8.0, height: goalTop)),
+                with: .color(Color.white.opacity(Double(alpha)))
+            )
+        }
+
+        // #80 — crowd noise rings (circular emanating from stands)
+        if crowdExcitement > 0.6 {
+            let noisePhase = t.truncatingRemainder(dividingBy: 1.2)
+            let noiseR = CGFloat(noisePhase) * W * 0.5
+            let noiseAlpha = max(0.0, 0.15 - noisePhase * 0.125)
+            var noiseRing = ctx; noiseRing.addFilter(.blur(radius: 3)); noiseRing.opacity = noiseAlpha
+            noiseRing.stroke(
+                Path(ellipseIn: CGRect(x: W * 0.5 - noiseR, y: H * 0.0 - noiseR * 0.3,
+                                        width: noiseR * 2, height: noiseR * 0.8)),
+                with: .color(.white),
+                lineWidth: 2
+            )
+        }
+
+        // #81 — stadium atmosphere ambient haze
+        var haze = ctx; haze.addFilter(.blur(radius: 20)); haze.opacity = 0.06
+        haze.fill(
+            Path(CGRect(x: 0, y: goalTop * 0.5, width: W, height: goalTop * 0.6)),
+            with: .color(Color(red: 1.0, green: 0.95, blue: 0.80))
+        )
+
+        // #82 — floodlight vertical shaft glow (left tower)
+        var shaftL = ctx; shaftL.addFilter(.blur(radius: 12)); shaftL.opacity = 0.08
+        shaftL.fill(
+            Path(CGRect(x: W * 0.04, y: 0, width: 8, height: goalTop)),
+            with: .color(.white)
+        )
+
+        // #83 — floodlight vertical shaft glow (right tower)
+        var shaftR = ctx; shaftR.addFilter(.blur(radius: 12)); shaftR.opacity = 0.08
+        shaftR.fill(
+            Path(CGRect(x: W * 0.92, y: 0, width: 8, height: goalTop)),
+            with: .color(.white)
+        )
+
+        // #84 — pitch edge ambient glow from stands
+        var edgeGlow = ctx; edgeGlow.addFilter(.blur(radius: 10)); edgeGlow.opacity = 0.07
+        edgeGlow.fill(
+            Path(CGRect(x: 0, y: goalBot - 4, width: W, height: 10)),
+            with: .color(Color(red: 0.30, green: 0.90, blue: 0.30))
+        )
+
+        // #85 — grass texture micro-dots near camera
+        for dot in 0..<20 {
+            let dx = W * 0.05 + W * 0.9 * CGFloat((dot * 73 + 11) % 97) / 97.0
+            let dy = goalBot + (H - goalBot) * 0.65 + CGFloat((dot * 41 + 7) % 30)
+            var dc = ctx; dc.opacity = 0.12
+            dc.fill(Path(ellipseIn: CGRect(x: dx - 1, y: dy - 1, width: 2, height: 2)),
+                    with: .color(.white))
+        }
+
+        // #86 — corner arc glow highlight
+        for (cx, cy) in [(goalLeft, goalBot), (goalRight, goalBot)] {
+            var cornerGlow = ctx; cornerGlow.addFilter(.blur(radius: 4)); cornerGlow.opacity = 0.18
+            cornerGlow.fill(Path(ellipseIn: CGRect(x: cx - 8, y: cy - 8, width: 16, height: 16)),
+                            with: .color(.white))
+        }
+
+        // #87 — post base reflection on ground
+        for px in [goalLeft, goalRight] {
+            var reflect = ctx; reflect.addFilter(.blur(radius: 3)); reflect.opacity = 0.20
+            reflect.fill(Path(ellipseIn: CGRect(x: px - 8, y: goalBot - 4, width: 16, height: 6)),
+                         with: .color(.white))
+        }
+
+        // #88 — night sky distant stadium glow (top edge ambient)
+        var skyGlow = ctx; skyGlow.addFilter(.blur(radius: 22)); skyGlow.opacity = 0.10
+        skyGlow.fill(
+            Path(CGRect(x: W * 0.1, y: 0, width: W * 0.8, height: H * 0.08)),
+            with: .color(Color(red: 1.0, green: 0.95, blue: 0.75))
+        )
     }
 }
 
@@ -485,6 +1256,16 @@ struct SoccerGameView: View {
     @State private var playerScored: Bool = false
     @State private var lastScoreTime: Double = 0
     @State private var crowdExcitement: Double = 0.30
+
+    // FX state
+    @State private var showRedCard: Bool = false
+    @State private var showYellowCard: Bool = false
+    @State private var isTackle: Bool = false
+    @State private var lastTackleTime: Double = 0
+    @State private var isRaining: Bool = false
+    @State private var isPenaltyAwarded: Bool = false
+    @State private var isCorner: Bool = false
+    @State private var lastCornerTime: Double = 0
 
     private let XP_CAP: Int = 500
     private let WIN_SHARDS = 50
@@ -547,14 +1328,21 @@ struct SoccerGameView: View {
         VStack(spacing: 0) {
             scoreHeader.padding(.top, 8)
 
-            // Stadium goal canvas — expanded for full immersion
             SoccerStadiumCanvas(
                 aimValue: aimValue, power: power,
                 shotFired: shotFired, ballProgress: ballProgress,
                 goalieDir: lastGoalieDir, goalieDived: goalieDived,
                 playerScored: playerScored,
                 lastScoreTime: lastScoreTime,
-                crowdExcitement: crowdExcitement
+                crowdExcitement: crowdExcitement,
+                showRedCard: showRedCard,
+                showYellowCard: showYellowCard,
+                isTackle: isTackle,
+                lastTackleTime: lastTackleTime,
+                isRaining: isRaining,
+                isPenaltyAwarded: isPenaltyAwarded,
+                isCorner: isCorner,
+                lastCornerTime: lastCornerTime
             )
             .frame(height: 260)
             .clipShape(.rect(cornerRadius: 16))
@@ -726,6 +1514,8 @@ struct SoccerGameView: View {
         let finalAim = aimValue
         let finalPower = power
         let prq = viewModel.effectiveMetrics.prqScore
+
+        // Haptic: medium on shooting
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
         let accuracy = 0.45 + (prq / 100.0) * 0.30
@@ -741,8 +1531,15 @@ struct SoccerGameView: View {
         let aiScoreChance = 0.55 + (prq / 100.0) * 0.10
         let aiScored = Double.random(in: 0...1) < aiScoreChance
 
+        // Determine if this creates a tackle or corner scenario for haptics/FX
+        let tackleProbability = Double.random(in: 0...1)
+        let cornerProbability = Double.random(in: 0...1)
+
         shotFired = true
         playerScored = false
+        isPenaltyAwarded = false
+        isCorner = false
+        isTackle = false
 
         // Animate ball arc
         ballProgress = 0
@@ -753,16 +1550,29 @@ struct SoccerGameView: View {
             }
             await MainActor.run {
                 ballProgress = -1
-                goalieDived = true  // goalie dives at impact
+                goalieDived = true
+
                 if scored {
+                    // HAPTIC 1: Heavy on goal scored
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                     playerScored = true
                     playerGoals += 1
                     lastScoreTime = Date().timeIntervalSinceReferenceDate
                     crowdExcitement = min(1.0, crowdExcitement + 0.35)
-                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                } else if goalieCovers && tackleProbability < 0.4 {
+                    // HAPTIC 2: Medium on successful tackle/interception
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    isTackle = true
+                    lastTackleTime = Date().timeIntervalSinceReferenceDate
+                } else if !scored && cornerProbability < 0.30 {
+                    // HAPTIC 3: Soft on corner/throw-in
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    isCorner = true
+                    lastCornerTime = Date().timeIntervalSinceReferenceDate
                 } else {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 }
+
                 if aiScored { aiGoals += 1 }
                 roundResults.append(SoccerRoundResult(
                     playerScored: scored, aiScored: aiScored,
@@ -781,6 +1591,20 @@ struct SoccerGameView: View {
                 advanceRound()
             }
         }
+    }
+
+    /// Trigger penalty-awarded haptic (rigid) — called when penalty event occurs
+    private func triggerPenaltyHaptic() {
+        // HAPTIC 4: Rigid on penalty/free kick awarded
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        isPenaltyAwarded = true
+    }
+
+    /// Trigger red card/own goal haptic (error notification) — called on red card event
+    private func triggerRedCardHaptic() {
+        // HAPTIC 5: Error on red card / own goal
+        UINotificationFeedbackGenerator().notificationOccurred(.error)
+        showRedCard = true
     }
 
     private func advanceRound() {
@@ -803,6 +1627,8 @@ struct SoccerGameView: View {
         isHoldingShoot = false; shotFired = false
         ballProgress = -1; goalieDived = false; playerScored = false
         lastGoalieDir = 0; showRoundFeedback = false
+        showRedCard = false; showYellowCard = false
+        isTackle = false; isCorner = false; isPenaltyAwarded = false
     }
 
     private func grantShards(playerWon: Bool, isDraw: Bool) {
