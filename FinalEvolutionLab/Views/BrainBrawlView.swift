@@ -72,6 +72,28 @@ private enum BBPhase {
     case ready, spinning, question, feedback, opponentTurn, result
 }
 
+// MARK: - Lifeline
+
+private enum BBLifeline: CaseIterable {
+    case fiftyFifty, phoneAFan, extraTime
+
+    var label: String {
+        switch self {
+        case .fiftyFifty:  return "50/50"
+        case .phoneAFan:   return "FAN"
+        case .extraTime:   return "+8s"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .fiftyFifty: return "scissors"
+        case .phoneAFan:  return "person.wave.2.fill"
+        case .extraTime:  return "clock.badge.plus"
+        }
+    }
+}
+
 // MARK: - Question Bank
 
 private enum BBBank {
@@ -306,6 +328,7 @@ private struct PointerTriangle: Shape {
 private struct SpinFXCanvas: View {
     let spinning: Bool
     let selectedCatColor: Color
+    let streakCount: Int
 
     var body: some View {
         TimelineView(.animation(paused: !spinning)) { tl in
@@ -341,7 +364,6 @@ private struct SpinFXCanvas: View {
                          with: .color(Color.white.opacity(0.95)))
 
                 // --- Electric arc effects: 8 lightning bolts from rim outward ---
-                // Deterministic jitter seeded by arc index + time frame (snaps at 8fps for crackle)
                 let arcFrame = Int(t * 8)
                 for i in 0..<8 {
                     let baseAngle = Double(i) * .pi / 4 + t * 5
@@ -418,6 +440,98 @@ private struct SpinFXCanvas: View {
                     runeGlowGC.stroke(runePath, with: .color(selectedCatColor.opacity(runeAlpha * 0.5)), lineWidth: 2)
                     ctx.stroke(runePath, with: .color(Color.white.opacity(runeAlpha)), lineWidth: 1)
                 }
+
+                // --- Category icon symbols drawn as canvas shapes ---
+                // Ball (sports) — circle with seam lines
+                let iconR: CGFloat = maxR + 20
+                let catIconAngle = t * 0.5
+                let ballX = cx + iconR * CGFloat(cos(catIconAngle))
+                let ballY = cy + iconR * CGFloat(sin(catIconAngle))
+                let ballS: CGFloat = 9
+                ctx.stroke(Path(ellipseIn: CGRect(x: ballX-ballS, y: ballY-ballS, width: ballS*2, height: ballS*2)),
+                           with: .color(Color.orange.opacity(0.6)), lineWidth: 1.5)
+                var seamH = Path()
+                seamH.move(to: CGPoint(x: ballX - ballS, y: ballY))
+                seamH.addLine(to: CGPoint(x: ballX + ballS, y: ballY))
+                ctx.stroke(seamH, with: .color(Color.orange.opacity(0.4)), lineWidth: 0.8)
+                var seamV = Path()
+                seamV.move(to: CGPoint(x: ballX, y: ballY - ballS))
+                seamV.addLine(to: CGPoint(x: ballX, y: ballY + ballS))
+                ctx.stroke(seamV, with: .color(Color.orange.opacity(0.4)), lineWidth: 0.8)
+
+                // Brain (science) — two oval lobes
+                let brainAngle = catIconAngle + .pi * 0.5
+                let brainX = cx + iconR * CGFloat(cos(brainAngle))
+                let brainY = cy + iconR * CGFloat(sin(brainAngle))
+                let bS: CGFloat = 8
+                ctx.stroke(Path(ellipseIn: CGRect(x: brainX - bS*1.2, y: brainY - bS*0.7, width: bS*1.1, height: bS*1.4)),
+                           with: .color(Color.cyan.opacity(0.55)), lineWidth: 1.2)
+                ctx.stroke(Path(ellipseIn: CGRect(x: brainX + bS*0.1, y: brainY - bS*0.7, width: bS*1.1, height: bS*1.4)),
+                           with: .color(Color.cyan.opacity(0.55)), lineWidth: 1.2)
+
+                // Film strip (movies) — rectangle with tick marks
+                let filmAngle = catIconAngle + .pi
+                let filmX = cx + iconR * CGFloat(cos(filmAngle))
+                let filmY = cy + iconR * CGFloat(sin(filmAngle))
+                let fW: CGFloat = 14; let fH: CGFloat = 10
+                ctx.stroke(Path(CGRect(x: filmX - fW/2, y: filmY - fH/2, width: fW, height: fH)),
+                           with: .color(Color.purple.opacity(0.6)), lineWidth: 1.2)
+                for fi in 0..<3 {
+                    let fx = filmX - fW/2 + CGFloat(fi+1) * fW / 4
+                    var tick = Path()
+                    tick.move(to: CGPoint(x: fx, y: filmY - fH/2))
+                    tick.addLine(to: CGPoint(x: fx, y: filmY - fH/2 + 2))
+                    ctx.stroke(tick, with: .color(Color.purple.opacity(0.5)), lineWidth: 1)
+                    var tick2 = Path()
+                    tick2.move(to: CGPoint(x: fx, y: filmY + fH/2 - 2))
+                    tick2.addLine(to: CGPoint(x: fx, y: filmY + fH/2))
+                    ctx.stroke(tick2, with: .color(Color.purple.opacity(0.5)), lineWidth: 1)
+                }
+
+                // Music notes (entertainment) — note head + stem
+                let musicAngle = catIconAngle + .pi * 1.5
+                let musicX = cx + iconR * CGFloat(cos(musicAngle))
+                let musicY = cy + iconR * CGFloat(sin(musicAngle))
+                ctx.fill(Path(ellipseIn: CGRect(x: musicX - 5, y: musicY + 2, width: 7, height: 5)),
+                         with: .color(Color.yellow.opacity(0.55)))
+                var noteStem = Path()
+                noteStem.move(to: CGPoint(x: musicX + 2, y: musicY + 4))
+                noteStem.addLine(to: CGPoint(x: musicX + 2, y: musicY - 6))
+                ctx.stroke(noteStem, with: .color(Color.yellow.opacity(0.55)), lineWidth: 1.2)
+                ctx.fill(Path(ellipseIn: CGRect(x: musicX + 4, y: musicY - 1, width: 7, height: 5)),
+                         with: .color(Color.yellow.opacity(0.45)))
+                var noteStem2 = Path()
+                noteStem2.move(to: CGPoint(x: musicX + 11, y: musicY + 1))
+                noteStem2.addLine(to: CGPoint(x: musicX + 11, y: musicY - 9))
+                ctx.stroke(noteStem2, with: .color(Color.yellow.opacity(0.45)), lineWidth: 1.2)
+
+                // --- Trophy particle burst: 8 gold spinning triangles on streak >= 3 ---
+                if streakCount >= 3 {
+                    let trophyR: CGFloat = rimR * 0.65
+                    for i in 0..<8 {
+                        let triAngle = Double(i) * .pi / 4.0 + t * 2.5
+                        let tx = cx + trophyR * CGFloat(cos(triAngle))
+                        let ty = cy + trophyR * CGFloat(sin(triAngle))
+                        let ts: CGFloat = 7
+                        let spinA = t * 4.0 + Double(i) * .pi / 4.0
+                        var tri = Path()
+                        tri.move(to: CGPoint(
+                            x: tx + ts * CGFloat(cos(spinA)),
+                            y: ty + ts * CGFloat(sin(spinA))))
+                        tri.addLine(to: CGPoint(
+                            x: tx + ts * CGFloat(cos(spinA + .pi * 2.0/3.0)),
+                            y: ty + ts * CGFloat(sin(spinA + .pi * 2.0/3.0))))
+                        tri.addLine(to: CGPoint(
+                            x: tx + ts * CGFloat(cos(spinA + .pi * 4.0/3.0)),
+                            y: ty + ts * CGFloat(sin(spinA + .pi * 4.0/3.0))))
+                        tri.closeSubpath()
+                        let tAlpha = 0.5 + 0.4 * sin(t * 3.0 + Double(i))
+                        var triGlowGC = ctx
+                        triGlowGC.addFilter(.blur(radius: 4))
+                        triGlowGC.fill(tri, with: .color(Color.yellow.opacity(tAlpha * 0.5)))
+                        ctx.fill(tri, with: .color(Color(red: 1.0, green: 0.82, blue: 0.0).opacity(tAlpha)))
+                    }
+                }
             }
         }
     }
@@ -427,6 +541,7 @@ private struct SpinFXCanvas: View {
 
 private struct NeuralBGCanvas: View {
     let catColor: Color
+    let isAnswering: Bool
 
     // 20 node positions (normalized 0..1)
     private let nx: [CGFloat] = [
@@ -591,6 +706,119 @@ private struct NeuralBGCanvas: View {
                 eegGlowGC.addFilter(.blur(radius: 2))
                 eegGlowGC.stroke(eegPath, with: .color(catColor.opacity(0.30)), lineWidth: 2)
                 ctx.stroke(eegPath, with: .color(catColor.opacity(0.60)), lineWidth: 1)
+
+                // --- Synaptic firing: when isAnswering, 6 bright white flashes radiate from center ---
+                if isAnswering {
+                    let cx2 = W / 2; let cy2 = H / 2
+                    for i in 0..<6 {
+                        let flashAngle = Double(i) * .pi / 3.0 + t * 2.0
+                        let flashProgress = fmod(t * 2.5 + Double(i) * 0.18, 1.0)
+                        let flashDist = 20 + CGFloat(flashProgress) * 120
+                        let fAlpha = (1.0 - flashProgress) * 0.85
+                        let fX = cx2 + flashDist * CGFloat(cos(flashAngle))
+                        let fY = cy2 + flashDist * CGFloat(sin(flashAngle))
+                        var flashGC = ctx
+                        flashGC.addFilter(.blur(radius: 8))
+                        flashGC.fill(Path(ellipseIn: CGRect(x: fX-10, y: fY-10, width: 20, height: 20)),
+                                     with: .color(Color.white.opacity(fAlpha * 0.7)))
+                        ctx.fill(Path(ellipseIn: CGRect(x: fX-3, y: fY-3, width: 6, height: 6)),
+                                 with: .color(Color.white.opacity(fAlpha)))
+                        var flashRay = Path()
+                        flashRay.move(to: CGPoint(x: cx2, y: cy2))
+                        flashRay.addLine(to: CGPoint(x: fX, y: fY))
+                        ctx.stroke(flashRay, with: .color(Color.white.opacity(fAlpha * 0.4)), lineWidth: 0.8)
+                    }
+                }
+
+                // --- DNA double helix strands: two sine waves offset by pi, connected by rungs ---
+                let dnaX0: CGFloat = W * 0.05
+                let dnaX1: CGFloat = W * 0.18
+                let dnaXMid = (dnaX0 + dnaX1) / 2
+                let dnaScrollOffset = CGFloat(fmod(t * 30, Double(H)))
+                let strandPoints = 40
+                var strand1 = Path()
+                var strand2 = Path()
+                let dnaAmp: CGFloat = (dnaX1 - dnaX0) * 0.45
+                for si in 0...strandPoints {
+                    let rawY = CGFloat(si) / CGFloat(strandPoints) * H
+                    let scrolledY = fmod(rawY + dnaScrollOffset, H)
+                    let wave = CGFloat(sin(Double(si) / Double(strandPoints) * .pi * 6 - t * 1.5))
+                    let x1 = dnaXMid + dnaAmp * wave
+                    let x2 = dnaXMid - dnaAmp * wave
+                    if si == 0 {
+                        strand1.move(to: CGPoint(x: x1, y: scrolledY))
+                        strand2.move(to: CGPoint(x: x2, y: scrolledY))
+                    } else {
+                        strand1.addLine(to: CGPoint(x: x1, y: scrolledY))
+                        strand2.addLine(to: CGPoint(x: x2, y: scrolledY))
+                    }
+                }
+                ctx.stroke(strand1, with: .color(catColor.opacity(0.35)), lineWidth: 1.2)
+                ctx.stroke(strand2, with: .color(catColor.opacity(0.25)), lineWidth: 1.2)
+                // Rungs connecting the two strands
+                let rungCount = 10
+                for ri in 0..<rungCount {
+                    let rawY = CGFloat(ri) / CGFloat(rungCount) * H
+                    let scrolledY = fmod(rawY + dnaScrollOffset, H)
+                    let wave = CGFloat(sin(Double(ri) / Double(rungCount) * .pi * 6 - t * 1.5))
+                    let x1 = dnaXMid + dnaAmp * wave
+                    let x2 = dnaXMid - dnaAmp * wave
+                    var rung = Path()
+                    rung.move(to: CGPoint(x: x1, y: scrolledY))
+                    rung.addLine(to: CGPoint(x: x2, y: scrolledY))
+                    let rungAlpha = 0.2 + 0.3 * abs(Double(wave))
+                    ctx.stroke(rung, with: .color(Color.white.opacity(rungAlpha)), lineWidth: 0.8)
+                }
+
+                // --- Brain scan cross-section silhouette at top-right corner ---
+                let bsCX = W * 0.82; let bsCY = H * 0.22
+                let bsRX: CGFloat = 38; let bsRY: CGFloat = 48
+                var brainOval = Path()
+                brainOval.addEllipse(in: CGRect(x: bsCX - bsRX, y: bsCY - bsRY, width: bsRX*2, height: bsRY*2))
+                var brainGlowGC = ctx
+                brainGlowGC.addFilter(.blur(radius: 6))
+                brainGlowGC.stroke(brainOval, with: .color(catColor.opacity(0.20)), lineWidth: 4)
+                ctx.stroke(brainOval, with: .color(catColor.opacity(0.30)), lineWidth: 1.2)
+                // Sulci / gyri interior faint lines
+                for gyriLine in 0..<5 {
+                    let gyriY = bsCY - bsRY * 0.6 + CGFloat(gyriLine) * bsRY * 0.3
+                    let halfW = bsRX * sqrt(max(0, 1 - pow((gyriY - bsCY)/bsRY, 2)))
+                    var gyri = Path()
+                    let waveMag = 4.0 * sin(Double(gyriLine) + t * 0.4)
+                    gyri.move(to: CGPoint(x: bsCX - halfW + 4, y: gyriY + CGFloat(waveMag)))
+                    gyri.addQuadCurve(
+                        to: CGPoint(x: bsCX + halfW - 4, y: gyriY - CGFloat(waveMag)),
+                        control: CGPoint(x: bsCX, y: gyriY + CGFloat(waveMag) * 1.5))
+                    ctx.stroke(gyri, with: .color(catColor.opacity(0.12)), lineWidth: 0.8)
+                }
+                // Corpus callosum hint — horizontal arc across middle
+                var corpusArc = Path()
+                corpusArc.addArc(center: CGPoint(x: bsCX, y: bsCY + 10),
+                                 radius: bsRX * 0.5,
+                                 startAngle: .degrees(200), endAngle: .degrees(340), clockwise: false)
+                ctx.stroke(corpusArc, with: .color(catColor.opacity(0.18)), lineWidth: 1.0)
+
+                // --- Frequency spectrum bars at bottom: 12 bars animated to brain wave pattern ---
+                let barCount = 12
+                let barAreaW = W * 0.55
+                let barAreaX = W * 0.225
+                let barMaxH: CGFloat = 28
+                let barBottomY = H - 6
+                let barSpacing = barAreaW / CGFloat(barCount)
+                for bi in 0..<barCount {
+                    let barPhase = Double(bi) / Double(barCount) * .pi * 2 - t * 3.5
+                    let barH = barMaxH * CGFloat((sin(barPhase) * 0.4 + 0.6) * (0.5 + 0.5 * sin(barPhase * 2.3 + t)))
+                    let barX = barAreaX + CGFloat(bi) * barSpacing + barSpacing * 0.15
+                    let barW = barSpacing * 0.6
+                    let barAlpha = 0.35 + 0.45 * (sin(barPhase) * 0.5 + 0.5)
+                    var barPath = Path()
+                    barPath.addRoundedRect(in: CGRect(x: barX, y: barBottomY - barH, width: barW, height: barH),
+                                          cornerSize: CGSize(width: 2, height: 2))
+                    var barGlowGC = ctx
+                    barGlowGC.addFilter(.blur(radius: 3))
+                    barGlowGC.fill(barPath, with: .color(catColor.opacity(barAlpha * 0.6)))
+                    ctx.fill(barPath, with: .color(catColor.opacity(barAlpha)))
+                }
             }
         }
     }
@@ -600,6 +828,7 @@ private struct NeuralBGCanvas: View {
 
 private struct AIThinkCanvas: View {
     let startTime: Date
+    let confidencePercent: Int
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -742,6 +971,76 @@ private struct AIThinkCanvas: View {
                             with: .color(Color.red.opacity(0.55)))
                 ctx.fill(Path(ellipseIn: CGRect(x: cx-8, y: cy-8, width: 16, height: 16)),
                          with: .color(Color.red.opacity(0.90)))
+
+                // --- Loading dots cascade: 5 dots that light up sequentially while AI thinks ---
+                let dotCount = 5
+                let dotSpacing: CGFloat = 16
+                let dotsStartX = cx - CGFloat(dotCount - 1) * dotSpacing / 2
+                let dotBaseY = cy + confR + 18
+                for di in 0..<dotCount {
+                    let dotPhase = fmod(t * 2.2 - Double(di) * 0.25, 1.0)
+                    let lit = dotPhase < 0.45
+                    let dotAlpha = lit ? (0.55 + 0.45 * sin(dotPhase / 0.45 * .pi)) : 0.15
+                    let dotR: CGFloat = lit ? 5 : 3.5
+                    let dotX = dotsStartX + CGFloat(di) * dotSpacing
+                    var dotGlowGC = ctx
+                    dotGlowGC.addFilter(.blur(radius: lit ? 5 : 1))
+                    dotGlowGC.fill(Path(ellipseIn: CGRect(x: dotX-dotR*1.4, y: dotBaseY-dotR*1.4,
+                                                           width: dotR*2.8, height: dotR*2.8)),
+                                   with: .color(Color.red.opacity(dotAlpha * 0.6)))
+                    ctx.fill(Path(ellipseIn: CGRect(x: dotX-dotR, y: dotBaseY-dotR, width: dotR*2, height: dotR*2)),
+                             with: .color(Color.white.opacity(dotAlpha)))
+                }
+
+                // --- Neural pathway highlight: winning answer pathway traced with animated line ---
+                let pathProgress = min(elapsed / 2.5, 1.0)
+                if pathProgress > 0.05 {
+                    let pathPoints: [CGPoint] = [
+                        CGPoint(x: cx - 60, y: cy - 60),
+                        CGPoint(x: cx - 30, y: cy - 35),
+                        CGPoint(x: cx,      y: cy - 15),
+                        CGPoint(x: cx + 30, y: cy - 35),
+                        CGPoint(x: cx + 60, y: cy - 60)
+                    ]
+                    let totalSegments = pathPoints.count - 1
+                    let drawnUpTo = pathProgress * Double(totalSegments)
+                    var pathLine = Path()
+                    pathLine.move(to: pathPoints[0])
+                    for seg in 0..<totalSegments {
+                        let segFrac = max(0.0, min(1.0, drawnUpTo - Double(seg)))
+                        if segFrac <= 0 { break }
+                        let from = pathPoints[seg]
+                        let to = pathPoints[seg + 1]
+                        let endPt = CGPoint(x: from.x + (to.x - from.x) * CGFloat(segFrac),
+                                           y: from.y + (to.y - from.y) * CGFloat(segFrac))
+                        pathLine.addLine(to: endPt)
+                    }
+                    var pathGlowGC = ctx
+                    pathGlowGC.addFilter(.blur(radius: 5))
+                    pathGlowGC.stroke(pathLine, with: .color(Color.red.opacity(0.55)), lineWidth: 4)
+                    ctx.stroke(pathLine, with: .color(Color.white.opacity(0.75)), lineWidth: 1.2)
+                    // Dot at path tip
+                    let tipFrac = min(pathProgress, 1.0)
+                    let tipSeg = min(Int(tipFrac * Double(totalSegments)), totalSegments - 1)
+                    let tipLocal = tipFrac * Double(totalSegments) - Double(tipSeg)
+                    let tipFrom = pathPoints[tipSeg]
+                    let tipTo   = pathPoints[min(tipSeg + 1, totalSegments)]
+                    let tipX = tipFrom.x + (tipTo.x - tipFrom.x) * CGFloat(tipLocal)
+                    let tipY = tipFrom.y + (tipTo.y - tipFrom.y) * CGFloat(tipLocal)
+                    ctx.fill(Path(ellipseIn: CGRect(x: tipX-4, y: tipY-4, width: 8, height: 8)),
+                             with: .color(Color.white.opacity(0.9)))
+                }
+
+                // --- Confidence readout text label rendered on canvas ---
+                let confPct = max(0, min(100, confidencePercent))
+                let confLabel = "CONFIDENCE: \(confPct)%"
+                ctx.draw(
+                    Text(confLabel)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color.red.opacity(0.75)),
+                    at: CGPoint(x: cx, y: cy + confR + 38),
+                    anchor: .center
+                )
             }
         }
     }
@@ -862,9 +1161,45 @@ struct BrainBrawlView: View {
     @State private var showAnswerFlash: Bool = false
     @State private var answerFlashCorrect: Bool = false
     @State private var opponentTurnStart: Date = .now
+    @State private var isAnswering: Bool = false
+
+    // Streak multiplier
+    @State private var streakMultiplier: Int = 1
+    @State private var currentStreak: Int = 0
+    @State private var totalScore: Int = 0
+    @State private var showStreakBanner: Bool = false
+    @State private var streakBannerText: String = ""
+
+    // Lifelines
+    @State private var lifelinesUsed: Set<BBLifeline> = []
+    @State private var eliminatedAnswers: Set<Int> = []
+    @State private var showFanVote: Bool = false
+    @State private var fanVotePercents: [Int] = [25, 25, 25, 25]
+
+    // AI Coach Commentary
+    @State private var coachComment: String = ""
+    @State private var showCoachComment: Bool = false
+
+    // Round tracking for time pressure
+    @State private var roundNumber: Int = 1
 
     private let opponentName = "Kai Nexus"
     private let totalCrowns = BBCategory.allCases.count
+
+    private let correctComments = [
+        "Neural pathways firing correctly!",
+        "Locked in!",
+        "FEL IQ rising!",
+        "System optimal.",
+        "That's the data right there."
+    ]
+    private let wrongComments = [
+        "Reset and recalibrate.",
+        "Study the fundamentals.",
+        "AI would have known that.",
+        "Recalibrate and reload.",
+        "Processing error. Try again."
+    ]
 
     var body: some View {
         ZStack {
@@ -894,7 +1229,7 @@ struct BrainBrawlView: View {
             case .result:
                 ResultScreen(
                     winner: playerCrowns.count == totalCrowns ? .p1 : .p2,
-                    p1Score: playerCrowns.count * 10,
+                    p1Score: totalScore,
                     p2Score: opponentCrowns.count * 10,
                     title: "Brain Brawl",
                     accentColor: gameMode.accentColor,
@@ -912,6 +1247,58 @@ struct BrainBrawlView: View {
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
                     .transition(.opacity)
+            }
+
+            // Streak banner overlay
+            if showStreakBanner {
+                VStack {
+                    Spacer()
+                    Text(streakBannerText)
+                        .font(.system(size: 28, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.yellow)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.black.opacity(0.75))
+                                .overlay(RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.yellow.opacity(0.6), lineWidth: 1.5))
+                        )
+                        .shadow(color: Color.yellow.opacity(0.5), radius: 12)
+                        .transition(.scale.combined(with: .opacity))
+                    Spacer().frame(height: 80)
+                }
+                .allowsHitTesting(false)
+                .animation(.spring(response: 0.3), value: showStreakBanner)
+            }
+
+            // Coach comment overlay
+            if showCoachComment {
+                VStack {
+                    Spacer().frame(height: 120)
+                    HStack(spacing: 10) {
+                        Image(systemName: "brain.head.profile")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(gameMode.accentColor)
+                        Text(coachComment)
+                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.06))
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .stroke(gameMode.accentColor.opacity(0.35), lineWidth: 1))
+                    )
+                    .padding(.horizontal, 28)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+                .animation(.easeInOut(duration: 0.35), value: showCoachComment)
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -934,6 +1321,23 @@ struct BrainBrawlView: View {
     private var crownBar: some View {
         HStack(spacing: 0) {
             crownRow(crowns: playerCrowns, label: "YOU", alignment: .leading)
+            Spacer()
+            // Score + multiplier crown indicator in center
+            VStack(spacing: 2) {
+                if streakMultiplier > 1 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundStyle(Color.yellow)
+                        Text("\(streakMultiplier)x")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.yellow)
+                    }
+                }
+                Text("\(totalScore)")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+            }
             Spacer()
             crownRow(crowns: opponentCrowns, label: opponentName.uppercased(), alignment: .trailing)
         }
@@ -1013,7 +1417,7 @@ struct BrainBrawlView: View {
             }
             .frame(width: 220, height: 240)
             .overlay(
-                SpinFXCanvas(spinning: spinning, selectedCatColor: selectedCategory.color)
+                SpinFXCanvas(spinning: spinning, selectedCatColor: selectedCategory.color, streakCount: currentStreak)
                     .frame(width: 280, height: 280)
                     .allowsHitTesting(false)
             )
@@ -1075,15 +1479,25 @@ struct BrainBrawlView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
+                        // Timer with draining arc
                         ZStack {
+                            let maxTime = timerMax()
                             Circle()
-                                .stroke(timeLeft > 7 ? selectedCategory.color : .red, lineWidth: 2.5)
-                                .frame(width: 38, height: 38)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 3)
+                                .frame(width: 42, height: 42)
+                            Circle()
+                                .trim(from: 0, to: CGFloat(timeLeft) / CGFloat(maxTime))
+                                .stroke(timeLeft > 5 ? selectedCategory.color : Color.red,
+                                        style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                                .frame(width: 42, height: 42)
+                                .rotationEffect(.degrees(-90))
+                                .animation(.linear(duration: 1), value: timeLeft)
                             Text("\(timeLeft)")
                                 .font(.system(size: 14, weight: .black, design: .monospaced))
-                                .foregroundStyle(timeLeft > 7 ? .white : .red)
+                                .foregroundStyle(timeLeft > 5 ? .white : .red)
                                 .contentTransition(.numericText())
                         }
+                        .frame(width: 42, height: 42)
                     }
                     .padding(.horizontal, 24)
 
@@ -1094,22 +1508,104 @@ struct BrainBrawlView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 28)
 
+                    // Fan vote display
+                    if showFanVote {
+                        HStack(spacing: 6) {
+                            ForEach(q.answers.indices, id: \.self) { i in
+                                if !eliminatedAnswers.contains(i) {
+                                    VStack(spacing: 2) {
+                                        Text(["A","B","C","D"][i])
+                                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                                            .foregroundStyle(selectedCategory.color)
+                                        Text("\(fanVotePercents[i])%")
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(.white)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 6)
+                                    .background(selectedCategory.color.opacity(0.12))
+                                    .clipShape(.rect(cornerRadius: 8))
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+
                     VStack(spacing: 10) {
                         ForEach(q.answers.indices, id: \.self) { i in
-                            answerButton(index: i, text: q.answers[i], question: q)
+                            if !eliminatedAnswers.contains(i) {
+                                answerButton(index: i, text: q.answers[i], question: q)
+                            } else {
+                                // Dimmed eliminated answer slot
+                                HStack(spacing: 14) {
+                                    Text(["A", "B", "C", "D"][i])
+                                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                                        .foregroundStyle(Color.white.opacity(0.1))
+                                        .frame(width: 28, height: 28)
+                                        .background(Color.white.opacity(0.04))
+                                        .clipShape(Circle())
+                                    Text(q.answers[i])
+                                        .font(.system(.subheadline, weight: .medium))
+                                        .foregroundStyle(Color.white.opacity(0.1))
+                                        .strikethrough(true, color: Color.white.opacity(0.1))
+                                    Spacer()
+                                }
+                                .padding(14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(Color.white.opacity(0.02))
+                                        .overlay(RoundedRectangle(cornerRadius: 14)
+                                            .stroke(Color.white.opacity(0.03), lineWidth: 1))
+                                )
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
+
+                    // Lifeline buttons
+                    lifelineBar(for: q)
                 }
             }
 
             Spacer()
         }
         .background(
-            NeuralBGCanvas(catColor: selectedCategory.color)
+            NeuralBGCanvas(catColor: selectedCategory.color, isAnswering: isAnswering)
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
         )
+    }
+
+    private func lifelineBar(for question: BBQuestion) -> some View {
+        HStack(spacing: 12) {
+            ForEach(BBLifeline.allCases, id: \.label) { lifeline in
+                let used = lifelinesUsed.contains(lifeline)
+                Button {
+                    guard !used else { return }
+                    useLifeline(lifeline, for: question)
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: lifeline.icon)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(used ? Color.white.opacity(0.2) : gameMode.accentColor)
+                        Text(lifeline.label)
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .foregroundStyle(used ? Color.white.opacity(0.2) : Color.white.opacity(0.7))
+                    }
+                    .frame(width: 60, height: 50)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(used ? Color.white.opacity(0.03) : Color.white.opacity(0.07))
+                            .overlay(RoundedRectangle(cornerRadius: 10)
+                                .stroke(used ? Color.white.opacity(0.04) : gameMode.accentColor.opacity(0.3), lineWidth: 1))
+                    )
+                    .opacity(used ? 0.4 : 1.0)
+                }
+                .disabled(used || selectedAnswer != nil)
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 20)
     }
 
     private func answerButton(index: Int, text: String, question: BBQuestion) -> some View {
@@ -1117,6 +1613,7 @@ struct BrainBrawlView: View {
         let accent = selectedCategory.color
         return Button {
             guard selectedAnswer == nil else { return }
+            isAnswering = true
             selectAnswer(index, for: question)
         } label: {
             HStack(spacing: 14) {
@@ -1176,6 +1673,11 @@ struct BrainBrawlView: View {
                         .font(.system(.subheadline, weight: .bold))
                         .foregroundStyle(selectedCategory.color)
                 }
+                if streakMultiplier > 1 {
+                    Text("+\(10 * streakMultiplier) pts  (\(streakMultiplier)x multiplier)")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color.yellow)
+                }
             }
 
             Spacer()
@@ -1190,7 +1692,7 @@ struct BrainBrawlView: View {
             crownBar
             Spacer()
 
-            AIThinkCanvas(startTime: opponentTurnStart)
+            AIThinkCanvas(startTime: opponentTurnStart, confidencePercent: Int(selectedCategory.aiAccuracy * 100))
                 .frame(width: 200, height: 200)
 
             Text(opponentLabel)
@@ -1209,6 +1711,14 @@ struct BrainBrawlView: View {
     }
 
     // MARK: - Logic
+
+    private func timerMax() -> Int {
+        switch roundNumber {
+        case 1: return 15
+        case 2: return 12
+        default: return 10
+        }
+    }
 
     private func spinWheel() {
         let extra = Double.random(in: 720...1440)
@@ -1246,7 +1756,11 @@ struct BrainBrawlView: View {
         currentQuestion = pool[idx]
         selectedAnswer = nil
         isCorrect = nil
-        timeLeft = 15
+        eliminatedAnswers = []
+        showFanVote = false
+        isAnswering = false
+        let maxTime = timerMax()
+        timeLeft = maxTime
         phase = .question
         startTimer()
     }
@@ -1271,8 +1785,12 @@ struct BrainBrawlView: View {
     private func timeExpired() {
         timerTask?.cancel()
         isCorrect = false
+        isAnswering = false
+        streakMultiplier = 1
+        currentStreak = 0
         feedbackMessage = "Time's up!"
         triggerAnswerFlash(correct: false)
+        showCoachMessage(correct: false)
         phase = .feedback
         Task {
             try? await Task.sleep(for: .seconds(1.5))
@@ -1293,8 +1811,19 @@ struct BrainBrawlView: View {
 
         isCorrect = correct
         triggerAnswerFlash(correct: correct)
+        showCoachMessage(correct: correct)
 
         if correct {
+            // Streak multiplier update
+            currentStreak += 1
+            let newMultiplier = min(4, 1 + (currentStreak - 1) / 1)
+            if newMultiplier > streakMultiplier {
+                streakMultiplier = newMultiplier
+                flashStreakBanner()
+            }
+            let basePoints = 10
+            totalScore += basePoints * streakMultiplier
+
             feedbackMessage = "Correct!"
             if !playerCrowns.contains(selectedCategory) {
                 playerCrowns.insert(selectedCategory)
@@ -1305,16 +1834,83 @@ struct BrainBrawlView: View {
                 }
             }
         } else {
+            streakMultiplier = 1
+            currentStreak = 0
             feedbackMessage = "Wrong \u{2014} \u{201C}\(question.answers[question.correctIndex])\u{201D}"
         }
 
+        isAnswering = false
         phase = .feedback
+        roundNumber += 1
+
         Task {
             try? await Task.sleep(for: .seconds(correct ? 1.8 : 2.0))
             await MainActor.run {
                 if checkWin() { return }
                 if correct { nextPlayerTurn() } else { beginOpponentTurn() }
             }
+        }
+    }
+
+    private func flashStreakBanner() {
+        let banners = ["2x STREAK!", "3x STREAK!", "4x MULTIPLIER!"]
+        let idx = min(streakMultiplier - 2, banners.count - 1)
+        guard idx >= 0 else { return }
+        streakBannerText = banners[idx]
+        withAnimation { showStreakBanner = true }
+        Task {
+            try? await Task.sleep(for: .seconds(1.8))
+            await MainActor.run {
+                withAnimation { showStreakBanner = false }
+            }
+        }
+    }
+
+    private func showCoachMessage(correct: Bool) {
+        coachComment = correct
+            ? (correctComments.randomElement() ?? "Locked in!")
+            : (wrongComments.randomElement() ?? "Reset and recalibrate.")
+        withAnimation { showCoachComment = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            await MainActor.run {
+                withAnimation { showCoachComment = false }
+            }
+        }
+    }
+
+    private func useLifeline(_ lifeline: BBLifeline, for question: BBQuestion) {
+        lifelinesUsed.insert(lifeline)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        switch lifeline {
+        case .fiftyFifty:
+            // Eliminate 2 wrong answers
+            var wrongIndices = question.answers.indices.filter { $0 != question.correctIndex }
+            wrongIndices.shuffle()
+            let toEliminate = wrongIndices.prefix(2)
+            eliminatedAnswers = Set(toEliminate)
+        case .phoneAFan:
+            // Show crowd vote: correct answer gets 70-85%, rest share remainder
+            let correctPct = Int.random(in: 70...85)
+            let remainder = 100 - correctPct
+            var others = question.answers.indices.filter { $0 != question.correctIndex }
+            others.shuffle()
+            var percents = [Int](repeating: 0, count: question.answers.count)
+            percents[question.correctIndex] = correctPct
+            if others.count >= 2 {
+                let split1 = remainder / 2
+                percents[others[0]] = split1
+                percents[others[1]] = remainder - split1
+                if others.count == 3 {
+                    percents[others[2]] = 0
+                }
+            } else if others.count == 1 {
+                percents[others[0]] = remainder
+            }
+            fanVotePercents = percents
+            showFanVote = true
+        case .extraTime:
+            timeLeft = min(timeLeft + 8, timerMax() + 8)
         }
     }
 
