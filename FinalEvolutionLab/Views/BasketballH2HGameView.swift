@@ -406,6 +406,20 @@ private struct StreetDrawer {
                 Path(ellipseIn: CGRect(x: bulbX - 5, y: bulbY - 5, width: 10, height: 10)),
                 with: .color(Color(red: 1.0, green: 0.96, blue: 0.80))
             )
+
+            // Secondary inner glow ring (animated flicker)
+            let flicker = 0.50 + 0.15 * sin(t * 7.3 + Double(light.x))
+            var flickerCtx = ctx
+            flickerCtx.addFilter(.blur(radius: 8))
+            flickerCtx.fill(
+                Path(ellipseIn: CGRect(x: bulbX - 10, y: bulbY - 10, width: 20, height: 20)),
+                with: .color(Color(red: 1.0, green: 0.92, blue: 0.55).opacity(flicker))
+            )
+            // Light fixture housing box
+            ctx.fill(
+                Path(CGRect(x: bulbX - 7, y: bulbY - 4, width: 14, height: 5)),
+                with: .color(Color(red: 0.55, green: 0.55, blue: 0.60).opacity(0.70))
+            )
         }
     }
 
@@ -708,25 +722,60 @@ private struct StreetDrawer {
         sbBorder.addFilter(.blur(radius: 2))
         sbBorder.stroke(sbBack, with: .color(Color.orange.opacity(0.45)), lineWidth: 1.5)
         ctx.stroke(sbBack, with: .color(Color.orange.opacity(0.35)), lineWidth: 1.0)
+
+        // Scoreboard decorative divider line
+        var divider = Path()
+        divider.move(to: CGPoint(x: sbX + sbW * 0.5, y: sbY + 4))
+        divider.addLine(to: CGPoint(x: sbX + sbW * 0.5, y: sbY + sbH - 4))
+        ctx.stroke(divider, with: .color(Color.orange.opacity(0.25)), lineWidth: 0.8)
+
+        // Corner accent dots on scoreboard
+        for corner in [(sbX + 4, sbY + 4), (sbX + sbW - 4, sbY + 4),
+                       (sbX + 4, sbY + sbH - 4), (sbX + sbW - 4, sbY + sbH - 4)] as [(CGFloat, CGFloat)] {
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: corner.0 - 2, y: corner.1 - 2, width: 4, height: 4)),
+                with: .color(Color.orange.opacity(0.40))
+            )
+        }
+
+        // LED-style row of indicator dots across top of scoreboard
+        for dot in 0..<6 {
+            let dx = sbX + 8 + CGFloat(dot) * ((sbW - 16) / 5)
+            let pulsed = 0.3 + 0.4 * sin(t * 2.5 + Double(dot) * 0.8)
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: dx - 2, y: sbY + 3, width: 4, height: 4)),
+                with: .color(Color.orange.opacity(pulsed))
+            )
+        }
     }
 
     // MARK: - #56-#57 Score Spray Paint Style Text
 
     private func drawScoreSprayPaint(ctx: inout GraphicsContext) {
-        // #56 Spray-paint score area glow
+        // #56 Spray-paint score area glow — player side (blue)
         var sprayCtx = ctx
         sprayCtx.addFilter(.blur(radius: 10))
         sprayCtx.fill(
             Path(ellipseIn: CGRect(x: W * 0.10, y: floorY - H * 0.05, width: W * 0.25, height: H * 0.04)),
             with: .color(Color(red: 0.18, green: 0.78, blue: 1.0).opacity(0.14))
         )
+        // Secondary spray haze
+        sprayCtx.fill(
+            Path(ellipseIn: CGRect(x: W * 0.06, y: floorY - H * 0.08, width: W * 0.32, height: H * 0.06)),
+            with: .color(Color(red: 0.18, green: 0.78, blue: 1.0).opacity(0.06))
+        )
 
-        // #57 Opponent side spray glow
+        // #57 Opponent side spray glow — red
         var sprayCtx2 = ctx
         sprayCtx2.addFilter(.blur(radius: 10))
         sprayCtx2.fill(
             Path(ellipseIn: CGRect(x: W * 0.62, y: floorY - H * 0.05, width: W * 0.25, height: H * 0.04)),
             with: .color(Color(red: 1.0, green: 0.25, blue: 0.25).opacity(0.14))
+        )
+        // Secondary spray haze
+        sprayCtx2.fill(
+            Path(ellipseIn: CGRect(x: W * 0.58, y: floorY - H * 0.08, width: W * 0.32, height: H * 0.06)),
+            with: .color(Color(red: 1.0, green: 0.25, blue: 0.25).opacity(0.06))
         )
     }
 
