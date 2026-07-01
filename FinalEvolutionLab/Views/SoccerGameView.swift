@@ -1335,16 +1335,24 @@ struct SoccerGameView: View {
             case .result:
                 let playerWon = playerGoals > aiGoals
                 let isDraw = playerGoals == aiGoals
-                ResultScreen(
-                    winner: playerWon ? .p1 : (isDraw ? .draw : .p2),
-                    p1Score: playerGoals, p2Score: aiGoals,
-                    title: "Penalty Shootout", accentColor: accentColor,
-                    prqGain: playerWon ? 12 : (isDraw ? 5 : 2),
-                    prqCurrent: viewModel.effectiveMetrics.prqScore,
-                    modeAttributeLabel: "Goals",
-                    modeAttributeValue: Double(playerGoals) / Double(max(currentRound, 1)),
-                    onReturn: { dismiss() }
-                )
+                let isMotm = playerGoals >= 3 && aiGoals <= 1
+                VStack(spacing: 0) {
+                    // Post-match stats banner
+                    postMatchBanner(isMotm: isMotm)
+                        .padding(.horizontal, 16).padding(.top, 16)
+                    ResultScreen(
+                        winner: playerWon ? .p1 : (isDraw ? .draw : .p2),
+                        p1Score: playerGoals, p2Score: aiGoals,
+                        title: "Penalty Shootout", accentColor: accentColor,
+                        prqGain: playerWon ? 12 : (isDraw ? 5 : 2),
+                        prqCurrent: viewModel.effectiveMetrics.prqScore,
+                        modeAttributeLabel: "Accuracy",
+                        modeAttributeValue: shotsAttempted > 0
+                            ? Double(shotsMade) / Double(shotsAttempted)
+                            : 0.0,
+                        onReturn: { dismiss() }
+                    )
+                }
                 .onAppear { grantShards(playerWon: playerWon, isDraw: isDraw) }
             }
         }
@@ -1367,7 +1375,16 @@ struct SoccerGameView: View {
 
     private var shootingBody: some View {
         VStack(spacing: 0) {
-            scoreHeader.padding(.top, 8)
+            // Difficulty + possession row
+            HStack {
+                difficultyBadge
+                Spacer()
+                possessionDisplay
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+
+            scoreHeader.padding(.top, 4)
 
             SoccerStadiumCanvas(
                 aimValue: aimValue, power: power,
@@ -1385,31 +1402,306 @@ struct SoccerGameView: View {
                 isCorner: isCorner,
                 lastCornerTime: lastCornerTime
             )
-            .frame(height: 260)
+            .frame(height: 240)
             .clipShape(.rect(cornerRadius: 16))
             .padding(.horizontal, 12)
-            .padding(.top, 10)
+            .padding(.top, 8)
+            .overlay(alignment: .top) {
+                if varCheckActive {
+                    varCheckOverlay
+                        .padding(.top, 20)
+                }
+            }
 
-            // Round feedback
+            // Round feedback / power-up message
             ZStack {
                 if showRoundFeedback {
                     Text(roundFeedbackText)
-                        .font(.system(size: 34, weight: .black, design: .monospaced))
+                        .font(.system(size: 32, weight: .black, design: .monospaced))
                         .foregroundStyle(roundFeedbackColor)
                         .shadow(color: roundFeedbackColor.opacity(0.6), radius: 16)
                         .transition(.scale(scale: 0.6).combined(with: .opacity))
+                } else if showPowerUpMessage {
+                    Text(powerUpMessage)
+                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.1))
+                        .shadow(color: Color.orange.opacity(0.7), radius: 10)
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                        .multilineTextAlignment(.center)
                 }
             }
-            .frame(height: 52)
-            .padding(.top, 4)
+            .frame(height: 46)
+            .padding(.top, 2)
 
-            aimSliderSection.padding(.horizontal, 16).padding(.top, 4)
+            // Shot power timing meter (shown when filling)
+            if showReleaseButton {
+                shotTimingSection.padding(.horizontal, 16).padding(.top, 2)
+            } else {
+                aimSliderSection.padding(.horizontal, 16).padding(.top, 2)
+                Spacer().frame(height: 6)
+                powerSection.padding(.horizontal, 16)
+            }
 
-            Spacer().frame(height: 10)
+            // Stamina bar
+            staminaBarSection.padding(.horizontal, 16).padding(.top, 6)
 
-            powerSection.padding(.horizontal, 16)
+            // Power-up buttons row
+            if hasPowerShot || hasGoldenGlove {
+                powerUpButtonsRow.padding(.horizontal, 16).padding(.top, 4)
+            }
 
-            Spacer().frame(height: 24)
+            Spacer().frame(height: 14)
+        }
+        .onAppear { startStaminaRecovery(); startPossessionTimer() }
+        .onDisappear { staminaTimer?.cancel(); possessionTimer?.cancel() }
+    }
+
+    // MARK: — Difficulty Badge
+
+    private var difficultyLabel: String {
+        switch aiDifficulty {
+        case ..<0.35: return "EASY"
+        case ..<0.60: return "MEDIUM"
+        case ..<0.82: return "HARD"
+        default:      return "ELITE"
+        }
+    }
+
+    private var difficultyColor: Color {
+        switch aiDifficulty {
+        case ..<0.35: return Color(red: 0.2, green: 0.85, blue: 0.3)
+        case ..<0.60: return Color(red: 0.95, green: 0.80, blue: 0.1)
+        case ..<0.82: return Color(red: 1.0, green: 0.50, blue: 0.1)
+        default:      return Color(red: 0.95, green: 0.15, blue: 0.15)
+        }
+    }
+
+    private var difficultyBadge: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(difficultyColor)
+                .frame(width: 6, height: 6)
+            Text(difficultyLabel)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(difficultyColor)
+                .tracking(2)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(RoundedRectangle(cornerRadius: 8).fill(difficultyColor.opacity(0.12)))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(difficultyColor.opacity(0.35), lineWidth: 1))
+    }
+
+    // MARK: — Possession Display
+
+    private var possessionPercent: Int {
+        guard totalTicks > 0 else { return 50 }
+        return Int(Double(possessionTicks) / Double(totalTicks) * 100)
+    }
+
+    private var possessionDisplay: some View {
+        HStack(spacing: 4) {
+            Text("POSS")
+                .font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .tracking(1)
+            Text("\(possessionPercent)%")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(accentColor)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color(white: 0.08)))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(white: 0.16), lineWidth: 1))
+    }
+
+    // MARK: — VAR Check Overlay
+
+    private var varCheckOverlay: some View {
+        HStack(spacing: 6) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .scaleEffect(0.7)
+                .tint(Color(red: 0.0, green: 0.9, blue: 1.0))
+            Text("VAR CHECKING...")
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundStyle(Color(red: 0.0, green: 0.9, blue: 1.0))
+        }
+        .padding(.horizontal, 14).padding(.vertical, 6)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Color(red: 0.0, green: 0.9, blue: 1.0).opacity(0.5), lineWidth: 1))
+    }
+
+    // MARK: — Shot Timing Section
+
+    private var shotTimingSection: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("SHOT POWER — TAP RELEASE IN THE ZONE!")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary).tracking(1)
+                Spacer()
+                Text("\(Int(shotPowerMeter))%")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(shotTimingColor)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    // Track
+                    Capsule().fill(Color(white: 0.12))
+                        .overlay(Capsule().stroke(Color(white: 0.20), lineWidth: 1))
+                    // Perfect zone (70–90%)
+                    let zoneStart = geo.size.width * 0.70
+                    let zoneWidth = geo.size.width * 0.20
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.green.opacity(0.22))
+                        .frame(width: zoneWidth)
+                        .offset(x: zoneStart)
+                    // Fill bar
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: shotPowerGradient,
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * CGFloat(shotPowerMeter / 100.0))
+                        .animation(.linear(duration: 0.03), value: shotPowerMeter)
+                    // Zone label
+                    Text("PERFECT")
+                        .font(.system(size: 6, weight: .black, design: .monospaced))
+                        .foregroundStyle(.green.opacity(0.7))
+                        .offset(x: zoneStart + 2, y: -10)
+                }
+            }
+            .frame(height: 16)
+
+            // Release button
+            Button {
+                guard showReleaseButton else { return }
+                triggerRelease()
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(LinearGradient(
+                            colors: [Color(red: 1.0, green: 0.55, blue: 0.1), Color(red: 0.9, green: 0.2, blue: 0.1)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: Color.orange.opacity(0.5), radius: 10)
+                    Text("RELEASE!")
+                        .font(.system(size: 20, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity).frame(height: 48)
+            }
+            .disabled(shotFired)
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 0.08))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 0.16), lineWidth: 1)))
+    }
+
+    private var shotTimingColor: Color {
+        let m = shotPowerMeter
+        if m >= 70 && m <= 90 { return .green }
+        if m > 90 { return .red }
+        return .yellow
+    }
+
+    private var shotPowerGradient: [Color] {
+        let m = shotPowerMeter
+        if m < 50 { return [Color(red: 0.2, green: 0.8, blue: 1.0), accentColor] }
+        if m < 70 { return [accentColor, .yellow] }
+        if m <= 90 { return [.yellow, .green] }
+        return [.green, .orange, .red]
+    }
+
+    // MARK: — Stamina Bar
+
+    private var staminaColor: Color {
+        if playerStamina > 0.6 { return .green }
+        if playerStamina > 0.3 { return .yellow }
+        return .red
+    }
+
+    private var staminaBarSection: some View {
+        HStack(spacing: 8) {
+            Text("STAMINA")
+                .font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary).tracking(2)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(white: 0.10))
+                        .overlay(Capsule().stroke(Color(white: 0.18), lineWidth: 1))
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [staminaColor.opacity(0.9), staminaColor],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * CGFloat(playerStamina))
+                        .animation(.linear(duration: 0.1), value: playerStamina)
+                }
+            }
+            .frame(height: 8)
+            if playerStamina < 0.3 {
+                Text("LOW!")
+                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                    .foregroundStyle(.red)
+                    .transition(.opacity)
+            }
+            // Sprint button
+            Button {
+                guard !shotFired, playerStamina >= 0.2 else { return }
+                activateSprint()
+            } label: {
+                Text(sprintBoostActive ? "SPRINT ✓" : "SPRINT")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(sprintBoostActive ? .green : (playerStamina < 0.2 ? .gray : .orange))
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color(white: 0.12)))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                        sprintBoostActive ? Color.green.opacity(0.5) : Color.orange.opacity(0.3),
+                        lineWidth: 1))
+            }
+            .disabled(shotFired || playerStamina < 0.2 || sprintBoostActive)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.06))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(white: 0.14), lineWidth: 1)))
+    }
+
+    // MARK: — Power-Up Buttons Row
+
+    private var powerUpButtonsRow: some View {
+        HStack(spacing: 10) {
+            if hasPowerShot {
+                Button { usePowerShot() } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bolt.fill")
+                        Text("POWER SHOT")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(LinearGradient(
+                        colors: [Color(red: 1.0, green: 0.85, blue: 0.1), .orange],
+                        startPoint: .leading, endPoint: .trailing))
+                    .clipShape(Capsule())
+                    .shadow(color: Color.orange.opacity(0.5), radius: 8)
+                }
+                .disabled(shotFired)
+            }
+            if hasGoldenGlove {
+                Button { useGoldenGlove() } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "hand.raised.fill")
+                        Text("GOLDEN GLOVE")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(LinearGradient(
+                        colors: [Color(red: 0.9, green: 0.75, blue: 0.2), Color(red: 0.7, green: 0.55, blue: 0.1)],
+                        startPoint: .leading, endPoint: .trailing))
+                    .clipShape(Capsule())
+                    .shadow(color: Color.yellow.opacity(0.5), radius: 8)
+                }
+            }
+            Spacer()
         }
     }
 

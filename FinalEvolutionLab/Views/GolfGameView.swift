@@ -1629,7 +1629,8 @@ struct GolfGameView: View {
 
     // MARK: Rewards
     @State private var rewardGranted: Bool = false
-    private let aiTotalStrokes: Int = Int.random(in: 27...45)
+    // AI opponent shoots 2–8 over par on a par-36 course (38–44 total)
+    private let aiTotalStrokes: Int = Int.random(in: 38...44)
     private let XP_CAP = 500
     private let WIN_SHARDS = 50; private let DRAW_SHARDS = 25; private let LOSS_SHARDS = 15
     private let accentColor = Color(red: 0.3, green: 0.7, blue: 0.4)
@@ -1746,16 +1747,16 @@ struct GolfGameView: View {
         let hole = courseCard[min(currentHole - 1, courseCard.count - 1)]
         let svp  = totalStrokes - holeResults.reduce(0) { $0 + courseCard[min($1.hole - 1, courseCard.count - 1)].par }
         return VStack(spacing: 4) {
-            HStack(spacing: 12) {
-                statCell(label: "HOLE",  value: "\(currentHole)")
-                divider
-                statCell(label: "PAR",   value: "\(hole.par)", color: accentColor)
-                divider
-                statCell(label: "YARDS", value: "\(hole.yardage)y")
-                divider
-                statCell(label: "SHOTS", value: "\(currentStrokes)")
-                divider
-                statCell(label: "TOTAL",
+            HStack(spacing: 8) {
+                compactStatCell(label: "HOLE",  value: "\(currentHole)")
+                thinDivider
+                compactStatCell(label: "PAR",   value: "\(hole.par)", color: accentColor)
+                thinDivider
+                compactStatCell(label: "YDS",   value: "\(hole.yardage)")
+                thinDivider
+                compactStatCell(label: "SHOTS", value: "\(currentStrokes)")
+                thinDivider
+                compactStatCell(label: "TOTAL",
                          value: svp == 0 ? "E" : (svp > 0 ? "+\(svp)" : "\(svp)"),
                          color: svp < 0 ? accentColor : (svp == 0 ? .white : .red))
             }
@@ -1764,6 +1765,8 @@ struct GolfGameView: View {
                 Text(hole.description)
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Spacer()
                 Text(hole.difficulty.uppercased())
                     .font(.system(size: 7, weight: .black, design: .monospaced))
@@ -1773,10 +1776,23 @@ struct GolfGameView: View {
             }
             .padding(.horizontal, 4)
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 16).padding(.vertical, 8)
         .background(RoundedRectangle(cornerRadius: 16).fill(Theme.cardBackground)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1)))
         .padding(.horizontal, 16)
+    }
+
+    private func compactStatCell(label: String, value: String, color: Color = .white) -> some View {
+        VStack(spacing: 1) {
+            Text(label).font(.system(size: 7, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary).tracking(1)
+            Text(value).font(.system(size: 18, weight: .black, design: .monospaced))
+                .foregroundStyle(color)
+        }.frame(maxWidth: .infinity)
+    }
+
+    private var thinDivider: some View {
+        Rectangle().fill(Theme.cardBorder).frame(width: 1, height: 28)
     }
 
     private func statCell(label: String, value: String, color: Color = .white) -> some View {
