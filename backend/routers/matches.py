@@ -28,6 +28,9 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from pydantic import BaseModel
 
 from core import db, get_current_user, User
+from lib.match_utils import generate_seed, derive_judge_offsets
+from lib.card_effects import compute_loadout_modifiers
+from lib.dunk_scoring import score_dunk, DunkResult
 
 router = APIRouter(tags=["matches"])
 
@@ -66,6 +69,14 @@ class MatchResponse(BaseModel):
     score: Dict[str, int]
     loadouts: Dict[str, List[Dict[str, Any]]]
     events: List[Dict[str, Any]]
+    seed: Optional[int] = None
+    judge_offsets: List[int] = []
+
+
+class ScoreDunkRequest(BaseModel):
+    approach_quality: float   # 0.0–1.0
+    execution_quality: float  # 0.0–1.0
+    style_difficulty: float = 0.5  # 0.0–1.0
 
 
 # ── Internal helpers ───────────────────────────────────────────────────────
@@ -223,6 +234,8 @@ async def create_match(
     match_id = str(uuid.uuid4())[:12]
     player_id = body.player_id or user.user_id
     loadout = await _load_loadout(player_id)
+    seed = generate_seed()
+    judge_offsets = derive_judge_offsets(seed)
     match: Dict[str, Any] = {
         "match_id": match_id,
         "mode_id": body.mode_id,
@@ -234,6 +247,8 @@ async def create_match(
         "score": {player_id: 0},
         "loadouts": {player_id: loadout},
         "events": [],
+        "seed": seed,
+        "judge_offsets": judge_offsets,
     }
     await _persist_match(match)
     return {"match_id": match_id, "status": "waiting", "mode_id": body.mode_id}
@@ -266,12 +281,19 @@ async def join_match(
             "type": "match_start",
             "match_id": body.match_id,
             "mode_id": match["mode_id"],
+            "seed": match.get("seed"),
+            "judge_offsets": match.get("judge_offsets", []),
             "players": [
-                {"user_id": p, "loadout": match["loadouts"].get(p, [])}
+                {
+                    "user_id": p,
+                    "loadout": match["loadouts"].get(p, []),
+                    "computed_modifiers": compute_loadout_modifiers(match["loadouts"].get(p, [])),
+                }
                 for p in match["players"]
             ],
             "start_time": match["started_at"],
         }
+        await _persist_event(body.match_id, start_event)
         await _broadcast(body.match_id, start_event)
         # Kick off simulated scoring in background
         asyncio.create_task(_simulate_scoring(body.match_id, match["players"], match["loadouts"]))
@@ -299,7 +321,64 @@ async def get_match(match_id: str, limit: int = 20) -> MatchResponse:
         score=match.get("score", {}),
         loadouts=match.get("loadouts", {}),
         events=events,
+        seed=match.get("seed"),
+        judge_offsets=match.get("judge_offsets", []),
     )
+
+
+@router.post("/api/matches/{match_id}/score_dunk")
+async def score_dunk_endpoint(match_id: str, body: ScoreDunkRequest) -> Dict[str, Any]:
+    """Compute server-authoritative dunk score using match's seeded judge_offsets."""
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    judge_offsets = match.get("judge_offsets", [0, 0, 0])
+    result = score_dunk(
+        approach_quality=max(0.0, min(1.0, body.approach_quality)),
+        execution_quality=max(0.0, min(1.0, body.execution_quality)),
+        style_difficulty=max(0.0, min(1.0, body.style_difficulty)),
+        judge_offsets=judge_offsets,
+    )
+    # Persist as a dunk_result event
+    event = {
+        "type": "dunk_result",
+        "match_id": match_id,
+        "j1": result.j1, "j2": result.j2, "j3": result.j3,
+        "total": result.total, "message": result.message,
+        "is_perfect": result.is_perfect,
+        "inputs": {"approach_quality": body.approach_quality,
+                   "execution_quality": body.execution_quality,
+                   "style_difficulty": body.style_difficulty},
+        "timestamp": _now(),
+    }
+    await _persist_event(match_id, event)
+    await _broadcast(match_id, event)
+    return {"j1": result.j1, "j2": result.j2, "j3": result.j3,
+            "total": result.total, "message": result.message, "is_perfect": result.is_perfect}
+
+
+@router.get("/api/matches/{match_id}/export-replay")
+async def export_replay(match_id: str) -> Dict[str, Any]:
+    """Export full match replay: metadata + all events."""
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    events = await _load_events(match_id, limit=1000)
+    return {
+        "match_id": match_id,
+        "mode_id": match.get("mode_id"),
+        "seed": match.get("seed"),
+        "judge_offsets": match.get("judge_offsets", []),
+        "players": match.get("players", []),
+        "started_at": match.get("started_at"),
+        "finished_at": match.get("finished_at"),
+        "status": match.get("status"),
+        "events": events,
+        "metadata": {
+            "export_version": "1.0",
+            "event_count": len(events),
+        }
+    }
 
 
 # ── WebSocket ──────────────────────────────────────────────────────────────
