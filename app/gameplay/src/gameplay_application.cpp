@@ -11,6 +11,7 @@
 #include "nexus/generative/generative_types.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <optional>
 #include <span>
 #include <string>
@@ -50,6 +51,13 @@ auto integerParam(const nlohmann::json& params,
     return Result<int>::err("fitness integer parameter has invalid type");
   }
   return Result<int>::ok(found->get<int>());
+}
+
+[[nodiscard]] auto receiptHttpConfiguredByEnvironment() -> bool {
+  if (const char* envUrl = std::getenv("NEXUS_RECEIPT_URL")) {
+    return envUrl[0] != '\0';
+  }
+  return false;
 }
 
 auto stringParam(const nlohmann::json& params,
@@ -1070,6 +1078,11 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
       config.authToken = params.value("auth_token", config.authToken);
     }
     config.persistToDisk = params.value("persist_to_disk", true);
+    const bool hasExplicitHttpTarget =
+        params.contains("base_url") || params.contains("auth_token") ||
+        receiptHttpConfiguredByEnvironment();
+    config.httpEnabled = params.value("http_enabled", hasExplicitHttpTarget);
+    config.useStubHttpTransport = params.value("use_stub_http_transport", false);
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
