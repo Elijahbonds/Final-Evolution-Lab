@@ -1219,6 +1219,11 @@ struct BaseballGameView: View {
     @State private var outs: Int = 0
     @State private var currentPitch: PitchType = .fastball
     @State private var swingResult: SwingResult = .none
+    @State private var balls: Int = 0
+    @State private var strikes: Int = 0
+    @State private var pitchInZone: Bool = true
+    @State private var countBannerText: String = ""
+    @State private var showCountBanner: Bool = false
     @State private var showResultBanner: Bool = false
     @State private var rewardGranted: Bool = false
 
@@ -1307,6 +1312,10 @@ struct BaseballGameView: View {
                         Circle().fill(i < outs ? Color.red : Color.white.opacity(0.15)).frame(width: 10, height: 10)
                     }
                 }.padding(.top, 2)
+                Text("\(balls)-\(strikes)")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.4, green: 0.85, blue: 0.4))
+                    .padding(.top, 1)
             }
             VStack(spacing: 2) {
                 Text("AWAY · OPP").font(.system(size: 8, weight: .black, design: .monospaced))
@@ -1621,11 +1630,16 @@ struct BaseballGameView: View {
 
     private var resultBanner: some View {
         let (color, text): (Color, String) = {
+            if showCountBanner {
+                let isBall = countBannerText.hasPrefix("BALL") || countBannerText.hasPrefix("WALK")
+                return (isBall ? Color(red: 0.3, green: 0.85, blue: 0.4) : Color(red: 1.0, green: 0.5, blue: 0.1),
+                        countBannerText)
+            }
             switch swingResult {
             case .homeRun:  return (.orange, "HOME RUN!")
             case .basehit:  return (.yellow, "BASE HIT")
             case .foul:     return (Color(white: 0.75), "FOUL BALL")
-            case .miss:     return (.red, "STRIKE")
+            case .miss:     return (.red, "STRIKEOUT!")
             case .none:     return (.clear, "")
             }
         }()
@@ -1657,12 +1671,15 @@ struct BaseballGameView: View {
     // MARK: Logic
 
     private func startInning() {
-        outs = 0; isTopHalf = true; phase = .batting
+        outs = 0; balls = 0; strikes = 0; isTopHalf = true; phase = .batting
         deliverPitch()
     }
 
     private func deliverPitch() {
         currentPitch = PitchType.allCases.randomElement() ?? .fastball
+        // Ball-in-zone probability: 65% strikes, higher with 2 strikes to pressure batter
+        let strikeProb = strikes == 2 ? 0.75 : 0.65
+        pitchInZone = Double.random(in: 0...1) < strikeProb
         pitchProgress = -1.0; hitProgress = -1.0; hitType = ""
         playerSwung = false; showResultBanner = false
         batterPhase = "ready"; pitcherPhase = "windup"; bannerScale = 0.6
@@ -1687,7 +1704,13 @@ struct BaseballGameView: View {
                 }
             }
             await MainActor.run {
-                if !playerSwung { recordSwingResult(.miss) }
+                if !playerSwung {
+                    if pitchInZone {
+                        recordCalledStrike()
+                    } else {
+                        recordBall()
+                    }
+                }
                 pitchProgress = -1.0
             }
         }
@@ -1705,13 +1728,72 @@ struct BaseballGameView: View {
             } else if goodZone.contains(ep) {
                 result = .basehit
             } else {
-                result = .foul
+                result = strikes < 2 ? .foul : .miss  // foul on 0-1 strikes, swinging K on 2
             }
         } else {
-            result = .foul
+            result = strikes < 2 ? .foul : .miss
         }
         pitchProgress = -1.0
         recordSwingResult(result)
+    }
+
+    private func recordBall() {
+        balls += 1
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        countBannerText = balls >= 4 ? "WALK! BALL 4" : "BALL \(balls)"
+        swingResult = .none
+        showResultBanner = true; showCountBanner = true
+        withAnimation(.spring(response: 0.25)) { bannerScale = 1.0 }
+        Task {
+            try? await Task.sleep(for: .seconds(0.9))
+            await MainActor.run {
+                bannerScale = 0.6; showResultBanner = false; showCountBanner = false
+                batterPhase = "ready"; pitcherPhase = "idle"
+                if balls >= 4 {
+                    // Walk
+                    balls = 0; strikes = 0
+                    playerScore += 1
+                    crowdLevel = min(1.0, crowdLevel + 0.05)
+                    countBannerText = "WALK! +1 RUN"
+                    withAnimation { showCountBanner = true; showResultBanner = true; bannerScale = 1.0 }
+                    Task {
+                        try? await Task.sleep(for: .seconds(1.1))
+                        await MainActor.run {
+                            bannerScale = 0.6; showResultBanner = false; showCountBanner = false; swingResult = .none
+                            batterPhase = "ready"; pitcherPhase = "idle"
+                            if outs >= OUTS_PER_INNING { endHalfInning() } else { deliverPitch() }
+                        }
+                    }
+                } else {
+                    deliverPitch()
+                }
+            }
+        }
+    }
+
+    private func recordCalledStrike() {
+        strikes += 1
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        countBannerText = strikes >= 3 ? "STRIKEOUT LOOKING!" : "CALLED STRIKE \(strikes)"
+        swingResult = .none
+        showResultBanner = true; showCountBanner = true
+        withAnimation(.spring(response: 0.25)) { bannerScale = 1.0 }
+        Task {
+            try? await Task.sleep(for: .seconds(0.9))
+            await MainActor.run {
+                bannerScale = 0.6; showResultBanner = false; showCountBanner = false
+                batterPhase = "ready"; pitcherPhase = "idle"
+                if strikes >= 3 {
+                    balls = 0; strikes = 0
+                    batterPhase = "miss"; outs += 1
+                    triggerShake(intensity: 3)
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                    if outs >= OUTS_PER_INNING { endHalfInning() } else { deliverPitch() }
+                } else {
+                    deliverPitch()
+                }
+            }
+        }
     }
 
     private func recordSwingResult(_ result: SwingResult) {
@@ -1721,7 +1803,7 @@ struct BaseballGameView: View {
 
         switch result {
         case .homeRun:
-            // Haptic #1: heavy on home run
+            balls = 0; strikes = 0
             batterPhase = "swing"; hitType = "homeRun"
             lastHitTime = Date().timeIntervalSinceReferenceDate
             playerScore += Int.random(in: 1...4)
@@ -1730,7 +1812,7 @@ struct BaseballGameView: View {
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             startHitBallAnim(steps: 65)
         case .basehit:
-            // Haptic #2: medium on solid contact / single
+            balls = 0; strikes = 0
             batterPhase = "swing"; hitType = "basehit"
             lastHitTime = Date().timeIntervalSinceReferenceDate
             playerScore += 1
@@ -1738,12 +1820,12 @@ struct BaseballGameView: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             startHitBallAnim(steps: 38)
         case .foul:
-            // Haptic #3: soft on foul / walk / ball
+            // Foul can't increase strikes past 2
+            if strikes < 2 { strikes += 1 }
             batterPhase = "swing"
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         case .miss:
-            // Haptic #4: rigid on strikeout swinging
-            // Haptic #5: error notification on strikeout looking / out
+            balls = 0; strikes = 0
             batterPhase = "miss"; outs += 1
             triggerShake(intensity: 3)
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
@@ -1755,7 +1837,7 @@ struct BaseballGameView: View {
         Task {
             try? await Task.sleep(for: .seconds(delay))
             await MainActor.run {
-                bannerScale = 0.6; showResultBanner = false; swingResult = .none
+                bannerScale = 0.6; showResultBanner = false; showCountBanner = false; swingResult = .none
                 batterPhase = "ready"; pitcherPhase = "idle"; hitProgress = -1
                 if outs >= OUTS_PER_INNING { endHalfInning() }
                 else { deliverPitch() }
@@ -1775,6 +1857,7 @@ struct BaseballGameView: View {
     }
 
     private func endHalfInning() {
+        balls = 0; strikes = 0
         if isTopHalf {
             isTopHalf = false; outs = 0; phase = .pitching; runAIAtBat()
         } else {
