@@ -7,6 +7,7 @@ from __future__ import annotations
 import os, json, asyncio, logging
 from pathlib import Path
 from typing import Any, Dict, Optional
+from registry_utils import load_ue_mode_maps, normalized_modes
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,7 @@ async def sovereign_bridge(action: str, payload: Optional[Dict[str, Any]] = None
         return {"ok": True, "venues": VENUE_REGISTRY.get("venues", [])}
 
     if action == "get_modes":
-        return {"ok": True, "modes": MODE_MANAGER.get("mode_manager", {}).get("modes", [])}
+        ue_mode_maps = load_ue_mode_maps(Path(__file__).parent.parent)
+        return {"ok": True, "modes": normalized_modes(MODE_MANAGER, VENUE_REGISTRY, ue_mode_maps)}
 
     return {"ok": False, "error": f"unknown action: {action}"}

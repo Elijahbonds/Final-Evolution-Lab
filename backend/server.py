@@ -23,6 +23,7 @@ from storekit_catalog import (
     mapping_valid_for_commerce,
     resolve_storekit_product,
 )
+from registry_utils import launchable_mode_maps, load_ue_mode_maps, normalized_modes, production_count
 from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
@@ -80,6 +81,18 @@ app.add_middleware(
 api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _ue_mode_maps() -> Dict[str, Optional[str]]:
+    return load_ue_mode_maps(ROOT_DIR)
+
+
+def _normalized_modes() -> List[Dict[str, Any]]:
+    return normalized_modes(MODE_MANAGER, VENUE_REGISTRY, _ue_mode_maps())
+
+
+def _normalized_mode(mode_id: str) -> Optional[Dict[str, Any]]:
+    return next((mode for mode in _normalized_modes() if mode["mode_id"] == mode_id), None)
 
 
 def _fel_ios_client(request: Request) -> bool:
@@ -2280,16 +2293,7 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/vault/status")
 async def get_vault_status():
     """LOCAL HUB MODE — No E3DS cloud. Data feed + Live Connection Preview."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena"
-    }
+    mode_maps = launchable_mode_maps(MODE_MANAGER, VENUE_REGISTRY, _ue_mode_maps())
     
     conn = await db.streaming_connections.find_one({"active": True})
     if conn:
@@ -2421,45 +2425,19 @@ async def connect_vault(data: Dict[str, Any], user: User = Depends(get_current_u
 async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
     """Launch UE5 game mode via deep link — tracks session in Vault Hub"""
     mode_id = data.get("mode_id")
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
-    mode_config = registry.get(mode_id)
+    mode_config = _normalized_mode(mode_id)
     
-    if not mode_config or mode_config.get("status") in ("non_game", "non-game-module") or mode_id == "invalid_mode_xyz":
+    if not mode_config or mode_id == "invalid_mode_xyz":
         raise HTTPException(status_code=404, detail="Mode not found")
         
-    if mode_config.get("status") not in ("production", "staging"):
-        raise HTTPException(status_code=403, detail=f"Mode '{mode_id}' is not in production or staging status.")
+    if not mode_config["launchable"]:
+        raise HTTPException(status_code=403, detail=f"Mode '{mode_id}' is not launchable in the local vault runtime.")
 
-    map_path = mode_config.get("map")
-    venue_key = None
-    
-    # Load from ue_mode_maps.json if map is not present in mode_config
-    if not map_path:
-        ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
-        if ue_maps_path.exists():
-            with open(ue_maps_path) as f:
-                ue_maps_data = json.load(f)
-                mode_to_map = ue_maps_data.get("mode_to_unreal_map", {})
-                venue_key = mode_to_map.get(mode_id)
-        
-        if venue_key:
-            # Look up in VENUE_REGISTRY
-            venues = VENUE_REGISTRY.get("venues", {})
-            venue_config = venues.get(venue_key) or venues.get(venue_key.lower())
-            if venue_config:
-                map_path = venue_config.get("map_path")
-            if not map_path:
-                map_path = f"/Game/FEL/Maps/{venue_key}"
-                
-    if not map_path:
-        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
-
-    if not venue_key:
-        venue_key = map_path.split("/")[-1]
-
-    gamemode_class = mode_config.get("gamemode_class", f"BP_GameMode_{venue_key}")
-    binary = mode_config.get("binary", f"FEL_{venue_key}")
-    status = mode_config.get("status", "production")
+    venue_key = mode_config["map"]
+    map_path = mode_config["map_path"]
+    gamemode_class = mode_config["gamemode_class"]
+    binary = mode_config["binary"]
+    status = mode_config["status"]
 
     # Create live session in Vault Hub
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
@@ -2575,27 +2553,25 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
     """All 17 modes with deep links and venue mapping — confirms playability"""
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
-    for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
+    for mode in _normalized_modes():
+        if not mode["map_path"]:
             continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        mode_id = mode["mode_id"]
+        venue_key = mode["map"]
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
             "mode_id": mode_id,
             "deep_link": deep_link,
-            "map_path": map_path,
+            "map_path": mode["map_path"],
             "map_token": venue_key,
-            "gamemode_class": config.get("gamemode_class", ""),
-            "binary": config.get("binary", ""),
-            "production_status": config.get("status", "staging"),
-            "venue_display": venue_data.get("display_name", venue_key),
-            "category": venue_data.get("category", "Unknown"),
-            "db_collection": venue_data.get("db_collection", ""),
-            "linked": True
+            "gamemode_class": mode["gamemode_class"],
+            "binary": mode["binary"],
+            "production_status": mode["status"],
+            "venue_display": mode["venue_display"],
+            "category": mode["render_mode"],
+            "db_collection": f"sessions_{str(venue_key).lower()}",
+            "linked": mode["launchable"]
         })
     return {
         "total_modes": len(mapped),
@@ -3834,33 +3810,31 @@ async def calculate_prq_live(user_id: str) -> float:
 @api_router.get("/production/modes")
 async def get_production_modes():
     """Production mode registry from FEL_ModeManager — NOT placeholder stubs"""
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
-    for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
-            continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+    for mode in _normalized_modes():
+        venue_key = mode["map"] or mode["venue_key"] or mode["mode_id"]
         # Check for live session data in venue collection
-        collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
+        collection = f"sessions_{str(venue_key).lower()}"
         live_sessions = await db[collection].count_documents({})
         modes.append({
-            "mode_id": mode_id,
-            "map_path": map_path,
-            "gamemode_class": config.get("gamemode_class", ""),
-            "binary": config.get("binary", ""),
-            "status": config.get("status", "staging"),
+            "mode_id": mode["mode_id"],
+            "map_path": mode["map_path"],
+            "gamemode_class": mode["gamemode_class"],
+            "binary": mode["binary"],
+            "status": mode["status"],
             "venue": venue_key,
-            "venue_display": venue_data.get("display_name", venue_key),
+            "venue_display": mode["venue_display"],
+            "render_mode": mode["render_mode"],
+            "launchable": mode["launchable"],
             "live_sessions": live_sessions,
             "db_collection": collection,
             "data_source": "FEL_ModeManager.production.json"
         })
     return {
         "total_modes": len(modes),
-        "production_modes": len([m for m in modes if m["status"] == "production"]),
+        "production_modes": production_count(modes),
         "staging_modes": len([m for m in modes if m["status"] == "staging"]),
+        "launchable_modes": len([m for m in modes if m["launchable"]]),
         "modes": modes,
         "source": "FEL_ModeManager.production.json (NOT placeholder)",
         "uproject": MODE_MANAGER.get("uproject"),

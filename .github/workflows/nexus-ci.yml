@@ -1,0 +1,39 @@
+name: NEXUS Headless Gameplay CI
+
+on:
+  push:
+    branches:
+      - main
+      - cursor/app-quality-and-completion-c4d7
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  headless-gameplay:
+    name: Headless C++ Gameplay Regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+
+      - name: Validate mode registry
+        run: python3 scripts/validate_mode_registry.py
+
+      - name: Run NEXUS gameplay regression
+        run: ./scripts/nexus_gameplay_regression.sh
+
+      - name: Upload gameplay regression artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-gameplay-regression
+          path: |
+            artifacts/playtest/gameplay_regression.json
+            artifacts/playtest/gameplay_regression_run.log
+            artifacts/playtest/gameplay_regression_ctest.log
+          if-no-files-found: ignore

@@ -24,6 +24,7 @@ from datetime import datetime, timezone, timedelta
 
 from core import db, User, get_current_user, ROOT_DIR
 from .sovereign import sovereign_bridge, sovereign_state, VENUE_REGISTRY, MODE_MANAGER
+from registry_utils import launchable_mode_maps, load_ue_mode_maps, normalized_modes, production_count, venues_by_key
 
 router = APIRouter(prefix="/api", tags=["games"])
 logger = logging.getLogger(__name__)
@@ -44,6 +45,18 @@ PRQ_MODE_WEIGHTS = {
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
 SHARD_COMBO_MULTIPLIER, SHARD_CRITICAL_BONUS = 5, 10
 XP_CAP_PER_SESSION = 500
+
+
+def _ue_mode_maps() -> Dict[str, Optional[str]]:
+    return load_ue_mode_maps(ROOT_DIR)
+
+
+def _normalized_modes() -> List[Dict[str, Any]]:
+    return normalized_modes(MODE_MANAGER, VENUE_REGISTRY, _ue_mode_maps())
+
+
+def _normalized_mode(mode_id: str) -> Optional[Dict[str, Any]]:
+    return next((mode for mode in _normalized_modes() if mode["mode_id"] == mode_id), None)
 
 
 def _compute_prq_delta(mode_id: str, score: int, duration: int, completed: bool) -> float:
@@ -773,16 +786,7 @@ async def spectate_room(room_id: str, user: User = Depends(get_current_user)):
 @router.get("/streaming/status")
 async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
-    }
+    mode_maps = launchable_mode_maps(MODE_MANAGER, VENUE_REGISTRY, _ue_mode_maps())
     ws_connected = len(sovereign_bridge.clients) > 0
     return {
         "available": ws_connected,
@@ -809,17 +813,18 @@ async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_curre
 async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
     """Launch UE5 game mode via deep link — tracks session in Sovereign Hub"""
     mode_id = data.get("mode_id")
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
-    mode_config = registry.get(mode_id)
+    mode_config = _normalized_mode(mode_id)
     if not mode_config:
         raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+    if not mode_config["launchable"]:
+        raise HTTPException(status_code=403, detail=f"Mode {mode_id} is not launchable in the local sovereign runtime")
 
-    venue_key = mode_config["map"].split("/")[-1]
+    venue_key = mode_config["map"]
 
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     session = {
         "id": session_id, "user_id": user.user_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": mode_config["map"],
+        "venue": venue_key, "map_path": mode_config["map_path"],
         "gamemode_class": mode_config["gamemode_class"],
         "binary": mode_config["binary"],
         "status": "launching",
@@ -830,14 +835,14 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
 
     await sovereign_bridge.broadcast({
         "type": "mode_launch", "session_id": session_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": mode_config["map"], "user_id": user.user_id
+        "venue": venue_key, "map_path": mode_config["map_path"], "user_id": user.user_id
     }, encrypt=False)
 
     deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}&session={session_id}"
 
     return {
         "session_id": session_id, "mode_id": mode_id, "venue": venue_key,
-        "map_path": mode_config["map"], "gamemode_class": mode_config["gamemode_class"],
+        "map_path": mode_config["map_path"], "gamemode_class": mode_config["gamemode_class"],
         "binary": mode_config["binary"], "status": mode_config["status"],
         "deep_link": deep_link, "source": "FEL_ModeManager.production.json",
         "cloud": False, "sovereign_session": True
@@ -896,22 +901,23 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 @router.get("/modes/mapped")
 async def get_all_mapped_modes():
     """All 17 modes with deep links and venue mapping"""
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
-    for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+    for mode in _normalized_modes():
+        if not mode["map_path"]:
+            continue
+        mode_id = mode["mode_id"]
+        venue_key = mode["map"]
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
             "mode_id": mode_id, "deep_link": deep_link,
-            "map_path": config["map"], "map_token": venue_key,
-            "gamemode_class": config["gamemode_class"],
-            "binary": config["binary"],
-            "production_status": config["status"],
-            "venue_display": venue_data.get("display_name", venue_key),
-            "category": venue_data.get("category", "Unknown"),
-            "db_collection": venue_data.get("db_collection", ""),
-            "linked": True
+            "map_path": mode["map_path"], "map_token": venue_key,
+            "gamemode_class": mode["gamemode_class"],
+            "binary": mode["binary"],
+            "production_status": mode["status"],
+            "venue_display": mode["venue_display"],
+            "category": mode["render_mode"],
+            "db_collection": f"sessions_{str(venue_key).lower()}",
+            "linked": mode["launchable"]
         })
     return {
         "total_modes": len(mapped),
@@ -926,25 +932,26 @@ async def get_all_mapped_modes():
 @router.get("/production/modes")
 async def get_production_modes():
     """Production mode registry from FEL_ModeManager"""
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
-    for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
-        collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
+    for mode in _normalized_modes():
+        venue_key = mode["map"] or mode["venue_key"] or mode["mode_id"]
+        collection = f"sessions_{str(venue_key).lower()}"
         live_sessions = await db[collection].count_documents({})
         modes.append({
-            "mode_id": mode_id, "map_path": config["map"],
-            "gamemode_class": config["gamemode_class"],
-            "binary": config["binary"], "status": config["status"],
-            "venue": venue_key, "venue_display": venue_data.get("display_name", venue_key),
+            "mode_id": mode["mode_id"], "map_path": mode["map_path"],
+            "gamemode_class": mode["gamemode_class"],
+            "binary": mode["binary"], "status": mode["status"],
+            "venue": venue_key, "venue_display": mode["venue_display"],
+            "render_mode": mode["render_mode"],
+            "launchable": mode["launchable"],
             "live_sessions": live_sessions, "db_collection": collection,
             "data_source": "FEL_ModeManager.production.json"
         })
     return {
         "total_modes": len(modes),
-        "production_modes": len([m for m in modes if m["status"] == "production"]),
+        "production_modes": production_count(modes),
         "staging_modes": len([m for m in modes if m["status"] == "staging"]),
+        "launchable_modes": len([m for m in modes if m["launchable"]]),
         "modes": modes,
         "source": "FEL_ModeManager.production.json (NOT placeholder)",
         "uproject": MODE_MANAGER.get("uproject"),
@@ -983,7 +990,7 @@ async def production_health_check():
     expected_sigs = bridge_config.get("expected_binary_signatures", [])
 
     venue_status = {}
-    for venue_name, venue_data in VENUE_REGISTRY.get("venues", {}).items():
+    for venue_name, venue_data in venues_by_key(VENUE_REGISTRY).items():
         coll = venue_data.get("db_collection", "")
         try:
             count = await db[coll].count_documents({})
@@ -1175,24 +1182,22 @@ async def get_sovereign_status():
 @router.get("/registry/venues")
 async def get_venue_registry():
     """Centralized venue registry — apps fetch this on launch"""
-    venues = VENUE_REGISTRY.get("venues", {})
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     ws_url = os.environ.get("EMERGENT_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/sovereign")
 
     result = []
-    for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
-        venue_data = venues.get(venue_key, {})
+    for mode in _normalized_modes():
+        venue_key = mode["map"] or mode["venue_key"] or mode["mode_id"]
         result.append({
-            "mode_id": mode_id,
-            "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
-            "map_path": config["map"],
+            "mode_id": mode["mode_id"],
+            "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode['mode_id']}",
+            "map_path": mode["map_path"],
             "venue_token": venue_key,
-            "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
-            "category": venue_data.get("category", "Unknown"),
-            "binary": config["binary"],
-            "status": config["status"],
-            "gamemode_class": config["gamemode_class"]
+            "venue_display": mode["venue_display"],
+            "category": mode["render_mode"],
+            "binary": mode["binary"],
+            "status": mode["status"],
+            "launchable": mode["launchable"],
+            "gamemode_class": mode["gamemode_class"]
         })
 
     return {
