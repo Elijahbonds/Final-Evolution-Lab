@@ -1266,10 +1266,17 @@ struct BrainBrawlView: View {
     @State private var roundNumber: Int = 1
 
     // AI Personality
-    @State private var aiPersonality: AIPersonality = .confident
+    @State private var aiPersonality: AIPersonality = AIPersonality.allCases.randomElement()!
     @State private var aiConfidence: Double = 1.0
     @State private var aiThinkingText: String = "Processing..."
     @State private var aiShaking: Bool = false
+    @State private var aiShowReaction: Bool = false
+    @State private var aiReactionText: String = ""
+    @State private var aiReactionColor: Color = .green
+    @State private var showTensionBanner: Bool = false
+    @State private var tensionBannerText: String = ""
+    @State private var tensionBannerColor: Color = .red
+    @State private var playerStreakFromBehind: Int = 0
 
     private var opponentName: String { aiPersonality.name }
     private let totalCrowns = BBCategory.allCases.count
@@ -1970,9 +1977,15 @@ struct BrainBrawlView: View {
                     await MainActor.run { crownFlash = nil }
                 }
             }
+            // COMEBACK! when player earns 2 crowns in a row from behind
+            playerStreakFromBehind += 1
+            if playerStreakFromBehind >= 2 && opponentCrowns.count > playerCrowns.count {
+                flashTensionBanner("COMEBACK!", color: .cyan)
+            }
         } else {
             streakMultiplier = 1
             currentStreak = 0
+            playerStreakFromBehind = 0
             feedbackMessage = "Wrong \u{2014} \u{201C}\(question.answers[question.correctIndex])\u{201D}"
         }
 
@@ -2082,10 +2095,20 @@ struct BrainBrawlView: View {
                     opponentCrowns.insert(cat)
                     opponentLabel = aiPersonality.correctLines.randomElement() ?? "\(opponentName) answered correctly!"
                     aiConfidence = min(1.0, aiConfidence + 0.1)
+                    aiReactionText = aiPersonality.correctLines.randomElement() ?? "Correct!"
+                    aiReactionColor = .green
+                    showAIReaction()
+                    // Danger: AI is 1 crown from winning
+                    if opponentCrowns.count == totalCrowns - 1 {
+                        flashTensionBanner("DANGER!", color: .red)
+                    }
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } else {
                     opponentLabel = aiPersonality.incorrectLines.randomElement() ?? "\(opponentName) missed it."
                     aiConfidence = max(0.2, aiConfidence - 0.15)
+                    aiReactionText = aiPersonality.incorrectLines.randomElement() ?? "Missed!"
+                    aiReactionColor = .orange
+                    showAIReaction()
                     aiShaking = true
                     Task {
                         try? await Task.sleep(for: .seconds(0.5))
@@ -2100,6 +2123,28 @@ struct BrainBrawlView: View {
                         nextPlayerTurn()
                     }
                 }
+            }
+        }
+    }
+
+    private func showAIReaction() {
+        withAnimation { aiShowReaction = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2.2))
+            await MainActor.run {
+                withAnimation { aiShowReaction = false }
+            }
+        }
+    }
+
+    private func flashTensionBanner(_ text: String, color: Color) {
+        tensionBannerText = text
+        tensionBannerColor = color
+        withAnimation { showTensionBanner = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2.0))
+            await MainActor.run {
+                withAnimation { showTensionBanner = false }
             }
         }
     }
