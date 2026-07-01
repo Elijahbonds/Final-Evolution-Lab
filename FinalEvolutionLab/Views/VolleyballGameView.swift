@@ -1214,6 +1214,11 @@ struct VolleyballGameView: View {
     @State private var powerSurgeActive: Bool = false
     @State private var showSurgeActivated: Bool = false
 
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     // Canvas FX state
     @State private var spikeActive: Bool = false
     @State private var aceActive: Bool = false
@@ -1239,16 +1244,29 @@ struct VolleyballGameView: View {
             Theme.deepBlack.ignoresSafeArea()
             LinearGradient(colors: [Color(red: 0.04, green: 0.04, blue: 0.12), Theme.deepBlack],
                            startPoint: .top, endPoint: .bottom).ignoresSafeArea()
-
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Beach Volleyball", subtitle: "90-Second Match · Pass · Set · Spike",
-                    countdown: 3, accentColor: accentColor, onComplete: { startMatch() }
-                )
-            case .playing: playingView
-            case .result:  resultView
+            // Particle burst overlay
+            ForEach(burstParticles, id: \.id) { p in
+                Circle()
+                    .fill(p.color)
+                    .frame(width: 6, height: 6)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity)
+                    .blur(radius: 1)
             }
+            .allowsHitTesting(false)
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Beach Volleyball", subtitle: "90-Second Match · Pass · Set · Spike",
+                        countdown: 3, accentColor: accentColor, onComplete: { startMatch() }
+                    )
+                case .playing: playingView
+                case .result:  resultView
+                }
+            }
+            .offset(x: shakeX, y: shakeY)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -1796,12 +1814,16 @@ struct VolleyballGameView: View {
         // Haptic: rigid on match point / set win
         if matchPointActive {
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            triggerShake(intensity: 16)
         } else if ace {
             // Haptic: heavy on ace
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         }
         // Haptic: error (success) on ball in / point scored
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+        triggerShake(intensity: 10)
+        if powerSpikeBonus { triggerBurst(color: .yellow, count: 16) }
+        if ace { triggerBurst(color: accentColor, count: 10) }
         if ace {
             aceActive = true
             withAnimation(.spring(response: 0.25)) { showAce = true }
@@ -1823,6 +1845,7 @@ struct VolleyballGameView: View {
         powerSurgeActive = false
         // Haptic: error notification on point against
         UINotificationFeedbackGenerator().notificationOccurred(.error)
+        triggerShake(intensity: 6)
         scheduleNextRally()
     }
 
@@ -1875,5 +1898,44 @@ struct VolleyballGameView: View {
         rallyTask?.cancel()
         inputWindowTask?.cancel()
         positioningTask?.cancel()
+    }
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(at center: CGPoint = CGPoint(x: UIScreen.main.bounds.width/2, y: UIScreen.main.bounds.height/2), color: Color, count: Int = 12) {
+        let id = burstCounter
+        burstCounter += 1
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: center.x, y: center.y, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.6)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 40...90)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 }

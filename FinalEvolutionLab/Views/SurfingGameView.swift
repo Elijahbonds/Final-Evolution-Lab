@@ -822,6 +822,11 @@ struct SurfingGameView: View {
     @State private var flowStateTask: Task<Void, Never>? = nil
     @State private var showFlowActivated: Bool = false
 
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     @State private var currentWaveType: SurfWaveType = .solid
     @State private var showWaveTypeBanner: Bool = false
     @State private var barrelHoldTime: Double = 0
@@ -852,35 +857,49 @@ struct SurfingGameView: View {
             Theme.deepBlack.ignoresSafeArea()
             LinearGradient(colors: [Color(red: 0.01, green: 0.06, blue: 0.20), Theme.deepBlack],
                            startPoint: .top, endPoint: .bottom).ignoresSafeArea()
-            switch phase {
-            case .lobby:          lobbyBody
-            case .ready:
-                GetReadyScreen(
-                    title: "Surfing",
-                    subtitle: surfMode == .competition ? "3 waves - Best 2 of 3 - Balance + Trick" : "Endless waves - 10 wipeouts ends session",
-                    countdown: 3, accentColor: accentColor,
-                    onComplete: {
-                        if surfMode == .competition { frozenAIScore = Double(Int.random(in: 22...42)) }
-                        startPaddleIn()
-                    })
-            case .paddleIn:       paddleInBody
-            case .riding, .trickWindow: ridingBody
-            case .barrelRide:     barrelRideBody
-            case .duckDive:       duckDiveBody
-            case .wipeout:        wipeoutBody
-            case .waveResult:     waveResultBody
-            case .heatResult:     heatResultBody
-            case .sessionSummary: sessionSummaryBody
-            case .result:
-                ResultScreen(
-                    winner: playerWins ? .p1 : (isDraw ? .draw : .p2),
-                    p1Score: Int(heat1Score), p2Score: Int(frozenAIScore),
-                    title: "Surfing", accentColor: accentColor,
-                    prqGain: playerWins ? 14 : (isDraw ? 5 : 3),
-                    prqCurrent: viewModel.effectiveMetrics.prqScore,
-                    modeAttributeLabel: "Wave Score", modeAttributeValue: min(1.0, heat1Score / 40.0),
-                    onReturn: { dismiss() })
+            // Particle burst overlay
+            ForEach(burstParticles, id: \.id) { p in
+                Circle()
+                    .fill(p.color)
+                    .frame(width: 6, height: 6)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity)
+                    .blur(radius: 1)
             }
+            .allowsHitTesting(false)
+            Group {
+                switch phase {
+                case .lobby:          lobbyBody
+                case .ready:
+                    GetReadyScreen(
+                        title: "Surfing",
+                        subtitle: surfMode == .competition ? "3 waves - Best 2 of 3 - Balance + Trick" : "Endless waves - 10 wipeouts ends session",
+                        countdown: 3, accentColor: accentColor,
+                        onComplete: {
+                            if surfMode == .competition { frozenAIScore = Double(Int.random(in: 22...42)) }
+                            startPaddleIn()
+                        })
+                case .paddleIn:       paddleInBody
+                case .riding, .trickWindow: ridingBody
+                case .barrelRide:     barrelRideBody
+                case .duckDive:       duckDiveBody
+                case .wipeout:        wipeoutBody
+                case .waveResult:     waveResultBody
+                case .heatResult:     heatResultBody
+                case .sessionSummary: sessionSummaryBody
+                case .result:
+                    ResultScreen(
+                        winner: playerWins ? .p1 : (isDraw ? .draw : .p2),
+                        p1Score: Int(heat1Score), p2Score: Int(frozenAIScore),
+                        title: "Surfing", accentColor: accentColor,
+                        prqGain: playerWins ? 14 : (isDraw ? 5 : 3),
+                        prqCurrent: viewModel.effectiveMetrics.prqScore,
+                        modeAttributeLabel: "Wave Score", modeAttributeValue: min(1.0, heat1Score / 40.0),
+                        onReturn: { dismiss() })
+                }
+            }
+            .offset(x: shakeX, y: shakeY)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -1674,6 +1693,7 @@ struct SurfingGameView: View {
     private func completeBarrel() {
         cancelAllTimers()
         hapticNotification(.success); hapticImpact(.heavy)
+        triggerBurst(color: .yellow, count: 12)
         // Barrel rides heavily charge the flow meter
         if !flowStateActive {
             flowMeter = min(1.0, flowMeter + 0.50)
@@ -1711,6 +1731,8 @@ struct SurfingGameView: View {
         flowStateActive = true
         flowStateTask?.cancel()
         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        triggerShake(intensity: 10)
+        triggerBurst(color: .cyan, count: 16)
         withAnimation(.spring(response: 0.25)) { showFlowActivated = true }
         Task {
             try? await Task.sleep(for: .milliseconds(1200))
@@ -1738,10 +1760,10 @@ struct SurfingGameView: View {
         }
         switch trick {
         case .aerial:
-            hapticImpact(.heavy); currentCanvasPhase = .aerial
+            hapticImpact(.heavy); triggerShake(intensity: 6); currentCanvasPhase = .aerial
             Task { try? await Task.sleep(for: .milliseconds(600)); await MainActor.run { hapticImpact(.heavy); currentCanvasPhase = .normal } }
         case .tube:
-            hapticImpact(.rigid); currentCanvasPhase = .tube; tubeMultiplier = min(3, tubeMultiplier + 1)
+            hapticImpact(.rigid); triggerShake(intensity: 6); currentCanvasPhase = .tube; tubeMultiplier = min(3, tubeMultiplier + 1)
             Task { try? await Task.sleep(for: .milliseconds(1200)); await MainActor.run { currentCanvasPhase = .normal } }
         case .cutback:
             hapticImpact(.medium); currentCanvasPhase = .normal
@@ -1780,7 +1802,9 @@ struct SurfingGameView: View {
         if wipeout {
             // Wipeout drains the flow meter
             flowMeter = max(0, flowMeter - 0.50); flowStateActive = false
-            hapticNotification(.error); hapticImpact(.heavy); currentCanvasPhase = .wipeout; phase = .wipeout
+            hapticNotification(.error); hapticImpact(.heavy); currentCanvasPhase = .wipeout
+            triggerShake(intensity: 14)
+            phase = .wipeout
             Task {
                 try? await Task.sleep(for: .seconds(2.0))
                 await MainActor.run {
@@ -1835,5 +1859,44 @@ struct SurfingGameView: View {
     private func cancelAllTimers() {
         waveTimer?.cancel(); wavePowerTimer?.cancel(); balanceDriftTimer?.cancel()
         barrelTimer?.cancel(); endlessWaveTask?.cancel(); flowStateTask?.cancel()
+    }
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(at center: CGPoint = CGPoint(x: UIScreen.main.bounds.width/2, y: UIScreen.main.bounds.height/2), color: Color, count: Int = 12) {
+        let id = burstCounter
+        burstCounter += 1
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: center.x, y: center.y, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.6)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 40...90)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 }

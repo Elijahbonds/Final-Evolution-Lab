@@ -1227,6 +1227,10 @@ struct GymnasticsGameView: View {
     @State private var gradeFlashText: String = ""
     @State private var gradeFlashColor: Color = .white
     @State private var lastGrade: TimingGrade? = nil
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
 
     @State private var judgeScoresVisible: [Bool] = [false, false, false]
     @State private var currentJudgeScores: (Double, Double, Double) = (0, 0, 0)
@@ -1262,6 +1266,46 @@ struct GymnasticsGameView: View {
 
     // MARK: Haptics
 
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for idx in 0..<burstParticles.count {
+                if burstParticles[idx].id >= id * 100 {
+                    burstParticles[idx].distance = CGFloat.random(in: 50...110)
+                    burstParticles[idx].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
+    }
+
     private func hapticPerfect() {
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
@@ -1283,7 +1327,16 @@ struct GymnasticsGameView: View {
                 startPoint: .top, endPoint: .bottom
             ).ignoresSafeArea()
 
-            switch phase {
+            // Particle burst overlay
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
+            }
+            .allowsHitTesting(false)
+
+            Group { switch phase {
             case .ready:
                 GetReadyScreen(
                     title: "Gymnastics",
@@ -1335,7 +1388,8 @@ struct GymnasticsGameView: View {
                         finalJudgmentOverlay
                     }
                 }
-            }
+            } }
+            .offset(x: shakeX, y: shakeY)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -2108,12 +2162,22 @@ struct GymnasticsGameView: View {
         let deduction: Double = grade == .miss ? 1.0 : (grade == .late ? 0.5 : 0.0)
         let finalPts = max(0, Double(rawPts) - deduction)
 
-        // Haptic feedback
+        // Haptic feedback + screen shake + particle burst
         switch grade {
-        case .perfect: hapticPerfect()
-        case .good:    hapticGood()
-        case .late:    hapticLate()
-        case .miss:    hapticMiss()
+        case .perfect:
+            hapticPerfect()
+            triggerShake(intensity: 10)
+            triggerBurst(color: .yellow, count: 20)
+        case .good:
+            hapticGood()
+            triggerShake(intensity: 5)
+            triggerBurst(color: accentColor, count: 10)
+        case .late:
+            hapticLate()
+            triggerShake(intensity: 3)
+        case .miss:
+            hapticMiss()
+            triggerShake(intensity: 12)
         }
 
         // Judge score generation
