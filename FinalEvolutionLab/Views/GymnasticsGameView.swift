@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Phase
 
@@ -86,257 +87,914 @@ private struct GymElementResult {
     let judge3: Double
 }
 
-// MARK: - Arena Canvas
+// MARK: - Gymnastics Move Enum
+
+private enum GymnasticsMove {
+    case idle, backflip, handstand, split, aerial, cartwheel, pike, walkover
+}
+
+// MARK: - Ease helper
+
+private func easeInOut(_ t: Double) -> Double {
+    return t < 0.5 ? 2 * t * t : 1 - pow(-2 * t + 2, 2) / 2
+}
+
+// MARK: - GymnasticsArenaCanvas (full AAA arena background, 60fps)
 
 private struct GymnasticsArenaCanvas: View {
     let elementIndex: Int
     let gradeColor: Color
     let showFlash: Bool
+    let lastGrade: TimingGrade?
+    let timingProgress: Double   // 0→1 over element window
 
     var body: some View {
         TimelineView(.animation) { tl in
             Canvas { ctx, size in
-                var d = GymDrawer(t: tl.date.timeIntervalSinceReferenceDate,
-                                  W: size.width, H: size.height,
-                                  elementIndex: elementIndex,
-                                  gradeColor: gradeColor, showFlash: showFlash)
+                let t = tl.date.timeIntervalSinceReferenceDate
+                var drawer = ArenaDrawer(
+                    t: t, W: size.width, H: size.height,
+                    elementIndex: elementIndex,
+                    gradeColor: gradeColor,
+                    showFlash: showFlash,
+                    lastGrade: lastGrade,
+                    timingProgress: timingProgress
+                )
+                drawer.render(ctx: &ctx)
+            }
+        }
+    }
+}
+
+private struct ArenaDrawer {
+    let t: Double
+    let W: CGFloat
+    let H: CGFloat
+    let elementIndex: Int
+    let gradeColor: Color
+    let showFlash: Bool
+    let lastGrade: TimingGrade?
+    let timingProgress: Double
+
+    var matY: CGFloat { H * 0.62 }
+    var matH: CGFloat { H * 0.20 }
+    var matX: CGFloat { W * 0.06 }
+    var matW: CGFloat { W * 0.88 }
+    var cx: CGFloat   { W * 0.50 }
+    var cy: CGFloat   { matY - 2 }
+
+    mutating func render(ctx: inout GraphicsContext) {
+        drawArenaBG(&ctx)       // 1
+        drawCeilingTruss(&ctx)  // 2
+        drawSpotlightCones(&ctx)// 3-8 (6 lights)
+        drawBanners(&ctx)       // 9-12 (4 banners)
+        drawJumboTrons(&ctx)    // 13-16 (left+right panels)
+        drawCrowdRows(&ctx)     // 17-22 (60 crowd dots across 3 rows)
+        drawMatSurface(&ctx)    // 23-27
+        drawSpringGrid(&ctx)    // 28-32
+        drawGymnast(&ctx)       // 33-60+
+        drawScorePopEffects(&ctx)// 61-70
+        if showFlash { drawScreenFlash(&ctx) } // 71
+    }
+
+    // MARK: 1 — Arena background gradient
+    private func drawArenaBG(_ ctx: inout GraphicsContext) {
+        // Deep arena background
+        ctx.fill(
+            Path(CGRect(x: 0, y: 0, width: W, height: H)),
+            with: .linearGradient(
+                Gradient(stops: [
+                    .init(color: Color(red: 0.03, green: 0.01, blue: 0.16), location: 0),
+                    .init(color: Color(red: 0.06, green: 0.03, blue: 0.22), location: 0.5),
+                    .init(color: Color(red: 0.09, green: 0.05, blue: 0.28), location: 1.0),
+                ]),
+                startPoint: .zero,
+                endPoint: CGPoint(x: 0, y: H)
+            )
+        )
+        // Subtle vignette darkening at edges
+        var vign = ctx
+        vign.addFilter(.blur(radius: 40))
+        vign.fill(
+            Path(CGRect(x: 0, y: 0, width: W * 0.3, height: H)),
+            with: .color(Color.black.opacity(0.35))
+        )
+        vign.fill(
+            Path(CGRect(x: W * 0.7, y: 0, width: W * 0.3, height: H)),
+            with: .color(Color.black.opacity(0.35))
+        )
+    }
+
+    // MARK: 2 — Ceiling truss bar
+    private func drawCeilingTruss(_ ctx: inout GraphicsContext) {
+        // Main horizontal truss bar
+        ctx.fill(
+            Path(CGRect(x: 0, y: 0, width: W, height: 8)),
+            with: .linearGradient(
+                Gradient(colors: [
+                    Color(red: 0.25, green: 0.25, blue: 0.32),
+                    Color(red: 0.18, green: 0.18, blue: 0.24),
+                ]),
+                startPoint: CGPoint(x: 0, y: 0),
+                endPoint: CGPoint(x: 0, y: 8)
+            )
+        )
+        // Truss vertical supports
+        let trussCount = 7
+        for i in 0..<trussCount {
+            let tx = W * CGFloat(i) / CGFloat(trussCount - 1)
+            var support = Path()
+            support.move(to: CGPoint(x: tx, y: 0))
+            support.addLine(to: CGPoint(x: tx, y: 14))
+            ctx.stroke(support, with: .color(Color(red: 0.30, green: 0.30, blue: 0.40).opacity(0.7)), lineWidth: 1.5)
+        }
+        // Cross-brace diagonals on truss
+        for i in 0..<(trussCount - 1) {
+            let x0 = W * CGFloat(i) / CGFloat(trussCount - 1)
+            let x1 = W * CGFloat(i + 1) / CGFloat(trussCount - 1)
+            var brace = Path()
+            brace.move(to: CGPoint(x: x0, y: 0))
+            brace.addLine(to: CGPoint(x: x1, y: 14))
+            ctx.stroke(brace, with: .color(Color(red: 0.22, green: 0.22, blue: 0.30).opacity(0.5)), lineWidth: 0.8)
+        }
+    }
+
+    // MARK: 3-8 — 6 Spotlights with cone beams
+    private func drawSpotlightCones(_ ctx: inout GraphicsContext) {
+        let targetX = cx
+        let targetY = matY + matH * 0.5
+        let lightXPositions: [CGFloat] = [W*0.08, W*0.22, W*0.38, W*0.62, W*0.78, W*0.92]
+        let lightColors: [Color] = [
+            Color(red: 1.0, green: 0.97, blue: 0.82),
+            Color(red: 0.82, green: 0.90, blue: 1.0),
+            Color(red: 1.0, green: 0.97, blue: 0.82),
+            Color(red: 0.82, green: 0.90, blue: 1.0),
+            Color(red: 1.0, green: 0.97, blue: 0.82),
+            Color(red: 0.82, green: 0.90, blue: 1.0),
+        ]
+        for (i, lx) in lightXPositions.enumerated() {
+            let lc = lightColors[i]
+            let flicker = 1.0 + 0.04 * CGFloat(sin(t * 3.7 + Double(i) * 1.3))
+
+            // Spotlight cone (wide trapezoid toward mat)
+            var cone = Path()
+            let coneHalfTopW: CGFloat = 4
+            let coneHalfBotW: CGFloat = 32
+            cone.move(to: CGPoint(x: lx - coneHalfTopW, y: 0))
+            cone.addLine(to: CGPoint(x: lx + coneHalfTopW, y: 0))
+            cone.addLine(to: CGPoint(x: targetX + coneHalfBotW, y: targetY))
+            cone.addLine(to: CGPoint(x: targetX - coneHalfBotW, y: targetY))
+            cone.closeSubpath()
+            var gc = ctx
+            gc.addFilter(.blur(radius: 14))
+            gc.fill(cone, with: .color(lc.opacity(0.055 * flicker)))
+
+            // Lamp housing (small rectangle at top)
+            ctx.fill(
+                Path(CGRect(x: lx - 6, y: 0, width: 12, height: 5)),
+                with: .color(Color(red: 0.20, green: 0.20, blue: 0.26))
+            )
+
+            // Bloom at source
+            var bloom = ctx
+            bloom.addFilter(.blur(radius: 6))
+            bloom.fill(
+                Path(ellipseIn: CGRect(x: lx - 5, y: -3, width: 10, height: 10)),
+                with: .color(lc.opacity(0.55 * flicker))
+            )
+
+            // Small dot at center of lamp
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: lx - 2, y: 0, width: 4, height: 4)),
+                with: .color(Color.white.opacity(0.9))
+            )
+        }
+    }
+
+    // MARK: 9-12 — Hanging banners with sway
+    private func drawBanners(_ ctx: inout GraphicsContext) {
+        let bannerData: [(CGFloat, Color, String)] = [
+            (W * 0.08, Color(red: 0.65, green: 0.12, blue: 0.12), "FIG"),
+            (W * 0.22, Color(red: 0.12, green: 0.30, blue: 0.65), "2025"),
+            (W * 0.78, Color(red: 0.12, green: 0.30, blue: 0.65), "GALA"),
+            (W * 0.92, Color(red: 0.65, green: 0.12, blue: 0.12), "GYM"),
+        ]
+        for (bx, bc, label) in bannerData {
+            let sway = CGFloat(sin(t * 0.7 + Double(bx / W) * 6.28)) * 3.0
+            let bw: CGFloat = 18
+            let bh: CGFloat = 38
+            let btx = bx + sway
+
+            // Banner cord
+            var cord = Path()
+            cord.move(to: CGPoint(x: bx, y: 0))
+            cord.addLine(to: CGPoint(x: btx, y: 10))
+            ctx.stroke(cord, with: .color(Color.white.opacity(0.3)), lineWidth: 0.8)
+
+            // Banner body
+            var banner = Path()
+            banner.move(to: CGPoint(x: btx - bw/2, y: 10))
+            banner.addLine(to: CGPoint(x: btx + bw/2, y: 10))
+            banner.addLine(to: CGPoint(x: btx + bw/2 + 2, y: 10 + bh))
+            banner.addLine(to: CGPoint(x: btx,           y: 10 + bh + 6)) // V-cut bottom
+            banner.addLine(to: CGPoint(x: btx - bw/2 - 2, y: 10 + bh))
+            banner.closeSubpath()
+            ctx.fill(banner, with: .color(bc.opacity(0.85)))
+            ctx.stroke(banner, with: .color(Color.white.opacity(0.25)), lineWidth: 0.7)
+
+            // Label on banner (drawn as small dots approximation — no text in Canvas)
+            // Decorative horizontal stripes instead
+            for stripe in 0..<3 {
+                let sy = 14 + CGFloat(stripe) * 9
+                var sl = Path()
+                sl.move(to: CGPoint(x: btx - bw/2 + 2, y: sy))
+                sl.addLine(to: CGPoint(x: btx + bw/2 - 2, y: sy))
+                ctx.stroke(sl, with: .color(Color.white.opacity(0.30)), lineWidth: 0.8)
+            }
+        }
+    }
+
+    // MARK: 13-16 — JumboTron score panels (left + right)
+    private func drawJumboTrons(_ ctx: inout GraphicsContext) {
+        let panelH: CGFloat = 44
+        let panelW: CGFloat = W * 0.16
+        let panelY: CGFloat = H * 0.10
+        // LEFT panel
+        let leftX: CGFloat = W * 0.01
+        drawSinglePanel(&ctx, x: leftX, y: panelY, w: panelW, h: panelH, label: "D", value: 7.2)
+        // RIGHT panel
+        let rightX: CGFloat = W - panelW - W * 0.01
+        drawSinglePanel(&ctx, x: rightX, y: panelY, w: panelW, h: panelH, label: "E", value: 8.5)
+    }
+
+    private func drawSinglePanel(_ ctx: inout GraphicsContext, x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, label: String, value: Double) {
+        // Panel body
+        ctx.fill(
+            Path(roundedRect: CGRect(x: x, y: y, width: w, height: h), cornerRadius: 6),
+            with: .color(Color(red: 0.08, green: 0.08, blue: 0.18))
+        )
+        // Panel border
+        ctx.stroke(
+            Path(roundedRect: CGRect(x: x, y: y, width: w, height: h), cornerRadius: 6),
+            with: .color(Color(red: 0.30, green: 0.30, blue: 0.55).opacity(0.6)),
+            lineWidth: 1.2
+        )
+        // Inner LED screen glow
+        var screenGlow = ctx
+        screenGlow.addFilter(.blur(radius: 3))
+        screenGlow.fill(
+            Path(roundedRect: CGRect(x: x + 3, y: y + 3, width: w - 6, height: h - 6), cornerRadius: 4),
+            with: .color(Color(red: 0.0, green: 0.5, blue: 0.8).opacity(0.25))
+        )
+        // Scoreboard top separator line
+        var sep = Path()
+        sep.move(to: CGPoint(x: x + 3, y: y + 16))
+        sep.addLine(to: CGPoint(x: x + w - 3, y: y + 16))
+        ctx.stroke(sep, with: .color(Color(red: 0.30, green: 0.30, blue: 0.55).opacity(0.4)), lineWidth: 0.5)
+        // Horizontal scan line animation on LED
+        let scanY = y + 3 + CGFloat(fmod(t * 18, Double(h - 6)))
+        var scan = Path()
+        scan.move(to: CGPoint(x: x + 3, y: scanY))
+        scan.addLine(to: CGPoint(x: x + w - 3, y: scanY))
+        ctx.stroke(scan, with: .color(Color.white.opacity(0.06)), lineWidth: 1)
+    }
+
+    // MARK: 17-22 — Crowd rows (60 dots)
+    private func drawCrowdRows(_ ctx: inout GraphicsContext) {
+        let rowConfigs: [(y: CGFloat, count: Int, scale: CGFloat)] = [
+            (H * 0.08, 20, 1.0),
+            (H * 0.16, 22, 0.9),
+            (H * 0.23, 18, 0.8),
+        ]
+        let jerseyColors: [Color] = [
+            Color(red: 0.75, green: 0.15, blue: 0.15),
+            Color(red: 0.15, green: 0.38, blue: 0.75),
+            Color(red: 0.60, green: 0.50, blue: 0.12),
+            Color(red: 0.28, green: 0.28, blue: 0.32),
+            Color(red: 0.15, green: 0.55, blue: 0.35),
+            Color(red: 0.65, green: 0.32, blue: 0.65),
+        ]
+        for (rowIdx, rowCfg) in rowConfigs.enumerated() {
+            for col in 0..<rowCfg.count {
+                let dotX = W * CGFloat(col + 1) / CGFloat(rowCfg.count + 1)
+                // Wave bob animation
+                let wave = CGFloat(sin(t * 0.8 + Double(col) * 0.52 + Double(rowIdx) * 1.1)) * 1.8 * rowCfg.scale
+                // Crowd pulse when show flash (good/perfect hit)
+                let pulseMult: CGFloat = showFlash ? 1.6 : 1.0
+                let r = 4.5 * rowCfg.scale * pulseMult
+                let dotY = rowCfg.y + wave
+
+                let jc = jerseyColors[(col * 3 + rowIdx * 7) % jerseyColors.count]
+
+                // Head
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: dotX - r, y: dotY - r, width: r*2, height: r*2)),
+                    with: .color(jc.opacity(0.65))
+                )
+                // Small body stub below head
+                var body = Path()
+                body.move(to: CGPoint(x: dotX, y: dotY + r))
+                body.addLine(to: CGPoint(x: dotX, y: dotY + r + 5 * rowCfg.scale))
+                ctx.stroke(body, with: .color(jc.opacity(0.40)), lineWidth: 2.5 * rowCfg.scale)
+            }
+        }
+    }
+
+    // MARK: 23-27 — Mat surface with shadow + border
+    private func drawMatSurface(_ ctx: inout GraphicsContext) {
+        // Drop shadow beneath mat
+        var shadow = ctx
+        shadow.addFilter(.blur(radius: 10))
+        shadow.fill(
+            Path(CGRect(x: matX + 8, y: matY + 10, width: matW, height: matH)),
+            with: .color(Color.black.opacity(0.50))
+        )
+
+        // Mat fill (spring floor is white with slight blue tint for competition)
+        ctx.fill(
+            Path(CGRect(x: matX, y: matY, width: matW, height: matH)),
+            with: .linearGradient(
+                Gradient(stops: [
+                    .init(color: Color(red: 0.93, green: 0.94, blue: 0.98), location: 0),
+                    .init(color: Color(red: 0.88, green: 0.90, blue: 0.96), location: 1),
+                ]),
+                startPoint: CGPoint(x: matX, y: matY),
+                endPoint: CGPoint(x: matX, y: matY + matH)
+            )
+        )
+
+        // Blue competition boundary border
+        ctx.stroke(
+            Path(CGRect(x: matX, y: matY, width: matW, height: matH)),
+            with: .color(Color(red: 0.10, green: 0.25, blue: 0.72).opacity(0.85)),
+            lineWidth: 3
+        )
+
+        // Inner boundary (safety line 1m inside)
+        let inset: CGFloat = W * 0.04
+        ctx.stroke(
+            Path(CGRect(x: matX + inset, y: matY + inset * 0.5, width: matW - inset*2, height: matH - inset)),
+            with: .color(Color(red: 0.10, green: 0.25, blue: 0.72).opacity(0.30)),
+            lineWidth: 1
+        )
+
+        // Corner markers (thick L-shapes at each corner)
+        let corners: [(CGFloat, CGFloat, CGFloat, CGFloat)] = [
+            (matX, matY, 1, 1),
+            (matX + matW, matY, -1, 1),
+            (matX, matY + matH, 1, -1),
+            (matX + matW, matY + matH, -1, -1),
+        ]
+        for (cx2, cy2, sx, sy) in corners {
+            var L = Path()
+            L.move(to: CGPoint(x: cx2 + sx * 16, y: cy2))
+            L.addLine(to: CGPoint(x: cx2, y: cy2))
+            L.addLine(to: CGPoint(x: cx2, y: cy2 + sy * 16))
+            ctx.stroke(L, with: .color(Color(red: 0.10, green: 0.25, blue: 0.72).opacity(0.85)), lineWidth: 3)
+        }
+    }
+
+    // MARK: 28-32 — Spring floor texture grid
+    private func drawSpringGrid(_ ctx: inout GraphicsContext) {
+        let gridColor = Color(red: 0.65, green: 0.68, blue: 0.82).opacity(0.18)
+        let cols = 12
+        let rows = 4
+
+        // Vertical grid lines
+        for i in 1..<cols {
+            let gx2 = matX + matW * CGFloat(i) / CGFloat(cols)
+            var vl = Path()
+            vl.move(to: CGPoint(x: gx2, y: matY))
+            vl.addLine(to: CGPoint(x: gx2, y: matY + matH))
+            ctx.stroke(vl, with: .color(gridColor), lineWidth: 0.6)
+        }
+
+        // Horizontal grid lines
+        for i in 1..<rows {
+            let gy2 = matY + matH * CGFloat(i) / CGFloat(rows)
+            var hl = Path()
+            hl.move(to: CGPoint(x: matX, y: gy2))
+            hl.addLine(to: CGPoint(x: matX + matW, y: gy2))
+            ctx.stroke(hl, with: .color(gridColor), lineWidth: 0.6)
+        }
+
+        // Diagonal accent lines (spring floor characteristic)
+        for i in 0..<6 {
+            let dx = matW * CGFloat(i) / 5.0
+            var diag = Path()
+            diag.move(to: CGPoint(x: matX + dx, y: matY))
+            diag.addLine(to: CGPoint(x: matX + dx + matH * 0.15, y: matY + matH))
+            ctx.stroke(diag, with: .color(gridColor.opacity(0.6)), lineWidth: 0.4)
+        }
+
+        // Center cross marker
+        var centerCross = Path()
+        centerCross.move(to: CGPoint(x: cx - 10, y: matY + matH * 0.5))
+        centerCross.addLine(to: CGPoint(x: cx + 10, y: matY + matH * 0.5))
+        centerCross.move(to: CGPoint(x: cx, y: matY + matH * 0.5 - 10))
+        centerCross.addLine(to: CGPoint(x: cx, y: matY + matH * 0.5 + 10))
+        ctx.stroke(centerCross, with: .color(Color(red: 0.10, green: 0.25, blue: 0.72).opacity(0.40)), lineWidth: 1.2)
+    }
+
+    // MARK: 33+ — Gymnast stick figure with element-specific animation
+    private mutating func drawGymnast(_ ctx: inout GraphicsContext) {
+        let period: Double
+        let move: GymnasticsMove
+        switch elementIndex {
+        case 0: period = 2.2; move = .backflip
+        case 1: period = 2.0; move = .handstand
+        case 2: period = 1.8; move = .aerial
+        case 3: period = 1.0; move = .walkover
+        case 4: period = 1.5; move = .split
+        default: period = 2.0; move = .cartwheel
+        }
+
+        let rawP = fmod(t, period) / period
+        let p = rawP // 0→1 looped phase
+
+        let leotard = Color(red: 0.32, green: 0.35, blue: 0.92)
+        let skin    = Color(red: 0.92, green: 0.78, blue: 0.65)
+
+        // Glow aura for PERFECT
+        if lastGrade == .perfect {
+            let auraFade = min(1.0, max(0.0, 1.0 - fmod(t, 2.0)))
+            var aura = ctx
+            aura.addFilter(.blur(radius: 18))
+            aura.fill(
+                Path(ellipseIn: CGRect(x: cx - 38, y: cy - 60, width: 76, height: 76)),
+                with: .color(Color.cyan.opacity(0.45 * CGFloat(auraFade)))
+            )
+        }
+
+        // Red flash aura for MISS
+        if lastGrade == .miss {
+            let missFade = min(1.0, max(0.0, 1.0 - fmod(t, 1.5)))
+            var missAura = ctx
+            missAura.addFilter(.blur(radius: 14))
+            missAura.fill(
+                Path(ellipseIn: CGRect(x: cx - 30, y: cy - 50, width: 60, height: 60)),
+                with: .color(Color.red.opacity(0.55 * CGFloat(missFade)))
+            )
+        }
+
+        switch move {
+        case .backflip:  drawBackflip(&ctx, p: p, leotard: leotard, skin: skin)
+        case .handstand: drawHandstand(&ctx, p: p, leotard: leotard, skin: skin)
+        case .aerial:    drawAerial(&ctx, p: p, leotard: leotard, skin: skin)
+        case .walkover:  drawWalkover(&ctx, p: p, leotard: leotard, skin: skin)
+        case .split:     drawSplit(&ctx, p: p, leotard: leotard, skin: skin)
+        case .cartwheel: drawCartwheel(&ctx, p: p, leotard: leotard, skin: skin)
+        default:         drawIdleStand(&ctx, cx: cx, cy: cy, leotard: leotard, skin: skin)
+        }
+    }
+
+    // MARK: — Backflip: full 360° rotation while airborne
+    private func drawBackflip(_ ctx: inout GraphicsContext, p: Double, leotard: Color, skin: Color) {
+        // Run phase (0→0.3), jump+flip phase (0.3→0.85), land (0.85→1)
+        let figX = cx - 60 + CGFloat(p) * 120
+        let jumpH: CGFloat = p > 0.30 && p < 0.88 ? CGFloat(sin((p - 0.30) / 0.58 * .pi)) * 70 : 0
+        let rotation: Double = p > 0.32 && p < 0.86 ? (p - 0.32) / 0.54 * 2.0 * .pi : 0
+        let figY = cy - jumpH
+
+        drawFigureCore(
+            &ctx, cx: figX, cy: figY, matY: matY, rotation: rotation,
+            leotard: leotard, skin: skin,
+            armAngle: p > 0.32 && p < 0.86 ? 0.1 : 1.3,
+            legAngle: p > 0.32 && p < 0.86 ? 0.05 : 0.7,
+            isTucked: p > 0.35 && p < 0.80
+        )
+    }
+
+    // MARK: — Handstand: figure inverted with arms down, legs up
+    private func drawHandstand(_ ctx: inout GraphicsContext, p: Double, leotard: Color, skin: Color) {
+        // Phase up into handstand (0→0.3), hold (0.3→0.75), come down (0.75→1)
+        let invertT: Double
+        if p < 0.30 {
+            invertT = easeInOut(p / 0.30)
+        } else if p < 0.75 {
+            invertT = 1.0
+        } else {
+            invertT = easeInOut(1.0 - (p - 0.75) / 0.25)
+        }
+        let rotation = .pi * invertT
+        let wobble = invertT > 0.9 ? CGFloat(sin(t * 4.5)) * 4.0 * CGFloat(invertT) : 0
+
+        drawFigureCore(
+            &ctx, cx: cx + wobble, cy: cy, matY: matY, rotation: rotation,
+            leotard: leotard, skin: skin,
+            armAngle: 0.05, legAngle: 0.04, isTucked: false
+        )
+    }
+
+    // MARK: — Aerial: horizontal body like eagle, arms spread
+    private func drawAerial(_ ctx: inout GraphicsContext, p: Double, leotard: Color, skin: Color) {
+        let runX = cx - 50 + CGFloat(p) * 100
+        let jumpH: CGFloat = p > 0.25 && p < 0.80 ? CGFloat(sin((p - 0.25) / 0.55 * .pi)) * 62 : 0
+        // Aerial: body goes horizontal (-pi/2 rotation), arms wide
+        let horizontalT = p > 0.30 && p < 0.75 ? easeInOut((p - 0.30) / 0.45) : (p >= 0.75 ? easeInOut(1.0 - (p - 0.75) / 0.25) : 0.0)
+        let rotation = -(Double.pi / 2.0) * horizontalT
+
+        drawFigureCore(
+            &ctx, cx: runX, cy: cy - jumpH, matY: matY, rotation: rotation,
+            leotard: leotard, skin: skin,
+            armAngle: 1.8 * CGFloat(horizontalT) + 0.4 * CGFloat(1 - horizontalT),
+            legAngle: 0.6,
+            isTucked: false
+        )
+    }
+
+    // MARK: — Walkover: cartwheel-adjacent side rotation
+    private func drawWalkover(_ ctx: inout GraphicsContext, p: Double, leotard: Color, skin: Color) {
+        let rotation = p * 2.0 * .pi
+        let walkX = cx + CGFloat(sin(p * 2 * .pi)) * 28
+        let walkH: CGFloat = CGFloat(abs(sin(p * .pi))) * 22
+        drawFigureCore(
+            &ctx, cx: walkX, cy: cy - walkH, matY: matY, rotation: rotation,
+            leotard: leotard, skin: skin,
+            armAngle: 1.2, legAngle: 0.8, isTucked: false
+        )
+    }
+
+    // MARK: — Split: legs spread wide horizontal, torso upright
+    private func drawSplit(_ ctx: inout GraphicsContext, p: Double, leotard: Color, skin: Color) {
+        let jumpH: CGFloat = p > 0.20 && p < 0.80 ? CGFloat(sin((p - 0.20) / 0.60 * .pi)) * 55 : 0
+        // Leg spread peaks at jump apex
+        let spreadT = p > 0.20 && p < 0.80 ? easeInOut((p - 0.20) / 0.60) : 0.0
+        let sineSpread = sin(spreadT * .pi)  // bell curve: 0→1→0
+        let legAng = CGFloat(sineSpread) * 1.8 + 0.2
+
+        drawFigureCore(
+            &ctx, cx: cx, cy: cy - jumpH, matY: matY, rotation: 0,
+            leotard: leotard, skin: skin,
+            armAngle: 1.4, legAngle: legAng,
+            isTucked: false
+        )
+    }
+
+    // MARK: — Cartwheel: body rotates 90° sideways
+    private func drawCartwheel(_ ctx: inout GraphicsContext, p: Double, leotard: Color, skin: Color) {
+        let cartwheelX = cx - 55 + CGFloat(p) * 110
+        let rotation = p * 2.0 * .pi
+        let liftH: CGFloat = CGFloat(sin(p * .pi)) * 40
+
+        drawFigureCore(
+            &ctx, cx: cartwheelX, cy: cy - liftH, matY: matY, rotation: rotation,
+            leotard: leotard, skin: skin,
+            armAngle: 1.1, legAngle: 1.0, isTucked: false
+        )
+    }
+
+    // MARK: — Idle standing pose
+    private func drawIdleStand(_ ctx: inout GraphicsContext, cx: CGFloat, cy: CGFloat, leotard: Color, skin: Color) {
+        let bob = CGFloat(sin(t * 1.5)) * 1.5
+        drawFigureCore(
+            &ctx, cx: cx, cy: cy + bob, matY: matY, rotation: 0,
+            leotard: leotard, skin: skin,
+            armAngle: 0.4, legAngle: 0.3, isTucked: false
+        )
+    }
+
+    // MARK: — Core figure renderer (head + torso + arms + legs)
+    private func drawFigureCore(
+        _ ctx: inout GraphicsContext,
+        cx: CGFloat, cy: CGFloat, matY: CGFloat,
+        rotation: Double,
+        leotard: Color, skin: Color,
+        armAngle: CGFloat, legAngle: CGFloat,
+        isTucked: Bool
+    ) {
+        // Ground shadow
+        let shadowOpacity = max(0, 0.40 - (matY - cy) / 180)
+        var sc = ctx
+        sc.addFilter(.blur(radius: 6))
+        sc.fill(
+            Path(ellipseIn: CGRect(x: cx - 14, y: matY - 4, width: 28, height: 7)),
+            with: .color(Color.black.opacity(shadowOpacity))
+        )
+
+        // Save state by translating to center
+        var gc = ctx
+        gc.translateBy(x: cx, y: cy)
+        gc.rotate(by: .radians(rotation))
+
+        let scale: CGFloat = 1.0
+
+        // HEAD (circle)
+        gc.fill(
+            Path(ellipseIn: CGRect(x: -5 * scale, y: -38 * scale, width: 10 * scale, height: 10 * scale)),
+            with: .color(skin)
+        )
+        // Hair top
+        gc.fill(
+            Path(ellipseIn: CGRect(x: -5 * scale, y: -40 * scale, width: 10 * scale, height: 6 * scale)),
+            with: .color(Color(red: 0.25, green: 0.18, blue: 0.12))
+        )
+
+        // NECK
+        var neck = Path()
+        neck.move(to: CGPoint(x: 0, y: -28 * scale))
+        neck.addLine(to: CGPoint(x: 0, y: -26 * scale))
+        gc.stroke(neck, with: .color(skin), lineWidth: 2.5 * scale)
+
+        // TORSO (leotard body)
+        var torso = Path()
+        torso.move(to: CGPoint(x: 0, y: -27 * scale))
+        torso.addLine(to: CGPoint(x: 0, y: -10 * scale))
+        gc.stroke(torso, with: .color(leotard), lineWidth: 5 * scale)
+
+        // Leotard detail lines
+        var detail = Path()
+        detail.move(to: CGPoint(x: -3 * scale, y: -24 * scale))
+        detail.addLine(to: CGPoint(x: 3 * scale, y: -24 * scale))
+        gc.stroke(detail, with: .color(Color.white.opacity(0.35)), lineWidth: 1)
+
+        // ARMS
+        let aOff = armAngle * 18 * scale
+        var leftArm = Path()
+        leftArm.move(to: CGPoint(x: 0, y: -23 * scale))
+        leftArm.addLine(to: CGPoint(x: -aOff, y: -18 * scale))
+        // Forearm bend
+        leftArm.addLine(to: CGPoint(x: -aOff * 1.3, y: -11 * scale))
+        gc.stroke(leftArm, with: .color(skin), lineWidth: 2.5 * scale)
+
+        var rightArm = Path()
+        rightArm.move(to: CGPoint(x: 0, y: -23 * scale))
+        rightArm.addLine(to: CGPoint(x: aOff, y: -18 * scale))
+        rightArm.addLine(to: CGPoint(x: aOff * 1.3, y: -11 * scale))
+        gc.stroke(rightArm, with: .color(skin), lineWidth: 2.5 * scale)
+
+        // Hand dots
+        gc.fill(Path(ellipseIn: CGRect(x: -aOff * 1.3 - 2, y: -13 * scale, width: 4, height: 4)), with: .color(skin))
+        gc.fill(Path(ellipseIn: CGRect(x: aOff * 1.3 - 2, y: -13 * scale, width: 4, height: 4)), with: .color(skin))
+
+        // HIPS
+        var hips = Path()
+        hips.move(to: CGPoint(x: -5 * scale, y: -10 * scale))
+        hips.addLine(to: CGPoint(x: 5 * scale, y: -10 * scale))
+        gc.stroke(hips, with: .color(leotard), lineWidth: 3 * scale)
+
+        // LEGS
+        if isTucked {
+            // Tucked position: knees pulled to chest
+            var leftLeg = Path()
+            leftLeg.move(to: CGPoint(x: -3 * scale, y: -10 * scale))
+            leftLeg.addLine(to: CGPoint(x: -10 * scale, y: 0))
+            leftLeg.addLine(to: CGPoint(x: -6 * scale, y: 8 * scale))
+            gc.stroke(leftLeg, with: .color(leotard), lineWidth: 3 * scale)
+
+            var rightLeg = Path()
+            rightLeg.move(to: CGPoint(x: 3 * scale, y: -10 * scale))
+            rightLeg.addLine(to: CGPoint(x: 10 * scale, y: 0))
+            rightLeg.addLine(to: CGPoint(x: 6 * scale, y: 8 * scale))
+            gc.stroke(rightLeg, with: .color(leotard), lineWidth: 3 * scale)
+        } else {
+            let lOff = legAngle * 14 * scale
+            var leftLeg = Path()
+            leftLeg.move(to: CGPoint(x: -2 * scale, y: -10 * scale))
+            leftLeg.addLine(to: CGPoint(x: -lOff, y: 6 * scale))
+            leftLeg.addLine(to: CGPoint(x: -lOff * 1.1, y: 20 * scale))
+            gc.stroke(leftLeg, with: .color(leotard), lineWidth: 3 * scale)
+
+            var rightLeg = Path()
+            rightLeg.move(to: CGPoint(x: 2 * scale, y: -10 * scale))
+            rightLeg.addLine(to: CGPoint(x: lOff, y: 6 * scale))
+            rightLeg.addLine(to: CGPoint(x: lOff * 1.1, y: 20 * scale))
+            gc.stroke(rightLeg, with: .color(leotard), lineWidth: 3 * scale)
+
+            // Foot dots
+            gc.fill(Path(ellipseIn: CGRect(x: -lOff * 1.1 - 2.5, y: 18 * scale, width: 5, height: 5)), with: .color(skin))
+            gc.fill(Path(ellipseIn: CGRect(x: lOff * 1.1 - 2.5, y: 18 * scale, width: 5, height: 5)), with: .color(skin))
+        }
+    }
+
+    // MARK: 61-70 — Score pop effects / particle trails
+    private func drawScorePopEffects(_ ctx: inout GraphicsContext) {
+        guard let grade = lastGrade else { return }
+        let popAge = fmod(t, 1.2) / 1.2  // 0→1 then loops
+        guard popAge < 0.85 else { return }
+
+        let fadeAlpha = CGFloat(1.0 - popAge * 1.2)
+
+        // Grade glow on mat center
+        if grade == .perfect || grade == .good {
+            var glow = ctx
+            glow.addFilter(.blur(radius: 22))
+            let glowColor = grade == .perfect ? Color.yellow : Color.cyan
+            glow.fill(
+                Path(ellipseIn: CGRect(x: cx - 40, y: cy - 30, width: 80, height: 60)),
+                with: .color(glowColor.opacity(0.28 * fadeAlpha))
+            )
+        }
+
+        // Particle sparks radiating out (8 particles for PERFECT)
+        if grade == .perfect {
+            let particleCount = 8
+            for i in 0..<particleCount {
+                let angle = Double(i) / Double(particleCount) * 2 * .pi
+                let dist = CGFloat(popAge) * 70
+                let px = cx + CGFloat(cos(angle)) * dist
+                let py = cy - 20 + CGFloat(sin(angle)) * dist * 0.7
+                let pr = 3.5 * (1 - CGFloat(popAge))
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: px - pr, y: py - pr, width: pr*2, height: pr*2)),
+                    with: .color(Color.yellow.opacity(0.9 * fadeAlpha))
+                )
+                // Spark trail
+                var trail = Path()
+                let trailDist = max(0, dist - 12)
+                trail.move(to: CGPoint(x: cx + CGFloat(cos(angle)) * trailDist, y: cy - 20 + CGFloat(sin(angle)) * trailDist * 0.7))
+                trail.addLine(to: CGPoint(x: px, y: py))
+                ctx.stroke(trail, with: .color(Color.yellow.opacity(0.5 * fadeAlpha)), lineWidth: 1.2)
+            }
+        }
+
+        // GOOD: 4 cyan particles
+        if grade == .good {
+            for i in 0..<4 {
+                let angle = Double(i) / 4.0 * 2 * .pi + Double.pi / 4
+                let dist = CGFloat(popAge) * 50
+                let px = cx + CGFloat(cos(angle)) * dist
+                let py = cy - 20 + CGFloat(sin(angle)) * dist * 0.7
+                let pr = 3.0 * (1 - CGFloat(popAge))
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: px - pr, y: py - pr, width: pr*2, height: pr*2)),
+                    with: .color(Color.cyan.opacity(0.85 * fadeAlpha))
+                )
+            }
+        }
+    }
+
+    // MARK: 71 — Full-screen flash on grade
+    private func drawScreenFlash(_ ctx: inout GraphicsContext) {
+        var gc = ctx
+        gc.addFilter(.blur(radius: 22))
+        gc.fill(
+            Path(CGRect(x: 0, y: 0, width: W, height: H)),
+            with: .color(gradeColor.opacity(0.28))
+        )
+    }
+}
+
+// MARK: - SwipeArrowCanvas (timing ring + arrow prompt)
+
+private struct SwipeArrowCanvas: View {
+    let direction: GymnasticsSwipeDir
+    let timeLeft: Double
+    let maxTime: Double
+    let lastGrade: TimingGrade?
+
+    var body: some View {
+        TimelineView(.animation) { tl in
+            Canvas { ctx, size in
+                let t = tl.date.timeIntervalSinceReferenceDate
+                var d = ArrowDrawer(
+                    t: t, W: size.width, H: size.height,
+                    direction: direction,
+                    timeLeft: timeLeft, maxTime: maxTime,
+                    lastGrade: lastGrade
+                )
                 d.render(ctx: &ctx)
             }
         }
     }
 }
 
-private struct GymDrawer {
+private struct ArrowDrawer {
     let t: Double
-    let W: CGFloat; let H: CGFloat
-    let elementIndex: Int
-    let gradeColor: Color; let showFlash: Bool
+    let W: CGFloat
+    let H: CGFloat
+    let direction: GymnasticsSwipeDir
+    let timeLeft: Double
+    let maxTime: Double
+    let lastGrade: TimingGrade?
 
-    var matY: CGFloat { H * 0.72 }
-    var gx: CGFloat { W * 0.50 }
-    var gy: CGFloat { matY - 2 }
+    var cx: CGFloat { W / 2 }
+    var cy: CGFloat { H / 2 }
 
     mutating func render(ctx: inout GraphicsContext) {
-        drawArenaBG(&ctx)
-        drawSpotlights(&ctx)
-        drawMat(&ctx)
-        drawJudges(&ctx)
-        drawGymnast(&ctx)
-        if showFlash { drawFlash(&ctx) }
+        drawTimingRings(&ctx)
+        drawDirectionArrow(&ctx)
+        if let grade = lastGrade { drawGradeFeedback(&ctx, grade: grade) }
     }
 
-    private func drawArenaBG(_ ctx: inout GraphicsContext) {
-        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
-                 with: .linearGradient(
-                    Gradient(colors: [Color(red:0.04,green:0.02,blue:0.18),
-                                      Color(red:0.08,green:0.04,blue:0.22)]),
-                    startPoint: .zero, endPoint: CGPoint(x: 0, y: H)))
-        // Audience tiers
-        let jerseys: [Color] = [Color(red:0.72,green:0.12,blue:0.12),
-                                 Color(red:0.12,green:0.35,blue:0.72),
-                                 Color(red:0.55,green:0.45,blue:0.10),
-                                 Color(red:0.25,green:0.25,blue:0.28)]
-        for row in 0..<3 {
-            let ry = H * CGFloat(0.08 + Double(row) * 0.10)
-            let cols = 28
-            for col in 0..<cols {
-                let cx = W * CGFloat(col + 1) / CGFloat(cols + 1)
-                let jc = jerseys[(col * 3 + row * 5) % jerseys.count]
-                let wave = CGFloat(sin(t * 0.9 + Double(col) * 0.5 + Double(row))) * 1.2
-                ctx.fill(Path(ellipseIn: CGRect(x: cx-4, y: ry + wave - 4, width: 8, height: 8)),
-                         with: .color(jc.opacity(0.55)))
-            }
+    // Outer ring shrinks inward as time runs out
+    private func drawTimingRings(_ ctx: inout GraphicsContext) {
+        let progress = CGFloat(timeLeft / maxTime)  // 1→0
+        let outerR: CGFloat = 52
+        let innerR: CGFloat = 30
+        // Current ring position interpolated
+        let currentR = innerR + (outerR - innerR) * progress
+
+        // Background track
+        ctx.stroke(
+            Path(ellipseIn: CGRect(x: cx - outerR, y: cy - outerR, width: outerR*2, height: outerR*2)),
+            with: .color(Color.white.opacity(0.08)),
+            lineWidth: 3
+        )
+
+        // Perfect window highlight (inner zone glow)
+        var pZone = ctx
+        pZone.addFilter(.blur(radius: 4))
+        pZone.stroke(
+            Path(ellipseIn: CGRect(x: cx - innerR, y: cy - innerR, width: innerR*2, height: innerR*2)),
+            with: .color(Color.yellow.opacity(0.30)),
+            lineWidth: 5
+        )
+
+        // Moving timing ring
+        let ringColor: Color
+        if progress > 0.70 {
+            ringColor = Color(red: 0.35, green: 0.38, blue: 0.95)  // early — blue
+        } else if progress > 0.40 {
+            ringColor = Color.orange                                 // GOOD window
+        } else if progress > 0.15 {
+            ringColor = Color.yellow                                 // PERFECT window
+        } else {
+            ringColor = Color.red                                    // LATE
         }
+
+        // Pulsing glow on timing ring
+        let pulse = 1.0 + 0.08 * CGFloat(sin(t * 8.0))
+        var glow = ctx
+        glow.addFilter(.blur(radius: 5))
+        glow.stroke(
+            Path(ellipseIn: CGRect(x: cx - currentR * pulse, y: cy - currentR * pulse,
+                                   width: currentR * pulse * 2, height: currentR * pulse * 2)),
+            with: .color(ringColor.opacity(0.55)),
+            lineWidth: 4
+        )
+
+        ctx.stroke(
+            Path(ellipseIn: CGRect(x: cx - currentR, y: cy - currentR, width: currentR*2, height: currentR*2)),
+            with: .color(ringColor),
+            lineWidth: 2.5
+        )
     }
 
-    private func drawSpotlights(_ ctx: inout GraphicsContext) {
-        let lightPositions: [(CGFloat, CGFloat)] = [(W*0.2,0),(W*0.4,0),(W*0.6,0),(W*0.8,0)]
-        for (lx, _) in lightPositions {
-            // Cone
-            var cone = Path()
-            cone.move(to: CGPoint(x: lx, y: 0))
-            cone.addLine(to: CGPoint(x: gx - 28, y: matY))
-            cone.addLine(to: CGPoint(x: gx + 28, y: matY))
-            cone.closeSubpath()
-            var gc = ctx; gc.addFilter(.blur(radius: 16))
-            gc.fill(cone, with: .color(Color(red:1,green:0.97,blue:0.82).opacity(0.06)))
-            // Light source bloom
-            var bloom = ctx; bloom.addFilter(.blur(radius: 8))
-            bloom.fill(Path(ellipseIn: CGRect(x: lx-5, y: -4, width: 10, height: 10)),
-                       with: .color(Color(red:1,green:0.97,blue:0.82).opacity(0.50)))
+    // Direction arrow with glow
+    private func drawDirectionArrow(_ ctx: inout GraphicsContext) {
+        let progress = CGFloat(timeLeft / maxTime)
+        let arrowGlow: Color = progress < 0.20 ? .yellow : Color(red: 0.35, green: 0.38, blue: 0.95)
+
+        // Arrow glow halo
+        var halo = ctx
+        halo.addFilter(.blur(radius: 10))
+        halo.fill(
+            Path(ellipseIn: CGRect(x: cx - 14, y: cy - 14, width: 28, height: 28)),
+            with: .color(arrowGlow.opacity(0.40))
+        )
+
+        // Draw arrow shape based on direction
+        let arrowPath = makeArrowPath(dir: direction, cx: cx, cy: cy, size: 20)
+        ctx.fill(arrowPath, with: .color(Color.white))
+        ctx.stroke(arrowPath, with: .color(arrowGlow.opacity(0.7)), lineWidth: 1.2)
+    }
+
+    private func makeArrowPath(dir: GymnasticsSwipeDir, cx: CGFloat, cy: CGFloat, size: CGFloat) -> Path {
+        var angle: Double
+        switch dir {
+        case .up:      angle = -.pi / 2
+        case .down:    angle = .pi / 2
+        case .left:    angle = .pi
+        case .right:   angle = 0
+        case .upRight: angle = -.pi / 4
+        case .upLeft:  angle = -.pi * 3 / 4
         }
+        var p = Path()
+        // Arrow head points in direction
+        let tip = CGPoint(x: cx + CGFloat(cos(angle)) * size, y: cy + CGFloat(sin(angle)) * size)
+        let left = CGPoint(x: cx + CGFloat(cos(angle + .pi * 0.75)) * size * 0.7,
+                           y: cy + CGFloat(sin(angle + .pi * 0.75)) * size * 0.7)
+        let right = CGPoint(x: cx + CGFloat(cos(angle - .pi * 0.75)) * size * 0.7,
+                            y: cy + CGFloat(sin(angle - .pi * 0.75)) * size * 0.7)
+        let tail = CGPoint(x: cx + CGFloat(cos(angle + .pi)) * size * 0.4,
+                           y: cy + CGFloat(sin(angle + .pi)) * size * 0.4)
+        p.move(to: tip)
+        p.addLine(to: left)
+        p.addLine(to: CGPoint(x: (left.x + tail.x) / 2, y: (left.y + tail.y) / 2))
+        p.addLine(to: tail)
+        p.addLine(to: CGPoint(x: (right.x + tail.x) / 2, y: (right.y + tail.y) / 2))
+        p.addLine(to: right)
+        p.closeSubpath()
+        return p
     }
 
-    private func drawMat(_ ctx: inout GraphicsContext) {
-        // Mat shadow
-        var sc = ctx; sc.addFilter(.blur(radius: 8))
-        sc.fill(Path(CGRect(x: W*0.08+6, y: matY+6, width: W*0.84, height: H*0.22)),
-                with: .color(.black.opacity(0.40)))
-        // Mat surface
-        ctx.fill(Path(CGRect(x: W*0.08, y: matY, width: W*0.84, height: H*0.22)),
-                 with: .linearGradient(
-                    Gradient(colors: [Color(red:0.12,green:0.14,blue:0.48),
-                                      Color(red:0.10,green:0.11,blue:0.38)]),
-                    startPoint: CGPoint(x: W*0.08, y: matY),
-                    endPoint: CGPoint(x: W*0.08, y: matY + H*0.22)))
-        // Mat border lines
-        ctx.stroke(Path(CGRect(x: W*0.08, y: matY, width: W*0.84, height: H*0.22)),
-                   with: .color(Color(red:0.45,green:0.48,blue:0.88).opacity(0.7)), lineWidth: 2)
-        // Center cross
-        var cross = Path()
-        cross.move(to: CGPoint(x: W*0.5, y: matY)); cross.addLine(to: CGPoint(x: W*0.5, y: matY + H*0.22))
-        cross.move(to: CGPoint(x: W*0.08, y: matY + H*0.11)); cross.addLine(to: CGPoint(x: W*0.92, y: matY + H*0.11))
-        ctx.stroke(cross, with: .color(Color(red:0.45,green:0.48,blue:0.88).opacity(0.25)), lineWidth: 0.8)
-    }
+    private func drawGradeFeedback(_ ctx: inout GraphicsContext, grade: TimingGrade) {
+        let age = fmod(t, 1.0)
+        guard age < 0.7 else { return }
+        let fade = CGFloat(1.0 - age / 0.7)
+        let riseY = CGFloat(age) * 30
 
-    private func drawJudges(_ ctx: inout GraphicsContext) {
-        let tableY = matY + H * 0.26
-        // Table
-        ctx.fill(Path(CGRect(x: W*0.18, y: tableY, width: W*0.64, height: 14)),
-                 with: .color(Color(red:0.18,green:0.16,blue:0.30)))
-        // 3 judges
-        for j in 0..<3 {
-            let jx = W * CGFloat(0.28 + Double(j) * 0.22)
-            let jy = tableY - 12
-            ctx.fill(Path(ellipseIn: CGRect(x: jx-5, y: jy-5, width: 10, height: 10)),
-                     with: .color(Color(red:0.65,green:0.55,blue:0.45)))
-            var body = Path()
-            body.move(to: CGPoint(x: jx, y: jy+4)); body.addLine(to: CGPoint(x: jx, y: jy+12))
-            ctx.stroke(body, with: .color(Color(red:0.22,green:0.20,blue:0.35)), lineWidth: 4)
-        }
-    }
-
-    private func drawGymnast(_ ctx: inout GraphicsContext) {
-        let period: Double
-        switch elementIndex {
-        case 0: period = 2.2  // Tumble
-        case 1: period = 2.0  // Vault
-        case 2: period = 1.8  // Leap
-        case 3: period = 1.0  // Turn
-        case 4: period = 1.5  // Jump
-        default: period = 2.0 // Dismount
-        }
-        let p = fmod(t, period) / period  // 0→1 animation phase
-
-        let leotard = Color(red:0.38,green:0.40,blue:0.95)
-        let skin    = Color(red:0.94,green:0.81,blue:0.68)
-
-        switch elementIndex {
-        case 0: drawTumble(&ctx, p: p, leotard: leotard, skin: skin)
-        case 1: drawVault(&ctx, p: p, leotard: leotard, skin: skin)
-        case 2: drawLeap(&ctx, p: p, leotard: leotard, skin: skin)
-        case 3: drawTurn(&ctx, p: p, leotard: leotard, skin: skin)
-        case 4: drawJump(&ctx, p: p, leotard: leotard, skin: skin)
-        default: drawDismount(&ctx, p: p, leotard: leotard, skin: skin)
-        }
-    }
-
-    // -- Element Animations --
-
-    private func drawTumble(_ ctx: inout GraphicsContext, p: Double,
-                             leotard: Color, skin: Color) {
-        // Run left→right → flip
-        let runX = gx - 70 + CGFloat(p) * 140
-        let jumpH = p > 0.4 && p < 0.85 ? CGFloat(sin((p - 0.4) / 0.45 * .pi)) * 55 : 0
-        let rot = p > 0.45 ? (p - 0.45) / 0.4 * 2 * .pi : 0
-        let cy = gy - jumpH
-        drawFigure(&ctx, cx: runX, cy: cy, rotation: rot, leotard: leotard, skin: skin,
-                   armSpread: p > 0.45 && p < 0.85 ? 0.0 : 1.0, legSpread: p > 0.45 && p < 0.85 ? 0.0 : 0.8)
-    }
-
-    private func drawVault(_ ctx: inout GraphicsContext, p: Double,
-                            leotard: Color, skin: Color) {
-        let vx = gx - 60 + CGFloat(p) * 120
-        let jumpH = p > 0.3 && p < 0.9 ? CGFloat(sin((p - 0.3) / 0.6 * .pi)) * 60 : 0
-        let rot = p > 0.4 && p < 0.8 ? CGFloat((p - 0.4) / 0.4 * .pi) : 0
-        drawFigure(&ctx, cx: vx, cy: gy - jumpH, rotation: Double(rot), leotard: leotard, skin: skin,
-                   armSpread: p < 0.3 || p > 0.85 ? 1.0 : 0.2, legSpread: p > 0.4 && p < 0.8 ? 0.1 : 0.8)
-    }
-
-    private func drawLeap(_ ctx: inout GraphicsContext, p: Double,
-                           leotard: Color, skin: Color) {
-        let jumpH = CGFloat(sin(p * .pi)) * 52
-        let legSprd = CGFloat(sin(p * .pi)) * 1.5
-        let lx = gx - 40 + CGFloat(p) * 80
-        drawFigure(&ctx, cx: lx, cy: gy - jumpH, rotation: 0, leotard: leotard, skin: skin,
-                   armSpread: 1.8, legSpread: legSprd)
-    }
-
-    private func drawTurn(_ ctx: inout GraphicsContext, p: Double,
-                           leotard: Color, skin: Color) {
-        // Spinning in place — arm one side, leg raised
-        let spinAngle = p * 2 * .pi
-        let armAngle = CGFloat(spinAngle)
-        let raiseY: CGFloat = -16
-        let shadow = ctx
-        _ = shadow
-        drawFigure(&ctx, cx: gx, cy: gy, rotation: 0, leotard: leotard, skin: skin,
-                   armSpread: 1.0 + CGFloat(cos(spinAngle)) * 0.5, legSpread: 0.4)
-        // Raised leg indicator
-        var leg = Path()
-        leg.move(to: CGPoint(x: gx, y: gy + 14))
-        leg.addLine(to: CGPoint(x: gx + CGFloat(cos(spinAngle + .pi/2)) * 20,
-                                 y: gy + raiseY + CGFloat(sin(spinAngle + .pi/2)) * 10))
-        ctx.stroke(leg, with: .color(leotard), lineWidth: 2.5)
-    }
-
-    private func drawJump(_ ctx: inout GraphicsContext, p: Double,
-                           leotard: Color, skin: Color) {
-        let jumpH = CGFloat(sin(p * .pi)) * 48
-        let tuck = p > 0.35 && p < 0.75 ? CGFloat(sin((p - 0.35) / 0.4 * .pi)) : 0
-        drawFigure(&ctx, cx: gx, cy: gy - jumpH, rotation: 0, leotard: leotard, skin: skin,
-                   armSpread: 1.4, legSpread: tuck * 0.4 + 0.3)
-    }
-
-    private func drawDismount(_ ctx: inout GraphicsContext, p: Double,
-                               leotard: Color, skin: Color) {
-        let lx = gx + (CGFloat(p) - 0.5) * 100
-        let jumpH = p > 0.15 && p < 0.85 ? CGFloat(sin((p - 0.15) / 0.7 * .pi)) * 58 : 0
-        let rot = p > 0.2 && p < 0.8 ? (p - 0.2) / 0.6 * 1.5 * .pi : 0
-        drawFigure(&ctx, cx: lx, cy: gy - jumpH, rotation: rot, leotard: leotard, skin: skin,
-                   armSpread: p < 0.3 || p > 0.75 ? 0.8 : 0.1, legSpread: 0.3)
-    }
-
-    private func drawFigure(_ ctx: inout GraphicsContext, cx: CGFloat, cy: CGFloat,
-                             rotation: Double, leotard: Color, skin: Color,
-                             armSpread: CGFloat, legSpread: CGFloat) {
-        ctx.translateBy(x: cx, y: cy)
-        ctx.rotate(by: .radians(rotation))
-
-        // Shadow on mat
-        var sc = ctx; sc.addFilter(.blur(radius: 5))
-        sc.fill(Path(ellipseIn: CGRect(x: -12, y: matY - cy - 2, width: 24, height: 6)),
-                with: .color(.black.opacity(max(0, 0.35 - (cy - gy) / 120))))
-
-        // Head
-        ctx.fill(Path(ellipseIn: CGRect(x: -5, y: -34, width: 10, height: 10)), with: .color(skin))
-
-        // Torso
-        var torso = Path(); torso.move(to: CGPoint(x: 0, y: -24)); torso.addLine(to: CGPoint(x: 0, y: -8))
-        ctx.stroke(torso, with: .color(leotard), lineWidth: 4)
-
-        // Arms
-        let aOff = armSpread * 14
-        var arms = Path()
-        arms.move(to: CGPoint(x: -aOff, y: -20)); arms.addLine(to: CGPoint(x: 0, y: -20))
-        arms.addLine(to: CGPoint(x: aOff, y: -20))
-        ctx.stroke(arms, with: .color(skin), lineWidth: 2.2)
-
-        // Legs
-        let lOff = legSpread * 12
-        var legs = Path()
-        legs.move(to: CGPoint(x: -lOff, y: 10)); legs.addLine(to: CGPoint(x: 0, y: -8))
-        legs.addLine(to: CGPoint(x: lOff, y: 10))
-        ctx.stroke(legs, with: .color(leotard), lineWidth: 2.8)
-
-        ctx.rotate(by: .radians(-rotation))
-        ctx.translateBy(x: -cx, y: -cy)
-    }
-
-    private func drawFlash(_ ctx: inout GraphicsContext) {
-        var gc = ctx; gc.addFilter(.blur(radius: 20))
-        gc.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
-                with: .color(gradeColor.opacity(0.25)))
+        // Grade ring burst
+        var burst = ctx
+        burst.addFilter(.blur(radius: 8))
+        burst.stroke(
+            Path(ellipseIn: CGRect(x: cx - 35 - age * 20, y: cy - 35 - age * 20,
+                                   width: (70 + CGFloat(age) * 40), height: (70 + CGFloat(age) * 40))),
+            with: .color(grade.color.opacity(0.5 * fade)),
+            lineWidth: 3
+        )
+        _ = riseY  // suppress unused warning
     }
 }
 
@@ -361,6 +1019,7 @@ struct GymnasticsGameView: View {
     @State private var showGradeFlash: Bool = false
     @State private var gradeFlashText: String = ""
     @State private var gradeFlashColor: Color = .white
+    @State private var lastGrade: TimingGrade? = nil
 
     @State private var judgeScoresVisible: [Bool] = [false, false, false]
     @State private var currentJudgeScores: (Double, Double, Double) = (0, 0, 0)
@@ -379,6 +1038,21 @@ struct GymnasticsGameView: View {
     private var totalScore: Double { elementResults.reduce(0) { $0 + $1.finalPoints } }
     private var playerWins: Bool { totalScore > frozenAIScore }
     private var isDraw: Bool { Int(totalScore) == Int(frozenAIScore) }
+
+    // MARK: Haptics
+
+    private func hapticPerfect() {
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    }
+    private func hapticGood() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+    private func hapticLate() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+    private func hapticMiss() {
+        UINotificationFeedbackGenerator().notificationOccurred(.error)
+    }
 
     var body: some View {
         ZStack {
@@ -444,164 +1118,152 @@ struct GymnasticsGameView: View {
     // MARK: - Active Body
 
     private var activeBody: some View {
-        VStack(spacing: 0) {
-            topHUD
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-            Spacer()
-
+        ZStack {
+            // Full-canvas arena as background
             if currentElementIndex < kRoutineElements.count {
-                elementPromptCard(element: kRoutineElements[currentElementIndex])
+                GymnasticsArenaCanvas(
+                    elementIndex: currentElementIndex,
+                    gradeColor: gradeFlashColor,
+                    showFlash: showGradeFlash,
+                    lastGrade: lastGrade,
+                    timingProgress: timeLeft / 2.0
+                )
+                .ignoresSafeArea()
             }
 
-            Spacer()
+            VStack(spacing: 0) {
+                arenaHUD
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
-            if showJudgePanel {
-                judgePanelRow
+                Spacer()
+
+                if currentElementIndex < kRoutineElements.count {
+                    elementOverlayCard(element: kRoutineElements[currentElementIndex])
+                }
+
+                Spacer()
+
+                if showJudgePanel {
+                    judgePanelRow
+                        .padding(.horizontal, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                swipeZone
                     .padding(.horizontal, 20)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 32)
             }
-
-            swipeZone
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
+            .overlay(gradeFlashOverlay)
         }
-        .overlay(gradeFlashOverlay)
     }
 
-    // MARK: - Top HUD
+    // MARK: - Arena HUD (top bar over full-canvas)
 
-    private var topHUD: some View {
+    private var arenaHUD: some View {
         HStack(spacing: 0) {
-            // Difficulty
-            VStack(alignment: .leading, spacing: 3) {
-                Text("DIFFICULTY")
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(1)
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08)).frame(width: 76, height: 6)
-                    RoundedRectangle(cornerRadius: 3).fill(accentColor).frame(width: 76 * difficultyMeter, height: 6)
-                }
-                Text(String(format: "%.1f", difficultyMeter * 10))
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(accentColor)
-            }
-
-            Spacer()
-
-            // Progress dots
-            VStack(spacing: 4) {
-                Text("ELEMENT")
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(1)
-                HStack(spacing: 5) {
-                    ForEach(0..<totalElements, id: \.self) { i in
-                        Circle()
-                            .fill(i < currentElementIndex
-                                  ? accentColor
-                                  : (i == currentElementIndex ? accentColor.opacity(0.55) : Color.white.opacity(0.1)))
-                            .frame(width: 9, height: 9)
-                            .animation(.spring(response: 0.3), value: currentElementIndex)
-                    }
-                }
+            // Routine title + progress
+            VStack(alignment: .leading, spacing: 2) {
+                Text("FLOOR EXERCISE")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .tracking(1.5)
                 Text("\(min(currentElementIndex + 1, totalElements)) / \(totalElements)")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .font(.system(size: 18, weight: .black, design: .monospaced))
                     .foregroundStyle(.white)
             }
 
             Spacer()
 
-            // Score
-            VStack(alignment: .trailing, spacing: 3) {
-                Text("SCORE")
+            // Element dots
+            HStack(spacing: 6) {
+                ForEach(0..<totalElements, id: \.self) { i in
+                    Circle()
+                        .fill(i < currentElementIndex
+                              ? accentColor
+                              : (i == currentElementIndex ? accentColor.opacity(0.60) : Color.white.opacity(0.12)))
+                        .frame(width: 8, height: 8)
+                        .animation(.spring(response: 0.3), value: currentElementIndex)
+                }
+            }
+
+            Spacer()
+
+            // Score panel
+            VStack(alignment: .trailing, spacing: 1) {
+                Text("TOTAL")
                     .font(.system(size: 8, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.50))
                     .tracking(1)
-                Text(String(format: "%.1f", totalScore))
-                    .font(.system(size: 22, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .contentTransition(.numericText())
-                Text("/ 60.0")
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                HStack(alignment: .lastTextBaseline, spacing: 2) {
+                    Text(String(format: "%.1f", totalScore))
+                        .font(.system(size: 24, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                    Text("/ 60")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.35))
+                }
             }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.cardBackground)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.black.opacity(0.55))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.10), lineWidth: 1))
         )
     }
 
-    // MARK: - Element Prompt Card
+    // MARK: - Element Overlay Card (floating above canvas)
 
-    private func elementPromptCard(element: GymnasticsElement) -> some View {
-        ZStack {
-            // Canvas arena background
-            GymnasticsArenaCanvas(
-                elementIndex: currentElementIndex,
-                gradeColor: gradeFlashColor,
-                showFlash: showGradeFlash
+    private func elementOverlayCard(element: GymnasticsElement) -> some View {
+        HStack(spacing: 20) {
+            // Timer ring + arrow in SwipeArrowCanvas
+            SwipeArrowCanvas(
+                direction: element.direction,
+                timeLeft: timeLeft,
+                maxTime: 2.0,
+                lastGrade: lastGrade
             )
-            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .frame(width: 110, height: 110)
 
-            // Dark overlay for legibility
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color.black.opacity(0.38))
-
-            // UI content
-            VStack(spacing: 16) {
-                // Timer ring
-                ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.12), lineWidth: 5)
-                        .frame(width: 78, height: 78)
-                    Circle()
-                        .trim(from: 0, to: CGFloat(timeLeft / 2.0))
-                        .stroke(timeLeft > 1.0 ? accentColor : .red,
-                                style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .frame(width: 78, height: 78)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.1), value: timeLeft)
-                    Text(String(format: "%.1f", timeLeft))
-                        .font(.system(size: 20, weight: .black, design: .monospaced))
-                        .foregroundStyle(timeLeft > 1.0 ? .white : .red)
-                        .contentTransition(.numericText())
-                }
-
-                // Name + arrow
-                VStack(spacing: 8) {
-                    Text(element.prompt)
-                        .font(.system(size: 30, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .tracking(4)
-                        .shadow(color: accentColor.opacity(0.5), radius: 14)
-
-                    Image(systemName: element.direction.systemImage)
-                        .font(.system(size: 48, weight: .black))
-                        .foregroundStyle(
-                            LinearGradient(colors: [accentColor, Theme.brandCyan],
-                                           startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                        .shadow(color: accentColor.opacity(0.5), radius: 20)
-                        .symbolEffect(.pulse, options: .speed(1.5))
-                }
-
-                Text("SWIPE \(element.direction.rawValue) NOW")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(accentColor.opacity(0.8))
+            // Element prompt text
+            VStack(alignment: .leading, spacing: 10) {
+                Text(element.prompt)
+                    .font(.system(size: 28, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
                     .tracking(3)
+                    .shadow(color: accentColor.opacity(0.6), radius: 12)
+
+                // Timing countdown bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.white.opacity(0.10))
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(timeLeft > 1.0 ? accentColor : .red)
+                            .frame(width: geo.size.width * CGFloat(timeLeft / 2.0))
+                            .animation(.linear(duration: 0.1), value: timeLeft)
+                    }
+                }
+                .frame(height: 5)
+
+                Text("SWIPE \(element.direction.rawValue)")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(accentColor.opacity(0.85))
+                    .tracking(2)
             }
-            .padding(.vertical, 24)
-            .padding(.horizontal, 30)
+
+            Spacer()
         }
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(accentColor.opacity(0.25), lineWidth: 1))
-        .padding(.horizontal, 24)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.black.opacity(0.60))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(accentColor.opacity(0.28), lineWidth: 1.2))
+        )
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Judge Panel
@@ -632,7 +1294,7 @@ struct GymnasticsGameView: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Theme.cardBackground)
+                .fill(Color.black.opacity(0.65))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
         )
         .scaleEffect(judgeScoresVisible[index] ? 1.0 : 0.4)
@@ -645,13 +1307,13 @@ struct GymnasticsGameView: View {
     private var swipeZone: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white.opacity(0.03))
-                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.07), lineWidth: 1))
+                .fill(Color.black.opacity(0.45))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.10), lineWidth: 1))
                 .frame(height: 96)
             VStack(spacing: 5) {
                 Image(systemName: "hand.draw.fill")
                     .font(.system(size: 20))
-                    .foregroundStyle(accentColor.opacity(0.45))
+                    .foregroundStyle(accentColor.opacity(0.50))
                 Text("SWIPE HERE")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -660,7 +1322,7 @@ struct GymnasticsGameView: View {
         }
         .gesture(
             DragGesture(minimumDistance: 18)
-                .onChanged { val in
+                .onChanged { _ in
                     if !didSwipeThisElement {
                         didSwipeThisElement = true
                         swipeStartTime = .now
@@ -673,17 +1335,25 @@ struct GymnasticsGameView: View {
         )
     }
 
-    // MARK: - Grade Flash
+    // MARK: - Grade Flash Overlay
 
     private var gradeFlashOverlay: some View {
         Group {
             if showGradeFlash {
-                Text(gradeFlashText)
-                    .font(.system(size: 44, weight: .black, design: .monospaced))
-                    .foregroundStyle(gradeFlashColor)
-                    .shadow(color: gradeFlashColor.opacity(0.6), radius: 20)
-                    .allowsHitTesting(false)
-                    .transition(.scale(scale: 0.3).combined(with: .opacity))
+                VStack(spacing: 6) {
+                    Text(gradeFlashText)
+                        .font(.system(size: 44, weight: .black, design: .monospaced))
+                        .foregroundStyle(gradeFlashColor)
+                        .shadow(color: gradeFlashColor.opacity(0.7), radius: 22)
+                    if let grade = lastGrade {
+                        Text("+\(grade.points)")
+                            .font(.system(size: 22, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color(red: 1, green: 0.85, blue: 0.2))
+                            .shadow(color: Color.yellow.opacity(0.5), radius: 10)
+                    }
+                }
+                .allowsHitTesting(false)
+                .transition(.scale(scale: 0.3).combined(with: .opacity))
             }
         }
         .animation(.spring(response: 0.2, dampingFraction: 0.5), value: showGradeFlash)
@@ -692,54 +1362,72 @@ struct GymnasticsGameView: View {
     // MARK: - Feedback Body
 
     private var feedbackBody: some View {
-        VStack(spacing: 0) {
-            topHUD
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-            Spacer()
-            if let last = elementResults.last {
-                VStack(spacing: 20) {
-                    ZStack {
-                        Circle()
-                            .fill(last.grade.color.opacity(0.12))
-                            .frame(width: 110, height: 110)
-                        VStack(spacing: 3) {
-                            Text(last.grade.rawValue)
-                                .font(.system(size: 19, weight: .black, design: .monospaced))
-                                .foregroundStyle(last.grade.color)
-                            Text(String(format: "+%.1f", last.finalPoints))
-                                .font(.system(size: 34, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white)
-                        }
-                    }
-
-                    Text(last.element.name.uppercased())
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .tracking(3)
-
-                    if last.deduction > 0 {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 11))
-                            Text(last.grade == .miss ? "FALL  −1.0 deduction" : "WOBBLE  −0.5 deduction")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        }
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 16).padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.orange.opacity(0.08))
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.2), lineWidth: 1))
-                        )
-                    }
-
-                    HStack(spacing: 8) {
-                        ForEach(0..<3, id: \.self) { i in singleJudgeChip(index: i) }
-                    }
-                    .padding(.horizontal, 20)
-                }
+        ZStack {
+            // Keep arena as background even in feedback
+            if currentElementIndex > 0 {
+                GymnasticsArenaCanvas(
+                    elementIndex: max(0, currentElementIndex - 1),
+                    gradeColor: gradeFlashColor,
+                    showFlash: false,
+                    lastGrade: lastGrade,
+                    timingProgress: 0
+                )
+                .ignoresSafeArea()
+                .opacity(0.5)
             }
-            Spacer()
+
+            VStack(spacing: 0) {
+                arenaHUD
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                Spacer()
+                if let last = elementResults.last {
+                    VStack(spacing: 20) {
+                        ZStack {
+                            Circle()
+                                .fill(last.grade.color.opacity(0.15))
+                                .frame(width: 120, height: 120)
+                            Circle()
+                                .stroke(last.grade.color.opacity(0.30), lineWidth: 2)
+                                .frame(width: 120, height: 120)
+                            VStack(spacing: 3) {
+                                Text(last.grade.rawValue)
+                                    .font(.system(size: 17, weight: .black, design: .monospaced))
+                                    .foregroundStyle(last.grade.color)
+                                Text(String(format: "+%.1f", last.finalPoints))
+                                    .font(.system(size: 36, weight: .black, design: .monospaced))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+
+                        Text(last.element.name.uppercased())
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .tracking(3)
+
+                        if last.deduction > 0 {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 11))
+                                Text(last.grade == .miss ? "FALL  −1.0 deduction" : "WOBBLE  −0.5 deduction")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 16).padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.orange.opacity(0.10))
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                            )
+                        }
+
+                        HStack(spacing: 8) {
+                            ForEach(0..<3, id: \.self) { i in singleJudgeChip(index: i) }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                Spacer()
+            }
         }
     }
 
@@ -761,7 +1449,7 @@ struct GymnasticsGameView: View {
                     )
                     .symbolEffect(.pulse)
 
-                // Breakdown bars
+                // Score breakdown
                 VStack(spacing: 14) {
                     barRow(label: "DIFFICULTY", value: difficultyMeter * 10, maxVal: 10, barColor: accentColor)
                     barRow(label: "EXECUTION",  value: executionBar * 10,   maxVal: 10, barColor: Theme.brandCyan)
@@ -868,6 +1556,7 @@ struct GymnasticsGameView: View {
         showJudgePanel = false
         judgeScoresVisible = [false, false, false]
         didSwipeThisElement = false
+        lastGrade = nil
         phase = .active
         runElementTimer()
     }
@@ -925,6 +1614,14 @@ struct GymnasticsGameView: View {
         let deduction: Double = grade == .miss ? 1.0 : (grade == .late ? 0.5 : 0.0)
         let finalPts = max(0, Double(rawPts) - deduction)
 
+        // Haptic feedback
+        switch grade {
+        case .perfect: hapticPerfect()
+        case .good:    hapticGood()
+        case .late:    hapticLate()
+        case .miss:    hapticMiss()
+        }
+
         // Judge score generation
         let spread = Double(rawPts)
         let j1 = max(0, min(10, spread * 0.9  - deduction + Double.random(in: -0.5...0.5)))
@@ -940,15 +1637,15 @@ struct GymnasticsGameView: View {
             judge1: j1, judge2: j2, judge3: j3
         )
         elementResults.append(result)
-
         currentJudgeScores = (j1, j2, j3)
+        lastGrade = grade
 
         // Grade flash
         gradeFlashText = grade.rawValue
         gradeFlashColor = grade.color
         withAnimation(.spring(response: 0.2)) { showGradeFlash = true }
         Task {
-            try? await Task.sleep(for: .milliseconds(550))
+            try? await Task.sleep(for: .milliseconds(700))
             await MainActor.run { withAnimation { showGradeFlash = false } }
         }
 
