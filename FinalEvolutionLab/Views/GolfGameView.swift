@@ -1598,10 +1598,34 @@ struct GolfGameView: View {
     // MARK: Environment & FX
     @State private var windAngle: Double = 45.0
     @State private var windSpeed: Double = 8.0
+    @State private var windDirection: Double = 45.0   // alias kept in sync with windAngle
+    @State private var shotsSinceWindChange: Int = 0   // wind updates every 2 shots
     @State private var showImpactFX: Bool = false
     @State private var impactFXType: String = "driver"
     @State private var currentShotType: ShotType = .driver
     @State private var shotTypeLabel: String = "DRIVER"
+
+    // MARK: Club Selection (14 clubs)
+    @State private var selectedClub: GolfClub = .driver
+    @State private var showClubSelector: Bool = false
+    @State private var recommendedClub: GolfClub = .driver
+
+    // MARK: Shot Shape
+    @State private var shotShape: ShotShape = .straight
+    @State private var showShotShapeSelector: Bool = false
+
+    // MARK: Spin Control
+    @State private var appliedSpin: Spin = .neutral
+    @State private var showSpinSelector: Bool = false
+
+    // MARK: Green Reading
+    @State private var greenSlope: CGVector = CGVector(dx: 0, dy: 0)
+    @State private var slopeArrows: [GreenSlopeArrow] = []
+    @State private var showGreenReading: Bool = false
+    @State private var breakText: String = ""
+
+    // MARK: Scorecard overlay between holes
+    @State private var showFullScorecard: Bool = false
 
     // MARK: Rewards
     @State private var rewardGranted: Bool = false
@@ -1609,8 +1633,10 @@ struct GolfGameView: View {
     private let XP_CAP = 500
     private let WIN_SHARDS = 50; private let DRAW_SHARDS = 25; private let LOSS_SHARDS = 15
     private let accentColor = Color(red: 0.3, green: 0.7, blue: 0.4)
-    private let parPerHole = 3
-    private var totalPar: Int { parPerHole * 9 }
+
+    // MARK: Per-hole par from course card
+    private var parPerHole: Int { courseCard[min(currentHole - 1, courseCard.count - 1)].par }
+    private var totalPar: Int { courseCard.reduce(0) { $0 + $1.par } }
 
     var body: some View {
         ZStack {
