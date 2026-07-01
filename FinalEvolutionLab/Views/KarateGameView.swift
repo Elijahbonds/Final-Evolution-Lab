@@ -1490,6 +1490,16 @@ struct KarateGameView: View {
                     .transition(.scale(scale:0.6).combined(with:.opacity))
             }
 
+            if superMeter >= 1.0 {
+                VStack { Spacer()
+                    Text("▶ HOLD FOR SUPER STRIKE")
+                        .font(.system(size:10, weight:.black, design:.monospaced))
+                        .foregroundStyle(.yellow).tracking(2)
+                        .shadow(color:.yellow.opacity(0.7), radius:8)
+                        .padding(.bottom, showDragonStrikeButton ? 60 : 16)
+                }
+            }
+
             if showDragonStrikeButton {
                 VStack { Spacer()
                     Button { triggerDragonStrike() } label: {
@@ -1511,7 +1521,7 @@ struct KarateGameView: View {
         .simultaneousGesture(SpatialTapGesture()
             .onEnded { v in let sw = UIScreen.main.bounds.width
                 if v.location.x < sw/2 { handlePunch() } else { handleKick() } })
-        .onLongPressGesture(minimumDuration:0.3) { handleStance() }
+        .onLongPressGesture(minimumDuration:0.5) { handleSuperRelease() }
     }
 
     // MARK: - Controls Hint
@@ -1522,7 +1532,7 @@ struct KarateGameView: View {
             Spacer()
             controlHint(icon:"arrow.up",label:"↑ BLOCK",color:Theme.foundationGreen)
             Spacer()
-            controlHint(icon:"rectangle.and.hand.point.up.left.fill",label:"HOLD STANCE",color:Theme.elitePurple)
+            controlHint(icon:"bolt.fill",label:"HOLD·SUPER",color:.yellow)
             Spacer()
             controlHint(icon:"hand.tap.fill",label:"KICK →",color:accentColor)
         }
@@ -1535,25 +1545,110 @@ struct KarateGameView: View {
         }
     }
 
-    // MARK: - Logic
+    // MARK: - Round Flow
 
-    private func startFight() {
-        phase = .fight
-        withAnimation(.spring(response:0.3,dampingFraction:0.5)) { showFightFlash = true }
-        Task { try? await Task.sleep(for:.milliseconds(1200)); await MainActor.run { withAnimation { showFightFlash = false } } }
-        startGameTimer()
-        scheduleAIAttack()
+    private func startRound() {
+        playerHP = maxHP
+        opponentHP = maxHP
+        roundTimeRemaining = 30.0
+        combo = 0; comboCount = 0
+        chakra = 0; showDragonStrikeButton = false
+
+        roundAnnounceText = "ROUND \(currentRound)"
+        phase = .roundAnnounce
+
+        Task {
+            try? await Task.sleep(for:.milliseconds(1200))
+            await MainActor.run { roundAnnounceText = "FIGHT!" }
+            try? await Task.sleep(for:.milliseconds(800))
+            await MainActor.run {
+                phase = .fight
+                roundActive = true
+                withAnimation(.spring(response:0.3,dampingFraction:0.5)) { showFightFlash = true }
+            }
+            try? await Task.sleep(for:.milliseconds(1200))
+            await MainActor.run { withAnimation { showFightFlash = false } }
+            startRoundTimer()
+            scheduleAIAttack()
+        }
     }
 
-    private func startGameTimer() {
+    private func startRoundTimer() {
         gameTimerTask?.cancel()
         gameTimerTask = Task {
-            while timeLeft > 0 {
-                try? await Task.sleep(for:.seconds(1))
+            let tick: Double = 0.1
+            while roundTimeRemaining > 0 {
+                try? await Task.sleep(for:.milliseconds(100))
                 guard !Task.isCancelled else { return }
-                await MainActor.run { timeLeft -= 1 }
+                await MainActor.run { roundTimeRemaining = max(0, roundTimeRemaining - tick) }
             }
-            await MainActor.run { endGame() }
+            await MainActor.run {
+                guard roundActive else { return }
+                endRound(ko: false, playerKO: false)
+            }
+        }
+    }
+
+    private func endRound(ko: Bool, playerKO: Bool) {
+        guard roundActive else { return }
+        roundActive = false
+        gameTimerTask?.cancel()
+        aiAttackTask?.cancel()
+
+        let playerWon: Bool
+        if ko { playerWon = !playerKO } else { playerWon = playerHP > opponentHP }
+        let isDraw = !ko && playerHP == opponentHP
+
+        if playerWon {
+            playerRoundsWon += 1
+            roundAnnounceText = ko ? "KO! YOU WIN ROUND \(currentRound)" : "ROUND \(currentRound) — YOU WIN!"
+            showAction(text: ko ? "KO!" : "ROUND WIN!", color: Theme.brandBlue)
+        } else if isDraw {
+            roundAnnounceText = "ROUND \(currentRound) — DRAW"
+            showAction(text:"DRAW",color:.white)
+        } else {
+            aiRoundsWon += 1
+            roundAnnounceText = playerKO ? "KO! OPPONENT WINS ROUND \(currentRound)" : "ROUND \(currentRound) — OPPONENT WINS"
+            showAction(text: playerKO ? "KO!" : "ROUND LOST", color: accentColor)
+        }
+
+        updateMomentumBuff()
+        phase = .roundEnd
+
+        Task {
+            try? await Task.sleep(for:.milliseconds(2000))
+            await MainActor.run { advanceAfterRound() }
+        }
+    }
+
+    private func updateMomentumBuff() {
+        if playerRoundsWon == 1 && aiRoundsWon == 0 {
+            playerDamageBuff = 1.05; isDominant = false
+        }
+        if playerRoundsWon >= 2 && aiRoundsWon == 0 {
+            playerDamageBuff = 1.10; isDominant = true
+        }
+        if aiRoundsWon >= playerRoundsWon {
+            playerDamageBuff = 1.0; isDominant = false
+        }
+    }
+
+    private func advanceAfterRound() {
+        if playerRoundsWon >= 2 || aiRoundsWon >= 2 || currentRound >= 3 {
+            endMatch()
+        } else {
+            currentRound += 1
+            startRound()
+        }
+    }
+
+    private func endMatch() {
+        cancelAllTasks()
+        outcome = playerRoundsWon > aiRoundsWon ? .win : (playerRoundsWon == aiRoundsWon ? .draw : .loss)
+        awardShards()
+        Task {
+            try? await Task.sleep(for:.seconds(0.5))
+            await MainActor.run { withAnimation { phase = .result } }
         }
     }
 
@@ -1570,7 +1665,7 @@ struct KarateGameView: View {
     }
 
     private func aiAttack() {
-        guard phase == .fight else { return }
+        guard phase == .fight, roundActive else { return }
         let dmg = Double.random(in:8...18)
         playerHP = max(0,playerHP-dmg)
         opponentScore += 1
@@ -1578,19 +1673,21 @@ struct KarateGameView: View {
         setPose("punch", for: "opponent", duration: 0.35)
         flashScreenShake()
         impactMed.impactOccurred()
-        if playerHP <= 0 { endGame(ko:true,playerKO:true) }
+        if playerHP <= 0 { endRound(ko:true,playerKO:true) }
     }
 
     // MARK: - Player Actions
 
     private func handlePunch() {
-        guard phase == .fight else { return }
+        guard phase == .fight, roundActive else { return }
         let now = Date(); let isCrit = now.timeIntervalSince(lastPlayerActionTime) < 0.3
         lastPlayerActionTime = now
-        let dmg: Double = (isCrit ? 12 : 8) + Double(combo)*1.5
+        let baseDmg: Double = (isCrit ? 12 : 8) + Double(combo)*1.5
+        let dmg = baseDmg * playerDamageBuff
         opponentHP = max(0,opponentHP-dmg)
         playerScore += isCrit ? 2 : 1; combo += 1; maxCombo = max(maxCombo,combo)
         comboCount = combo
+        superMeter = min(1.0, superMeter + 0.15)
         chakra = min(100,chakra+(isCrit ? 15 : 8))
         showAction(text:isCrit ? "CRITICAL PUNCH!" : "PUNCH", color:Theme.brandBlue)
         setPose("punch", for:"player", duration:0.35)
@@ -1599,17 +1696,19 @@ struct KarateGameView: View {
         if isCrit { triggerCritFlash() }
         flashScreenShake()
         impactMed.impactOccurred()
-        if opponentHP <= 0 { endGame(ko:true,playerKO:false) }
+        if opponentHP <= 0 { endRound(ko:true,playerKO:false) }
     }
 
     private func handleKick() {
-        guard phase == .fight else { return }
+        guard phase == .fight, roundActive else { return }
         let now = Date(); let isCrit = now.timeIntervalSince(lastPlayerActionTime) < 0.3
         lastPlayerActionTime = now
-        let dmg: Double = (isCrit ? 18 : 12) + Double(combo)*2.0
+        let baseDmg: Double = (isCrit ? 18 : 12) + Double(combo)*2.0
+        let dmg = baseDmg * playerDamageBuff
         opponentHP = max(0,opponentHP-dmg)
         playerScore += isCrit ? 3 : 2; combo += 1; maxCombo = max(maxCombo,combo)
         comboCount = combo
+        superMeter = min(1.0, superMeter + 0.15)
         chakra = min(100,chakra+(isCrit ? 20 : 12))
         showAction(text:isCrit ? "CRITICAL KICK!" : "KICK", color:accentColor)
         setPose("kick", for:"player", duration:0.40)
@@ -1618,27 +1717,38 @@ struct KarateGameView: View {
         if isCrit { triggerCritFlash() }
         flashScreenShake()
         impactHvy.impactOccurred()
-        if opponentHP <= 0 { endGame(ko:true,playerKO:false) }
+        if opponentHP <= 0 { endRound(ko:true,playerKO:false) }
     }
 
     private func handleBlock() {
-        guard phase == .fight else { return }
+        guard phase == .fight, roundActive else { return }
         combo = 0; comboCount = 0; playerHP = min(maxHP,playerHP+5)
         showAction(text:"BLOCK", color:Theme.foundationGreen)
         setPose("block", for:"player", duration:0.5)
         impactMed.impactOccurred()
     }
 
-    private func handleStance() {
-        guard phase == .fight else { return }
-        chakra = min(100,chakra+10)
-        showAction(text:"STANCE", color:Theme.elitePurple)
+    private func handleSuperRelease() {
+        guard phase == .fight, roundActive, superMeter >= 1.0 else { return }
+        superMeter = 0
+        let baseDmg: Double = (35 + Double(combo)*3.0) * playerDamageBuff
+        opponentHP = max(0, opponentHP - baseDmg)
+        playerScore += 8; combo += 2; maxCombo = max(maxCombo, combo); comboCount = combo
+        chakra = min(100, chakra + 20)
+        showAction(text:"SUPER STRIKE!", color:.yellow)
+        setPose("dragon", for:"player", duration:0.7)
+        setPose("hit", for:"opponent", duration:0.6)
+        lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "dragon"
+        triggerCritFlash(); flashScreenShake()
+        notif.notificationOccurred(.success)
+        if opponentHP <= 0 { endRound(ko:true,playerKO:false) }
     }
 
     private func triggerDragonStrike() {
-        guard phase == .fight, chakra >= 100 else { return }
+        guard phase == .fight, chakra >= 100, roundActive else { return }
         chakra = 0; showDragonStrikeButton = false
-        opponentHP = max(0,opponentHP-45)
+        let baseDmg: Double = 45 * playerDamageBuff
+        opponentHP = max(0,opponentHP-baseDmg)
         playerScore += 10; combo += 3; maxCombo = max(maxCombo,combo); comboCount = combo
         showAction(text:"DRAGON STRIKE!", color:.yellow)
         setPose("dragon", for:"player", duration:0.8)
@@ -1646,7 +1756,7 @@ struct KarateGameView: View {
         lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "dragon"
         triggerCritFlash(); flashScreenShake()
         notif.notificationOccurred(.success)
-        if opponentHP <= 0 { endGame(ko:true,playerKO:false) }
+        if opponentHP <= 0 { endRound(ko:true,playerKO:false) }
     }
 
     // MARK: - Pose Helper
@@ -1694,19 +1804,7 @@ struct KarateGameView: View {
         }
     }
 
-    // MARK: - End Game
-
-    private func endGame(ko:Bool = false, playerKO:Bool = false) {
-        guard phase == .fight else { return }
-        cancelAllTasks()
-        if playerKO      { outcome = .loss; showAction(text:"KO!",color:.red) }
-        else if ko        { outcome = .win;  showAction(text:"KO!",color:.yellow) }
-        else if playerHP > opponentHP { outcome = .win;  showAction(text:"TIME!",color:accentColor) }
-        else if playerHP < opponentHP { outcome = .loss; showAction(text:"TIME!",color:.red) }
-        else              { outcome = .draw; showAction(text:"DRAW!",color:.white) }
-        awardShards()
-        Task { try? await Task.sleep(for:.seconds(1.5)); await MainActor.run { withAnimation { phase = .result } } }
-    }
+    // MARK: - Award Shards
 
     private func awardShards() {
         guard !shardsAwarded else { return }
@@ -1718,6 +1816,7 @@ struct KarateGameView: View {
 
     private func cancelAllTasks() {
         gameTimerTask?.cancel(); aiAttackTask?.cancel()
-        actionLabelTask?.cancel(); critFlashTask?.cancel(); poseResetTask?.cancel()
+        actionLabelTask?.cancel(); critFlashTask?.cancel()
+        poseResetTask?.cancel(); superHoldTask?.cancel()
     }
 }

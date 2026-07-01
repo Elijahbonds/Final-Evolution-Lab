@@ -1946,10 +1946,25 @@ struct TennisGameView: View {
                 crowdLevel: crowdLevel,
                 showAce: showAce,
                 showWinner: showWinner,
-                showFault: showFault
+                showFault: showFault,
+                aimReticleNorm: aimReticlePos,
+                isDragging: isShotDragging,
+                dragStartNorm: shotDragStart,
+                landingDots: landingDots,
+                targetZone: currentTargetZone
             )
             .animation(.easeInOut(duration: 0.55), value: ball.position)
             .clipShape(RoundedRectangle(cornerRadius: 14))
+
+            // Winner zone flash overlay
+            if showWinnerZoneFlash {
+                Text(winnerZoneText)
+                    .font(.system(size: 18, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.20, green: 0.90, blue: 0.40))
+                    .shadow(color: Color(red: 0.20, green: 0.90, blue: 0.40).opacity(0.7), radius: 10)
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
 
             // Tiebreak overlay banner on canvas
             if showTiebreakBanner {
@@ -2025,18 +2040,26 @@ struct TennisGameView: View {
                 courtCanvas
                 Spacer()
 
+                // Aim direction hint during swipe window
+                if swipeWindowOpen || isShotDragging {
+                    aimDirectionHintView
+                        .padding(.horizontal, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
                 VStack(spacing: 10) {
                     // Shot selection pad visible during rally (before swipe window opens)
-                    if !swipeWindowOpen && phase == .rally {
+                    if !swipeWindowOpen && !isShotDragging && phase == .rally {
                         ShotTypePad(selected: $shotSelection)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
                     // Return window prompt
                     if swipeWindowOpen {
-                        Text("SWIPE TO RETURN!")
+                        Text(isShotDragging ? "RELEASE TO SHOOT!" : "DRAG TO AIM · RELEASE!")
                             .font(.system(size: 14, weight: .black, design: .monospaced))
-                            .foregroundStyle(accentColor).tracking(2)
+                            .foregroundStyle(isShotDragging ? Color(red: 1.0, green: 0.92, blue: 0.20) : accentColor)
+                            .tracking(2)
                             .transition(.scale.combined(with: .opacity))
                     } else {
                         Text(approachMode ? "AT NET — VOLLEY READY" : "Watch the ball…")
@@ -2065,20 +2088,86 @@ struct TennisGameView: View {
                 .frame(minHeight: 110)
                 .animation(.easeInOut(duration: 0.20), value: swipeWindowOpen)
                 .animation(.easeInOut(duration: 0.20), value: showShotPad)
+                .animation(.easeInOut(duration: 0.20), value: isShotDragging)
                 .padding(.bottom, 20)
             }
 
+            // Drag-to-aim gesture — captures whole screen during swipe window
             Color.clear.contentShape(Rectangle())
                 .gesture(
-                    DragGesture(minimumDistance: 20)
-                        .onChanged { v in if dragStart == nil { dragStart = v.startLocation } }
-                        .onEnded { v in
-                            defer { dragStart = nil }
+                    DragGesture(minimumDistance: 8)
+                        .onChanged { v in
                             guard swipeWindowOpen else { return }
-                            handlePlayerSwipe(detectSwipe(from: v.startLocation, to: v.location))
+                            if !isShotDragging {
+                                shotDragStart = normalizePoint(v.startLocation)
+                                isShotDragging = true
+                            }
+                            let normCurrent = normalizePoint(v.location)
+                            aimReticlePos = normCurrent
+                            // Derive aim parameters from drag vector
+                            let dx = v.location.x - v.startLocation.x
+                            let dy = v.location.y - v.startLocation.y
+                            aimDirection = max(0, min(1, 0.5 + dx / 200.0))
+                            aimDepth = max(0, min(1, 1.0 - (dy / 120.0))) // drag up = deeper
+                            currentTargetZone = ShotZone.fromAim(aimX: aimDirection, aimDepth: aimDepth)
+                        }
+                        .onEnded { v in
+                            let wasDragging = isShotDragging
+                            isShotDragging = false
+                            shotDragStart = .zero
+                            if swipeWindowOpen {
+                                if wasDragging {
+                                    // Use aim-based shot
+                                    handleAimedShot(dx: v.translation.width, dy: v.translation.height)
+                                } else {
+                                    handlePlayerSwipe(detectSwipe(from: v.startLocation, to: v.location))
+                                }
+                            }
+                            currentTargetZone = nil
+                            dragStart = nil
                         }
                 )
         }
+    }
+
+    // MARK: - Aim Direction Hint View
+
+    private var aimDirectionHintView: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("AIM").font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary).tracking(2)
+                HStack(spacing: 4) {
+                    Text(aimDirection < 0.4 ? "CROSSCOURT ◀" : aimDirection > 0.6 ? "▶ DOWN-THE-LINE" : "CENTER")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color(red: 1.0, green: 0.92, blue: 0.20))
+                }
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("DEPTH").font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary).tracking(2)
+                Text(aimDepth > 0.66 ? "DEEP ↑" : aimDepth < 0.33 ? "SHORT ↓" : "MID")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 1.0, green: 0.92, blue: 0.20))
+            }
+            if let zone = currentTargetZone {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("ZONE").font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(.secondary).tracking(2)
+                    Text(zone.isCorner ? "CORNER!" : zone.isWide ? "WIDE" : "CENTRE")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(zone.isCorner
+                                         ? Color(red: 0.20, green: 0.90, blue: 0.40)
+                                         : Color(red: 1.0, green: 0.92, blue: 0.20))
+                }
+            }
+        }
+        .padding(.horizontal, 8).padding(.vertical, 6)
+        .background(Theme.cardBackground.opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .animation(.spring(response: 0.15), value: aimDirection)
+        .animation(.spring(response: 0.15), value: aimDepth)
     }
 
     // MARK: - Result View

@@ -1380,6 +1380,61 @@ struct VolleyballGameView: View {
         }
     }
 
+    // MARK: - Movement Controls
+
+    private var movementControlRow: some View {
+        HStack(spacing: 12) {
+            Button { movePlayer(delta: -0.15) } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.18), lineWidth: 1))
+                    Image(systemName: "arrow.left").font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
+                }.frame(width: 52, height: 36)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.08)).overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 1))
+                    Circle().fill(accentColor).frame(width: 14, height: 14)
+                        .offset(x: playerX * (geo.size.width - 14))
+                        .animation(.easeOut(duration: 0.15), value: playerX)
+                    if positioningWindow {
+                        RoundedRectangle(cornerRadius: 2).fill(Color.red.opacity(0.70))
+                            .frame(width: 4, height: geo.size.height)
+                            .offset(x: ballLandingZone * (geo.size.width - 4))
+                    }
+                }
+            }.frame(height: 36)
+            Button { movePlayer(delta: 0.15) } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.18), lineWidth: 1))
+                    Image(systemName: "arrow.right").font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
+                }.frame(width: 52, height: 36)
+            }
+        }.padding(.horizontal, 28)
+    }
+
+    private var spikeZoneRow: some View {
+        HStack(spacing: 8) {
+            Text("AIM:").font(.system(size: 9, weight: .black, design: .monospaced)).foregroundStyle(.secondary)
+            ForEach([(0, "LEFT"), (1, "CENTER"), (2, "RIGHT")], id: \.0) { zone, label in
+                let isSelected = selectedSpikeZone == zone
+                Button {
+                    selectedSpikeZone = zone
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    Text(label).font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(isSelected ? .black : .white)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 8)
+                            .fill(isSelected ? accentColor : Color.white.opacity(0.08))
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(isSelected ? accentColor : Color.white.opacity(0.18), lineWidth: 1)))
+                }
+            }
+        }.padding(.horizontal, 28)
+    }
+
     // MARK: - Touch Prompt Row
 
     private var touchPromptRow: some View {
@@ -1501,22 +1556,39 @@ struct VolleyballGameView: View {
     private func beginRally() {
         guard phase == .playing else { return }
         touchPhase = .pass; rallyState = .ballIncoming; inputWindowOpen = false
-        // Haptic: soft on serve
+        positioningWindow = false; digResult = nil; selectedSpikeZone = nil
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         serveActive = true
         withAnimation { ball.position = CGPoint(x: CGFloat.random(in: 0.3...0.7), y: 0.18); ball.isVisible = true }
+        // Pick a landing zone (left/center/right third)
+        let zoneRoll = Int.random(in: 0..<3)
+        let zoneLandX: CGFloat
+        switch zoneRoll {
+        case 0: zoneLandX = CGFloat.random(in: 0.10...0.32)
+        case 1: zoneLandX = CGFloat.random(in: 0.35...0.65)
+        default: zoneLandX = CGFloat.random(in: 0.68...0.90)
+        }
+        ballLandingZone = zoneLandX
+        // AI moves to a random zone
+        let aiZoneRoll = Int.random(in: 0..<3)
+        let newAiX: CGFloat
+        switch aiZoneRoll {
+        case 0: newAiX = CGFloat.random(in: 0.15...0.35)
+        case 1: newAiX = CGFloat.random(in: 0.40...0.60)
+        default: newAiX = CGFloat.random(in: 0.65...0.85)
+        }
+        withAnimation(.easeOut(duration: 0.35)) { aiX = newAiX }
         Task {
             try? await Task.sleep(for: .milliseconds(300))
             await MainActor.run {
-                let landX = CGFloat.random(in: 0.25...0.75)
-                withAnimation(.easeInOut(duration: 0.55)) { ball.position = CGPoint(x: landX, y: 0.78) }
+                withAnimation(.easeInOut(duration: 0.55)) { ball.position = CGPoint(x: zoneLandX, y: 0.78) }
                 rallyState = .awaitingPass
+                positioningWindow = true
             }
-            try? await Task.sleep(for: .milliseconds(500))
-            await MainActor.run {
-                serveActive = false
-                openInputWindow()
-            }
+            try? await Task.sleep(for: .milliseconds(350))
+            await MainActor.run { serveActive = false; openInputWindow() }
+            try? await Task.sleep(for: .milliseconds(850))
+            await MainActor.run { positioningWindow = false }
         }
     }
 
@@ -1544,13 +1616,32 @@ struct VolleyballGameView: View {
         inputWindowTask?.cancel(); inputWindowOpen = false
         switch touchPhase {
         case .pass:
-            // Haptic: medium on successful dig/set
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            flashFeedback("PASS!")
+            // Check positioning quality against landing zone
+            let dist = abs(playerX - ballLandingZone)
+            if dist < 0.08 {
+                digResult = .perfect
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                flashFeedback("PERFECT DIG!")
+            } else if dist < 0.18 {
+                digResult = .good
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                flashFeedback("DIG!")
+            } else {
+                digResult = .miss
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                flashFeedback("MISSED!")
+                Task {
+                    try? await Task.sleep(for: .milliseconds(600))
+                    await MainActor.run { digResult = nil; opponentWinsPoint() }
+                }
+                return
+            }
             advanceBall(toY: 0.55); rallyState = .awaitingSet; touchPhase = .set
-            Task { try? await Task.sleep(for: .milliseconds(500)); await MainActor.run { openInputWindow() } }
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                await MainActor.run { digResult = nil; openInputWindow() }
+            }
         case .set:
-            // Haptic: medium on set
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             flashFeedback("SET!")
             advanceBall(toY: 0.42); rallyState = .awaitingSpike; touchPhase = .spike
@@ -1567,23 +1658,40 @@ struct VolleyballGameView: View {
 
     private func executeSpike() {
         flashFeedback("SPIKE!")
-        // Haptic: heavy on spike kill
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         spikeActive = true
-        let spikeX = CGFloat.random(in: 0.2...0.8)
+        // Directional spike targeting
+        let targetZoneX: CGFloat
+        switch selectedSpikeZone {
+        case 0: targetZoneX = CGFloat.random(in: 0.10...0.30)
+        case 2: targetZoneX = CGFloat.random(in: 0.70...0.90)
+        default: targetZoneX = CGFloat.random(in: 0.35...0.65)
+        }
+        let spikeX = targetZoneX
         withAnimation(.easeIn(duration: 0.4)) { ball.position = CGPoint(x: spikeX, y: 0.25) }
         rallyState = .ballCrossing
+        // AI reacts 0.3s after spike — moves toward targeted zone
+        let aiTargetX: CGFloat
+        switch selectedSpikeZone {
+        case 0: aiTargetX = 0.15
+        case 2: aiTargetX = 0.85
+        default: aiTargetX = 0.50
+        }
         Task {
-            try? await Task.sleep(for: .milliseconds(450))
+            try? await Task.sleep(for: .milliseconds(300))
+            await MainActor.run { withAnimation(.easeOut(duration: 0.25)) { aiX = aiTargetX } }
+            try? await Task.sleep(for: .milliseconds(150))
             await MainActor.run {
                 spikeActive = false
                 let prq = viewModel.effectiveMetrics.prqScore
-                let digChance = 0.3 + (prq / 200.0)
+                let aiDist = abs(aiX - targetZoneX)
+                let baseDig = 0.25 + (prq / 220.0)
+                let coverBonus: Double = aiDist < 0.15 ? 0.25 : 0.0
+                let digChance = baseDig + coverBonus
                 if Double.random(in: 0...1) < digChance {
                     rallyState = .opponentDig
                     withAnimation(.easeOut(duration: 0.35)) { ball.position = CGPoint(x: CGFloat.random(in: 0.3...0.7), y: 0.18) }
                     flashFeedback("DIG!")
-                    // Haptic: medium on successful dig
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     digActive = true
                     Task {
@@ -1596,6 +1704,7 @@ struct VolleyballGameView: View {
                     withAnimation(.easeIn(duration: 0.3)) { ball.position = CGPoint(x: spikeX, y: 0.12) }
                     playerScores(ace: true)
                 }
+                selectedSpikeZone = nil
             }
         }
     }
