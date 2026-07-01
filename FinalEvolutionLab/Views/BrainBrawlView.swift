@@ -1371,6 +1371,58 @@ struct BrainBrawlView: View {
                 .animation(.spring(response: 0.3), value: showStreakBanner)
             }
 
+            // AI Reaction overlay
+            if aiShowReaction {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(aiReactionColor)
+                        Text(aiReactionText)
+                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(aiReactionColor)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(aiReactionColor.opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .stroke(aiReactionColor.opacity(0.4), lineWidth: 1))
+                    )
+                    .padding(.horizontal, 28)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    Spacer().frame(height: 60)
+                }
+                .allowsHitTesting(false)
+                .animation(.easeInOut(duration: 0.3), value: aiShowReaction)
+            }
+
+            // Tension indicator overlay
+            if showTensionBanner {
+                VStack {
+                    Spacer().frame(height: 80)
+                    Text(tensionBannerText)
+                        .font(.system(size: 20, weight: .black, design: .monospaced))
+                        .foregroundStyle(tensionBannerColor)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(tensionBannerColor.opacity(0.15))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(tensionBannerColor.opacity(0.5), lineWidth: 1.5))
+                        )
+                        .shadow(color: tensionBannerColor.opacity(0.4), radius: 8)
+                        .transition(.scale.combined(with: .opacity))
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+                .animation(.spring(response: 0.35), value: showTensionBanner)
+            }
+
             // Coach comment overlay
             if showCoachComment {
                 VStack {
