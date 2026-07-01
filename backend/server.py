@@ -18,6 +18,7 @@ from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 from routers import matches as matches_router
 from routers.games import router as games_router
+from routers.ghost import router as ghost_router
 
 # PayPal config
 paypalrestsdk.configure({
@@ -2679,6 +2680,7 @@ app.include_router(pass_image_router.router)
 app.include_router(biofuel_router.router)
 app.include_router(matches_router.router)
 app.include_router(games_router)
+app.include_router(ghost_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

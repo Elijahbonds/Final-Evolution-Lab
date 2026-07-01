@@ -163,6 +163,10 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
   const [error, setError] = useState(null);
   const [seed, setSeed] = useState(null);
   const [judgeOffsets, setJudgeOffsets] = useState([]);
+  const [ghostPublished, setGhostPublished] = useState(null);
+  const [ghostFeed, setGhostFeed] = useState([]);
+  const [ghostFeedVisible, setGhostFeedVisible] = useState(false);
+  const [activeChallenge, setActiveChallenge] = useState(null);
   const wsRef = useRef(null);
 
   const addEvent = useCallback((ev) => {
@@ -252,6 +256,62 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
       URL.revokeObjectURL(url);
     } catch (err) {
       setError(`Replay export failed: ${err.message}`);
+    }
+  };
+
+  const publishGhost = async () => {
+    if (!matchId || !seed) return;
+    try {
+      const exportR = await fetch(`${API_BASE}/api/matches/${matchId}/export-replay`, { credentials: 'include' });
+      if (!exportR.ok) throw new Error(await exportR.text());
+      const replay = await exportR.json();
+      const r = await fetch(`${API_BASE}/api/ghost/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          mode_id: replay.mode_id || 'basketball_h2h',
+          seed: replay.seed,
+          judge_offsets: replay.judge_offsets || [],
+          events: replay.events || [],
+          final_score: Object.fromEntries(
+            (replay.players || []).map((p) => [p, Object.values(score)[0] || 0])
+          ),
+          match_id: matchId,
+        }),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      setGhostPublished(data);
+    } catch (err) {
+      setError(`Ghost publish failed: ${err.message}`);
+    }
+  };
+
+  const loadGhostFeed = async (modeId) => {
+    try {
+      const url = modeId
+        ? `${API_BASE}/api/ghost?mode_id=${encodeURIComponent(modeId)}&limit=10`
+        : `${API_BASE}/api/ghost?limit=10`;
+      const r = await fetch(url, { credentials: 'include' });
+      if (!r.ok) throw new Error(await r.text());
+      setGhostFeed(await r.json());
+      setGhostFeedVisible(true);
+    } catch (err) {
+      setError(`Ghost feed failed: ${err.message}`);
+    }
+  };
+
+  const startGhostChallenge = async (ghostId) => {
+    try {
+      const r = await fetch(`${API_BASE}/api/ghost/${ghostId}/challenge`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!r.ok) throw new Error(await r.text());
+      setActiveChallenge(await r.json());
+    } catch (err) {
+      setError(`Challenge start failed: ${err.message}`);
     }
   };
 
@@ -349,6 +409,74 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
           >
             Download Replay JSON
           </button>
+          {status === 'finished' && !ghostPublished && (
+            <button
+              style={{ ...styles.btn, marginTop: '8px', marginLeft: '8px', padding: '6px 14px', fontSize: '0.75rem',
+                background: 'rgba(0,229,255,0.12)', color: '#00e5ff', border: '1px solid rgba(0,229,255,0.3)' }}
+              onClick={publishGhost}
+            >
+              👻 Save as Ghost Challenge
+            </button>
+          )}
+          {ghostPublished && (
+            <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#00e5ff' }}>
+              ✓ Ghost published — ID: <strong>{ghostPublished.ghost_id}</strong>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button
+          style={{ ...styles.btn, padding: '6px 14px', fontSize: '0.75rem',
+            background: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.3)' }}
+          onClick={() => ghostFeedVisible ? setGhostFeedVisible(false) : loadGhostFeed()}
+        >
+          {ghostFeedVisible ? 'Hide Ghost Feed' : '👻 Ghost Challenge Feed'}
+        </button>
+      </div>
+
+      {ghostFeedVisible && (
+        <div style={{ ...styles.card, marginBottom: '24px' }}>
+          <div style={styles.cardTitle}>Ghost Challenge Feed</div>
+          {ghostFeed.length === 0 && (
+            <div style={{ color: '#6b7280', fontSize: '0.85rem' }}>No ghosts published yet. Finish a match and save it!</div>
+          )}
+          {ghostFeed.map((g) => (
+            <div key={g.ghost_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '8px 12px', marginBottom: '6px', background: 'rgba(139,92,246,0.08)',
+              borderRadius: '8px', border: '1px solid rgba(139,92,246,0.2)' }}>
+              <div>
+                <strong style={{ color: '#a78bfa' }}>{g.publisher_name}</strong>
+                <span style={{ color: '#6b7280', fontSize: '0.8rem', marginLeft: '8px' }}>
+                  PRQ {g.publisher_prq} · {g.mode_id} · Beat rate: {g.beat_rate_pct}%
+                </span>
+                {g.top_moment && (
+                  <div style={{ color: '#9ca3af', fontSize: '0.75rem' }}>
+                    Top moment: {g.top_moment.type} {g.top_moment.total ? `— ${g.top_moment.total}pts` : ''}
+                  </div>
+                )}
+              </div>
+              <button
+                style={{ ...styles.btn, padding: '4px 12px', fontSize: '0.75rem',
+                  background: 'rgba(139,92,246,0.2)', color: '#a78bfa' }}
+                onClick={() => startGhostChallenge(g.ghost_id)}
+              >
+                Challenge
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeChallenge && (
+        <div style={{ ...styles.card, marginBottom: '24px', borderColor: 'rgba(139,92,246,0.4)' }}>
+          <div style={styles.cardTitle}>👻 Active Ghost Challenge</div>
+          <div style={{ fontSize: '0.85rem', color: '#9ca3af' }}>
+            <div>Ghost seed: <strong style={{ color: '#a78bfa' }}>{String(activeChallenge.seed)}</strong></div>
+            <div>Judge offsets: <strong>[{(activeChallenge.judge_offsets || []).join(', ')}]</strong></div>
+            <div style={{ marginTop: '6px', color: '#7c3aed' }}>{activeChallenge.instructions?.overlay}</div>
+          </div>
         </div>
       )}
 
