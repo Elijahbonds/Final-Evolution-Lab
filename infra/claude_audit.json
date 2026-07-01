@@ -1,0 +1,64 @@
+{
+  "audit": {
+    "branch": "claude/nexus-engine-setup-2qgkik",
+    "head_sha": "d203de3",
+    "head_message": "Replace React frontend with static landing page, fix CI pipeline",
+    "base_branch": "main",
+    "audit_date": "2026-07-01",
+    "key_endpoints_present": {
+      "system_scan_unified": true,
+      "system_scan_path": "backend/routers/system_scan.py",
+      "pass_image": true,
+      "pass_image_path": "backend/routers/pass_image.py",
+      "realtime_ws": true,
+      "realtime_ws_path": "backend/routers/matches.py",
+      "matches_create": true,
+      "matches_join": true,
+      "debug_latest_system_scan": true,
+      "debug_match_payload": true
+    },
+    "infra_checks": {
+      "gcp_app_yaml": false,
+      "gcp_app_yaml_note": "backend/.gcp/app.yaml not found; App Engine deploy is undocumented",
+      "system_scan_firestore_schema": true,
+      "system_scan_firestore_schema_path": "infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md",
+      "swift_unreal_container": true,
+      "swift_unreal_container_path": "infra/SWIFT_UNREAL_CONTAINER.md",
+      "nexus_starter": true,
+      "nexus_starter_path": "NexusStarter/"
+    },
+    "failing_backend_tests": {
+      "status": "MISSING_ENV",
+      "missing_envs": ["MONGO_URL", "DB_NAME"],
+      "note": "All new tests pass with mocked DB (pytest). Real MongoDB required for integration tests.",
+      "test_results": {
+        "test_system_scan": "24/24 passed",
+        "test_matches": "20/20 passed"
+      }
+    },
+    "frontend_build_status": {
+      "status": "REPLACED_WITH_STATIC",
+      "note": "React frontend replaced with static public/index.html. No npm build required. Firebase Hosting serves public/ directly."
+    },
+    "ci_present": true,
+    "ci_path": ".github/workflows/firebase-deploy.yml",
+    "ci_jobs": ["validate-registries", "deploy-firebase", "deploy-dataconnect"],
+    "ci_note": "build-frontend job removed — was failing on missing Firebase API key secrets.",
+    "gameplay_gaps": [
+      {"id": 1, "title": "Authoritative server-side scoring", "status": "STUB_ONLY", "note": "score_events are simulated by backend timer, not driven by real physics/input validation"},
+      {"id": 2, "title": "Match replay / clip storage", "status": "MISSING", "note": "No clip upload endpoint or replay storage path"},
+      {"id": 3, "title": "Spectate mode", "status": "MISSING", "note": "WS supports N observers but no spectate-only role or UI"},
+      {"id": 4, "title": "Leaderboard + sovereign sessions", "status": "PARTIAL", "note": "sovereign_sessions collection counted in system-scan but no leaderboard endpoint"},
+      {"id": 5, "title": "Anti-cheat input validation", "status": "MISSING", "note": "No server-side input sequence validation or rate limiting on score events"},
+      {"id": 6, "title": "Multi-player lobbies (3+ players)", "status": "MISSING", "note": "Current stub supports exactly 2 players; lobby/team system not implemented"},
+      {"id": 7, "title": "Creator Card modifier application", "status": "STUB_ONLY", "note": "Loadout included in match payload but modifiers not applied to scoring"},
+      {"id": 8, "title": "Coach critique hooks on match events", "status": "MISSING", "note": "No timestamp/frame anchoring for coach critique to match event seq"}
+    ],
+    "unreal_bridge_notes": {
+      "nexus_bridge_path": "FinalEvolutionLab/Services/NexusBridge.swift",
+      "unreal_manager_deleted": true,
+      "nexus_approach": "NexusBridge.swift replaces UnrealManager. Uses HTTP poll against /api/debug/latest-system-scan and /api/debug/match/{match_id}/payload for system-scan and match state.",
+      "ws_integration": "Nexus can also subscribe to /ws/match/{match_id} for push-based events."
+    }
+  }
+}

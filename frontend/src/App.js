@@ -18,6 +18,7 @@ import { SovereignDashboard } from "@/components/SovereignDashboard";
 import { FELOSDashboard } from "@/components/FELOSDashboard";
 import { NexusPage } from "@/components/NexusConsole";
 import DistributionPage from "@/components/DistributionPage";
+import GameView from "@/components/GameView";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -1264,6 +1265,7 @@ function AppRouter() {
       <Route path="/download" element={<DownloadPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/playtest/match" element={<GameView />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
