@@ -1300,6 +1300,13 @@ struct SoccerGameView: View {
     @State private var powerDirection: Double = 1.0
     @State private var powerTimer: Task<Void, Never>? = nil
 
+    // MARK: — Drag-to-Aim
+    @State private var shotDragStart: CGPoint = .zero
+    @State private var shotDragCurrent: CGPoint = .zero
+    @State private var isShotDragging: Bool = false
+    @State private var shotPower: CGFloat = 0
+    @State private var keeperPosition: CGFloat = 0.5
+
     @State private var showRoundFeedback: Bool = false
     @State private var roundFeedbackText: String = ""
     @State private var roundFeedbackColor: Color = .white
@@ -1456,12 +1463,57 @@ struct SoccerGameView: View {
                 isRaining: isRaining,
                 isPenaltyAwarded: isPenaltyAwarded,
                 isCorner: isCorner,
-                lastCornerTime: lastCornerTime
+                lastCornerTime: lastCornerTime,
+                isShotDragging: isShotDragging,
+                shotDragStart: shotDragStart,
+                shotDragCurrent: shotDragCurrent,
+                keeperPosition: keeperPosition
             )
             .frame(height: 240)
             .clipShape(.rect(cornerRadius: 16))
             .padding(.horizontal, 12)
             .padding(.top, 8)
+            .gesture(
+                DragGesture(minimumDistance: 10)
+                    .onChanged { value in
+                        guard !shotFired else { return }
+                        if !isShotDragging {
+                            isShotDragging = true
+                            shotDragStart = value.startLocation
+                        }
+                        shotDragCurrent = value.location
+                        // Compute shotPower from drag distance
+                        let dist = sqrt(pow(value.translation.width, 2) + pow(value.translation.height, 2))
+                        shotPower = min(100, dist / 1.8)
+                        // Keeper reacts to drag direction with 0.3s delay
+                        let dragNorm = value.translation.width / max(1, abs(value.translation.width) + abs(value.translation.height))
+                        let targetKeeperPos = CGFloat(0.5 + Double(dragNorm) * 0.45)
+                        let kp = targetKeeperPos  // capture for async
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(300))
+                            await MainActor.run {
+                                withAnimation(.easeOut(duration: 0.2)) { keeperPosition = kp }
+                            }
+                        }
+                        // Update aimValue from horizontal component of drag vs goal width
+                        let screenW = UIScreen.main.bounds.width - 24  // account for padding
+                        let rawAim = (value.location.x / screenW) * 2.0 - 1.0
+                        aimValue = max(-1.0, min(1.0, rawAim * 1.6))
+                    }
+                    .onEnded { value in
+                        guard isShotDragging else { return }
+                        isShotDragging = false
+                        // Fire the shot using drag-based power
+                        if !shotFired {
+                            let dist = sqrt(pow(value.translation.width, 2) + pow(value.translation.height, 2))
+                            let relPower = min(100, Double(dist) / 1.8)
+                            fireShot(withReleasePower: relPower)
+                        }
+                        shotDragStart = .zero
+                        shotDragCurrent = .zero
+                        shotPower = 0
+                    }
+            )
             .overlay(alignment: .top) {
                 if varCheckActive {
                     varCheckOverlay
@@ -2328,6 +2380,12 @@ struct SoccerGameView: View {
         shotPowerMeter = 0; showReleaseButton = false; shotPowerFilling = false
         shotPowerTimer?.cancel(); shotPowerTimer = nil
         releasePower = 0
+        // Reset drag-to-aim state
+        isShotDragging = false
+        shotDragStart = .zero
+        shotDragCurrent = .zero
+        shotPower = 0
+        keeperPosition = 0.5
     }
 
     private func grantShards(playerWon: Bool, isDraw: Bool) {
