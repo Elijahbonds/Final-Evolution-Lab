@@ -1676,6 +1676,7 @@ struct SurfingGameView: View {
             let shards = playerWins ? 50 : (isDraw ? 25 : 15)
             viewModel.profile.evolutionShards += shards
         }
+        GameResultService.saveResult(modeId: "surfing", userScore: Int(heat1Score))
         phase = .heatResult
         Task {
             try? await Task.sleep(for: .seconds(3.0))

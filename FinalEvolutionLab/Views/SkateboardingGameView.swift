@@ -1284,6 +1284,7 @@ struct SkateboardingGameView: View {
             let opponentScore = Int.random(in: 400...700)
             didWin = bestRunScore > opponentScore
             if didWin { hapticSuccess() }
+            GameResultService.saveResult(modeId: "skateboarding", userScore: bestRunScore)
             phase = .result
         } else {
             currentRun += 1

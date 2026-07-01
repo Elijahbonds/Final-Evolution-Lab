@@ -1386,6 +1386,7 @@ struct SnowboardingGameView: View {
         if currentRound >= totalRounds {
             let opponentScore = Int.random(in: 600...1200)
             didWin = totalScore > opponentScore
+            GameResultService.saveResult(modeId: "snowboarding", userScore: totalScore)
             phase = .result
         } else {
             currentRound += 1

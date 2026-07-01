@@ -2163,6 +2163,7 @@ struct FootballGameView: View {
     private func grantRewards(shards: Int) {
         guard !rewardGranted else { return }
         rewardGranted = true
+        GameResultService.saveResult(modeId: "football", userScore: homeScore, opponentScore: awayScore)
         viewModel.profile.evolutionShards += shards
         let xpGain = min(XP_CAP_PER_SESSION, shards * 2)
         viewModel.profile.metrics.prqScore = min(100, viewModel.profile.metrics.prqScore + Double(xpGain) / 100.0)

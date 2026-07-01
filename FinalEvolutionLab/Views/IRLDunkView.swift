@@ -944,6 +944,7 @@ struct IRLDunkView: View {
             hapticNotification(.error)
         }
 
+        GameResultService.saveResult(modeId: "basketball_irl", userScore: Int(totalScore * 10))
         phase = .result
     }
 }
