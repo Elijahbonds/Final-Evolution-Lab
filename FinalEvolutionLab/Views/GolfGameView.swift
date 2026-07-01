@@ -2055,31 +2055,49 @@ struct GolfGameView: View {
 
     private var holeScoreSummary: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 ForEach(holeResults, id: \.hole) { r in
+                    let hPar = courseCard[min(r.hole - 1, courseCard.count - 1)].par
+                    let svp  = r.strokes - hPar
                     VStack(spacing: 2) {
-                        Text("H\(r.hole)").font(.system(size: 7, weight: .black, design: .monospaced))
+                        Text("H\(r.hole)").font(.system(size: 6, weight: .black, design: .monospaced))
                             .foregroundStyle(.secondary)
+                        Text("P\(hPar)").font(.system(size: 6, design: .monospaced))
+                            .foregroundStyle(.secondary.opacity(0.6))
                         Text("\(r.strokes)").font(.system(size: 13, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
-                        Text(scoreSymbol(r.scoreVsPar))
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .foregroundStyle(scoreColor(r.scoreVsPar))
+                        Text(scoreSymbol(svp))
+                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                            .foregroundStyle(scoreColor(svp))
                     }
-                    .padding(.horizontal, 6).padding(.vertical, 4)
+                    .padding(.horizontal, 5).padding(.vertical, 4)
                     .background(RoundedRectangle(cornerRadius: 6).fill(Theme.cardBackground.opacity(0.6))
                         .overlay(RoundedRectangle(cornerRadius: 6)
-                            .stroke(scoreColor(r.scoreVsPar).opacity(0.4), lineWidth: 1)))
+                            .stroke(scoreColor(svp).opacity(0.4), lineWidth: 1)))
                 }
             }.padding(.horizontal, 4)
         }
     }
 
     private func scoreSymbol(_ vsPar: Int) -> String {
-        switch vsPar { case ..<(-1): "🦅"; case -1: "B"; case 0: "="; case 1: "+"; default: "++" }
+        switch vsPar {
+        case ..<(-2): return "ALB"
+        case -2:      return "EGL"
+        case -1:      return "BRD"
+        case 0:       return "PAR"
+        case 1:       return "BOG"
+        case 2:       return "DBL"
+        default:      return "+\(vsPar)"
+        }
     }
     private func scoreColor(_ vsPar: Int) -> Color {
-        switch vsPar { case ..<0: accentColor; case 0: .white; case 1: .orange; default: .red }
+        switch vsPar {
+        case ..<(-1): return Color(red: 1.0, green: 0.85, blue: 0.20)
+        case -1:      return accentColor
+        case 0:       return .white
+        case 1:       return .orange
+        default:      return .red
+        }
     }
 
     // MARK: - Overlays
