@@ -126,6 +126,236 @@ private struct KaiProctorCanvas: View {
     }
 }
 
+// MARK: - Jump Height Meter
+
+private struct JumpHeightMeter: View {
+    let currentHeight: Double   // 0.0 – 1.0 normalised
+    let maxHeight: Double       // 0.0 – 1.0 normalised peak marker
+
+    private func fillColor(_ ratio: Double) -> Color {
+        if ratio > 0.75 { return .red }
+        if ratio > 0.45 { return .yellow }
+        return Color(red: 0.0, green: 0.85, blue: 0.45)
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let h = geo.size.height
+            let w = geo.size.width
+            let fillH = h * CGFloat(max(0, min(1, currentHeight)))
+            let peakY = h * (1.0 - CGFloat(max(0, min(1, maxHeight))))
+
+            ZStack(alignment: .bottom) {
+                // Track
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: w, height: h)
+
+                // Fill bar
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                fillColor(currentHeight).opacity(0.9),
+                                fillColor(currentHeight).opacity(0.55)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: w, height: fillH)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: currentHeight)
+
+                // Peak marker line
+                Rectangle()
+                    .fill(Color.yellow)
+                    .frame(width: w + 4, height: 2)
+                    .offset(y: -(h - peakY - 1))
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: maxHeight)
+
+                // Tick marks
+                ForEach([0.25, 0.5, 0.75], id: \.self) { tick in
+                    Rectangle()
+                        .fill(Color.white.opacity(0.20))
+                        .frame(width: w * 0.5, height: 1)
+                        .offset(y: -(h * CGFloat(tick) - 1))
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+    }
+}
+
+// MARK: - Session Arc Timer
+
+private struct SessionArcTimer: View {
+    let remaining: Int   // seconds
+    let total: Int       // seconds (90)
+
+    private var fraction: Double {
+        Double(remaining) / Double(max(1, total))
+    }
+
+    private var arcColor: Color {
+        if remaining <= 10 { return .red }
+        if remaining <= 30 { return .orange }
+        return Color(red: 0.0, green: 0.9, blue: 1.0)
+    }
+
+    var body: some View {
+        ZStack {
+            // Background track
+            Circle()
+                .stroke(Color.white.opacity(0.10), lineWidth: 5)
+
+            // Progress arc (drains clockwise)
+            Circle()
+                .trim(from: 0, to: CGFloat(fraction))
+                .stroke(
+                    arcColor,
+                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: 1), value: remaining)
+
+            // Time text
+            VStack(spacing: 1) {
+                Text(String(format: "%d:%02d", remaining / 60, remaining % 60))
+                    .font(.system(size: 18, weight: .black, design: .monospaced))
+                    .foregroundStyle(arcColor)
+                    .contentTransition(.numericText())
+                Text("LEFT")
+                    .font(.system(size: 6, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(1)
+            }
+        }
+    }
+}
+
+// MARK: - Jump Count Badge
+
+private struct JumpCountBadge: View {
+    let count: Int
+    @State private var pulse = false
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(0.10))
+                .frame(width: 52, height: 52)
+                .scaleEffect(pulse ? 1.22 : 1.0)
+                .animation(.spring(response: 0.25, dampingFraction: 0.5), value: pulse)
+
+            VStack(spacing: 0) {
+                Text("\(count)")
+                    .font(.system(size: 20, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
+                Text("JUMPS")
+                    .font(.system(size: 6, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(1)
+            }
+        }
+        .onChange(of: count) {
+            pulse = true
+            Task {
+                try? await Task.sleep(for: .milliseconds(250))
+                await MainActor.run { pulse = false }
+            }
+        }
+    }
+}
+
+// MARK: - Personal Best Flash Overlay
+
+private struct PersonalBestFlash: View {
+    let isVisible: Bool
+
+    var body: some View {
+        ZStack {
+            Color.yellow.opacity(0.18)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
+            VStack(spacing: 6) {
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.yellow)
+                Text("NEW BEST!")
+                    .font(.system(size: 22, weight: .black, design: .monospaced))
+                    .foregroundStyle(.yellow)
+                    .tracking(3)
+                    .shadow(color: .yellow.opacity(0.7), radius: 8)
+            }
+        }
+        .opacity(isVisible ? 1 : 0)
+        .animation(.easeInOut(duration: 0.25), value: isVisible)
+    }
+}
+
+// MARK: - Ten-Second Warning Border
+
+private struct TenSecondBorder: View {
+    let isActive: Bool
+
+    var body: some View {
+        TimelineView(.animation(paused: !isActive)) { tl in
+            let t = tl.date.timeIntervalSinceReferenceDate
+            let alpha = isActive ? (0.55 + 0.45 * sin(t * 5.0)) : 0.0
+            Rectangle()
+                .strokeBorder(Color.red.opacity(alpha), lineWidth: 6)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+        }
+    }
+}
+
+// MARK: - Kai Reaction Line
+
+private struct KaiReactionLine: View {
+    let score: Double
+    let isVisible: Bool
+
+    private var line: String {
+        if score > 8.5 { return "ELITE HANG TIME! Certified." }
+        if score >= 7.0 { return "That's it! Push through!" }
+        return "Work harder! I need elevation."
+    }
+
+    private var lineColor: Color {
+        if score > 8.5 { return .yellow }
+        if score >= 7.0 { return Color(red: 0.0, green: 0.9, blue: 1.0) }
+        return .orange
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "quote.opening")
+                .font(.system(size: 9))
+                .foregroundStyle(lineColor.opacity(0.7))
+            Text(line)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(lineColor)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.black.opacity(0.65))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(lineColor.opacity(0.30), lineWidth: 1)
+                )
+        )
+        .opacity(isVisible ? 1 : 0)
+        .offset(y: isVisible ? 0 : 8)
+        .animation(.spring(response: 0.30, dampingFraction: 0.75), value: isVisible)
+    }
+}
+
 // MARK: - IRLDunkView
 
 struct IRLDunkView: View {
@@ -145,6 +375,15 @@ struct IRLDunkView: View {
     @State private var heartRate: Double = 72
     @State private var timerTask: Task<Void, Never>?
 
+    // Visual enhancement state
+    @State private var currentJumpNorm: Double = 0.0    // 0–1 for jump meter fill
+    @State private var peakJumpNorm: Double = 0.0       // 0–1 for peak marker
+    @State private var sessionBestRaw: Double = 0.0     // raw height cm for PB tracking
+    @State private var showPBFlash = false
+    @State private var showKaiReaction = false
+    @State private var kaiReactionScore: Double = 0.0
+    @State private var countdownWarningFired: Set<Int> = []   // track which marks fired
+
     private enum IRLPhase { case ready, active, result }
 
     private let kaiReactions = [
@@ -154,6 +393,11 @@ struct IRLDunkView: View {
 
     private var totalScore: Double { scores.sorted(by: >).prefix(5).reduce(0, +) }
     private var bestScore: Double { scores.max() ?? 0 }
+
+    // Normalise raw height (cm) to 0–1 across typical dunk range 30–80 cm
+    private func normHeight(_ h: Double) -> Double {
+        min(1.0, max(0.0, (h - 30.0) / 50.0))
+    }
 
     var body: some View {
         ZStack {
@@ -300,6 +544,22 @@ struct IRLDunkView: View {
             }
             .ignoresSafeArea()
 
+            // 10-second pulsing border
+            TenSecondBorder(isActive: sessionTime <= 10)
+
+            // Personal best gold flash
+            PersonalBestFlash(isVisible: showPBFlash)
+
+            // Jump height meter on left edge
+            VStack {
+                Spacer().frame(height: 120)
+                JumpHeightMeter(currentHeight: currentJumpNorm, maxHeight: peakJumpNorm)
+                    .frame(width: 14)
+                    .padding(.leading, 10)
+                Spacer().frame(height: 120)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             VStack(spacing: 0) {
                 // ── Top HUD ──────────────────────────────────────────
                 HStack(alignment: .top, spacing: 14) {
@@ -318,24 +578,20 @@ struct IRLDunkView: View {
 
                     Spacer()
 
-                    VStack(spacing: 2) {
-                        Text(timeFormatted)
-                            .font(.system(size: 28, weight: .black, design: .monospaced))
-                            .foregroundStyle(sessionTime < 20 ? .red : .white)
-                            .contentTransition(.numericText())
-                        Text("REMAINING")
-                            .font(.system(size: 7, weight: .black, design: .monospaced))
-                            .foregroundStyle(.secondary).tracking(1)
-                    }
+                    // Session arc timer (replaces plain text timer)
+                    SessionArcTimer(remaining: sessionTime, total: 90)
+                        .frame(width: 76, height: 76)
 
                     Spacer()
 
-                    VStack(alignment: .trailing, spacing: 2) {
+                    // Jump count badge + total score
+                    VStack(alignment: .trailing, spacing: 6) {
+                        JumpCountBadge(count: jumpCount)
                         Text(String(format: "%.1f", totalScore))
-                            .font(.system(size: 28, weight: .black, design: .monospaced))
+                            .font(.system(size: 20, weight: .black, design: .monospaced))
                             .foregroundStyle(gameMode.accentColor)
-                        Text("\(jumpCount) JUMPS")
-                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                        Text("TOTAL")
+                            .font(.system(size: 6, weight: .black, design: .monospaced))
                             .foregroundStyle(.secondary).tracking(1)
                     }
                 }
@@ -370,6 +626,11 @@ struct IRLDunkView: View {
                 }
 
                 Spacer()
+
+                // ── Kai Reaction Dialog ──────────────────────────────
+                KaiReactionLine(score: kaiReactionScore, isVisible: showKaiReaction)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
 
                 // ── Bottom Controls ──────────────────────────────────
                 VStack(spacing: 12) {
@@ -556,23 +817,68 @@ struct IRLDunkView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(color.opacity(0.06)))
     }
 
+    // MARK: - Haptic Helpers
+
+    private func hapticImpact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        UIImpactFeedbackGenerator(style: style).impactOccurred()
+    }
+
+    private func hapticNotification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        UINotificationFeedbackGenerator().notificationOccurred(type)
+    }
+
     // MARK: - Logic
 
     private func startSession() {
-        sessionTime = 90; jumpCount = 0; scores = []
+        sessionTime = 90
+        jumpCount = 0
+        scores = []
+        sessionBestRaw = 0.0
+        peakJumpNorm = 0.0
+        currentJumpNorm = 0.0
+        countdownWarningFired = []
+
+        // Haptic 4: .soft — session start (phase transitions to .active)
+        hapticImpact(.soft)
+
         timerTask?.cancel()
         timerTask = Task {
             while sessionTime > 0 {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
-                await MainActor.run { sessionTime -= 1 }
+                await MainActor.run {
+                    sessionTime -= 1
+                    handleTimerTick()
+                }
             }
             await MainActor.run { endSession() }
         }
+
         if healthKit.isAuthorized {
             healthKit.startJumpTracking { height in
                 Task { @MainActor in self.recordJump(height: height) }
             }
+        }
+    }
+
+    private func handleTimerTick() {
+        // Haptic 3: .medium — every 30-second mark (t=60, t=30, t=10 warn)
+        let warningMarks = [60, 30, 10]
+        for mark in warningMarks {
+            if sessionTime == mark && !countdownWarningFired.contains(mark) {
+                countdownWarningFired.insert(mark)
+                hapticImpact(.medium)
+            }
+        }
+
+        // Haptic 5: .light — each second of final 10-second countdown
+        if sessionTime <= 10 && sessionTime > 0 {
+            hapticImpact(.light)
+        }
+
+        // Drain the jump meter gradually between jumps
+        if currentJumpNorm > 0 {
+            currentJumpNorm = max(0, currentJumpNorm - 0.08)
         }
     }
 
@@ -583,7 +889,40 @@ struct IRLDunkView: View {
         lastScore = score
         kaiFeedback = kaiReactions.randomElement() ?? "NICE!"
         heartRate = 80 + Double(jumpCount) * 1.2 + Double.random(in: -3...3)
+
+        // Update jump meter
+        let norm = normHeight(height)
+        currentJumpNorm = norm
+
+        // Haptic 1: .heavy — on each jump detected (kept from original)
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+
+        // Haptic 2: .rigid — personal best jump height during session
+        let isPersonalBest = height > sessionBestRaw && jumpCount > 1
+        if isPersonalBest {
+            sessionBestRaw = height
+            peakJumpNorm = norm
+            hapticImpact(.rigid)
+            // Show PB flash
+            showPBFlash = true
+            Task {
+                try? await Task.sleep(for: .milliseconds(1200))
+                await MainActor.run { withAnimation { showPBFlash = false } }
+            }
+        } else if jumpCount == 1 {
+            // First jump always sets the baseline best
+            sessionBestRaw = height
+            peakJumpNorm = norm
+        }
+
+        // Kai reaction line
+        kaiReactionScore = score
+        withAnimation { showKaiReaction = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            await MainActor.run { withAnimation { showKaiReaction = false } }
+        }
+
         withAnimation(.spring(response: 0.28)) { showPopup = true }
         Task {
             try? await Task.sleep(for: .seconds(2.0))
@@ -599,6 +938,12 @@ struct IRLDunkView: View {
         timerTask?.cancel()
         healthKit.stopJumpTracking()
         camera.stop()
+
+        // Haptic 6: .error — session ends with zero jumps (no activity detected)
+        if jumpCount == 0 {
+            hapticNotification(.error)
+        }
+
         phase = .result
     }
 }
