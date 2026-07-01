@@ -245,32 +245,55 @@ struct GameModeCard: View {
 
     @State private var isPressed = false
     @State private var shimmer = false
+    @State private var pulseRing = false
+    @State private var orbRotation: Double = 0
 
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
+                    // Icon with animated outer ring + inner glow
                     ZStack {
+                        // Pulsing ambient glow
                         Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [mode.accentColor.opacity(0.2), mode.accentColor.opacity(0.05)],
-                                    center: .center,
-                                    startRadius: 2,
-                                    endRadius: 22
-                                )
-                            )
+                            .fill(mode.accentColor.opacity(pulseRing ? 0.18 : 0.06))
+                            .frame(width: 52, height: 52)
+                            .blur(radius: 6)
+                            .animation(.easeInOut(duration: 2.1).repeatForever(autoreverses: true), value: pulseRing)
+
+                        // Rotating dashed ring
+                        Circle()
+                            .stroke(
+                                AngularGradient(
+                                    colors: [mode.accentColor.opacity(0.55), .clear, mode.accentColor.opacity(0.3)],
+                                    center: .center),
+                                style: StrokeStyle(lineWidth: 1.2, dash: [3, 5]))
+                            .frame(width: 48, height: 48)
+                            .rotationEffect(.degrees(orbRotation))
+
+                        // Solid icon background
+                        Circle()
+                            .fill(RadialGradient(
+                                colors: [mode.accentColor.opacity(0.22), mode.accentColor.opacity(0.05)],
+                                center: .center, startRadius: 2, endRadius: 22))
                             .frame(width: 42, height: 42)
 
                         Image(systemName: mode.iconName)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(mode.accentColor)
-                            .shadow(color: mode.accentColor.opacity(0.4), radius: 6)
+                            .shadow(color: mode.accentColor.opacity(0.6), radius: 8)
+                            .scaleEffect(isPressed ? 1.1 : 1.0)
                     }
 
                     Spacer()
 
-                    multiplayerBadge
+                    HStack(spacing: 8) {
+                        multiplayerBadge
+                        // Arrow chevron — subtle directional cue
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(mode.accentColor.opacity(0.35))
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -307,38 +330,48 @@ struct GameModeCard: View {
                     RoundedRectangle(cornerRadius: 18)
                         .fill(Theme.cardBackground)
 
+                    // Shimmer sweep when pressed
+                    if shimmer {
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(LinearGradient(
+                                colors: [.clear, mode.accentColor.opacity(0.12), .clear],
+                                startPoint: .topLeading, endPoint: .bottomTrailing))
+                    }
+
                     RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            LinearGradient(
-                                colors: [mode.accentColor.opacity(0.06), .clear, mode.accentColor.opacity(0.03)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(LinearGradient(
+                            colors: [mode.accentColor.opacity(0.07), .clear, mode.accentColor.opacity(0.04)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
 
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    mode.accentColor.opacity(isPressed ? 0.5 : 0.15),
-                                    mode.accentColor.opacity(0.05),
-                                    mode.accentColor.opacity(isPressed ? 0.3 : 0.1)
+                                    mode.accentColor.opacity(isPressed ? 0.6 : 0.18),
+                                    mode.accentColor.opacity(0.06),
+                                    mode.accentColor.opacity(isPressed ? 0.35 : 0.12)
                                 ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
+                                startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: isPressed ? 1.5 : 1)
                 }
-                .shadow(color: mode.accentColor.opacity(isPressed ? 0.15 : 0.05), radius: isPressed ? 12 : 4)
+                .shadow(color: mode.accentColor.opacity(isPressed ? 0.22 : 0.06), radius: isPressed ? 16 : 5)
             )
             .scaleEffect(isPressed ? 0.96 : 1)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .light), trigger: isPressed)
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isPressed = pressing }
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                isPressed = pressing
+                shimmer = pressing
+            }
         }, perform: {})
+        .onAppear {
+            pulseRing = true
+            withAnimation(.linear(duration: 12.0).repeatForever(autoreverses: false)) {
+                orbRotation = 360
+            }
+        }
     }
 
     private var multiplayerBadge: some View {

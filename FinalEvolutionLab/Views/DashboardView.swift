@@ -8,6 +8,9 @@ struct DashboardView: View {
     @State private var gaugeAnimationProgress: Double = 0
     @State private var showShareToFeed: Bool = false
     @State private var bridgeToastVisible: Bool = false
+    @State private var orbRingRotation: Double = 0
+    @State private var outerPulse: Double = 0.5
+    @State private var particlePhase: Double = 0
 #if DEBUG
     @State private var simulateScanBusy: Bool = false
     @State private var simulateScanMessage: String?
@@ -61,6 +64,12 @@ struct DashboardView: View {
             withAnimation(.spring(response: 0.6)) { appeared = true }
             withAnimation(.easeOut(duration: 1.2).delay(0.3)) {
                 gaugeAnimationProgress = prqNormalized
+            }
+            withAnimation(.linear(duration: 8.0).repeatForever(autoreverses: false)) {
+                orbRingRotation = 360
+            }
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                outerPulse = 1.0
             }
         }
         .onChange(of: prqScore) { _, newValue in
@@ -122,10 +131,28 @@ struct DashboardView: View {
     private var prqGaugeCard: some View {
         VStack(spacing: 16) {
             ZStack {
+                // Outermost ambient glow ring — pulses with breathing animation
+                Circle()
+                    .stroke(Theme.neonGreen.opacity(outerPulse * 0.12), lineWidth: 22)
+                    .frame(width: 200, height: 200)
+                    .blur(radius: 8)
+
+                // Counter-rotating dashed ring (outer)
+                Circle()
+                    .stroke(
+                        AngularGradient(
+                            colors: [Theme.neonGreen.opacity(0.3), .clear, Theme.neonGreen.opacity(0.2)],
+                            center: .center),
+                        style: StrokeStyle(lineWidth: 1, dash: [4, 8]))
+                    .frame(width: 196, height: 196)
+                    .rotationEffect(.degrees(-orbRingRotation * 0.7))
+
+                // Track ring
                 Circle()
                     .stroke(Color.white.opacity(0.06), lineWidth: 12)
                     .frame(width: 180, height: 180)
 
+                // PRQ progress arc
                 Circle()
                     .trim(from: 0, to: gaugeAnimationProgress)
                     .stroke(
@@ -133,38 +160,57 @@ struct DashboardView: View {
                             colors: [Theme.neonGreen.opacity(0.4), Theme.neonGreen, Theme.neonGreen.opacity(0.8)],
                             center: .center,
                             startAngle: .degrees(0),
-                            endAngle: .degrees(360)
-                        ),
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
-                    )
+                            endAngle: .degrees(360)),
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round))
                     .frame(width: 180, height: 180)
                     .rotationEffect(.degrees(-90))
 
+                // Co-rotating thin inner ring
+                Circle()
+                    .stroke(Theme.neonGreen.opacity(0.08), lineWidth: 1.5)
+                    .frame(width: 162, height: 162)
+                    .rotationEffect(.degrees(orbRingRotation))
+
+                // Inner fill
                 Circle()
                     .fill(Theme.neonGreen.opacity(0.05))
                     .frame(width: 156, height: 156)
 
+                // Score + label
                 VStack(spacing: 4) {
                     Text("\(prqScore)")
                         .font(.system(size: 56, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
+                        .shadow(color: Theme.neonGreen.opacity(0.35), radius: 10)
 
                     Text("PRQ")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(Theme.neonGreen)
                         .tracking(4)
                 }
+
+                // Orbiting energy dot at arc endpoint
+                let angle = gaugeAnimationProgress * 360.0 - 90.0
+                Circle()
+                    .fill(Theme.neonGreen)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: Theme.neonGreen, radius: 6)
+                    .offset(x: 90 * CGFloat(cos(angle * .pi / 180)),
+                            y: 90 * CGFloat(sin(angle * .pi / 180)))
             }
 
             HStack(spacing: 12) {
-                Text(viewModel.userPRQTier.rawValue)
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(tierColor)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 5)
-                    .background(tierColor.opacity(0.12))
-                    .clipShape(Capsule())
+                HStack(spacing: 5) {
+                    Circle().fill(tierColor).frame(width: 6, height: 6)
+                    Text(viewModel.userPRQTier.rawValue)
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(tierColor)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(tierColor.opacity(0.12))
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(tierColor.opacity(0.25), lineWidth: 1))
 
                 Text("\(viewModel.profile.totalWorkouts) sessions")
                     .font(.system(size: 10, weight: .medium))
@@ -174,12 +220,17 @@ struct DashboardView: View {
         .padding(24)
         .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(Theme.neonGreen.opacity(0.15), lineWidth: 1)
-                )
+            ZStack {
+                RoundedRectangle(cornerRadius: 20).fill(Theme.slateCard)
+                // Subtle diagonal gradient overlay
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient(
+                        colors: [Theme.neonGreen.opacity(0.04), .clear, Theme.neonGreen.opacity(0.02)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(Theme.neonGreen.opacity(0.18), lineWidth: 1)
+            }
+            .shadow(color: Theme.neonGreen.opacity(0.08), radius: 20, y: 4)
         )
     }
 
