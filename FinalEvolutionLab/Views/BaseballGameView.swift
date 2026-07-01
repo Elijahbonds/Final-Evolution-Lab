@@ -1245,6 +1245,10 @@ struct BaseballGameView: View {
     @State private var showAIResult: Bool = false
     @State private var screenShake: CGFloat = 0
     @State private var bannerScale: CGFloat = 0.6
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
 
     // Fielding state
     @State private var fieldingZone: Int = 0          // 0=LF, 1=CF, 2=RF
@@ -1260,22 +1264,33 @@ struct BaseballGameView: View {
 
     var body: some View {
         ZStack {
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Home Run Derby",
-                    subtitle: "5 Innings · Swing for the fences",
-                    countdown: 3,
-                    accentColor: gameMode.accentColor,
-                    onComplete: { startInning() }
-                )
-                .background(Color(red: 0.03, green: 0.04, blue: 0.18).ignoresSafeArea())
-            case .batting:  battingBody
-            case .fielding: fieldingBody
-            case .pitching: pitchingBody
-            case .inningBreak: inningBreakBody
-            case .result:   resultBody
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Home Run Derby",
+                        subtitle: "5 Innings · Swing for the fences",
+                        countdown: 3,
+                        accentColor: gameMode.accentColor,
+                        onComplete: { startInning() }
+                    )
+                    .background(Color(red: 0.03, green: 0.04, blue: 0.18).ignoresSafeArea())
+                case .batting:  battingBody
+                case .fielding: fieldingBody
+                case .pitching: pitchingBody
+                case .inningBreak: inningBreakBody
+                case .result:   resultBody
+                }
             }
+            .offset(x: shakeX, y: shakeY)
+
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
+            }
+            .allowsHitTesting(false)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -1341,7 +1356,6 @@ struct BaseballGameView: View {
                 swingResult: swingResult, playerScore: playerScore,
                 aiScore: aiScore, inning: inning, outs: outs
             )
-            .offset(x: screenShake > 0 ? CGFloat.random(in: -screenShake...screenShake) : 0)
 
             VStack(spacing: 0) {
                 scoreHUD
@@ -1787,6 +1801,7 @@ struct BaseballGameView: View {
                     balls = 0; strikes = 0
                     batterPhase = "miss"; outs += 1
                     triggerShake(intensity: 3)
+                    triggerBurst(color: gameMode.accentColor, count: 12)
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                     if outs >= OUTS_PER_INNING { endHalfInning() } else { deliverPitch() }
                 } else {
@@ -1809,6 +1824,7 @@ struct BaseballGameView: View {
             playerScore += Int.random(in: 1...4)
             crowdLevel = min(1.0, crowdLevel + 0.45)
             triggerShake(intensity: 8)
+            triggerBurst(color: .yellow, count: 22)
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             startHitBallAnim(steps: 65)
         case .basehit:
@@ -1817,6 +1833,7 @@ struct BaseballGameView: View {
             lastHitTime = Date().timeIntervalSinceReferenceDate
             playerScore += 1
             crowdLevel = min(1.0, crowdLevel + 0.12)
+            triggerBurst(color: gameMode.accentColor, count: 10)
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             startHitBallAnim(steps: 38)
         case .foul:
@@ -1997,11 +2014,43 @@ struct BaseballGameView: View {
         fieldingWindow = false
     }
 
-    private func triggerShake(intensity: CGFloat) {
-        screenShake = intensity
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
         Task {
-            try? await Task.sleep(for: .milliseconds(320))
-            await MainActor.run { screenShake = 0 }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
         }
     }
 

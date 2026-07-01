@@ -1684,32 +1684,47 @@ struct FootballGameView: View {
     @State private var showPlayResult: Bool = false
     @State private var playResultLabel: String = ""
     @State private var playResultColor: Color = .white
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
 
     var body: some View {
         ZStack {
-            switch phase {
-            case .ready:
-                GetReadyScreen(
-                    title: "Kick Return",
-                    subtitle: "4 Downs · Reach the end zone",
-                    countdown: 3,
-                    accentColor: gameMode.accentColor,
-                    onComplete: { startDrive() }
-                )
-                .background(Color(red: 0.03, green: 0.05, blue: 0.02).ignoresSafeArea())
-            case .presnap:
-                presnapBody
-            case .catchRoute:
-                catchBody
-            case .run:
-                runBody
-            case .touchdown:
-                touchdownBody
-            case .turnover:
-                turnoverBody
-            case .result:
-                resultBody
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(
+                        title: "Kick Return",
+                        subtitle: "4 Downs · Reach the end zone",
+                        countdown: 3,
+                        accentColor: gameMode.accentColor,
+                        onComplete: { startDrive() }
+                    )
+                    .background(Color(red: 0.03, green: 0.05, blue: 0.02).ignoresSafeArea())
+                case .presnap:
+                    presnapBody
+                case .catchRoute:
+                    catchBody
+                case .run:
+                    runBody
+                case .touchdown:
+                    touchdownBody
+                case .turnover:
+                    turnoverBody
+                case .result:
+                    resultBody
+                }
             }
+            .offset(x: shakeX, y: shakeY)
+
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
+            }
+            .allowsHitTesting(false)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -2352,6 +2367,8 @@ struct FootballGameView: View {
                 sackCount += 1
                 yardLine = max(1, yardLine - 7)
                 let isFumble = sackCount >= 4
+                triggerShake(intensity: isFumble ? 16 : 14)
+                triggerBurst(color: .red, count: 12)
                 withAnimation {
                     playResultLabel = isFumble ? "FUMBLE! TURNOVER!" : "SACKED! −7 YDS"
                     playResultColor = .red; showPlayResult = true
@@ -2491,6 +2508,8 @@ struct FootballGameView: View {
     private func handleIncompletionOrSack() {
         clockTask?.cancel(); qbPose = "idle"
         hapticSoft()  // Haptic #4: incomplete pass
+        triggerShake(intensity: 16)
+        triggerBurst(color: .yellow, count: 16)
         withAnimation {
             playResultLabel = "INCOMPLETE"
             playResultColor = .red; showPlayResult = true
@@ -2544,6 +2563,8 @@ struct FootballGameView: View {
             homeScore += 6
             hapticHeavy()   // Haptic #1: touchdown .heavy
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            triggerShake(intensity: 20)
+            triggerBurst(color: gameMode.accentColor, count: 24)
             withAnimation(.spring(response: 0.3, dampingFraction: 0.5).delay(0.1)) { tdScale = 1.0; tdFlash = true }
             Task {
                 try? await Task.sleep(for: .seconds(3.2))
@@ -2572,6 +2593,7 @@ struct FootballGameView: View {
         else { down += 1 }
         if down > MAX_DOWNS {
             hapticError()  // Haptic #5: turnover / sack .error
+            triggerShake(intensity: 10)
             phase = .turnover
             Task { try? await Task.sleep(for: .seconds(2.5)); await MainActor.run { phase = .result } }
             return
@@ -2596,6 +2618,8 @@ struct FootballGameView: View {
         if made {
             hapticRigid()
             homeScore += 3
+            triggerShake(intensity: 12)
+            triggerBurst(color: gameMode.accentColor, count: 14)
             withAnimation(.spring(response: 0.3)) {
                 showPlayResult = true
                 playResultLabel = "FIELD GOAL! +3 PTS"
@@ -2604,6 +2628,7 @@ struct FootballGameView: View {
             }
         } else {
             hapticError()
+            triggerShake(intensity: 10)
             withAnimation(.spring(response: 0.3)) {
                 showPlayResult = true
                 playResultLabel = "FIELD GOAL NO GOOD!"
@@ -2649,5 +2674,45 @@ struct FootballGameView: View {
         viewModel.profile.evolutionShards += shards
         let xpGain = min(XP_CAP_PER_SESSION, shards * 2)
         viewModel.profile.metrics.prqScore = min(100, viewModel.profile.metrics.prqScore + Double(xpGain) / 100.0)
+    }
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 }

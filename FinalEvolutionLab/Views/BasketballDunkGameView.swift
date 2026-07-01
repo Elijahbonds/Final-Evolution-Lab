@@ -979,21 +979,38 @@ struct BasketballDunkGameView: View {
     @State private var playerTotal: Int = 0; @State private var aiTotal: Int = 0
     @State private var shardsAwarded = false
 
+    // Shake & burst effects
+    @State private var shakeX: CGFloat = 0
+    @State private var shakeY: CGFloat = 0
+    @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
+    @State private var burstCounter: Int = 0
+
     var body: some View {
         ZStack {
             Color(red: 0.02, green: 0.06, blue: 0.12).ignoresSafeArea()
 
-            switch phase {
-            case .ready:
-                GetReadyScreen(title: "Dunk Contest", subtitle: "3 rounds · Select style · Impress the judges",
-                               countdown: 3, accentColor: accent, onComplete: { phase = .styleSelect })
-            case .styleSelect:    styleSelectScreen
-            case .approach:       approachScreen
-            case .execution:      executionScreen
-            case .judgeReveal:    judgeRevealScreen
-            case .roundTransition: roundTransitionOverlay
-            case .result:         resultScreen
+            Group {
+                switch phase {
+                case .ready:
+                    GetReadyScreen(title: "Dunk Contest", subtitle: "3 rounds · Select style · Impress the judges",
+                                   countdown: 3, accentColor: accent, onComplete: { phase = .styleSelect })
+                case .styleSelect:    styleSelectScreen
+                case .approach:       approachScreen
+                case .execution:      executionScreen
+                case .judgeReveal:    judgeRevealScreen
+                case .roundTransition: roundTransitionOverlay
+                case .result:         resultScreen
+                }
             }
+            .offset(x: shakeX, y: shakeY)
+
+            ForEach(burstParticles, id: \.id) { p in
+                Circle().fill(p.color).frame(width: 7, height: 7)
+                    .offset(x: p.x - UIScreen.main.bounds.width/2 + CGFloat(cos(p.angle)) * p.distance,
+                            y: p.y - UIScreen.main.bounds.height/2 + CGFloat(sin(p.angle)) * p.distance)
+                    .opacity(p.opacity).blur(radius: 1)
+            }
+            .allowsHitTesting(false)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -1611,7 +1628,12 @@ struct BasketballDunkGameView: View {
                     await MainActor.run { impactSoft.impactOccurred() }
                 }
             }
-            await MainActor.run { postDunk = true; scoreRound() }
+            await MainActor.run {
+                postDunk = true
+                triggerShake(intensity: 14)
+                triggerBurst(color: accent, count: 14)
+                scoreRound()
+            }
         }
     }
 
@@ -1636,6 +1658,8 @@ struct BasketballDunkGameView: View {
         if perfect {
             // Haptic 2: rigid on perfect score (10)
             impactRigid.impactOccurred()
+            triggerShake(intensity: 20)
+            triggerBurst(color: .yellow, count: 20)
         }
 
         let prqBoost = min(1.0, viewModel.effectiveMetrics.prqScore / 100.0)
@@ -1718,5 +1742,45 @@ struct BasketballDunkGameView: View {
         guard !shardsAwarded else { return }
         shardsAwarded = true
         viewModel.profile.evolutionShards += winner == .p1 ? 50 : winner == .draw ? 25 : 15
+    }
+
+    private func triggerShake(intensity: CGFloat = 8) {
+        let i = intensity
+        withAnimation(.interpolatingSpring(stiffness: 700, damping: 8)) {
+            shakeX = CGFloat.random(in: -i...i); shakeY = CGFloat.random(in: -i...i)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run {
+                withAnimation(.interpolatingSpring(stiffness: 700, damping: 10)) {
+                    shakeX = CGFloat.random(in: -i*0.5...i*0.5); shakeY = CGFloat.random(in: -i*0.5...i*0.5)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+            await MainActor.run { withAnimation(.spring(response: 0.15)) { shakeX = 0; shakeY = 0 } }
+        }
+    }
+
+    private func triggerBurst(color: Color, count: Int = 14) {
+        let id = burstCounter; burstCounter += 1
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        let particles = (0..<count).map { i -> (id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color) in
+            let angle = Double(i) / Double(count) * 2 * .pi + Double.random(in: -0.3...0.3)
+            return (id: id * 100 + i, x: cx, y: cy, angle: angle, distance: 0, opacity: 1.0, color: color)
+        }
+        burstParticles.append(contentsOf: particles)
+        withAnimation(.easeOut(duration: 0.65)) {
+            for i in 0..<burstParticles.count {
+                if burstParticles[i].id >= id * 100 {
+                    burstParticles[i].distance = CGFloat.random(in: 50...100)
+                    burstParticles[i].opacity = 0
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(750))
+            await MainActor.run { burstParticles.removeAll { $0.id >= id * 100 } }
+        }
     }
 }
