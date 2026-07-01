@@ -101,6 +101,16 @@ private enum HighlightType: String {
     case putback     = "PUTBACK SLAM!"
 }
 
+// MARK: - Dribble Move
+
+private enum DribbleMove: String {
+    case crossover   = "CROSSOVER"
+    case spinMove    = "SPIN"
+    case behindBack  = "BEHIND THE BACK"
+    case hesitation  = "HESITATION"
+    case ankleBreaker = "ANKLE BREAKER"
+}
+
 // MARK: - 3v3 Court Canvas
 
 private struct Court3v3Canvas: View {
@@ -118,6 +128,13 @@ private struct Court3v3Canvas: View {
     let lastResult: v3ShotResult?
     let showResultLabel: Bool
     let comboCount: Int
+    // Streetball additions
+    let frozenDefenderIdx: Int?
+    let hotPlayer: Int?
+    let isDriving: Bool
+    let driveProgress: CGFloat
+    let hypeLevel: CGFloat
+    let ballHandlerX: CGFloat
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -140,7 +157,13 @@ private struct Court3v3Canvas: View {
                     shotClock: shotClock,
                     lastResult: lastResult,
                     showResultLabel: showResultLabel,
-                    comboCount: comboCount
+                    comboCount: comboCount,
+                    frozenDefenderIdx: frozenDefenderIdx,
+                    hotPlayer: hotPlayer,
+                    isDriving: isDriving,
+                    driveProgress: driveProgress,
+                    hypeLevel: hypeLevel,
+                    ballHandlerX: ballHandlerX
                 )
                 d.render(into: &ctx)
             }
@@ -165,6 +188,13 @@ private struct Draw3v3 {
     let lastResult: v3ShotResult?
     let showResultLabel: Bool
     let comboCount: Int
+    // Streetball additions
+    let frozenDefenderIdx: Int?
+    let hotPlayer: Int?
+    let isDriving: Bool
+    let driveProgress: CGFloat
+    let hypeLevel: CGFloat
+    let ballHandlerX: CGFloat
 
     var floorY: CGFloat { H * 0.68 }
     var rimY: CGFloat { H * 0.33 + CGFloat(rimShake) * 5 * CGFloat(sin(t * 48)) }
@@ -178,7 +208,9 @@ private struct Draw3v3 {
          shotProgress: Double, passProgress: Double, passFromIdx: Int, passToIdx: Int,
          playerPoses: [String], opponentPoses: [String], rimShake: Double,
          playerScore: Int, opponentScore: Int, matchClock: Int, shotClock: Int,
-         lastResult: v3ShotResult?, showResultLabel: Bool, comboCount: Int) {
+         lastResult: v3ShotResult?, showResultLabel: Bool, comboCount: Int,
+         frozenDefenderIdx: Int?, hotPlayer: Int?, isDriving: Bool,
+         driveProgress: CGFloat, hypeLevel: CGFloat, ballHandlerX: CGFloat) {
         W = size.width; H = size.height; self.t = t
         self.possession = possession; self.activePasser = activePasser
         self.shotProgress = shotProgress; self.passProgress = passProgress
@@ -189,6 +221,12 @@ private struct Draw3v3 {
         self.matchClock = matchClock; self.shotClock = shotClock
         self.lastResult = lastResult; self.showResultLabel = showResultLabel
         self.comboCount = comboCount
+        self.frozenDefenderIdx = frozenDefenderIdx
+        self.hotPlayer = hotPlayer
+        self.isDriving = isDriving
+        self.driveProgress = driveProgress
+        self.hypeLevel = hypeLevel
+        self.ballHandlerX = ballHandlerX
     }
 
     mutating func render(into ctx: inout GraphicsContext) {
@@ -547,7 +585,8 @@ private struct Draw3v3 {
     // MARK: - Stick Figures #24–#50
 
     private func drawFigure(ctx: inout GraphicsContext, cx: CGFloat, fy: CGFloat,
-                             pose: String, color: Color, flip: Bool, index: Int) {
+                             pose: String, color: Color, flip: Bool, index: Int,
+                             isFrozen: Bool = false, isHot: Bool = false) {
         let sc: CGFloat = H * 0.0028
         let m: CGFloat = flip ? -1 : 1
         let headR = sc * 9
@@ -684,6 +723,33 @@ private struct Draw3v3 {
             gcHot.fill(
                 Path(ellipseIn: CGRect(x: cx - 18, y: shoulderY - 10, width: 36, height: bodyH + 20)),
                 with: .color(Color(red: 1.0, green: 0.55, blue: 0.0).opacity(hotIntensity * 0.50))
+            )
+        }
+
+        // Frozen defender ring (cyan pulsing ring)
+        if isFrozen {
+            var gcFrz = ctx
+            gcFrz.addFilter(.blur(radius: 3))
+            gcFrz.stroke(
+                Path(ellipseIn: CGRect(x: cx - 22, y: headY - 4, width: 44, height: (fy - headY) + 8)),
+                with: .color(Color.cyan.opacity(0.75)),
+                lineWidth: 2.5
+            )
+            // Frost fill
+            gcFrz.fill(
+                Path(ellipseIn: CGRect(x: cx - 18, y: shoulderY, width: 36, height: bodyH)),
+                with: .color(Color.cyan.opacity(0.12))
+            )
+        }
+
+        // Hot player orange glow ring
+        if isHot {
+            var gcHp = ctx
+            gcHp.addFilter(.blur(radius: 5))
+            gcHp.stroke(
+                Path(ellipseIn: CGRect(x: cx - 22, y: headY - 4, width: 44, height: (fy - headY) + 8)),
+                with: .color(Color(red: 1.0, green: 0.45, blue: 0.0).opacity(0.80)),
+                lineWidth: 3
             )
         }
     }
@@ -1152,6 +1218,328 @@ private struct Draw3v3 {
             with: .color(Color.black.opacity(0.30))
         )
     }
+
+    // MARK: - Outdoor Streetball Court
+
+    private func drawOutdoorBackground(ctx: inout GraphicsContext) {
+        // Twilight sky gradient
+        let skyGrad = Gradient(colors: [
+            Color(red: 0.12, green: 0.10, blue: 0.22),
+            Color(red: 0.18, green: 0.10, blue: 0.15),
+            Color(red: 0.22, green: 0.12, blue: 0.08)
+        ])
+        ctx.fill(
+            Path(CGRect(origin: .zero, size: CGSize(width: W, height: H))),
+            with: .linearGradient(skyGrad,
+                startPoint: CGPoint(x: W * 0.5, y: 0),
+                endPoint: CGPoint(x: W * 0.5, y: H))
+        )
+
+        // Weathered asphalt surface
+        ctx.fill(
+            Path(CGRect(x: 0, y: floorY, width: W, height: H - floorY)),
+            with: .color(Color(red: 0.28, green: 0.28, blue: 0.28))
+        )
+
+        // Faded court paint key area
+        let keyGrad = Gradient(colors: [
+            Color(red: 0.45, green: 0.45, blue: 0.45).opacity(0.5),
+            Color(red: 0.45, green: 0.45, blue: 0.45).opacity(0.0)
+        ])
+        ctx.fill(
+            Path(CGRect(x: W * 0.58, y: floorY, width: W * 0.40, height: H - floorY)),
+            with: .linearGradient(keyGrad,
+                startPoint: CGPoint(x: W * 0.78, y: floorY),
+                endPoint: CGPoint(x: W * 0.78, y: H))
+        )
+
+        // Asphalt surface cracks
+        let crackColor = Color.black.opacity(0.40)
+        let crackData: [(CGPoint, CGPoint, CGPoint)] = [
+            (CGPoint(x: W*0.15, y: floorY + 8),  CGPoint(x: W*0.22, y: floorY + 24), CGPoint(x: W*0.19, y: floorY + 40)),
+            (CGPoint(x: W*0.55, y: floorY + 12), CGPoint(x: W*0.50, y: floorY + 28), CGPoint(x: W*0.58, y: floorY + 45)),
+            (CGPoint(x: W*0.35, y: floorY + 30), CGPoint(x: W*0.42, y: floorY + 48), CGPoint(x: W*0.38, y: floorY + 60)),
+            (CGPoint(x: W*0.70, y: floorY + 20), CGPoint(x: W*0.65, y: floorY + 36), CGPoint(x: W*0.72, y: floorY + 52))
+        ]
+        for (a, b, c) in crackData {
+            var crack = Path()
+            crack.move(to: a); crack.addLine(to: b); crack.addLine(to: c)
+            ctx.stroke(crack, with: .color(crackColor), lineWidth: 0.9)
+        }
+    }
+
+    private func drawOutdoorCourt(ctx: inout GraphicsContext) {
+        let lineColor = Color.white.opacity(0.20)
+
+        // Full court boundary
+        ctx.stroke(
+            Path(CGRect(x: W * 0.02, y: floorY, width: W * 0.96, height: H - floorY - 2)),
+            with: .color(lineColor), lineWidth: 1.4
+        )
+
+        // Half-court line
+        var halfLine = Path()
+        halfLine.move(to: CGPoint(x: W * 0.50, y: floorY))
+        halfLine.addLine(to: CGPoint(x: W * 0.50, y: H))
+        ctx.stroke(halfLine, with: .color(lineColor.opacity(0.7)), lineWidth: 1.1)
+
+        // 3-point arc (right basket)
+        var arc3 = Path()
+        arc3.addArc(center: CGPoint(x: rimX, y: floorY),
+                    radius: W * 0.54,
+                    startAngle: .degrees(175), endAngle: .degrees(265), clockwise: false)
+        ctx.stroke(arc3, with: .color(lineColor), lineWidth: 1.3)
+
+        // Paint / key
+        ctx.stroke(
+            Path(CGRect(x: W * 0.66, y: floorY, width: W * 0.32, height: (H - floorY) * 0.55)),
+            with: .color(lineColor), lineWidth: 1.0
+        )
+
+        // Free-throw circle
+        var ftCircle = Path()
+        ftCircle.addArc(center: CGPoint(x: W * 0.67, y: floorY),
+                        radius: W * 0.11,
+                        startAngle: .degrees(180), endAngle: .degrees(360), clockwise: false)
+        ctx.stroke(ftCircle, with: .color(lineColor.opacity(0.7)), lineWidth: 0.8)
+
+        // Orange rim (chain-link style)
+        let rimCenter = CGPoint(x: rimX, y: rimY)
+        let rimRadius: CGFloat = 11
+
+        // Rim metal
+        var rimPath = Path()
+        rimPath.addArc(center: rimCenter, radius: rimRadius,
+                       startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
+        var gcRim = ctx
+        gcRim.addFilter(.shadow(color: Color(red: 0.95, green: 0.45, blue: 0.1).opacity(0.8), radius: 5))
+        gcRim.stroke(rimPath, with: .color(Color(red: 0.95, green: 0.45, blue: 0.1)), lineWidth: 3.5)
+
+        // Chain-link net (zigzag)
+        let netColor = Color(red: 0.88, green: 0.88, blue: 0.75).opacity(0.55)
+        let netRows = 5
+        let netW: CGFloat = rimRadius * 1.8
+        let netRowH: CGFloat = 4.5
+        for row in 0..<netRows {
+            let yTop = rimY + rimRadius + CGFloat(row) * netRowH
+            let yBot = yTop + netRowH
+            let progress = CGFloat(row) / CGFloat(netRows)
+            let rowWidth = netW * (1.0 - progress * 0.30)
+            let xLeft = rimX - rowWidth / 2
+            let cols = 4
+            var netPath = Path()
+            for col in 0..<cols {
+                let xA = xLeft + CGFloat(col) * rowWidth / CGFloat(cols)
+                let xB = xLeft + CGFloat(col + 1) * rowWidth / CGFloat(cols)
+                let xMid = (xA + xB) / 2
+                let sway = CGFloat(sin(t * 3.0 + Double(col))) * 1.2
+                if row % 2 == 0 {
+                    netPath.move(to: CGPoint(x: xA, y: yTop))
+                    netPath.addLine(to: CGPoint(x: xMid + sway, y: yBot))
+                    netPath.addLine(to: CGPoint(x: xB, y: yTop))
+                } else {
+                    netPath.move(to: CGPoint(x: xA, y: yBot))
+                    netPath.addLine(to: CGPoint(x: xMid + sway, y: yTop))
+                    netPath.addLine(to: CGPoint(x: xB, y: yBot))
+                }
+            }
+            ctx.stroke(netPath, with: .color(netColor), lineWidth: 0.8)
+        }
+
+        // Chain-link backboard outline (no glass)
+        let bbX = rimX + 5
+        let bbRect = CGRect(x: bbX, y: rimY - 52, width: 11, height: 44)
+        ctx.stroke(Path(bbRect), with: .color(Color.white.opacity(0.30)), lineWidth: 1.4)
+        // Backboard chain texture
+        var ci: CGFloat = bbX + 2
+        while ci < bbX + 11 {
+            var cLine = Path()
+            cLine.move(to: CGPoint(x: ci, y: rimY - 52))
+            cLine.addLine(to: CGPoint(x: ci, y: rimY - 8))
+            ctx.stroke(cLine, with: .color(Color.white.opacity(0.12)), lineWidth: 0.5)
+            ci += 4
+        }
+    }
+
+    private func drawOutdoorEnvironment(ctx: inout GraphicsContext) {
+        // Chain-link fence vertical lines at edges
+        let fenceColor = Color.white.opacity(0.11)
+        for xOff: CGFloat in [4, 10, 16] {
+            var lf = Path()
+            lf.move(to: CGPoint(x: xOff, y: 0))
+            lf.addLine(to: CGPoint(x: xOff, y: H))
+            ctx.stroke(lf, with: .color(fenceColor), lineWidth: 0.5)
+
+            var rf = Path()
+            rf.move(to: CGPoint(x: W - xOff, y: 0))
+            rf.addLine(to: CGPoint(x: W - xOff, y: H))
+            ctx.stroke(rf, with: .color(fenceColor), lineWidth: 0.5)
+        }
+        // Diagonal chain-link pattern
+        let diagColor = Color.white.opacity(0.06)
+        var diagY: CGFloat = 0
+        while diagY < H {
+            for (x0, x1) in [(0, 16), (W-16, W)] as [(CGFloat,CGFloat)] {
+                var d1 = Path(); d1.move(to: CGPoint(x: x0, y: diagY)); d1.addLine(to: CGPoint(x: x1, y: diagY + 16))
+                var d2 = Path(); d2.move(to: CGPoint(x: x1, y: diagY)); d2.addLine(to: CGPoint(x: x0, y: diagY + 16))
+                ctx.stroke(d1, with: .color(diagColor), lineWidth: 0.5)
+                ctx.stroke(d2, with: .color(diagColor), lineWidth: 0.5)
+            }
+            diagY += 16
+        }
+
+        // Streetlight pole (upper left)
+        let poleX: CGFloat = W * 0.06
+        var pole = Path()
+        pole.move(to: CGPoint(x: poleX, y: H * 0.90))
+        pole.addLine(to: CGPoint(x: poleX, y: floorY * 0.30))
+        pole.addLine(to: CGPoint(x: poleX + 16, y: floorY * 0.22))
+        ctx.stroke(pole, with: .color(Color.white.opacity(0.28)), lineWidth: 2.5)
+        // Warm light cone
+        let lightTip = CGPoint(x: poleX + 16, y: floorY * 0.22)
+        var cone = Path()
+        cone.move(to: lightTip)
+        cone.addLine(to: CGPoint(x: W * 0.40, y: floorY * 1.2))
+        cone.addLine(to: CGPoint(x: W * 0.60, y: floorY * 1.2))
+        cone.closeSubpath()
+        var gcCone = ctx
+        gcCone.addFilter(.blur(radius: 8))
+        gcCone.fill(cone, with: .linearGradient(
+            Gradient(colors: [Color(red: 1.0, green: 0.85, blue: 0.50).opacity(0.22),
+                              Color(red: 1.0, green: 0.85, blue: 0.50).opacity(0.0)]),
+            startPoint: lightTip,
+            endPoint: CGPoint(x: W * 0.5, y: floorY * 1.2)))
+        // Bulb glow
+        var gcBulb = ctx; gcBulb.addFilter(.blur(radius: 4))
+        gcBulb.fill(Path(ellipseIn: CGRect(x: poleX + 10, y: floorY * 0.19, width: 12, height: 6)),
+                    with: .color(Color(red: 1.0, green: 0.9, blue: 0.6).opacity(0.9)))
+
+        // Tree silhouettes (far edges)
+        let treeColor = Color(red: 0.08, green: 0.12, blue: 0.08).opacity(0.85)
+        for (tx, ty, tr, trH) in [(W*0.04, H*0.92, 20.0, 26.0), (W*0.10, H*0.96, 16.0, 20.0),
+                                   (W*0.90, H*0.91, 22.0, 28.0), (W*0.96, H*0.94, 14.0, 18.0)] as [(CGFloat,CGFloat,CGFloat,CGFloat)] {
+            var trunk = Path()
+            trunk.addRect(CGRect(x: tx - 3, y: ty - trH, width: 6, height: trH))
+            ctx.fill(trunk, with: .color(treeColor))
+            var canopy = Path()
+            canopy.addEllipse(in: CGRect(x: tx - tr, y: ty - trH - tr * 1.4, width: tr * 2, height: tr * 2))
+            ctx.fill(canopy, with: .color(treeColor))
+        }
+
+        // Bench silhouettes
+        let benchColor = Color(red: 0.18, green: 0.14, blue: 0.10).opacity(0.65)
+        for (bx, by) in [(W*0.01, H*0.88), (W*0.91, H*0.86)] as [(CGFloat,CGFloat)] {
+            var bench = Path()
+            bench.addRect(CGRect(x: bx, y: by, width: W * 0.08, height: 4))
+            bench.addRect(CGRect(x: bx + 2, y: by + 4, width: 3, height: 7))
+            bench.addRect(CGRect(x: bx + W*0.065, y: by + 4, width: 3, height: 7))
+            ctx.fill(bench, with: .color(benchColor))
+        }
+
+        // Crowd bystanders around court perimeter
+        let bounceAmt = CGFloat(0.5 + 0.5 * sin(t * 2.0)) * CGFloat(hypeLevel) * 5
+        let bystanderData: [(CGFloat, CGFloat, Color)] = [
+            (0.12, 0.82, Color(red: 0.9, green: 0.3, blue: 0.2)),
+            (0.22, 0.90, Color(red: 0.2, green: 0.6, blue: 0.9)),
+            (0.35, 0.93, Color(red: 0.9, green: 0.8, blue: 0.2)),
+            (0.50, 0.92, Color(red: 0.8, green: 0.3, blue: 0.7)),
+            (0.65, 0.90, Color(red: 0.3, green: 0.8, blue: 0.4)),
+            (0.78, 0.88, Color(red: 1.0, green: 0.6, blue: 0.2)),
+            (0.88, 0.84, Color(red: 0.5, green: 0.5, blue: 0.9)),
+            (0.05, 0.70, Color(red: 0.9, green: 0.5, blue: 0.3)),
+            (0.93, 0.72, Color(red: 0.4, green: 0.9, blue: 0.6))
+        ]
+        for (bx, by, color) in bystanderData {
+            let px = W * bx
+            let py = H * by - bounceAmt
+            var bHead = Path()
+            bHead.addEllipse(in: CGRect(x: px - 5, y: py - 14, width: 10, height: 8))
+            var bBody = Path()
+            bBody.addRect(CGRect(x: px - 5, y: py - 6, width: 10, height: 12))
+            ctx.fill(bHead, with: .color(color.opacity(0.70)))
+            ctx.fill(bBody, with: .color(color.opacity(0.65)))
+        }
+    }
+
+    // MARK: - Hype Atmosphere
+
+    private func drawHypeAtmosphere(ctx: inout GraphicsContext) {
+        guard hypeLevel > 0.05 else { return }
+
+        // Hype ring pulse at high levels
+        if hypeLevel >= 0.7 {
+            let pulseR = W * 0.40 + CGFloat(sin(t * 3.0)) * 8
+            var gcRing = ctx
+            gcRing.addFilter(.blur(radius: 8))
+            var hypePath = Path()
+            hypePath.addArc(center: CGPoint(x: W * 0.5, y: H * 0.50),
+                            radius: pulseR,
+                            startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
+            gcRing.stroke(hypePath, with: .color(Color(red: 0.95, green: 0.45, blue: 0.1).opacity(Double(hypeLevel - 0.3) * 0.8)), lineWidth: 3)
+        }
+
+        // "THE PARK IS LIT!" fire sparks at hype == 1.0
+        if hypeLevel >= 0.95 {
+            let sparkColors: [Color] = [.yellow, .orange, Color(red: 1.0, green: 0.3, blue: 0.0)]
+            for i in 0..<20 {
+                let angle = Double(i) / 20.0 * .pi * 2 + t * 1.8
+                let radius = CGFloat(W * 0.35 + CGFloat(i % 5) * 15.0)
+                let sparkX = W * 0.5 + CGFloat(cos(angle)) * radius
+                let sparkY = H * 0.4 + CGFloat(sin(angle)) * radius * 0.5
+                let sc = sparkColors[i % sparkColors.count]
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: sparkX - 3, y: sparkY - 3, width: 6, height: 6)),
+                    with: .color(sc.opacity(0.65))
+                )
+            }
+        }
+
+        // Court edge glow grows with hype
+        var gcEdge = ctx; gcEdge.addFilter(.blur(radius: 12))
+        gcEdge.fill(
+            Path(CGRect(x: 0, y: floorY - 4, width: W, height: 8)),
+            with: .color(Color(red: 0.95, green: 0.45, blue: 0.1).opacity(Double(hypeLevel) * 0.25))
+        )
+    }
+
+    // MARK: - Drive Rush
+
+    private func drawDriveRush(ctx: inout GraphicsContext) {
+        let startX = playerXs[activePasser]
+        let startY = floorY - 30
+        let endX = (rimL + rimR) / 2
+        let endY = rimY + 5
+
+        let curX = startX + (endX - startX) * driveProgress
+        let curY = startY + (endY - startY) * driveProgress - 30 * 4 * driveProgress * (1 - driveProgress)
+
+        // Drive trail
+        var trail = Path()
+        trail.move(to: CGPoint(x: startX, y: startY))
+        trail.addQuadCurve(
+            to: CGPoint(x: curX, y: curY),
+            control: CGPoint(x: startX + (endX - startX) * 0.25, y: startY - H * 0.10))
+        var gcTrail = ctx; gcTrail.addFilter(.blur(radius: 2))
+        gcTrail.stroke(trail, with: .color(Color(red: 0.10, green: 0.92, blue: 0.45).opacity(0.55)),
+                       style: StrokeStyle(lineWidth: 3, dash: [6, 4]))
+
+        // Ball at drive position
+        var driveBall = Path()
+        driveBall.addEllipse(in: CGRect(x: curX - 8, y: curY - 8, width: 16, height: 16))
+        var gcBall = ctx; gcBall.addFilter(.shadow(color: Color.orange.opacity(0.7), radius: 6))
+        gcBall.fill(driveBall, with: .color(Color.orange))
+
+        // Motion blur streaks behind player
+        for streak in 1...3 {
+            let pastProg = max(0, driveProgress - CGFloat(streak) * 0.08)
+            let px = startX + (endX - startX) * pastProg
+            let py = startY + (endY - startY) * pastProg - 30 * 4 * pastProg * (1 - pastProg)
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: px - 6, y: py - 6, width: 12, height: 12)),
+                with: .color(Color(red: 0.10, green: 0.92, blue: 0.45).opacity(0.18 - Double(streak) * 0.05))
+            )
+        }
+    }
 }
 
 // MARK: - Main View
@@ -1222,6 +1610,36 @@ struct Basketball3v3GameView: View {
     @State private var showHighlight: Bool = false
     @State private var highlightSlowMo: Bool = false
 
+    // ── Streetball: Dribble Moves ─────────────────────────────────────────
+    @State private var ballHandlerX: CGFloat = 0.5
+    @State private var dribblePhase: CGFloat = 0
+    @State private var isDribbling: Bool = false
+    @State private var moveLabel: String = ""
+    @State private var moveLabelOpacity: Double = 0
+    @State private var lastSwipeDirection: String = ""
+    @State private var lastSwipeTime: Date = .distantPast
+
+    // ── Streetball: Drive to Basket ───────────────────────────────────────
+    @State private var showDriveButton: Bool = false
+    @State private var isDriving: Bool = false
+    @State private var driveProgress: CGFloat = 0
+    @State private var driveTask: Task<Void, Never>? = nil
+    @State private var driveLockoutTask: Task<Void, Never>? = nil
+
+    // ── Streetball: Frozen Defender ───────────────────────────────────────
+    @State private var frozenDefenderIdx: Int? = nil
+    @State private var frozenTask: Task<Void, Never>? = nil
+
+    // ── Streetball: Hot Hand ──────────────────────────────────────────────
+    @State private var hotPlayer: Int? = nil
+    @State private var consecutiveMakesStreet: Int = 0
+
+    // ── Streetball: Crowd Hype ────────────────────────────────────────────
+    @State private var hypeLevel: CGFloat = 0
+    @State private var hypeDecayTask: Task<Void, Never>? = nil
+    @State private var crowdBounce: Bool = false
+    @State private var showParkLit: Bool = false
+
     // Haptic generators
     private let impactHvy   = UIImpactFeedbackGenerator(style: .heavy)
     private let impactRigid = UIImpactFeedbackGenerator(style: .rigid)
@@ -1229,7 +1647,7 @@ struct Basketball3v3GameView: View {
     private let impactSoft  = UIImpactFeedbackGenerator(style: .soft)
     private let notif       = UINotificationFeedbackGenerator()
 
-    private let targetScore = 15
+    private let targetScore = 21
     private let accentColor = Color(red: 0.2, green: 0.8, blue: 0.4)
     private let teammateNames = ["Dre", "Kev"]
     private let opponentNames = ["Ghost", "Blaze", "Icy"]
@@ -1245,10 +1663,14 @@ struct Basketball3v3GameView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.03, green: 0.04, blue: 0.09).ignoresSafeArea()
+            LinearGradient(colors: [
+                Color(red: 0.12, green: 0.10, blue: 0.22),
+                Color(red: 0.18, green: 0.10, blue: 0.15),
+                Color(red: 0.22, green: 0.12, blue: 0.08)
+            ], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
             switch phase {
             case .ready:
-                GetReadyScreen(title: "3v3 Streetball", subtitle: "2-min match · First to 15 wins",
+                GetReadyScreen(title: "3v3 Streetball", subtitle: "First to 21 · WINNER STAYS",
                                countdown: 3, accentColor: accentColor, onComplete: { startGame() })
             case .playing:
                 playingBody.offset(x: screenShake)
@@ -1295,11 +1717,37 @@ struct Basketball3v3GameView: View {
                 shotClock: shotClock,
                 lastResult: lastResult,
                 showResultLabel: showResultLabel,
-                comboCount: comboCount
+                comboCount: comboCount,
+                frozenDefenderIdx: frozenDefenderIdx,
+                hotPlayer: hotPlayer,
+                isDriving: isDriving,
+                driveProgress: driveProgress,
+                hypeLevel: hypeLevel,
+                ballHandlerX: ballHandlerX
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, 16).padding(.vertical, 6)
+            .gesture(
+                DragGesture(minimumDistance: 8)
+                    .onChanged { value in
+                        guard phase == .playing, possession == .player else { return }
+                        let screenW = UIScreen.main.bounds.width - 32
+                        let newX = max(0.05, min(0.95, value.location.x / screenW))
+                        withAnimation(.interactiveSpring()) { ballHandlerX = newX }
+                        isDribbling = true
+                        dribblePhase += 0.3
+                    }
+                    .onEnded { value in
+                        guard phase == .playing, possession == .player else { return }
+                        isDribbling = false
+                        handleDragEndedStreetball(value: value)
+                    }
+            )
+            .onTapGesture(count: 2) {
+                guard phase == .playing, possession == .player else { return }
+                triggerDribbleMove(.hesitation)
+            }
             .overlay(alignment: .center) {
                 ZStack {
                     // Result label
@@ -1394,12 +1842,54 @@ struct Basketball3v3GameView: View {
                         .offset(y: 80)
                         .transition(.scale.combined(with: .opacity))
                     }
+
+                    // Dribble move label
+                    if moveLabelOpacity > 0 {
+                        Text(moveLabel)
+                            .font(.system(size: 22, weight: .black, design: .monospaced))
+                            .foregroundStyle(moveLabel.contains("ANKLE") || moveLabel.contains("FIRE")
+                                ? Color(red: 0.95, green: 0.45, blue: 0.1)
+                                : accentColor)
+                            .shadow(color: moveLabel.contains("ANKLE") || moveLabel.contains("FIRE")
+                                ? Color(red: 0.95, green: 0.45, blue: 0.1).opacity(0.8)
+                                : accentColor.opacity(0.7), radius: 10)
+                            .opacity(moveLabelOpacity)
+                            .offset(y: -40)
+                            .transition(.opacity)
+                    }
+
+                    // DRIVE button
+                    if showDriveButton && possession == .player && !isDriving {
+                        Button { executeDrive() } label: {
+                            Text("DRIVE!")
+                                .font(.system(size: 18, weight: .black, design: .monospaced))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 28).padding(.vertical, 12)
+                                .background(Color(red: 0.95, green: 0.45, blue: 0.1))
+                                .clipShape(.rect(cornerRadius: 12))
+                                .shadow(color: Color(red: 0.95, green: 0.45, blue: 0.1).opacity(0.6), radius: 10)
+                        }
+                        .offset(y: 50)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+
+                    // "THE PARK IS LIT!" overlay
+                    if showParkLit {
+                        Text("THE PARK IS LIT!")
+                            .font(.system(size: 26, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color(red: 0.95, green: 0.45, blue: 0.1))
+                            .shadow(color: Color(red: 0.95, green: 0.45, blue: 0.1), radius: 16)
+                            .offset(y: -80)
+                            .transition(.scale.combined(with: .opacity))
+                    }
                 }
                 .animation(.spring(response: 0.22, dampingFraction: 0.55), value: showResultLabel)
                 .animation(.spring(response: 0.22, dampingFraction: 0.55), value: showZoneAnnouncer)
                 .animation(.spring(response: 0.25, dampingFraction: 0.60), value: showTeammateOpen)
                 .animation(.spring(response: 0.28, dampingFraction: 0.55), value: showHighlight)
                 .animation(.spring(response: 0.30, dampingFraction: 0.65), value: isSubbing)
+                .animation(.easeInOut(duration: 0.3), value: showDriveButton)
+                .animation(.spring(response: 0.3), value: showParkLit)
             }
 
             comboRow.padding(.horizontal, 20).padding(.bottom, 4)
@@ -1458,7 +1948,7 @@ struct Basketball3v3GameView: View {
 
             VStack(spacing: 2) {
                 Text("–").font(.system(size: 20, weight: .bold)).foregroundStyle(.tertiary)
-                Text("TO 15").font(.system(size: 8, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(1)
+                Text("TO 21").font(.system(size: 8, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(1)
             }
 
             VStack(alignment: .trailing, spacing: 4) {
@@ -1758,7 +2248,7 @@ struct Basketball3v3GameView: View {
                                      combo: comboCount, criticals: comboCount / 3,
                                      scoreDifferential: playerTeamScore - opponentTeamScore)
         return ResultScreen(winner: winner, p1Score: playerTeamScore, p2Score: opponentTeamScore,
-                            title: "3v3 Streetball", accentColor: accentColor, prqGain: prqGain,
+                            title: playerWon ? "GAME! WINNER STAYS" : "3v3 Streetball", accentColor: accentColor, prqGain: prqGain,
                             prqCurrent: viewModel.effectiveMetrics.prqScore,
                             modeAttributeLabel: "Court IQ",
                             modeAttributeValue: PRQ.attributeValue(prq: viewModel.effectiveMetrics.prqScore, for: .basketball3v3)) {
@@ -1789,8 +2279,18 @@ struct Basketball3v3GameView: View {
         teamFatigue = 1.0; isSubbing = false; subAnimProgress = 0.0
         lastHighlight = nil; showHighlight = false; highlightSlowMo = false
 
+        // Reset streetball state
+        ballHandlerX = 0.5; dribblePhase = 0; isDribbling = false
+        moveLabel = ""; moveLabelOpacity = 0
+        lastSwipeDirection = ""; lastSwipeTime = .distantPast
+        showDriveButton = false; isDriving = false; driveProgress = 0
+        frozenDefenderIdx = nil
+        hotPlayer = nil; consecutiveMakesStreet = 0
+        hypeLevel = 0; crowdBounce = false; showParkLit = false
+
         phase = .playing
         startMatchClock(); resetShotClock(); scheduleOpponentAttack()
+        startHypeDecay()
     }
 
     private func playerShoot() {
@@ -1812,6 +2312,8 @@ struct Basketball3v3GameView: View {
         hitChance += Double(comboCount) * 0.012
         // Hot zone +15%
         if isHot { hitChance += 0.15 }
+        // Streetball hot hand bonus +8%
+        if hotPlayer == passer { hitChance += 0.08 }
         // Fatigue penalty
         if teamFatigue < 0.5 { hitChance -= 0.10 }
         // Shot clock pressure: <3 seconds left — contested, -20%
@@ -1853,6 +2355,11 @@ struct Basketball3v3GameView: View {
                     // Highlight play check
                     checkForHighlight(zone: zone, momentumCheck: false)
 
+                    // Streetball hot hand
+                    updateStreetHotHand(made: true, playerIdx: passer)
+                    // Hype for 3s
+                    if is3pt { addHype(0.20) }
+
                     if is3pt {
                         impactRigid.impactOccurred()
                     } else {
@@ -1864,8 +2371,10 @@ struct Basketball3v3GameView: View {
                     comboCount = 0; comboMultiplier = 1; lastPasser = ""; flashResult(.miss)
                     triggerRimShake(0.5); impactMed.impactOccurred()
                     drainFatigue(amount: 0.005)
+                    updateStreetHotHand(made: false, playerIdx: passer)
                 }
                 possession = .opponent; activePasser = 0; resetShotClock()
+                showDriveButton = false
                 if playerTeamScore >= targetScore { endGame(); return }
                 scheduleOpponentAttack()
             }
@@ -2362,5 +2871,245 @@ struct Basketball3v3GameView: View {
         // Cancel new mechanic tasks
         subTask?.cancel(); subTask = nil
         shotClockHapticTask?.cancel(); shotClockHapticTask = nil
+        // Cancel streetball tasks
+        driveTask?.cancel(); driveTask = nil
+        driveLockoutTask?.cancel(); driveLockoutTask = nil
+        frozenTask?.cancel(); frozenTask = nil
+        hypeDecayTask?.cancel(); hypeDecayTask = nil
+    }
+
+    // MARK: - Streetball: Drag / Dribble Gestures
+
+    private func handleDragEndedStreetball(value: DragGesture.Value) {
+        let trans = value.translation
+        let now = Date()
+
+        if abs(trans.x) > 40 && abs(trans.y) < 60 {
+            let dir = trans.x < 0 ? "LEFT" : "RIGHT"
+            // Behind the back: R then L (or L then R) quickly
+            if (dir == "LEFT" && lastSwipeDirection == "RIGHT") || (dir == "RIGHT" && lastSwipeDirection == "LEFT") {
+                if now.timeIntervalSince(lastSwipeTime) < 0.6 {
+                    triggerDribbleMove(.behindBack)
+                    return
+                }
+            }
+            // Crossover: alternating swipes
+            if now.timeIntervalSince(lastSwipeTime) < 0.8 && lastSwipeDirection != "" && lastSwipeDirection != dir {
+                triggerDribbleMove(.crossover)
+                return
+            }
+            lastSwipeDirection = dir
+            lastSwipeTime = now
+        } else if abs(trans.x) > 25 && abs(trans.y) > 25 {
+            triggerDribbleMove(.spinMove)
+        }
+    }
+
+    private func triggerDribbleMove(_ move: DribbleMove) {
+        guard phase == .playing, possession == .player else { return }
+        let defIdx = Int.random(in: 0...2)
+
+        switch move {
+        case .crossover:
+            let isAnkleBreaker = Double.random(in: 0...1) < 0.25
+            if isAnkleBreaker {
+                moveLabel = DribbleMove.ankleBreaker.rawValue
+                flashMoveLabel(duration: 1.4)
+                freezeDefender(idx: defIdx, duration: 1.2)
+                addHype(0.25)
+                impactRigid.impactOccurred()
+            } else {
+                moveLabel = DribbleMove.crossover.rawValue
+                flashMoveLabel(duration: 1.0)
+                freezeDefender(idx: defIdx, duration: 0.9)
+                addHype(0.10)
+                impactMed.impactOccurred()
+            }
+            showDriveButtonBriefly()
+        case .spinMove:
+            moveLabel = DribbleMove.spinMove.rawValue
+            flashMoveLabel(duration: 1.0)
+            freezeDefender(idx: defIdx, duration: Double.random(in: 0.8...1.2))
+            addHype(0.08)
+            showDriveButtonBriefly()
+            impactMed.impactOccurred()
+        case .behindBack:
+            moveLabel = DribbleMove.behindBack.rawValue
+            flashMoveLabel(duration: 1.0)
+            freezeDefender(idx: defIdx, duration: 0.9)
+            addHype(0.10)
+            showDriveButtonBriefly()
+            impactMed.impactOccurred()
+        case .hesitation:
+            moveLabel = DribbleMove.hesitation.rawValue
+            flashMoveLabel(duration: 0.9)
+            freezeDefender(idx: defIdx, duration: 0.85)
+            addHype(0.06)
+            showDriveButtonBriefly()
+            impactSoft.impactOccurred()
+        case .ankleBreaker:
+            moveLabel = DribbleMove.ankleBreaker.rawValue
+            flashMoveLabel(duration: 1.4)
+            freezeDefender(idx: defIdx, duration: 1.2)
+            addHype(0.25)
+            showDriveButtonBriefly()
+            impactRigid.impactOccurred()
+        }
+        lastSwipeDirection = ""
+    }
+
+    private func flashMoveLabel(duration: Double) {
+        withAnimation(.spring(response: 0.2)) { moveLabelOpacity = 1.0 }
+        Task {
+            try? await Task.sleep(for: .seconds(duration))
+            await MainActor.run { withAnimation(.easeOut(duration: 0.4)) { moveLabelOpacity = 0 } }
+        }
+    }
+
+    private func freezeDefender(idx: Int, duration: Double) {
+        frozenTask?.cancel()
+        withAnimation { frozenDefenderIdx = idx }
+        frozenTask = Task {
+            try? await Task.sleep(for: .seconds(duration))
+            await MainActor.run { withAnimation { frozenDefenderIdx = nil } }
+        }
+    }
+
+    private func showDriveButtonBriefly() {
+        driveLockoutTask?.cancel()
+        withAnimation(.spring(response: 0.3)) { showDriveButton = true }
+        driveLockoutTask = Task {
+            try? await Task.sleep(for: .seconds(1.0))
+            await MainActor.run { withAnimation { showDriveButton = false } }
+        }
+    }
+
+    // MARK: - Streetball: Drive to Basket
+
+    private func executeDrive() {
+        guard phase == .playing, possession == .player, !isDriving else { return }
+        driveLockoutTask?.cancel()
+        withAnimation { showDriveButton = false }
+        isDriving = true; driveProgress = 0
+
+        driveTask = Task {
+            let steps = 24
+            for step in 1...steps {
+                try? await Task.sleep(for: .milliseconds(33))
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    withAnimation(.linear(duration: 0.033)) { driveProgress = CGFloat(step) / CGFloat(steps) }
+                }
+            }
+            await MainActor.run {
+                isDriving = false; driveProgress = 0
+                resolveFinish()
+            }
+        }
+    }
+
+    private func resolveFinish() {
+        guard phase == .playing, possession == .player else { return }
+        shotClockTask?.cancel()
+        let passer = activePasser
+        let zone = activeShootingZone(for: passer)
+        let momentum = comboCount
+        let hasContact = Double.random(in: 0...1) < 0.20
+        let isDunk = momentum >= 2 && Double.random(in: 0...1) < 0.85
+        let baseChance: Double = isDunk ? 0.85 : 0.70
+        let boostedChance = min(0.95, baseChance + (viewModel.effectiveMetrics.prqScore / 100) * 0.10)
+        let made = Double.random(in: 0...1) < boostedChance
+
+        if made {
+            comboCount += 1; comboMultiplier = min(4, 1 + comboCount / 3)
+            var pts = 2 * comboMultiplier
+            if isDunk {
+                addHype(0.30); impactHvy.impactOccurred()
+                if hasContact {
+                    pts += 1; addHype(0.35)
+                    impactHvy.impactOccurred()
+                    flashResult(.score)   // And-1
+                    flashZoneAnnouncer("AND-1!")
+                } else {
+                    flashZoneAnnouncer("DUNK!")
+                    flashResult(.score)
+                }
+            } else {
+                if hasContact {
+                    pts += 1; addHype(0.35)
+                    impactHvy.impactOccurred()
+                    flashResult(.score)
+                    flashZoneAnnouncer("AND-1!")
+                } else {
+                    flashResult(.score)
+                }
+            }
+            withAnimation(.spring(response: 0.3)) { playerTeamScore = min(playerTeamScore + pts, 99) }
+            triggerRimShake(isDunk ? 1.0 : 0.8)
+            updateStreetHotHand(made: true, playerIdx: passer)
+        } else {
+            comboCount = 0; comboMultiplier = 1
+            consecutiveMakesInZone = 0; isHot = false
+            flashResult(.miss); triggerRimShake(0.4)
+            updateStreetHotHand(made: false, playerIdx: passer)
+        }
+        drainFatigue(amount: 0.015)
+        possession = .opponent; activePasser = 0; resetShotClock()
+        if playerTeamScore >= targetScore { endGame(); return }
+        scheduleOpponentAttack()
+        _ = zone
+    }
+
+    // MARK: - Streetball: Hype System
+
+    private func addHype(_ amount: CGFloat) {
+        withAnimation(.spring(response: 0.3)) { hypeLevel = min(1.0, hypeLevel + amount) }
+        if hypeLevel >= 0.7 { crowdBounce = true }
+        if hypeLevel >= 0.98 { showParkIsLit() }
+        startHypeDecay()
+    }
+
+    private func startHypeDecay() {
+        hypeDecayTask?.cancel()
+        hypeDecayTask = Task {
+            while hypeLevel > 0 {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    withAnimation(.linear(duration: 0.5)) { hypeLevel = max(0, hypeLevel - 0.02) }
+                    if hypeLevel < 0.7 { crowdBounce = false }
+                }
+            }
+        }
+    }
+
+    private func showParkIsLit() {
+        withAnimation(.spring(response: 0.3)) { showParkLit = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2.0))
+            await MainActor.run { withAnimation(.easeOut(duration: 0.5)) { showParkLit = false } }
+        }
+    }
+
+    // MARK: - Streetball: Hot Hand
+
+    private func updateStreetHotHand(made: Bool, playerIdx: Int) {
+        if made {
+            consecutiveMakesStreet += 1
+            if consecutiveMakesStreet >= 2 { hotPlayer = playerIdx }
+            if consecutiveMakesStreet == 3 {
+                moveLabel = "HE'S ON FIRE!"
+                withAnimation(.spring(response: 0.2)) { moveLabelOpacity = 1.0 }
+                addHype(0.20)
+                impactHvy.impactOccurred()
+                Task {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    await MainActor.run { withAnimation(.easeOut(duration: 0.4)) { moveLabelOpacity = 0 } }
+                }
+            }
+        } else {
+            consecutiveMakesStreet = 0
+            hotPlayer = nil
+        }
     }
 }
