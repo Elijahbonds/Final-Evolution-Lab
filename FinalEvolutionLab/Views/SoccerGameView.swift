@@ -1722,7 +1722,9 @@ struct SoccerGameView: View {
                 }
                 Spacer()
             }
-            Text(isSuddenDeath ? "SUDDEN DEATH" : "ROUND \(currentRound) OF 5")
+            Text(isSuddenDeath
+                    ? (isExtraTime ? "EXTRA TIME · SUDDEN DEATH" : "SUDDEN DEATH")
+                    : "ROUND \(currentRound) OF 5")
                 .font(.system(size: 10, weight: .black, design: .monospaced))
                 .foregroundStyle(isSuddenDeath ? .red : accentColor.opacity(0.8)).tracking(3)
         }
@@ -1790,30 +1792,38 @@ struct SoccerGameView: View {
                 Text("\(Int(power))%").font(.system(size: 11, weight: .black, design: .monospaced))
                     .foregroundStyle(.white).frame(width: 40, alignment: .trailing)
             }
+            // Low-stamina dim overlay hint
+            let staminaDimmed = playerStamina < 0.3
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(shotFired
                         ? AnyShapeStyle(Color.gray.opacity(0.2))
-                        : AnyShapeStyle(LinearGradient(colors: [accentColor, Color(red: 0.2, green: 0.8, blue: 1)],
-                                                       startPoint: .topLeading, endPoint: .bottomTrailing)))
-                    .shadow(color: shotFired ? .clear : accentColor.opacity(0.4), radius: 12)
-                Text(shotFired ? "•••" : "SHOOT")
-                    .font(.system(size: 22, weight: .black, design: .monospaced))
-                    .foregroundStyle(shotFired ? Color.white.opacity(0.3) : .black)
+                        : staminaDimmed
+                            ? AnyShapeStyle(LinearGradient(
+                                colors: [Color.orange.opacity(0.55), Color.red.opacity(0.45)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing))
+                            : AnyShapeStyle(LinearGradient(
+                                colors: [accentColor, Color(red: 0.2, green: 0.8, blue: 1)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing)))
+                    .shadow(color: shotFired ? .clear : (staminaDimmed ? Color.orange.opacity(0.3) : accentColor.opacity(0.4)), radius: 12)
+                VStack(spacing: 2) {
+                    Text(shotFired ? "•••" : "SHOOT")
+                        .font(.system(size: 22, weight: .black, design: .monospaced))
+                        .foregroundStyle(shotFired ? Color.white.opacity(0.3) : .black)
+                    if staminaDimmed && !shotFired {
+                        Text("LOW STAMINA")
+                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                            .foregroundStyle(.black.opacity(0.7))
+                    }
+                }
             }
-            .frame(maxWidth: .infinity).frame(height: 52)
+            .frame(maxWidth: .infinity).frame(height: 56)
             .contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard !shotFired, !isHoldingShoot else { return }
-                    isHoldingShoot = true; startPowerOscillation()
-                }
-                .onEnded { _ in
-                    guard !shotFired else { return }
-                    isHoldingShoot = false; powerTimer?.cancel(); powerTimer = nil; fireShot()
-                }
-            )
-            .disabled(shotFired)
+            .onTapGesture {
+                guard !shotFired, !showReleaseButton else { return }
+                beginShotPowerTiming()
+            }
+            .disabled(shotFired || showReleaseButton)
         }
         .padding(14)
         .background(RoundedRectangle(cornerRadius: 16).fill(Color(white: 0.08))
@@ -1824,6 +1834,61 @@ struct SoccerGameView: View {
         if power < 40 { return [Color(red: 0.2, green: 0.8, blue: 1), accentColor] }
         if power < 70 { return [accentColor, .yellow] }
         return [.yellow, .orange, .red]
+    }
+
+    // MARK: — Post-Match Banner
+
+    @ViewBuilder
+    private func postMatchBanner(isMotm: Bool) -> some View {
+        let acc = shotsAttempted > 0
+            ? Int(Double(shotsMade) / Double(shotsAttempted) * 100)
+            : 0
+        VStack(spacing: 6) {
+            if isMotm {
+                HStack(spacing: 6) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(.yellow)
+                            .font(.system(size: 12))
+                    }
+                    Text("MAN OF THE MATCH")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.1))
+                    ForEach(0..<5, id: \.self) { _ in
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(.yellow)
+                            .font(.system(size: 12))
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            HStack(spacing: 20) {
+                statPill(label: "ACCURACY", value: "\(acc)%")
+                statPill(label: "SHOTS", value: "\(shotsMade)/\(shotsAttempted)")
+                statPill(label: "POSSESSION", value: "\(possessionPercent)%")
+                if redCardGiven {
+                    statPill(label: "RED CARD", value: "⚠️")
+                }
+            }
+        }
+        .padding(10)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+            isMotm ? Color.yellow.opacity(0.5) : Color(white: 0.20),
+            lineWidth: 1))
+    }
+
+    private func statPill(label: String, value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 14, weight: .black, design: .monospaced))
+                .foregroundStyle(.white)
+            Text(label)
+                .font(.system(size: 6, weight: .bold, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .tracking(1)
+        }
     }
 
     // MARK: Logic
@@ -1843,30 +1908,209 @@ struct SoccerGameView: View {
         }
     }
 
-    private func fireShot() {
+    // MARK: — Stamina System
+
+    private func startStaminaRecovery() {
+        staminaTimer?.cancel()
+        staminaTimer = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(200))
+                if Task.isCancelled { break }
+                await MainActor.run {
+                    // Passive recovery: 0.005 per second = 0.001 per 200ms tick
+                    if playerStamina < 1.0 {
+                        playerStamina = min(1.0, playerStamina + 0.001)
+                    }
+                }
+            }
+        }
+    }
+
+    private func drainStamina(by amount: Double) {
+        playerStamina = max(0.0, playerStamina - amount)
+    }
+
+    private func activateSprint() {
+        guard !sprintBoostActive, playerStamina >= 0.2 else { return }
+        drainStamina(by: 0.2)
+        sprintBoostActive = true
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        // Sprint effect lasts for one shot (reset after shot fires)
+    }
+
+    // MARK: — Shot Power Timing
+
+    /// Called when user taps SHOOT — starts the 1.5-second power meter fill
+    private func beginShotPowerTiming() {
+        guard !shotFired, !showReleaseButton else { return }
+        shotPowerMeter = 0.0
+        shotPowerFilling = true
+        showReleaseButton = true
+        drainStamina(by: 0.04)
+
+        let fillDuration: Double = 1.5
+        let tickMs: Int = 20
+        let totalTicks = Int(fillDuration * 1000 / Double(tickMs))
+        let incrementPerTick = 100.0 / Double(totalTicks)
+
+        shotPowerTimer?.cancel()
+        shotPowerTimer = Task {
+            for _ in 0..<totalTicks {
+                try? await Task.sleep(nanoseconds: UInt64(tickMs) * 1_000_000)
+                if Task.isCancelled { break }
+                await MainActor.run {
+                    shotPowerMeter = min(100.0, shotPowerMeter + incrementPerTick)
+                }
+            }
+            // Auto-fire at max if player hasn't released
+            await MainActor.run {
+                if showReleaseButton && !shotFired {
+                    triggerRelease()
+                }
+            }
+        }
+    }
+
+    /// Called when user taps RELEASE button
+    private func triggerRelease() {
+        shotPowerTimer?.cancel()
+        releasePower = shotPowerMeter
+        showReleaseButton = false
+        shotPowerFilling = false
+        power = releasePower
+        fireShot(withReleasePower: releasePower)
+    }
+
+    // MARK: — Set Piece Power-Ups
+
+    private func usePowerShot() {
+        guard hasPowerShot, !shotFired else { return }
+        hasPowerShot = false
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        // Guaranteed goal — set high power and center aim
+        power = 95.0
+        releasePower = 90.0
+        fireShot(withReleasePower: 90.0, guaranteedGoal: true)
+    }
+
+    private func useGoldenGlove() {
+        guard hasGoldenGlove else { return }
+        hasGoldenGlove = false
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        // Golden Glove activates: next AI shot is blocked (handled in advanceRound)
+        withAnimation {
+            powerUpMessage = "GOLDEN GLOVE ACTIVATED!\nNext AI shot blocked!"
+            showPowerUpMessage = true
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(2.0))
+            await MainActor.run { withAnimation { showPowerUpMessage = false } }
+        }
+    }
+
+    private func awardPowerUp(message: String) {
+        withAnimation {
+            powerUpMessage = message
+            showPowerUpMessage = true
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Task {
+            try? await Task.sleep(for: .seconds(2.5))
+            await MainActor.run { withAnimation { showPowerUpMessage = false } }
+        }
+    }
+
+    // MARK: — VAR Check
+
+    private func runVARCheck(onComplete: @escaping () -> Void) {
+        varCheckActive = true
+        varCheckTask?.cancel()
+        varCheckTask = Task {
+            try? await Task.sleep(for: .seconds(3.0))
+            await MainActor.run {
+                varCheckActive = false
+                onComplete()
+            }
+        }
+    }
+
+    // MARK: — Possession Ticker
+
+    private func startPossessionTimer() {
+        possessionTimer?.cancel()
+        possessionTimer = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                if Task.isCancelled { break }
+                await MainActor.run {
+                    totalTicks += 1
+                    // Player has possession when NOT in shooting animation
+                    if !shotFired { possessionTicks += 1 }
+                }
+            }
+        }
+    }
+
+    // MARK: — Core Shot Logic
+
+    private func fireShot(withReleasePower rp: Double? = nil, guaranteedGoal: Bool = false) {
         let finalAim = aimValue
-        let finalPower = power
+        let finalPower = rp ?? power
         let prq = viewModel.effectiveMetrics.prqScore
 
-        // Haptic: medium on shooting
+        // Stamina penalty: if low stamina, reduce effective power
+        let staminaMultiplier: Double = playerStamina < 0.3 ? 0.7 : 1.0
+        let adjustedPower = finalPower * staminaMultiplier
+
+        // Sprint boost: +40% success chance for one shot
+        let sprintBonus: Double = sprintBoostActive ? 0.40 : 0.0
+        sprintBoostActive = false // consume sprint
+
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
-        let accuracy = 0.45 + (prq / 100.0) * 0.30
+        shotsAttempted += 1
+
+        let accuracy = 0.45 + (prq / 100.0) * 0.30 + sprintBonus
         let goaliePrediction: Double = Double.random(in: 0...1) < accuracy
             ? finalAim : Double.random(in: -1...1)
         let gDir: Int = goaliePrediction < -0.2 ? -1 : (goaliePrediction > 0.2 ? 1 : 0)
         lastGoalieDir = gDir
 
-        let coverageWidth = 0.48 - (prq / 100.0) * 0.10
-        let goalieCovers = abs(finalAim - Double(gDir) * 0.6) < coverageWidth
-        let scored = !goalieCovers && finalPower > 20
+        // Release power accuracy modifier: 70–90% = full accuracy, outside = reduced
+        let releaseAccMod: Double
+        if finalPower >= 70 && finalPower <= 90 {
+            releaseAccMod = 1.0
+        } else if finalPower > 90 {
+            releaseAccMod = max(0.4, 1.0 - (finalPower - 90) / 100.0 * 2.0)
+        } else {
+            releaseAccMod = max(0.3, finalPower / 70.0)
+        }
 
-        let aiScoreChance = 0.55 + (prq / 100.0) * 0.10
-        let aiScored = Double.random(in: 0...1) < aiScoreChance
+        // Goalie save probability = aiDifficulty * (1 - releasePower / 100)
+        let goalieSaveProb = aiDifficulty * (1.0 - finalPower / 100.0)
+        let coverageWidth = (0.48 - (prq / 100.0) * 0.10) * (1.0 + goalieSaveProb * 0.3)
+        let goalieCovers = !guaranteedGoal &&
+            (abs(finalAim - Double(gDir) * 0.6) < coverageWidth * releaseAccMod ||
+             Double.random(in: 0...1) < goalieSaveProb)
+        let scored = guaranteedGoal || (!goalieCovers && adjustedPower > 20)
 
-        // Determine if this creates a tackle or corner scenario for haptics/FX
+        // AI shoot chance scales with difficulty
+        // At difficulty 0.3 = 15%; at 1.0 = 55%
+        let aiShootChance = 0.15 + (aiDifficulty - 0.3) / 0.7 * 0.40
+        // If golden glove is NOT active, AI can score
+        let aiScoreRoll = Double.random(in: 0...1)
+        let aiScored = !hasGoldenGlove && aiScoreRoll < aiShootChance
+
+        // Red-card AI advantage: +1 difficulty offset
+        let extraAIDifficulty: Double = redCardGiven ? 0.1 : 0.0
+        _ = extraAIDifficulty // applied above through aiDifficulty state
+
         let tackleProbability = Double.random(in: 0...1)
         let cornerProbability = Double.random(in: 0...1)
+
+        // Check if this is a close call for VAR
+        let isCloseCall = !guaranteedGoal && abs(finalAim - Double(gDir) * 0.6) < coverageWidth * 1.3
+            && Double.random(in: 0...1) < 0.25
 
         shotFired = true
         playerScored = false
@@ -1874,9 +2118,17 @@ struct SoccerGameView: View {
         isCorner = false
         isTackle = false
 
-        // Animate ball arc
         ballProgress = 0
         Task {
+            // If close call, do VAR check first
+            if isCloseCall {
+                await MainActor.run {
+                    varCheckActive = true
+                }
+                try? await Task.sleep(for: .seconds(3.0))
+                await MainActor.run { varCheckActive = false }
+            }
+
             for step in 0..<30 {
                 try? await Task.sleep(nanoseconds: 14_000_000)
                 await MainActor.run { ballProgress = Double(step + 1) / 30.0 }
@@ -1886,39 +2138,81 @@ struct SoccerGameView: View {
                 goalieDived = true
 
                 if scored {
-                    // HAPTIC 1: Heavy on goal scored
                     UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                     playerScored = true
                     playerGoals += 1
+                    shotsMade += 1
                     lastScoreTime = Date().timeIntervalSinceReferenceDate
                     crowdExcitement = min(1.0, crowdExcitement + 0.35)
+
+                    // Update consecutive goal streaks
+                    consecutivePlayerGoals += 1
+                    consecutiveAIGoals = 0
+
+                    // AI difficulty scaling: harder after each player goal
+                    aiDifficulty = min(1.0, aiDifficulty + 0.08)
+
+                    // Set piece: 3 consecutive player goals = POWER SHOT
+                    if consecutivePlayerGoals >= 3 && !hasPowerShot {
+                        hasPowerShot = true
+                        consecutivePlayerGoals = 0
+                        awardPowerUp("POWER SHOT UNLOCKED!\n3 goals in a row!")
+                    }
                 } else if goalieCovers && tackleProbability < 0.4 {
-                    // HAPTIC 2: Medium on successful tackle/interception
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     isTackle = true
                     lastTackleTime = Date().timeIntervalSinceReferenceDate
+                    consecutivePlayerGoals = 0
                 } else if !scored && cornerProbability < 0.30 {
-                    // HAPTIC 3: Soft on corner/throw-in
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                     isCorner = true
                     lastCornerTime = Date().timeIntervalSinceReferenceDate
+                    consecutivePlayerGoals = 0
                 } else {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    consecutivePlayerGoals = 0
                 }
 
-                if aiScored { aiGoals += 1 }
+                if aiScored {
+                    aiGoals += 1
+                    consecutiveAIGoals += 1
+                    consecutivePlayerGoals = 0
+
+                    // Set piece: 3 consecutive conceded = GOLDEN GLOVE
+                    if consecutiveAIGoals >= 3 && !hasGoldenGlove {
+                        hasGoldenGlove = true
+                        consecutiveAIGoals = 0
+                        awardPowerUp("GOLDEN GLOVE EARNED!\n3 goals conceded!")
+                    }
+
+                    // Yellow card accumulation
+                    if Double.random(in: 0...1) < 0.15 {
+                        yellowCardCount += 1
+                        showYellowCard = true
+                        if yellowCardCount >= 2 && !redCardGiven {
+                            // Red card = +AI advantage
+                            redCardGiven = true
+                            showRedCard = true
+                            aiDifficulty = min(1.0, aiDifficulty + 0.1)
+                            UINotificationFeedbackGenerator().notificationOccurred(.error)
+                        }
+                    }
+                } else {
+                    consecutiveAIGoals = 0
+                }
+
                 roundResults.append(SoccerRoundResult(
                     playerScored: scored, aiScored: aiScored,
                     aimValue: finalAim, power: finalPower, goalieDirection: gDir
                 ))
                 withAnimation(.spring(response: 0.2)) {
-                    roundFeedbackText = scored ? "GOAL!" : "SAVED!"
+                    roundFeedbackText = scored ? (guaranteedGoal ? "POWER GOAL!" : "GOAL!") : "SAVED!"
                     roundFeedbackColor = scored ? accentColor : .red
                     showRoundFeedback = true
                 }
             }
 
-            try? await Task.sleep(for: .seconds(1.2))
+            try? await Task.sleep(for: .seconds(1.4))
             await MainActor.run {
                 withAnimation { showRoundFeedback = false }
                 advanceRound()
@@ -1948,8 +2242,17 @@ struct SoccerGameView: View {
         }
         if currentRound >= 5 {
             if playerGoals == aiGoals {
-                isSuddenDeath = true; currentRound = 1; resetRoundState(); phase = .ready
-            } else { phase = .result }
+                // Extra time / sudden death
+                isSuddenDeath = true
+                isExtraTime = true
+                currentRound = 1
+                resetRoundState()
+                phase = .ready
+            } else {
+                // Check MAN OF THE MATCH
+                manOfTheMatch = playerGoals >= 3 && aiGoals <= 1
+                phase = .result
+            }
         } else {
             currentRound += 1; resetRoundState()
         }
@@ -1962,6 +2265,9 @@ struct SoccerGameView: View {
         lastGoalieDir = 0; showRoundFeedback = false
         showRedCard = false; showYellowCard = false
         isTackle = false; isCorner = false; isPenaltyAwarded = false
+        shotPowerMeter = 0; showReleaseButton = false; shotPowerFilling = false
+        shotPowerTimer?.cancel(); shotPowerTimer = nil
+        releasePower = 0
     }
 
     private func grantShards(playerWon: Bool, isDraw: Bool) {
