@@ -1,0 +1,20 @@
+{
+  "id": "surfboard_prop_model",
+  "name": "Surfboard Prop (GLB)",
+  "category": "models",
+  "type": "prop_glb",
+  "file": "surfboard_prop_model.glb",
+  "urls": ["https://static.seeles.ai/data/asset/export/5461a63c-0645-4267-bfd5-26cffd5fb0ec/948867/thing_83516260-3ebf-4a25-b6ef-b18fb8519d7c.glb"],
+  "description": "Blue surfboard prop with thruster fin configuration for FEL surfing mode.",
+  "tags": ["surfing", "surfboard", "prop", "glb", "sport", "beach", "fel"],
+  "keywords": ["surfboard", "fins", "blue", "thruster", "GLB", "watersport"],
+  "compat": ["all"],
+  "status": "ready",
+  "created_at": "2026-05-23T18:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 23,
+  "version": "1.0",
+  "property_id": "search_72fc280c3711_0",
+  "motion_asset_id": 948867,
+  "fel_modes": ["surfing"]
+}

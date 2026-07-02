@@ -113,7 +113,7 @@ class TestSocialAPI:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) >= 1  # At least one athlete (test user or seeded)
+        # PRIVACY-09: discovery requires explicit discovery_opt_in — remote DB may legitimately return none.
         for athlete in data:
             assert "user_id" in athlete
             assert "name" in athlete
@@ -313,11 +313,11 @@ class TestExistingFeaturesRegression:
     """Verify all 17 game modes and other existing features still work"""
     
     def test_all_17_game_modes(self, api_client):
-        """Test /games/modes still returns all 17 modes"""
+        """Test /games/modes still returns all 20 modes"""
         response = api_client.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         modes = response.json()
-        assert len(modes) == 17, f"Expected 17 game modes, got {len(modes)}"
+        assert len(modes) == 20, f"Expected 20 game modes, got {len(modes)}"
         
         # Verify expected modes exist
         mode_ids = [m["id"] for m in modes]
@@ -325,7 +325,8 @@ class TestExistingFeaturesRegression:
             "basketball_h2h", "basketball_dunk", "basketball_3v3",
             "karate_h2h", "karate_endless", "baseball", "football",
             "soccer", "golf", "tennis", "volleyball", "gymnastics",
-            "brain_brawl", "surfing", "skateboarding", "snowboarding", "market_browse"
+            "brain_brawl", "surfing", "skateboarding", "snowboarding", "market_browse",
+            "court_carnival", "who_scene_it", "trivia_arena"
         ]
         for expected in expected_modes:
             assert expected in mode_ids, f"Missing game mode: {expected}"

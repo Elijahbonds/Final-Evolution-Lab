@@ -2,7 +2,7 @@
 //  FinalEvolutionLabUITests.swift
 //  FinalEvolutionLabUITests
 //
-//  Created by Rork on March 2, 2026.
+//  Created by Final Evolution Lab on March 2, 2026.
 //
 
 import XCTest
@@ -26,6 +26,7 @@ final class FinalEvolutionLabUITests: XCTestCase {
     func testExample() throws {
         // UI tests must launch the application that they test.
         let app = XCUIApplication()
+        app.launchArguments.append("-UITestMode")
         app.launch()
 
         // Use XCTAssert and related functions to verify your tests produce the correct results.
@@ -35,7 +36,9 @@ final class FinalEvolutionLabUITests: XCTestCase {
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            let app = XCUIApplication()
+            app.launchArguments.append("-UITestMode")
+            app.launch()
         }
     }
 }

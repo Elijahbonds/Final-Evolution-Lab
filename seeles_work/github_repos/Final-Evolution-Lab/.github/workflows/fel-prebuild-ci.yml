@@ -1,0 +1,52 @@
+name: FEL Pre-Build CI Check
+on:
+  push:
+    branches: [setup-healthkit]
+  pull_request:
+    branches: [setup-healthkit, main]
+
+jobs:
+  identifier-alignment:
+    name: 6-Point Identifier Alignment
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Pre-Build CI Check
+        run: |
+          chmod +x ./infra/fel_prebuild_ci_check.sh
+          # Set UPROJECT to the known location in the repo
+          export UPROJECT="./UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
+          ./infra/fel_prebuild_ci_check.sh --strict
+        env:
+          INTERNAL_ID: FinalEvolutionLab
+          BUNDLE_ID: com.finalevolutionlab.sovereign
+
+      - name: Verify Critical Files
+        run: |
+          echo "Checking critical deployment files..."
+          test -f ./infra/fix_ios_descriptor_path.sh && echo "✓ fix_ios_descriptor_path.sh" || echo "✗ MISSING"
+          test -f ./infra/fel_prebuild_ci_check.sh && echo "✓ fel_prebuild_ci_check.sh" || echo "✗ MISSING"
+          test -f ./fel_ue5_ios_shipping_package.sh && echo "✓ fel_ue5_ios_shipping_package.sh" || echo "✗ MISSING"
+          test -f ./infra/native_ios/FELNativeSwiftBridge.swift && echo "✓ FELNativeSwiftBridge.swift" || echo "✗ MISSING"
+
+      - name: Validate Mode Registry
+        run: |
+          python3 -c "
+          import json
+          with open('./backend/FEL_ModeManager.production.json') as f:
+              d = json.load(f)
+          modes = d['mode_manager']['mode_registry']
+          print(f'Mode registry: {len(modes)} modes')
+          prod = [m for m,c in modes.items() if c['status'] == 'production']
+          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
+          assert len(modes) >= 17, 'Expected 17+ modes'
+          print('✓ Mode registry valid')
+          "
+
+      - name: Block Merge on Failure
+        if: failure()
+        run: |
+          echo "::error::Pre-build CI check FAILED. Identifier alignment broken."
+          echo "::error::Run ./infra/fix_ios_descriptor_path.sh to resolve."
+          exit 1

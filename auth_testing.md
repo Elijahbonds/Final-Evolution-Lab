@@ -32,7 +32,7 @@ curl -X GET "$API_URL/api/auth/me" -H "Authorization: Bearer $TOKEN"
 ## Critical CORS rules
 - `allow_origins=["*"]` + `allow_credentials=True` is a CORS spec violation. Browsers DROP cookies. Use explicit origins or `allow_origin_regex`.
 - Production allowlist: `https://finalevolutiongroup.com`, `https://www.finalevolutiongroup.com`
-- Preview pattern: `https://*.preview.emergentagent.com`
+- Preview pattern: `https://*.preview.finalevolutiongroup.com`
 
 ## Cookie Attribute Rules (iOS Safari + In-App WebViews)
 - `httponly=True` `secure=True` `samesite="none"` `path="/"` `max_age=7*86400`

@@ -1,7 +1,7 @@
 # All operations require a signed-in Firebase user (including Anonymous Auth).
-# Replace `insecureReason` PUBLIC demos — production uses USER-only access.
+# USER_ANON allows anonymous sessions as well as upgraded accounts.
 
-query ListRecentPosts @auth(level: USER) {
+query ListRecentPosts @auth(level: USER_ANON) {
   posts(orderBy: [{ createdAt: DESC }], limit: 50) {
     id
     content
@@ -20,7 +20,7 @@ query ListRecentPosts @auth(level: USER) {
   }
 }
 
-query GetPostWithThread($postKey: Post_Key!) @auth(level: USER) {
+query GetPostWithThread($postKey: Post_Key!) @auth(level: USER_ANON) {
   post(key: $postKey) {
     id
     content
@@ -32,7 +32,6 @@ query GetPostWithThread($postKey: Post_Key!) @auth(level: USER) {
     author {
       id
       username
-      email
       profilePictureUrl
       avatarUrl
       topPRQScore
@@ -58,26 +57,44 @@ query GetPostWithThread($postKey: Post_Key!) @auth(level: USER) {
   }
 }
 
-query GetUserByFirebaseUid($firebaseUid: String!) @auth(level: USER) {
-  users(where: { firebaseUid: { eq: $firebaseUid } }, limit: 1) {
+# Signed-in caller only: resolves row where User.firebaseUid == auth.uid (no client-supplied UID).
+query GetUserByFirebaseUid @auth(level: USER_ANON) {
+  users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
     id
     username
-    email
     profilePictureUrl
     avatarUrl
     topPRQScore
+    evolutionShards
+    pendingRoyaltyShards
     firebaseUid
   }
 }
 
-query GetUserProfile($userId: UUID!) @auth(level: USER) {
-  user(key: { id: $userId }) {
+# Email + full account fields for the signed-in user only (private profile / settings).
+query GetMyPrivateProfile @auth(level: USER_ANON) {
+  users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
     id
     username
     email
     profilePictureUrl
     avatarUrl
     topPRQScore
+    evolutionShards
+    pendingRoyaltyShards
+    firebaseUid
+  }
+}
+
+query GetUserProfile($userId: UUID!) @auth(level: USER_ANON) {
+  user(key: { id: $userId }) {
+    id
+    username
+    profilePictureUrl
+    avatarUrl
+    topPRQScore
+    evolutionShards
+    pendingRoyaltyShards
   }
   posts(
     where: { author: { id: { eq: $userId } } }
@@ -93,7 +110,7 @@ query GetUserProfile($userId: UUID!) @auth(level: USER) {
   }
 }
 
-query ListCommentsForPost($postId: UUID!) @auth(level: USER) {
+query ListCommentsForPost($postId: UUID!) @auth(level: USER_ANON) {
   comments(where: { post: { id: { eq: $postId } } }, orderBy: [{ createdAt: ASC }]) {
     id
     content
@@ -107,7 +124,8 @@ query ListCommentsForPost($postId: UUID!) @auth(level: USER) {
   }
 }
 
-query ListShardLedgerForUser($limit: Int) @auth(level: USER) {
+# Ledger for auth.uid only (cannot pass another user's SQL id).
+query ListShardLedgerForUser($limit: Int) @auth(level: USER_ANON) {
   shardLedgers(
     where: { user: { firebaseUid: { eq_expr: "auth.uid" } } }
     orderBy: [{ createdAt: DESC }]
@@ -115,54 +133,47 @@ query ListShardLedgerForUser($limit: Int) @auth(level: USER) {
   ) {
     id
     deltaShards
-    balanceAfter
-    source
-    sessionReceiptId
-    gameModeId
-    note
+    reason
+    referenceId
     createdAt
   }
 }
 
-query GetUserByFirebaseUidWithShards($firebaseUid: String!) @auth(level: USER) {
-  users(where: { firebaseUid: { eq: $firebaseUid } }, limit: 1) {
+query ListCreatorCards($limit: Int) @auth(level: USER_ANON) {
+  creatorCards(orderBy: [{ displayName: ASC }], limit: $limit) {
     id
-    username
-    email
-    profilePictureUrl
-    avatarUrl
-    topPRQScore
-    firebaseUid
-    shardLedgers_on_user(orderBy: [{ createdAt: DESC }], limit: 1) {
-      balanceAfter
+    catalogCardId
+    displayName
+    rarityTier
+    createdAt
+    creator {
+      id
+      username
     }
   }
 }
 
-query GetMyArenaSessions($limit: Int) @auth(level: USER) {
-  arenaSessions(
-    where: {
-      or: [
-        { player1: { firebaseUid: { eq_expr: "auth.uid" } } }
-        { player2: { firebaseUid: { eq_expr: "auth.uid" } } }
-      ]
-    }
-    orderBy: [{ startedAt: DESC }]
-    limit: $limit
-  ) {
+query ListActiveCardMarketListings($limit: Int) @auth(level: USER_ANON) {
+  cardMarketListings(where: { active: { eq: true } }, orderBy: [{ listedAt: DESC }], limit: $limit) {
     id
-    entryTier
-    entryShardsEach
-    status
-    player1MaxHeightInches
-    player2MaxHeightInches
-    player1JumpCount
-    player2JumpCount
-    winnerId
-    shardsAwarded
-    startedAt
-    endedAt
-    player1 { id username avatarUrl topPRQScore }
-    player2 { id username avatarUrl topPRQScore }
+    catalogCardId
+    priceShards
+    listedAt
+    active
+    seller {
+      id
+      username
+      avatarUrl
+    }
+  }
+}
+
+query GetCreatorCardCreator($catalogCardId: String!) @auth(level: USER_ANON) {
+  creatorCards(where: { catalogCardId: { eq: $catalogCardId } }, limit: 1) {
+    id
+    creator {
+      id
+      username
+    }
   }
 }

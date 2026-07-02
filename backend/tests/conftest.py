@@ -13,6 +13,7 @@ _E2E_SUITES = [
     "test_iteration4_e3ds.py",
     "test_iteration5_quality_gates.py",
     "test_iteration6_sovereign.py",
+    "test_iteration6_vault.py",
     "test_iteration8_biofuel_pass.py",
 ]
 

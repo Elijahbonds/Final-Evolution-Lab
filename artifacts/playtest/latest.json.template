@@ -1,0 +1,53 @@
+{
+  "schema_version": "1",
+  "generated_at": "1970-01-01T00:00:00Z",
+  "overall_status": "template",
+  "playtest": {
+    "mode": "basketball_dunk",
+    "venue": "venice_beach",
+    "duration_sec": 5,
+    "build_dir": "build-full",
+    "mesh_profile": "mobile"
+  },
+  "environment": {
+    "validate_status": "pass",
+    "venue_key": "venice_beach",
+    "mesh_path": "assets/nexus/imported/example_mobile.nexusmesh.json",
+    "mesh_profile": "mobile",
+    "vertex_count": 0,
+    "triangle_count": 0
+  },
+  "runtime": {
+    "status": "pass",
+    "fps_last": 60.0,
+    "frame_time_ms": 16.6,
+    "visible_draws": 0,
+    "culled_draws": 0,
+    "triangle_count": 0,
+    "within_draw_budget": true,
+    "tick_frames": 0
+  },
+  "gameplay_test": {
+    "status": "pass"
+  },
+  "mode_state": {
+    "mode_id": "basketball_dunk",
+    "phase": "active"
+  },
+  "agent_responses": [
+    {
+      "id": "pt5",
+      "status": "ok",
+      "payload": {
+        "mode_id": "basketball_dunk"
+      }
+    }
+  ],
+  "artifacts": {
+    "latest_json": "artifacts/playtest/latest.json",
+    "dev_stats_tick": "artifacts/playtest/dev_stats_tick.json",
+    "validate_log": "artifacts/playtest/validate.log",
+    "runtime_log": "artifacts/playtest/runtime.log",
+    "gameplay_test_log": "artifacts/playtest/gameplay_test.log"
+  }
+}

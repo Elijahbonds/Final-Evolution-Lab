@@ -36,8 +36,6 @@ struct CreatorCardShowcaseView: View {
         .presentationDragIndicator(.visible)
     }
 
-    // MARK: - Header
-
     private var headerSection: some View {
         VStack(spacing: 0) {
             HStack {
@@ -94,8 +92,6 @@ struct CreatorCardShowcaseView: View {
         }
     }
 
-    // MARK: - Metrics Strip
-
     private var metricsStrip: some View {
         HStack(spacing: 0) {
             metricCell(label: "PRQ", value: "+\(Int(card.metricsBoost.prqScore))", color: card.accentColor)
@@ -129,8 +125,6 @@ struct CreatorCardShowcaseView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Tagline
-
     private var taglineCard: some View {
         HStack(spacing: 14) {
             Rectangle()
@@ -138,7 +132,7 @@ struct CreatorCardShowcaseView: View {
                 .frame(width: 3)
                 .cornerRadius(2)
 
-            Text(card.showcaseTagline)
+            Text(card.resolvedShowcaseTagline)
                 .font(.system(.headline, weight: .bold))
                 .foregroundStyle(.white)
                 .lineLimit(3)
@@ -151,8 +145,6 @@ struct CreatorCardShowcaseView: View {
         .opacity(appeared ? 1 : 0)
     }
 
-    // MARK: - Highlights
-
     private var highlightsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("CREATOR IP · HIGHLIGHTS")
@@ -162,8 +154,8 @@ struct CreatorCardShowcaseView: View {
                 .padding(.leading, 4)
 
             VStack(spacing: 8) {
-                ForEach(card.showcaseHighlights.indices, id: \.self) { i in
-                    highlightRow(text: card.showcaseHighlights[i], index: i)
+                ForEach(card.resolvedShowcaseHighlights.indices, id: \.self) { i in
+                    highlightRow(text: card.resolvedShowcaseHighlights[i], index: i)
                 }
             }
         }
@@ -209,8 +201,6 @@ struct CreatorCardShowcaseView: View {
         }
         .buttonStyle(.plain)
     }
-
-    // MARK: - Movement Signature
 
     private var movementSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -262,8 +252,6 @@ struct CreatorCardShowcaseView: View {
         }
     }
 
-    // MARK: - Mini Bio
-
     private var miniBioSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ABOUT")
@@ -272,7 +260,7 @@ struct CreatorCardShowcaseView: View {
                 .tracking(2)
                 .padding(.leading, 4)
 
-            Text(card.miniBio)
+            Text(card.resolvedMiniBio)
                 .font(.system(.subheadline))
                 .foregroundStyle(.white.opacity(0.8))
                 .lineSpacing(4)
@@ -283,8 +271,6 @@ struct CreatorCardShowcaseView: View {
         .opacity(appeared ? 1 : 0)
     }
 
-    // MARK: - Links
-
     private var linksSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("LINKS & RESOURCES")
@@ -294,8 +280,8 @@ struct CreatorCardShowcaseView: View {
                 .padding(.leading, 4)
 
             VStack(spacing: 8) {
-                ForEach(card.links.indices, id: \.self) { i in
-                    linkRow(card.links[i])
+                ForEach(card.resolvedLinks.indices, id: \.self) { i in
+                    linkRow(card.resolvedLinks[i])
                 }
             }
         }
@@ -305,7 +291,7 @@ struct CreatorCardShowcaseView: View {
     }
 
     private func linkRow(_ link: CreatorLink) -> some View {
-        Link(destination: URL(string: link.url) ?? URL(string: "https://finalevolutionlab.com")!) {
+        Link(destination: URL(string: link.url) ?? URL(string: "https://finalevolutiongroup.com")!) {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
@@ -372,8 +358,6 @@ struct CreatorCardShowcaseView: View {
         case .podcast:     return "PODCAST"
         }
     }
-
-    // MARK: - Activate CTA
 
     private var activateSection: some View {
         VStack(spacing: 12) {

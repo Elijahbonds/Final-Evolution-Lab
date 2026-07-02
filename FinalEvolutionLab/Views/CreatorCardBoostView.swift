@@ -5,8 +5,9 @@ struct CreatorCardBoostView: View {
     @State private var selectedCard: CreatorCard?
     @State private var showConfirm = false
     @State private var showInsufficientShards = false
+    @State private var showMarketplace = false
     @State private var appeared = false
-    @State private var showcaseCard: CreatorCard? = nil
+    @State private var showcaseCard: CreatorCard?
 
     private var activeCard: CreatorCardState? {
         viewModel.profile.activeCreatorCard
@@ -14,6 +15,8 @@ struct CreatorCardBoostView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            FELPreviewLabel(text: FELPremiumCopy.Preview.economyStub)
+
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("CREATOR CARDS")
@@ -29,24 +32,45 @@ struct CreatorCardBoostView: View {
 
                 Spacer()
 
-                if activeCard != nil {
+                HStack(spacing: 8) {
                     Button {
-                        viewModel.clearCreatorCard()
+                        showMarketplace = true
                     } label: {
-                        Text("REMOVE")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.red.opacity(0.12))
-                            .foregroundStyle(.red)
-                            .clipShape(Capsule())
+                        HStack(spacing: 4) {
+                            Image(systemName: "cart.fill")
+                            Text("MARKET")
+                        }
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Theme.brandCyan.opacity(0.15))
+                        .foregroundStyle(Theme.brandCyan)
+                        .clipShape(Capsule())
+                    }
+
+                    if activeCard != nil {
+                        Button {
+                            viewModel.clearCreatorCard()
+                        } label: {
+                            Text("REMOVE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.red.opacity(0.12))
+                                .foregroundStyle(.red)
+                                .clipShape(Capsule())
+                        }
                     }
                 }
             }
 
             if let active = activeCard,
                let card = CreatorCard.catalog.first(where: { $0.id == active.cardId }) {
-                ActiveCardBanner(card: card, state: active)
+                ActiveCardBanner(
+                    card: card,
+                    state: active,
+                    athleteProfileId: viewModel.profile.id
+                )
             }
 
             ScrollView(.horizontal) {
@@ -105,6 +129,9 @@ struct CreatorCardBoostView: View {
         } message: {
             Text("Earn more shards through workouts and arena matches to unlock creator cards.")
         }
+        .sheet(isPresented: $showMarketplace) {
+            CardMarketplaceView(viewModel: viewModel)
+        }
         .sheet(item: $showcaseCard) { card in
             CreatorCardShowcaseView(card: card)
         }
@@ -114,6 +141,8 @@ struct CreatorCardBoostView: View {
 struct ActiveCardBanner: View {
     let card: CreatorCard
     let state: CreatorCardState
+    /// Included in QR payload when sharing the equipped card link.
+    var athleteProfileId: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -147,14 +176,31 @@ struct ActiveCardBanner: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("+\(Int(card.metricsBoost.prqScore)) PRQ")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(card.accentColor)
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("+\(Int(card.metricsBoost.prqScore)) PRQ")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(card.accentColor)
 
-                Text("+\(Int(card.metricsBoost.verticalPotential)) VERT")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    Text("+\(Int(card.metricsBoost.verticalPotential)) VERT")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(spacing: 4) {
+                    CreatorCardQRThumbnail(
+                        payload: card.qrPayload(includeAthleteId: athleteProfileId),
+                        dimension: 56
+                    )
+                    .padding(6)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    Text("SCAN")
+                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .tracking(1)
+                }
             }
         }
         .padding(12)
@@ -221,7 +267,12 @@ struct CreatorCardCell: View {
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Spacer(minLength: 0)
+                CreatorCardQRThumbnail(
+                    payload: card.qrPayload(includeAthleteId: nil),
+                    dimension: 48
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
 
                 HStack(spacing: 4) {
                     Image(systemName: isOwned ? "checkmark.seal.fill" : "diamond.fill")

@@ -106,14 +106,6 @@ DataConnect.socialConnector.getPostWithThreadQuery.execute(...)
 
 
 ## GetUserByFirebaseUidQuery
-### Variables
-#### Required
-```swift
-
-let firebaseUid: String = ...
-```
-
-
 
 
 ### Using the Query Reference
@@ -143,6 +135,39 @@ struct MyView: View {
 ### One-shot execute
 ```
 DataConnect.socialConnector.getUserByFirebaseUidQuery.execute(...)
+```
+
+
+## GetMyPrivateProfileQuery
+
+
+### Using the Query Reference
+```
+struct MyView: View {
+   var getMyPrivateProfileQueryRef = DataConnect.socialConnector.getMyPrivateProfileQuery.ref(...)
+
+  var body: some View {
+    VStack {
+      if let data = getMyPrivateProfileQueryRef.data {
+        // use data in View
+      }
+      else {
+        Text("Loading...")
+      }
+    }
+    .task {
+        do {
+          let _ = try await getMyPrivateProfileQueryRef.execute()
+        } catch {
+        }
+      }
+  }
+}
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.getMyPrivateProfileQuery.execute(...)
 ```
 
 
@@ -228,6 +253,173 @@ DataConnect.socialConnector.listCommentsForPostQuery.execute(...)
 ```
 
 
+## ListShardLedgerForUserQuery
+### Variables
+
+
+#### Optional
+```swift
+
+let limit: Int = ...
+```
+
+
+
+### Using the Query Reference
+```
+struct MyView: View {
+   var listShardLedgerForUserQueryRef = DataConnect.socialConnector.listShardLedgerForUserQuery.ref(...)
+
+  var body: some View {
+    VStack {
+      if let data = listShardLedgerForUserQueryRef.data {
+        // use data in View
+      }
+      else {
+        Text("Loading...")
+      }
+    }
+    .task {
+        do {
+          let _ = try await listShardLedgerForUserQueryRef.execute()
+        } catch {
+        }
+      }
+  }
+}
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.listShardLedgerForUserQuery.execute(...)
+```
+
+
+## ListCreatorCardsQuery
+### Variables
+
+
+#### Optional
+```swift
+
+let limit: Int = ...
+```
+
+
+
+### Using the Query Reference
+```
+struct MyView: View {
+   var listCreatorCardsQueryRef = DataConnect.socialConnector.listCreatorCardsQuery.ref(...)
+
+  var body: some View {
+    VStack {
+      if let data = listCreatorCardsQueryRef.data {
+        // use data in View
+      }
+      else {
+        Text("Loading...")
+      }
+    }
+    .task {
+        do {
+          let _ = try await listCreatorCardsQueryRef.execute()
+        } catch {
+        }
+      }
+  }
+}
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.listCreatorCardsQuery.execute(...)
+```
+
+
+## ListActiveCardMarketListingsQuery
+### Variables
+
+
+#### Optional
+```swift
+
+let limit: Int = ...
+```
+
+
+
+### Using the Query Reference
+```
+struct MyView: View {
+   var listActiveCardMarketListingsQueryRef = DataConnect.socialConnector.listActiveCardMarketListingsQuery.ref(...)
+
+  var body: some View {
+    VStack {
+      if let data = listActiveCardMarketListingsQueryRef.data {
+        // use data in View
+      }
+      else {
+        Text("Loading...")
+      }
+    }
+    .task {
+        do {
+          let _ = try await listActiveCardMarketListingsQueryRef.execute()
+        } catch {
+        }
+      }
+  }
+}
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.listActiveCardMarketListingsQuery.execute(...)
+```
+
+
+## GetCreatorCardCreatorQuery
+### Variables
+#### Required
+```swift
+
+let catalogCardId: String = ...
+```
+
+
+
+
+### Using the Query Reference
+```
+struct MyView: View {
+   var getCreatorCardCreatorQueryRef = DataConnect.socialConnector.getCreatorCardCreatorQuery.ref(...)
+
+  var body: some View {
+    VStack {
+      if let data = getCreatorCardCreatorQueryRef.data {
+        // use data in View
+      }
+      else {
+        Text("Loading...")
+      }
+    }
+    .task {
+        do {
+          let _ = try await getCreatorCardCreatorQueryRef.execute()
+        } catch {
+        }
+      }
+  }
+}
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.getCreatorCardCreatorQuery.execute(...)
+```
+
+
 # Mutations
 ## RegisterSignedInUserMutation
 
@@ -253,30 +445,13 @@ let avatarUrl: String = ...
 DataConnect.socialConnector.registerSignedInUserMutation.execute(...)
 ```
 
-## LinkUserToFirebaseAuthMutation
+## UpdateMyTrainingProfileMutation
 
 ### Variables
 
 #### Required
 ```swift
 
-let userKey: UserKey = ...
-```
- 
-
-### One-shot execute
-```
-DataConnect.socialConnector.linkUserToFirebaseAuthMutation.execute(...)
-```
-
-## UpdateUserTrainingProfileMutation
-
-### Variables
-
-#### Required
-```swift
-
-let userKey: UserKey = ...
 let topPRQScore: Double = ...
 ```
  
@@ -289,7 +464,7 @@ let avatarUrl: String = ...
 
 ### One-shot execute
 ```
-DataConnect.socialConnector.updateUserTrainingProfileMutation.execute(...)
+DataConnect.socialConnector.updateMyTrainingProfileMutation.execute(...)
 ```
 
 ## CreatePostMutation
@@ -300,7 +475,6 @@ DataConnect.socialConnector.updateUserTrainingProfileMutation.execute(...)
 ```swift
 
 let content: String = ...
-let authorId: UUID = ...
 ```
  
 
@@ -326,7 +500,6 @@ DataConnect.socialConnector.createPostMutation.execute(...)
 ```swift
 
 let postId: UUID = ...
-let authorId: UUID = ...
 let content: String = ...
 ```
  
@@ -344,7 +517,6 @@ DataConnect.socialConnector.createCommentMutation.execute(...)
 ```swift
 
 let postId: UUID = ...
-let userId: UUID = ...
 ```
  
 
@@ -361,7 +533,6 @@ DataConnect.socialConnector.likePostMutation.execute(...)
 ```swift
 
 let postId: UUID = ...
-let userId: UUID = ...
 ```
  
 
@@ -377,7 +548,7 @@ DataConnect.socialConnector.unlikePostMutation.execute(...)
 #### Required
 ```swift
 
-let postKey: PostKey = ...
+let postId: UUID = ...
 ```
  
 
@@ -393,12 +564,191 @@ DataConnect.socialConnector.deletePostMutation.execute(...)
 #### Required
 ```swift
 
-let commentKey: CommentKey = ...
+let commentId: UUID = ...
 ```
  
 
 ### One-shot execute
 ```
 DataConnect.socialConnector.deleteCommentMutation.execute(...)
+```
+
+## SpendEvolutionShardsMutation
+
+### Variables
+
+#### Required
+```swift
+
+let deltaShards: Int = ...
+let reason: String = ...
+```
+ 
+
+#### Optional
+```swift
+
+let referenceId: String = ...
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.spendEvolutionShardsMutation.execute(...)
+```
+
+## ClaimCreatorCardOwnershipMutation
+
+### Variables
+
+#### Required
+```swift
+
+let catalogCardId: String = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.claimCreatorCardOwnershipMutation.execute(...)
+```
+
+## CreateCritiqueRequestWithEscrowMutation
+
+### Variables
+
+#### Required
+```swift
+
+let requestKey: String = ...
+let exerciseName: String = ...
+```
+ 
+
+#### Optional
+```swift
+
+let notes: String = ...
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.createCritiqueRequestWithEscrowMutation.execute(...)
+```
+
+## CreateCardMarketListingMutation
+
+### Variables
+
+#### Required
+```swift
+
+let catalogCardId: String = ...
+let priceShards: Int = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.createCardMarketListingMutation.execute(...)
+```
+
+## DeactivateCardMarketListingMutation
+
+### Variables
+
+#### Required
+```swift
+
+let listingId: UUID = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.deactivateCardMarketListingMutation.execute(...)
+```
+
+## ExecuteMarketplacePurchaseMutation
+
+### Variables
+
+#### Required
+```swift
+
+let listingId: UUID = ...
+let buyerId: UUID = ...
+let sellerId: UUID = ...
+let catalogCardId: String = ...
+let buyerDeltaShards: Int = ...
+let sellerDeltaShards: Int = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.executeMarketplacePurchaseMutation.execute(...)
+```
+
+## CreateCreatorCardCatalogItemMutation
+
+### Variables
+
+#### Required
+```swift
+
+let catalogCardId: String = ...
+let displayName: String = ...
+```
+ 
+
+#### Optional
+```swift
+
+let rarityTier: String = ...
+```
+
+### One-shot execute
+```
+DataConnect.socialConnector.createCreatorCardCatalogItemMutation.execute(...)
+```
+
+## ExecuteMarketplacePurchaseWithRoyaltyMutation
+
+### Variables
+
+#### Required
+```swift
+
+let listingId: UUID = ...
+let buyerId: UUID = ...
+let sellerId: UUID = ...
+let catalogCardId: String = ...
+let buyerDeltaShards: Int = ...
+let sellerDeltaShards: Int = ...
+let creatorId: UUID = ...
+let royaltyShards: Int = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.executeMarketplacePurchaseWithRoyaltyMutation.execute(...)
+```
+
+## ClaimRoyaltiesMutation
+
+### Variables
+
+#### Required
+```swift
+
+let claimId: String = ...
+let amount: Int = ...
+```
+ 
+
+### One-shot execute
+```
+DataConnect.socialConnector.claimRoyaltiesMutation.execute(...)
 ```
 

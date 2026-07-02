@@ -243,19 +243,21 @@ struct CritiqueRequestView: View {
                 showInsufficientShards = true
                 return
             }
-            let success = viewModel.requestCritique(exerciseName: selectedExercise, notes: notesText)
-            if success {
-                Task {
-                    try? await Task.sleep(for: .seconds(3))
-                    if let last = viewModel.critiqueRequests.last {
-                        viewModel.simulateCoachResponse(requestId: last.id)
+            Task { @MainActor in
+                let success = await viewModel.requestCritique(exerciseName: selectedExercise, notes: notesText)
+                if success {
+                    Task {
+                        try? await Task.sleep(for: .seconds(3))
+                        if let last = viewModel.critiqueRequests.last {
+                            viewModel.simulateCoachResponse(requestId: last.id)
+                        }
                     }
+                    withAnimation(.spring(response: 0.4)) {
+                        showConfirmation = true
+                    }
+                } else {
+                    showInsufficientShards = true
                 }
-                withAnimation(.spring(response: 0.4)) {
-                    showConfirmation = true
-                }
-            } else {
-                showInsufficientShards = true
             }
         } label: {
             HStack(spacing: 8) {
