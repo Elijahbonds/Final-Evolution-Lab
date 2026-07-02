@@ -196,6 +196,7 @@ auto SessionReceiptClient::persistReceipt(const nlohmann::json& receipt) -> std:
 auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<int> {
   const std::string modeId = receipt.value("mode_id", std::string("unknown"));
   const int score = receipt.value("score", 0);
+  int deliveredStatus = 200;
 
   if (m_config.persistToDisk) {
     if (const auto path = persistReceipt(receipt)) {
@@ -212,16 +213,21 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     if (postResult.isErr()) {
       return postResult;
     }
+    const int statusCode = postResult.value();
+    deliveredStatus = statusCode;
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
-                       " status=" + std::to_string(postResult.value()));
+                       " status=" + std::to_string(statusCode));
+    if (statusCode < 200 || statusCode >= 300) {
+      return Result<int>::err("session POST rejected with status " + std::to_string(statusCode));
+    }
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +
                        " score=" + std::to_string(score));
   }
 
-  return Result<int>::ok(200);
+  return Result<int>::ok(deliveredStatus);
 }
 
 } // namespace nexus::gameplay

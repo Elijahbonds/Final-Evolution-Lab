@@ -154,6 +154,11 @@ struct GamePlayView: View {
     private var specialMeterFull: Bool { specialMeter >= 100 }
 
     private var playerPRQ: Double { viewModel.effectiveMetrics.prqScore }
+    private var canApplyLocalEconomyGrant: Bool {
+        NexusEconomyAuthority.allowsLocalEconomyGrant(modeId: gameMode.id, trustLevel: .localPractice)
+    }
+    private var appliedShardsReward: Int { canApplyLocalEconomyGrant ? shardsReward : 0 }
+    private var appliedPRQReward: Double { canApplyLocalEconomyGrant ? prqReward : 0 }
 
     private var prqAttributeLabel: String { PRQ.attributeLabel(for: gameMode.id) }
     private var prqAttributeValue: Double { PRQ.attributeValue(prq: playerPRQ, for: gameMode.id) }
@@ -361,7 +366,7 @@ struct GamePlayView: View {
                     p2Score: opponentScore,
                     title: gameMode.name,
                     accentColor: gameMode.accentColor,
-                    prqGain: prqReward,
+                    prqGain: appliedPRQReward,
                     prqCurrent: playerPRQ,
                     modeAttributeLabel: prqAttributeLabel,
                     modeAttributeValue: prqAttributeValue,
@@ -4392,19 +4397,24 @@ struct GamePlayView: View {
         if finalizedMatchSessionId == matchSessionId { return }
 
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
-        if shardsReward > 0 {
-            viewModel.profile.pendingUnverifiedShardCredits += shardsReward
+        let earnedShards = appliedShardsReward
+        let earnedPRQ = appliedPRQReward
+
+        if earnedShards > 0 {
+            viewModel.profile.pendingUnverifiedShardCredits += earnedShards
             Task {
                 await TrainingLabSocialBridge.shared.recordShardLedgerForArenaSession(
                     gameModeId: gameMode.id.rawValue,
-                    deltaShards: shardsReward,
+                    deltaShards: earnedShards,
                     sessionId: matchSessionId.uuidString
                 )
             }
         }
 #if DEBUG
-        viewModel.profile.metrics.prqScore = PRQ.clamp(viewModel.profile.metrics.prqScore + prqReward)
-        viewModel.profile.metrics.neuralDrive = min(100, viewModel.profile.metrics.neuralDrive + 3)
+        if earnedPRQ > 0 {
+            viewModel.profile.metrics.prqScore = PRQ.clamp(viewModel.profile.metrics.prqScore + earnedPRQ)
+            viewModel.profile.metrics.neuralDrive = min(100, viewModel.profile.metrics.neuralDrive + 3)
+        }
 #endif
 
         let elapsedSeconds: Int = {
@@ -4421,8 +4431,8 @@ struct GamePlayView: View {
             date: Date(),
             score: score,
             opponentScore: opponentScore,
-            shardsEarned: shardsReward,
-            prqBonus: prqReward,
+            shardsEarned: earnedShards,
+            prqBonus: earnedPRQ,
             isMultiplayer: multipeerService.isConnected,
             duration: elapsedSeconds,
             verificationSeed: GameplaySeed.uint64(from: matchSessionId),
@@ -4431,6 +4441,7 @@ struct GamePlayView: View {
 
         SaveSystem.saveProfile(viewModel.profile)
         SaveSystem.saveGameResult(result)
+        viewModel.gameResults = SaveSystem.loadGameResults()
         viewModel.globalLeaderboard.refreshRankings(userProfile: viewModel.profile, sampleData: SampleData.leaderboard)
 
 #if DEBUG
