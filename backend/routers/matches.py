@@ -30,7 +30,6 @@ from pydantic import BaseModel
 from core import db, get_current_user, User
 from lib.match_utils import generate_seed, derive_judge_offsets
 from lib.card_effects import compute_loadout_modifiers
-from lib.dunk_scoring import score_dunk, DunkResult
 
 router = APIRouter(tags=["matches"])
 
@@ -71,12 +70,6 @@ class MatchResponse(BaseModel):
     events: List[Dict[str, Any]]
     seed: Optional[int] = None
     judge_offsets: List[int] = []
-
-
-class ScoreDunkRequest(BaseModel):
-    approach_quality: float   # 0.0–1.0
-    execution_quality: float  # 0.0–1.0
-    style_difficulty: float = 0.5  # 0.0–1.0
 
 
 # ── Internal helpers ───────────────────────────────────────────────────────
@@ -326,35 +319,8 @@ async def get_match(match_id: str, limit: int = 20) -> MatchResponse:
     )
 
 
-@router.post("/api/matches/{match_id}/score_dunk")
-async def score_dunk_endpoint(match_id: str, body: ScoreDunkRequest) -> Dict[str, Any]:
-    """Compute server-authoritative dunk score using match's seeded judge_offsets."""
-    match = await _load_match(match_id)
-    if not match:
-        raise HTTPException(status_code=404, detail="Match not found")
-    judge_offsets = match.get("judge_offsets", [0, 0, 0])
-    result = score_dunk(
-        approach_quality=max(0.0, min(1.0, body.approach_quality)),
-        execution_quality=max(0.0, min(1.0, body.execution_quality)),
-        style_difficulty=max(0.0, min(1.0, body.style_difficulty)),
-        judge_offsets=judge_offsets,
-    )
-    # Persist as a dunk_result event
-    event = {
-        "type": "dunk_result",
-        "match_id": match_id,
-        "j1": result.j1, "j2": result.j2, "j3": result.j3,
-        "total": result.total, "message": result.message,
-        "is_perfect": result.is_perfect,
-        "inputs": {"approach_quality": body.approach_quality,
-                   "execution_quality": body.execution_quality,
-                   "style_difficulty": body.style_difficulty},
-        "timestamp": _now(),
-    }
-    await _persist_event(match_id, event)
-    await _broadcast(match_id, event)
-    return {"j1": result.j1, "j2": result.j2, "j3": result.j3,
-            "total": result.total, "message": result.message, "is_perfect": result.is_perfect}
+# NOTE (Agent 2): POST /api/matches/{match_id}/score_dunk moved to routers/dunk.py
+# (server-authoritative WDA engine-3D scoring with seeded judge_offsets).
 
 
 @router.get("/api/matches/{match_id}/export-replay")

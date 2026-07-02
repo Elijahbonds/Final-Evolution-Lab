@@ -33,12 +33,14 @@ from fastapi.testclient import TestClient
 import core
 from core import User
 from lib.match_utils import generate_seed, derive_judge_offsets
-from lib.dunk_scoring import score_dunk
+from lib.dunk_scoring import DunkEngine3DInput, score_dunk, score_engine3d_dunk
 from lib.card_effects import compute_loadout_modifiers, CARD_EFFECT_MAP
 from routers.matches import router as match_router, get_current_user, _matches, _events
+from routers.dunk import router as dunk_router
 
 _app = FastAPI()
 _app.include_router(match_router)
+_app.include_router(dunk_router)
 
 _USER_A = User(user_id="player_a", email="a@fellab.io", name="Player A",
                sport="basketball", prq_score=80.0, level=2, xp=200, streak_days=3, coins=100)
@@ -154,6 +156,113 @@ class TestServerDunkScoring:
         resp2 = _client_as(_USER_A).post(f"/api/matches/{mid}/score_dunk",
                                           json={"approach_quality": 2.5, "execution_quality": -0.5})
         assert resp2.status_code == 200
+
+
+class TestWDAEngine3DScoring:
+    """Deterministic vectors for the Swift WDAScoringEngine port (Agent 2).
+
+    Each vector pins exact (j1, j2, j3, total, message) so ANY change to the
+    scoring math is caught. Same seed + same inputs -> identical result.
+    """
+
+    VECTORS = [
+        # (input, judge_offsets, expected j1, j2, j3, total, message)
+        (
+            DunkEngine3DInput(
+                jump_height=0.9, launch_quality=0.85, landing_quality=0.8,
+                completed_rotation=1.0, trick="three_sixty", freestyle_points=18,
+                mid_air_branch_count=2, style_landing_success=True,
+                modifier_score_multiplier=1.35,
+            ),
+            [2, -1, 0],
+            (30, 8, 10, 48, "PERFECT DUNK!"),
+        ),
+        (
+            DunkEngine3DInput(
+                jump_height=0.5, launch_quality=0.5, landing_quality=0.5,
+                completed_rotation=0.5, trick="windmill",
+            ),
+            [0, 0, 0],
+            (21, 5, 10, 36, "POWERFUL!"),
+        ),
+        (
+            DunkEngine3DInput(
+                jump_height=0.2, launch_quality=0.3, landing_quality=0.25,
+                completed_rotation=0.1, trick="rim_grazer",
+                attempts_count=3, time_spent_seconds=80.0,
+            ),
+            [-3, 4, 1],
+            (10, 7, 5, 18, "NEEDS WORK"),
+        ),
+        (
+            DunkEngine3DInput(
+                jump_height=1.0, launch_quality=1.0, landing_quality=1.0,
+                completed_rotation=1.0, trick="seven_twenty", freestyle_points=30,
+                mid_air_branch_count=4, style_landing_success=True,
+                modifier_score_multiplier=1.8, signature_difficulty_bonus=2.0,
+            ),
+            [5, 5, 5],
+            (30, 10, 10, 50, "PERFECT DUNK!"),
+        ),
+    ]
+
+    def test_deterministic_vectors(self):
+        for inp, offsets, (j1, j2, j3, total, message) in self.VECTORS:
+            r = score_engine3d_dunk(inp, offsets)
+            assert (r.j1, r.j2, r.j3, r.total, r.message) == (j1, j2, j3, total, message), \
+                f"Vector mismatch for trick={inp.trick}: got {r}"
+
+    def test_repeatable_with_seeded_offsets(self):
+        seed = 777000111222333
+        offsets = derive_judge_offsets(seed)
+        assert offsets == [3, 4, 3]  # pinned: random.Random(seed).randint(-5, 5) x3
+        inp = self.VECTORS[0][0]
+        results = {(r.j1, r.j2, r.j3, r.total) for r in
+                   (score_engine3d_dunk(inp, offsets) for _ in range(25))}
+        assert len(results) == 1
+
+    def test_judges_stay_within_rubric_bounds(self):
+        for inp, _, _ in self.VECTORS:
+            for offsets in ([-5, -5, -5], [5, 5, 5], [0, 0, 0]):
+                r = score_engine3d_dunk(inp, offsets)
+                assert 10 <= r.j1 <= 30
+                assert 1 <= r.j2 <= 10
+                assert 1 <= r.j3 <= 10
+                assert 0 <= r.total <= 50
+
+    def test_unknown_trick_raises(self):
+        import pytest as _pytest
+        with _pytest.raises(ValueError):
+            score_engine3d_dunk(
+                DunkEngine3DInput(jump_height=0.5, launch_quality=0.5,
+                                  landing_quality=0.5, completed_rotation=0.5,
+                                  trick="not_a_trick"),
+                [0, 0, 0],
+            )
+
+    def test_engine3d_endpoint_scores_and_persists(self):
+        mid = _client_as(_USER_A).post("/api/matches/create", json={"mode_id": "basketball_dunk_3d"}).json()["match_id"]
+        _matches[mid]["judge_offsets"] = [2, -1, 0]  # pin offsets for exact assertion
+        payload = {"engine3d": {
+            "jump_height": 0.9, "launch_quality": 0.85, "landing_quality": 0.8,
+            "completed_rotation": 1.0, "trick": "three_sixty", "freestyle_points": 18,
+            "mid_air_branch_count": 2, "style_landing_success": True,
+            "modifier_score_multiplier": 1.35,
+        }}
+        resp = _client_as(_USER_A).post(f"/api/matches/{mid}/score_dunk", json=payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert (data["j1"], data["j2"], data["j3"], data["total"]) == (30, 8, 10, 48)
+        assert data["message"] == "PERFECT DUNK!"
+        assert data["scoring_model"] == "wda_engine3d"
+        dunk_events = [e for e in _events.get(mid, []) if e["type"] == "dunk_result"]
+        assert len(dunk_events) == 1
+        assert dunk_events[0]["inputs"]["engine3d"]["trick"] == "three_sixty"
+
+    def test_endpoint_422_when_no_payload(self):
+        mid = _client_as(_USER_A).post("/api/matches/create", json={}).json()["match_id"]
+        resp = _client_as(_USER_A).post(f"/api/matches/{mid}/score_dunk", json={})
+        assert resp.status_code == 422
 
 
 class TestCardEffects:
