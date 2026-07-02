@@ -32,18 +32,31 @@ struct VenueCoverageTests {
         for mode in Self.venueModes {
             let assets = try #require(NexusBundledMeshLoader.venueAssets(for: mode),
                                       "no venue mapped for \(mode.rawValue)")
-            let path = try #require(
-                NexusBundledMeshLoader.resolveMeshPathNatively(assetId: assets.environmentAssetId),
-                "\(mode.rawValue) → \(assets.environmentAssetId) did not resolve in bundle"
+
+            // Preferred path: recreated textured .scn (full PBR from source FBX).
+            let scnNode = try #require(
+                NexusBundledMeshLoader.loadSceneKitSceneNode(assetId: assets.environmentAssetId),
+                "\(mode.rawValue) → \(assets.environmentAssetId).scn missing from bundle"
             )
-            let data = try Data(contentsOf: URL(fileURLWithPath: path))
-            let geo = try #require(NexusBundledMeshLoader.buildGeometry(fromJSONData: data),
-                                   "\(mode.rawValue) failed to build geometry")
+            var texturedGeo: SCNGeometry?
+            scnNode.enumerateHierarchy { n, stop in
+                if let g = n.geometry { texturedGeo = g; stop.pointee = true }
+            }
+            let geo = try #require(texturedGeo, "\(mode.rawValue) .scn has no geometry")
             #expect((geo.sources(for: .vertex).first?.vectorCount ?? 0) > 0)
-            #expect((geo.elements.first?.primitiveCount ?? 0) > 0)
-            // Real venue meshes carry normals → lit shading.
+            #expect(!geo.sources(for: .texcoord).isEmpty,
+                    "\(mode.rawValue) venue has no UVs — textures cannot map")
             #expect(geo.materials.first?.lightingModel == .physicallyBased,
                     "\(mode.rawValue) environment is not lit")
+
+            // Fallback path: mobile JSON LOD still resolves and builds.
+            let path = try #require(
+                NexusBundledMeshLoader.resolveMeshPathNatively(assetId: assets.environmentAssetId),
+                "\(mode.rawValue) JSON fallback did not resolve"
+            )
+            let data = try Data(contentsOf: URL(fileURLWithPath: path))
+            #expect(NexusBundledMeshLoader.buildGeometry(fromJSONData: data) != nil,
+                    "\(mode.rawValue) JSON fallback failed to build")
         }
     }
 
@@ -59,7 +72,7 @@ struct VenueCoverageTests {
                                             scale: SCNVector3(1, 1, 1)),
             "dojo did not load into a SceneKit node"
         )
-        #expect(dojoNode.geometry != nil)
+        #expect(containsGeometry(dojoNode))
 
         let shop = try #require(NexusBundledMeshLoader.venueAssets(for: .marketBrowse))
         #expect(shop.environmentAssetId == "luma_venice_shop_environment_model_fbx")
@@ -69,6 +82,14 @@ struct VenueCoverageTests {
                                             position: SCNVector3(0, 0, 0),
                                             scale: SCNVector3(1, 1, 1))
         )
-        #expect(shopNode.geometry != nil)
+        #expect(containsGeometry(shopNode))
+    }
+
+    private func containsGeometry(_ node: SCNNode) -> Bool {
+        var found = false
+        node.enumerateHierarchy { n, stop in
+            if n.geometry != nil { found = true; stop.pointee = true }
+        }
+        return found
     }
 }

@@ -164,6 +164,16 @@ enum NexusBundledMeshLoader {
         position: SCNVector3,
         scale: SCNVector3
     ) -> SCNNode? {
+        // Prefer the recreated textured .scn (full PBR: albedo/roughness/
+        // metalness/normal recovered from the source FBX); fall back to the
+        // vertex-colored .nexusmesh.json.
+        if let node = loadSceneKitSceneNode(assetId: assetId) {
+            node.name = nodeName
+            node.position = position
+            node.scale = scale
+            node.renderingOrder = -100
+            return node
+        }
         guard let path = resolveMeshPath(assetId: assetId),
               let geometry = loadGeometry(from: path) else {
             return nil
@@ -174,6 +184,27 @@ enum NexusBundledMeshLoader {
         node.scale = scale
         node.renderingOrder = -100
         return node
+    }
+
+    /// Loads a bundled recreated venue scene (assets/nexus/scenekit/<id>.scn)
+    /// and returns its content wrapped in a single node. Cached per asset.
+    private static let sceneCache = NSCache<NSString, SCNNode>()
+
+    static func loadSceneKitSceneNode(assetId: String) -> SCNNode? {
+        if let cached = sceneCache.object(forKey: assetId as NSString) {
+            return cached.clone()
+        }
+        let url = Bundle.main.url(forResource: assetId, withExtension: "scn",
+                                  subdirectory: "assets/nexus/scenekit")
+            ?? Bundle.main.url(forResource: assetId, withExtension: "scn")
+        guard let url, let scene = try? SCNScene(url: url, options: nil) else { return nil }
+        let wrapper = SCNNode()
+        for child in scene.rootNode.childNodes {
+            wrapper.addChildNode(child)
+        }
+        guard !wrapper.childNodes.isEmpty else { return nil }
+        sceneCache.setObject(wrapper, forKey: assetId as NSString)
+        return wrapper.clone()
     }
 
     private static func bundledManifestURL() -> URL? {
