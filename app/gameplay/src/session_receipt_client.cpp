@@ -69,6 +69,7 @@ SessionReceiptClient::SessionReceiptClient(SessionReceiptClientConfig config)
           .url = resolvePostUrl(m_config),
           .authToken = m_config.authToken,
           .useStubTransport = m_config.useStubHttpTransport,
+          .stubStatusCode = m_config.stubHttpStatusCode,
       }) {
   if (m_config.queueDirectory.empty()) {
     m_config.queueDirectory = defaultQueueDirectory();
@@ -83,6 +84,7 @@ void SessionReceiptClient::setConfig(SessionReceiptClientConfig config) {
   m_http.setUrl(resolvePostUrl(m_config));
   m_http.setAuthToken(m_config.authToken);
   m_http.setStubTransportEnabled(m_config.useStubHttpTransport);
+  m_http.setStubStatusCode(m_config.stubHttpStatusCode);
 }
 
 void SessionReceiptClient::enqueue(nlohmann::json receipt) {
@@ -212,9 +214,15 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     if (postResult.isErr()) {
       return postResult;
     }
+    const int statusCode = postResult.value();
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
-                       " status=" + std::to_string(postResult.value()));
+                       " status=" + std::to_string(statusCode));
+    if (statusCode < 200 || statusCode >= 300) {
+      return Result<int>::err("session receipt POST rejected status=" +
+                              std::to_string(statusCode));
+    }
+    return Result<int>::ok(statusCode);
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +

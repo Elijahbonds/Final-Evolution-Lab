@@ -21,6 +21,8 @@ struct HttpClientConfig {
   std::string authToken;
   /// When true, POST succeeds in-process without network (headless + unit tests).
   bool useStubTransport{true};
+  /// Status returned by the in-process stub transport.
+  int stubStatusCode{200};
 };
 
 /// Minimal HTTP POST client for FEL session receipts (`POST /api/games/session`).
@@ -33,6 +35,7 @@ public:
   void setUrl(std::string url);
   void setAuthToken(std::string token);
   void setStubTransportEnabled(bool enabled);
+  void setStubStatusCode(int statusCode);
 
   [[nodiscard]] auto configuredUrl() const -> std::string_view;
   [[nodiscard]] auto postedRequests() const -> std::span<const HttpPostRecord>;

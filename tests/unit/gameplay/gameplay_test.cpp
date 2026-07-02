@@ -1930,6 +1930,46 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_flush_requeues_on_non_2xx_post() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+      .stubHttpStatusCode = 503,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 42},
+      {"outcome", "win"},
+      {"duration_seconds", 75},
+      {"completed", true},
+      {"combo_count", 4},
+      {"critical_count", 2},
+      {"pacing_score", 82.0F},
+      {"mri_score", 61.0F},
+      {"arv", 88.0F},
+      {"esi", 66.0F},
+      {"telemetry",
+       {{"session_id", "http_503_session"}, {"user_id", "test_user"}, {"device", {{"engine", "NEXUS 1.0"}}}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "non-2xx flush attempts receipt");
+  require(flush.delivered == 0, "non-2xx flush does not deliver receipt");
+  require(flush.requeued == 1, "non-2xx flush requeues receipt");
+  require(client.pendingCount() == 1, "receipt remains pending after non-2xx POST");
+  require(client.postedRequests().size() == 1, "non-2xx POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "recorded non-2xx status");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2776,6 +2816,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_flush_requeues_on_non_2xx_post();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();

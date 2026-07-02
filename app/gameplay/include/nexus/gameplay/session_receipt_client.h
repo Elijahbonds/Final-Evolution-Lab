@@ -20,6 +20,7 @@ struct SessionReceiptClientConfig {
   bool persistToDisk{true};
   bool httpEnabled{true};
   bool useStubHttpTransport{true};
+  int stubHttpStatusCode{200};
   float flushIntervalSeconds{5.0F};
   std::size_t maxRetries{5};
 };
