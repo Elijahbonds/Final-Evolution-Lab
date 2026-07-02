@@ -71,7 +71,8 @@ struct NexusHUDSnapshot: Equatable {
             return "PENALTY R\(round) · GOALS \(outcomeSportPlayerMetric)-\(outcomeSportOpponentMetric) (first to \(target))"
         case "golf":
             let par = outcomeSportCoursePar > 0 ? outcomeSportCoursePar : 36
-            return "HOLE \(outcomeSportHolesPlayed)/9 · \(outcomeSportPlayerMetric)/\(par) STROKES"
+            let currentHole = min(outcomeSportHolesPlayed + 1, 9)
+            return "HOLE \(currentHole)/9 · \(outcomeSportPlayerMetric)/\(par) STROKES"
         case "tennis":
             return "SETS \(outcomeSportPlayerSets)-\(outcomeSportOpponentSets) · G \(outcomeSportPlayerMetric)-\(outcomeSportOpponentMetric)"
         case "volleyball":

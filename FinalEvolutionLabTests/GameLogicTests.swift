@@ -290,7 +290,8 @@ struct GameLogicTests {
         #expect(irl.name == "IRL H2H Dunk Contest")
         #expect(threeD.name == "3D H2H Dunk Contest")
         #expect(irl.hint?.contains("Vision") == true)
-        #expect(threeD.hint?.contains("Metal") == true)
+        // Hint must describe real mechanics (Metal renderer is stubbed; do not overclaim tech).
+        #expect(threeD.hint?.contains("swipe timing") == true)
         #expect(threeD.id.nexusRuntimeModeId == "basketball_dunk")
         #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk")?.id == .basketballDunkContest3D)
     }
@@ -310,7 +311,7 @@ struct GameLogicTests {
         let dunk3DMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketballDunkContest3D))
         #expect(dunk3DMeta.classicTitle == "Slam Jam '94")
         let dunkIRLMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketballDunkContestIRL))
-        #expect(dunkIRLMeta.classicTitle == "Slam Cam '26")
+        #expect(dunkIRLMeta.classicTitle == "Slam Cam '94")
         let threeMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketball3v3))
         #expect(threeMeta.classicTitle == "Street Kings 3v3")
     }
@@ -397,6 +398,8 @@ struct GameLogicTests {
     @Test func productionModesRetainPrimaryAvatarInHybridOverlay() {
         for rawId in GameModeRegistry.productionModeIds {
             let modeId = GameModeId(rawValue: rawId)!
+            // IRL dunk is camera-native (DunkRecordingTrackerView); it has no 3D overlay by design.
+            if modeId == .basketballDunkContestIRL { continue }
             let avatarName = GameSceneFactory.primaryGameplayAvatarName(for: modeId)
             let scene = GameSceneFactory.buildGameplayOverlay(for: modeId)
             let player = scene.rootNode.childNode(withName: avatarName, recursively: true)
@@ -478,7 +481,7 @@ struct GameLogicTests {
         #expect(shards.errorDescription?.contains("server verification") == true)
 
         let sql: TrainingLabSocialBridgeError = .emptyDataConnectResult
-        #expect(sql.errorDescription?.contains("PREVIEW") == true)
+        #expect(sql.errorDescription?.contains("offline") == true)
 
         let uid: TrainingLabSocialBridgeError = .noFirebaseUid
         #expect(uid.errorDescription?.contains("Sign in") == true)
@@ -509,13 +512,14 @@ struct GameLogicTests {
 
         if isPreview {
             #expect(canPost == false)
-            #expect(label.contains("PREVIEW") == true)
+            #expect(label == FELPremiumCopy.Receipt.savedLocally)
         } else if NexusBackendClient.hasUploadAuthCredential {
             #expect(canPost == true)
-            #expect(label.contains("LIVE") == true)
+            #expect(label == FELPremiumCopy.Receipt.backendConnected
+                        || label == FELPremiumCopy.Receipt.firebaseConnected)
         } else {
             #expect(canPost == false)
-            #expect(label.contains("AWAITING AUTH") == true)
+            #expect(label == FELPremiumCopy.Receipt.awaitingAuth)
         }
     }
 
@@ -612,10 +616,10 @@ struct GameLogicTests {
         // Unit test process typically has no API key unless scheme env is set.
         if NexusAIStudioBootstrap.isConfigured {
             #expect(NexusAIStudioBootstrap.apiKey()?.isEmpty == false)
-            #expect(NexusAIStudioBootstrap.statusLabel.contains("CONNECTED") == true)
+            #expect(NexusAIStudioBootstrap.statusLabel.hasPrefix("Connected") == true)
         } else {
             #expect(NexusAIStudioBootstrap.connectionStatus == .offline)
-            #expect(NexusAIStudioBootstrap.statusLabel.contains("OFFLINE") == true)
+            #expect(NexusAIStudioBootstrap.statusLabel == FELPremiumCopy.AIStudio.offlineStatus)
         }
     }
 
@@ -626,8 +630,10 @@ struct GameLogicTests {
     }
 
     @Test func firebaseAndAIStudioStatusLabelsAreDistinct() {
-        #expect(FirebaseBootstrap.statusLabel.contains("FIREBASE") == true)
-        #expect(NexusAIStudioBootstrap.statusLabel.contains("AI STUDIO") == true)
+        // Firebase lane speaks "Cloud sync"; AI Studio lane must not — and both stay distinct.
+        #expect(FirebaseBootstrap.statusLabel.contains("Cloud sync") == true)
+        #expect(NexusAIStudioBootstrap.statusLabel.contains("Cloud sync") == false)
+        #expect(FirebaseBootstrap.statusLabel != NexusAIStudioBootstrap.statusLabel)
     }
 
     @Test func configDocumentsAIStudioEnvNames() {

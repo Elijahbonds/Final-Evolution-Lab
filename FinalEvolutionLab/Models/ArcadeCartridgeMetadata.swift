@@ -211,7 +211,7 @@ nonisolated struct ArcadeCartridgeMetadata: Sendable {
         ),
         .whoSceneIt: ArcadeCartridgeMetadata(
             modeId: .whoSceneIt,
-            classicTitle: "Who Scene It",
+            classicTitle: "Scene Stealer",
             tagline: "Perform · Express · Master the Scene",
             genre: .brain,
             yearStamp: "'26"
