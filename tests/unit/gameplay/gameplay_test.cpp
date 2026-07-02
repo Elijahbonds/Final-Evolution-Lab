@@ -10,20 +10,25 @@
 #include "nexus/gameplay/arena_mode_registry.h"
 #include "nexus/gameplay/arcade_physics.h"
 #include "nexus/gameplay/arena_session_manager.h"
+#include "nexus/gameplay/brain_brawl_mode.h"
 #include "nexus/gameplay/exercise_demo_pipeline.h"
 #include "nexus/gameplay/fel_bridge_service.h"
 #include "nexus/gameplay/fel_session_types.h"
 #include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gameplay_application.h"
 #include "nexus/gameplay/gameplay_manager.h"
+#include "nexus/gameplay/gymnastics_mode.h"
 #include "nexus/gameplay/hud_relay_service.h"
 #include "nexus/gameplay/mode_runtime.h"
 #include "nexus/gameplay/outcome_sport_mode.h"
 #include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/session_receipt_client.h"
+#include "nexus/gameplay/skateboarding_mode.h"
+#include "nexus/gameplay/snowboarding_mode.h"
 #include "nexus/gameplay/surfing_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/voxel_command_parser.h"
+#include "nexus/gameplay/who_scene_it_mode.h"
 #include "nexus/physics/physics_world.h"
 
 #include <cstdio>
@@ -423,6 +428,84 @@ void arena_mode_registry_production_modes_match_validate_script() {
     require(mode.has_value(), std::string("production mode registered: ") + std::string(expectedId));
     require(mode->releaseState == nexus::gameplay::ArenaReleaseState::kProduction,
             std::string("production release state: ") + std::string(expectedId));
+  }
+}
+
+void production_mode_state_payloads_report_registry_release_state() {
+  using nexus::gameplay::ArenaModeRegistry;
+
+  const auto requireReleaseState = [](const nlohmann::json& state,
+                                      const std::string& label,
+                                      std::string_view expected = "production") {
+    require(state.contains("release_state"), label + " includes release_state");
+    require(state["release_state"].is_string(), label + " release_state is string");
+    require(state["release_state"].get<std::string>() == expected,
+            label + " release_state matches registry");
+  };
+
+  require(ArenaModeRegistry::releaseStateString(nexus::gameplay::ArenaReleaseState::kProduction) ==
+              "production",
+          "production release state string");
+  require(ArenaModeRegistry::releaseStateString(nexus::gameplay::ArenaReleaseState::kPreview) ==
+              "preview",
+          "preview release state string");
+  require(ArenaModeRegistry::releaseStateStringForMode("brain_brawl") == "production",
+          "brain brawl registry release state string");
+
+  nexus::gameplay::GymnasticsMode gymnastics;
+  gymnastics.reset();
+  requireReleaseState(gymnastics.stateJson(), "gymnastics state");
+  const auto gymTap = gymnastics.rhythmTap(0.95F, 0.8F);
+  require(gymTap.isOk(), "gymnastics tap result ok");
+  requireReleaseState(gymTap.value()["gymnastics"], "gymnastics tap nested state");
+  requireReleaseState(gymTap.value(), "gymnastics tap action");
+
+  nexus::gameplay::BrainBrawlMode brain;
+  brain.reset();
+  requireReleaseState(brain.stateJson(), "brain brawl state");
+
+  nexus::gameplay::SkateboardingMode skateboarding;
+  skateboarding.reset();
+  requireReleaseState(skateboarding.stateJson(), "skateboarding state");
+
+  nexus::gameplay::SnowboardingMode snowboarding;
+  snowboarding.reset();
+  requireReleaseState(snowboarding.stateJson(), "snowboarding state");
+
+  nexus::gameplay::SurfingMode surfing;
+  surfing.reset();
+  requireReleaseState(surfing.stateJson(), "surfing state");
+
+  nexus::gameplay::WhoSceneItMode whoSceneIt;
+  whoSceneIt.reset();
+  requireReleaseState(whoSceneIt.stateJson(), "who scene it state");
+
+  nexus::gameplay::OutcomeSportMode outcomeSport;
+  for (std::string_view modeId :
+       {"basketball_3v3", "karate_h2h", "baseball", "football", "soccer", "golf", "tennis",
+        "volleyball"}) {
+    outcomeSport.reset(modeId);
+    requireReleaseState(outcomeSport.stateJson(),
+                        std::string("outcome sport state ") + std::string(modeId));
+    const auto pulse =
+        outcomeSport.pulse({{"success", true}, {"timing", 0.95F}, {"sport_action", "test"}});
+    require(pulse.isOk(), std::string("outcome sport pulse ok ") + std::string(modeId));
+    requireReleaseState(pulse.value()["outcome_sport"],
+                        std::string("outcome sport nested state ") + std::string(modeId));
+    requireReleaseState(pulse.value(),
+                        std::string("outcome sport action ") + std::string(modeId));
+  }
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  const auto modes = gameplay.handleGameplayQuery("fel.query.list_arena_modes", {}, "mode_list");
+  require(modes.status == "ok", "arena mode list query ok");
+  for (const auto& mode : modes.payload["modes"]) {
+    const std::string modeId = mode["mode_id"].get<std::string>();
+    if (ArenaModeRegistry::releaseStateStringForMode(modeId) == "production") {
+      requireReleaseState(mode, std::string("arena mode list ") + modeId);
+    }
   }
 }
 
@@ -2804,6 +2887,7 @@ auto main() -> int {
   gameplay_session_state_query_returns_coherent_payload();
   arena_mode_registry_lists_nineteen_modes();
   arena_mode_registry_production_modes_match_validate_script();
+  production_mode_state_payloads_report_registry_release_state();
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();
   karate_h2h_sport_pulse_hp_combat();

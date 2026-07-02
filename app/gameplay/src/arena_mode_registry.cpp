@@ -265,6 +265,27 @@ auto ArenaModeRegistry::productionModes() -> std::vector<ArenaModeConfig> {
   return modes;
 }
 
+auto ArenaModeRegistry::releaseStateString(ArenaReleaseState state) -> std::string_view {
+  switch (state) {
+  case ArenaReleaseState::kProduction:
+    return "production";
+  case ArenaReleaseState::kStaging:
+    return "staging";
+  case ArenaReleaseState::kPreview:
+    return "preview";
+  case ArenaReleaseState::kNonGameModule:
+    return "non-game-module";
+  }
+  return "unknown";
+}
+
+auto ArenaModeRegistry::releaseStateStringForMode(std::string_view modeId) -> std::string_view {
+  if (const ArenaModeConfig* found = lookup(modeId)) {
+    return releaseStateString(found->releaseState);
+  }
+  return "unknown";
+}
+
 auto ArenaModeRegistry::venueTokenForMode(std::string_view modeId) -> std::string {
   if (const ArenaModeConfig* found = lookup(modeId)) {
     return std::string(found->venueToken);
@@ -305,7 +326,7 @@ auto ArenaModeRegistry::modeToJson(const ArenaModeConfig& config) -> nlohmann::j
       {"mode_weight", config.modeWeight},
       {"default_match_duration_seconds", config.defaultMatchDurationSeconds},
       {"scoring_enabled", config.scoringEnabled},
-      {"release_state", static_cast<int>(config.releaseState)},
+      {"release_state", std::string(releaseStateString(config.releaseState))},
   };
 }
 
