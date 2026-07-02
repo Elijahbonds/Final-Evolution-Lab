@@ -320,9 +320,17 @@ struct GameLogicTests {
         let dunk3DMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketballDunkContest3D))
         #expect(dunk3DMeta.classicTitle == "Slam Jam '94")
         let dunkIRLMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketballDunkContestIRL))
-        #expect(dunkIRLMeta.classicTitle == "Slam Cam '26")
+        #expect(dunkIRLMeta.classicTitle == "Slam Cam '94")
         let threeMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketball3v3))
         #expect(threeMeta.classicTitle == "Street Kings 3v3")
+    }
+
+    @Test func brainBrawlProductionTierMatchesRegistryLaunchability() {
+        let mode = GameModeRegistry.mode(for: .brainBrawl)
+        #expect(mode.releaseState == .production)
+        #expect(mode.nexusCapabilityTier == .prod)
+        #expect(mode.id.isNexusRuntimeLaunchable)
+        #expect(GameModeRegistry.nexusRuntimeProductionModeIds.contains(mode.id.rawValue))
     }
 
     @Test func karateH2HHonestHudAndOutcomeSportRouting() {

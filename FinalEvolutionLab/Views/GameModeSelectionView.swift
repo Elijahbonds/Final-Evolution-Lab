@@ -124,12 +124,7 @@ struct GameModeSelectionView: View {
                 HStack(spacing: 10) {
                     ForEach(GameModeRegistry.nexusSprintModes) { mode in
                         Button {
-                            FELHaptics.modeSelect()
-                            SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
-                            pendingMode = mode
-                            Task { @MainActor in
-                                await launchSelectedMode()
-                            }
+                            selectModeForLaunch(mode)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(mode.nexusSprintPriorityLabel)
@@ -362,17 +357,7 @@ struct GameModeSelectionView: View {
                             return
                         }
                         FELHaptics.modeSelect()
-                        SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
-                        pendingMode = mode
-                        if mode.id.isIRLDunkContest {
-                            showDunkPlatform = true
-                        } else if mode.id == .karateEndless {
-                            showKarateCoopLobby = true
-                        } else {
-                            Task { @MainActor in
-                                await launchSelectedMode()
-                            }
-                        }
+                        selectModeForLaunch(mode, hapticsAlreadyPlayed: true)
                     }
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
@@ -381,6 +366,23 @@ struct GameModeSelectionView: View {
                         value: appeared
                     )
                 }
+            }
+        }
+    }
+
+    private func selectModeForLaunch(_ mode: GameMode, hapticsAlreadyPlayed: Bool = false) {
+        if !hapticsAlreadyPlayed {
+            FELHaptics.modeSelect()
+        }
+        SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
+        pendingMode = mode
+        if mode.id.isIRLDunkContest {
+            showDunkPlatform = true
+        } else if mode.id == .karateEndless {
+            showKarateCoopLobby = true
+        } else {
+            Task { @MainActor in
+                await launchSelectedMode()
             }
         }
     }

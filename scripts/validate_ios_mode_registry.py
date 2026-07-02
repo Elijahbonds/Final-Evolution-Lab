@@ -10,6 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 GAME_MODE_SWIFT = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
 CPP_REGISTRY = REPO_ROOT / "app" / "gameplay" / "include" / "nexus" / "gameplay" / "arena_mode_registry.h"
 SWIFT_ROOTS = [REPO_ROOT / "FinalEvolutionLab", REPO_ROOT / "FinalEvolutionLabTests"]
+STALE_GAME_MODE_CASE_PATTERN = re.compile(r"\.(?:basketballDunkContest|basketballIRL)\b")
 
 
 def string_array(source: str, name: str) -> list[str]:
@@ -38,13 +39,12 @@ def game_mode_cases(source: str) -> dict[str, str]:
 
 
 def stale_case_references() -> list[str]:
-    stale_names = (".basketballDunkContest", ".basketballIRL")
     hits: list[str] = []
     for root in SWIFT_ROOTS:
         for path in root.rglob("*.swift"):
             text = path.read_text(errors="replace")
             for line_no, line in enumerate(text.splitlines(), start=1):
-                if any(name in line for name in stale_names):
+                if STALE_GAME_MODE_CASE_PATTERN.search(line):
                     hits.append(f"{path.relative_to(REPO_ROOT)}:{line_no}: {line.strip()}")
     return hits
 

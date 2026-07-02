@@ -984,8 +984,8 @@ struct TriumphTournamentLobbyView: View {
         // Complete tournament and distribute payout
         let gameModeId: String
         switch selectedGameMode {
-        case "2D Brain Brawl": gameModeId = "brainBrawl"
-        case "Court Carnival": gameModeId = "courtCarnival"
+        case "2D Brain Brawl": gameModeId = GameModeId.brainBrawl.rawValue
+        case "Court Carnival": gameModeId = GameModeId.courtCarnival.rawValue
         default: gameModeId = GameModeId.basketballDunkContestIRL.rawValue
         }
         

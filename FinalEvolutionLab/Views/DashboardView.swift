@@ -13,6 +13,7 @@ struct DashboardView: View {
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
+    @State private var showDunkPlatform: Bool = false
     @State private var showBodyIQLab: Bool = false
     @State private var showBioDigital: Bool = false
     @State private var showTrainingHub: Bool = false
@@ -115,6 +116,11 @@ struct DashboardView: View {
         .navigationDestination(isPresented: $navigateToArenaGame) {
             if let mode = pendingArenaMode {
                 GamePlayView(viewModel: viewModel, gameMode: mode, sessionReadiness: sessionReadiness)
+            }
+        }
+        .fullScreenCover(isPresented: $showDunkPlatform) {
+            NavigationStack {
+                DunkMatchmakingView(viewModel: viewModel)
             }
         }
         .navigationDestination(isPresented: $showBodyIQLab) {
@@ -357,7 +363,11 @@ struct DashboardView: View {
                     Button {
                         pendingArenaMode = mode
                         sessionReadiness = viewModel.effectiveMetrics.neuralDrive
-                        navigateToArenaGame = true
+                        if mode.id.isIRLDunkContest {
+                            showDunkPlatform = true
+                        } else {
+                            navigateToArenaGame = true
+                        }
                     } label: {
                         Text(mode.name)
                             .font(.system(size: 10, weight: .black))

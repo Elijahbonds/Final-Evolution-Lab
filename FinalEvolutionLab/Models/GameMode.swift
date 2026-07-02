@@ -79,7 +79,7 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -324,7 +324,7 @@ struct GameModeRegistry {
         .gymnastics, .brainBrawl, .skateboarding, .snowboarding, .surfing, .whoSceneIt,
     ]
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// Swift catalog IDs for canonical arena products, including the IRL/3D split dunk products.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
@@ -392,7 +392,7 @@ struct GameModeRegistry {
             accentColor: Color(red: 0, green: 0.83, blue: 1.0),
             multiplayerType: .realtime,
             environmentName: "Venice Beach Blue Court",
-            hint: "On the blue court · dunk catalog · swipe timing · 3-judge panel · crowd momentum",
+            hint: "Metal-ready blue court · dunk catalog · swipe timing · 3-judge panel · crowd momentum",
             releaseState: .production
         ),
         GameMode(
@@ -636,23 +636,25 @@ struct GameModeRegistry {
     /// Ingests a `FELModeManagerPayload` to dynamically update or filter shipping game modes.
     static func loadFromPayload(_ payload: FELModeManagerPayload) -> [GameMode] {
         var loaded: [GameMode] = []
+        var seenModeIds: Set<GameModeId> = []
         for (rawId, entry) in payload.modeManager.modeRegistry {
-            guard let modeId = GameModeId(rawValue: rawId) else { continue }
-            let baseMode = all.first(where: { $0.id == modeId })
+            guard let baseMode = playableMode(forRegistryId: rawId) else { continue }
+            let modeId = baseMode.id
+            guard seenModeIds.insert(modeId).inserted else { continue }
             let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
             
             let mode = GameMode(
                 id: modeId,
-                name: baseMode?.name ?? rawId.replacingOccurrences(of: "_", with: " ").capitalized,
-                subtitle: baseMode?.subtitle ?? "NEXUS Arena Mode",
-                sport: baseMode?.sport ?? .basketball,
-                iconName: baseMode?.iconName ?? "gamecontroller",
-                accentColor: baseMode?.accentColor ?? .orange,
-                multiplayerType: baseMode?.multiplayerType ?? .realtime,
-                environmentName: baseMode?.environmentName ?? "Arena",
-                hint: baseMode?.hint,
+                name: baseMode.name,
+                subtitle: baseMode.subtitle,
+                sport: baseMode.sport,
+                iconName: baseMode.iconName,
+                accentColor: baseMode.accentColor,
+                multiplayerType: baseMode.multiplayerType,
+                environmentName: baseMode.environmentName,
+                hint: baseMode.hint,
                 releaseState: releaseState,
-                capabilityTier: baseMode?.capabilityTier ?? modeId.nexusCapabilityTier
+                capabilityTier: baseMode.capabilityTier
             )
             loaded.append(mode)
         }
