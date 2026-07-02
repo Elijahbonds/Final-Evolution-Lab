@@ -1005,10 +1005,69 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_uses_fitness_snapshot_after_sprint_defaults() {
+  nexus::gameplay::FitnessSnapshot coldStart{};
+  require(nexus::gameplay::PRQEngine::scoreFromFitness(coldStart) == 75.0F,
+          "prq cold start default");
+  require(nexus::gameplay::PRQEngine::neuralDriveFromFitness(coldStart) == 60.0F,
+          "neural drive cold start default");
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.9F, 0.85F, 0.95F}, {0.8F, 0.9F, 1});
+  const auto snapshot = fitness.snapshot();
+  const float liveScore = nexus::gameplay::PRQEngine::scoreFromFitness(snapshot);
+  const float liveNeuralDrive = nexus::gameplay::PRQEngine::neuralDriveFromFitness(snapshot);
+  require(liveScore > 80.0F && liveScore < 83.0F, "prq derives from power readiness");
+  require(liveNeuralDrive > 71.0F && liveNeuralDrive < 73.0F,
+          "neural drive derives from iap composite");
+  require(nexus::gameplay::PRQEngine::gradeFromFitness(snapshot) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "live prq grade elite");
+}
+
+void mode_runtime_prq_tracks_live_fitness() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  auto start = gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "basketball_dunk"}, {"user_id", "test"}},
+      "prq_start");
+  require(start.status == "ok", "prq session starts");
+
+  auto initialState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "initial_prq");
+  require(initialState.payload["prq"].get<float>() == 75.0F, "initial mode prq default");
+  require(initialState.payload["prq_source"].get<std::string>() == "sprint_default",
+          "initial prq source is fallback");
+  const float initialHangTime =
+      initialState.payload["arcade_physics"]["hang_time_multiplier"].get<float>();
+
+  auto fitnessResponse = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {{"frc_mobility", 0.9F},
+       {"frc_active_range", 0.85F},
+       {"frc_control", 0.95F},
+       {"iap_engagement", 0.8F},
+       {"iap_confidence", 0.9F},
+       {"breath_phase", 1}},
+      "prq_fitness");
+  require(fitnessResponse.status == "ok", "prq fitness update ok");
+
+  auto liveState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "live_prq");
+  require(liveState.payload["prq"].get<float>() > 80.0F, "mode prq uses live fitness");
+  require(liveState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "mode prq grade tracks live fitness");
+  require(liveState.payload["prq_source"].get<std::string>() == "fitness_snapshot",
+          "mode prq source marks fitness");
+  require(liveState.payload["fitness_revision"].get<std::uint64_t>() == 1,
+          "mode state includes fitness revision");
+  require(liveState.payload["arcade_physics"]["hang_time_multiplier"].get<float>() >
+              initialHangTime,
+          "arcade physics responds to live prq");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -2896,7 +2955,8 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_uses_fitness_snapshot_after_sprint_defaults();
+  mode_runtime_prq_tracks_live_fitness();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();

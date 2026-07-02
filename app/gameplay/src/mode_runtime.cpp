@@ -20,7 +20,8 @@ namespace {
 } // namespace
 
 auto ModeRuntime::physicsParams() const -> ArcadePhysicsParams {
-  return ArcadePhysics::fromPRQ(PRQEngine::getScore(), PRQEngine::getNeuralDrive());
+  return ArcadePhysics::fromPRQ(PRQEngine::scoreFromFitness(m_fitness),
+                                PRQEngine::neuralDriveFromFitness(m_fitness));
 }
 
 auto ModeRuntime::parseCarnivalPad(std::string_view label) -> std::optional<CarnivalPad> {
@@ -112,11 +113,17 @@ void ModeRuntime::reset() {
   m_surfing.reset();
   m_whoSceneIt.reset();
   m_outcomeSport.reset();
+  m_fitness = {};
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 }
 
-void ModeRuntime::update(double deltaSeconds) {
+void ModeRuntime::setFitnessSnapshot(const FitnessSnapshot& fitness) {
+  m_fitness = fitness;
+}
+
+void ModeRuntime::update(double deltaSeconds, const FitnessSnapshot& fitness) {
+  setFitnessSnapshot(fitness);
   const ArcadePhysicsParams physics = physicsParams();
   if (m_kind == ActiveModeKind::kDunkContest) {
     m_dunk.update(deltaSeconds, physics);
@@ -443,8 +450,10 @@ auto ModeRuntime::stateJson() const -> nlohmann::json {
   nlohmann::json payload{
       {"mode_id", m_modeId},
       {"kind", static_cast<int>(m_kind)},
-      {"prq", PRQEngine::getScore()},
-      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::getGrade())},
+      {"prq", PRQEngine::scoreFromFitness(m_fitness)},
+      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::gradeFromFitness(m_fitness))},
+      {"prq_source", m_fitness.revision == 0 ? "sprint_default" : "fitness_snapshot"},
+      {"fitness_revision", m_fitness.revision},
   };
 
   const ArcadePhysicsParams physics = physicsParams();
