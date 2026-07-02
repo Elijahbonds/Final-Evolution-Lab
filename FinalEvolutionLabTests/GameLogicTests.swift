@@ -295,6 +295,23 @@ struct GameLogicTests {
         #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk")?.id == .basketballDunkContest3D)
     }
 
+    @Test func nexusSprintModesRouteOnlyToCppRuntimeModes() {
+        let cppRuntimeModeIds: Set<String> = [
+            "basketball_h2h", "basketball_dunk", "court_carnival", "karate_endless",
+            "gymnastics", "brain_brawl", "skateboarding", "snowboarding", "surfing", "who_scene_it",
+        ]
+
+        #expect(!GameModeRegistry.nexusSprintModeIds.contains(.basketballDunkContestIRL))
+        #expect(GameModeRegistry.nexusSprintModeIds.contains(.basketballDunkContest3D))
+        for mode in GameModeRegistry.nexusSprintModes {
+            #expect(!mode.id.isIRLDunkContest, "\(mode.id.rawValue) must use the native IRL dunk flow")
+            #expect(
+                cppRuntimeModeIds.contains(mode.id.nexusRuntimeModeId),
+                "\(mode.id.rawValue) maps to unsupported C++ runtime \(mode.id.nexusRuntimeModeId)"
+            )
+        }
+    }
+
     @Test func basketballClusterWinTargetsAlignWithNexusSimulators() {
         #expect(GameModeRules.forMode(.basketballHeadToHead).targetScore == 21)
         #expect(GameModeRules.forMode(.basketball3v3).targetScore == 21)

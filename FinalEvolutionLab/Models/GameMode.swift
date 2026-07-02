@@ -297,9 +297,10 @@ struct GameModeRegistry {
         "brain_brawl", "who_scene_it",
     ]
 
-    /// Production NEXUS simulators — `docs/NEXUS_MODES_CAPABILITY.md` (10 full sim modes).
+    /// Production NEXUS runtime simulators. Native IRL flows stay in the catalog, but do not launch
+    /// through ``GamePlayView`` because they are camera/proctor experiences rather than C++ modes.
     static let nexusSprintModeIds: Set<GameModeId> = [
-        .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .courtCarnival,
+        .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .courtCarnival,
         .gymnastics, .brainBrawl, .skateboarding, .snowboarding, .surfing, .whoSceneIt,
     ]
 

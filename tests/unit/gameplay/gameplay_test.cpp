@@ -981,6 +981,13 @@ void venue_volume_overlap_triggers_travel() {
   nexus::creative::WorldManipulator manipulator(world);
   nexus::gameplay::GameplayApplication gameplay(manipulator, world);
 
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "venue_traveler"}},
+              "venue_start")
+              .status == "ok",
+          "venue travel starts source session");
+
   auto registerVolume = gameplay.handleGameplayCommand(
       "fel.venue.register_volume",
       {{"venue_token", "Zen_Dojo"},
@@ -1000,6 +1007,32 @@ void venue_volume_overlap_triggers_travel() {
           "venue travel updates bridge");
   require(std::string(gameplay.fel_bridge().activeArenaGameModeId()) == "karate_h2h",
           "venue travel updates mode");
+  require(gameplay.arena_session().state().modeId == "karate_h2h",
+          "venue travel updates arena session mode");
+  require(gameplay.mode_runtime().activeModeId() == "karate_h2h",
+          "venue travel updates mode runtime");
+
+  const auto modeState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "venue_mode_state");
+  require(modeState.status == "ok", "venue mode state query ok");
+  require(modeState.payload.contains("outcome_sport"),
+          "venue travel switches runtime state payload");
+
+  const auto hud = gameplay.handleGameplayQuery("fel.hud.poll", {}, "venue_hud");
+  require(hud.status == "ok", "venue hud poll ok");
+  require(hud.payload["payload"]["mode_id"].get<std::string>() == "karate_h2h",
+          "venue travel emits HUD for target mode");
+  require(hud.payload["payload"]["mode_state"].contains("outcome_sport"),
+          "venue HUD mode state matches target runtime");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "venue_end");
+  require(end.status == "ok", "venue-traveled session ends with live scores");
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "venue_receipts");
+  require(!receipts.payload["receipts"].empty(), "venue travel queues receipt");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "karate_h2h",
+          "venue travel receipt mode matches target runtime");
 }
 
 void exercise_demo_pipeline_maps_production_modes() {

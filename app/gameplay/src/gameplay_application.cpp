@@ -1342,8 +1342,45 @@ void GameplayApplication::emitHudTickFrame() {
 
 void GameplayApplication::processVenueOverlaps() {
   if (const auto travel = m_venueVolumes.checkPlayerOverlap(m_venueVolumes.playerPosition())) {
+    const std::string_view targetModeId = travel->modeId;
+    const bool runtimeAlreadyActive = m_modeRuntime.activeModeId() == targetModeId;
+    const bool arenaAlreadyActive = m_arenaSession.state().modeId == targetModeId;
+    const bool bridgeAlreadyActive =
+        m_felBridge.activeVenueToken() == travel->venueToken &&
+        m_felBridge.activeArenaGameModeId() == targetModeId;
+    if (runtimeAlreadyActive && arenaAlreadyActive && bridgeAlreadyActive) {
+      return;
+    }
+
+    if (!ArenaModeRegistry::find(targetModeId).has_value()) {
+      NEXUS_LOG_WARN(LogChannel::kCore,
+                     "Ignoring venue travel for unknown mode_id=" + std::string(targetModeId));
+      return;
+    }
+
+    if (!runtimeAlreadyActive) {
+      const auto modeSet = m_modeRuntime.setMode(targetModeId);
+      if (modeSet.isErr()) {
+        NEXUS_LOG_WARN(LogChannel::kCore,
+                       "Failed to activate venue runtime mode=" + std::string(targetModeId) +
+                           " error=" + modeSet.error());
+        return;
+      }
+    }
+
+    if (!arenaAlreadyActive) {
+      const auto arenaSet = m_arenaSession.setMode(targetModeId);
+      if (arenaSet.isErr()) {
+        NEXUS_LOG_WARN(LogChannel::kCore,
+                       "Failed to activate venue arena mode=" + std::string(targetModeId) +
+                           " error=" + arenaSet.error());
+        return;
+      }
+    }
+
     m_felBridge.notifyVenueTravel(travel->venueToken, travel->modeId);
-    (void)m_arenaSession.setMode(travel->modeId);
+    syncArenaFromModeRuntime();
+    emitHudTickFrame();
   }
 }
 

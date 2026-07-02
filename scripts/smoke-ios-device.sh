@@ -79,6 +79,9 @@ fi
 
 cd "$ROOT"
 
+echo "==> iOS runtime launch registry gate"
+python3 scripts/validate_ios_runtime_launches.py
+
 echo "==> Headless ctest gate"
 ./scripts/smoke_gameplay_session.sh --skip-build
 
