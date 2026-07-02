@@ -56,12 +56,13 @@ GAMEPLAY_CODE=$?
 set -e
 
 GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-OVERALL="pass"
+BASE_OVERALL="pass"
 if [[ ${CTEST_CODE} -ne 0 || ${GAMEPLAY_CODE} -ne 0 ]]; then
-  OVERALL="fail"
+  BASE_OVERALL="fail"
 fi
 
-python3 - "${REGRESSION_JSON}" "${GENERATED_AT}" "${OVERALL}" "${CTEST_CODE}" "${GAMEPLAY_CODE}" \
+set +e
+python3 - "${REGRESSION_JSON}" "${GENERATED_AT}" "${BASE_OVERALL}" "${CTEST_CODE}" "${GAMEPLAY_CODE}" \
   "${REGRESSION_LOG}" "${CTEST_LOG}" <<'PY'
 import json
 import re
@@ -76,14 +77,24 @@ gameplay_code = int(sys.argv[5])
 gameplay_log = Path(sys.argv[6]).read_text(errors="replace")
 ctest_log = Path(sys.argv[7]).read_text(errors="replace")
 
-sprint_modes = [
-    "basketball_dunk", "karate_endless", "basketball_h2h", "court_carnival",
-    "gymnastics", "brain_brawl", "skateboarding", "snowboarding", "surfing",
-    "who_scene_it",
-]
+registry_header = Path("app/gameplay/include/nexus/gameplay/arena_mode_registry.h").read_text(
+    errors="replace"
+)
+match = re.search(r"kProductionModeIds\[\]\s*=\s*\{(?P<body>.*?)\};", registry_header, re.S)
+if not match:
+    raise SystemExit("failed to parse kProductionModeIds from arena_mode_registry.h")
 
-modes_exercised = [m for m in sprint_modes if f"mode={m}" in gameplay_log or f"mode_id={m}" in gameplay_log]
+production_modes = re.findall(r'"([^"]+)"', match.group("body"))
+modes_exercised = [
+    mode
+    for mode in production_modes
+    if f"mode={mode}" in gameplay_log or f"mode_id={mode}" in gameplay_log
+]
+missing_modes = [mode for mode in production_modes if mode not in modes_exercised]
 fail_lines = [line.strip() for line in gameplay_log.splitlines() if line.startswith("FAIL:")]
+
+if missing_modes:
+    overall = "fail"
 
 payload = {
     "schema_version": "1",
@@ -91,7 +102,11 @@ payload = {
     "overall_status": overall,
     "ctest_exit_code": ctest_code,
     "gameplay_test_exit_code": gameplay_code,
-    "sprint_live_modes_expected": len(sprint_modes),
+    "production_modes_expected": len(production_modes),
+    "production_modes_seen_in_log": len(modes_exercised),
+    "production_modes": modes_exercised,
+    "production_modes_missing": missing_modes,
+    "sprint_live_modes_expected": len(production_modes),
     "sprint_live_modes_seen_in_log": len(modes_exercised),
     "sprint_live_modes": modes_exercised,
     "failures": fail_lines,
@@ -115,12 +130,16 @@ if failed_tests:
 
 out_path.write_text(json.dumps(payload, indent=2) + "\n")
 print(json.dumps(payload, indent=2))
+if missing_modes:
+    raise SystemExit("missing production mode evidence: " + ", ".join(missing_modes))
 PY
+AUDIT_CODE=$?
+set -e
 
 echo "==> Wrote ${REGRESSION_JSON}"
 
-if [[ "${OVERALL}" != "pass" ]]; then
-  echo "==> nexus_gameplay_regression FAIL (ctest=${CTEST_CODE}, gameplay_test=${GAMEPLAY_CODE})" >&2
+if [[ "${BASE_OVERALL}" != "pass" || ${AUDIT_CODE} -ne 0 ]]; then
+  echo "==> nexus_gameplay_regression FAIL (ctest=${CTEST_CODE}, gameplay_test=${GAMEPLAY_CODE}, audit=${AUDIT_CODE})" >&2
   exit 1
 fi
 
