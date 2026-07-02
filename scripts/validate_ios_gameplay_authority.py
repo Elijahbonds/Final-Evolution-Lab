@@ -77,7 +77,7 @@ def main() -> int:
         errors,
     )
     require(
-        "useLiveScores: Bool = false" in stop_body,
+        "useLiveScores: Bool = false" in engine,
         "NexusGameplayEngine.stop should default to Swift-visible score authority",
         errors,
     )
