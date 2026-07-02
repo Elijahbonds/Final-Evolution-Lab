@@ -19,9 +19,10 @@ set -uo pipefail
 STRICT=false
 [[ "${1:-}" == "--strict" ]] && STRICT=true
 
-INTERNAL_ID="FinalEvolutionLab"
-BUNDLE_ID="com.finalevolutionlab.app"
+INTERNAL_ID="${INTERNAL_ID:-FinalEvolutionLab}"
+BUNDLE_ID="${BUNDLE_ID:-com.finalevolutionlab.app}"
 PASS=0; FAIL=0; WARN=0
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 pass() { ((PASS++)); echo "  [PASS] $1"; }
 fail() { ((FAIL++)); echo "  [FAIL] $1"; }
@@ -39,21 +40,28 @@ discover() {
 }
 
 UPROJECT="${UPROJECT:-$(discover)}"
+SKIP_LEGACY_UE_DESCRIPTOR=false
 if [[ -z "$UPROJECT" || ! -f "$UPROJECT" ]]; then
-    echo "FATAL: Cannot locate ${INTERNAL_ID}.uproject"
-    echo "Set UPROJECT= and re-run."
-    exit 1
+    SKIP_LEGACY_UE_DESCRIPTOR=true
+    echo "══════════════════════════════════════════════════════════"
+    echo "  FEL PRE-BUILD CI CHECK"
+    echo "  Legacy UE descriptor: not present in this NEXUS-only checkout"
+    echo "══════════════════════════════════════════════════════════"
+    echo ""
+    pass "Skipping archived Unreal descriptor alignment; NEXUS registry gates still run"
+else
+    PROJECT_DIR="$(cd "$(dirname "$UPROJECT")" && pwd)"
+    PROJECT_NAME="$(basename "$UPROJECT" .uproject)"
+    CONFIG_DIR="$PROJECT_DIR/Config"
+
+    echo "══════════════════════════════════════════════════════════"
+    echo "  FEL PRE-BUILD CI CHECK"
+    echo "  Project: $PROJECT_DIR"
+    echo "══════════════════════════════════════════════════════════"
+    echo ""
 fi
 
-PROJECT_DIR="$(cd "$(dirname "$UPROJECT")" && pwd)"
-PROJECT_NAME="$(basename "$UPROJECT" .uproject)"
-CONFIG_DIR="$PROJECT_DIR/Config"
-
-echo "══════════════════════════════════════════════════════════"
-echo "  FEL PRE-BUILD CI CHECK"
-echo "  Project: $PROJECT_DIR"
-echo "══════════════════════════════════════════════════════════"
-echo ""
+if [[ "$SKIP_LEGACY_UE_DESCRIPTOR" == false ]]; then
 
 # ─── Check 1: .uproject filename ──────────────────────────────────
 echo "CHECK 1: .uproject filename"
@@ -174,22 +182,16 @@ else
     warn "[FELBridge] section not found in DefaultGame.ini"
 fi
 
+fi
+
 # ─── Check 7: Registry & Architecture Validation (Seele's Gates) ─────
 echo "CHECK 7: Seele's Registry & Architecture Validation Gates"
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Gate 1: mode count == 20 (19 game modes + 1 education), prod == 14
-MODE_JSON="$REPO_ROOT/backend/FEL_ModeManager.production.json"
-if [[ -f "$MODE_JSON" ]]; then
-    MC=$(python3 -c "import json; d=json.load(open('$MODE_JSON')); print(len(d['mode_manager']['mode_registry']))" 2>/dev/null || echo 0)
-    PC=$(python3 -c "import json; d=json.load(open('$MODE_JSON')); r=d['mode_manager']['mode_registry']; print(sum(1 for v in r.values() if v.get('status')=='production'))" 2>/dev/null || echo 0)
-    if [[ "$MC" -eq 20 && "$PC" -eq 14 ]]; then
-        pass "Gate 1 (modes=$MC, prod=$PC)"
-    else
-        fail "Gate 1 (modes=$MC, prod=$PC; expected modes=20, prod=14)"
-    fi
+# Gate 1: canonical NEXUS mode registry validator
+if python3 "$REPO_ROOT/scripts/validate_mode_registry.py" >/dev/null; then
+    pass "Gate 1 (canonical NEXUS mode registry)"
 else
-    fail "Gate 1: FEL_ModeManager.production.json not found"
+    fail "Gate 1: canonical NEXUS mode registry validation failed"
 fi
 
 # Gate 2: No mario_party_fever

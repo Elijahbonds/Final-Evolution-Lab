@@ -31,18 +31,7 @@ jobs:
           test -f ./infra/native_ios/FELNativeSwiftBridge.swift && echo "✓ FELNativeSwiftBridge.swift" || echo "✗ MISSING"
 
       - name: Validate Mode Registry
-        run: |
-          python3 -c "
-          import json
-          with open('./backend/FEL_ModeManager.production.json') as f:
-              d = json.load(f)
-          modes = d['mode_manager']['modes']
-          print(f'Mode registry: {len(modes)} modes')
-          prod = [m for m in modes if m.get('status') == 'production']
-          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
-          assert len(modes) >= 17, 'Expected 17+ modes'
-          print('✓ Mode registry valid')
-          "
+        run: python3 scripts/validate_mode_registry.py
 
       - name: Block Merge on Failure
         if: failure()
