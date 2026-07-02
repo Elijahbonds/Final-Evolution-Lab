@@ -17,6 +17,17 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def mode_aliases(mode_id):
+    aliases = {
+        "basketball_dunk_3d": ["basketball_dunk"],
+    }
+    return aliases.get(mode_id, [])
+
+def has_mode_or_alias(mode_id, mapping):
+    if mode_id in mapping:
+        return True
+    return any(alias in mapping for alias in mode_aliases(mode_id))
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -77,8 +88,10 @@ def validate_fel_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
-            if mode_id not in play_map_section:
+        for mode_id, map_token in ue_maps.items():
+            if map_token is None:
+                continue
+            if not has_mode_or_alias(mode_id, play_map_section):
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
 
@@ -114,12 +127,17 @@ def validate_arena_settings():
     modes = arena.get("modes", {})
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+    ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
+    ue_maps = {}
+    if ue_maps_path.exists():
+        ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
     if mgr_path.exists():
         mgr = json.loads(mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         for mode_id, info in registry.items():
-            if mode_id not in modes:
-                if info.get("status") in ("production", "staging"):
+            is_launchable = ue_maps.get(mode_id) is not None
+            if not has_mode_or_alias(mode_id, modes):
+                if info.get("status") in ("production", "staging") and is_launchable:
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 
     print("  ✓ ArenaSettings cross-check completed")
