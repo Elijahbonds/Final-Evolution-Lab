@@ -2160,7 +2160,7 @@ void session_receipt_real_http_success_does_not_report_disk_queue_when_disabled(
   nexus::gameplay::SessionReceiptClient client({
       .queueDirectory = (tempDir / "queue").string(),
       .baseUrl = "http://127.0.0.1:8000/api/games/session",
-      .persistToDisk = true,
+      .persistToDisk = false,
       .httpEnabled = true,
       .useStubHttpTransport = false,
   });
@@ -2229,7 +2229,7 @@ void session_receipt_requeues_on_real_http_non_2xx() {
   nexus::gameplay::SessionReceiptClient client({
       .queueDirectory = (tempDir / "queue").string(),
       .baseUrl = "http://127.0.0.1:8000/api/games/session",
-      .persistToDisk = false,
+      .persistToDisk = true,
       .httpEnabled = true,
       .useStubHttpTransport = false,
   });
