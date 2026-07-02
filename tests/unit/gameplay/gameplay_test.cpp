@@ -823,6 +823,43 @@ void session_receipt_flush_preserves_http_config_between_agent_calls() {
           "receipt remains pending after preserved non-2xx config");
 }
 
+void session_receipt_live_success_does_not_report_disk_queue() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "flush_live_success_user"}},
+              "flush_live_success_start")
+              .status == "ok",
+          "session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "flush_live_success_end")
+              .status == "ok",
+          "session ends");
+
+  const nlohmann::json liveSuccessConfig = {
+      {"persist_to_disk", false},
+      {"http_enabled", true},
+      {"use_stub_http_transport", true},
+      {"stub_http_status_code", 204},
+  };
+  const auto flush =
+      gameplay.handleGameplayCommand("fel.arena.flush_receipts", liveSuccessConfig, "flush_204");
+  require(flush.status == "ok", "live success flush command ok");
+  require(flush.payload["attempted"].get<std::size_t>() == 1, "live success attempts receipt");
+  require(flush.payload["delivered"].get<std::size_t>() == 1, "live success delivers receipt");
+  require(flush.payload["queued_on_disk"].get<std::size_t>() == 0,
+          "live HTTP success does not report disk fallback");
+
+  const auto receipts = gameplay.handleGameplayQuery(
+      "fel.query.get_pending_session_receipts", {}, "flush_live_success_receipts");
+  require(receipts.payload["receipts"].empty(), "live success clears pending receipt");
+}
+
 void session_receipt_disk_keyed_by_session_id() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_dedup_test_" + std::to_string(getpid()));
@@ -2053,6 +2090,7 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "stub HTTP flush skips disk queue when persistence disabled");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
@@ -2948,6 +2986,7 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_flush_requeues_on_non_2xx_post();
+  session_receipt_live_success_does_not_report_disk_queue();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
