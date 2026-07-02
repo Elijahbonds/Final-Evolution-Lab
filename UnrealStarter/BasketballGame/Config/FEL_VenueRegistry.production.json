@@ -151,6 +151,11 @@
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
     {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation court — IRL camera/Vision dunk capture",
+      "renderMode": "IRL"
+    },
+    {
       "venueKey": "vault_shop",
       "analyticsPolicyName": "Luma Venice Shop (primary scan)",
       "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
