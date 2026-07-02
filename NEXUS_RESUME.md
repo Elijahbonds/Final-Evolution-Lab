@@ -71,12 +71,15 @@ ALLOW_GOOGLE_SERVICE_PLACEHOLDER=1 ./scripts/archive-ios-testflight.sh --dry-run
 | iOS embed scripts | `scripts/build-nexus-ios.sh`, `scripts/archive-ios-testflight.sh` |
 | Swift shell (reference) | `FinalEvolutionLab/` |
 
-## Build (macOS)
+## Build / verify
 
 ```bash
 cd /Users/elijahbonds/Final-Evolution-Lab
 
-# Headless gate (no SDL3/Vulkan) — gameplay + protocol tests
+# Linux/cloud headless gate (no SDL3/Vulkan): registry + descriptors + smoke + gameplay
+./scripts/nexus_headless_gate.sh
+
+# Full gate when renderer deps are installed
 ./scripts/nexus_build_gate.sh
 
 # Or headless only:
@@ -85,7 +88,7 @@ cmake --build build-headless -j$(sysctl -n hw.ncpu)
 ctest --test-dir build-headless --output-on-failure
 ```
 
-Full renderer requires **CMake**, **SDL3**, **Vulkan/MoltenVK**.
+Full renderer and mobile mesh gates require **CMake**, **SDL3**, **Vulkan/MoltenVK**. In Linux cloud VMs without an SDL3 package, install/provide SDL3 and set `CMAKE_PREFIX_PATH` before running `./scripts/nexus_mobile_mesh_gate.sh`.
 
 ## Gameplay modules (implemented)
 
@@ -116,5 +119,5 @@ Report: build status, failing tests, next 3 tasks toward runnable nexus_runtime 
 1. Copy `GoogleService-Info.plist` → run full `archive-ios-testflight.sh --export` → verify IPA + Transporter upload
 2. Instruments pass: 60 FPS @ mobile mesh on physical iPhone (Metal embed path)
 3. Close DoD #4 — live Firebase session receipt POST (not stub flush only)
-4. Rename or alias mobile sidecars so `nexus_mobile_mesh_gate.sh` has zero WARN lines
+4. Keep `nexus_mobile_mesh_gate.sh` strict in CI; use `--warn-only` only for exploratory asset audits
 5. GPU shadow + bloom resolve passes (currently logged API extensions)

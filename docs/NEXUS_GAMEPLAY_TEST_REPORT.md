@@ -1,7 +1,7 @@
 # NEXUS Gameplay Test Report
 
-**Date:** 2026-06-19 (error-editor pass)  
-**Repo:** `/Users/elijahbonds/Final-Evolution-Lab`  
+**Date:** 2026-07-02 (cloud app/game quality pass)  
+**Repo:** `/workspace`  
 **Role:** Senior Gameplay Tester + Senior Error Editor — ship-quality verification gate  
 **Artifacts:** `artifacts/playtest/gameplay_regression.json`, `artifacts/playtest/latest.json`
 
@@ -11,15 +11,17 @@
 
 | Gate | Result |
 |------|--------|
-| `./scripts/nexus_build_gate.sh` | **PASS** — headless 7/7 ctest; full 8/8 ctest (~64s); 14 production modes validate @ mobile |
-| `./scripts/smoke_v1.sh --skip-build` | **PASS** — 8/8 ctest + dunk/karate validate-only + `nexus_gameplay_test` |
+| `./scripts/nexus_headless_gate.sh` | **PASS** — registry/descriptor/smoke/cooked validations + headless 11/11 ctest + `nexus_gameplay_test` |
+| `./scripts/nexus_mobile_mesh_gate.sh` | **PASS** — renderer test + strict mobile sidecar validation (requires Vulkan + SDL3) |
+| `./scripts/nexus_build_gate.sh` | **PASS** — full renderer/production validation when renderer dependencies are installed |
+| `./scripts/smoke_v1.sh --skip-build` | **PASS** — ctest + dunk/karate validate-only + `nexus_gameplay_test` |
 | `./scripts/nexus_playtest.sh --duration 0 --skip-build` | **PASS** — validate + gameplay smoke artifact |
-| `./scripts/nexus_validate_production_modes.sh` | **PASS** — 14/14 modes |
-| `./scripts/nexus_gameplay_regression.sh --skip-build` | **PASS** — headless ctest + integration suite → `gameplay_regression.json` |
+| `./scripts/nexus_validate_production_modes.sh` | **PASS** — 18/18 C++ runtime production modes |
+| `./scripts/nexus_gameplay_regression.sh` | **PASS** — 11/11 headless ctest + integration suite → `gameplay_regression.json` |
 | `./scripts/build-nexus-ios.sh` | **PASS** (with `DEVELOPER_DIR` / Xcode toolchain) — `NexusPrebuilt/libnexus_*.a` refreshed |
 | `xcodebuild` iOS Simulator (iPhone 17, Debug) | **PASS** — `** BUILD SUCCEEDED **` after DerivedData lock retry |
 
-**Sprint LIVE modes (9):** all covered in `tests/unit/gameplay/gameplay_test.cpp` via per-mode flagship integrations + consolidated `nexus_sprint_live_modes_agent_contract_integration()` (agent router, nested JSON contracts, safe `.value()` access).
+**Sprint LIVE modes (10):** all covered in `tests/unit/gameplay/gameplay_test.cpp` via per-mode flagship integrations + consolidated `nexus_sprint_live_modes_agent_contract_integration()` (agent router, nested JSON contracts, safe `.value()` access). Registry validation covers 20 production entries / 19 launchable backend modes; iOS runtime launch validation covers the 10 Swift sprint modes against 18 C++ runtime production modes.
 
 ---
 
@@ -83,9 +85,10 @@
 | `brain_brawl` | `fel.brain.answer` | `brain_brawl` | ✓ |
 | `skateboarding` | `fel.skate.trick` | `skateboarding` | ✓ |
 | `snowboarding` | `fel.snow.carve` | `snowboarding` | ✓ |
+| `surfing` | `fel.surf.pump` | `surfing` | ✓ |
 | `who_scene_it` | `fel.scene.buzz_in` | `who_scene_it` | ✓ |
 
-Consolidated agent contract: `nexus_sprint_live_modes_agent_contract_integration()` — exercises all nine via `AgentServer` + `CommandRouter`, asserts `agent_envelope.command` where emitted, validates HUD `payload.mode_state.{mode}` without unchecked `.get()` on missing keys.
+Consolidated agent contract: `nexus_sprint_live_modes_agent_contract_integration()` — exercises all ten via `AgentServer` + `CommandRouter`, asserts `agent_envelope.command` where emitted, validates HUD `payload.mode_state.{mode}` without unchecked `.get()` on missing keys.
 
 ---
 
@@ -93,6 +96,7 @@ Consolidated agent contract: `nexus_sprint_live_modes_agent_contract_integration
 
 ```bash
 cd ~/Final-Evolution-Lab
+./scripts/nexus_headless_gate.sh
 ./scripts/nexus_build_gate.sh
 ./scripts/smoke_v1.sh --skip-build
 ./scripts/nexus_playtest.sh --duration 0 --skip-build
