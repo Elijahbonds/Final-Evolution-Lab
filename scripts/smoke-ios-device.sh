@@ -86,7 +86,12 @@ echo "==> iOS gameplay score authority"
 python3 scripts/validate_ios_gameplay_authority.py
 
 echo "==> Headless ctest gate"
-./scripts/smoke_gameplay_session.sh --skip-build
+if [[ -x "${ROOT}/build-headless/nexus_gameplay_test" ]]; then
+  ./scripts/smoke_gameplay_session.sh --skip-build
+else
+  echo "==> build-headless missing; preparing headless gameplay smoke"
+  ./scripts/smoke_gameplay_session.sh
+fi
 
 if [[ "$SKIP_BUILD" -eq 1 ]]; then
   print_checklist
