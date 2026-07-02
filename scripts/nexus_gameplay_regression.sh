@@ -27,12 +27,37 @@ if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
   export CXX=g++
 fi
 
+CMAKE_COMPILER_ARGS=()
+if [[ -n "${CXX:-}" ]]; then
+  CXX_PATH="$(command -v "${CXX}" || true)"
+  CXX_PATH="${CXX_PATH:-${CXX}}"
+  CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX_PATH}")
+
+  if [[ -f "${HEADLESS_DIR}/CMakeCache.txt" ]]; then
+    CACHED_CXX="$(python3 - "${HEADLESS_DIR}/CMakeCache.txt" <<'PY'
+import sys
+from pathlib import Path
+
+for line in Path(sys.argv[1]).read_text(errors="replace").splitlines():
+    if line.startswith("CMAKE_CXX_COMPILER:"):
+        print(line.split("=", 1)[1])
+        break
+PY
+)"
+    if [[ -n "${CACHED_CXX}" && "${CACHED_CXX}" != "${CXX_PATH}" && "${CACHED_CXX}" != "${CXX}" ]]; then
+      echo "==> Resetting stale headless build cache (${CACHED_CXX} -> ${CXX_PATH})"
+      rm -rf "${HEADLESS_DIR}"
+    fi
+  fi
+fi
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build full headless test matrix"
   cmake -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
-    -DNEXUS_BUILD_TESTS=ON
+    -DNEXUS_BUILD_TESTS=ON \
+    "${CMAKE_COMPILER_ARGS[@]}"
   cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
