@@ -54,6 +54,34 @@ const FALLBACK_LEADERS = [
   { rank: 3, user_id: "arena-bot", name: "Arena Bot", prq_score: 70, level: 1, sport: "soccer" },
 ];
 const FALLBACK_PROGRESS = { total_workouts: 0, total_games: 0, total_brawls: 0, xp: 0 };
+const DEFAULT_DASHBOARD_TAB = 'fel-os';
+const DASHBOARD_TAB_STORAGE_KEY = 'fel_dashboard_active_tab';
+const DASHBOARD_TAB_IDS = new Set([
+  'fel-os', 'nexus', 'dashboard', 'scan', 'games', 'multiplayer', 'cards', 'coach',
+  'ai-coach', 'education', 'brain-brawl', 'trivia', 'hud', 'streaks', 'social',
+  'tournaments', 'avatar', 'critique', 'referral', 'analytics', 'vault',
+  'leaderboard', 'streaming', 'profile',
+]);
+
+function isDashboardTab(tab) {
+  return DASHBOARD_TAB_IDS.has(tab);
+}
+
+function getStoredDashboardTab() {
+  try {
+    const stored = localStorage.getItem(DASHBOARD_TAB_STORAGE_KEY);
+    return isDashboardTab(stored) ? stored : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function getDashboardTabFromLocation(location) {
+  const urlTab = new URLSearchParams(location.search).get('tab');
+  if (isDashboardTab(urlTab)) return urlTab;
+  if (isDashboardTab(location.state?.activeTab)) return location.state.activeTab;
+  return getStoredDashboardTab() || DEFAULT_DASHBOARD_TAB;
+}
 
 // Mirror of the server-authoritative economy formulas (backend/app/utils).
 // Used only as an offline fallback so completed sessions always surface
@@ -1688,10 +1716,41 @@ const ProfileView = () => {
 
 // ===================== MAIN DASHBOARD =====================
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('fel-os');
   const location = useLocation();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTabState] = useState(() => getDashboardTabFromLocation(location));
   const { user, setUser } = useAuth();
   useEffect(() => { if (location.state?.user && !user) setUser(location.state.user); }, [location.state, user, setUser]);
+
+  useEffect(() => {
+    const locationTab = getDashboardTabFromLocation(location);
+    setActiveTabState((current) => (current === locationTab ? current : locationTab));
+  }, [location]);
+
+  const setActiveTab = useCallback((tab) => {
+    if (!isDashboardTab(tab)) return;
+    setActiveTabState(tab);
+    try { localStorage.setItem(DASHBOARD_TAB_STORAGE_KEY, tab); } catch (_e) { /* ignore */ }
+
+    const params = new URLSearchParams(location.search);
+    if (tab === DEFAULT_DASHBOARD_TAB) {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+
+    const search = params.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: search ? `?${search}` : '',
+      },
+      {
+        replace: true,
+        state: { ...(location.state || {}), activeTab: tab },
+      }
+    );
+  }, [location.pathname, location.search, location.state, navigate]);
 
   const renderContent = () => {
     switch(activeTab) {

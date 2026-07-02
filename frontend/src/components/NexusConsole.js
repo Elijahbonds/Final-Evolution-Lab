@@ -190,6 +190,12 @@ export const NexusConsole = ({ onClose }) => {
   const fmtElapsed = (secs) =>
     `${String(Math.floor(secs / 60)).padStart(2,"0")}:${String(secs % 60).padStart(2,"0")}`;
 
+  const handleRefresh = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    fetchStatus();
+  };
+
   return (
     <div
       data-testid="nexus-console"
@@ -323,6 +329,7 @@ export const NexusConsole = ({ onClose }) => {
                     {fmtElapsed(sessionElapsed)}
                   </div>
                   <button
+                    type="button"
                     data-testid="nexus-end-session-btn"
                     className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors"
                     onClick={() => setSession(null)}
@@ -383,8 +390,9 @@ export const NexusConsole = ({ onClose }) => {
           <div className="pt-2 border-t border-zinc-800 flex items-center justify-between text-[10px] text-zinc-600 font-mono">
             <span>NEXUS ENGINE v1.0 · {bootDone ? "READY" : "BOOTING"}</span>
             <button
+              type="button"
               data-testid="nexus-refresh-btn"
-              onClick={fetchStatus}
+              onClick={handleRefresh}
               className="text-zinc-500 hover:text-cyan-400 transition-colors uppercase tracking-wider"
             >
               Refresh
@@ -483,6 +491,12 @@ export const NexusPage = () => {
   const fmtElapsed = (secs) =>
     `${String(Math.floor(secs / 60)).padStart(2,"0")}:${String(secs % 60).padStart(2,"0")}`;
 
+  const handleRefresh = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    fetchStatus();
+  };
+
   return (
     <div
       data-testid="nexus-page"
@@ -545,7 +559,7 @@ export const NexusPage = () => {
               <div className="flex items-center gap-1.5 text-sm font-mono text-zinc-300">
                 <Clock className="w-3.5 h-3.5 text-zinc-500" />{fmtElapsed(sessionElapsed)}
               </div>
-              <button data-testid="nexus-page-end-session" className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors" onClick={() => setSession(null)}>
+              <button type="button" data-testid="nexus-page-end-session" className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-red-400/40 text-red-400 hover:bg-red-400/10 transition-colors" onClick={() => setSession(null)}>
                 End Session
               </button>
             </div>
@@ -583,7 +597,7 @@ export const NexusPage = () => {
       {/* Footer */}
       <div className="pt-2 border-t border-zinc-800 flex items-center justify-between text-[10px] text-zinc-600 font-mono">
         <span>NEXUS ENGINE v1.0 · {bootDone ? "READY" : "BOOTING"}</span>
-        <button data-testid="nexus-page-refresh" onClick={fetchStatus} className="text-zinc-500 hover:text-cyan-400 transition-colors uppercase tracking-wider">Refresh</button>
+        <button type="button" data-testid="nexus-page-refresh" onClick={handleRefresh} className="text-zinc-500 hover:text-cyan-400 transition-colors uppercase tracking-wider">Refresh</button>
       </div>
     </div>
   );
