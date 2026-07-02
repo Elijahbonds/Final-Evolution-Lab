@@ -119,6 +119,23 @@ extension GameModeId {
         }
     }
 
+    /// Universal control scheme: joystick + d-pad + buttons (ArenaPad) for
+    /// every sport. Exceptions keep native touch: quiz (Brain Brawl,
+    /// Who Scene It), party board (Court Carnival), rhythm-tap board/floor
+    /// sports, the IRL camera mode, and the shop.
+    var usesArenaPad: Bool {
+        switch self {
+        case .brainBrawl, .whoSceneIt, .courtCarnival,
+             .gymnastics, .surfing, .skateboarding, .snowboarding,
+             .basketballDunkContestIRL, .marketBrowse:
+            return false
+        case .basketballHeadToHead, .venicePickup, .basketball3v3,
+             .basketballDunkContest3D, .karate, .karateEndless,
+             .baseball, .football, .soccer, .golf, .tennis, .volleyball:
+            return true
+        }
+    }
+
     /// Modes scored via C++ `OutcomeSportMode` + `fel.sport.pulse` (see `mode_runtime.cpp`).
     var isNexusOutcomeSportMode: Bool {
         switch self {

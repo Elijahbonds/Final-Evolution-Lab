@@ -1438,9 +1438,14 @@ struct SoccerGameView: View {
                 shotTimingSection.padding(.horizontal, 16).padding(.top, 2)
             } else {
                 aimSliderSection.padding(.horizontal, 16).padding(.top, 2)
-                Spacer().frame(height: 6)
-                powerSection.padding(.horizontal, 16)
             }
+
+            // Universal ArenaPad controls (GameModeId.usesArenaPad):
+            // stick/d-pad aims, ✕ charges then releases, △ = power shot.
+            ArenaPadControlBar(accentColor: accentColor, isActive: !shotFired) { action in
+                handlePadAction(action)
+            }
+            .padding(.top, 4)
 
             // Stamina bar
             staminaBarSection.padding(.horizontal, 16).padding(.top, 6)
@@ -1752,15 +1757,6 @@ struct SoccerGameView: View {
                         .position(x: thumbX, y: geo.size.height / 2)
                         .animation(.interactiveSpring(response: 0.15), value: aimValue)
                 }
-                .gesture(DragGesture(minimumDistance: 0)
-                    .onChanged { v in
-                        guard !shotFired else { return }
-                        isDragging = true
-                        let raw = (v.location.x / geo.size.width) * 2.0 - 1.0
-                        aimValue = max(-1.0, min(1.0, raw))
-                    }
-                    .onEnded { _ in isDragging = false }
-                )
             }
             .frame(height: 28)
             HStack {
@@ -1968,6 +1964,28 @@ struct SoccerGameView: View {
                     triggerRelease()
                 }
             }
+        }
+    }
+
+    /// Universal pad mapping — stick/d-pad aim, ✕ charge/release, △ power shot.
+    private func handlePadAction(_ action: ArenaPadAction) {
+        guard !shotFired else { return }
+        switch action {
+        case .leftStick(let v):
+            guard !showReleaseButton else { return }
+            aimValue = max(-1.0, min(1.0, Double(v.x)))
+        case .direction(.left):
+            guard !showReleaseButton else { return }
+            aimValue = max(-1.0, aimValue - 0.25)
+        case .direction(.right):
+            guard !showReleaseButton else { return }
+            aimValue = min(1.0, aimValue + 0.25)
+        case .primary:
+            if showReleaseButton { triggerRelease() } else { beginShotPowerTiming() }
+        case .special:
+            if hasPowerShot && !showReleaseButton { usePowerShot() }
+        default:
+            break
         }
     }
 
