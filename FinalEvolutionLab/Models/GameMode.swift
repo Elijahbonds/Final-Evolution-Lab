@@ -299,11 +299,9 @@ struct GameModeRegistry {
         "brain_brawl", "who_scene_it",
     ]
 
-    /// Production NEXUS simulators — `docs/NEXUS_MODES_CAPABILITY.md` (10 full sim modes).
-    static let nexusSprintModeIds: Set<GameModeId> = [
-        .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .courtCarnival,
-        .gymnastics, .brainBrawl, .skateboarding, .snowboarding, .surfing, .whoSceneIt,
-    ]
+    /// Every playable arena mode — full lineup ships available; per-mode capability
+    /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
+    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
 
     /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
     static let arenaRegistryModeIds: [GameModeId] = [
@@ -315,8 +313,8 @@ struct GameModeRegistry {
     ]
 
     static var nexusSprintModes: [GameMode] {
-        nexusSprintModeIds
-            .compactMap { id in all.first(where: { $0.id == id }) }
+        // Filter the ordered registry (Set iteration order is nondeterministic per process).
+        all.filter { nexusSprintModeIds.contains($0.id) }
             .sorted { $0.nexusSprintPriority.rawValue < $1.nexusSprintPriority.rawValue }
     }
 
