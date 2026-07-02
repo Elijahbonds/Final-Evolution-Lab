@@ -25,6 +25,7 @@ enum FELGameplaySoundPlayer {
     }
 
     private static func play(_ player: AVAudioPlayer?) {
+        guard FELSoundscapeEngine.audioEnabled else { return }
         guard let player else { return }
         player.currentTime = 0
         player.play()

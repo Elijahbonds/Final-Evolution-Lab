@@ -285,6 +285,14 @@
       "kind": "marker",
       "imported_mesh": "demo_venue_marker.nexusmesh.json",
       "fallback": "none"
+    },
+    {
+      "id": "veniceball_shop_placeholder",
+      "name": "Veniceball Shop (generated placeholder)",
+      "kind": "environment",
+      "source": "procedural",
+      "generation_method": "procedural_placeholder",
+      "note": "Stand-in for the Veniceball Shop at Venice Beach. Replace with a real Luma capture; the luma_venice_shop FBX contains a person scan, not the shop."
     }
   ],
   "venues": [
@@ -299,7 +307,7 @@
         "court_carnival"
       ],
       "environment_asset_id": "venice_beach_court_model_fbx",
-      "backdrop_asset_id": "luma_venice_shop_environment_model_fbx",
+      "backdrop_asset_id": null,
       "unreal_open_level": "/Game/FEL/Venues/VeniceBeach/VeniceBeach"
     },
     {
@@ -310,7 +318,7 @@
         "surfing"
       ],
       "environment_asset_id": "venice_beach_court_model_fbx",
-      "backdrop_asset_id": "luma_venice_shop_environment_model_fbx",
+      "backdrop_asset_id": null,
       "unreal_open_level": "/Game/FEL/Venues/VeniceBeach/VeniceBeach"
     },
     {
@@ -372,7 +380,7 @@
         "tennis"
       ],
       "environment_asset_id": "tennis_court_environment_model_fbx",
-      "backdrop_asset_id": "luma_venice_shop_environment_model_fbx",
+      "backdrop_asset_id": null,
       "unreal_open_level": "/Game/FEL/Venues/TennisCourt/TennisCourt"
     },
     {
@@ -433,7 +441,7 @@
       "mode_ids": [
         "market_browse"
       ],
-      "environment_asset_id": "luma_venice_shop_environment_model_fbx",
+      "environment_asset_id": "veniceball_shop_placeholder",
       "unreal_open_level": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"
     }
   ],

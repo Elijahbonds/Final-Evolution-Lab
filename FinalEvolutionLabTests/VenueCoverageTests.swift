@@ -44,19 +44,24 @@ struct VenueCoverageTests {
             }
             let geo = try #require(texturedGeo, "\(mode.rawValue) .scn has no geometry")
             #expect((geo.sources(for: .vertex).first?.vectorCount ?? 0) > 0)
-            #expect(!geo.sources(for: .texcoord).isEmpty,
-                    "\(mode.rawValue) venue has no UVs — textures cannot map")
+            if NexusBundledMeshLoader.importedMeshFilenames[assets.environmentAssetId] != nil {
+                #expect(!geo.sources(for: .texcoord).isEmpty,
+                        "\(mode.rawValue) venue has no UVs — textures cannot map")
+            }
             #expect(geo.materials.first?.lightingModel == .physicallyBased,
                     "\(mode.rawValue) environment is not lit")
 
-            // Fallback path: mobile JSON LOD still resolves and builds.
-            let path = try #require(
-                NexusBundledMeshLoader.resolveMeshPathNatively(assetId: assets.environmentAssetId),
-                "\(mode.rawValue) JSON fallback did not resolve"
-            )
-            let data = try Data(contentsOf: URL(fileURLWithPath: path))
-            #expect(NexusBundledMeshLoader.buildGeometry(fromJSONData: data) != nil,
-                    "\(mode.rawValue) JSON fallback failed to build")
+            // Fallback path: mobile JSON LOD still resolves and builds — for
+            // assets that have one (procedural placeholders are .scn-only).
+            if NexusBundledMeshLoader.importedMeshFilenames[assets.environmentAssetId] != nil {
+                let path = try #require(
+                    NexusBundledMeshLoader.resolveMeshPathNatively(assetId: assets.environmentAssetId),
+                    "\(mode.rawValue) JSON fallback did not resolve"
+                )
+                let data = try Data(contentsOf: URL(fileURLWithPath: path))
+                #expect(NexusBundledMeshLoader.buildGeometry(fromJSONData: data) != nil,
+                        "\(mode.rawValue) JSON fallback failed to build")
+            }
         }
     }
 
@@ -74,8 +79,10 @@ struct VenueCoverageTests {
         )
         #expect(containsGeometry(dojoNode))
 
+        // Veniceball Shop: generated placeholder until a real Luma capture of
+        // the shop replaces it (the sourced FBX contained a person scan).
         let shop = try #require(NexusBundledMeshLoader.venueAssets(for: .marketBrowse))
-        #expect(shop.environmentAssetId == "luma_venice_shop_environment_model_fbx")
+        #expect(shop.environmentAssetId == "veniceball_shop_placeholder")
         let shopNode = try #require(
             NexusBundledMeshLoader.loadNode(assetId: shop.environmentAssetId,
                                             nodeName: "bundledVenueEnvironment",
