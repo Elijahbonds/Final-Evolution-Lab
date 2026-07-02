@@ -425,6 +425,43 @@ void arena_mode_registry_production_modes_match_validate_script() {
   }
 }
 
+void mode_runtime_release_state_follows_registry() {
+  for (std::string_view expectedId : nexus::gameplay::kProductionModeIds) {
+    nexus::gameplay::ModeRuntime runtime;
+    require(runtime.setMode(expectedId).isOk(),
+            std::string("mode starts for release-state check: ") + std::string(expectedId));
+
+    const nlohmann::json state = runtime.stateJson();
+    require(state["release_state"].get<std::string>() == "production",
+            std::string("runtime release state is production: ") + std::string(expectedId));
+
+    for (const auto& [key, nested] : state.items()) {
+      if (nested.is_object() && nested.contains("release_state")) {
+        require(nested["release_state"].get<std::string>() == "production",
+                std::string("nested release state is production for ") + std::string(expectedId) +
+                    " key=" + key);
+      }
+    }
+  }
+
+  nexus::gameplay::GymnasticsMode gymnastics;
+  const auto tap = gymnastics.rhythmTap(0.95F, 0.8F);
+  require(tap.isOk(), "gymnastics tap release-state payload ok");
+  require(tap.value()["release_state"].get<std::string>() == "production",
+          "gymnastics event release state is production");
+  require(tap.value()["gymnastics"]["release_state"].get<std::string>() == "production",
+          "gymnastics nested event release state is production");
+
+  nexus::gameplay::OutcomeSportMode sport;
+  sport.reset("baseball");
+  const auto pulse = sport.pulse({{"success", true}, {"timing", 0.9F}});
+  require(pulse.isOk(), "outcome sport pulse release-state payload ok");
+  require(pulse.value()["release_state"].get<std::string>() == "production",
+          "outcome sport event release state is production");
+  require(pulse.value()["outcome_sport"]["release_state"].get<std::string>() == "production",
+          "outcome sport nested event release state is production");
+}
+
 void gameplay_manager_evaluates_volleyball_outcome() {
   using nexus::gameplay::GameplayManager;
   using nexus::gameplay::MatchOutcome;
@@ -762,10 +799,15 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
           "session ends");
 
   const auto flush = gameplay.handleGameplayCommand(
-      "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "flush");
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", true}, {"http_enabled", false}, {"use_stub_http_transport", false}},
+      "flush");
   require(flush.status == "ok", "flush command ok");
   require(flush.payload["delivered"].get<std::size_t>() >= 1, "receipt delivered to disk queue");
   require(!flush.payload["queue_directory"].get<std::string>().empty(), "queue directory returned");
+  require(!flush.payload["http_enabled"].get<bool>(), "flush applies HTTP disabled");
+  require(!flush.payload["use_stub_http_transport"].get<bool>(),
+          "flush applies stub transport disabled");
 
   const auto receipts =
       gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "flush_receipts");
@@ -811,6 +853,38 @@ void session_receipt_disk_keyed_by_session_id() {
   std::ifstream input(receiptPath);
   const nlohmann::json loaded = nlohmann::json::parse(input);
   require(loaded["score"].get<int>() == 99, "re-flush overwrites receipt contents");
+
+  removeTreeBestEffort(tempDir);
+}
+
+void gameplay_manager_receipt_config_round_trips_transport_settings() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_config_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::GameplayManager manager;
+  nexus::gameplay::SessionReceiptClientConfig config;
+  config.queueDirectory = tempDir.string();
+  config.baseUrl = "http://127.0.0.1:9099/api/games/session";
+  config.authToken = "round_trip_token";
+  config.persistToDisk = false;
+  config.httpEnabled = true;
+  config.useStubHttpTransport = false;
+  config.flushIntervalSeconds = 0.25F;
+  config.maxRetries = 2;
+  manager.setReceiptClientConfig(config);
+
+  const auto roundTrip = manager.receiptClientConfig();
+  require(roundTrip.queueDirectory == config.queueDirectory, "receipt queue dir round-trips");
+  require(roundTrip.baseUrl == config.baseUrl, "receipt base URL round-trips");
+  require(roundTrip.authToken == config.authToken, "receipt auth token round-trips");
+  require(roundTrip.persistToDisk == config.persistToDisk, "receipt disk flag round-trips");
+  require(roundTrip.httpEnabled == config.httpEnabled, "receipt HTTP flag round-trips");
+  require(roundTrip.useStubHttpTransport == config.useStubHttpTransport,
+          "receipt stub transport flag round-trips");
+  require(roundTrip.flushIntervalSeconds == config.flushIntervalSeconds,
+          "receipt flush interval round-trips");
+  require(roundTrip.maxRetries == config.maxRetries, "receipt max retries round-trips");
 
   removeTreeBestEffort(tempDir);
 }
@@ -2858,6 +2932,7 @@ auto main() -> int {
   gameplay_session_state_query_returns_coherent_payload();
   arena_mode_registry_lists_nineteen_modes();
   arena_mode_registry_production_modes_match_validate_script();
+  mode_runtime_release_state_follows_registry();
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();
   karate_h2h_sport_pulse_hp_combat();
@@ -2866,6 +2941,7 @@ auto main() -> int {
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
   session_receipt_disk_keyed_by_session_id();
+  gameplay_manager_receipt_config_round_trips_transport_settings();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();

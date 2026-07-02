@@ -265,6 +265,27 @@ auto ArenaModeRegistry::productionModes() -> std::vector<ArenaModeConfig> {
   return modes;
 }
 
+auto ArenaModeRegistry::releaseStateToString(ArenaReleaseState state) -> std::string_view {
+  switch (state) {
+  case ArenaReleaseState::kProduction:
+    return "production";
+  case ArenaReleaseState::kStaging:
+    return "staging";
+  case ArenaReleaseState::kPreview:
+    return "preview";
+  case ArenaReleaseState::kNonGameModule:
+    return "non_game_module";
+  }
+  return "unknown";
+}
+
+auto ArenaModeRegistry::releaseStateLabelForMode(std::string_view modeId) -> std::string {
+  if (const ArenaModeConfig* found = lookup(modeId)) {
+    return std::string(releaseStateToString(found->releaseState));
+  }
+  return "unknown";
+}
+
 auto ArenaModeRegistry::venueTokenForMode(std::string_view modeId) -> std::string {
   if (const ArenaModeConfig* found = lookup(modeId)) {
     return std::string(found->venueToken);

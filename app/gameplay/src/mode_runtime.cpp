@@ -450,6 +450,7 @@ auto ModeRuntime::stateJson() const -> nlohmann::json {
   nlohmann::json payload{
       {"mode_id", m_modeId},
       {"kind", static_cast<int>(m_kind)},
+      {"release_state", ArenaModeRegistry::releaseStateLabelForMode(m_modeId)},
       {"prq", PRQEngine::getScore()},
       {"prq_grade", PRQEngine::gradeLabel(PRQEngine::getGrade())},
   };

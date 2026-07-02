@@ -1069,16 +1069,31 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    config.useStubHttpTransport =
+        params.value("use_stub_http_transport", config.useStubHttpTransport);
+    config.flushIntervalSeconds =
+        params.value("flush_interval_seconds", config.flushIntervalSeconds);
+    if (params.contains("max_retries")) {
+      config.maxRetries = params.at("max_retries").get<std::size_t>();
+    }
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
+    const auto appliedConfig = m_gameplayManager.receiptClientConfig();
     return response(id, "ok",
                     {
                         {"attempted", flushResult.attempted},
                         {"delivered", flushResult.delivered},
                         {"requeued", flushResult.requeued},
                         {"queued_on_disk", flushResult.queued_on_disk},
-                        {"queue_directory", m_gameplayManager.receiptQueueDirectory()},
+                        {"queue_directory", appliedConfig.queueDirectory},
+                        {"base_url", appliedConfig.baseUrl},
+                        {"persist_to_disk", appliedConfig.persistToDisk},
+                        {"http_enabled", appliedConfig.httpEnabled},
+                        {"use_stub_http_transport", appliedConfig.useStubHttpTransport},
+                        {"flush_interval_seconds", appliedConfig.flushIntervalSeconds},
+                        {"max_retries", appliedConfig.maxRetries},
                     });
   }
 

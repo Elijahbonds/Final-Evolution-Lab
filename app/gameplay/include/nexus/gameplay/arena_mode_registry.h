@@ -52,6 +52,8 @@ public:
   [[nodiscard]] static auto allModes() -> std::span<const ArenaModeConfig>;
   [[nodiscard]] static auto find(std::string_view modeId) -> std::optional<ArenaModeConfig>;
   [[nodiscard]] static auto productionModes() -> std::vector<ArenaModeConfig>;
+  [[nodiscard]] static auto releaseStateToString(ArenaReleaseState state) -> std::string_view;
+  [[nodiscard]] static auto releaseStateLabelForMode(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto venueTokenForMode(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto vaultDisplayModeForMode(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto nexusMeshPathForMode(std::string_view modeId) -> std::string;
