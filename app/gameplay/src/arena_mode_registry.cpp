@@ -185,7 +185,7 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .inputScheme = "rhythm_tap",
      .modeWeight = 1.0F,
      .defaultMatchDurationSeconds = 300.0F,
-     .scoringEnabled = false,
+     .scoringEnabled = true,
      .releaseState = ArenaReleaseState::kProduction},
     {.id = "who_scene_it",
      .displayName = "Who Scene It",
@@ -196,7 +196,7 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .inputScheme = "film_quiz",
      .modeWeight = 1.1F,
      .defaultMatchDurationSeconds = 120.0F,
-     .scoringEnabled = false,
+     .scoringEnabled = true,
      .releaseState = ArenaReleaseState::kProduction},
     {.id = "court_carnival",
      .displayName = "Court Carnival",
@@ -223,11 +223,17 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
 }};
 
 [[nodiscard]] auto resolveModeId(std::string_view modeId) -> std::string_view {
-  if (modeId == "venice_pickup") {
+  if (modeId == "venice_pickup" || modeId == "pickup" || modeId == "pickup_basketball") {
     return "basketball_h2h";
   }
-  if (modeId == "karate_kata") {
+  if (modeId == "basketball_dunk_3d" || modeId == "dunk_contest") {
+    return "basketball_dunk";
+  }
+  if (modeId == "karate_kata" || modeId == "kata_endless") {
     return "karate_endless";
+  }
+  if (modeId == "karate_1v1" || modeId == "karate_duel") {
+    return "karate_h2h";
   }
   return modeId;
 }
@@ -246,6 +252,10 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
 
 auto ArenaModeRegistry::allModes() -> std::span<const ArenaModeConfig> {
   return kModes;
+}
+
+auto ArenaModeRegistry::canonicalModeId(std::string_view modeId) -> std::string {
+  return std::string(resolveModeId(modeId));
 }
 
 auto ArenaModeRegistry::find(std::string_view modeId) -> std::optional<ArenaModeConfig> {

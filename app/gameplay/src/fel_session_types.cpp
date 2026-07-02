@@ -24,6 +24,19 @@ namespace {
   return stream.str();
 }
 
+[[nodiscard]] auto prqGradeForScore(float score) -> std::string_view {
+  if (score >= 90.0F) {
+    return "ELITE";
+  }
+  if (score >= 75.0F) {
+    return "PRIMED";
+  }
+  if (score >= 60.0F) {
+    return "READY";
+  }
+  return "BUILDING";
+}
+
 } // namespace
 
 auto matchOutcomeToString(MatchOutcome outcome) -> std::string_view {
@@ -98,8 +111,9 @@ auto sessionReceiptBody(const SessionResult& result) -> nlohmann::json {
        }},
       {"prq_snapshot",
        {
-           {"score", 75.0F},
-           {"grade", "PRIMED"},
+           {"score", std::clamp(result.mriScore, 0.0F, 100.0F)},
+           {"grade", std::string(prqGradeForScore(result.mriScore))},
+           {"delta_candidate", result.prqDeltaCandidate},
        }},
       {"device",
        {

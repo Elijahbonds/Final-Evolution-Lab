@@ -975,8 +975,9 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (modeSet.isErr()) {
       return response(id, "error", {}, modeSet.error());
     }
-    m_felBridge.notifyVenueTravel(ArenaModeRegistry::venueTokenForMode(*modeId), *modeId);
-    m_felBridge.emitVaultSessionSnapshot(*modeId, 0.0F, 0.0F, 0.0F);
+    const auto& arena = m_arenaSession.state();
+    m_felBridge.notifyVenueTravel(arena.venueToken, arena.modeId);
+    m_felBridge.emitVaultSessionSnapshot(arena.modeId, 0.0F, 0.0F, 0.0F);
     return response(id, "ok", m_arenaSession.stateJson());
   }
 
@@ -993,6 +994,9 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (modeSet.isErr()) {
       return response(id, "error", {}, modeSet.error());
     }
+    const auto& arena = m_arenaSession.state();
+    m_felBridge.notifyVenueTravel(arena.venueToken, arena.modeId);
+    m_felBridge.emitVaultSessionSnapshot(arena.modeId, 0.0F, 0.0F, 0.0F);
     return response(id, "ok", m_arenaSession.stateJson());
   }
 
@@ -1350,8 +1354,16 @@ void GameplayApplication::emitHudTickFrame() {
 
 void GameplayApplication::processVenueOverlaps() {
   if (const auto travel = m_venueVolumes.checkPlayerOverlap(m_venueVolumes.playerPosition())) {
-    m_felBridge.notifyVenueTravel(travel->venueToken, travel->modeId);
-    (void)m_arenaSession.setMode(travel->modeId);
+    const auto modeSet = m_arenaSession.setMode(travel->modeId);
+    if (modeSet.isErr()) {
+      return;
+    }
+    const auto runtimeSet = m_modeRuntime.setMode(travel->modeId);
+    if (runtimeSet.isErr()) {
+      return;
+    }
+    const auto& arena = m_arenaSession.state();
+    m_felBridge.notifyVenueTravel(arena.venueToken, arena.modeId);
   }
 }
 

@@ -21,7 +21,7 @@ struct GameModeRouter: View {
     @ViewBuilder
     private var routedView: some View {
         switch gameMode.id {
-        case .basketballHeadToHead:
+        case .basketballHeadToHead, .venicePickup:
             BasketballH2HGameView(viewModel: viewModel)
         case .basketball3v3:
             Basketball3v3GameView(viewModel: viewModel)

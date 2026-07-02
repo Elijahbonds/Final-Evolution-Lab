@@ -351,13 +351,13 @@ struct NexusStudioRunPanelView: View {
     private func playSelectedGeneratedGame() {
         guard let path = selectedGeneratedPath,
               let entry = generatedGames.first(where: { $0.relativePath == path }),
-              let parsed = GameModeId(rawValue: entry.modeId)
+              let mode = GameModeRegistry.playableMode(forRegistryId: entry.modeId)
         else {
             statusMessage = "Select a generated spec first."
             return
         }
 
-        launchPlaytest(modeId: parsed, readiness: entry.readinessEstimate, label: entry.displayName)
+        launchPlaytest(modeId: mode.id, readiness: entry.readinessEstimate, label: entry.displayName)
     }
 
     private func launchPlaytest(modeId: GameModeId, readiness: Double, label: String?) {

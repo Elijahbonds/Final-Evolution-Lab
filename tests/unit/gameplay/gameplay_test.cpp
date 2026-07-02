@@ -414,6 +414,22 @@ void arena_mode_registry_lists_nineteen_modes() {
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
 }
 
+void arena_mode_registry_canonicalizes_launch_aliases() {
+  require(nexus::gameplay::ArenaModeRegistry::canonicalModeId("venice_pickup") ==
+              "basketball_h2h",
+          "venice_pickup canonicalizes to basketball_h2h");
+  require(nexus::gameplay::ArenaModeRegistry::canonicalModeId("pickup_basketball") ==
+              "basketball_h2h",
+          "pickup_basketball canonicalizes to basketball_h2h");
+  require(nexus::gameplay::ArenaModeRegistry::canonicalModeId("basketball_dunk_3d") ==
+              "basketball_dunk",
+          "3D dunk product id canonicalizes to runtime dunk");
+  require(nexus::gameplay::ArenaModeRegistry::canonicalModeId("karate_1v1") == "karate_h2h",
+          "karate_1v1 canonicalizes to karate_h2h");
+  require(nexus::gameplay::ArenaModeRegistry::find("karate_duel").has_value(),
+          "karate_duel alias resolves through registry");
+}
+
 void arena_mode_registry_production_modes_match_validate_script() {
   const auto production = nexus::gameplay::ArenaModeRegistry::productionModes();
   require(production.size() == nexus::gameplay::kProductionModeCount,
@@ -423,6 +439,16 @@ void arena_mode_registry_production_modes_match_validate_script() {
     require(mode.has_value(), std::string("production mode registered: ") + std::string(expectedId));
     require(mode->releaseState == nexus::gameplay::ArenaReleaseState::kProduction,
             std::string("production release state: ") + std::string(expectedId));
+  }
+}
+
+void arena_mode_registry_production_modes_are_receipt_eligible() {
+  for (std::string_view expectedId : nexus::gameplay::kProductionModeIds) {
+    const auto mode = nexus::gameplay::ArenaModeRegistry::find(expectedId);
+    require(mode.has_value(), std::string("production mode registered: ") + std::string(expectedId));
+    require(mode->scoringEnabled, std::string("production scoring enabled: ") + std::string(expectedId));
+    require(mode->modeWeight > 0.0F,
+            std::string("production mode weight positive: ") + std::string(expectedId));
   }
 }
 
@@ -952,6 +978,24 @@ void mode_runtime_tracks_dunk_combo_metrics() {
   require(runtime.modeSpecificPayload().contains("dunk_details"), "dunk details payload");
 }
 
+void mode_runtime_tracks_canonical_alias_mode_ids() {
+  nexus::gameplay::ModeRuntime runtime;
+  require(runtime.setMode("basketball_dunk_3d").isOk(), "3D dunk alias mode set");
+  require(runtime.activeModeId() == "basketball_dunk", "runtime stores canonical dunk id");
+  require(runtime.activeKind() == nexus::gameplay::ActiveModeKind::kDunkContest,
+          "runtime picks dunk simulator for 3D alias");
+
+  require(runtime.setMode("venice_pickup").isOk(), "venice pickup alias mode set");
+  require(runtime.activeModeId() == "basketball_h2h", "runtime stores canonical pickup id");
+  require(runtime.activeKind() == nexus::gameplay::ActiveModeKind::kVenicePickup,
+          "runtime picks pickup simulator for alias");
+
+  require(runtime.setMode("karate_1v1").isOk(), "karate 1v1 alias mode set");
+  require(runtime.activeModeId() == "karate_h2h", "runtime stores canonical karate h2h id");
+  require(runtime.activeKind() == nexus::gameplay::ActiveModeKind::kOutcomeSport,
+          "runtime picks outcome sport for karate h2h alias");
+}
+
 void venue_volume_overlap_triggers_travel() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
@@ -976,6 +1020,32 @@ void venue_volume_overlap_triggers_travel() {
           "venue travel updates bridge");
   require(std::string(gameplay.fel_bridge().activeArenaGameModeId()) == "karate_h2h",
           "venue travel updates mode");
+  require(gameplay.mode_runtime().activeModeId() == "karate_h2h",
+          "venue travel updates mode runtime");
+  const auto session =
+      gameplay.handleGameplayQuery("fel.query.get_session_state", {}, "venue_overlap_session");
+  require(session.payload["mode_runtime"]["outcome_sport"].is_object(),
+          "venue overlap exposes canonical outcome sport runtime state");
+}
+
+void arena_set_mode_updates_runtime_and_bridge() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  auto setMode = gameplay.handleGameplayCommand(
+      "fel.arena.set_mode",
+      {{"mode_id", "basketball_dunk_3d"}},
+      "set_dunk_alias");
+  require(setMode.status == "ok", "set_mode accepts 3D dunk alias");
+  require(setMode.payload["mode_id"].get<std::string>() == "basketball_dunk",
+          "set_mode response returns canonical dunk id");
+  require(gameplay.mode_runtime().activeModeId() == "basketball_dunk",
+          "set_mode updates runtime canonical id");
+  require(std::string(gameplay.fel_bridge().activeArenaGameModeId()) == "basketball_dunk",
+          "set_mode updates bridge canonical mode id");
+  require(std::string(gameplay.fel_bridge().activeVenueToken()) == "Venice_Beach_Court",
+          "set_mode updates bridge venue");
 }
 
 void exercise_demo_pipeline_maps_production_modes() {
@@ -2240,6 +2310,9 @@ void game_prompt_adapter_covers_all_playable_modes() {
 
 void game_prompt_adapter_normalizes_mode_aliases() {
   require(nexus::ai::normalizeGameModeId("venice_pickup") == "basketball_h2h", "venice_pickup alias");
+  require(nexus::ai::normalizeGameModeId("pickup_basketball") == "basketball_h2h",
+          "pickup_basketball alias");
+  require(nexus::ai::normalizeGameModeId("karate_1v1") == "karate_h2h", "karate_1v1 alias");
   require(nexus::ai::normalizeGameModeId("karate_kata") == "karate_endless", "karate_kata alias");
   require(nexus::ai::normalizeGameModeId("market_browse").empty(), "market_browse excluded");
 }
@@ -2411,6 +2484,12 @@ void session_receipt_body_matches_api_contract() {
   require(body["telemetry"]["device"]["engine"].get<std::string>() == "NEXUS 1.0",
           "telemetry engine tag");
   require(body["telemetry"]["economy"]["shards_total"].get<int>() == 50, "economy shards candidate");
+  require(body["telemetry"]["prq_snapshot"]["score"].get<float>() == 68.0F,
+          "prq snapshot uses session mri score");
+  require(body["telemetry"]["prq_snapshot"]["grade"].get<std::string>() == "READY",
+          "prq snapshot grade derived from mri score");
+  require(body["telemetry"]["prq_snapshot"]["delta_candidate"].get<float>() == 2.0F,
+          "prq snapshot includes live delta candidate");
   require(body.contains("mri_score"), "receipt mri_score contract field");
   require(body["mri_score"].get<float>() == 68.0F, "receipt mri_score value");
   require(body["combo_count"].get<int>() == 3, "receipt combo_count");
@@ -2852,7 +2931,9 @@ auto main() -> int {
   voxel_parser_rejects_invalid_creative_params();
   gameplay_session_state_query_returns_coherent_payload();
   arena_mode_registry_lists_nineteen_modes();
+  arena_mode_registry_canonicalizes_launch_aliases();
   arena_mode_registry_production_modes_match_validate_script();
+  arena_mode_registry_production_modes_are_receipt_eligible();
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();
   karate_h2h_sport_pulse_hp_combat();
@@ -2869,7 +2950,9 @@ auto main() -> int {
   session_receipt_flush_requeues_on_non_2xx_post();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
+  mode_runtime_tracks_canonical_alias_mode_ids();
   venue_volume_overlap_triggers_travel();
+  arena_set_mode_updates_runtime_and_bridge();
   exercise_demo_pipeline_maps_production_modes();
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();

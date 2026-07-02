@@ -8,6 +8,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GAME_MODE_SWIFT = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
+CONTENT_VIEW_SWIFT = REPO_ROOT / "FinalEvolutionLab" / "ContentView.swift"
+GAME_MODE_ROUTER_SWIFT = REPO_ROOT / "FinalEvolutionLab" / "Views" / "GameModeRouter.swift"
 CPP_REGISTRY = REPO_ROOT / "app" / "gameplay" / "include" / "nexus" / "gameplay" / "arena_mode_registry.h"
 SWIFT_ROOTS = [REPO_ROOT / "FinalEvolutionLab", REPO_ROOT / "FinalEvolutionLabTests"]
 
@@ -49,9 +51,22 @@ def stale_case_references() -> list[str]:
     return hits
 
 
+def playable_mode_aliases(source: str) -> set[str]:
+    match = re.search(
+        r"static\s+func\s+playableMode\(forRegistryId\s+raw:\s*String\).*?\{(.*?)\n    \}",
+        source,
+        flags=re.DOTALL,
+    )
+    if not match:
+        raise ValueError("missing GameModeRegistry.playableMode(forRegistryId:)")
+    return set(re.findall(r'"([^"]+)"', match.group(1)))
+
+
 def main() -> int:
     errors: list[str] = []
     swift_source = GAME_MODE_SWIFT.read_text()
+    content_view_source = CONTENT_VIEW_SWIFT.read_text()
+    router_source = GAME_MODE_ROUTER_SWIFT.read_text()
     cpp_source = CPP_REGISTRY.read_text()
 
     try:
@@ -59,12 +74,14 @@ def main() -> int:
         swift_production = string_array(swift_source, "productionModeIds")
         swift_runtime_production = string_array(swift_source, "nexusRuntimeProductionModeIds")
         cpp_runtime_production = cpp_production_ids(cpp_source)
+        swift_aliases = playable_mode_aliases(swift_source)
     except ValueError as exc:
         errors.append(str(exc))
         swift_case_raw_values = {}
         swift_production = []
         swift_runtime_production = []
         cpp_runtime_production = []
+        swift_aliases = set()
 
     known_swift_raw_values = set(swift_case_raw_values.values())
     for raw_id in swift_production:
@@ -83,6 +100,24 @@ def main() -> int:
         errors.append("market_browse must not be in C++ runtime production ids")
     if "basketball_dunk" not in swift_runtime_production:
         errors.append("3D dunk runtime alias basketball_dunk missing from C++ runtime production ids")
+
+    required_playable_aliases = {"basketball_dunk", "venice_pickup", "market_browse"}
+    missing_aliases = sorted(required_playable_aliases - swift_aliases)
+    if missing_aliases:
+        errors.append(f"playableMode(forRegistryId:) missing registry aliases: {missing_aliases}")
+
+    if "GameModeRegistry.playableMode(forRegistryId: modeId)" not in content_view_source:
+        errors.append("ContentView agent launch must resolve registry aliases via playableMode(forRegistryId:)")
+
+    if "case .basketballHeadToHead, .venicePickup:" not in router_source:
+        errors.append("GameModeRouter must route .venicePickup with .basketballHeadToHead")
+
+    brain_brawl_tier = re.search(
+        r"case\s+\.brainBrawl:\s*\n\s*return\s+\.(\w+)",
+        swift_source,
+    )
+    if not brain_brawl_tier or brain_brawl_tier.group(1) != "prod":
+        errors.append("brain_brawl must be Swift .prod tier to match backend/C++ production status")
 
     stale_hits = stale_case_references()
     if stale_hits:
