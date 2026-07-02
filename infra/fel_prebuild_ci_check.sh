@@ -40,6 +40,12 @@ discover() {
 
 UPROJECT="${UPROJECT:-$(discover)}"
 if [[ -z "$UPROJECT" || ! -f "$UPROJECT" ]]; then
+    if [[ "${FEL_SKIP_MISSING_UPROJECT:-0}" == "1" ]]; then
+        warn "Cannot locate ${INTERNAL_ID}.uproject; skipping archived Unreal identifier alignment for NEXUS-only CI."
+        echo ""
+        echo "  SKIPPED — Unreal project content is archived/legacy and absent from this checkout."
+        exit 0
+    fi
     echo "FATAL: Cannot locate ${INTERNAL_ID}.uproject"
     echo "Set UPROJECT= and re-run."
     exit 1

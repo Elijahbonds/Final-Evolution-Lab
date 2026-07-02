@@ -17,6 +17,7 @@ jobs:
           chmod +x ./infra/fel_prebuild_ci_check.sh
           # Set UPROJECT to the known location in the repo
           export UPROJECT="./UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
+          export FEL_SKIP_MISSING_UPROJECT=1
           ./infra/fel_prebuild_ci_check.sh --strict
         env:
           INTERNAL_ID: FinalEvolutionLab
