@@ -32,17 +32,29 @@ jobs:
 
       - name: Validate Mode Registry
         run: |
-          python3 -c "
+          python3 - <<'PY'
           import json
+
           with open('./backend/FEL_ModeManager.production.json') as f:
               d = json.load(f)
-          modes = d['mode_manager']['modes']
-          print(f'Mode registry: {len(modes)} modes')
-          prod = [m for m in modes if m.get('status') == 'production']
-          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
-          assert len(modes) >= 17, 'Expected 17+ modes'
+
+          mode_manager = d['mode_manager']
+          registry = mode_manager['mode_registry']
+          declared_total = mode_manager['total_modes']
+          declared_prod = mode_manager['production_modes']
+          production = [
+              mode_id
+              for mode_id, entry in registry.items()
+              if entry.get('status') == 'production'
+          ]
+
+          print(f'Mode registry: {len(registry)} modes')
+          print(f'Production: {len(production)} | Non-production: {len(registry) - len(production)}')
+          assert len(registry) == declared_total, f'total_modes mismatch: {len(registry)} != {declared_total}'
+          assert len(production) == declared_prod, f'production_modes mismatch: {len(production)} != {declared_prod}'
+          assert len(registry) >= 17, 'Expected 17+ modes'
           print('✓ Mode registry valid')
-          "
+          PY
 
       - name: Block Merge on Failure
         if: failure()
