@@ -54,6 +54,7 @@ GAMEPLAY_TEST="${HEADLESS_BUILD_DIR}/nexus_gameplay_test"
 export NEXUS_MESH_PROFILE="${NEXUS_MESH_PROFILE:-mobile}"
 export NEXUS_DEV_STATS=0
 export NEXUS_DEV_DRAW_STATS=0
+export SDL_VIDEODRIVER="${SDL_VIDEODRIVER:-dummy}"
 
 cd "${ROOT}"
 
