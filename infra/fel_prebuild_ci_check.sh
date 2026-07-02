@@ -20,7 +20,7 @@ STRICT=false
 [[ "${1:-}" == "--strict" ]] && STRICT=true
 
 INTERNAL_ID="FinalEvolutionLab"
-BUNDLE_ID="com.finalevolutionlab.sovereign"
+BUNDLE_ID="com.finalevolutionlab.app"
 PASS=0; FAIL=0; WARN=0
 
 pass() { ((PASS++)); echo "  [PASS] $1"; }
@@ -32,7 +32,7 @@ discover() {
     local candidates=(
         "${HOME}/Developer/FinalEvolutionLab57/${INTERNAL_ID}.uproject"
         "${HOME}/Developer/${INTERNAL_ID}/${INTERNAL_ID}.uproject"
-        "${HOME}/Documents/rork-final-evolution-lab/UnrealStarter/BasketballGame/${INTERNAL_ID}.uproject"
+        "${HOME}/Documents/final-evolution-lab/UnrealStarter/BasketballGame/${INTERNAL_ID}.uproject"
     )
     for p in "${candidates[@]}"; do [[ -f "$p" ]] && { echo "$p"; return; }; done
     echo ""
@@ -159,11 +159,11 @@ pass "Descriptor relative path: ../../../${INTERNAL_ID}/${INTERNAL_ID}.uproject 
 # ─── Check 6: Emergent bridge INI config ──────────────────────────
 echo "CHECK 6: Emergent bridge configuration"
 if [[ -f "$DG" ]] && grep -q "\[Emergent\]" "$DG" 2>/dev/null; then
-    pass "[Emergent] section in DefaultGame.ini"
+    pass "[FELBridge] section in DefaultGame.ini"
     if grep -q "GameWebSocketUrl" "$DG"; then
         pass "GameWebSocketUrl configured"
     else
-        warn "GameWebSocketUrl not set in [Emergent]"
+        warn "GameWebSocketUrl not set in [FELBridge]"
     fi
     if grep -q "bFocusKeepalive=True" "$DG"; then
         pass "bFocusKeepalive=True"
@@ -171,7 +171,83 @@ if [[ -f "$DG" ]] && grep -q "\[Emergent\]" "$DG" 2>/dev/null; then
         warn "bFocusKeepalive not set"
     fi
 else
-    warn "[Emergent] section not found in DefaultGame.ini"
+    warn "[FELBridge] section not found in DefaultGame.ini"
+fi
+
+# ─── Check 7: Registry & Architecture Validation (Seele's Gates) ─────
+echo "CHECK 7: Seele's Registry & Architecture Validation Gates"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Gate 1: mode count == 20 (19 game modes + 1 education), prod == 14
+MODE_JSON="$REPO_ROOT/backend/FEL_ModeManager.production.json"
+if [[ -f "$MODE_JSON" ]]; then
+    MC=$(python3 -c "import json; d=json.load(open('$MODE_JSON')); print(len(d['mode_manager']['mode_registry']))" 2>/dev/null || echo 0)
+    PC=$(python3 -c "import json; d=json.load(open('$MODE_JSON')); r=d['mode_manager']['mode_registry']; print(sum(1 for v in r.values() if v.get('status')=='production'))" 2>/dev/null || echo 0)
+    if [[ "$MC" -eq 20 && "$PC" -eq 14 ]]; then
+        pass "Gate 1 (modes=$MC, prod=$PC)"
+    else
+        fail "Gate 1 (modes=$MC, prod=$PC; expected modes=20, prod=14)"
+    fi
+else
+    fail "Gate 1: FEL_ModeManager.production.json not found"
+fi
+
+# Gate 2: No mario_party_fever
+F_MFEVER=$(grep -r "mario_party_fever" "$REPO_ROOT" --exclude-dir="seeles_work" --exclude-dir="artifacts" --include="*.json" --include="*.swift" --include="*.py" --include="*.cpp" --include="*.h" --include="*.ini" -l 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$F_MFEVER" -eq 0 ]]; then
+    pass "Gate 2 (no mario_party_fever)"
+else
+    fail "Gate 2: mario_party_fever found in $F_MFEVER files"
+fi
+
+# Gate 3: skateboarding/snowboarding NOT routing to VeniceBeach
+C_STAGING=$(grep -E "^(skateboarding|snowboarding)=.*VeniceBeach" "$REPO_ROOT/infra/ue5_config/DefaultGame.ini" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$C_STAGING" -eq 0 ]]; then
+    pass "Gate 3 (staging modes not routing to VeniceBeach in DefaultGame.ini)"
+else
+    fail "Gate 3: staging modes skateboarding/snowboarding are routing to VeniceBeach in DefaultGame.ini"
+fi
+
+# Gate 4: GameMode.swift >= 19 cases (including marketBrowse)
+SWIFT_MODES="$REPO_ROOT/FinalEvolutionLab/Models/GameMode.swift"
+if [[ -f "$SWIFT_MODES" ]]; then
+    CC=$(grep -c "case " "$SWIFT_MODES" 2>/dev/null || echo 0)
+    if [[ "$CC" -ge 19 ]]; then
+        pass "Gate 4 (GameMode.swift cases=$CC >= 19)"
+    else
+        fail "Gate 4 (GameMode.swift cases=$CC < 19)"
+    fi
+else
+    fail "Gate 4: GameMode.swift not found"
+fi
+
+# Gate 5: server.py economy logic
+SERVER_PY="$REPO_ROOT/backend/server.py"
+if [[ -f "$SERVER_PY" ]]; then
+    SERVER_PY_ERR=0
+    for PAT in "XP_CAP_PER_SESSION" "SHARD_BASE" "prq_delta" "neurocognitive"; do
+        if grep -q "$PAT" "$SERVER_PY" 2>/dev/null; then
+            pass "Gate 5 check ($PAT)"
+        else
+            fail "Gate 5 check missing: $PAT"
+            SERVER_PY_ERR=$((SERVER_PY_ERR+1))
+        fi
+    done
+else
+    fail "Gate 5: server.py not found"
+fi
+
+# Gate 6: Neurocognitive engine files present
+if [[ -f "$REPO_ROOT/FinalEvolutionLab/Services/MentalResiliencyEngine.swift" ]]; then
+    pass "Gate 6a (MentalResiliencyEngine.swift exists)"
+else
+    fail "Gate 6a (MentalResiliencyEngine.swift does not exist)"
+fi
+
+if [[ -f "$REPO_ROOT/UnrealIntegration/Source/FinalEvolutionLab/FELNeuroCognitiveSubsystem.h" ]]; then
+    pass "Gate 6b (FELNeuroCognitiveSubsystem.h exists)"
+else
+    fail "Gate 6b (FELNeuroCognitiveSubsystem.h does not exist)"
 fi
 
 # ─── Results ──────────────────────────────────────────────────────

@@ -1,0 +1,23 @@
+{
+  "id": "karate_fighter_character_model_fbx",
+  "name": "Karate Fighter Character (FBX)",
+  "category": "models",
+  "type": "mixamo_avatar",
+  "file": "source.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/bc1be92f-2281-416b-938b-c91a9ba5f683/1005832/source.fbx"],
+  "description": "Stylized male martial arts fighter character in T-pose with Mixamo-compatible humanoid rig, game-ready for karate modes",
+  "tags": ["karate", "fighter", "martial arts", "character", "humanoid", "mixamo", "unreal"],
+  "keywords": ["karate character", "martial arts fighter", "mixamo avatar", "FEL character", "karate_h2h", "karate_endless"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T14:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 19,
+  "version": "1.0",
+  "preview_url": "https://static.seeles.ai/data/asset/export/db166694-de6a-4101-837b-7ab4ee6763ef/1005832/cover_reader_deal_local/14750414_1005832_1775028292624/front.png",
+  "property_id": "search_851f61f14c6a_0",
+  "rig_type": "humanoid",
+  "bind_bone_required": false,
+  "fel_modes": ["karate_h2h", "karate_endless"],
+  "fel_venue_id": "Zen_Dojo"
+}

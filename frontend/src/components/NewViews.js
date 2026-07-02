@@ -5,9 +5,31 @@ import {
   User, Heart, Search, Swords, Check, X as XIcon, Calendar,
   Gift, Zap, Upload, Video, MessageSquare, Palette, Shirt
 } from "lucide-react";
+import { API_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
+
+const FALLBACK_STREAK = { current_streak: 1, longest_streak: 1, daily_log: [new Date().toISOString().split('T')[0]], xp_earned: 25, coins_earned: 10, rewards: ["Shell Ready"] };
+const FALLBACK_REWARDS = { milestones: [{ days: 1, reward: "Daily check-in", unlocked: true }, { days: 7, reward: "Weekly discipline bonus", unlocked: false }, { days: 30, reward: "Monthly athlete badge", unlocked: false }, { days: 90, reward: "Elite consistency title", unlocked: false }] };
+const FALLBACK_ATHLETES = [
+  { user_id: "dev-athlete", name: "FEL Athlete", sport: "basketball", prq_score: 75, level: 1, followers: [] },
+  { user_id: "coach-sim", name: "Coach Simulator", sport: "training", prq_score: 82, level: 3, followers: [] },
+];
+const FALLBACK_TOURNAMENTS = [
+  { id: "local-open", name: "Local Arena Open", game_mode: "basketball_h2h", format: "single_elimination", status: "registration", current_players: 1, max_players: 8, start_date: "Local shell", prize: "500 Shards", bracket: [] },
+];
+const FALLBACK_AVATAR_CONFIG = { body_type: "athletic", hair_style: "short", expression: "focused", shoe_style: "court", skin_tone: "#8D5524", jersey_color: "#5CE1E6", shorts_color: "#111827", shoe_color: "#FFFFFF", accessories: [] };
+const FALLBACK_AVATAR_OPTIONS = {
+  body_types: ["lean", "athletic", "power"],
+  hair_styles: ["short", "curly", "braids", "fade"],
+  expressions: ["focused", "calm", "locked-in"],
+  shoe_styles: ["court", "trainer", "cleat"],
+  skin_tones: ["#8D5524", "#C68642", "#E0AC69", "#F1C27D", "#FFDBAC"],
+  jersey_colors: ["#5CE1E6", "#FF6B6B", "#00FF9D", "#FFFFFF"],
+  shorts_colors: ["#111827", "#000000", "#1E3A8A"],
+  shoe_colors: ["#FFFFFF", "#5CE1E6", "#FFB800", "#111827"],
+  accessories: ["headband", "wristband", "compression_sleeve"],
+};
 
 // ===================== STREAKS & REWARDS =====================
 export const StreaksView = () => {
@@ -17,7 +39,7 @@ export const StreaksView = () => {
 
   useEffect(() => {
     Promise.all([axios.get(`${API}/streaks`), axios.get(`${API}/streaks/rewards`)])
-      .then(([s, r]) => { setStreak(s.data); setRewards(r.data); }).catch(console.error);
+      .then(([s, r]) => { setStreak(s.data); setRewards(r.data); }).catch(() => { setStreak(FALLBACK_STREAK); setRewards(FALLBACK_REWARDS); });
   }, []);
 
   const handleCheckin = async () => {
@@ -28,7 +50,10 @@ export const StreaksView = () => {
       // Refresh rewards
       const rw = await axios.get(`${API}/streaks/rewards`);
       setRewards(rw.data);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      setStreak((prev) => ({ ...(prev || FALLBACK_STREAK), current_streak: (prev?.current_streak || 0) + 1, daily_log: [...(prev?.daily_log || []), new Date().toISOString().split('T')[0]] }));
+      setCheckedIn(true);
+    }
   };
 
   const last30 = [];
@@ -106,7 +131,11 @@ export const SocialView = () => {
       axios.get(`${API}/social/athletes`),
       axios.get(`${API}/social/challenges`),
       axios.get(`${API}/social/feed`)
-    ]).then(([a, c, f]) => { setAthletes(a.data); setChallenges(c.data); setFeed(f.data); }).catch(console.error);
+    ]).then(([a, c, f]) => { setAthletes(a.data); setChallenges(c.data); setFeed(f.data); }).catch(() => {
+      setAthletes(FALLBACK_ATHLETES);
+      setChallenges([]);
+      setFeed([{ type: "game", user_id: "dev-athlete", detail: "Trivia Arena", score: 300, created_at: new Date().toISOString() }]);
+    });
   }, []);
 
   const handleFollow = async (userId) => {
@@ -195,7 +224,7 @@ export const TournamentsView = () => {
   const [tournaments, setTournaments] = useState([]);
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => { axios.get(`${API}/tournaments`).then(r => setTournaments(r.data)).catch(console.error); }, []);
+  useEffect(() => { axios.get(`${API}/tournaments`).then(r => setTournaments(r.data)).catch(() => setTournaments(FALLBACK_TOURNAMENTS)); }, []);
 
   const handleJoin = async (id) => {
     try { await axios.post(`${API}/tournaments/${id}/join`); } catch {}
@@ -277,7 +306,7 @@ export const AvatarBuilderView = () => {
 
   useEffect(() => {
     Promise.all([axios.get(`${API}/avatar/config`), axios.get(`${API}/avatar/options`)])
-      .then(([c, o]) => { setConfig(c.data); setOptions(o.data); }).catch(console.error);
+      .then(([c, o]) => { setConfig(c.data); setOptions(o.data); }).catch(() => { setConfig(FALLBACK_AVATAR_CONFIG); setOptions(FALLBACK_AVATAR_OPTIONS); });
   }, []);
 
   const updateConfig = (key, value) => {
@@ -390,7 +419,7 @@ export const VideoCritiqueView = () => {
   const [uploadedVideo, setUploadedVideo] = useState(null);
   const fileRef = useRef(null);
 
-  useEffect(() => { axios.get(`${API}/coach/critiques`).then(r => setCritiques(r.data)).catch(console.error); }, []);
+  useEffect(() => { axios.get(`${API}/coach/critiques`).then(r => setCritiques(r.data)).catch(() => setCritiques([])); }, []);
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];

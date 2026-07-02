@@ -1,18 +1,20 @@
 """
 FEL OS Pass — server-rendered shareable card.
 
-Public endpoint (no auth) so athletes can share a URL anywhere:
-  GET /api/system-scan/pass/{user_id}.png   → 1200x630 PNG
-  GET /api/system-scan/pass-meta/{user_id}  → JSON metadata for og: tags
-
-Dark cyber theme: zinc-950 background, cyan accent, gold cert stamp.
+SHARE-01: Pass image/meta require a per-user share token (unless legacy public bypass env).
 """
-from fastapi import APIRouter, HTTPException, Response
-from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, timezone
+from io import BytesIO
+from typing import Optional
 
-from core import db
+import os
+import secrets
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from PIL import Image, ImageDraw, ImageFont
+
+from core import User, db, get_current_user
+from privacy_minors import age_from_iso_dob
 
 router = APIRouter(prefix="/api/system-scan", tags=["pass-image"])
 
@@ -30,7 +32,7 @@ EMERALD = (52, 211, 153)     # emerald-400
 VIOLET = (167, 139, 250)     # violet-400
 
 
-def _font(size: int, weight: str = "regular") -> ImageFont.FreeTypeFont:
+def _font(size: int, weight: str = "regular"):
     """Try a stack of system fonts; fall back to default."""
     candidates = {
         "bold": [
@@ -54,11 +56,35 @@ def _font(size: int, weight: str = "regular") -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
-async def _gather_pass_data(user_id: str) -> dict:
+def _verify_pass_access(user: dict, token: Optional[str]) -> None:
+    """SHARE-01 — token gate + minor consent."""
+    legacy = os.environ.get("FEL_PASS_SHARE_LEGACY_PUBLIC", "").lower() in ("1", "true", "yes")
+    expected = user.get("pass_share_token")
+    if expected:
+        if not token or token != expected:
+            raise HTTPException(status_code=403, detail="Invalid or missing share token (?t=)")
+    elif not legacy:
+        raise HTTPException(
+            status_code=403,
+            detail="Pass sharing not enabled — POST /api/system-scan/pass-share-token while signed in.",
+        )
+
+    age = age_from_iso_dob(user.get("date_of_birth"))
+    if age is not None and age < 18:
+        if not user.get("parental_consent_acknowledged"):
+            raise HTTPException(
+                status_code=403,
+                detail="Public athlete pass disabled for minors without guardian consent.",
+            )
+
+
+async def _gather_pass_data(user_id: str, token: Optional[str]) -> dict:
     """Aggregate everything needed for the pass card."""
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    _verify_pass_access(user, token)
 
     edu_docs = await db.education_progress.find({"user_id": user_id}, {"_id": 0}).to_list(20)
     kin = next((d for d in edu_docs if d.get("track_id") == "kinesiology"), {})
@@ -70,14 +96,13 @@ async def _gather_pass_data(user_id: str) -> dict:
     games = await db.game_sessions.count_documents({"user_id": user_id})
     cards_owned = await db.user_cards.count_documents({"user_id": user_id})
 
-    return {
+    show_metrics = bool(user.get("pass_public_metrics_opt_in", False))
+
+    base = {
         "user_id": user_id,
         "name": user.get("name", "Athlete"),
         "sport": user.get("sport", "—").upper(),
-        "prq_score": float(user.get("prq_score", 0.0)),
         "level": int(user.get("level", 1)),
-        "xp": int(user.get("xp", 0)),
-        "streak_days": int(user.get("streak_days", 0)),
         "lessons_done": completed,
         "lessons_total": total_lessons,
         "games_played": games,
@@ -85,6 +110,16 @@ async def _gather_pass_data(user_id: str) -> dict:
         "certificate_id": cert_id,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
+    if show_metrics:
+        base["prq_score"] = float(user.get("prq_score", 0.0))
+        base["xp"] = int(user.get("xp", 0))
+        base["streak_days"] = int(user.get("streak_days", 0))
+    else:
+        base["prq_score"] = None
+        base["xp"] = None
+        base["streak_days"] = None
+
+    return base
 
 
 def _render_pass(data: dict) -> bytes:
@@ -122,21 +157,28 @@ def _render_pass(data: dict) -> bytes:
     d.text((40, 170), name, fill=INK, font=f_name)
     d.text((40, 256), f"{data['sport']}  ·  LVL {data['level']}", fill=MUTED, font=f_sport)
 
-    # 5) Massive PRQ score (center-left feature stat)
+    # 5) Massive PRQ score — omit when athlete opted out of public metrics
     f_prq_label = _font(24, "bold")
     f_prq = _font(220, "bold")
-    d.text((40, 310), "PRQ", fill=CYAN, font=f_prq_label)
-    prq_str = f"{data['prq_score']:.1f}"
-    d.text((40, 340), prq_str, fill=INK, font=f_prq)
+    if data.get("prq_score") is not None:
+        d.text((40, 310), "PRQ", fill=CYAN, font=f_prq_label)
+        prq_str = f"{float(data['prq_score']):.1f}"
+        d.text((40, 340), prq_str, fill=INK, font=f_prq)
+    else:
+        d.text((40, 310), "PRQ", fill=DIM, font=f_prq_label)
+        d.text((40, 340), "—", fill=DIM, font=f_prq)
 
     # 6) Right-rail stat blocks
     rx = 720
     rw = 440
     panel_y = 170
     panel_h = 80
+    streak_val = data.get("streak_days")
+    streak_txt = f"{streak_val}d" if streak_val is not None else "—"
+    academy_txt = f"{data['lessons_done']}/{data['lessons_total']}"
     stats = [
-        ("STREAK", f"{data['streak_days']}d", ORANGE),
-        ("ACADEMY", f"{data['lessons_done']}/{data['lessons_total']}", AMBER),
+        ("STREAK", streak_txt, ORANGE),
+        ("ACADEMY", academy_txt, AMBER),
         ("ARENA SESSIONS", f"{data['games_played']}", VIOLET),
         ("CARDS OWNED", f"{data['cards_owned']}", EMERALD),
     ]
@@ -170,36 +212,66 @@ def _render_pass(data: dict) -> bytes:
 
     # 8) Footer
     f_foot = _font(16, "mono")
-    d.text((rx, 580), f"finalevolutionlab.com  ·  {data['user_id']}", fill=MUTED, font=f_foot)
+    d.text((rx, 580), "finalevolutionlab.com", fill=MUTED, font=f_foot)
 
     buf = BytesIO()
     img.save(buf, "PNG", optimize=True)
     return buf.getvalue()
 
 
+@router.post("/pass-share-token")
+async def issue_pass_share_token(user: User = Depends(get_current_user)):
+    """Create or rotate share token for GET pass routes (authenticated owner)."""
+    age = age_from_iso_dob(user.date_of_birth)
+    if age is not None and age < 18 and not user.parental_consent_acknowledged:
+        raise HTTPException(
+            status_code=403,
+            detail="Pass share links cannot be issued for minors without guardian consent.",
+        )
+    tok = secrets.token_urlsafe(24)
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"pass_share_token": tok, "pass_share_enabled": True}},
+    )
+    return {
+        "token": tok,
+        "usage": "Append ?t=<token> to /api/system-scan/pass/{user_id}.png and pass-meta/{user_id}",
+    }
+
+
 @router.get("/pass/{user_id}.png", responses={200: {"content": {"image/png": {}}}})
-async def get_pass_image(user_id: str):
-    data = await _gather_pass_data(user_id)
+async def get_pass_image(user_id: str, t: Optional[str] = Query(None, description="pass_share_token")):
+    data = await _gather_pass_data(user_id, t)
     png = _render_pass(data)
+    hdr_prq = ""
+    if data.get("prq_score") is not None:
+        hdr_prq = f"{float(data['prq_score']):.1f}"
     return Response(
         content=png,
         media_type="image/png",
         headers={
             "Cache-Control": "public, max-age=120",
-            "X-FEL-User": user_id,
-            "X-FEL-PRQ": f"{data['prq_score']:.1f}",
+            "X-FEL-PRQ": hdr_prq or "hidden",
         },
     )
 
 
 @router.get("/pass-meta/{user_id}")
-async def get_pass_meta(user_id: str):
+async def get_pass_meta(user_id: str, t: Optional[str] = Query(None)):
     """JSON sidecar for og: meta tag consumers and the share modal preview."""
-    data = await _gather_pass_data(user_id)
+    data = await _gather_pass_data(user_id, t)
+    prq_part = ""
+    if data.get("prq_score") is not None:
+        prq_part = f"PRQ {float(data['prq_score']):.1f} · "
+    share_bits = [prq_part, f"Lvl {data['level']}"]
+    if data.get("streak_days") is not None:
+        share_bits.append(f"{data['streak_days']}-day streak")
+    share_text = "My FEL OS Pass: " + " ".join(x for x in share_bits if x) + (
+        f" · {data['certificate_id']}" if data.get("certificate_id") else ""
+    )
+    safe = {k: v for k, v in data.items() if k != "user_id"}
     return {
-        **data,
+        **safe,
         "og_image_url_path": f"/api/system-scan/pass/{user_id}.png",
-        "share_text": f"My FEL OS Pass: PRQ {data['prq_score']:.1f} · Lvl {data['level']} · "
-                      f"{data['streak_days']}-day streak"
-                      + (f" · {data['certificate_id']}" if data['certificate_id'] else ""),
+        "share_text": share_text,
     }

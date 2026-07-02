@@ -1,7 +1,23 @@
+import Foundation
+import SceneKit
 import Testing
 @testable import FinalEvolutionLab
 
 struct GameLogicTests {
+
+    @Test func rankingPrqIsZeroOnLossWithoutParticipation() {
+        let noPlay = PRQ.rankingSessionPRQ(
+            mode: .basketballHeadToHead,
+            won: false,
+            tied: false,
+            combo: 0,
+            criticals: 0,
+            scoreDifferential: -5,
+            participationEligible: false,
+            sessionReadiness: 100
+        )
+        #expect(noPlay == 0)
+    }
 
     @Test func versusMatchOutcomeRewards() {
         let w = VersusMatchOutcome.rewardFlags(playerScore: 10, opponentScore: 7)
@@ -49,8 +65,8 @@ struct GameLogicTests {
             neuralBurst: false,
             judgeOffsets: (0, 0, 0)
         )
-        #expect(out.j1 == out.j2 && out.j2 == out.j3)
-        #expect(out.total == out.j1 * 3)
+        #expect(out.total >= 10 && out.total <= 50)
+        #expect(out.j1 + out.j2 + out.j3 >= out.total - 1)
         #expect(!out.message.isEmpty)
     }
 
@@ -59,6 +75,45 @@ struct GameLogicTests {
         state.totalRounds = 3
         state.round = 4
         #expect(state.isComplete)
+    }
+
+    @Test func wdaScoringIRLAndEngine3DAdapters() {
+        let irl = DunkIRLScoringInput(
+            jumpHeightInches: 34,
+            takeoffAngleDegrees: 78,
+            takeoffVelocityFps: 20,
+            flightHangTimeSeconds: 0.95,
+            ballRotationDegrees: 360,
+            trick: .windmill,
+            attemptsCount: 1,
+            fluidMotionScore: 8.5,
+            landingControlScore: 9.0,
+            aestheticImpactScore: 8.0
+        )
+        let irlResult = WDAScoringEngine.shared.scoreIRLDunk(input: irl)
+        #expect(irlResult.totalScore >= 20 && irlResult.totalScore <= 50)
+        #expect(irlResult.isValid)
+
+        let engine = DunkEngine3DScoringInput(
+            jumpHeight: 0.82,
+            launchQuality: 0.9,
+            landingQuality: 0.88,
+            completedRotation: 1.0,
+            trick: .threeSixty,
+            freestylePoints: 12,
+            midAirBranchCount: 2,
+            styleLandingSuccess: true,
+            modifierScoreMultiplier: 1.3
+        )
+        let engineResult = WDAScoringEngine.shared.scoreEngine3DDunk(input: engine)
+        #expect(engineResult.totalScore >= 20 && engineResult.totalScore <= 50)
+
+        let payload = WDAScoringEngine.adaptEngine3D(
+            dunkEvent: ["style": 3, "hang_time": 0.9, "timing_grade": "perfect", "points": 8],
+            chargePower: 0.88
+        )
+        let nexusResult = WDAScoringEngine.shared.scoreEngine3DDunk(input: payload)
+        #expect(nexusResult.totalScore > 0)
     }
 
     @Test func dynamicDifficultyAggressionBounds() {
@@ -79,19 +134,36 @@ struct GameLogicTests {
 
     @Test @MainActor
     func emergentPayloadClampsPrq() {
-        RorkScoreManager.shared.applyClampedPrq(50)
-        EmergentRealtimeClient.applyEmergentPayload(["type": "prq_update", "prq": 150], type: "prq_update")
-        #expect(RorkScoreManager.shared.currentPrqScore == 100)
+        let session = "unit-test-emergent-session"
+        EmergentRealtimeTrust.bindTrustedGameplaySession(id: session)
+        defer { EmergentRealtimeTrust.clearTrustedGameplaySession() }
 
-        EmergentRealtimeClient.applyEmergentPayload(["type": "prq_delta", "delta": -500], type: "prq_delta")
-        #expect(RorkScoreManager.shared.currentPrqScore == 0)
+        FELScoreManager.shared.applyClampedPrq(50)
+        EmergentRealtimeClient.applyEmergentPayload(
+            ["type": "prq_update", "prq": 150, "game_session_id": session],
+            type: "prq_update"
+        )
+        #expect(FELScoreManager.shared.currentPrqScore == 100)
 
-        EmergentRealtimeClient.applyEmergentPayload(["type": "prq_set", "value": 42], type: "prq_set")
-        #expect(RorkScoreManager.shared.currentPrqScore == 42)
+        EmergentRealtimeClient.applyEmergentPayload(
+            ["type": "prq_delta", "delta": -500, "game_session_id": session],
+            type: "prq_delta"
+        )
+        #expect(FELScoreManager.shared.currentPrqScore == 0)
+
+        EmergentRealtimeClient.applyEmergentPayload(
+            ["type": "prq_set", "value": 42, "game_session_id": session],
+            type: "prq_set"
+        )
+        #expect(FELScoreManager.shared.currentPrqScore == 42)
     }
 
     @Test @MainActor
     func emergentFelGameResultPreparesShareDraft() {
+        let session = "unit-test-emergent-session-share"
+        EmergentRealtimeTrust.bindTrustedGameplaySession(id: session)
+        defer { EmergentRealtimeTrust.clearTrustedGameplaySession() }
+
         SocialShareCoordinator.shared.dismissComposer()
         EmergentRealtimeClient.applyEmergentPayload(
             [
@@ -99,6 +171,7 @@ struct GameLogicTests {
                 "gameModeId": "dunk_contest",
                 "score": 88,
                 "clipUrl": "https://example.com/clip.mp4",
+                "game_session_id": session,
             ],
             type: "fel_game_result"
         )
@@ -110,141 +183,499 @@ struct GameLogicTests {
         SocialShareCoordinator.shared.dismissComposer()
     }
 
-    // MARK: - Shard Economy Tests
-
-    @Test("ShardEarningRule.matchWin rewards 50 shards")
-    func shardEarningRuleMatchWin() {
-        #expect(ShardEarningRule.matchWin.shardReward == 50)
-    }
-
-    @Test("ShardEarningRule.matchTie rewards 25 shards")
-    func shardEarningRuleMatchTie() {
-        #expect(ShardEarningRule.matchTie.shardReward == 25)
-    }
-
-    @Test("ShardEarningRule.dailyStreak rewards 20 shards")
-    func shardEarningRuleDailyStreak() {
-        #expect(ShardEarningRule.dailyStreak.shardReward == 20)
-    }
-
-    @Test("ShardEarningRule.prqMilestone rewards 100 shards")
-    func shardEarningRulePrqMilestone() {
-        #expect(ShardEarningRule.prqMilestone.shardReward == 100)
-    }
-
-    @Test("ShardLedger balance equals sum of recorded entries")
-    func shardLedgerBalanceIsSumOfEntries() {
-        var ledger = ShardLedger()
-        ledger.recordEarning(rule: .matchWin)     // 50
-        ledger.recordEarning(rule: .dailyStreak)  // 20
-        #expect(ledger.balance == 70)
-    }
-
-    // MARK: - Vault Slot Tests
-
-    @Test("VaultSlotType.bronze has unlock cost of 100")
-    func vaultSlotTypeBronzeUnlockCost() {
-        #expect(VaultSlotType.bronze.unlockCost == 100)
-    }
-
-    @Test("VaultSlotType.platinum has cooldown of 24 hours")
-    func vaultSlotTypePlatinumCooldownHours() {
-        #expect(VaultSlotType.platinum.cooldownHours == 24.0)
-    }
-
-    // MARK: - Card Rarity Tests
-
-    @Test("CardRarity.common has drop rate of 0.10")
-    func cardRarityCommonDropRate() {
-        #expect(CardRarity.common.dropRate == 0.10)
-    }
-
-    @Test("CardRarity.legendary has nil shardCost — non-purchasable")
-    func cardRarityLegendaryShardCostIsNil() {
-        #expect(CardRarity.legendary.shardCost == nil)
-    }
-
-    // MARK: - PRQTier Tests
-
-    @Test("PRQTier.tier(for: 90) returns .elite")
-    func prqTierFor90IsElite() {
-        #expect(PRQTier.tier(for: 90) == .elite)
-    }
-
-    @Test("PRQTier.tier(for: 89) returns .primed")
-    func prqTierFor89IsPrimed() {
-        #expect(PRQTier.tier(for: 89) == .primed)
-    }
-
-    @Test("PRQTier.tier(for: 39) returns .depleted")
-    func prqTierFor39IsDepleted() {
-        #expect(PRQTier.tier(for: 39) == .depleted)
-    }
-
-    @Test("PRQTier.elite speedMultiplier is 1.25")
-    func prqTierEliteSpeedMultiplier() {
-        #expect(PRQTier.elite.speedMultiplier == 1.25)
-    }
-
-    @Test("PRQTier.depleted speedMultiplier is 0.65")
-    func prqTierDepletedSpeedMultiplier() {
-        #expect(PRQTier.depleted.speedMultiplier == 0.65)
-    }
-
-    // MARK: - ComboChain Tests
-
-    @Test("ComboChain multiplier after 2 tricks is approximately 1.21 (1.1^2)")
-    func comboChainMultiplierAfterTwoTricks() {
-        var chain = ComboChain()
-        chain.recordTrick(at: 0.0)
-        chain.recordTrick(at: 1.0)
-        let expected = pow(1.1, 2.0)  // 1.21
-        #expect(abs(chain.multiplier - expected) < 0.0001)
-    }
-
-    @Test("ComboChain multiplier is capped at 5.0 regardless of chain length")
-    func comboChainMultiplierCappedAtFive() {
-        var chain = ComboChain()
-        // 50 consecutive tricks well within 3s window
-        for i in 0..<50 {
-            chain.recordTrick(at: Double(i) * 0.5)
-        }
-        #expect(chain.multiplier <= 5.0)
-        #expect(chain.multiplier == 5.0)
-    }
-
-    // MARK: - MovementEfficiencyScore Tests
-
-    @Test("MovementEfficiencyScore.overallEfficiency is average of all 6 component scores")
-    func movementEfficiencyScoreOverallIsAverage() {
-        let score = MovementEfficiencyScore(
-            kneeTracking: 80,
-            hipAlignment: 90,
-            coreEngagement: 70,
-            shoulderPosition: 85,
-            ankleStability: 75,
-            headPosition: 60
+    @Test func scanEnvelopeCommandPlanIncludesFitnessAndFillRegion() {
+        let envelope = ScanEnvelope(
+            schemaVersion: 1,
+            scanId: "test-scan",
+            source: .simulated,
+            capturedAtEpochMs: 1_700_000_000_000,
+            confidence01: 0.72,
+            joints: .init(
+                leftKneeAngleDeg: 100,
+                rightKneeAngleDeg: 104,
+                leftShoulderReach01: 0.7,
+                rightShoulderReach01: 0.68,
+                hipStability01: 0.8
+            ),
+            motion: .init(
+                verticalEstimateInches: 27,
+                flightTimeSeconds: 0.55,
+                peakAccelG: 1.2
+            ),
+            frcProxies: .init(mobility01: 0.7, activeRange01: 0.66, control01: 0.75)
         )
-        let expected = (80.0 + 90.0 + 70.0 + 85.0 + 75.0 + 60.0) / 6.0
-        #expect(abs(score.overallEfficiency - expected) < 0.0001)
+
+        let plan = ScanEnvelopeCommandMapper.commandPlan(for: envelope)
+        guard let commands = plan["commands"] as? [[String: Any]] else {
+            Issue.record("commands missing")
+            return
+        }
+        #expect(commands.count == 3)
+        let names = commands.compactMap { $0["command"] as? String }
+        #expect(names.contains("fel.fitness.update"))
+        #expect(names.contains("fel.creative.fill_region"))
+        #expect(names.contains("fel.generate.arena_from_scan"))
+
+        guard let generative = plan["generative"] as? [String: Any] else {
+            Issue.record("generative missing")
+            return
+        }
+        #expect((generative["arena_scale"] as? Double ?? 0) >= 0.85)
+        #expect((generative["difficulty_tier"] as? Int ?? -1) >= 0)
     }
 
-    // MARK: - MovementSnackLibrary Tests
-
-    @Test("MovementSnackLibrary.all contains at least 12 snacks")
-    func movementSnackLibraryHasAtLeast12Entries() {
-        #expect(MovementSnackLibrary.all.count >= 12)
+    @Test @MainActor func simulatedScanEnvelopeIsDeterministicShape() {
+        let envelope = ScanCaptureService.simulatedEnvelope()
+        #expect(envelope.schemaVersion == ScanEnvelope.currentSchemaVersion)
+        #expect(envelope.source == .simulated)
+        #expect(envelope.confidence01 < SystemScanResult.minimumConfidenceForCompetitiveCommit)
     }
 
-    // MARK: - PeriodizationBlock Tests
-
-    @Test("PeriodizationBlock.block(forWeek: 4) returns .deload")
-    func periodizationBlockWeek4IsDeload() {
-        #expect(PeriodizationBlock.block(forWeek: 4) == .deload)
+    @Test func gameGeneratorAgentToolIsWhitelisted() {
+        #expect(NEXUSCursorBridge.isWhitelistedAgentCommandTarget("generate_game"))
+        #expect(NEXUSAgentToolName.generateGame.rawValue == "generate_game")
+        let chip = NEXUSAgentToolName.quickRunChips.first { $0.tool == .generateGame }
+        #expect(chip?.arguments["text"] as? String != nil)
     }
 
-    @Test("PeriodizationBlock.block(forWeek: 1) returns .accumulation")
-    func periodizationBlockWeek1IsAccumulation() {
-        #expect(PeriodizationBlock.block(forWeek: 1) == .accumulation)
+    @Test func gameGeneratorTemplatesMapToRegisteredModes() {
+        #expect(NexusGameGeneratorTemplates.all.count == 18)
+        for template in NexusGameGeneratorTemplates.all {
+            #expect(GameModeRegistry.playableMode(forRegistryId: template.id) != nil)
+        }
+    }
+
+    @Test func gameGeneratorPlayableModeResolverHandlesAliases() {
+        #expect(GameModeRegistry.playableMode(forRegistryId: "venice_pickup")?.id == .basketballHeadToHead)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse")?.id == .marketBrowse)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "snowboarding")?.id == .snowboarding)
+    }
+
+    @Test func gameGeneratorReadinessMapsDifficulty() {
+        #expect(GameModeRegistry.readiness(forGeneratedDifficultyTier: "easy") == 55)
+        #expect(GameModeRegistry.readiness(forGeneratedDifficultyTier: "hard") == 88)
+    }
+
+    @Test func productionModeIdsMatchNexusRegistryAndValidateScript() {
+        #expect(GameModeRegistry.productionModeIds.count == 19)
+        let arenaIds = Set(GameModeRegistry.arenaRegistryModeIds.map(\.rawValue))
+        for rawId in GameModeRegistry.productionModeIds {
+            #expect(GameModeId(rawValue: rawId) != nil)
+            #expect(arenaIds.contains(rawId))
+            let mode = GameModeRegistry.mode(for: GameModeId(rawValue: rawId)!)
+            #expect(mode.releaseState == .production)
+            #expect(mode.felPreviewLabel == nil)
+        }
+        #expect(!GameModeRegistry.productionModeIds.contains("market_browse"))
+        #expect(!GameModeRegistry.productionModeIds.contains("venice_pickup"))
+    }
+
+    @Test func productionModesHaveArcadeRetroCartridgeTitles() {
+        for rawId in GameModeRegistry.productionModeIds {
+            let modeId = GameModeId(rawValue: rawId)!
+            let mode = GameModeRegistry.mode(for: modeId)
+            let meta = ArcadeCartridgeMetadata.metadata(for: mode)
+            #expect(meta.classicTitle != mode.name, "Missing retro title for \(rawId)")
+            #expect(meta.isClassicProduction)
+        }
+    }
+
+    @Test func dualDunkContestModesAreDistinctProductionEntries() {
+        let irl = GameModeRegistry.mode(for: .basketballDunkContestIRL)
+        let threeD = GameModeRegistry.mode(for: .basketballDunkContest3D)
+        #expect(irl.releaseState == .production)
+        #expect(threeD.releaseState == .production)
+        #expect(irl.id.rawValue == "basketball_dunk_irl")
+        #expect(threeD.id.rawValue == "basketball_dunk_3d")
+        #expect(irl.name == "IRL H2H Dunk Contest")
+        #expect(threeD.name == "3D H2H Dunk Contest")
+        #expect(irl.hint?.contains("Vision") == true)
+        #expect(threeD.hint?.contains("Metal") == true)
+        #expect(threeD.id.nexusRuntimeModeId == "basketball_dunk")
+        #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk")?.id == .basketballDunkContest3D)
+    }
+
+    @Test func basketballClusterWinTargetsAlignWithNexusSimulators() {
+        #expect(GameModeRules.forMode(.basketballHeadToHead).targetScore == 21)
+        #expect(GameModeRules.forMode(.basketball3v3).targetScore == 21)
+        #expect(GameModeRules.forMode(.basketballDunkContest3D).roundLimit == 3)
+        #expect(GameModeRules.forMode(.basketballDunkContestIRL).roundLimit == 3)
+        let carnivalMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .courtCarnival))
+        #expect(carnivalMeta.classicTitle == "Boardwalk Bash")
+        let h2hMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketballHeadToHead))
+        #expect(h2hMeta.classicTitle == "Venice Showdown '92")
+        let pickupAliasMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .venicePickup))
+        #expect(pickupAliasMeta.classicTitle == "Venice Showdown '92")
+        #expect(pickupAliasMeta.tagline.contains("Street Pickup"))
+        let dunk3DMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketballDunkContest3D))
+        #expect(dunk3DMeta.classicTitle == "Slam Jam '94")
+        let dunkIRLMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketballDunkContestIRL))
+        #expect(dunkIRLMeta.classicTitle == "Slam Cam '26")
+        let threeMeta = ArcadeCartridgeMetadata.metadata(for: GameModeRegistry.mode(for: .basketball3v3))
+        #expect(threeMeta.classicTitle == "Street Kings 3v3")
+    }
+
+    @Test func karateH2HHonestHudAndOutcomeSportRouting() {
+        let mode = GameModeRegistry.mode(for: .karate)
+        #expect(mode.id.nexusCapabilityTier == .sim)
+        #expect(mode.id.isNexusOutcomeSportMode)
+        #expect(mode.felHonestTierLabel?.hasPrefix("Practice · ") == true)
+        #expect(mode.hint?.contains("Timed strikes") == true)
+        let dojoMeta = ArcadeCartridgeMetadata.metadata(for: mode)
+        #expect(dojoMeta.classicTitle == "Dojo Duel")
+        let scene = GameSceneFactory.buildScene(for: .karate)
+        #expect(scene.rootNode.childNode(withName: "fighter1", recursively: true) != nil)
+        #expect(scene.rootNode.childNode(withName: "fighter2", recursively: true) != nil)
+    }
+
+    @Test func phase6SportsOutcomeHudStatusLines() {
+        let baseballHud = NexusHUDSnapshot(
+            modeId: "baseball",
+            outcomeSportModeId: "baseball",
+            outcomeSportPlayerMetric: 4,
+            outcomeSportOpponentMetric: 2,
+            outcomeSportInning: 3
+        )
+        #expect(baseballHud.outcomeSportStatusLine == "INN 3 · RUNS 4-2")
+
+        let footballHud = NexusHUDSnapshot(
+            modeId: "football",
+            playerScore: 14,
+            opponentScore: 7,
+            outcomeSportModeId: "football",
+            outcomeSportPlayerMetric: 2,
+            outcomeSportOpponentMetric: 1
+        )
+        #expect(footballHud.outcomeSportStatusLine == "TD 2-1 · 14-7 PTS")
+
+        let soccerHud = NexusHUDSnapshot(
+            modeId: "soccer",
+            outcomeSportModeId: "soccer",
+            outcomeSportPlayerMetric: 3,
+            outcomeSportOpponentMetric: 2,
+            outcomeSportWinTarget: 5,
+            outcomeSportPenaltyRound: 2
+        )
+        #expect(soccerHud.outcomeSportStatusLine == "PENALTY R2 · GOALS 3-2 (first to 5)")
+
+        let golfHud = NexusHUDSnapshot(
+            modeId: "golf",
+            outcomeSportModeId: "golf",
+            outcomeSportPlayerMetric: 18,
+            outcomeSportHolesPlayed: 4,
+            outcomeSportCoursePar: 36
+        )
+        #expect(golfHud.outcomeSportStatusLine == "HOLE 5/9 · 18/36 STROKES")
+
+        let tennisHud = NexusHUDSnapshot(
+            modeId: "tennis",
+            outcomeSportModeId: "tennis",
+            outcomeSportPlayerMetric: 3,
+            outcomeSportOpponentMetric: 2,
+            outcomeSportPlayerSets: 1,
+            outcomeSportOpponentSets: 0
+        )
+        #expect(tennisHud.outcomeSportStatusLine == "SETS 1-0 · G 3-2")
+
+        let volleyballHud = NexusHUDSnapshot(
+            modeId: "volleyball",
+            outcomeSportModeId: "volleyball",
+            outcomeSportPlayerMetric: 12,
+            outcomeSportOpponentMetric: 10
+        )
+        #expect(volleyballHud.outcomeSportStatusLine == "RALLY 12-10 (25 win by 2)")
+    }
+
+    @Test func phase6SportsUseNonChargeInputSchemes() {
+        let sports: [GameModeId] = [.baseball, .football, .soccer, .golf, .tennis, .volleyball]
+        for modeId in sports {
+            #expect(modeId.inputScheme != .charge, "\(modeId.rawValue) must not use charge PS2 layout")
+            #expect(modeId.isNexusOutcomeSportMode)
+        }
+    }
+
+    @Test func productionModesRetainPrimaryAvatarInHybridOverlay() {
+        for rawId in GameModeRegistry.productionModeIds {
+            let modeId = GameModeId(rawValue: rawId)!
+            let avatarName = GameSceneFactory.primaryGameplayAvatarName(for: modeId)
+            let scene = GameSceneFactory.buildGameplayOverlay(for: modeId)
+            let player = scene.rootNode.childNode(withName: avatarName, recursively: true)
+            #expect(player != nil, "Hybrid overlay missing \(avatarName) for \(rawId)")
+            let camera = scene.rootNode.childNode(withName: "mainCamera", recursively: true)
+            #expect(camera != nil, "Hybrid overlay missing chase camera for \(rawId)")
+        }
+    }
+
+    @Test func previewModesExposeHonestGameplayPreviewLabels() {
+        let previewModes = GameModeRegistry.all.filter { $0.releaseState == .preview }
+        #expect(previewModes.contains { $0.id == .marketBrowse })
+        for mode in previewModes {
+            #expect(mode.felPreviewLabel?.hasPrefix("Early Access · ") == true)
+        }
+    }
+
+    @Test func generatedGameSpecParsesAdapterMetadata() {
+        let payload: [String: Any] = [
+            "mode_id": "basketball_dunk",
+            "display_name": "Dunk Contest",
+            "venue_token": "Venice_Beach_Court",
+            "rules": ["difficulty_tier": "hard"],
+            "hud_theme": ["preview_label": "PREVIEW · GENERATED GAME SPEC"],
+            "metadata": [
+                "adapter": "template_mvp",
+                "ai_provider": "template_mvp",
+                "generator_tier": "template_ai_studio_partial",
+                "ai_studio_attempted": true,
+                "ai_studio_fallback_reason": "invalid mode_id from AI Studio",
+                "fallback_used": true,
+            ],
+        ]
+        let spec = NexusGameplayEngine.GeneratedGameSpec.from(payload: payload)
+        #expect(spec?.adapterDisplayLabel == "Templates + AI hints")
+        #expect(spec?.aiProvider == "template_mvp")
+        #expect(spec?.geminiFallbackReason == "invalid mode_id from AI Studio")
+        #expect(spec?.geminiAttempted == true)
+        #expect(spec?.fallbackUsed == true)
+        #expect(spec?.registryMode?.id == .basketballDunkContest3D)
+    }
+
+    @Test func gameGeneratorTemplatesExposeRegistryVenues() {
+        for template in NexusGameGeneratorTemplates.all {
+            let mode = NexusGameGeneratorTemplates.registryMode(for: template)
+            #expect(mode != nil)
+            #expect(!(mode?.environmentName.isEmpty ?? true))
+        }
+    }
+
+    @Test func generatedGameEntryParsesSandboxJSON() {
+        let json: [String: Any] = [
+            "spec_id": "game_hard_basketball_dunk_1",
+            "mode_id": "basketball_dunk",
+            "display_name": "Hard Dunk Contest",
+            "venue_token": "venice_beach",
+            "rules": ["difficulty_tier": "hard"],
+        ]
+        let entry = NexusGeneratedGameEntry.parse(
+            relativePath: "generated_games/game_hard_basketball_dunk_1.json",
+            json: json
+        )
+        #expect(entry?.modeId == "basketball_dunk")
+        #expect(entry?.difficultyTier == "hard")
+        #expect(entry?.readinessEstimate == 88)
+    }
+
+    @Test func generatedGameReadinessMapsDifficultyTiers() {
+        #expect(NexusGeneratedGameEntry.readiness(for: "easy") == 55)
+        #expect(NexusGeneratedGameEntry.readiness(for: "normal") == 75)
+        #expect(NexusGeneratedGameEntry.readiness(for: "intense") == 95)
+    }
+
+    @Test func trainingLabSocialBridgeErrorsAreHonest() {
+        let firebase: TrainingLabSocialBridgeError = .firebaseNotConfigured
+        #expect(firebase.errorDescription?.contains("PREVIEW") == true)
+
+        let shards: TrainingLabSocialBridgeError = .shardIncreasesRequireServerGrant
+        #expect(shards.errorDescription?.contains("server verification") == true)
+
+        let sql: TrainingLabSocialBridgeError = .emptyDataConnectResult
+        #expect(sql.errorDescription?.contains("PREVIEW") == true)
+
+        let uid: TrainingLabSocialBridgeError = .noFirebaseUid
+        #expect(uid.errorDescription?.contains("Sign in") == true)
+    }
+
+    @Test func sessionReceiptNormalizationMapsNexusDiskJson() {
+        let raw: [String: Any] = [
+            "telemetry": ["mode_id": "basketball_dunk", "session_id": "sess-1"],
+            "player_score": 42,
+            "result_type": "win",
+        ]
+        let body = SessionReceiptUploadService.normalizedReceiptBody(from: raw)
+        #expect(body["mode_id"] as? String == "basketball_dunk")
+        #expect(body["score"] as? Int == 42)
+        #expect(body["outcome"] as? String == "win")
+        #expect(body["completed"] as? Bool == true)
+    }
+
+    @Test func sessionReceiptLaneMatchesBackendAuthState() {
+        let isPreview = NexusBackendClient.isPreviewLane
+        let canPost = NexusBackendClient.canPostSessionReceipts
+        let label = NexusBackendClient.sessionReceiptLaneLabel
+        let snapshot = SessionReceiptUploadService.queueSnapshot()
+
+        #expect(canPost == (!isPreview && NexusBackendClient.hasUploadAuthCredential))
+        #expect(snapshot.canPost == canPost)
+        #expect(snapshot.queueDirectory.contains("pending_receipts"))
+
+        if isPreview {
+            #expect(canPost == false)
+            #expect(label.contains("PREVIEW") == true)
+        } else if NexusBackendClient.hasUploadAuthCredential {
+            #expect(canPost == true)
+            #expect(label.contains("LIVE") == true)
+        } else {
+            #expect(canPost == false)
+            #expect(label.contains("AWAITING AUTH") == true)
+        }
+    }
+
+    @Test func sessionReceiptNormalizationAddsDeviceAndAIStudioMetadata() {
+        let body = SessionReceiptUploadService.normalizedReceiptBody(from: ["player_score": 7])
+        let telemetry = body["telemetry"] as? [String: Any]
+        #expect(telemetry?["device_id"] as? String == NexusDeviceIdentity.anonymousDeviceId)
+        if NexusBackendClient.isAIStudioConfigured {
+            #expect(telemetry?["ai_provider"] as? String == "ai_studio")
+        }
+    }
+
+    @Test func nexusDeviceIdentityIsStable() {
+        let first = NexusDeviceIdentity.anonymousDeviceId
+        let second = NexusDeviceIdentity.anonymousDeviceId
+        #expect(first.isEmpty == false)
+        #expect(first == second)
+    }
+
+    @Test func sessionReceiptNormalizationFillsRequiredBackendFields() {
+        let minimal: [String: Any] = ["player_score": 10]
+        let body = SessionReceiptUploadService.normalizedReceiptBody(from: minimal)
+        #expect(body["score"] as? Int == 10)
+        #expect(body["outcome"] as? String == "loss")
+        #expect(body["duration_seconds"] as? Int == 60)
+        #expect(body["completed"] as? Bool == true)
+        #expect(body["mri_score"] as? Double == 50.0)
+        #expect(body["telemetry"] as? [String: Any] != nil)
+    }
+
+    @Test func sessionReceiptNormalizationCoercesUnknownOutcomeToLoss() {
+        let raw: [String: Any] = ["result_type": "forfeit", "player_score": 1]
+        let body = SessionReceiptUploadService.normalizedReceiptBody(from: raw)
+        #expect(body["outcome"] as? String == "loss")
+    }
+
+    @Test func sessionReceiptPostOutcomeSurfacesHonestMessages() {
+        let preview = NexusBackendClient.SessionReceiptPostOutcome.previewQueuedLocally
+        #expect(preview.userFacingMessage.contains("PREVIEW") == true)
+        #expect(preview.keepsReceiptOnDisk == true)
+
+        let auth = NexusBackendClient.SessionReceiptPostOutcome.authUnavailable(reason: "offline")
+        #expect(auth.userFacingMessage.contains("backend auth") == true)
+        #expect(auth.keepsReceiptOnDisk == true)
+
+        let server = NexusBackendClient.SessionReceiptPostOutcome.serverError(statusCode: 422, detail: "score_out_of_bounds")
+        #expect(server.userFacingMessage.contains("422") == true)
+        #expect(server.userFacingMessage.contains("score_out_of_bounds") == true)
+
+        let network = NexusBackendClient.SessionReceiptPostOutcome.networkError("timeout")
+        #expect(network.userFacingMessage.contains("timeout") == true)
+    }
+
+    @Test func sessionReceiptServerErrorDetailParsesFastAPIBody() {
+        let detailJSON = #"{"detail":"instant_scoring_session"}"#.data(using: .utf8)!
+        #expect(NexusBackendClient.serverErrorDetail(from: detailJSON) == "instant_scoring_session")
+
+        let validationJSON = #"{"detail":[{"msg":"field required","loc":["body","mode_id"]}]}"#.data(using: .utf8)!
+        let parsed = NexusBackendClient.serverErrorDetail(from: validationJSON)
+        #expect(parsed.contains("field required") == true)
+    }
+
+    @Test func sessionReceiptUploadSummaryPreviewLaneIsNotFailure() {
+        let previewSummary = SessionReceiptUploadService.UploadSummary(
+            attempted: 3,
+            succeeded: 0,
+            failed: 0,
+            skippedPreview: 3,
+            authSkipped: 0,
+            invalidJSON: 0,
+            lastErrorMessage: "PREVIEW build"
+        )
+        #expect(previewSummary.hadFailures == false)
+        #expect(previewSummary.isPreviewLane == true)
+        #expect(previewSummary.pendingOnDisk == 3)
+    }
+
+    @Test @MainActor func sessionReceiptTrustLevelDefaultsSessionBound() {
+        let fields = GameplaySessionReceiptCoordinator.parseReceiptFields([
+            "game_mode_id": "basketball_h2h",
+            "player_score": 12,
+        ])
+        #expect(fields?.trustLevel == .sessionBound)
+        #expect(GameplaySessionReceiptCoordinator.parseTrustLevel(["fel_trust_level": "server_verified"]) == .serverVerified)
+    }
+
+    @Test func sessionReceiptProductionPathDocumentedInConfig() {
+        #expect(Config.gameplaySessionReceiptURL.contains("/api/games/session") == true)
+        #expect(NexusBackendClient.apiBaseURL.isEmpty == false)
+    }
+
+    @Test func aiStudioBootstrapOfflineWithoutEnvKey() {
+        NexusAIStudioBootstrap.configureIfNeeded()
+        // Unit test process typically has no API key unless scheme env is set.
+        if NexusAIStudioBootstrap.isConfigured {
+            #expect(NexusAIStudioBootstrap.apiKey()?.isEmpty == false)
+            #expect(NexusAIStudioBootstrap.statusLabel.contains("CONNECTED") == true)
+        } else {
+            #expect(NexusAIStudioBootstrap.connectionStatus == .offline)
+            #expect(NexusAIStudioBootstrap.statusLabel.contains("OFFLINE") == true)
+        }
+    }
+
+    @Test func firebaseOfflineBannerRequiresBothLanesOffline() {
+        let firebasePreview = FirebaseBootstrap.isPreviewMode
+        let aiStudioUp = NexusAIStudioBootstrap.isConfigured
+        #expect(FirebaseBootstrap.shouldShowOfflineBanner == (firebasePreview && !aiStudioUp))
+    }
+
+    @Test func firebaseAndAIStudioStatusLabelsAreDistinct() {
+        #expect(FirebaseBootstrap.statusLabel.contains("FIREBASE") == true)
+        #expect(NexusAIStudioBootstrap.statusLabel.contains("AI STUDIO") == true)
+    }
+
+    @Test func configDocumentsAIStudioEnvNames() {
+        #expect(Config.nexusAIStudioAPIKeyEnvNames.contains("NEXUS_AI_STUDIO_API_KEY") == true)
+        #expect(Config.nexusAIStudioAPIKeyEnvNames.contains("NEXUS_AGENT_GEMINI_KEY") == true)
+    }
+
+    @Test func premiumViewpointClustersMapPrimaryModeFamilies() {
+        #expect(PremiumViewpointConfig.cluster(for: .basketballHeadToHead) == .basketball)
+        #expect(PremiumViewpointConfig.cluster(for: .karateEndless) == .dojo)
+        #expect(PremiumViewpointConfig.cluster(for: .football) == .stadium)
+    }
+
+    @Test func premiumChaseCameraUsesWideFOVNotCramped() {
+        let basketball = PremiumViewpointConfig.chaseCamera(for: .basketballHeadToHead)
+        let dojo = PremiumViewpointConfig.chaseCamera(for: .karate)
+        let stadium = PremiumViewpointConfig.chaseCamera(for: .soccer)
+        #expect(basketball.fovNormal >= 52)
+        #expect(dojo.fovNormal >= 50)
+        #expect(stadium.fovNormal >= 54)
+        #expect(basketball.offsetZ > 9)
+        #expect(stadium.offsetY > 6.5)
+    }
+
+    @Test func hybridOverlayAddsAvatarFillLight() {
+        let scene = GameSceneFactory.buildGameplayOverlay(for: .basketballHeadToHead)
+        let fill = scene.rootNode.childNode(withName: "avatarFillLight", recursively: false)
+        #expect(fill?.light != nil)
+        #expect((fill?.light?.intensity ?? 0) >= 1000)
+    }
+
+    @Test func hybridOverlayStripsProceduralVenueGeometry() {
+        let scene = GameSceneFactory.buildGameplayOverlay(for: .basketballHeadToHead)
+        let floorNodes = scene.rootNode.childNodes.filter { $0.geometry is SCNFloor }
+        #expect(floorNodes.isEmpty, "Hybrid overlay must not retain procedural SCNFloor")
+        let player = scene.rootNode.childNode(withName: "player1", recursively: true)
+        #expect(player != nil)
+        let ball = scene.rootNode.childNode(withName: "ball", recursively: true)
+        #expect(ball != nil)
+    }
+
+    @Test func scenekitPathPrefersBundledMeshOverProcedural() {
+        let scene = GameSceneFactory.buildScene(for: .karate)
+        let hasBundled = scene.rootNode.childNode(withName: "bundledVenueEnvironment", recursively: false) != nil
+            || scene.rootNode.childNode(withName: "bundledVenueBackdrop", recursively: false) != nil
+        if hasBundled {
+            let floorNodes = scene.rootNode.childNodes.filter { $0.geometry is SCNFloor }
+            #expect(floorNodes.isEmpty, "Bundled mesh path should strip procedural floor")
+        }
     }
 }

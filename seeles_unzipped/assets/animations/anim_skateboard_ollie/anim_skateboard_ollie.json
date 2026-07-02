@@ -1,0 +1,22 @@
+{
+  "id": "anim_skateboard_ollie",
+  "name": "Skateboard Ollie Animation",
+  "category": "animations",
+  "type": "non_loop_motion",
+  "file": "anim_skateboard_ollie.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/5ab28cd1-2b50-4341-b8b9-2e6d9a32d7f3/444565/import.fbx"],
+  "description": "One-shot skateboard ollie trick animation for ABP_Skateboarding montage.",
+  "tags": ["skateboard", "ollie", "trick", "animation", "non-loop", "unreal", "fel"],
+  "keywords": ["skateboard ollie", "street trick", "jump", "ABP_Skateboarding"],
+  "compat": ["unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T18:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 23,
+  "version": "1.0",
+  "property_id": "search_ebcf85460ff3_0",
+  "motion_asset_id": 444565,
+  "abp": "ABP_Skateboarding",
+  "abp_slot": "AM_Skateboarding_Ollie",
+  "fel_modes": ["skateboarding"]
+}

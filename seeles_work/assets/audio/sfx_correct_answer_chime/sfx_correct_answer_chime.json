@@ -1,0 +1,35 @@
+{
+  "id": "sfx_correct_answer_chime",
+  "name": "Correct Answer Chime SFX",
+  "category": "audio",
+  "type": "sfx_mp3",
+  "file": "sfx_correct_answer_chime.mp3",
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/5d5ed784-d0ae-47c8-a227-fb4f28a89197/172459/sfx_92eb46fa-4070-4147-b0f8-cb70a64e666b.mp3"
+  ],
+  "description": "Correct Answer Chime SFX for Final Evolution Lab \u2014 modes: brain_brawl",
+  "tags": [
+    "brain_brawl",
+    "sfx",
+    "correct",
+    "chime"
+  ],
+  "keywords": [
+    "correct",
+    "answer",
+    "quiz",
+    "ding",
+    "chime"
+  ],
+  "compat": [
+    "all"
+  ],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "fel_modes": [
+    "brain_brawl"
+  ]
+}

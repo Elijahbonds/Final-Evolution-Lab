@@ -1,0 +1,22 @@
+{
+  "id": "anim_soccer_jog_loop",
+  "name": "Soccer Jog Loop Animation",
+  "category": "animations",
+  "type": "loop_motion",
+  "file": "anim_soccer_jog_loop.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/3078665f-147b-419e-ba4c-7620759aca45/484555/unityModel_2b2e1ccb-e963-4035-b09d-3b44c7d1f4ee.fbx"],
+  "description": "Looping soccer player jog/run locomotion animation for ABP_Soccer blend space.",
+  "tags": ["soccer", "jog", "run", "loop", "locomotion", "animation", "unreal", "fel"],
+  "keywords": ["soccer run", "jog loop", "locomotion", "blend space", "ABP_Soccer"],
+  "compat": ["unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T18:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 23,
+  "version": "1.0",
+  "property_id": "search_f943772ee0c2_0",
+  "motion_asset_id": 484555,
+  "abp": "ABP_Soccer",
+  "abp_slot": "BS_Soccer_Locomotion",
+  "fel_modes": ["soccer"]
+}

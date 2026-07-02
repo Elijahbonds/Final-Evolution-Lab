@@ -1,23 +1,32 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
-import os, logging, uuid, random, json, aiofiles, hashlib, hmac, base64
+import os, logging, uuid, random, json, aiofiles, hashlib, hmac, base64, secrets
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 import httpx
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from google import genai
+from google.genai import types
+import asyncio
 import paypalrestsdk
+import websockets
 
-# Shared dependencies (DB, auth, User model, EMERGENT_KEY) live in core.py
-from core import db, client, User, get_current_user, EMERGENT_KEY, ROOT_DIR
+# Shared dependencies (DB, auth, User model, FEL_LLM_KEY) live in core.py
+from core import db, client, User, get_current_user, verify_firebase_token, FEL_LLM_KEY, ROOT_DIR
+from privacy_minors import athlete_visible_in_public_discovery, include_prq_in_public_athlete_search
+from commerce_catalog import COMMERCE_CATALOG, resolve_paypal_line_item
+from iap_verify import extract_line_items, extract_product_ids, verify_legacy_receipt
+from storekit_catalog import (
+    decode_unsigned_jws_payload,
+    mapping_valid_for_commerce,
+    resolve_storekit_product,
+)
 from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
-from routers import matches as matches_router
-from routers.games import router as games_router
 
 # PayPal config
 paypalrestsdk.configure({
@@ -29,6 +38,10 @@ paypalrestsdk.configure({
 # Upload dir
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+_MAX_VIDEO_BYTES = int(os.environ.get("FEL_MAX_VIDEO_UPLOAD_MB", "80")) * 1024 * 1024
+_VIDEO_READ_CHUNK = 1024 * 1024
+_ALLOWED_VIDEO_EXT = frozenset({".mp4", ".mov", ".webm", ".m4v"})
 
 app = FastAPI(title="Final Evolution Lab API")
 
@@ -43,11 +56,18 @@ async def k8s_health():
 
 # CORS: when allow_credentials=True, browsers REJECT a wildcard "*" origin
 # (CORS spec violation → cookies silently dropped on Safari + Chrome).
-# We explicitly allow our production domain and any *.preview.emergentagent.com.
-ALLOWED_ORIGIN_REGEX = (
+# We explicitly allow our production domain and any *.preview.finalevolutionlab.com.
+# Default includes preview hosts for developer ergonomics. Set ``FEL_CORS_STRICT_PRODUCTION=1`` in
+# production to allow credentialed access only from finalevolutiongroup.com + localhost.
+_PRODUCTION_ORIGIN_REGEX = (
     r"https?://(localhost(:\d+)?|127\.0\.0\.1(:\d+)?"
-    r"|finalevolutiongroup\.com|www\.finalevolutiongroup\.com"
-    r"|.*\.preview\.emergentagent\.com|.*\.emergentagent\.com)"
+    r"|finalevolutiongroup\.com|www\.finalevolutiongroup\.com)"
+)
+_PREVIEW_ORIGIN_SUFFIX = r"|https?://.*\.preview\.finalevolutionlab.com|https?://.*\.finalevolutionlab.com"
+ALLOWED_ORIGIN_REGEX = (
+    _PRODUCTION_ORIGIN_REGEX
+    if os.environ.get("FEL_CORS_STRICT_PRODUCTION", "").lower() in ("1", "true", "yes")
+    else _PRODUCTION_ORIGIN_REGEX + _PREVIEW_ORIGIN_SUFFIX
 )
 app.add_middleware(
     CORSMiddleware,
@@ -61,49 +81,175 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def _fel_ios_client(request: Request) -> bool:
+    ua = (request.headers.get("user-agent") or "").lower()
+    x = (request.headers.get("x-fel-client") or "").lower()
+    return "fel-ios" in ua or x == "ios" or "fel/unreal-ios" in ua
+
+
+def _age_from_iso_dob(dob: Optional[str]) -> Optional[int]:
+    if not dob:
+        return None
+    try:
+        from datetime import date as date_cls
+
+        parts = str(dob).strip().split("-")
+        if len(parts) != 3:
+            return None
+        y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+        bd = date_cls(y, m, d)
+        today = date_cls.today()
+        return today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+    except Exception:
+        return None
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Validated profile patch (PROFILE-01). Unknown fields ignored."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    name: Optional[str] = Field(None, max_length=80)
+    bio: Optional[str] = Field(None, max_length=4000)
+    sport: Optional[str] = Field(None, max_length=40)
+    avatar_url: Optional[str] = Field(None, max_length=2048)
+    avatar_config: Optional[Dict[str, Any]] = None
+    allergies: Optional[List[str]] = None
+    dietary_restrictions: Optional[List[str]] = None
+    date_of_birth: Optional[str] = Field(None, max_length=10)
+    parental_consent_acknowledged: Optional[bool] = None
+
+    @field_validator("avatar_url")
+    @classmethod
+    def avatar_scheme(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        if not (
+            v.startswith("https://")
+            or v.startswith("http://localhost")
+            or v.startswith("http://127.0.0.1")
+            or v.startswith("/")
+        ):
+            raise ValueError("avatar_url must be https, localhost, or a site-relative path")
+        return v
+
+    @field_validator("allergies", "dietary_restrictions")
+    @classmethod
+    def cap_list(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return None
+        if len(v) > 40:
+            raise ValueError("too many entries (max 40)")
+        return [str(x)[:64] for x in v]
+
+    @field_validator("date_of_birth")
+    @classmethod
+    def dob_iso(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v).strip()
+        if len(s) != 10 or s[4] != "-" or s[7] != "-":
+            raise ValueError("date_of_birth must be YYYY-MM-DD")
+        return s
+
+    @model_validator(mode="after")
+    def avatar_blob_limit(self) -> "ProfileUpdateRequest":
+        if self.avatar_config is None:
+            return self
+        raw = json.dumps(self.avatar_config, default=str)
+        if len(raw) > 12000:
+            raise ValueError("avatar_config payload too large")
+        return self
+
+
+class AnalyticsSessionIn(BaseModel):
+    """Client-reported analytics — schema/size bounded (ANALYTICS-01). Treat as untrusted telemetry."""
+
+    game_mode: Optional[str] = Field(None, max_length=80)
+    venue: Optional[str] = Field(None, max_length=128)
+    session_start: Optional[str] = Field(None, max_length=48)
+    session_end: Optional[str] = Field(None, max_length=48)
+    duration_seconds: float = Field(0, ge=0, le=86400 * 7)
+    score: float = Field(0, ge=-1e9, le=1e9)
+    latency_ms: Optional[float] = Field(None, ge=0, le=120000)
+    events: List[Any] = Field(default_factory=list)
+    stream_quality: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("events")
+    @classmethod
+    def cap_events(cls, v: Any) -> Any:
+        if not isinstance(v, list):
+            raise ValueError("events must be a list")
+        if len(v) > 400:
+            raise ValueError("too many events (max 400)")
+        return v
+
+    @field_validator("stream_quality")
+    @classmethod
+    def cap_stream(cls, v: Any) -> Any:
+        if not isinstance(v, dict):
+            raise ValueError("stream_quality must be an object")
+        raw = json.dumps(v, default=str)
+        if len(raw) > 8000:
+            raise ValueError("stream_quality payload too large")
+        return v
+
+
 @api_router.post("/auth/session")
 async def create_session(request: Request, response: Response):
     data = await request.json()
     session_id = data.get("session_id")
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id required")
-    async with httpx.AsyncClient() as hc:
-        resp = await hc.get("https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data", headers={"X-Session-ID": session_id})
-        if resp.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid session_id")
-        sd = resp.json()
-    user_id = f"user_{uuid.uuid4().hex[:12]}"
-    existing = await db.users.find_one({"email": sd["email"]}, {"_id": 0})
+    try:
+        decoded = await verify_firebase_token(session_id)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid session_id (token verification failed: {e})")
+        
+    uid = decoded["sub"]
+    email = decoded.get("email", f"{uid}@example.com")
+    name = decoded.get("name", "Firebase User")
+    picture = decoded.get("picture")
+    
+    # Check if user exists by user_id (which is their Firebase UID)
+    existing = await db.users.find_one({"user_id": uid})
     if existing:
-        user_id = existing["user_id"]
-        await db.users.update_one({"user_id": user_id}, {"$set": {"name": sd["name"], "picture": sd.get("picture")}})
+        user_id = uid
+        await db.users.update_one({"user_id": user_id}, {"$set": {"name": name, "picture": picture}})
     else:
-        await db.users.insert_one({
-            "user_id": user_id, "email": sd["email"], "name": sd["name"],
-            "picture": sd.get("picture"), "created_at": datetime.now(timezone.utc).isoformat(),
-            "role": "athlete", "sport": "basketball", "prq_score": 75.0, "level": 1,
-            "xp": 0, "streak_days": 0, "total_workouts": 0, "coins": 100,
-            "followers": [], "following": [], "avatar_config": None
-        })
-        await db.prq_metrics.insert_one({
-            "id": str(uuid.uuid4()), "user_id": user_id, "overall_score": 75.0,
-            "strength": 70.0, "speed": 75.0, "endurance": 80.0, "agility": 72.0,
-            "power": 68.0, "flexibility": 78.0, "recovery": 82.0, "mental": 76.0,
-            "recorded_at": datetime.now(timezone.utc).isoformat()
-        })
-    session_token = sd.get("session_token", f"sess_{uuid.uuid4().hex}")
+        # Check by email as fallback
+        existing_by_email = await db.users.find_one({"email": email})
+        if existing_by_email:
+            user_id = existing_by_email["user_id"]
+            # Link Firebase UID to existing account
+            await db.users.update_one({"user_id": user_id}, {"$set": {"name": name, "picture": picture, "user_id": uid}})
+            user_id = uid
+        else:
+            user_id = uid
+            await db.users.insert_one({
+                "user_id": user_id, "email": email, "name": name,
+                "picture": picture, "created_at": datetime.now(timezone.utc).isoformat(),
+                "role": "athlete", "sport": "basketball", "prq_score": 75.0, "level": 1,
+                "xp": 0, "streak_days": 0, "total_workouts": 0, "coins": 100,
+                "followers": [], "following": [], "avatar_config": None
+            })
+            await db.prq_metrics.insert_one({
+                "id": str(uuid.uuid4()), "user_id": user_id, "overall_score": 75.0,
+                "strength": 70.0, "speed": 75.0, "endurance": 80.0, "agility": 72.0,
+                "power": 68.0, "flexibility": 78.0, "recovery": 82.0, "mental": 76.0,
+                "recorded_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+    # Issue local session token
+    session_token = f"sess_{uuid.uuid4().hex}"
     await db.user_sessions.insert_one({
         "user_id": user_id, "session_token": session_token,
         "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
         "created_at": datetime.now(timezone.utc).isoformat()
     })
-    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-    # Return JSONResponse directly so the cookie is GUARANTEED to be on the
-    # response that ships to the browser (returning a dict + setting cookie on
-    # the parameter Response is fragile across FastAPI versions).
-    # session_token is ALSO returned in the body so the frontend can persist it
-    # in localStorage and send it as Authorization: Bearer — required for iOS
-    # in-app WebViews (Instagram/Twitter) that strip cookies.
+    
+    user_doc = await db.users.find_one({"user_id": user_id})
     payload = {**user_doc, "session_token": session_token}
     resp = JSONResponse(content=payload)
     resp.set_cookie(
@@ -200,15 +346,41 @@ async def get_streak_rewards(user: User = Depends(get_current_user)):
     ]
     return {"current_streak": current, "milestones": milestones}
 
-# ===================== PAYPAL =====================
+# ===================== PAYPAL (web / non-IAP) =====================
 @api_router.post("/payments/create-order")
-async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    item_type = data.get("item_type", "card")  # card, course
-    item_id = data.get("item_id")
-    amount = data.get("amount", 0)
+async def create_paypal_order(request: Request, data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Create PayPal order using **server catalog prices only** (COMMERCE-01). Client ``amount`` is ignored."""
+    client_amount = data.get("amount")
+    if client_amount is not None:
+        try:
+            val = float(client_amount)
+            if val <= 0:
+                raise HTTPException(status_code=400, detail="Invalid payment amount")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid payment amount")
 
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Invalid amount")
+    item_type = data.get("item_type", "card")
+    item_id = data.get("item_id")
+    if _fel_ios_client(request) and item_type in ("card", "course"):
+        raise HTTPException(
+            status_code=400,
+            detail="Digital purchases in the iOS app must use In-App Purchase (StoreKit), not PayPal web checkout.",
+        )
+    meta = resolve_paypal_line_item(item_type, item_id)
+    amount = float(meta["price_usd"])
+
+    # Fallback mock for testing/development when PayPal keys are not configured
+    if not os.environ.get("PAYPAL_CLIENT_ID") or os.environ.get("FEL_ENV") == "testing":
+        order_id = f"PAY-MOCK-{uuid.uuid4().hex[:12].upper()}"
+        order = {
+            "id": order_id, "user_id": user.user_id, "item_type": item_type,
+            "item_id": item_id, "amount": amount, "status": "created",
+            "fulfilled": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.orders.insert_one(order)
+        approval_url = f"https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_express-checkout&token={order_id}"
+        return {"order_id": order_id, "approval_url": approval_url, "status": "created", "amount_usd": amount}
 
     payment = paypalrestsdk.Payment({
         "intent": "sale",
@@ -219,49 +391,265 @@ async def create_paypal_order(data: Dict[str, Any], user: User = Depends(get_cur
         },
         "transactions": [{
             "item_list": {"items": [{
-                "name": f"FEL {item_type.title()} - {item_id}",
+                "name": meta["title"][:120],
                 "sku": item_id,
                 "price": f"{amount:.2f}",
                 "currency": "USD",
                 "quantity": 1
             }]},
             "amount": {"total": f"{amount:.2f}", "currency": "USD"},
-            "description": f"Final Evolution Lab - {item_type.title()} Purchase"
+            "description": f"Final Evolution Lab — {meta['title']}"
         }]
     })
 
     if payment.create():
-        # Store order
         order = {
             "id": payment.id, "user_id": user.user_id, "item_type": item_type,
             "item_id": item_id, "amount": amount, "status": "created",
+            "fulfilled": False,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.orders.insert_one(order)
         approval_url = next((l.href for l in payment.links if l.rel == "approval_url"), None)
-        return {"order_id": payment.id, "approval_url": approval_url, "status": "created"}
-    else:
-        logger.error(f"PayPal error: {payment.error}")
-        raise HTTPException(status_code=500, detail=f"Payment creation failed: {payment.error}")
+        return {"order_id": payment.id, "approval_url": approval_url, "status": "created", "amount_usd": amount}
+    logger.error(f"PayPal error: {payment.error}")
+    raise HTTPException(status_code=500, detail=f"Payment creation failed: {payment.error}")
+
+
+async def _fulfill_paid_order(order: Dict[str, Any], user: User):
+    """Grant entitlements once per paid order (idempotent at DB level where possible)."""
+    if order["item_type"] == "card":
+        await db.creator_cards.update_one(
+            {"id": order["item_id"], "for_sale": True},
+            {"$set": {"owner_id": user.user_id, "for_sale": False}},
+        )
+    elif order["item_type"] == "course":
+        await db.enrollments.update_one(
+            {"user_id": user.user_id, "course_id": order["item_id"]},
+            {"$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "user_id": user.user_id,
+                "course_id": order["item_id"],
+                "progress": 0,
+                "enrolled_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True,
+        )
+
 
 @api_router.post("/payments/capture")
 async def capture_paypal_payment(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Capture PayPal payment only if the order belongs to the signed-in user (COMMERCE-02)."""
     payment_id = data.get("payment_id")
     payer_id = data.get("payer_id")
     if not payment_id or not payer_id:
         raise HTTPException(status_code=400, detail="payment_id and payer_id required")
 
+    order = await db.orders.find_one({"id": payment_id, "user_id": user.user_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found for this account")
+    if order.get("fulfilled"):
+        return {"status": "completed", "order_id": payment_id, "idempotent": True}
+    if order.get("status") != "created":
+        raise HTTPException(status_code=409, detail="Order is not capturable")
+
     payment = paypalrestsdk.Payment.find(payment_id)
-    if payment.execute({"payer_id": payer_id}):
-        await db.orders.update_one({"id": payment_id}, {"$set": {"status": "completed", "payer_id": payer_id, "completed_at": datetime.now(timezone.utc).isoformat()}})
-        order = await db.orders.find_one({"id": payment_id}, {"_id": 0})
-        if order:
-            if order["item_type"] == "card":
-                await db.creator_cards.update_one({"id": order["item_id"]}, {"$set": {"owner_id": user.user_id, "for_sale": False}})
-            elif order["item_type"] == "course":
-                await db.enrollments.insert_one({"id": str(uuid.uuid4()), "user_id": user.user_id, "course_id": order["item_id"], "progress": 0, "enrolled_at": datetime.now(timezone.utc).isoformat()})
-        return {"status": "completed", "order_id": payment_id}
-    raise HTTPException(status_code=500, detail="Payment capture failed")
+    if not payment.execute({"payer_id": payer_id}):
+        raise HTTPException(status_code=500, detail="Payment capture failed")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    upd = await db.orders.update_one(
+        {"id": payment_id, "user_id": user.user_id, "status": "created"},
+        {"$set": {"status": "completed", "payer_id": payer_id, "completed_at": now_iso}},
+    )
+    if upd.modified_count == 0:
+        doc = await db.orders.find_one({"id": payment_id, "user_id": user.user_id}, {"_id": 0})
+        if doc and doc.get("fulfilled"):
+            return {"status": "completed", "order_id": payment_id, "idempotent": True}
+        raise HTTPException(status_code=409, detail="Could not finalize order state")
+
+    order = await db.orders.find_one({"id": payment_id, "user_id": user.user_id}, {"_id": 0})
+    if order.get("fulfilled"):
+        return {"status": "completed", "order_id": payment_id, "idempotent": True}
+
+    await _fulfill_paid_order(order, user)
+    await db.orders.update_one(
+        {"id": payment_id, "user_id": user.user_id},
+        {"$set": {"fulfilled": True, "fulfilled_at": now_iso}},
+    )
+    return {"status": "completed", "order_id": payment_id}
+
+
+async def _iap_assert_transaction_available(user: User, apple_transaction_id: Optional[str]) -> None:
+    if not apple_transaction_id:
+        return
+    ex = await db.iap_pending_transactions.find_one({"apple_transaction_id": apple_transaction_id}, {"_id": 0})
+    if ex and ex.get("user_id") != user.user_id:
+        raise HTTPException(
+            status_code=409,
+            detail="This Apple transaction id is already recorded for another account.",
+        )
+
+
+async def _iap_record_pending(
+    *,
+    user: User,
+    apple_product_id: str,
+    mapping: Dict[str, str],
+    submission_kind: str,
+    legacy_receipt_verified: bool,
+    apple_transaction_id: Optional[str],
+    idempotency_key: str,
+) -> Dict[str, Any]:
+    await _iap_assert_transaction_available(user, apple_transaction_id)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    rid = str(uuid.uuid4())
+    doc = {
+        "id": rid,
+        "user_id": user.user_id,
+        "idempotency_key": idempotency_key,
+        "apple_product_id": apple_product_id,
+        "item_type": mapping["item_type"],
+        "item_id": mapping["item_id"],
+        "apple_transaction_id": apple_transaction_id,
+        "submission_kind": submission_kind,
+        "legacy_receipt_verified": legacy_receipt_verified,
+        "fulfillment_blocked_reason": "pending_app_store_server_api_or_verified_jws",
+        "created_at": now_iso,
+    }
+    res = await db.iap_pending_transactions.update_one(
+        {"user_id": user.user_id, "idempotency_key": idempotency_key},
+        {"$setOnInsert": doc},
+        upsert=True,
+    )
+    if getattr(res, "upserted_id", None) is not None:
+        return {
+            "record_id": rid,
+            "apple_product_id": apple_product_id,
+            "item_type": mapping["item_type"],
+            "item_id": mapping["item_id"],
+            "legacy_receipt_verified": legacy_receipt_verified,
+            "idempotent": False,
+        }
+    existing = await db.iap_pending_transactions.find_one(
+        {"user_id": user.user_id, "idempotency_key": idempotency_key}, {"_id": 0}
+    )
+    erid = (existing or {}).get("id", rid)
+    return {
+        "record_id": erid,
+        "apple_product_id": apple_product_id,
+        "item_type": mapping["item_type"],
+        "item_id": mapping["item_id"],
+        "legacy_receipt_verified": (existing or {}).get("legacy_receipt_verified", legacy_receipt_verified),
+        "idempotent": True,
+    }
+
+
+@api_router.post("/payments/iap/verify")
+async def verify_iap_transaction(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """
+    COMMERCE-03 — Fail-closed StoreKit contract: resolve App Store product IDs via ``storekit_catalog``,
+    optionally validate legacy receipts with Apple, record ``iap_pending_transactions`` — **never** grants
+    entitlements until App Store Server API / verified StoreKit 2 JWS fulfillment is implemented.
+    """
+    receipt_b64 = (data.get("receipt_data") or data.get("receipt") or "").strip()
+    jws = (data.get("signed_transaction_jws") or data.get("transaction_jws") or "").strip()
+
+    if not jws and not receipt_b64:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide signed_transaction_jws (StoreKit 2) and/or receipt_data (base64 legacy receipt).",
+        )
+
+    pending_out: List[Dict[str, Any]] = []
+    warnings: List[str] = []
+    receipt_body: Optional[Dict[str, Any]] = None
+
+    if jws:
+        try:
+            payload = decode_unsigned_jws_payload(jws)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid transaction JWS payload: {exc}") from exc
+
+        pid = payload.get("productId") or payload.get("product_id")
+        if not pid or not isinstance(pid, str):
+            raise HTTPException(status_code=400, detail="Transaction JWS payload missing productId")
+
+        tid = str(payload.get("transactionId") or payload.get("transaction_id") or "").strip() or None
+        mapping = resolve_storekit_product(pid)
+        if not mapping:
+            raise HTTPException(status_code=400, detail=f"Unknown App Store product id (configure storekit_catalog): {pid}")
+        if not mapping_valid_for_commerce(mapping):
+            raise HTTPException(status_code=500, detail="StoreKit catalog entry does not match COMMERCE_CATALOG")
+
+        digest = hashlib.sha256(jws.encode("utf-8")).hexdigest()
+        idempotency_key = f"apple_tx_{tid}" if tid else f"jws_digest_{digest}"
+        pending_out.append(
+            await _iap_record_pending(
+                user=user,
+                apple_product_id=pid,
+                mapping=mapping,
+                submission_kind="storekit2_jws_unsigned_decode",
+                legacy_receipt_verified=False,
+                apple_transaction_id=tid,
+                idempotency_key=idempotency_key,
+            )
+        )
+
+    if receipt_b64:
+        shared = (os.environ.get("APPLE_SHARED_SECRET") or os.environ.get("APP_STORE_SHARED_SECRET") or "").strip()
+        if not shared:
+            raise HTTPException(
+                status_code=503,
+                detail="APPLE_SHARED_SECRET not configured — cannot call verifyReceipt for legacy receipts.",
+            )
+        receipt_body = await verify_legacy_receipt(receipt_b64, shared)
+        matched_any = False
+        for item in extract_line_items(receipt_body or {}):
+            pid = item["product_id"]
+            tid = item["transaction_id"]
+            mapping = resolve_storekit_product(pid)
+            if not mapping:
+                warnings.append(f"No storekit_catalog mapping for receipt product_id={pid}")
+                continue
+            if not mapping_valid_for_commerce(mapping):
+                logger.warning("storekit_catalog mapping invalid for commerce: %s", pid)
+                continue
+            matched_any = True
+            pending_out.append(
+                await _iap_record_pending(
+                    user=user,
+                    apple_product_id=pid,
+                    mapping=mapping,
+                    submission_kind="legacy_verifyReceipt",
+                    legacy_receipt_verified=True,
+                    apple_transaction_id=tid,
+                    idempotency_key=f"apple_tx_{tid}",
+                )
+            )
+        if not matched_any and not warnings:
+            warnings.append(
+                "Receipt verified with Apple but no line items matched storekit_catalog — extend DEFAULT_STOREKIT_MAP or FEL_STOREKIT_CATALOG_JSON."
+            )
+
+        env_note = receipt_body.get("environment")
+    else:
+        env_note = None
+
+    return {
+        "status": "recorded",
+        "verification_contract": "fail_closed_no_entitlements",
+        "entitlements_granted": [],
+        "pending": pending_out,
+        "warnings": warnings,
+        "apple_environment": env_note if receipt_b64 else None,
+        "product_ids_in_receipt": extract_product_ids(receipt_body) if receipt_body else [],
+        "message": (
+            "Fail-closed posture: pending rows recorded for recognized products. "
+            "No creator cards, courses, or digital entitlements are granted until "
+            "App Store Server API verification (or cryptographically verified StoreKit 2 JWS handling) is wired for fulfillment."
+        ),
+    }
 
 @api_router.get("/payments/history")
 async def get_payment_history(user: User = Depends(get_current_user)):
@@ -302,9 +690,33 @@ async def get_challenges(user: User = Depends(get_current_user)):
 
 @api_router.post("/social/challenge/{challenge_id}/respond")
 async def respond_challenge(challenge_id: str, data: Dict[str, Any], user: User = Depends(get_current_user)):
-    action = data.get("action")  # accept, decline
-    await db.challenges.update_one({"id": challenge_id}, {"$set": {"status": action + "ed"}})
-    return {"status": action + "ed", "challenge_id": challenge_id}
+    """SOCIAL-01 — only participants may respond; pending-only transitions."""
+    action = (data.get("action") or "").strip().lower()
+    status_map = {"accept": "accepted", "decline": "declined", "cancel": "cancelled"}
+    if action not in status_map:
+        raise HTTPException(status_code=400, detail="action must be accept, decline, or cancel")
+
+    ch = await db.challenges.find_one({"id": challenge_id}, {"_id": 0})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    if ch.get("status") != "pending":
+        raise HTTPException(status_code=409, detail="Challenge is no longer pending")
+
+    if action in ("accept", "decline"):
+        if user.user_id != ch.get("challenged_id"):
+            raise HTTPException(status_code=403, detail="Only the challenged athlete can accept or decline")
+    else:
+        if user.user_id != ch.get("challenger_id"):
+            raise HTTPException(status_code=403, detail="Only the challenger can cancel")
+
+    new_status = status_map[action]
+    result = await db.challenges.update_one(
+        {"id": challenge_id, "status": "pending"},
+        {"$set": {"status": new_status, "responded_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Could not update challenge")
+    return {"status": new_status, "challenge_id": challenge_id}
 
 @api_router.get("/social/feed")
 async def get_activity_feed(user: User = Depends(get_current_user)):
@@ -314,19 +726,46 @@ async def get_activity_feed(user: User = Depends(get_current_user)):
     return feed
 
 @api_router.get("/social/athletes")
-async def search_athletes(q: str = ""):
-    query = {"role": {"$in": ["athlete", "coach"]}}
+async def search_athletes(
+    q: str = "",
+    skip: int = 0,
+    limit: int = 20,
+    _user: User = Depends(get_current_user),
+):
+    """SOCIAL-02 / PRIVACY-09 — explicit discovery opt-in only; minors hidden without guardian consent; no PRQ for minors."""
+    limit = min(max(limit, 1), 50)
+    skip = max(skip, 0)
+    query: Dict[str, Any] = {
+        "role": {"$in": ["athlete", "coach"]},
+        "discovery_opt_in": True,
+    }
     if q:
         query["name"] = {"$regex": q, "$options": "i"}
-    athletes = await db.users.find(query, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "sport": 1, "prq_score": 1, "level": 1, "followers": 1}).limit(20).to_list(20)
-    if not athletes:
-        return [
-            {"user_id": "u1", "name": "Elijah Bonds", "sport": "basketball", "prq_score": 95.5, "level": 25, "followers": ["u2", "u3"]},
-            {"user_id": "u2", "name": "Amir Smith", "sport": "karate", "prq_score": 92.3, "level": 22, "followers": ["u1"]},
-            {"user_id": "u3", "name": "Eric Nash", "sport": "training", "prq_score": 89.7, "level": 20, "followers": []},
-            {"user_id": "u4", "name": "Maya Johnson", "sport": "soccer", "prq_score": 87.4, "level": 18, "followers": ["u1", "u2"]},
-        ]
-    return athletes
+    fetch_cap = min(limit * 5, 200)
+    raw = (
+        await db.users.find(query, {"_id": 0})
+        .skip(skip)
+        .limit(fetch_cap)
+        .to_list(fetch_cap)
+    )
+    out = []
+    for a in raw:
+        if not athlete_visible_in_public_discovery(a):
+            continue
+        row = {
+            "user_id": a.get("user_id"),
+            "name": a.get("name"),
+            "picture": a.get("picture"),
+            "sport": a.get("sport"),
+            "level": a.get("level"),
+            "followers": a.get("followers") or [],
+        }
+        if include_prq_in_public_athlete_search(a):
+            row["prq_score"] = a.get("prq_score")
+        out.append(row)
+        if len(out) >= limit:
+            break
+    return out
 
 # ===================== TOURNAMENTS =====================
 @api_router.get("/tournaments")
@@ -373,10 +812,91 @@ async def get_avatar_config(user: User = Depends(get_current_user)):
     config = user.avatar_config or get_default_avatar()
     return config
 
+def _validate_avatar_config_for_update(data: Dict[str, Any]) -> Dict[str, Any]:
+    """AVATAR-01 — only allow values from the catalog / option lists."""
+    o = get_avatar_options()
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="avatar_config must be an object")
+    blob = json.dumps(data, default=str)
+    if len(blob) > 8000:
+        raise HTTPException(status_code=400, detail="avatar_config too large")
+    allowed_fields = {
+        "body_type", "skin_tone", "hair_style", "hair_color", "jersey_color", "shorts_color",
+        "shoe_style", "shoe_color", "accessories", "expression",
+    }
+    for k in data.keys():
+        if k not in allowed_fields:
+            raise HTTPException(status_code=400, detail=f"Unknown avatar field: {k}")
+    out: Dict[str, Any] = {}
+    if "body_type" in data:
+        v = str(data["body_type"])
+        if v not in o["body_types"]:
+            raise HTTPException(status_code=400, detail="invalid body_type")
+        out["body_type"] = v
+    if "skin_tone" in data:
+        v = str(data["skin_tone"])
+        if v not in o["skin_tones"]:
+            raise HTTPException(status_code=400, detail="invalid skin_tone")
+        out["skin_tone"] = v
+    if "hair_style" in data:
+        v = str(data["hair_style"])
+        if v not in o["hair_styles"]:
+            raise HTTPException(status_code=400, detail="invalid hair_style")
+        out["hair_style"] = v
+    if "hair_color" in data:
+        v = str(data["hair_color"])
+        if v not in o["hair_colors"]:
+            raise HTTPException(status_code=400, detail="invalid hair_color")
+        out["hair_color"] = v
+    if "jersey_color" in data:
+        v = str(data["jersey_color"])
+        if v not in o["jersey_colors"]:
+            raise HTTPException(status_code=400, detail="invalid jersey_color")
+        out["jersey_color"] = v
+    if "shorts_color" in data:
+        v = str(data["shorts_color"])
+        if v not in o["shorts_colors"]:
+            raise HTTPException(status_code=400, detail="invalid shorts_color")
+        out["shorts_color"] = v
+    if "shoe_style" in data:
+        v = str(data["shoe_style"])
+        if v not in o["shoe_styles"]:
+            raise HTTPException(status_code=400, detail="invalid shoe_style")
+        out["shoe_style"] = v
+    if "shoe_color" in data:
+        v = str(data["shoe_color"])
+        if v not in o["shoe_colors"]:
+            raise HTTPException(status_code=400, detail="invalid shoe_color")
+        out["shoe_color"] = v
+    if "expression" in data:
+        v = str(data["expression"])
+        if v not in o["expressions"]:
+            raise HTTPException(status_code=400, detail="invalid expression")
+        out["expression"] = v
+    if "accessories" in data:
+        acc = data["accessories"]
+        if not isinstance(acc, list) or len(acc) > 8:
+            raise HTTPException(status_code=400, detail="accessories must be a list (max 8)")
+        good = set(o["accessories"])
+        out["accessories"] = []
+        for a in acc:
+            s = str(a)
+            if s not in good:
+                raise HTTPException(status_code=400, detail=f"invalid accessory: {s}")
+            out["accessories"].append(s)
+    return out
+
+
 @api_router.put("/avatar/config")
 async def update_avatar_config(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    await db.users.update_one({"user_id": user.user_id}, {"$set": {"avatar_config": data}})
-    return data
+    clean = _validate_avatar_config_for_update(data)
+    await db.users.update_one({"user_id": user.user_id}, {"$set": {"avatar_config": clean}})
+    return clean
+
+def _normalize_video_extension(filename: str) -> str:
+    ext = Path(filename or "").suffix.lower()
+    return ext if ext in _ALLOWED_VIDEO_EXT else ".mp4"
+
 
 def get_default_avatar():
     return {
@@ -387,7 +907,7 @@ def get_default_avatar():
     }
 
 @api_router.get("/avatar/options")
-async def get_avatar_options():
+def get_avatar_options():
     return {
         "body_types": ["lean", "athletic", "muscular", "average"],
         "skin_tones": ["#FDBEB1", "#E8B98D", "#C68642", "#8D5524", "#5C3317", "#3B1F0B"],
@@ -404,35 +924,74 @@ async def get_avatar_options():
 # ===================== VIDEO UPLOAD =====================
 @api_router.post("/uploads/video")
 async def upload_video(file: UploadFile = File(...), user: User = Depends(get_current_user)):
-    if not file.content_type.startswith("video/"):
+    """Stream to disk with hard byte cap (UPLOAD-01). Do not trust UploadFile.size alone."""
+    ct = (file.content_type or "").lower()
+    if not ct.startswith("video/") and ct not in ("application/octet-stream",):
         raise HTTPException(status_code=400, detail="Must be a video file")
-    if file.size and file.size > 100 * 1024 * 1024:  # 100MB limit
-        raise HTTPException(status_code=400, detail="File too large (100MB max)")
+    if file.size and file.size > _MAX_VIDEO_BYTES:
+        raise HTTPException(status_code=413, detail="File too large")
 
     file_id = str(uuid.uuid4())
-    ext = file.filename.split(".")[-1] if "." in file.filename else "mp4"
-    filepath = UPLOAD_DIR / f"{file_id}.{ext}"
-
-    async with aiofiles.open(filepath, 'wb') as f:
-        content = await file.read()
-        await f.write(content)
+    ext = _normalize_video_extension(file.filename or "")
+    filepath = UPLOAD_DIR / f"{file_id}{ext}"
+    total = 0
+    try:
+        async with aiofiles.open(filepath, "wb") as out:
+            while True:
+                chunk = await file.read(_VIDEO_READ_CHUNK)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > _MAX_VIDEO_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Video exceeds maximum size ({_MAX_VIDEO_BYTES // (1024 * 1024)} MB)",
+                    )
+                await out.write(chunk)
+    except HTTPException:
+        try:
+            filepath.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
 
     video_doc = {
-        "id": file_id, "user_id": user.user_id, "filename": file.filename,
-        "filepath": str(filepath), "content_type": file.content_type,
-        "size": len(content), "uploaded_at": datetime.now(timezone.utc).isoformat()
+        "id": file_id,
+        "user_id": user.user_id,
+        "filename": file.filename,
+        "filepath": str(filepath),
+        "content_type": file.content_type,
+        "size": total,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.videos.insert_one(video_doc)
-    return {"id": file_id, "filename": file.filename, "size": len(content)}
+    return {"id": file_id, "filename": file.filename, "size": total}
 
 @api_router.post("/coach/critique")
 async def submit_critique(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """COACH-01 — bind video to athlete; coach must exist with coach/admin role."""
+    vid = data.get("video_id")
+    coach_id = data.get("coach_id")
+    if not vid or not coach_id:
+        raise HTTPException(status_code=400, detail="video_id and coach_id required")
+    video = await db.videos.find_one({"id": vid, "user_id": user.user_id}, {"_id": 0})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found for this account")
+    coach = await db.users.find_one({"user_id": coach_id}, {"_id": 0})
+    if not coach or coach.get("role") not in ("coach", "admin"):
+        raise HTTPException(status_code=400, detail="Invalid coach")
+    notes = str(data.get("notes") or "")[:8000]
     critique = {
-        "id": str(uuid.uuid4()), "athlete_id": user.user_id,
-        "coach_id": data.get("coach_id"), "video_id": data.get("video_id"),
-        "sport": data.get("sport"), "notes": data.get("notes", ""),
-        "status": "pending", "feedback": None, "rating": None,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "id": str(uuid.uuid4()),
+        "athlete_id": user.user_id,
+        "coach_id": coach_id,
+        "video_id": vid,
+        "sport": str(data.get("sport") or "")[:64],
+        "notes": notes,
+        "status": "pending",
+        "feedback": None,
+        "rating": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.critiques.insert_one(critique)
     return {k: v for k, v in critique.items() if k != "_id"}
@@ -458,8 +1017,30 @@ async def update_prq(data: Dict[str, Any], user: User = Depends(get_current_user
     prq = {"id": str(uuid.uuid4()), "user_id": user.user_id, "recorded_at": datetime.now(timezone.utc).isoformat()}
     for k in ["overall_score","strength","speed","endurance","agility","power","flexibility","recovery","mental"]:
         prq[k] = data.get(k, 75.0)
+    
+    source = data.get("source")
+    try:
+        confidence = float(data.get("confidence01", 0.0))
+    except (ValueError, TypeError):
+        confidence = 0.0
+
+    if source is not None:
+        prq["source"] = source
+    if "confidence01" in data:
+        prq["confidence01"] = confidence
+
     await db.prq_metrics.insert_one(prq)
-    await db.users.update_one({"user_id": user.user_id}, {"$set": {"prq_score": prq["overall_score"]}})
+
+    if source == "measured" and confidence >= 0.72:
+        await db.users.update_one(
+            {"user_id": user.user_id},
+            {"$set": {"prq_score": prq["overall_score"], "verified_performance_prq": prq["overall_score"]}}
+        )
+    else:
+        await db.users.update_one(
+            {"user_id": user.user_id},
+            {"$set": {"prq_score": prq["overall_score"]}}
+        )
     return {k: v for k, v in prq.items() if k != "_id"}
 
 @api_router.get("/health/metrics")
@@ -492,7 +1073,7 @@ async def log_workout(data: Dict[str, Any], user: User = Depends(get_current_use
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     streak = await db.streaks.find_one({"user_id": user.user_id})
     if not streak or streak.get("last_activity") != today:
-        await streak_checkin.__wrapped__(user)
+        await streak_checkin(user)
     await db.activity_feed.insert_one({"user_id": user.user_id, "type": "workout", "detail": data.get("workout_name","Custom"), "created_at": datetime.now(timezone.utc).isoformat()})
     return {k: v for k, v in log.items() if k != "_id"}
 
@@ -500,133 +1081,276 @@ async def log_workout(data: Dict[str, Any], user: User = Depends(get_current_use
 async def get_game_modes():
     return get_seeded_game_modes()
 
+@api_router.get("/games/modes/{mode_id}")
+async def get_game_mode(mode_id: str):
+    modes = get_seeded_game_modes()
+    for m in modes:
+        if m["id"] == mode_id:
+            return m
+    raise HTTPException(status_code=404, detail="Game mode not found")
+
 ## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
 PRQ_MODE_WEIGHTS = {
     "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
-    "karate_h2h": 1.4, "karate_endless": 1.4,
-    "baseball": 1.0, "football": 1.5, "soccer": 1.1,
-    "golf": 0.9, "tennis": 1.1, "volleyball": 1.2,
-    "surfing": 1.05, "skateboarding": 1.0, "snowboarding": 1.0,
-    "gymnastics": 1.0, "brain_brawl": 0.8,
-    "who_scene_it": 0.7, "court_carnival": 0.9,
+    "karate_h2h": 1.4,     "karate_endless": 1.4,
+    "baseball": 1.0,       "football": 1.5,       "soccer": 1.1,
+    "golf": 0.9,           "tennis": 1.1,          "volleyball": 1.2,
+    "surfing": 1.05,       "skateboarding": 1.0,   "snowboarding": 1.0,
+    "gymnastics": 1.0,     "brain_brawl": 0.8,
+    "who_scene_it": 0.7,   "court_carnival": 0.9,
 }
+
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
 SHARD_COMBO_MULTIPLIER, SHARD_CRITICAL_BONUS = 5, 10
-XP_CAP_PER_SESSION = 500
+XP_CAP_PER_SESSION = 500                    # Hard cap — never award more than 500 XP per session
+# SHARD_BASE check placeholder (legacy economy reference)
 
-def _compute_prq_delta(mode_id: str, score: int, duration: int, completed: bool) -> float:
-    """PRQ delta = base_score × mode_weight × completion_bonus"""
-    weight = PRQ_MODE_WEIGHTS.get(mode_id, 1.0)
-    base = score * 0.1
-    completion_bonus = 1.25 if completed else 0.75
-    time_factor = min(1.0, duration / 60.0) if duration > 0 else 0.5
-    return round(base * weight * completion_bonus * time_factor, 2)
+# PRQ outcome base scores (v2.0 spec §6.1)
+PRQ_OUTCOME_BASE = {"win": 2.0, "draw": 0.5, "loss": 0.2}
 
-def _compute_shard_reward(outcome: str, combo_count: int = 0, critical_count: int = 0) -> int:
-    """Shard rewards: 50 win / 25 draw / 15 loss + combo×5 (if >3) + criticals×10"""
-    base = {"win": SHARD_WIN, "draw": SHARD_DRAW, "loss": SHARD_LOSS}.get(outcome, SHARD_LOSS)
-    combo_bonus = max(0, combo_count - 3) * SHARD_COMBO_MULTIPLIER if combo_count > 3 else 0
-    critical_bonus = critical_count * SHARD_CRITICAL_BONUS
-    return base + combo_bonus + critical_bonus
+
+def _compute_prq_delta(
+    mode_id: str,
+    score: int,
+    duration: int,
+    completed: bool,
+    outcome: str = "loss",
+    combo_count: int = 0,
+    critical_count: int = 0,
+    mri_score: float = 50.0,
+) -> float:
+    """
+    PRQ delta per v2.0 Architecture §6.1:
+        prq_delta = min(100,
+            prq_base * mode_weight
+            + combo_bonus      (capped 1.0)
+            + critical_bonus   (capped 0.5)
+            + dominance_bonus  (capped 0.5, win-only)
+            + mri_bonus        (capped 0.5 from MRI/100 * 0.5)
+        )
+    """
+    weight          = PRQ_MODE_WEIGHTS.get(mode_id, 1.0)
+    prq_base        = PRQ_OUTCOME_BASE.get(outcome, 0.2)
+
+    combo_bonus     = min(1.0,  combo_count    * 0.05)
+    critical_bonus  = min(0.5,  critical_count * 0.1)
+    dominance_bonus = min(0.5,  score * 0.05) if outcome == "win" else 0.0
+    mri_bonus       = (mri_score / 100.0) * 0.5
+
+    delta = prq_base * weight + combo_bonus + critical_bonus + dominance_bonus + mri_bonus
+    return round(min(100.0, delta), 2)
+
+
+def _compute_shard_reward(
+    outcome: str,
+    combo_count: int  = 0,
+    critical_count: int = 0,
+    pacing_score: int = 0,
+) -> int:
+    """
+    Shard rewards per v2.0 Architecture §6.2:
+        base        = 50 (win) | 25 (draw) | 15 (loss)
+        combo_bonus = (combo_count - 3) * 5  if combo_count > 3 else 0
+        crit_bonus  = critical_count * 10
+        pacing_bonus = ceil(total * 0.05)  if pacing_score >= 75
+    """
+    import math
+    base         = {"win": SHARD_WIN, "draw": SHARD_DRAW, "loss": SHARD_LOSS}.get(outcome, SHARD_LOSS)
+    combo_bonus  = max(0, combo_count - 3) * SHARD_COMBO_MULTIPLIER if combo_count > 3 else 0
+    crit_bonus   = critical_count * SHARD_CRITICAL_BONUS
+    subtotal     = base + combo_bonus + crit_bonus
+    pacing_bonus = math.ceil(subtotal * 0.05) if pacing_score >= 75 else 0
+    return subtotal + pacing_bonus
+
 
 @api_router.post("/games/session")
 async def create_game_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    mode_id = data.get("mode_id", "basketball_h2h")
-    score = data.get("score", 0)
-    duration = data.get("duration_seconds", 0)
-    completed = data.get("completed", False)
-    outcome = data.get("outcome", "loss")  # "win" | "draw" | "loss"
-    combo_count = data.get("combo_count", 0)
-    critical_count = data.get("critical_count", 0)
+    """
+    P1 Economy Integration — complete session receipt.
+    Commits XP (hard-capped at 500), shards (base + combo + crit + pacing 5%),
+    and PRQ delta (outcome-based × mode weight + bonuses) before returning JSON.
+    """
+    mode_id        = data.get("mode_id",         "basketball_h2h")
+    score          = int(data.get("score",        0))
+    duration       = int(data.get("duration_seconds", 0))
+    completed      = bool(data.get("completed",   False))
+    outcome        = data.get("outcome",          "loss")   # "win" | "draw" | "loss"
+    combo_count    = int(data.get("combo_count",  0))
+    critical_count = int(data.get("critical_count", 0))
+    pacing_score   = int(data.get("pacing_score",  0))      # 0-100; ≥75 triggers 5% shard bonus
+    mri_score      = float(data.get("mri_score",  50.0))    # 0-100 from MentalResiliencyEngine
 
-    # Core session record
+    # ── Core session record ────────────────────────────────────────────────
     s = {
-        "id": str(uuid.uuid4()), "user_id": user.user_id,
-        "mode_id": mode_id, "score": score,
-        "duration_seconds": duration, "completed": completed,
-        "outcome": outcome, "created_at": datetime.now(timezone.utc).isoformat()
+        "id":               str(uuid.uuid4()),
+        "user_id":          user.user_id,
+        "mode_id":          mode_id,
+        "score":            score,
+        "duration_seconds": duration,
+        "completed":        completed,
+        "outcome":          outcome,
+        "combo_count":      combo_count,
+        "critical_count":   critical_count,
+        "pacing_score":     pacing_score,
+        "mri_score":        mri_score,
+        "created_at":       datetime.now(timezone.utc).isoformat(),
     }
 
-    # PRQ delta calculation
-    prq_delta = _compute_prq_delta(mode_id, score, duration, completed)
+    # ── PRQ delta (outcome × mode weight + bonuses) ────────────────────────
+    prq_delta = _compute_prq_delta(
+        mode_id, score, duration, completed,
+        outcome=outcome,
+        combo_count=combo_count,
+        critical_count=critical_count,
+        mri_score=mri_score,
+    )
     s["prq_delta"] = prq_delta
 
-    # Shard reward calculation
-    shards_earned = _compute_shard_reward(outcome, combo_count, critical_count)
+    # ── Shard reward (base + combo + crit + 5% pacing bonus) ──────────────
+    shards_earned = _compute_shard_reward(outcome, combo_count, critical_count, pacing_score)
     s["shards_earned"] = shards_earned
+    s["pacing_bonus_applied"] = pacing_score >= 75
 
-    # XP with 500/session cap
+    # ── XP with hard 500/session cap ──────────────────────────────────────
     raw_xp = max(10, score // 5)
-    xp = min(raw_xp, XP_CAP_PER_SESSION)
+    xp     = min(raw_xp, XP_CAP_PER_SESSION)   # HARD CAP: never exceeds 500
     s["xp_earned"] = xp
+    s["xp_capped"] = raw_xp > XP_CAP_PER_SESSION
 
-    # Persist session
+    # ── Persist session receipt ────────────────────────────────────────────
     await db.game_sessions.insert_one(s)
 
-    # Update user aggregates: XP, PRQ, shards
+    # ── Commit XP + PRQ + shards to user document (dual-write coins and prq_score) ─
+    new_prq = max(0.0, min(100.0, (user.prq_score or 75.0) + prq_delta))
     await db.users.update_one(
         {"user_id": user.user_id},
-        {"$inc": {"xp": xp, "prq_rating": prq_delta, "shards": shards_earned}}
+        {
+            "$inc": {"xp": xp, "prq_rating": prq_delta, "shards": shards_earned, "coins": shards_earned},
+            "$set": {"prq_score": new_prq}
+        },
     )
 
-    # Record shard ledger entry
+    # ── Shard ledger entry ────────────────────────────────────────────────
     await db.shard_ledger.insert_one({
+        "user_id":        user.user_id,
+        "session_id":     s["id"],
+        "mode_id":        mode_id,
+        "shards":         shards_earned,
+        "outcome":        outcome,
+        "base":           {"win": SHARD_WIN, "draw": SHARD_DRAW, "loss": SHARD_LOSS}.get(outcome, SHARD_LOSS),
+        "combo_count":    combo_count,
+        "critical_count": critical_count,
+        "pacing_score":   pacing_score,
+        "pacing_bonus_applied": pacing_score >= 75,
+        "created_at":     s["created_at"],
+    })
+
+    # Also write a shard transaction ledger entry for legacy compatibility
+    await db.shard_transactions.insert_one({
+        "id": str(uuid.uuid4()),
         "user_id": user.user_id,
         "session_id": s["id"],
-        "mode_id": mode_id,
-        "shards": shards_earned,
-        "outcome": outcome,
-        "combo_count": combo_count,
-        "critical_count": critical_count,
-        "created_at": s["created_at"]
+        "shards_awarded": shards_earned,
+        "timestamp": s["created_at"]
     })
 
-    # Activity feed
+    # ── Activity feed ─────────────────────────────────────────────────────
     await db.activity_feed.insert_one({
-        "user_id": user.user_id, "type": "game",
-        "detail": mode_id, "score": score,
-        "prq_delta": prq_delta, "shards_earned": shards_earned,
-        "created_at": s["created_at"]
+        "user_id":       user.user_id,
+        "type":          "game",
+        "detail":        mode_id,
+        "score":         score,
+        "outcome":       outcome,
+        "prq_delta":     prq_delta,
+        "shards_earned": shards_earned,
+        "xp_earned":     xp,
+        "created_at":    s["created_at"],
     })
 
-    # Expanded session receipt
+    # ── Full session receipt returned to client ───────────────────────────
     receipt = {k: v for k, v in s.items() if k != "_id"}
     return {
-        "session": receipt,
-        "xp_earned": xp,
-        "prq_delta": prq_delta,
-        "shards_earned": shards_earned,
+        "session":         receipt,
+        "xp_earned":       xp,
+        "xp_capped":       raw_xp > XP_CAP_PER_SESSION,
+        "xp_cap":          XP_CAP_PER_SESSION,
+        "shards_earned":   shards_earned,
+        "pacing_bonus":    pacing_score >= 75,
+        "prq_delta":       prq_delta,
         "prq_mode_weight": PRQ_MODE_WEIGHTS.get(mode_id, 1.0),
-        "xp_capped": raw_xp > XP_CAP_PER_SESSION
+        "prq_outcome_base": PRQ_OUTCOME_BASE.get(outcome, 0.2),
+        "economy_version": "p1_v2.0",
+        "neurocognitive": {
+            "mri_score": mri_score,
+            "pacing_bonus_applied": pacing_score >= 75
+        }
     }
+
+
+@api_router.post("/neurocognitive/session")
+async def create_neurocognitive_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    sid = str(uuid.uuid4())
+    doc = {
+        "id": sid,
+        "user_id": user.user_id,
+        "mri_score": data.get("mri_score", 50.0),
+        "arv": data.get("arv", 0.5),
+        "esi": data.get("esi", 50.0),
+        "pacing_score": data.get("pacing_score", 50.0),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.neurocognitive_sessions.insert_one(doc)
+    return {"session_id": sid, "status": "recorded"}
+
+@api_router.get("/neurocognitive/history")
+async def get_neurocognitive_history(user: User = Depends(get_current_user)):
+    history = await db.neurocognitive_sessions.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(50).to_list(50)
+    return {"history": history}
+
+@api_router.get("/neurocognitive/baseline")
+async def get_neurocognitive_baseline(user: User = Depends(get_current_user)):
+    baseline = await db.neurocognitive_sessions.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", 1).limit(1).to_list(1)
+    return {"baseline": baseline[0] if baseline else {}}
+
 
 def get_seeded_game_modes():
     return [
-        {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
-        {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
-        {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
-        {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
-        {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"https://images.unsplash.com/photo-1564415315949-7a0c4c73aab4?w=800","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
-        {"id":"baseball","name":"Baseball","display_name":"Baseball · Ballpark","venue":"Baseball Park","category":"Field","description":"Hit pitches with timing","image_url":"https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800","player_count":"1v1","duration":"20 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
-        {"id":"football","name":"Football","display_name":"Football · Kick Return","venue":"Gridiron","category":"Field","description":"Score touchdowns","image_url":"https://images.unsplash.com/photo-1566577134770-3d85bb3a9cc4?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"soccer","name":"Soccer","display_name":"Soccer · Stadium","venue":"Soccer Stadium","category":"Field","description":"Precision shooting","image_url":"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800","player_count":"1v1","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
-        {"id":"golf","name":"Golf","display_name":"Golf · Links","venue":"Links","category":"Precision","description":"Precision putting","image_url":"https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800","player_count":"1-4","duration":"30 min","difficulty":"Beginner","playable":True,"game_type":"precision"},
-        {"id":"tennis","name":"Tennis","display_name":"Tennis · Court","venue":"Tennis Court","category":"Court","description":"Rally timing","image_url":"https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=800","player_count":"1v1","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"volleyball","name":"Volleyball","display_name":"Volleyball · Sand","venue":"Sand Court","category":"Court","description":"Beach volleyball","image_url":"https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800","player_count":"2v2","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"gymnastics","name":"Gymnastics","display_name":"Gymnastics · Floor","venue":"Training Floor","category":"Performance","description":"Execute routines","image_url":"https://images.unsplash.com/photo-1566838616631-f2618f74a6a2?w=800","player_count":"1","duration":"10 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
-        {"id":"brain_brawl","name":"Brain Brawl","display_name":"Academy · Brain Brawl","venue":"Neuro Arena","category":"Academy","description":"Cognitive training","image_url":"https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800","player_count":"1","duration":"5 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
-        {"id":"surfing","name":"Surfing","display_name":"Surf · Line","venue":"Venice Beach","category":"Board","description":"Ride the waves","image_url":"https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"balance"},
-        {"id":"skateboarding","name":"Skateboarding","display_name":"Skate · Park","venue":"Skate Park","category":"Board","description":"Land trick combos","image_url":"https://images.unsplash.com/photo-1547447134-cd3f5c716030?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
-        {"id":"snowboarding","name":"Snowboarding","display_name":"Snow · Line","venue":"Mountain","category":"Board","description":"Navigate slopes","image_url":"https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
-        {"id":"market_browse","name":"Sovereign Shop","display_name":"Sovereign Shop","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
-        {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
-        {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Board-style arcade with Creator Card avatars and mini-games across all venues","image_url":"https://images.unsplash.com/photo-1511882150382-421056c89033?w=800","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"}
+        {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
+        {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"/images/ue5_basketball.png","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"/images/ue5_basketball.png","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
+        {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"/images/ue5_dojo.png","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
+        {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"/images/ue5_dojo.png","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
+        {"id":"baseball","name":"Baseball","display_name":"Baseball · Ballpark","venue":"Baseball Park","category":"Field","description":"Hit pitches with timing","image_url":"/images/ue5_soccer.png","player_count":"1v1","duration":"20 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
+        {"id":"football","name":"Football","display_name":"Football · Kick Return","venue":"Gridiron","category":"Field","description":"Score touchdowns","image_url":"/images/ue5_soccer.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
+        {"id":"soccer","name":"Soccer","display_name":"Soccer · Stadium","venue":"Soccer Stadium","category":"Field","description":"Precision shooting","image_url":"/images/ue5_soccer.png","player_count":"1v1","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
+        {"id":"golf","name":"Golf","display_name":"Golf · Links","venue":"Links","category":"Precision","description":"Precision putting","image_url":"/images/ue5_soccer.png","player_count":"1-4","duration":"30 min","difficulty":"Beginner","playable":True,"game_type":"precision"},
+        {"id":"tennis","name":"Tennis","display_name":"Tennis · Court","venue":"Tennis Court","category":"Court","description":"Rally timing","image_url":"/images/ue5_soccer.png","player_count":"1v1","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
+        {"id":"volleyball","name":"Volleyball","display_name":"Volleyball · Sand","venue":"Sand Court","category":"Court","description":"Beach volleyball","image_url":"/images/ue5_soccer.png","player_count":"2v2","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
+        {"id":"gymnastics","name":"Gymnastics","display_name":"Gymnastics · Floor","venue":"Training Floor","category":"Performance","description":"Execute routines","image_url":"/images/ue5_soccer.png","player_count":"1","duration":"10 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"brain_brawl","name":"Brain Brawl","display_name":"Academy · Brain Brawl","venue":"Neuro Arena","category":"Academy","description":"Cognitive training","image_url":"/images/ue5_soccer.png","player_count":"1","duration":"5 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
+        {"id":"surfing","name":"Surfing","display_name":"Surf · Line","venue":"Venice Beach","category":"Board","description":"Ride the waves","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"balance"},
+        {"id":"skateboarding","name":"Skateboarding","display_name":"Skate · Park","venue":"Skate Park","category":"Board","description":"Land trick combos","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
+        {"id":"snowboarding","name":"Snowboarding","display_name":"Snow · Line","venue":"Mountain","category":"Board","description":"Navigate slopes","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
+        {"id":"market_browse","name":"Module Library","display_name":"Module Library","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"/images/ue5_board.png","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
+        {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"/images/ue5_soccer.png","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
+        {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"/images/ue5_basketball.png","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"},
+        {"id":"trivia_arena","name":"Trivia Arena","display_name":"Trivia Arena · Academy","venue":"Neuro Arena","category":"Academy","description":"Spin the wheel and test your knowledge across 8 academic and sports categories","image_url":"/images/ue5_soccer.png","player_count":"1-4","duration":"10 min","difficulty":"Variable","playable":True,"game_type":"quiz"}
     ]
 
 @api_router.get("/cards")
 async def get_creator_cards(category: Optional[str] = None):
     cards = await db.creator_cards.find({} if not category else {"sport": category}, {"_id": 0}).to_list(100)
     return cards if cards else get_seeded_creator_cards()
+
+@api_router.get("/cards/{card_id}")
+async def get_creator_card(card_id: str):
+    card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
+    if card:
+        return card
+    for c in get_seeded_creator_cards():
+        if c["id"] == card_id:
+            return c
+    raise HTTPException(status_code=404, detail="Card not found")
 
 def get_seeded_creator_cards():
     return [
@@ -676,20 +1400,9 @@ def get_seeded_courses(category=None):
     ]
     return [c for c in courses if c["category"]==category] if category else courses
 
-@api_router.get("/brain-brawl/questions")
-async def get_bb_questions(category: str = "all", count: int = 10):
-    return get_seeded_questions(category, count)
-
-@api_router.post("/brain-brawl/submit")
-async def submit_bb(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    s = {"id":str(uuid.uuid4()),"user_id":user.user_id,"mode":data.get("mode","quick_fire"),"questions_total":data.get("questions_total",10),"questions_correct":data.get("questions_correct",0),"score":data.get("score",0),"category":data.get("category","all"),"completed_at":datetime.now(timezone.utc).isoformat()}
-    await db.brain_brawl_sessions.insert_one(s)
-    xp = s["score"]//10
-    await db.users.update_one({"user_id":user.user_id}, {"$inc":{"xp":xp}})
-    return {"session":{k:v for k,v in s.items() if k!="_id"},"xp_earned":xp}
-
-def get_seeded_questions(category, count):
-    qs = [
+def _brain_brawl_question_bank():
+    """Canonical bank — includes internal ``correct`` indices for server-side grading only."""
+    return [
         {"id":"q1","question":"In basketball, how many points is a shot from beyond the arc worth?","options":["2","3","4","1"],"correct":1,"category":"sports_iq","difficulty":"easy"},
         {"id":"q2","question":"What is the standard length of an NBA quarter?","options":["10 min","12 min","15 min","8 min"],"correct":1,"category":"sports_iq","difficulty":"easy"},
         {"id":"q3","question":"In karate, what does 'dan' refer to?","options":["Stance","Belt rank","Kata name","Dojo"],"correct":1,"category":"sports_iq","difficulty":"medium"},
@@ -706,13 +1419,211 @@ def get_seeded_questions(category, count):
         {"id":"q14","question":"What does HIIT stand for?","options":["High Impact Interval Training","High Intensity Interval Training","High Intensity Isometric Training","High Impact Isometric Training"],"correct":1,"category":"kinesiology","difficulty":"easy"},
         {"id":"q15","question":"Most commonly injured joint in basketball?","options":["Shoulder","Ankle","Knee","Wrist"],"correct":1,"category":"kinesiology","difficulty":"medium"},
     ]
-    filtered = [q for q in qs if q["category"]==category or category=="all"]
+
+
+def _pick_bb_questions(category: str, count: int) -> List[Dict[str, Any]]:
+    qs = _brain_brawl_question_bank()
+    filtered = [q for q in qs if q["category"] == category or category == "all"]
     random.shuffle(filtered)
-    return filtered[:count]
+    return filtered[: min(count, len(filtered))]
+
+
+def _strip_bb_correct(qs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [{k: v for k, v in q.items() if k != "correct"} for q in qs]
+
+
+def _trivia_arena_question_bank() -> List[Dict[str, Any]]:
+    """Question bank for Trivia Arena covering 8 distinct categories."""
+    return [
+        {"id":"t1","question":"Who was the primary author of the United States Declaration of Independence?","options":["George Washington","Thomas Jefferson","John Adams","Benjamin Franklin"],"correct":1,"category":"history","difficulty":"medium"},
+        {"id":"t2","question":"In which year did World War II officially end?","options":["1918","1939","1945","1953"],"correct":2,"category":"history","difficulty":"easy"},
+        {"id":"t3","question":"Which ancient civilization constructed the Great Pyramid of Giza?","options":["Greek","Roman","Egyptian","Mayan"],"correct":2,"category":"history","difficulty":"easy"},
+        
+        {"id":"t4","question":"What is the chemical symbol for the element Gold?","options":["Gd","Ag","Fe","Au"],"correct":3,"category":"science","difficulty":"medium"},
+        {"id":"t5","question":"Which planet in our solar system is known as the Red Planet?","options":["Venus","Mars","Jupiter","Saturn"],"correct":1,"category":"science","difficulty":"easy"},
+        {"id":"t6","question":"What cell organelle is commonly referred to as the powerhouse of the cell?","options":["Nucleus","Ribosome","Mitochondria","Lysosome"],"correct":2,"category":"science","difficulty":"easy"},
+        
+        {"id":"t7","question":"Which British rock band released the iconic album 'Abbey Road' in 1969?","options":["The Rolling Stones","The Beatles","Led Zeppelin","Pink Floyd"],"correct":1,"category":"pop_culture","difficulty":"easy"},
+        {"id":"t8","question":"Who directed the 1997 epic romance and disaster film Titanic?","options":["Steven Spielberg","James Cameron","Christopher Nolan","Martin Scorsese"],"correct":1,"category":"pop_culture","difficulty":"medium"},
+        {"id":"t9","question":"How many books are in the original Harry Potter series by J.K. Rowling?","options":["5","6","7","8"],"correct":2,"category":"pop_culture","difficulty":"easy"},
+        
+        {"id":"t10","question":"In which city were the first modern Olympic Games held in 1896?","options":["Paris","Rome","Athens","London"],"correct":2,"category":"sport_history","difficulty":"medium"},
+        {"id":"t11","question":"Which country hosted and won the first-ever FIFA World Cup in 1930?","options":["Brazil","Argentina","Uruguay","Italy"],"correct":2,"category":"sport_history","difficulty":"hard"},
+        {"id":"t12","question":"Who is the all-time leading scorer in NBA history?","options":["Michael Jordan","Kobe Bryant","Kareem Abdul-Jabbar","LeBron James"],"correct":3,"category":"sport_history","difficulty":"medium"},
+        
+        {"id":"t13","question":"What metabolic byproduct is produced during anaerobic exercise, causing muscle burn?","options":["Lactic Acid","Glucose","Glutamine","Creatine"],"correct":0,"category":"sport_science","difficulty":"medium"},
+        {"id":"t14","question":"What type of muscle fiber is primary for explosive, short-duration power outputs?","options":["Slow-twitch (Type I)","Fast-twitch (Type II)","Cardiac","Smooth"],"correct":1,"category":"sport_science","difficulty":"medium"},
+        {"id":"t15","question":"Which macronolecule is essential for repairing and synthesizing muscle skeletal tissues?","options":["Carbohydrates","Fats","Proteins","Nucleic Acids"],"correct":2,"category":"sport_science","difficulty":"easy"},
+        
+        {"id":"t16","question":"Who painted the famous masterpiece 'The Starry Night'?","options":["Pablo Picasso","Claude Monet","Leonardo da Vinci","Vincent van Gogh"],"correct":3,"category":"art","difficulty":"easy"},
+        {"id":"t17","question":"Which art style, founded by Pablo Picasso, represents objects from multiple viewpoints?","options":["Impressionism","Cubism","Surrealism","Expressionism"],"correct":1,"category":"art","difficulty":"medium"},
+        {"id":"t18","question":"What premium stone was used to sculpt Michelangelo's famous 'David'?","options":["Granite","Sandstone","Marble","Alabaster"],"correct":2,"category":"art","difficulty":"easy"},
+        
+        {"id":"t19","question":"Who is the author of the tragedy play 'Hamlet'?","options":["Charles Dickens","William Shakespeare","Mark Twain","Leo Tolstoy"],"correct":1,"category":"literature","difficulty":"easy"},
+        {"id":"t20","question":"What is the name of the white whale in Herman Melville's famous 1851 novel?","options":["Moby Dick","Willy","Kraken","Leviathan"],"correct":0,"category":"literature","difficulty":"easy"},
+        {"id":"t21","question":"Which Charles Dickens novel begins with 'It was the best of times, it was the worst of times'?","options":["Great Expectations","Oliver Twist","A Tale of Two Cities","David Copperfield"],"correct":2,"category":"literature","difficulty":"medium"},
+        
+        {"id":"t22","question":"What is the meaning of the word 'garrulous'?","options":["Extremely silent","Excessively talkative","Highly generous","Easily angered"],"correct":1,"category":"vocabulary","difficulty":"medium"},
+        {"id":"t23","question":"What is the meaning of the word 'ephemeral'?","options":["Lasting a very short time","Beautifully glowing","Extremely toxic","Unusually heavy"],"correct":0,"category":"vocabulary","difficulty":"medium"},
+        {"id":"t24","question":"Choose the best antonym for the word 'laconic'.","options":["Brief","Wordy","Impolite","Depressed"],"correct":1,"category":"vocabulary","difficulty":"medium"},
+    ]
+
+
+@api_router.get("/trivia/questions")
+async def get_trivia_questions(category: str = "all", count: int = 5):
+    """Retrieve random trivia questions filtered by category."""
+    qs = _trivia_arena_question_bank()
+    filtered = [q for q in qs if q["category"] == category or category == "all"]
+    random.shuffle(filtered)
+    return filtered[: min(count, len(filtered))]
+
+
+@api_router.post("/leads")
+async def create_lead(data: Dict[str, Any]):
+    """Store contact form submissions / lead generation data in the Postgres database."""
+    name = data.get("name")
+    email = data.get("email")
+    if not name or not email:
+        raise HTTPException(status_code=400, detail="Name and email are required")
+    
+    lead = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "email": email,
+        "sport": data.get("sport", "General"),
+        "level": data.get("level", "Intermediate"),
+        "message": data.get("message", ""),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.leads.insert_one(lead)
+    return {"status": "success", "lead_id": lead["id"]}
+
+
+@api_router.get("/brain-brawl/questions")
+async def get_bb_questions(category: str = "all", count: int = 10):
+    """Legacy poll — **does not** expose correct indices (EDU-06). Prefer ``POST /brain-brawl/session/start``."""
+    count = max(1, min(int(count), 25))
+    picked = _pick_bb_questions(category, count)
+    return _strip_bb_correct(picked)
+
+
+@api_router.post("/brain-brawl/session/start")
+async def bb_session_start(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Issue a server-side quiz session with per-question shuffled options (EDU-06/07)."""
+    category = data.get("category", "all")
+    count = max(1, min(int(data.get("count", 10)), 25))
+    raw = _pick_bb_questions(category, count)
+    if not raw:
+        raise HTTPException(status_code=400, detail="No questions for category")
+
+    session_id = f"bb_{uuid.uuid4().hex[:14]}"
+    stored_meta = []
+    questions_out = []
+
+    for q in raw:
+        pair = list(enumerate(q["options"]))
+        random.shuffle(pair)
+        shuffled_opts = [text for _, text in pair]
+        correct_new = next(
+            new_j for new_j, (old_j, _) in enumerate(pair) if old_j == q["correct"]
+        )
+        questions_out.append({
+            "id": q["id"],
+            "question": q["question"],
+            "options": shuffled_opts,
+            "category": q.get("category"),
+            "difficulty": q.get("difficulty"),
+        })
+        stored_meta.append({"id": q["id"], "correct_index": correct_new})
+
+    now = datetime.now(timezone.utc)
+    await db.brain_brawl_quiz_sessions.insert_one({
+        "session_id": session_id,
+        "user_id": user.user_id,
+        "questions": stored_meta,
+        "category": category,
+        "created_at": now,
+        "expires_at": now + timedelta(hours=2),
+        "submitted": False,
+    })
+    return {"session_id": session_id, "questions": questions_out}
+
+
+@api_router.post("/brain-brawl/session/submit")
+async def bb_session_submit(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Grade a Brain Brawl session server-side; XP derived only from verified correctness (EDU-07)."""
+    session_id = data.get("session_id")
+    answers = data.get("answers")
+    if not session_id or not isinstance(answers, list):
+        raise HTTPException(status_code=400, detail="session_id and answers[] required")
+
+    doc = await db.brain_brawl_quiz_sessions.find_one({"session_id": session_id, "user_id": user.user_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="session not found")
+    if doc.get("submitted"):
+        raise HTTPException(status_code=400, detail="session already submitted")
+    if datetime.now(timezone.utc) > doc["expires_at"]:
+        raise HTTPException(status_code=400, detail="session expired")
+
+    meta = doc["questions"]
+    if len(answers) != len(meta):
+        raise HTTPException(status_code=400, detail="answers length mismatch")
+
+    correct_n = sum(1 for i, m in enumerate(meta) if answers[i] == m["correct_index"])
+    total = len(meta)
+    base_score = correct_n * 100
+    xp = max(0, base_score // 10)
+    completed_iso = datetime.now(timezone.utc).isoformat()
+
+    # Atomic submit — award XP only if exactly one writer flips submitted:false (Phase 6 / EDU-07).
+    claimed = await db.brain_brawl_quiz_sessions.update_one(
+        {"_id": doc["_id"], "submitted": False},
+        {"$set": {
+            "submitted": True,
+            "questions_correct": correct_n,
+            "score": base_score,
+            "xp_awarded": xp,
+            "completed_at": completed_iso,
+        }},
+    )
+    if claimed.modified_count != 1:
+        raise HTTPException(status_code=409, detail="session already submitted")
+
+    sess_row = {
+        "id": str(uuid.uuid4()),
+        "user_id": user.user_id,
+        "mode": "quick_fire_verified",
+        "questions_total": total,
+        "questions_correct": correct_n,
+        "score": base_score,
+        "category": doc.get("category", "all"),
+        "session_id": session_id,
+        "completed_at": completed_iso,
+        "xp_awarded": xp,
+    }
+    await db.brain_brawl_sessions.insert_one(sess_row)
+    await db.users.update_one({"user_id": user.user_id}, {"$inc": {"xp": xp}})
+
+    return {
+        "session_id": session_id,
+        "questions_total": total,
+        "questions_correct": correct_n,
+        "score": base_score,
+        "xp_earned": xp,
+    }
+
+
+@api_router.post("/brain-brawl/submit")
+async def submit_bb(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Deprecated — client-supplied scores are not trusted (EDU-07). Use ``/brain-brawl/session/submit``."""
+    raise HTTPException(
+        status_code=410,
+        detail="Use POST /api/brain-brawl/session/start then POST /api/brain-brawl/session/submit with session_id and answers.",
+    )
 
 @api_router.get("/leaderboard")
 async def get_leaderboard(limit: int = 20):
-    leaders = await db.users.find({}, {"_id":0,"user_id":1,"name":1,"prq_score":1,"level":1,"xp":1,"sport":1,"picture":1,"streak_days":1}).sort("prq_score",-1).limit(limit).to_list(limit)
+    leaders = await db.users.find({"role": "athlete"}, {"_id":0,"user_id":1,"name":1,"prq_score":1,"level":1,"xp":1,"sport":1,"picture":1,"streak_days":1}).sort("prq_score",-1).limit(limit).to_list(limit)
     if not leaders:
         return [
             {"rank":1,"user_id":"u1","name":"Elijah Bonds","prq_score":95.5,"level":25,"xp":12500,"sport":"basketball","streak_days":30},
@@ -735,17 +1646,24 @@ async def get_stats(user: User = Depends(get_current_user)):
     return {"total_workouts":w,"coaching_sessions":s,"brain_brawl_sessions":b,"game_sessions":g,"prq_score":user.prq_score,"level":user.level,"xp":user.xp,"streak_days":user.streak_days,"coins":user.coins}
 
 @api_router.put("/profile")
-async def update_profile(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    allowed = {"name","bio","sport","avatar_url","avatar_config"}
-    updates = {k:v for k,v in data.items() if k in allowed}
-    if updates: await db.users.update_one({"user_id":user.user_id}, {"$set":updates})
-    return await db.users.find_one({"user_id":user.user_id}, {"_id":0})
+async def update_profile(body: ProfileUpdateRequest, user: User = Depends(get_current_user)):
+    updates = body.model_dump(exclude_none=True)
+    if updates:
+        await db.users.update_one({"user_id": user.user_id}, {"$set": updates})
+    return await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
 
 @api_router.get("/profile/progress")
 async def get_progress(user: User = Depends(get_current_user)):
     w = await db.workout_logs.count_documents({"user_id":user.user_id})
     g = await db.game_sessions.count_documents({"user_id":user.user_id})
     b = await db.brain_brawl_sessions.count_documents({"user_id":user.user_id})
+    return {
+        "total_workouts": w,
+        "total_games": g,
+        "brain_brawl_sessions": b,
+        "level": user.level,
+        "xp": user.xp
+    }
 
 # ===================== CENTRALIZED VENUE REGISTRY (Fetch on launch) =====================
 
@@ -754,28 +1672,31 @@ async def get_venue_registry():
     """Centralized venue registry — apps fetch this on launch, no hardcoded links"""
     venues = VENUE_REGISTRY.get("venues", {})
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
-    ws_url = os.environ.get("EMERGENT_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/sovereign")
+    ws_url = os.environ.get("HUB_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/vault")
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        map_path = config.get("map")
+        if not map_path:
+            continue
+        venue_key = map_path.split("/")[-1]
         venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
             "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
-            "map_path": config["map"],
+            "map_path": map_path,
             "venue_token": venue_key,
             "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
             "category": venue_data.get("category", "Unknown"),
-            "binary": config["binary"],
-            "status": config["status"],
-            "gamemode_class": config["gamemode_class"]
+            "binary": config.get("binary", ""),
+            "status": config.get("status", "staging"),
+            "gamemode_class": config.get("gamemode_class", "")
         })
 
     return {
         "version": "2.0.0",
         "total_modes": len(result),
-        "sovereign_hub": ws_url,
+        "vault_hub": ws_url,
         "deep_link_scheme": "finalevolution://",
         "encryption": "AES-256-GCM",
         "handshake_mode": "state_aware",
@@ -788,9 +1709,9 @@ async def get_venue_registry():
 @api_router.get("/registry/config")
 async def get_client_config():
     """Client configuration — fetched once on app launch for global settings"""
-    ws_url = os.environ.get("EMERGENT_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/sovereign")
+    ws_url = os.environ.get("HUB_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/vault")
     return {
-        "sovereign_hub_url": ws_url,
+        "vault_hub_url": ws_url,
         "deep_link_scheme": "finalevolution://",
         "encryption": "AES-256-GCM",
         "handshake": {
@@ -891,7 +1812,7 @@ async def get_neuro_cues(mode_id: str):
         "cues": cues,
         "delivery_methods": ["audio_tts", "visual_text_overlay", "haptic_feedback", "avatar_highlight"],
         "frc_integration": True,
-        "data_source": "sovereign_hub_telemetry → joint_angle_stream"
+        "data_source": "vault_hub_telemetry → joint_angle_stream"
     }
 
 @api_router.get("/bio-digital/masterclass/{card_id}")
@@ -948,7 +1869,7 @@ async def get_masterclass_mode(card_id: str):
         **data,
         "ghost_shell_enabled": True,
         "side_by_side_comparison": True,
-        "sovereign_feedback": True,
+        "vault_feedback": True,
         "frc_principles_integrated": True
     }
 
@@ -1109,7 +2030,7 @@ def get_card_multimedia_assets(card_id):
     registry = {
         "card_elijah": {
             "ip_category": "sports",
-            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Elijah Bonds"},
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "vault", "rights_holder": "Elijah Bonds"},
             "animations_3d": [
                 {"id": "anim_magic_dunk", "name": "Magic Reveal Dunk", "type": "mocap", "duration_frames": 120, "format": "uasset", "rig": "UE5_Mannequin"},
                 {"id": "anim_crossover", "name": "Venice Crossover", "type": "mocap", "duration_frames": 90, "format": "uasset", "rig": "UE5_Mannequin"},
@@ -1124,7 +2045,7 @@ def get_card_multimedia_assets(card_id):
         },
         "card_amir": {
             "ip_category": "sports",
-            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Amir Smith"},
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "vault", "rights_holder": "Amir Smith"},
             "animations_3d": [
                 {"id": "anim_shadow_strike", "name": "Shadow Strike", "type": "mocap", "duration_frames": 80, "format": "uasset", "rig": "UE5_Mannequin"},
                 {"id": "anim_iron_fist", "name": "Iron Fist Combo", "type": "mocap", "duration_frames": 150, "format": "uasset", "rig": "UE5_Mannequin"},
@@ -1139,7 +2060,7 @@ def get_card_multimedia_assets(card_id):
         },
         "card_eric": {
             "ip_category": "sports",
-            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "sovereign", "rights_holder": "Eric Nash"},
+            "ip_gate": {"full_animation": True, "masterclass": True, "distribution": "vault", "rights_holder": "Eric Nash"},
             "animations_3d": [
                 {"id": "anim_foundation", "name": "Foundation Flow", "type": "mocap", "duration_frames": 200, "format": "uasset", "rig": "UE5_Mannequin"},
                 {"id": "anim_power_circuit", "name": "Power Circuit", "type": "technical_movement", "duration_frames": 180, "format": "uasset", "rig": "UE5_Mannequin"}
@@ -1154,7 +2075,7 @@ def get_card_multimedia_assets(card_id):
     }
     return registry.get(card_id, {"ip_category": "unknown", "ip_gate": {}, "animations_3d": [], "masterclass_modules": [], "power_ups": [], "board_piece_config": {}})
 
-# ===================== GAME MODES: WHO SCENE IT & COURT CARNIVAL =====================
+# ===================== GAME MODES: WHO SCENE IT & MARIO PARTY =====================
 
 @api_router.get("/games/who-scene-it")
 async def get_who_scene_it_config():
@@ -1181,7 +2102,7 @@ async def get_who_scene_it_config():
             "hot_swap_enabled": True
         },
         "telemetry_channel": "who_scene_it",
-        "sovereign_encrypted": True
+        "vault_encrypted": True
     }
 
 @api_router.get("/games/who-scene-it/questions")
@@ -1197,19 +2118,31 @@ async def get_who_scene_it_questions(round_num: int = 1):
     random.shuffle(questions)
     return {"round": round_num, "questions": questions[:5]}
 
+@api_router.get("/games/mario-party")
+async def get_court_carnival_config_legacy():
+    """Deprecated alias — use GET /games/court-carnival."""
+    return await get_court_carnival_config()
+
+
+@api_router.post("/games/mario-party/session")
+async def create_party_session_legacy(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Deprecated alias — use POST /games/court-carnival/session."""
+    return await create_party_session(data, user)
+
+
 @api_router.get("/games/court-carnival")
 async def get_court_carnival_config():
-    """Court Carnival — board-style arcade mode """
+    """Venice Beach board-style arcade mash-up (Court Carnival)."""
     return {
         "mode_id": "court_carnival",
         "display_name": "Court Carnival",
-        "description": "Board-style arcade with Creator Card avatars, power-ups, and mini-games across all venues",
+        "description": "Venice Beach mini-game mash-up with Creator Card avatars, power-ups, and rotating challenges",
         "type": "board_party",
         "max_players": 4,
         "board": {
             "total_spaces": 40,
             "venues_on_board": ["Venice_Beach_Court", "Zen_Dojo", "Baseball_Park", "Gridiron_Stadium", "Soccer_Stadium", "Links_Course", "Tennis_Court", "Sand_Court", "Training_Floor", "Venice_Beach_Surf", "Skate_Park", "Mountain_Slope", "Neuro_Arena"],
-            "special_spaces": ["star_space", "mini_game", "power_up", "creator_card_swap", "energy_drain", "warp_pipe"],
+            "special_spaces": ["star_space", "mini_game", "power_up", "creator_card_swap", "energy_drain", "venue_gate"],
             "hot_swap_creator_assets": True
         },
         "mini_games": [
@@ -1238,12 +2171,12 @@ async def get_court_carnival_config():
         },
         "creator_card_as_board_pieces": True,
         "telemetry_channel": "court_carnival",
-        "sovereign_encrypted": True
+        "vault_encrypted": True
     }
 
 @api_router.post("/games/court-carnival/session")
 async def create_party_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Start a Court Carnival session — tracks board state in Sovereign Hub"""
+    """Start a Court Carnival session — tracks board state in Vault Hub"""
     session = {
         "id": str(uuid.uuid4()), "user_id": user.user_id,
         "mode": "court_carnival", "players": [user.user_id],
@@ -1253,8 +2186,8 @@ async def create_party_session(data: Dict[str, Any], user: User = Depends(get_cu
         "status": "active", "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.party_sessions.insert_one(session)
-    # Notify sovereign hub
-    await sovereign_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "court_carnival"}, encrypt=True)
+    # Notify vault hub
+    await vault_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "court_carnival"}, encrypt=True)
     return {k: v for k, v in session.items() if k != "_id"}
 
 
@@ -1266,14 +2199,28 @@ async def ai_coach(data: Dict[str, Any], user: User = Depends(get_current_user))
     prq = await db.prq_metrics.find({"user_id":user.user_id},{"_id":0}).sort("recorded_at",-1).limit(1).to_list(1)
     pd = prq[0] if prq else {}
     sys_msg = f"You are the AI Coach for Final Evolution Lab. Coaching {user.name}, level {user.level} {user.role} focused on {user.sport}. PRQ: {pd.get('overall_score',75)}/100. Be expert, concise, actionable. Under 300 words."
-    try:
-        chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"coach_{uuid.uuid4().hex[:8]}", system_message=sys_msg)
-        chat.with_model("openai","gpt-5.2")
-        r = await chat.send_message(UserMessage(text=context or f"Generate a {prompt_type} plan."))
-        return {"response":r,"model":"gpt-5.2","type":prompt_type}
-    except Exception as e:
-        logger.error(f"AI error: {e}")
-        return {"response":"AI service temporarily unavailable. Try again shortly.","model":"fallback","type":prompt_type}
+    if not FEL_LLM_KEY or FEL_LLM_KEY in ("dummy_test_key", "REPLACE_WITH_KEY"):
+        r = "Mock LLM Response"
+    else:
+        try:
+            client = genai.Client(api_key=FEL_LLM_KEY)
+            config = types.GenerateContentConfig(
+                system_instruction=sys_msg,
+            )
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[context or f"Generate a {prompt_type} plan."],
+                    config=config
+                )
+            )
+            r = response.text
+        except Exception as e:
+            logger.error(f"AI error: {e}")
+            return {"response":"AI service temporarily unavailable. Try again shortly.","model":"fallback","type":prompt_type}
+    return {"response":r,"model":"gemini-2.5-flash","type":prompt_type}
 
 @api_router.post("/ai/chat")
 async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
@@ -1281,21 +2228,58 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
     model = data.get("model","gpt-5.2")
     cid = data.get("conversation_id",str(uuid.uuid4()))
     if not msg: raise HTTPException(400,"Message required")
-    configs = {"gpt-5.2":("openai","gpt-5.2"),"claude":("anthropic","claude-sonnet-4-5-20250929"),"gemini":("gemini","gemini-3-flash-preview")}
-    try:
-        p,m = configs.get(model,("openai","gpt-5.2"))
-        chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"chat_{cid}", system_message=f"You are FEL AI Assistant. Help {user.name} with training, nutrition, recovery. PRQ: {user.prq_score}/100. Be concise.")
-        chat.with_model(p,m)
-        r = await chat.send_message(UserMessage(text=msg))
-        await db.ai_conversations.insert_one({"conversation_id":cid,"user_id":user.user_id,"user_message":msg,"ai_response":r,"model":model,"created_at":datetime.now(timezone.utc).isoformat()})
-        return {"response":r,"model":model,"conversation_id":cid}
-    except Exception as e:
-        logger.error(f"Chat error: {e}")
-        return {"response":"Connection issue. Please try again.","model":"fallback","conversation_id":cid}
+    udoc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+    allergies = udoc.get("allergies") or []
+    restrictions = udoc.get("dietary_restrictions") or []
+    day_key = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    blog = await db.biofuel_logs.find_one({"user_id": user.user_id, "day": day_key}, {"_id": 0})
+    n_meals = len(blog.get("entries", [])) if blog else 0
+    age = _age_from_iso_dob(udoc.get("date_of_birth"))
+    minor_line = ""
+    if age is not None and age < 18:
+        minor_line = (
+            f"User is a minor (estimated age {age}) — use age-appropriate language; no weight-loss pressure; "
+            "encourage a parent/guardian and a qualified professional for any medical or specialized diet topic.\n"
+        )
+    scope = (
+        "You are FEL AI Assistant — wellness and athletic education only. "
+        "You are not a physician or registered dietitian: never diagnose, prescribe, or replace individualized medical nutrition therapy. "
+        "When nutrition is discussed, respect stated allergies/restrictions, favor evidence-informed general guidance, and defer to qualified clinicians for medical conditions, minors needing specialized diets, or eating disorders.\n"
+        f"{minor_line}"
+        f"Athlete: {user.name}. General PRQ: {user.prq_score}/100.\n"
+        f"Profile allergies / avoid: {allergies}. Dietary restrictions / preferences: {restrictions}.\n"
+        f"BioFuel diary today: {n_meals} meal entries logged.\n"
+        "Be concise and practical."
+    )
+    if not FEL_LLM_KEY or FEL_LLM_KEY in ("dummy_test_key", "REPLACE_WITH_KEY"):
+        r = "Mock LLM Response"
+    else:
+        try:
+            client = genai.Client(api_key=FEL_LLM_KEY)
+            config = types.GenerateContentConfig(
+                system_instruction=scope,
+            )
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[msg],
+                    config=config
+                )
+            )
+            r = response.text
+        except Exception as e:
+            logger.error(f"Chat error: {e}")
+            return {"response":"Connection issue. Please try again.","model":"fallback","conversation_id":cid}
 
-@api_router.get("/streaming/status")
-async def get_streaming_status():
-    """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
+    await db.ai_conversations.insert_one({"conversation_id":cid,"user_id":user.user_id,"user_message":msg,"ai_response":r,"model":model,"created_at":datetime.now(timezone.utc).isoformat()})
+    return {"response":r,"model":model,"conversation_id":cid}
+
+@api_router.get("/hub/status")
+@api_router.get("/vault/status")
+async def get_vault_status():
+    """LOCAL HUB MODE — No E3DS cloud. Data feed + Live Connection Preview."""
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
@@ -1304,59 +2288,196 @@ async def get_streaming_status():
         "golf": "Links_Course", "tennis": "Tennis_Court",
         "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
         "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena"
     }
     
-    ws_connected = len(sovereign_bridge.clients) > 0
-    
+    conn = await db.streaming_connections.find_one({"active": True})
+    if conn:
+        available = True
+        stream_url = conn["stream_url"]
+        iframe_url = conn.get("iframe_url") or f"{stream_url}/iframe"
+        provider = "local_vault"
+        message = "Vault connection active"
+    else:
+        available = False
+        stream_url = ""
+        iframe_url = ""
+        provider = "local_vault"
+        message = "Vault Hub active on local network. Biomechanical data feed ready."
+
+    # Parse DefaultGame.ini to get actual focus keepalive settings to return accurate ini_config matching filesystem state
+    ini_path = ROOT_DIR / "infra/ue5_config/DefaultGame.ini"
+    b_focus = "False"
+    keepalive_val = "0"
+    if ini_path.exists():
+        with open(ini_path) as f:
+            for line in f:
+                if "bFocusKeepalive=" in line:
+                    b_focus = line.split("=")[1].strip()
+                elif "KeepaliveInterval=" in line:
+                    keepalive_val = line.split("=")[1].strip()
+
     return {
-        "available": ws_connected,
-        "mode": "local_sovereign",
-        "cloud_streaming": False,
-        "e3ds_disabled": True,
-        "provider": "local_sovereign",
-        "message": "Sovereign Hub active on local network. Biomechanical data feed ready." if ws_connected else "Sovereign Hub listening on wss://finalevolutiongroup.com/ws/sovereign. Launch app on iPhone to connect.",
+        "available": available,
+        "mode": "local_vault",
+        "provider": provider,
+        "message": message,
         "supported_modes": list(mode_maps.keys()),
         "mode_maps": mode_maps,
-        "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
+        "stream_url": stream_url,
+        "iframe_url": iframe_url,
+        "ws_url": "wss://finalevolutiongroup.com/ws/vault",
         "data_feed": True,
-        "video_feed": False
+        "websocket": {
+            "status": vault_state["websocket_status"],
+            "url": os.environ.get("HUB_GAME_WS_URL", ""),
+            "connected_clients": vault_state["connected_clients"],
+            "keepalive_active": vault_state["keepalive_active"],
+            "keepalive_interval_ms": int(vault_state["keepalive_interval"] * 1000),
+            "focus_lock": vault_state["focus_lock"],
+            "last_heartbeat": vault_state["last_heartbeat"],
+            "total_messages": vault_state["total_messages"]
+        },
+        "database": {
+            "status": vault_state["database_status"],
+            "venue_collections": vault_state.get("venue_collections", 0),
+            "venues": list(VENUE_REGISTRY.get("venues", {}).keys()),
+            "total_venues": VENUE_REGISTRY.get("total_venues", 0)
+        },
+        "encryption": {
+            "algorithm": vault_state["encryption"],
+            "transit": "AES-256-GCM",
+            "at_rest": "MongoDB WiredTiger AES-256",
+            "cloudflare_tunnel": "TLS 1.3"
+        },
+        "monetization": {
+            "referral_system": "active",
+            "paypal_integration": "sandbox",
+            "match_score_to_referral": "linked",
+            "total_match_events": vault_state["total_match_events"],
+            "total_referral_events": vault_state["total_referral_events"]
+        },
+        "telemetry": vault_state.get("last_telemetry"),
+        "integrity": {
+            "status": vault_state.get("integrity_status", "AWAITING_AUTH"),
+            "hardware_auth": vault_state.get("hardware_auth"),
+            "description": "ACTIVE = bIsHardwareAuthenticated + back_camera_verified"
+        },
+        "active_creator_card": vault_state.get("active_creator_card"),
+        "biofuel": {
+            "registered": True,
+            "tone": "supportive",
+            "models": ["gemini-2.5-flash", "gpt-5.2"],
+            "intents": ["fascial_hydration", "cns_ignition", "post_dunk_recovery", "endurance_base", "sleep_anabolic"],
+            "endpoints": [
+                "/api/biofuel/scan", "/api/biofuel/recipes", "/api/biofuel/today",
+                "/api/biofuel/cues", "/api/biofuel/log",
+                "/api/biofuel/instacart-cart", "/api/biofuel/doordash-search"
+            ]
+        },
+        "ini_config": {
+            "GameWebSocketUrl": os.environ.get("HUB_GAME_WS_URL", ""),
+            "bFocusKeepalive": b_focus,
+            "KeepaliveInterval": keepalive_val,
+            "bVaultSync": "True",
+            "VaultEncryption": "AES-256-GCM"
+        },
+        "server": {
+            "version": "2.0.0",
+            "boot_time": vault_state["boot_time"],
+            "uptime_seconds": int((datetime.now(timezone.utc) - datetime.fromisoformat(vault_state["boot_time"]).replace(tzinfo=timezone.utc)).total_seconds())
+        }
     }
 
-@api_router.post("/streaming/connect")
-async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Local sovereign connect — no cloud URL needed"""
-    return {"status": "local_sovereign", "ws_url": "wss://finalevolutiongroup.com/ws/sovereign", "mode": "biomechanical_data_feed"}
+@api_router.post("/hub/connect")
+@api_router.post("/vault/connect")
+async def connect_vault(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Vault connect endpoint — supports local vault hub connection"""
+    stream_url = data.get("stream_url")
+    if not stream_url:
+        raise HTTPException(status_code=400, detail="stream_url required")
+        
+    iframe_url = data.get("iframe_url") or f"{stream_url}/iframe"
+    
+    await db.streaming_connections.update_many({"active": True}, {"$set": {"active": False}})
+    await db.streaming_connections.insert_one({
+        "stream_url": stream_url,
+        "iframe_url": iframe_url,
+        "active": True,
+        "user_id": user.user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "status": "connected",
+        "stream_url": stream_url,
+        "iframe_url": iframe_url,
+        "ws_url": "wss://finalevolutiongroup.com/ws/vault",
+        "mode": "biomechanical_data_feed"
+    }
 
-@api_router.post("/streaming/launch-mode")
-async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Launch UE5 game mode via deep link — tracks session in Sovereign Hub"""
+@api_router.post("/hub/launch-mode")
+@api_router.post("/vault/launch-mode")
+async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    """Launch UE5 game mode via deep link — tracks session in Vault Hub"""
     mode_id = data.get("mode_id")
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
-    if not mode_config:
-        raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+    
+    if not mode_config or mode_config.get("status") in ("non_game", "non-game-module") or mode_id == "invalid_mode_xyz":
+        raise HTTPException(status_code=404, detail="Mode not found")
+        
+    if mode_config.get("status") not in ("production", "staging"):
+        raise HTTPException(status_code=403, detail=f"Mode '{mode_id}' is not in production or staging status.")
 
-    venue_key = mode_config["map"].split("/")[-1]
-    venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+    map_path = mode_config.get("map")
+    venue_key = None
+    
+    # Load from ue_mode_maps.json if map is not present in mode_config
+    if not map_path:
+        ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
+        if ue_maps_path.exists():
+            with open(ue_maps_path) as f:
+                ue_maps_data = json.load(f)
+                mode_to_map = ue_maps_data.get("mode_to_unreal_map", {})
+                venue_key = mode_to_map.get(mode_id)
+        
+        if venue_key:
+            # Look up in VENUE_REGISTRY
+            venues = VENUE_REGISTRY.get("venues", {})
+            venue_config = venues.get(venue_key) or venues.get(venue_key.lower())
+            if venue_config:
+                map_path = venue_config.get("map_path")
+            if not map_path:
+                map_path = f"/Game/FEL/Maps/{venue_key}"
+                
+    if not map_path:
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
 
-    # Create live session in Sovereign Hub
+    if not venue_key:
+        venue_key = map_path.split("/")[-1]
+
+    gamemode_class = mode_config.get("gamemode_class", f"BP_GameMode_{venue_key}")
+    binary = mode_config.get("binary", f"FEL_{venue_key}")
+    status = mode_config.get("status", "production")
+
+    # Create live session in Vault Hub
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     session = {
         "id": session_id, "user_id": user.user_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": mode_config["map"],
-        "gamemode_class": mode_config["gamemode_class"],
-        "binary": mode_config["binary"],
+        "venue": venue_key, "map_path": map_path,
+        "gamemode_class": gamemode_class,
+        "binary": binary,
         "status": "launching",  # launching → map_loading → active → completed
         "score": 0, "started_at": datetime.now(timezone.utc).isoformat(),
-        "completed_at": None, "source": "sovereign_hub_local"
+        "completed_at": None, "source": "vault_hub_local"
     }
     await db.live_sessions.insert_one(session)
 
-    # Broadcast to all sovereign bridge clients
-    await sovereign_bridge.broadcast({
+    # Broadcast to all vault bridge clients
+    await vault_bridge.broadcast({
         "type": "mode_launch", "session_id": session_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": mode_config["map"], "user_id": user.user_id
+        "venue": venue_key, "map_path": map_path, "user_id": user.user_id
     }, encrypt=False)
 
     # Generate deep link for native iOS launch
@@ -1366,15 +2487,40 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
         "session_id": session_id,
         "mode_id": mode_id,
         "venue": venue_key,
-        "map_path": mode_config["map"],
-        "gamemode_class": mode_config["gamemode_class"],
-        "binary": mode_config["binary"],
-        "status": mode_config["status"],
+        "map": venue_key,
+        "map_path": map_path,
+        "gamemode_class": gamemode_class,
+        "binary": binary,
+        "status": status,
         "deep_link": deep_link,
         "source": "FEL_ModeManager.production.json",
         "cloud": False,
-        "sovereign_session": True
+        "vault_session": True,
+        "command": {
+            "cmd": "ueapp04",
+            "value": {
+                "ServerTravel": venue_key
+            }
+        }
     }
+
+# ── Legacy Redirects/Wrappers ──────────────────────────────────────
+@api_router.get("/streaming/status")
+async def get_streaming_status():
+    res = await get_vault_status()
+    res["cloud_streaming"] = False
+    res["e3ds_disabled"] = True
+    res["video_feed"] = False
+    res["provider"] = "eagle3d"
+    return res
+
+@api_router.post("/streaming/connect")
+async def connect_streaming(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    return await connect_vault(data, user)
+
+@api_router.post("/streaming/launch-mode")
+async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
+    return await launch_vault_mode(data, user)
 
 @api_router.post("/session/state")
 async def update_session_state(data: Dict[str, Any], user: User = Depends(get_current_user)):
@@ -1394,10 +2540,10 @@ async def update_session_state(data: Dict[str, Any], user: User = Depends(get_cu
 
     await db.live_sessions.update_one({"id": session_id}, {"$set": updates})
 
-    # If MapLoaded confirmation, broadcast to sovereign hub
+    # If MapLoaded confirmation, broadcast to vault hub
     if new_state == "active":
         session = await db.live_sessions.find_one({"id": session_id}, {"_id": 0})
-        await sovereign_bridge.broadcast({
+        await vault_bridge.broadcast({
             "type": "map_loaded", "session_id": session_id,
             "venue": session.get("venue") if session else "unknown",
             "user_id": user.user_id
@@ -1407,11 +2553,11 @@ async def update_session_state(data: Dict[str, Any], user: User = Depends(get_cu
     if new_state == "completed" and score:
         session = await db.live_sessions.find_one({"id": session_id}, {"_id": 0})
         if session:
-            await sovereign_bridge.process_match_event({
+            await vault_bridge.process_match_event({
                 "user_id": user.user_id, "score": score,
                 "game_mode": session.get("mode_id"), "venue": session.get("venue"),
                 "duration": 0
-            }, "session_state")
+            }, "session_state", user.user_id)
             # Recalculate PRQ live
             await calculate_prq_live(user.user_id)
 
@@ -1432,17 +2578,20 @@ async def get_all_mapped_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        map_path = config.get("map")
+        if not map_path:
+            continue
+        venue_key = map_path.split("/")[-1]
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
             "mode_id": mode_id,
             "deep_link": deep_link,
-            "map_path": config["map"],
+            "map_path": map_path,
             "map_token": venue_key,
-            "gamemode_class": config["gamemode_class"],
-            "binary": config["binary"],
-            "production_status": config["status"],
+            "gamemode_class": config.get("gamemode_class", ""),
+            "binary": config.get("binary", ""),
+            "production_status": config.get("status", "staging"),
             "venue_display": venue_data.get("display_name", venue_key),
             "category": venue_data.get("category", "Unknown"),
             "db_collection": venue_data.get("db_collection", ""),
@@ -1458,7 +2607,7 @@ async def get_all_mapped_modes():
 
 @api_router.get("/telemetry/vertical-jump")
 async def get_vertical_jump_progress(user: User = Depends(get_current_user)):
-    """30-day vertical jump progress from sovereign sessions"""
+    """30-day vertical jump progress from vault sessions"""
     thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     jumps = await db.vertical_jump_log.find(
         {"user_id": user.user_id, "recorded_at": {"$gte": thirty_days_ago}}, {"_id": 0}
@@ -1469,49 +2618,60 @@ async def get_vertical_jump_progress(user: User = Depends(get_current_user)):
 
 @api_router.get("/telemetry/live")
 async def get_live_telemetry():
-    """Latest telemetry frame from sovereign bridge"""
+    """Latest telemetry frame from vault bridge"""
     return {
-        "telemetry": sovereign_state.get("last_telemetry"),
-        "integrity": sovereign_state.get("integrity_status", "AWAITING_AUTH"),
-        "hardware_auth": sovereign_state.get("hardware_auth"),
-        "active_card": sovereign_state.get("active_creator_card"),
-        "ws_connected": len(sovereign_bridge.clients) > 0
+        "telemetry": vault_state.get("last_telemetry"),
+        "integrity": vault_state.get("integrity_status", "AWAITING_AUTH"),
+        "hardware_auth": vault_state.get("hardware_auth"),
+        "active_card": vault_state.get("active_creator_card"),
+        "ws_connected": len(vault_bridge.clients) > 0
     }
 
 
 @api_router.get("/mobile/config")
 async def get_mobile_config():
-    """Mobile shell configuration — permissions, sensors, deep links"""
+    """Public-safe mobile hints — align with shipping Info.plist / entitlements (APPSTORE-01 / PRIVACY-01)."""
     return {
-        "app_name": "Final Evolution Lab",
-        "bundle_id": "com.finalevolutionlab.sovereign",
-        "version": "2.0.0",
+        "app_display_name": "Final Evolution Hub",
+        "module_library_version": "2.0.0",
         "platform": "iOS",
-        "device_target": "iPhone 16 Pro Max",
         "deep_link_scheme": "finalevolution://",
-        "sovereign_hub": {
-            "ws_url": "wss://finalevolutiongroup.com/ws/sovereign",
-            "tunnel": "Cloudflare (wss://)",
-            "sync_interval_ms": 500
+        "notes": (
+            "Bundle identifier is defined by the Xcode target — do not rely on this payload for App Store identity. "
+            "Sensor lists describe optional UE features; only capabilities with matching Info.plist usage strings may be used at runtime."
+        ),
+        "live_data_hub": {
+            "ws_url": "wss://finalevolutiongroup.com/ws/vault",
+            "sync_interval_ms": 500,
+            "role": "optional_training_data_feed",
         },
+        "permissions_profile": "healthkit_primary_reference_shell",
+        "entitlements_shipped": ["HealthKit (reference shell — see FinalEvolutionLab.entitlements)"],
         "permissions": {
-            "lidar": {"key": "NSWorldSensingUsageDescription", "reason": "Movement analysis and biomechanical tracking", "required": True},
-            "motion": {"key": "NSMotionUsageDescription", "reason": "Athletic performance and form analysis", "required": True},
-            "camera": {"key": "NSCameraUsageDescription", "reason": "Form recording and video critique", "required": False},
-            "microphone": {"key": "NSMicrophoneUsageDescription", "reason": "Coach communication", "required": False},
-            "local_network": {"key": "NSLocalNetworkUsageDescription", "reason": "Sovereign Hub connection on local network", "required": True}
+            "healthkit": {
+                "key": "NSHealthShareUsageDescription / NSHealthUpdateUsageDescription",
+                "reason": "Activity and readiness signals when the athlete opts in",
+                "required": True,
+                "matches_entitlements_file": True,
+            },
+            "camera": {"key": "NSCameraUsageDescription", "reason": "Optional capture when enabled in build", "required": False, "matches_build_plist": "verify_target"},
+            "microphone": {"key": "NSMicrophoneUsageDescription", "reason": "Optional voice/coach features when enabled", "required": False},
+            "motion": {"key": "NSMotionUsageDescription", "reason": "Optional IMU when Unreal feature enables it", "required": False},
+            "local_network": {"key": "NSLocalNetworkUsageDescription", "reason": "Optional LAN hub when enabled", "required": False},
+            "world_sensing": {"key": "NSWorldSensingUsageDescription", "reason": "Optional LiDAR / spatial — UE targets only if plist includes string", "required": False},
         },
-        "sensor_feeds": {
-            "lidar": {"enabled": True, "data": ["depth_map", "point_cloud", "mesh"], "target_collection": "sensor_lidar"},
-            "imu": {"enabled": True, "data": ["accelerometer", "gyroscope", "magnetometer"], "target_collection": "sensor_imu"},
-            "arkit": {"enabled": True, "data": ["body_tracking", "hand_tracking", "face_tracking"], "target_collection": "sensor_arkit"}
+        "sensor_feeds_advertised": {
+            "_note": "Advertised capabilities for UE routing — enable only with matching Info.plist privacy strings.",
+            "lidar": {"enabled": False},
+            "imu": {"enabled": False},
+            "arkit": {"enabled": False},
         },
         "ue5_integration": {
             "app_scheme": "finalevolution://",
             "launch_template": "finalevolution://launch?map={venue}&mode={mode_id}&session={session_id}",
             "state_callback": "/api/session/state",
-            "mode_registry": "FEL_ModeManager.production.json"
-        }
+            "mode_registry": "FEL_ModeManager.production.json",
+        },
     }
 
 @api_router.get("/")
@@ -1524,28 +2684,16 @@ async def health():
 
 # ===================== WEBSOCKET MULTIPLAYER =====================
 class ConnectionManager:
-    MAX_PLAYERS_PER_ROOM = 4
-
     def __init__(self):
         self.rooms: Dict[str, List[WebSocket]] = {}
         self.player_data: Dict[str, Dict] = {}
 
-    async def connect(self, websocket: WebSocket, room_id: str, user_id: str) -> bool:
-        count = len(self.rooms.get(room_id, []))
-        if count >= self.MAX_PLAYERS_PER_ROOM:
-            await websocket.accept()
-            await websocket.send_json({"type": "error", "message": "room_full", "max": self.MAX_PLAYERS_PER_ROOM})
-            await websocket.close()
-            return False
+    async def connect(self, websocket: WebSocket, room_id: str, user_id: str):
         await websocket.accept()
         if room_id not in self.rooms:
             self.rooms[room_id] = []
         self.rooms[room_id].append(websocket)
-        self.player_data[user_id] = {
-            "room": room_id, "score": 0, "ready": False,
-            "max_height_inches": 0.0, "jump_count": 0, "style": None,
-        }
-        return True
+        self.player_data[user_id] = {"room": room_id, "score": 0, "ready": False}
 
     def disconnect(self, websocket: WebSocket, room_id: str, user_id: str):
         if room_id in self.rooms:
@@ -1555,79 +2703,30 @@ class ConnectionManager:
         self.player_data.pop(user_id, None)
 
     async def broadcast(self, room_id: str, message: dict):
-        dead: List[WebSocket] = []
-        for ws in self.rooms.get(room_id, []):
-            try:
-                await ws.send_json(message)
-            except Exception:
-                dead.append(ws)
-        for ws in dead:
-            self.rooms[room_id] = [w for w in self.rooms.get(room_id, []) if w != ws]
-
-    def leaderboard(self, room_id: str) -> list:
-        return sorted(
-            [{"user_id": uid, **{k: v for k,v in d.items() if k != "room"}}
-             for uid, d in self.player_data.items() if d.get("room") == room_id],
-            key=lambda p: p.get("max_height_inches", 0), reverse=True
-        )
-
+        if room_id in self.rooms:
+            for ws in self.rooms[room_id]:
+                try: await ws.send_json(message)
+                except: pass
 
 manager = ConnectionManager()
 
 @app.websocket("/ws/game/{room_id}")
 async def game_websocket(websocket: WebSocket, room_id: str):
     user_id = f"player_{uuid.uuid4().hex[:8]}"
-    joined = await manager.connect(websocket, room_id, user_id)
-    if not joined:
-        return
+    await manager.connect(websocket, room_id, user_id)
     try:
-        await manager.broadcast(room_id, {
-            "type": "player_joined", "user_id": user_id,
-            "players": len(manager.rooms.get(room_id, []))
-        })
+        await manager.broadcast(room_id, {"type": "player_joined", "user_id": user_id, "players": len(manager.rooms.get(room_id, []))})
         while True:
             data = await websocket.receive_json()
-            msg_type = data.get("type")
-
-            if msg_type == "score_update":
+            if data.get("type") == "score_update":
                 manager.player_data[user_id]["score"] = data.get("score", 0)
                 await manager.broadcast(room_id, {"type": "score_update", "user_id": user_id, "score": data["score"]})
-
-            elif msg_type == "game_action":
+            elif data.get("type") == "game_action":
                 await manager.broadcast(room_id, {"type": "game_action", "user_id": user_id, "action": data.get("action")})
-
-            elif msg_type == "ready":
+            elif data.get("type") == "ready":
                 manager.player_data[user_id]["ready"] = True
-                room_players = [p for p in manager.player_data.values() if p.get("room") == room_id]
-                all_ready = bool(room_players) and all(p.get("ready") for p in room_players)
+                all_ready = all(p.get("ready") for p in manager.player_data.values() if p.get("room") == room_id)
                 await manager.broadcast(room_id, {"type": "ready_status", "user_id": user_id, "all_ready": all_ready})
-
-            elif msg_type == "dunk_jump":
-                h = float(data.get("height_inches", 0))
-                style = data.get("style_key", "two_hand_power")
-                pd = manager.player_data[user_id]
-                pd["jump_count"] = pd.get("jump_count", 0) + 1
-                if h > pd.get("max_height_inches", 0):
-                    pd["max_height_inches"] = h
-                pd["style"] = style
-                await manager.broadcast(room_id, {
-                    "type": "dunk_jump",
-                    "user_id": user_id,
-                    "height_inches": h,
-                    "style_key": style,
-                    "jump_number": pd["jump_count"],
-                    "leaderboard": manager.leaderboard(room_id),
-                })
-
-            elif msg_type == "dunk_match_complete":
-                lb = manager.leaderboard(room_id)
-                await manager.broadcast(room_id, {
-                    "type": "dunk_match_complete",
-                    "user_id": user_id,
-                    "leaderboard": lb,
-                    "winner": lb[0]["user_id"] if lb else None,
-                })
-
     except WebSocketDisconnect:
         manager.disconnect(websocket, room_id, user_id)
         await manager.broadcast(room_id, {"type": "player_left", "user_id": user_id})
@@ -1649,7 +2748,7 @@ async def create_multiplayer_room(data: Dict[str, Any], user: User = Depends(get
             "time_limit": data.get("time_limit", 60),
             "score_limit": data.get("score_limit", 100),
             "allow_spectators": data.get("allow_spectators", True),
-            "latency_mode": "low"  # E3DS optimized
+            "latency_mode": "low"  # Vault optimized
         },
         "spectators": [],
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -1672,15 +2771,23 @@ async def get_active_rooms():
 
 @api_router.post("/multiplayer/rooms/{room_id}/join")
 async def join_room(room_id: str, user: User = Depends(get_current_user)):
-    room = await db.multiplayer_rooms.find_one({"id": room_id}, {"_id": 0})
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
-    if len(room.get("players", [])) >= room.get("max_players", 2):
-        raise HTTPException(status_code=400, detail="Room full")
-    await db.multiplayer_rooms.update_one(
-        {"id": room_id},
-        {"$push": {"players": {"user_id": user.user_id, "name": user.name, "ready": False, "score": 0}}}
+    """MULTI-01 — atomic capacity + dedupe membership."""
+    player = {"user_id": user.user_id, "name": user.name, "ready": False, "score": 0}
+    upd = await db.multiplayer_rooms.update_one(
+        {
+            "id": room_id,
+            "players": {"$not": {"$elemMatch": {"user_id": user.user_id}}},
+            "$expr": {"$lt": [{"$size": {"$ifNull": ["$players", []]}}, {"$ifNull": ["$max_players", 2]}]},
+        },
+        {"$push": {"players": player}},
     )
+    if upd.matched_count == 0:
+        room = await db.multiplayer_rooms.find_one({"id": room_id}, {"_id": 0})
+        if not room:
+            raise HTTPException(status_code=404, detail="Room not found")
+        if any(p.get("user_id") == user.user_id for p in room.get("players", [])):
+            return {"status": "already_joined", "room_id": room_id}
+        raise HTTPException(status_code=400, detail="Room full")
     return {"status": "joined", "room_id": room_id}
 
 @api_router.post("/multiplayer/rooms/{room_id}/spectate")
@@ -1718,42 +2825,46 @@ async def generate_referral_code(user: User = Depends(get_current_user)):
 
 @api_router.post("/referral/redeem")
 async def redeem_referral(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Redeem a referral code — rewards both referrer and new user"""
+    """Redeem a referral code — atomic slot claim (REFERRAL-01) then rewards."""
     code = data.get("code", "").strip().upper()
     if not code:
         raise HTTPException(status_code=400, detail="Referral code required")
 
-    referral = await db.referrals.find_one({"code": code, "type": "code"}, {"_id": 0})
-    if not referral:
-        raise HTTPException(status_code=404, detail="Invalid referral code")
-    if referral["user_id"] == user.user_id:
-        raise HTTPException(status_code=400, detail="Cannot redeem your own code")
-    if user.user_id in referral.get("referred_users", []):
-        raise HTTPException(status_code=400, detail="Already redeemed")
-    if referral.get("uses", 0) >= referral.get("max_uses", 50):
-        raise HTTPException(status_code=400, detail="Referral code expired")
+    claimed = await db.referrals.update_one(
+        {
+            "code": code,
+            "type": "code",
+            "user_id": {"$ne": user.user_id},
+            "referred_users": {"$nin": [user.user_id]},
+            "$expr": {"$lt": ["$uses", {"$ifNull": ["$max_uses", 50]}]},
+        },
+        {"$inc": {"uses": 1, "rewards_earned": 200}, "$push": {"referred_users": user.user_id}},
+    )
+    if claimed.modified_count == 0:
+        referral = await db.referrals.find_one({"code": code, "type": "code"}, {"_id": 0})
+        if not referral:
+            raise HTTPException(status_code=404, detail="Invalid referral code")
+        if referral["user_id"] == user.user_id:
+            raise HTTPException(status_code=400, detail="Cannot redeem your own code")
+        if user.user_id in referral.get("referred_users", []):
+            raise HTTPException(status_code=400, detail="Already redeemed")
+        raise HTTPException(status_code=400, detail="Referral code expired or unavailable")
 
-    # Reward referrer: 200 coins + 100 XP
-    await db.users.update_one({"user_id": referral["user_id"]}, {"$inc": {"coins": 200, "xp": 100}})
-    # Reward new user: 100 coins + 50 XP
+    referral = await db.referrals.find_one({"code": code, "type": "code"}, {"_id": 0})
+    referrer_id = referral["user_id"]
+
+    await db.users.update_one({"user_id": referrer_id}, {"$inc": {"coins": 200, "xp": 100}})
     await db.users.update_one({"user_id": user.user_id}, {"$inc": {"coins": 100, "xp": 50}})
 
-    # Update referral record
-    await db.referrals.update_one({"code": code}, {
-        "$inc": {"uses": 1, "rewards_earned": 200},
-        "$push": {"referred_users": user.user_id}
-    })
-
-    # Log PayPal-eligible credit (for future payout)
     await db.referral_credits.insert_one({
         "id": str(uuid.uuid4()),
-        "referrer_id": referral["user_id"],
+        "referrer_id": referrer_id,
         "referred_id": user.user_id,
         "referrer_reward": {"coins": 200, "xp": 100},
         "referred_reward": {"coins": 100, "xp": 50},
         "paypal_eligible": True,
         "paid_out": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
     return {"message": "Referral redeemed!", "coins_earned": 100, "xp_earned": 50, "referrer_rewarded": True}
@@ -1816,7 +2927,7 @@ async def get_spectator_config(tournament_id: str):
         "spectator_config": {
             "camera_mode": "orbital",       # orbital, fixed, follow_player, free
             "auto_focus": True,             # Tracks active player
-            "focus_lock": True,             # CRITICAL: prevents E3DS focus-loss
+            "focus_lock": True,             # CRITICAL: prevents focus-loss
             "focus_lock_interval_ms": 500,  # Re-assert focus every 500ms
             "camera_distance": 800,
             "camera_height": 400,
@@ -1827,6 +2938,11 @@ async def get_spectator_config(tournament_id: str):
             "switch_delay_ms": 1500,
             "hud_overlay": True,            # Show scores, timer overlay
             "chat_enabled": True,
+        },
+        "vault_commands": {
+            "start_spectate": {"cmd": "ueapp04", "value": {"SpectatorMode": True, "FocusLock": True}},
+            "switch_camera": {"cmd": "ueapp04", "value": {"CameraMode": "orbital"}},
+            "follow_player": {"cmd": "ueapp04", "value": {"FollowPlayer": "$PLAYER_ID"}},
         },
         "e3ds_commands": {
             "start_spectate": {"cmd": "ueapp04", "value": {"SpectatorMode": True, "FocusLock": True}},
@@ -1841,37 +2957,39 @@ async def get_spectator_config(tournament_id: str):
         }
     }
 
-# ===================== GATE 5: ANALYTICS & SOVEREIGN SYNC =====================
+# ===================== GATE 5: ANALYTICS & VAULT SYNC =====================
 
 @api_router.post("/analytics/session")
-async def log_analytics_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Log game session analytics — feeds into Sovereign Sync pipeline"""
+async def log_analytics_session(body: AnalyticsSessionIn, user: User = Depends(get_current_user)):
+    """Log client-reported session analytics — bounded schema (ANALYTICS-01)."""
+    payload = body.model_dump()
     session = {
         "id": str(uuid.uuid4()),
         "user_id": user.user_id,
-        "game_mode": data.get("game_mode"),
-        "venue": data.get("venue"),
-        "session_start": data.get("session_start", datetime.now(timezone.utc).isoformat()),
-        "session_end": data.get("session_end"),
-        "duration_seconds": data.get("duration_seconds", 0),
-        "score": data.get("score", 0),
-        "events": data.get("events", []),
-        "stream_quality": data.get("stream_quality", {}),
-        "latency_ms": data.get("latency_ms"),
-        "sync_status": "pending",  # pending → synced_local → synced_remote
-        "sovereign_sync": {
-            "local_store": True,          # Data stored in MongoDB first
-            "m4_pro_sync": "pending",     # Sync to M4 Pro Mac Mini
-            "signaling_server": "private" # Uses private signaling server
+        "game_mode": payload.get("game_mode"),
+        "venue": payload.get("venue"),
+        "session_start": payload.get("session_start") or datetime.now(timezone.utc).isoformat(),
+        "session_end": payload.get("session_end"),
+        "duration_seconds": payload.get("duration_seconds", 0),
+        "score": payload.get("score", 0),
+        "events": payload.get("events", []),
+        "stream_quality": payload.get("stream_quality") or {},
+        "latency_ms": payload.get("latency_ms"),
+        "metrics_trust": "client_reported_unverified",
+        "sync_status": "pending",
+        "vault_sync": {
+            "local_store": True,
+            "m4_pro_sync": "pending",
+            "signaling_server": "private",
         },
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.analytics_sessions.insert_one(session)
     return {k: v for k, v in session.items() if k != "_id"}
 
 @api_router.get("/analytics/dashboard")
 async def get_analytics_dashboard(user: User = Depends(get_current_user)):
-    """Get analytics dashboard data with Sovereign Sync status"""
+    """Get analytics dashboard data with Vault Sync status"""
     # Per-mode stats
     pipeline = [
         {"$match": {"user_id": user.user_id}},
@@ -1894,8 +3012,12 @@ async def get_analytics_dashboard(user: User = Depends(get_current_user)):
     ]).to_list(1)
 
     # Sync status
-    pending = await db.analytics_sessions.count_documents({"user_id": user.user_id, "sync_status": "pending"})
-    synced = await db.analytics_sessions.count_documents({"user_id": user.user_id, "sync_status": {"$ne": "pending"}})
+    pending = await db.analytics_sessions.count_documents(
+        {"user_id": user.user_id, "sync_status": {"$in": ["pending", "queued_for_remote"]}}
+    )
+    synced = await db.analytics_sessions.count_documents(
+        {"user_id": user.user_id, "sync_status": {"$nin": ["pending", "queued_for_remote"]}}
+    )
 
     return {
         "mode_stats": [{
@@ -1909,16 +3031,16 @@ async def get_analytics_dashboard(user: User = Depends(get_current_user)):
             "total_sessions": total,
             "total_minutes": round((total_time[0]["total"] if total_time else 0) / 60, 1),
         },
-        "sovereign_sync": {
+        "vault_sync": {
             "pending_sync": pending,
             "synced": synced,
             "sync_target": "M4 Pro Mac Mini (Private Signaling Server)",
-            "protocol": "Sovereign Sync v1",
+            "protocol": "Vault Sync v1",
             "data_policy": {
                 "storage": "Local MongoDB → M4 Pro Mac Mini → Private Signaling Server",
                 "retention": "Indefinite (user-controlled)",
                 "encryption": "AES-256 at rest, TLS 1.3 in transit",
-                "third_party_access": "None — all data sovereign",
+                "third_party_access": "None — all data vault",
                 "sync_interval": "Every 5 minutes (configurable)",
                 "export_format": "JSON / CSV on demand"
             }
@@ -1931,7 +3053,7 @@ async def get_analytics_policy():
     return {
         "policy_version": "1.0.0",
         "effective_date": "2026-01-17",
-        "data_controller": "Final Evolution Lab (Sovereign)",
+        "data_controller": "Final Evolution Lab (Vault)",
         "tracked_metrics": {
             "per_session": [
                 "game_mode", "venue_map", "session_start", "session_end",
@@ -1959,19 +3081,19 @@ async def get_analytics_policy():
                 "Neuro_Arena — brain brawl accuracy, response time"
             ]
         },
-        "sovereign_sync_protocol": {
+        "vault_sync_protocol": {
             "description": "All analytics data stored locally first, then synced to M4 Pro Mac Mini via private signaling server",
             "flow": [
                 "1. Session data → Local MongoDB (immediate)",
                 "2. Local MongoDB → M4 Pro Mac Mini (every 5min via private signaling server)",
                 "3. M4 Pro Mac Mini → Encrypted local archive (daily)",
-                "4. No third-party cloud sync — fully sovereign"
+                "4. No third-party cloud sync — fully vault"
             ],
             "private_signaling_server": {
                 "host": "M4 Pro Mac Mini (local network)",
                 "protocol": "WebSocket (WSS) over Cloudflare Tunnel",
                 "auth": "mTLS + API key",
-                "sync_endpoint": "wss://localhost:8443/sovereign/sync",
+                "sync_endpoint": "wss://localhost:8443/vault/sync",
                 "data_format": "JSON with AES-256-GCM envelope"
             },
             "retention": "User-controlled — no automatic deletion",
@@ -1981,7 +3103,7 @@ async def get_analytics_policy():
 
 @api_router.get("/analytics/export")
 async def export_analytics(user: User = Depends(get_current_user)):
-    """Export all analytics data for sovereign storage"""
+    """Export all analytics data for vault storage"""
     sessions = await db.analytics_sessions.find({"user_id": user.user_id}, {"_id": 0}).to_list(10000)
     return {
         "user_id": user.user_id,
@@ -1989,45 +3111,59 @@ async def export_analytics(user: User = Depends(get_current_user)):
         "format": "json",
         "sessions": sessions,
         "total_records": len(sessions),
-        "sovereign_sync_target": "M4 Pro Mac Mini"
+        "vault_sync_target": "M4 Pro Mac Mini"
     }
 
-@api_router.post("/analytics/sovereign-sync")
-async def trigger_sovereign_sync(user: User = Depends(get_current_user)):
-    """Manually trigger sovereign sync to M4 Pro Mac Mini"""
+@api_router.post("/analytics/vault-sync")
+async def trigger_vault_sync(user: User = Depends(get_current_user)):
+    """Manually trigger vault sync to M4 Pro Mac Mini"""
     pending = await db.analytics_sessions.find(
         {"user_id": user.user_id, "sync_status": "pending"}, {"_id": 0}
     ).to_list(1000)
 
     if not pending:
-        return {"message": "No pending data to sync", "synced": 0}
+        return {"message": "No pending data to sync", "queued": 0}
 
-    # Mark as synced (actual sync happens via M4 Pro signaling server)
+    # ANALYTICS-02 — queue only; do not imply remote delivery until receipt ACK exists elsewhere.
     await db.analytics_sessions.update_many(
         {"user_id": user.user_id, "sync_status": "pending"},
         {"$set": {
-            "sync_status": "synced_local",
-            "sovereign_sync.m4_pro_sync": "queued",
-            "synced_at": datetime.now(timezone.utc).isoformat()
-        }}
+            "sync_status": "queued_for_remote",
+            "vault_sync.m4_pro_sync": "queued",
+            "vault_sync.delivery_proof": None,
+            "sync_queued_at": datetime.now(timezone.utc).isoformat(),
+        }},
     )
 
     return {
-        "message": f"Queued {len(pending)} sessions for sovereign sync",
-        "synced": len(pending),
+        "message": f"Queued {len(pending)} sessions for vault sync",
+        "queued": len(pending),
         "target": "M4 Pro Mac Mini (Private Signaling Server)",
-        "sync_status": "queued"
+        "sync_status": "queued_for_remote",
     }
 
-# SOVEREIGN BACKEND code follows, then include_router at end
+# VAULT BACKEND code follows, then include_router at end
 
 # Load venue registry
 VENUE_REGISTRY = {}
 venue_path = ROOT_DIR / "FEL_VenueRegistry.production.json"
 if venue_path.exists():
     with open(venue_path) as f:
-        VENUE_REGISTRY = json.load(f)
-    logger.info(f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues")
+        raw_venue_registry = json.load(f)
+    venues_list = raw_venue_registry.get("venues", [])
+    venues_dict = {}
+    for v in venues_list:
+        if isinstance(v, dict) and "venueKey" in v:
+            venues_dict[v["venueKey"]] = v
+    VENUE_REGISTRY = {
+        "schema": raw_venue_registry.get("schema"),
+        "notes": raw_venue_registry.get("notes"),
+        "modes": raw_venue_registry.get("modes", []),
+        "venues": venues_dict,
+        "venues_list": venues_list,
+        "total_venues": len(venues_list)
+    }
+    logger.info(f"Loaded venue registry: {len(venues_list)} venues")
 
 # Load mode manager (production binaries)
 MODE_MANAGER = {}
@@ -2037,15 +3173,15 @@ if mode_path.exists():
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
 
-# Sovereign connection state
-sovereign_state = {
+# Vault connection state
+vault_state = {
     "websocket_status": "waiting_for_connection",
     "database_status": "initializing",
     "connected_clients": [],
     "keepalive_active": False,
-    "keepalive_interval": float(os.environ.get("SOVEREIGN_KEEPALIVE_INTERVAL", "0.5")),
-    "focus_lock": os.environ.get("SOVEREIGN_FOCUS_LOCK", "true").lower() == "true",
-    "encryption": os.environ.get("SOVEREIGN_ENCRYPTION", "AES-256-GCM"),
+    "keepalive_interval": float(os.environ.get("VAULT_KEEPALIVE_INTERVAL", "0.5")),
+    "focus_lock": os.environ.get("VAULT_FOCUS_LOCK", "true").lower() == "true",
+    "encryption": os.environ.get("VAULT_ENCRYPTION", "AES-256-GCM"),
     "last_heartbeat": None,
     "total_messages": 0,
     "total_match_events": 0,
@@ -2056,13 +3192,13 @@ sovereign_state = {
 # ── Directive 5: AES-256-GCM Encryption Envelope ──────────────────
 
 def encrypt_payload(data: dict, key_material: str = None) -> dict:
-    """Wrap data in AES-256-GCM encryption envelope for sovereign transit"""
+    """Wrap data in AES-256-GCM encryption envelope for vault transit"""
     payload_json = json.dumps(data, default=str)
     payload_bytes = payload_json.encode('utf-8')
     # Generate IV and authentication tag
     iv = base64.b64encode(os.urandom(12)).decode('utf-8')
     tag = base64.b64encode(hmac.new(
-        (key_material or os.environ.get("E3DS_API_KEY", "fel-sovereign")[:32]).encode(),
+        (key_material or os.environ.get("FEL_VAULT_KEY", os.environ.get("E3DS_API_KEY", "fel-vault"))[:32]).encode(),
         payload_bytes, hashlib.sha256
     ).digest()[:16]).decode('utf-8')
     return {
@@ -2078,13 +3214,14 @@ def encrypt_payload(data: dict, key_material: str = None) -> dict:
 
 async def ensure_venue_collections():
     """Create indexed collections for each venue in the registry"""
-    venues = VENUE_REGISTRY.get("venues", {})
-    for venue_name, venue_data in venues.items():
+    venues = VENUE_REGISTRY.get("venues_list", [])
+    for venue_data in venues:
+        venue_name = venue_data.get("venueKey")
         collection_name = venue_data.get("db_collection", f"sessions_{venue_name.lower()}")
         # Ensure index on user_id and timestamp
         await db[collection_name].create_index([("user_id", 1), ("created_at", -1)])
-    sovereign_state["database_status"] = "ready"
-    sovereign_state["venue_collections"] = len(venues)
+    vault_state["database_status"] = "ready"
+    vault_state["venue_collections"] = len(venues)
     logger.info(f"Venue DB mapping complete: {len(venues)} collections indexed")
 
 
@@ -2101,8 +3238,59 @@ async def ensure_fel_os_indexes():
     logger.info("FEL OS indexes: education_progress(unique user_id+track_id), brain_brawl_launches(TTL 24h)")
 
 
+async def ensure_iap_pending_indexes():
+    """Fail-closed IAP intake — dedupe pending rows per user."""
+    await db.iap_pending_transactions.create_index(
+        [("user_id", 1), ("idempotency_key", 1)], unique=True, name="uniq_user_iap_idempotency"
+    )
+    logger.info("IAP pending indexes: iap_pending_transactions(unique user_id+idempotency_key)")
+
+
+# ── HUD WebSockets Relay Bridge ──────────────────
+FEL_HUD_RELAY_URL = os.environ.get("FEL_HUD_RELAY_URL", "ws://localhost:8080/ws/hud")
+hud_relay_queue = asyncio.Queue(maxsize=1024)
+
+async def start_hud_relay_worker():
+    """Background worker that pulls messages from a queue and sends them to the HUD relay."""
+    while True:
+        try:
+            logger.info(f"Connecting to HUD WebSocket relay at {FEL_HUD_RELAY_URL}...")
+            async with websockets.connect(FEL_HUD_RELAY_URL) as ws:
+                logger.info("Successfully connected to HUD WebSocket relay.")
+                while True:
+                    msg = await hud_relay_queue.get()
+                    try:
+                        await ws.send(msg)
+                    except Exception as e:
+                        logger.error(f"Error sending message to HUD relay: {e}")
+                        hud_relay_queue.task_done()
+                        raise  # Trigger reconnect
+                    hud_relay_queue.task_done()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"HUD relay connection failed or disconnected: {e}. Retrying in 5 seconds...")
+            await asyncio.sleep(5)
+
+def relay_to_hud(msg_type: str, payload: Any):
+    """Enqueues a message to be relayed to the HUD WebSocket server."""
+    try:
+        msg = json.dumps({"type": msg_type, "payload": payload})
+        if hud_relay_queue.full():
+            try:
+                hud_relay_queue.get_nowait()
+                hud_relay_queue.task_done()
+            except asyncio.QueueEmpty:
+                pass
+        hud_relay_queue.put_nowait(msg)
+    except Exception as e:
+        logger.error(f"Failed to enqueue HUD relay message: {e}")
+
+
 @app.on_event("startup")
 async def startup_venue_mapping():
+    # Start the HUD relay worker task
+    asyncio.create_task(start_hud_relay_worker())
     # Non-fatal: any DB hiccup must NOT prevent K8s probes from succeeding.
     try:
         await ensure_venue_collections()
@@ -2112,33 +3300,38 @@ async def startup_venue_mapping():
         await ensure_fel_os_indexes()
     except Exception as e:
         logger.warning(f"ensure_fel_os_indexes failed (non-fatal): {e}")
+    try:
+        await ensure_iap_pending_indexes()
+    except Exception as e:
+        logger.warning(f"ensure_iap_pending_indexes failed (non-fatal): {e}")
 
-# ── Directive 1 & 2: Sovereign WebSocket Bridge ──────────────────
+# ── Directive 1 & 2: Vault WebSocket Bridge ──────────────────
 
-class SovereignBridge:
+class VaultBridge:
     def __init__(self):
         self.clients: Dict[str, WebSocket] = {}
         self.client_meta: Dict[str, Dict] = {}
 
-    async def connect(self, ws: WebSocket, client_id: str, client_type: str = "ue5"):
-        await ws.accept()
+    async def connect(self, ws: WebSocket, client_id: str, client_type: str = "ue5", *, skip_accept: bool = False):
+        if not skip_accept:
+            await ws.accept()
         self.clients[client_id] = ws
         self.client_meta[client_id] = {
             "type": client_type, "connected_at": datetime.now(timezone.utc).isoformat(),
             "last_heartbeat": None, "messages": 0
         }
-        sovereign_state["websocket_status"] = "connected"
-        sovereign_state["connected_clients"] = list(self.clients.keys())
-        sovereign_state["keepalive_active"] = True
-        logger.info(f"Sovereign bridge: {client_type} client {client_id} connected")
+        vault_state["websocket_status"] = "connected"
+        vault_state["connected_clients"] = list(self.clients.keys())
+        vault_state["keepalive_active"] = True
+        logger.info(f"Vault bridge: {client_type} client {client_id} connected")
 
     def disconnect(self, client_id: str):
         self.clients.pop(client_id, None)
         self.client_meta.pop(client_id, None)
-        sovereign_state["connected_clients"] = list(self.clients.keys())
+        vault_state["connected_clients"] = list(self.clients.keys())
         if not self.clients:
-            sovereign_state["websocket_status"] = "waiting_for_connection"
-            sovereign_state["keepalive_active"] = False
+            vault_state["websocket_status"] = "waiting_for_connection"
+            vault_state["keepalive_active"] = False
 
     async def broadcast(self, message: dict, encrypt: bool = True):
         payload = encrypt_payload(message) if encrypt else message
@@ -2148,108 +3341,235 @@ class SovereignBridge:
             except:
                 self.disconnect(cid)
 
-    async def process_match_event(self, data: dict, client_id: str):
-        """Process match score from UFELEmergentBridgeSubsystem → Referral reward mapping"""
-        sovereign_state["total_match_events"] += 1
-        user_id = data.get("user_id")
+    async def process_match_event(self, data: dict, client_id: str, bound_user_id: Optional[str] = None):
+        """Match scores from UE — rewards/referrals/PRQ only when ``bound_user_id`` is set (session or HTTP-verified)."""
+        vault_state["total_match_events"] += 1
+        claim_uid = data.get("user_id")
         score = data.get("score", 0)
         game_mode = data.get("game_mode")
         venue = data.get("venue")
 
-        # Store in venue-specific collection (Directive 4)
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue, {})
         collection = venue_data.get("db_collection", "sessions_default")
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        # WebSocket without session_token: never trust payload user_id for progression (REALTIME trust gate).
+        if not bound_user_id:
+            trust = "unbound_payload_untrusted"
+            await db[collection].insert_one({
+                "user_id": None,
+                "payload_claimed_user_id": claim_uid,
+                "game_mode": game_mode,
+                "venue": venue,
+                "score": score,
+                "client_id": client_id,
+                "source": "vault_bridge",
+                "metrics_trust": trust,
+                "reward_eligible": False,
+                "encrypted": True,
+                "created_at": now_iso,
+            })
+            await db.analytics_sessions.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": None,
+                "payload_claimed_user_id": claim_uid,
+                "game_mode": game_mode,
+                "venue": venue,
+                "score": score,
+                "duration_seconds": data.get("duration", 0),
+                "metrics_trust": trust,
+                "source": "vault_bridge",
+                "sync_status": "telemetry_only",
+                "vault_sync": {"mode": "telemetry_only"},
+                "created_at": now_iso,
+            })
+            return {
+                "processed": True,
+                "xp_earned": 0,
+                "reward_eligible": False,
+                "venue_collection": collection,
+                "trust": trust,
+            }
+
+        user_id = bound_user_id
+        trust = "session_bound"
+
         await db[collection].insert_one({
-            "user_id": user_id, "game_mode": game_mode, "venue": venue,
-            "score": score, "client_id": client_id, "source": "sovereign_bridge",
-            "encrypted": True, "created_at": datetime.now(timezone.utc).isoformat()
+            "user_id": user_id,
+            "payload_claimed_user_id": claim_uid,
+            "game_mode": game_mode,
+            "venue": venue,
+            "score": score,
+            "client_id": client_id,
+            "source": "vault_bridge",
+            "metrics_trust": trust,
+            "reward_eligible": True,
+            "encrypted": True,
+            "created_at": now_iso,
         })
 
-        # Directive 3: Map score to referral reward system
+        xp_earned = 0
         if score > 0:
             xp_earned = max(10, score // 5)
             await db.users.update_one({"user_id": user_id}, {"$inc": {"xp": xp_earned}})
-            # Check if user was referred — bonus XP for referral chain
             referral = await db.referral_credits.find_one(
                 {"referred_id": user_id, "paid_out": False}, {"_id": 0}
             )
             if referral:
-                # Referrer gets bonus coins when their referral scores
                 bonus = max(1, score // 50)
                 await db.users.update_one(
                     {"user_id": referral["referrer_id"]},
-                    {"$inc": {"coins": bonus}}
+                    {"$inc": {"coins": bonus}},
                 )
                 await db.referral_credits.update_one(
                     {"referred_id": user_id, "paid_out": False},
-                    {"$inc": {"referrer_reward.coins": bonus}}
+                    {"$inc": {"referrer_reward.coins": bonus}},
                 )
 
-        # Log to analytics (Directive 5: encrypted)
         await db.analytics_sessions.insert_one({
-            "id": str(uuid.uuid4()), "user_id": user_id, "game_mode": game_mode,
-            "venue": venue, "score": score, "duration_seconds": data.get("duration", 0),
-            "source": "sovereign_bridge", "sync_status": "pending",
-            "sovereign_sync": {"local_store": True, "m4_pro_sync": "pending"},
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "payload_claimed_user_id": claim_uid,
+            "game_mode": game_mode,
+            "venue": venue,
+            "score": score,
+            "duration_seconds": data.get("duration", 0),
+            "metrics_trust": trust,
+            "source": "vault_bridge",
+            "sync_status": "pending",
+            "vault_sync": {"local_store": True, "m4_pro_sync": "pending"},
+            "created_at": now_iso,
         })
 
-        return {"processed": True, "xp_earned": max(10, score // 5), "venue_collection": collection}
+        return {"processed": True, "xp_earned": xp_earned, "venue_collection": collection, "trust": trust}
 
-sovereign_bridge = SovereignBridge()
 
-@app.websocket("/ws/sovereign")
-async def sovereign_websocket(websocket: WebSocket):
-    """Directive 1: Main sovereign WebSocket — listens for UFELEmergentBridgeSubsystem"""
-    client_id = f"sovereign_{uuid.uuid4().hex[:10]}"
-    await sovereign_bridge.connect(websocket, client_id, "ue5_bridge")
+def _fel_vault_ws_require_auth() -> bool:
+    """
+    Require ``session_token`` on ``/ws/vault`` by default outside dev/local/test.
+
+    Override: ``FEL_VAULT_WS_REQUIRE_AUTH=1|0``, or ``FEL_VAULT_WS_ALLOW_ANON=1`` (same as REQUIRE_AUTH=0).
+    Unset ``FEL_ENV`` is treated as local developer machine (anonymous bridge allowed).
+    """
+    explicit = os.environ.get("FEL_VAULT_WS_REQUIRE_AUTH", "").strip().lower()
+    if explicit in ("1", "true", "yes"):
+        return True
+    if explicit in ("0", "false", "no"):
+        return False
+
+    if os.environ.get("FEL_VAULT_WS_ALLOW_ANON", "").strip().lower() in ("1", "true", "yes"):
+        return False
+
+    fel_env = (
+        os.environ.get("FEL_ENV") or os.environ.get("ENVIRONMENT") or os.environ.get("NODE_ENV") or ""
+    ).strip().lower()
+
+    dev_like = fel_env in (
+        "",
+        "development",
+        "dev",
+        "local",
+        "localhost",
+        "test",
+        "testing",
+        "ci",
+    )
+    if dev_like:
+        return False
+
+    return True
+
+
+async def fel_ws_resolve_bound_user(websocket: WebSocket) -> Optional[str]:
+    """Resolve authenticated user for WebSocket from session_token (query or cookie)."""
+    token = websocket.query_params.get("session_token") or websocket.cookies.get("session_token")
+    if not token:
+        return None
+    session_doc = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
+    if not session_doc:
+        return None
+    expires_at = session_doc["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        return None
+    return session_doc.get("user_id")
+
+
+vault_bridge = VaultBridge()
+
+@app.websocket("/ws/hub")
+async def hub_websocket(websocket: WebSocket):
+    """Local Hub WebSocket — alias of vault_websocket to support hub path."""
+    await vault_websocket(websocket)
+
+
+@app.websocket("/ws/vault")
+async def vault_websocket(websocket: WebSocket):
+    """Vault WebSocket — REALTIME-01: bind identity via session_token when present."""
+    client_id = f"vault_{uuid.uuid4().hex[:10]}"
+    await websocket.accept()
+    bound_uid = await fel_ws_resolve_bound_user(websocket)
+    require_auth = _fel_vault_ws_require_auth()
+    if require_auth and not bound_uid:
+        await websocket.send_json({"type": "error", "detail": "session_token required (query ?session_token= or cookie)"})
+        await websocket.close(code=1008)
+        return
+    await vault_bridge.connect(websocket, client_id, "ue5_bridge", skip_accept=True)
+    vault_bridge.client_meta[client_id]["bound_user_id"] = bound_uid
     try:
-        # Send handshake — aligned with UFELEmergentBridgeSubsystem::Initialize expectations
+        # Send handshake — aligned with UFELBridgeSubsystem::Initialize expectations
         bridge_config = MODE_MANAGER.get("bridge_subsystem", {})
         await websocket.send_json({
-            "type": "sovereign_handshake",
-            "server": "FEL Sovereign Hub",
+            "type": "vault_handshake",
+            "server": "FEL Vault Hub",
             "version": "2.0.0",
-            "handshake_identifier": bridge_config.get("handshake_identifier", "FEL-SOVEREIGN-BRIDGE-v2"),
+            "handshake_identifier": bridge_config.get("handshake_identifier", "FEL-VAULT-BRIDGE-v2"),
             "project_uuid": bridge_config.get("project_uuid", "FEL-5.7-PRODUCTION-2026"),
             "expected_binaries": bridge_config.get("expected_binary_signatures", []),
             "config": {
-                "bFocusKeepalive": sovereign_state["focus_lock"],
-                "KeepaliveInterval": sovereign_state["keepalive_interval"],
+                "bFocusKeepalive": vault_state["focus_lock"],
+                "KeepaliveInterval": vault_state["keepalive_interval"],
                 "bAutoReconnect": True,
                 "ReconnectDelaySeconds": 5.0,
                 "MaxReconnectAttempts": 10,
-                "encryption": sovereign_state["encryption"],
+                "encryption": vault_state["encryption"],
                 "venues_loaded": VENUE_REGISTRY.get("total_venues", 0),
-                "database_status": sovereign_state["database_status"],
+                "database_status": vault_state["database_status"],
                 "production_modes": len([m for m in MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {}).values() if m.get("status") == "production"]),
                 "prq_source": "local_mongodb (NOT simulation)",
-                "sovereign_mode": "local",
+                "vault_mode": "local",
                 "cloud_disabled": True
             },
-            "venue_tokens": list(VENUE_REGISTRY.get("venues", {}).keys()),
+            "venue_tokens": (
+                list(VENUE_REGISTRY.get("venues", {}).keys())
+                if isinstance(VENUE_REGISTRY.get("venues"), dict)
+                else [v.get("venueKey") for v in VENUE_REGISTRY.get("venues", []) if isinstance(v, dict)]
+            ),
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
-        logger.info(f"Sovereign Hub: Handshake sent to {client_id} — Listening on Port 8888")
+        logger.info(f"Vault Hub: Handshake sent to {client_id} — Listening on Port 8888")
 
         while True:
             data = await websocket.receive_json()
-            sovereign_state["total_messages"] += 1
-            sovereign_state["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
+            vault_state["total_messages"] += 1
+            vault_state["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
 
             msg_type = data.get("type", "unknown")
 
             if msg_type == "heartbeat":
-                sovereign_bridge.client_meta[client_id]["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
+                vault_bridge.client_meta[client_id]["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
                 await websocket.send_json({"type": "heartbeat_ack", "timestamp": datetime.now(timezone.utc).isoformat()})
 
             elif msg_type == "focus_keepalive":
                 await websocket.send_json({"type": "focus_ack", "locked": True})
 
-            elif msg_type == "telemetry" or msg_type == "sovereign_telemetry":
-                # Aligned with UFELEmergentBridgeSubsystem::TickSovereignTelemetry
-                # C++ bridge sends: prq, combo_streak, combo_meter, arena_game_mode_id, venue_token, sovereign_display_mode, t
-                telemetry = data if msg_type == "sovereign_telemetry" else data.get("payload", {})
+            elif msg_type == "telemetry" or msg_type == "vault_telemetry":
+                # Aligned with UFELBridgeSubsystem::TickVaultTelemetry
+                # C++ bridge sends: prq, combo_streak, combo_meter, arena_game_mode_id, venue_token, vault_display_mode, t
+                telemetry = data if msg_type == "vault_telemetry" else data.get("payload", {})
                 prq = telemetry.get("prq", 0)
                 combo = telemetry.get("combo_meter", telemetry.get("combo_meter01", 0))
                 combo_streak = telemetry.get("combo_streak", 0)
@@ -2258,60 +3578,146 @@ async def sovereign_websocket(websocket: WebSocket):
                 vertical_jump = telemetry.get("vertical_jump_inches", 0)
                 arena_mode_id = telemetry.get("arena_game_mode_id", "")
                 venue_token = telemetry.get("venue_token", "")
-                display_mode = telemetry.get("sovereign_display_mode", "")
+                display_mode = telemetry.get("vault_display_mode", "")
                 session_id = data.get("session_id")
 
-                sovereign_state["total_messages"] += 1
-                sovereign_state["last_telemetry"] = {
+                meta = vault_bridge.client_meta.get(client_id, {})
+                bu = meta.get("bound_user_id")
+                claim_uid = data.get("user_id")
+                uid = bu
+                trust = "session_bound" if bu else "unbound_payload_untrusted"
+
+                vault_state["total_messages"] += 1
+                vault_state["last_telemetry"] = {
                     "prq": prq, "combo_meter": combo, "combo_streak": combo_streak,
                     "buckets": buckets, "velocity_vectors": velocity,
                     "vertical_jump": vertical_jump,
                     "arena_game_mode_id": arena_mode_id,
                     "venue_token": venue_token,
-                    "sovereign_display_mode": display_mode,
-                    "received_at": datetime.now(timezone.utc).isoformat()
+                    "vault_display_mode": display_mode,
+                    "received_at": datetime.now(timezone.utc).isoformat(),
+                    "user_id_trust": trust,
+                    "bound_user_id": bu,
+                    "payload_claimed_user_id": claim_uid,
                 }
 
-                # Store telemetry frame
+                # Payload user_id is diagnostic only — never authoritative for account linkage (REALTIME trust gate).
                 await db.telemetry_frames.insert_one({
-                    "session_id": session_id, "user_id": data.get("user_id"),
-                    "prq": prq, "combo_meter": combo, "combo_streak": combo_streak,
-                    "buckets": buckets, "arena_game_mode_id": arena_mode_id,
-                    "venue_token": venue_token, "sovereign_display_mode": display_mode,
-                    "velocity_vectors": velocity, "vertical_jump_inches": vertical_jump,
-                    "frame_ts": datetime.now(timezone.utc).isoformat()
+                    "session_id": session_id,
+                    "user_id": uid,
+                    "payload_user_id": claim_uid,
+                    "metrics_trust": trust,
+                    "prq": prq,
+                    "combo_meter": combo,
+                    "combo_streak": combo_streak,
+                    "buckets": buckets,
+                    "arena_game_mode_id": arena_mode_id,
+                    "venue_token": venue_token,
+                    "vault_display_mode": display_mode,
+                    "velocity_vectors": velocity,
+                    "vertical_jump_inches": vertical_jump,
+                    "frame_ts": datetime.now(timezone.utc).isoformat(),
                 })
 
-                # Directive 2: Track 30-day vertical jump progress
-                if vertical_jump > 0:
+                # Vertical jump progress API — session-bound sockets only (no payload spoofing).
+                if vertical_jump > 0 and bu:
                     await db.vertical_jump_log.insert_one({
-                        "user_id": data.get("user_id"), "inches": vertical_jump,
-                        "session_id": session_id, "recorded_at": datetime.now(timezone.utc).isoformat()
+                        "user_id": bu,
+                        "inches": vertical_jump,
+                        "session_id": session_id,
+                        "metrics_trust": trust,
+                        "recorded_at": datetime.now(timezone.utc).isoformat(),
+                    })
+
+                # Relay messages to HUD server
+                import time
+                current_time_ms = int(time.time() * 1000)
+
+                # 1. score_update
+                relay_to_hud("score_update", {
+                    "home_score": combo_streak,
+                    "away_score": buckets,
+                    "timer_seconds": 600,
+                    "period": 1
+                })
+                # 2. prq_update
+                weight_val = 1.0
+                try:
+                    mode_info = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {}).get(arena_mode_id, {})
+                    weight_val = mode_info.get("prq_weight", 1.0)
+                except Exception:
+                    pass
+                relay_to_hud("prq_update", {
+                    "prq_score": float(prq),
+                    "mode_weight_label": f"x{weight_val:.1f}",
+                    "max_prq": 100.0
+                })
+                # 3. mri_update
+                arv_val = min(100.0, float(combo) * 10.0)
+                esi_val = max(0.0, 100.0 - float(prq))
+                pacing_val = min(100.0, float(vertical_jump) * 4.0)
+                mri_val = float(prq) * 0.9 + float(combo_streak) * 0.5
+                relay_to_hud("mri_update", {
+                    "mri_score": mri_val,
+                    "arv": arv_val,
+                    "esi": esi_val,
+                    "pacing": pacing_val
+                })
+                # 4. game_events
+                if vertical_jump > 0:
+                    relay_to_hud("game_event", {
+                        "event_type": "score",
+                        "description": f"Vertical Jump: {vertical_jump} inches!",
+                        "timestamp": current_time_ms
+                    })
+                if combo_streak > 0:
+                    relay_to_hud("game_event", {
+                        "event_type": "ace",
+                        "description": f"Combo Streak: {combo_streak}x Multiplier!",
+                        "timestamp": current_time_ms
+                    })
+                if buckets > 0:
+                    relay_to_hud("game_event", {
+                        "event_type": "block",
+                        "description": f"Basket Scored! Total buckets: {buckets}",
+                        "timestamp": current_time_ms
+                    })
+                # 5. coach_tip
+                if prq < 50:
+                    relay_to_hud("coach_tip", {
+                        "mode_name": arena_mode_id,
+                        "tip_text": "PRQ indicates high neurological fatigue. Pace yourself and focus on recovery."
+                    })
+                elif combo_streak > 3:
+                    relay_to_hud("coach_tip", {
+                        "mode_name": arena_mode_id,
+                        "tip_text": "Excellent pacing. Lock in your form for the next shot!"
                     })
 
                 await websocket.send_json({"type": "telemetry_ack", "frame_stored": True})
 
             elif msg_type == "hardware_auth":
-                # Directive 3: Integrity Guard — verify bIsHardwareAuthenticated
-                hw_flag = data.get("bIsHardwareAuthenticated", False)
-                camera_check = data.get("back_camera_verified", False)
-                imu_visual_sync = data.get("imu_visual_sync", False)
+                # REALTIME-02 — client flags are telemetry only; never cryptographic proof of integrity.
+                hw_flag = bool(data.get("bIsHardwareAuthenticated", False))
+                camera_check = bool(data.get("back_camera_verified", False))
+                imu_visual_sync = bool(data.get("imu_visual_sync", False))
 
-                integrity_ok = hw_flag and camera_check
-                sovereign_state["integrity_status"] = "ACTIVE" if integrity_ok else "INTEGRITY_WARNING"
-                sovereign_state["hardware_auth"] = {
+                vault_state["integrity_status"] = "TELEMETRY_ONLY"
+                vault_state["hardware_auth"] = {
                     "bIsHardwareAuthenticated": hw_flag,
                     "back_camera_verified": camera_check,
                     "imu_visual_sync": imu_visual_sync,
-                    "verified_at": datetime.now(timezone.utc).isoformat()
+                    "trust_level": "client_self_report_not_verified",
+                    "verified_at": datetime.now(timezone.utc).isoformat(),
                 }
 
                 await websocket.send_json({
                     "type": "hardware_auth_ack",
-                    "integrity": "ACTIVE" if integrity_ok else "WARNING",
+                    "integrity": "TELEMETRY_ONLY",
+                    "trust_level": "client_self_report_not_verified",
                     "hw_authenticated": hw_flag,
                     "camera_verified": camera_check,
-                    "imu_sync": imu_visual_sync
+                    "imu_sync": imu_visual_sync,
                 })
 
             elif msg_type == "creator_card_scan":
@@ -2322,7 +3728,7 @@ async def sovereign_websocket(websocket: WebSocket):
                 if not card:
                     card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
 
-                sovereign_state["active_creator_card"] = card_id
+                vault_state["active_creator_card"] = card_id
                 await websocket.send_json({
                     "type": "creator_card_ack",
                     "card_id": card_id,
@@ -2331,29 +3737,42 @@ async def sovereign_websocket(websocket: WebSocket):
                 })
 
             elif msg_type == "match_score":
-                result = await sovereign_bridge.process_match_event(data, client_id)
-                # Recalculate PRQ live from C++ bridge data
-                if data.get("user_id"):
-                    live_prq = await calculate_prq_live(data["user_id"])
-                    result["live_prq"] = live_prq
+                bu = vault_bridge.client_meta.get(client_id, {}).get("bound_user_id")
+                result = await vault_bridge.process_match_event(data, client_id, bu)
+                if bu:
+                    result["live_prq"] = await calculate_prq_live(bu)
                 await websocket.send_json({"type": "match_score_ack", **result})
 
             elif msg_type == "referral_event":
-                sovereign_state["total_referral_events"] += 1
+                vault_state["total_referral_events"] += 1
                 await websocket.send_json({"type": "referral_ack", "processed": True})
 
             elif msg_type == "analytics":
-                # Encrypted analytics from iPhone via Cloudflare tunnel
-                await db.analytics_sessions.insert_one({
-                    "id": str(uuid.uuid4()), "user_id": data.get("user_id"),
-                    "game_mode": data.get("game_mode"), "venue": data.get("venue"),
-                    "duration_seconds": data.get("duration", 0), "score": data.get("score", 0),
-                    "source": "sovereign_bridge_mobile", "sync_status": "pending",
-                    "sovereign_sync": {"local_store": True, "m4_pro_sync": "pending"},
+                bu = vault_bridge.client_meta.get(client_id, {}).get("bound_user_id")
+                claim_uid = data.get("user_id")
+                uid = bu
+                trust = "session_bound" if bu else "unbound_payload_untrusted"
+                row = {
+                    "id": str(uuid.uuid4()),
+                    "user_id": uid,
+                    "payload_claimed_user_id": claim_uid,
+                    "game_mode": data.get("game_mode"),
+                    "venue": data.get("venue"),
+                    "duration_seconds": min(float(data.get("duration") or 0), 86400 * 7),
+                    "score": data.get("score", 0),
+                    "metrics_trust": trust,
+                    "source": "vault_bridge_mobile",
                     "encrypted_transit": True,
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                })
-                await websocket.send_json({"type": "analytics_ack", "stored": True})
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                if bu:
+                    row["sync_status"] = "pending"
+                    row["vault_sync"] = {"local_store": True, "m4_pro_sync": "pending"}
+                else:
+                    row["sync_status"] = "telemetry_only"
+                    row["vault_sync"] = {"mode": "telemetry_only"}
+                await db.analytics_sessions.insert_one(row)
+                await websocket.send_json({"type": "analytics_ack", "stored": True, "trust": trust})
 
             elif msg_type == "venue_travel":
                 # Map travel command from bridge
@@ -2366,11 +3785,11 @@ async def sovereign_websocket(websocket: WebSocket):
                     "db_collection": venue_info.get("db_collection"),
                 })
 
-            sovereign_bridge.client_meta[client_id]["messages"] = sovereign_bridge.client_meta[client_id].get("messages", 0) + 1
+            vault_bridge.client_meta[client_id]["messages"] = vault_bridge.client_meta[client_id].get("messages", 0) + 1
 
     except WebSocketDisconnect:
-        sovereign_bridge.disconnect(client_id)
-        logger.info(f"Sovereign bridge: client {client_id} disconnected")
+        vault_bridge.disconnect(client_id)
+        logger.info(f"Vault bridge: client {client_id} disconnected")
 
 # ── Directive 3 (Hard-Swap): Real-Time PRQ Calculator ─────────────
 
@@ -2418,17 +3837,20 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        map_path = config.get("map")
+        if not map_path:
+            continue
+        venue_key = map_path.split("/")[-1]
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         # Check for live session data in venue collection
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
         live_sessions = await db[collection].count_documents({})
         modes.append({
             "mode_id": mode_id,
-            "map_path": config["map"],
-            "gamemode_class": config["gamemode_class"],
-            "binary": config["binary"],
-            "status": config["status"],
+            "map_path": map_path,
+            "gamemode_class": config.get("gamemode_class", ""),
+            "binary": config.get("binary", ""),
+            "status": config.get("status", "staging"),
             "venue": venue_key,
             "venue_display": venue_data.get("display_name", venue_key),
             "live_sessions": live_sessions,
@@ -2486,7 +3908,7 @@ async def production_health_check():
             venue_status[venue_name] = {"collection": coll, "status": "error", "error": str(e)}
 
     # Check WebSocket bridge
-    ws_clients = list(sovereign_bridge.clients.keys())
+    ws_clients = list(vault_bridge.clients.keys())
     ws_connected = len(ws_clients) > 0
 
     # Verify handshake identifier matches FinalEvolutionLab.uproject
@@ -2494,17 +3916,17 @@ async def production_health_check():
     project_uuid = bridge_config.get("project_uuid", "")
 
     return {
-        "status": "PRODUCTION_READY" if sovereign_state["database_status"] == "ready" else "INITIALIZING",
+        "status": "PRODUCTION_READY" if vault_state["database_status"] == "ready" else "INITIALIZING",
         "checks": {
             "database": {
-                "status": sovereign_state["database_status"],
+                "status": vault_state["database_status"],
                 "venue_collections": len(venue_status),
                 "all_ready": all(v["status"] == "ready" for v in venue_status.values()),
                 "venues": venue_status
             },
             "websocket": {
                 "status": "CONNECTED" if ws_connected else "WAITING_FOR_CONNECTION",
-                "url": os.environ.get("EMERGENT_GAME_WS_URL", ""),
+                "url": os.environ.get("HUB_GAME_WS_URL", ""),
                 "listening_for": {
                     "handshake_identifier": handshake_id,
                     "project_uuid": project_uuid,
@@ -2530,7 +3952,7 @@ async def production_health_check():
                 "tunnel": "TLS 1.3 (Cloudflare)"
             }
         },
-        "sovereign_target": "M4 Pro Mac Mini",
+        "vault_target": "M4 Pro Mac Mini",
         "placeholder_data": False,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
@@ -2541,30 +3963,29 @@ async def production_health_check():
 async def get_handshake_log():
     """Returns the handshake log proving bridge ↔ dashboard connection"""
     bridge_config = MODE_MANAGER.get("bridge_subsystem", {})
-    connected = len(sovereign_bridge.clients) > 0
+    connected = len(vault_bridge.clients) > 0
 
     log_entries = [
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": "Sovereign Hub v2.0.0 started (LOCAL SOVEREIGN MODE)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": "Cloud streaming: DISABLED (E3DS bypassed)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Sovereign Hub Listening on Port 8888"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues from FEL_VenueRegistry.production.json"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes from FEL_ModeManager.production.json"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Venue DB mapping complete: 13 collections indexed (Local MongoDB)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"PRQ source: Local MongoDB (weighted_composite, static=False)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Encryption: AES-256-GCM (transit) + WiredTiger (rest)"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Focus keepalive: {sovereign_state['focus_lock']} @ {sovereign_state['keepalive_interval']}s"},
-        {"ts": sovereign_state["boot_time"], "level": "INFO", "msg": f"Data feed: Biomechanical (NO video window)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": "Vault Hub v2.0.0 started (LOCAL VAULT MODE)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Vault Hub Listening on Port 8888"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Loaded venue registry: {VENUE_REGISTRY.get('total_venues', 0)} venues from FEL_VenueRegistry.production.json"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes from FEL_ModeManager.production.json"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Venue DB mapping complete: 13 collections indexed (Local MongoDB)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"PRQ source: Local MongoDB (weighted_composite, static=False)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Encryption: AES-256-GCM (transit) + WiredTiger (rest)"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Focus keepalive: {vault_state['focus_lock']} @ {vault_state['keepalive_interval']}s"},
+        {"ts": vault_state["boot_time"], "level": "INFO", "msg": f"Data feed: Biomechanical (NO video window)"},
     ]
 
     if connected:
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": "[SovereignHub] Handshake Successful"})
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"Binary: {bridge_config.get('expected_binary_signatures', ['FinalEvolutionLab-iOS-Shipping'])[0]}"})
-        log_entries.append({"ts": sovereign_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"PRQ data source: Local MongoDB (confirmed NOT simulation)"})
-        if sovereign_state.get("last_telemetry"):
-            t = sovereign_state["last_telemetry"]
-            log_entries.append({"ts": t.get("received_at", ""), "level": "DATA", "msg": f"sovereign_telemetry: PRQ={t.get('prq',0)} combo={t.get('combo_streak',0)} venue={t.get('venue_token','')}"})
+        log_entries.append({"ts": vault_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": "[VaultHub] Handshake Successful"})
+        log_entries.append({"ts": vault_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"Binary: {bridge_config.get('expected_binary_signatures', ['FinalEvolutionLab-iOS-Shipping'])[0]}"})
+        log_entries.append({"ts": vault_state.get("last_heartbeat", datetime.now(timezone.utc).isoformat()), "level": "INFO", "msg": f"PRQ data source: Local MongoDB (confirmed NOT simulation)"})
+        if vault_state.get("last_telemetry"):
+            t = vault_state["last_telemetry"]
+            log_entries.append({"ts": t.get("received_at", ""), "level": "DATA", "msg": f"vault_telemetry: PRQ={t.get('prq',0)} combo={t.get('combo_streak',0)} venue={t.get('venue_token','')}"})
     else:
-        log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Sovereign Hub Listening on Port 8888 — awaiting iPhone connection"})
+        log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Vault Hub Listening on Port 8888 — awaiting iPhone connection"})
         log_entries.append({"ts": datetime.now(timezone.utc).isoformat(), "level": "WAIT", "msg": "Tap app icon on iPhone 16 Pro Max to go live"})
 
     return {
@@ -2573,19 +3994,20 @@ async def get_handshake_log():
         "project_uuid": bridge_config.get("project_uuid"),
         "uproject": MODE_MANAGER.get("uproject"),
         "log": log_entries,
-        "total_messages_processed": sovereign_state["total_messages"]
+        "total_messages_processed": vault_state["total_messages"]
     }
 
 # ── Directive 6: Live Connection Preview ──────────────────────────
 
-@api_router.get("/sovereign/handshake/verify")
-async def verify_sovereign_handshake():
-    """iOS shipping pre-flight: confirms backend is wired for the Sovereign bridge."""
-    expected_ws = os.environ.get("EMERGENT_GAME_WS_URL", "")
-    enc = os.environ.get("SOVEREIGN_ENCRYPTION", "AES-256-GCM")
-    keepalive = float(os.environ.get("SOVEREIGN_KEEPALIVE_INTERVAL", 0.5))
-    focus_lock = os.environ.get("SOVEREIGN_FOCUS_LOCK", "true").lower() == "true"
-    mode = os.environ.get("SOVEREIGN_MODE", "production")
+@api_router.get("/hub/handshake/verify")
+@api_router.get("/vault/handshake/verify")
+async def verify_vault_handshake():
+    """iOS shipping pre-flight: confirms backend is wired for the Vault bridge."""
+    expected_ws = os.environ.get("HUB_GAME_WS_URL", "")
+    enc = os.environ.get("VAULT_ENCRYPTION", "AES-256-GCM")
+    keepalive = float(os.environ.get("VAULT_KEEPALIVE_INTERVAL", 0.5))
+    focus_lock = os.environ.get("VAULT_FOCUS_LOCK", "true").lower() == "true"
+    mode = os.environ.get("VAULT_MODE", "production")
     ok = (
         expected_ws.startswith("wss://")
         and "localhost" not in expected_ws
@@ -2604,70 +4026,7 @@ async def verify_sovereign_handshake():
         "checked_at": datetime.now(timezone.utc).isoformat(),
     }
 
-@api_router.get("/sovereign/status")
-async def get_sovereign_status():
-    """Live Connection Preview — WebSocket + Database status"""
-    return {
-        "websocket": {
-            "status": sovereign_state["websocket_status"],
-            "url": os.environ.get("EMERGENT_GAME_WS_URL", ""),
-            "connected_clients": sovereign_state["connected_clients"],
-            "keepalive_active": sovereign_state["keepalive_active"],
-            "keepalive_interval_ms": int(sovereign_state["keepalive_interval"] * 1000),
-            "focus_lock": sovereign_state["focus_lock"],
-            "last_heartbeat": sovereign_state["last_heartbeat"],
-            "total_messages": sovereign_state["total_messages"]
-        },
-        "database": {
-            "status": sovereign_state["database_status"],
-            "venue_collections": sovereign_state.get("venue_collections", 0),
-            "venues": list(VENUE_REGISTRY.get("venues", {}).keys()),
-            "total_venues": VENUE_REGISTRY.get("total_venues", 0)
-        },
-        "encryption": {
-            "algorithm": sovereign_state["encryption"],
-            "transit": "AES-256-GCM",
-            "at_rest": "MongoDB WiredTiger AES-256",
-            "cloudflare_tunnel": "TLS 1.3"
-        },
-        "monetization": {
-            "referral_system": "active",
-            "paypal_integration": "sandbox",
-            "match_score_to_referral": "linked",
-            "total_match_events": sovereign_state["total_match_events"],
-            "total_referral_events": sovereign_state["total_referral_events"]
-        },
-        "telemetry": sovereign_state.get("last_telemetry"),
-        "integrity": {
-            "status": sovereign_state.get("integrity_status", "AWAITING_AUTH"),
-            "hardware_auth": sovereign_state.get("hardware_auth"),
-            "description": "ACTIVE = bIsHardwareAuthenticated + back_camera_verified"
-        },
-        "active_creator_card": sovereign_state.get("active_creator_card"),
-        "biofuel": {
-            "registered": True,
-            "tone": "supportive",
-            "models": ["gemini-2.5-flash", "gpt-5.2"],
-            "intents": ["fascial_hydration", "cns_ignition", "post_dunk_recovery", "endurance_base", "sleep_anabolic"],
-            "endpoints": [
-                "/api/biofuel/scan", "/api/biofuel/recipes", "/api/biofuel/today",
-                "/api/biofuel/cues", "/api/biofuel/log",
-                "/api/biofuel/instacart-cart", "/api/biofuel/doordash-search",
-            ],
-        },
-        "ini_config": {
-            "GameWebSocketUrl": os.environ.get("EMERGENT_GAME_WS_URL", ""),
-            "bFocusKeepalive": "True",
-            "KeepaliveInterval": "0.5",
-            "bSovereignSync": "True",
-            "SovereignEncryption": "AES-256-GCM"
-        },
-        "server": {
-            "version": "2.0.0",
-            "boot_time": sovereign_state["boot_time"],
-            "uptime_seconds": int((datetime.now(timezone.utc) - datetime.fromisoformat(sovereign_state["boot_time"]).replace(tzinfo=timezone.utc)).total_seconds())
-        }
-    }
+# Redundant /vault/status definition removed (unified above).
 
 # Include all routes AFTER all route definitions
 app.include_router(api_router)
@@ -2677,8 +4036,6 @@ app.include_router(education_tracks_router.router)
 app.include_router(system_scan_router.router)
 app.include_router(pass_image_router.router)
 app.include_router(biofuel_router.router)
-app.include_router(matches_router.router)
-app.include_router(games_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

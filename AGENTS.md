@@ -1,97 +1,91 @@
 # AGENTS.md
 
-## Repository overview
+## Cursor Cloud specific instructions
 
-**Final Evolution Lab (FEL)** is a sports-tech / athletic-optimization super-app. The repo is a polyglot monorepo with three primary sub-projects:
+### Repository overview
+
+This is the **canonical NEXUS monorepo** for **Final Evolution Lab** — a world-class athlete OS (engine + gameplay + economy + education + Studio IDE). **Production retail ship is NEXUS only:** custom C++20 engine (`engine/`, `app/gameplay/`, `runtime/`) + Swift iOS app (`FinalEvolutionLab/`). See **`NEXUS_ONLY_PIVOT.md`** and **`SHIPPING_ARCHITECTURE.md`**.
+
+Unreal Engine 5.7 and Unity 6 remain **archived/legacy reference** in-repo — do not extend for retail ship.
+
+Runnable sub-projects in Cloud Agent VM (web + backend):
 
 | Sub-project | Path | Stack | Dev command |
 |---|---|---|---|
-| iOS Swift app | `FinalEvolutionLab/` | SwiftUI, HealthKit, Firebase, MultipeerConnectivity | Xcode (macOS only) |
-| FastAPI backend | `backend/` | Python 3, FastAPI, Pydantic v2, Firebase/Firestore | `uvicorn backend.server:app --reload` (port 8000) |
-| React web dashboard | `frontend/` | React 18, CRA + CRACO, Tailwind, shadcn/ui | `npm start` in `frontend/` (port 3000) |
+| **New marketing site** (finalevolutiongroup.com) | `sites/finalevolutiongroup.com/` | React 18 + Vite 5 + TypeScript + Tailwind | `npm run dev` (port 5175) |
+| Main marketing/app site (legacy) | `sites/final-evolution-main-site/` | React 18 + Vite 5 + TypeScript + Tailwind + Three.js + Supabase JS | `npm run dev` (port 5173) |
+| Clinical Gate (medical disclaimer component) | `web/clinical-gate-react/` | React 18 + Vite 5 + TypeScript + Tailwind | `npm run dev` (port 5174) |
+| Static PWA web shell (gateway, shop, wallet, play) | `web/` | Vanilla HTML/CSS/JS (Tailwind CDN) | `npx serve web -l 8080` from repo root |
+| Supabase backend (DB + Edge Functions) | `supabase/` | PostgreSQL 17 + Deno Edge Functions | `supabase start` (requires Docker) |
 
----
+### NEXUS build (requires macOS + Xcode for iOS)
 
-## Sub-project details
+```bash
+cd ~/Final-Evolution-Lab
+./scripts/nexus_build_gate.sh          # Engine CI gate
+./scripts/build-nexus-ios.sh           # iOS static libs
+./scripts/archive-ios-testflight.sh --dry-run
+```
 
-### iOS Swift app (`FinalEvolutionLab/`)
+Full matrix: **`NEXUS_RESUME.md`**.
 
-- **Entry point:** `FinalEvolutionLabApp.swift`
-- **Architecture:** MVVM — `LabViewModel` is the central state hub
-- **Key directories:**
-  - `Models/` — game engines, economy (`ShardEconomy`, `CoachEconomy`), scan, avatar, curriculum
-  - `Views/` — all feature UIs. `GameModeRouter.swift` dispatches all 20 game modes to dedicated view files
-  - `ViewModels/` — `LabViewModel.swift`, `TrainingViewModel.swift`
-  - `Services/` — HealthKit, Firebase, WebSocket (`ArenaWebSocketService`), Realtime DB (`ArenaRealtimeService`), `EmergentRealtimeTrust` (anti-cheat gate)
-  - `Generated/SocialDataConnect/` — Firebase Data Connect generated Swift client
-- **Persistence:** `SaveSystem.swift` (UserDefaults). No remote profile sync yet.
-- **Build:** Xcode 15+ on macOS. Cannot be built in a Cloud Agent VM.
+### Running the web services
 
-### FastAPI backend (`backend/`)
+1. **Install dependencies** — run `npm install` in `sites/finalevolutiongroup.com/`, `sites/final-evolution-main-site/`, and `web/clinical-gate-react/`. The root `package.json` has no dependencies.
+2. **New marketing site**: `npm run dev` in `sites/finalevolutiongroup.com/` → http://localhost:5175
+3. **Legacy main site**: `npm run dev` in `sites/final-evolution-main-site/` → http://localhost:5173
+4. **Clinical gate dev server**: `npm run dev` in `web/clinical-gate-react/` → http://localhost:5174
+5. **Static web shell**: `npx serve web -l 8080` from repo root → http://localhost:8080
 
-- **Entry point:** `backend/server.py`
-- **Run:** `pip install -r backend/requirements.txt && uvicorn backend.server:app --reload` → http://localhost:8000
-- **Key routers:** `routers/games.py` (physics, arena, venue generation, dunk scoring), `routers/biofuel.py`, `routers/education_tracks.py`, `routers/system_scan.py`
-- **Data:** Largely seeded/in-memory. MongoDB (`motor`) and Firestore are wired but most endpoints return fixtures.
-- **Tests:** `python -m pytest backend/tests/` and `python scripts/smoke_test_modes.py`
+### Lint / Typecheck / Build
 
-### React web dashboard (`frontend/`)
+- **New marketing site**: `npm run typecheck` / `npm run build` in `sites/finalevolutiongroup.com/`
+- **Legacy main site**: `npm run typecheck` / `npm run build` in `sites/final-evolution-main-site/`
+- **Clinical gate**: `npx tsc --noEmit` / `npm run build` in `web/clinical-gate-react/`
+- **CRA dashboard**: `npm run build` in `frontend/` (legacy-peer-deps on install)
+- No ESLint is configured for any React app.
 
-- **Run:** `cd frontend && npm install --legacy-peer-deps && npm start` → http://localhost:3000
-- **Purpose:** Ops/distribution/quality-gate dashboard — not the consumer game UI.
-- **Key components:** `FELOSDashboard`, `SovereignDashboard`, `BioFuel`, `QualityGates`, `DistributionPage`
+### Web deploy (Firebase Hosting — not Vercel)
 
----
+Static web surfaces deploy to **Firebase Hosting (Classic)** on project `final-evolution-lab`. Full guide: **`docs/FIREBASE_HOSTING_DEPLOY.md`**.
 
-## Firebase / Data Connect
+```bash
+./scripts/deploy-hosting.sh fel-dashboard   # CRA dashboard (frontend/build)
+firebase deploy --only hosting:fel-dashboard
+```
 
-- **Project ID:** `final-evolution-lab`
-- **Realtime DB:** `https://final-evolution-lab-default-rtdb.firebaseio.com`
-- **Data Connect service:** `elijahbonds` (PostgreSQL in us-east4, instance `elijahbonds-fdc`, db `fdcdb`)
-- **Schema:** `dataconnect/schema/schema.gql` — includes `UserProfile`, `CreatorCard`, `ShardLedger`, `ArenaSession`
-- **Security rules:** `database.rules.json` (Realtime DB), `firestore.rules`
-- **Firebase config:** `firebase.json`
+Custom domain **`finalevolutiongroup.com`**: Firebase Console → Hosting → Add custom domain. Handoff: **`artifacts/coord/vercel_migration_handoff.json`**.
 
----
+### Unreal Engine / Unity (archived — not production)
 
-## Game modes
+- **Unreal:** `UnrealIntegration/`, `UnrealStarter/` — legacy UE 5.7 host; superseded by NEXUS.
+- **Unity:** `Unity6-FinalEvolution-Lab/` — archived prototype.
+- Not runnable in Cloud Agent VM (requires UE editor or Xcode on macOS for legacy paths).
 
-20 modes defined in `backend/FEL_ModeManager.production.json` and `FinalEvolutionLab/Models/GameMode.swift`:
+### Environment variables
 
-- **Production (12):** basketball_h2h, basketball_dunk, basketball_3v3, basketball_irl, karate_h2h, karate_endless, baseball, football, soccer, golf, tennis, volleyball, surfing
-- **Staging (4):** skateboarding, snowboarding, gymnastics, brain_brawl
-- **Preview (2):** who_scene_it, court_carnival
-- **Non-game module:** market_browse (no PRQ delta, no shards per round)
+The main site reads Supabase and PayPal credentials from `.env` (Vite `VITE_` prefix). See `sites/final-evolution-main-site/.env.example`. The app runs without these env vars — features that depend on Supabase/PayPal gracefully degrade.
 
-Each mode has a dedicated SwiftUI view file in `FinalEvolutionLab/Views/` and is dispatched by `GameModeRouter.swift`.
+### Platform (Cursor control plane)
 
----
+| Surface | Path | Role |
+|---------|------|------|
+| MCP server | `tools/nexus-cursor-mcp/` | Cursor Desktop tools: `playtest`, `list_artifacts`, `studio_open_file`, `studio_run_playtest`, `build_gate` |
+| Tool registry | `Config/nexus_cursor_tool_registry.json` | Shared whitelist with iOS NEXUS Agent |
+| Agent CLI | `build-headless/nexus_agent_cli` | `fel.studio.*` queries + generative commands (see `docs/NEXUS_AGENT_PROTOCOL.md`) |
+| Artifacts | `artifacts/playtest/latest.json`, `artifacts/cursor-nexus/last-hud-snapshot.json` | Playtest + HUD observability for agents |
 
-## CI / CD
+Setup: `docs/CURSOR_NEXUS_CONTROL.md`.
 
-`.github/workflows/firebase-deploy.yml` — 4-job pipeline:
-1. `validate-registries` — JSON lint + render mode assertions + smoke tests
-2. `build-frontend` — React build with Firebase env vars from GitHub Secrets
-3. `deploy-firebase` — Firebase Hosting + Firestore rules + Realtime DB rules (push only)
-4. `deploy-dataconnect` — Data Connect schema + connectors (main branch only)
+### Non-obvious notes
 
-Required GitHub Secrets: see inline comments in the workflow file.
-
----
-
-## Unreal Engine integration
-
-- UE project (`UnrealStarter/BasketballGame/`) and C++ bridge (`UnrealIntegration/`) exist as **config + bridge stubs only** — no `.uproject`, maps, or assets are committed.
-- The bridge handshake is `FEL-SOVEREIGN-BRIDGE-v2`. See `UnrealIntegration/Source/FinalEvolutionLab/`.
-- Cannot be built in a Cloud Agent VM (requires UE 5.7 editor).
-
----
-
-## Non-obvious notes
-
-- `GameModeRules.swift` gates shard rewards via `rewardEligibleMinActions` — `market_browse` is 0 (no rewards).
-- `EmergentRealtimeTrust` blocks WebSocket payloads from mutating PRQ/shards without a server-bound trusted session ID. Override in dev: `FEL_ALLOW_UNVERIFIED_EMERGENT=1`.
-- Coach critique flow: athlete pays 500 shards, coach earns 400 (80%). `LabViewModel.critiqueCoachEarningShards = 400`. Stale escrow auto-releases after 7 days on next app launch.
-- `ArenaPadOverlay` / `ArenaPadShellView` — the retro dual-analog gamepad overlay (formerly named PS2*).
-- `SignatureComboEngine` — the signature dunk combo engine (formerly GoldenEraEngine).
-- `FELScoreManager` / `FELNativeBridge` — score broadcast services (formerly Rork*).
+- **Production iOS ship:** NEXUS embed via `FinalEvolutionLab.xcodeproj` + `scripts/build-nexus-ios.sh` — not UnrealFramework.
+- Label **preview/beta** where **`NEXUS_DELIVERY_MATRIX.md`** gaps remain (Metal stub, unsigned archive, live receipt POST).
+- **NEXUS Studio IDE** (`docs/NEXUS_STUDIO_IDE.md`) — in-app code browser + Run panel; pairs with **Cursor MCP** control plane (`docs/CURSOR_NEXUS_CONTROL.md`, `tools/nexus-cursor-mcp/`).
+- Supabase local dev (`supabase start`) requires Docker. If Docker is not available, the web apps still run — they just won't have a local backend.
+- The root `package.json` is a shell with no `node_modules`; do not run `npm install` at root.
+- Package manager is **npm** (lockfiles are `package-lock.json`).
+- Vision alignment audits: **`docs/NEXUS_VISION_ALIGNMENT.md`**.
+- **Agent orchestration:** **`docs/NEXUS_AGENT_ORCHESTRATION.md`** defines **Project Manager** and **Senior Advisor** coordinator roles (fleet status, P0–P3 queue, retask rules, subagent delegation). Machine-readable roles: **`Config/nexus_agent_roles.json`**. PM maintains **`docs/NEXUS_AGENT_FLEET_STATUS.md`** after each subagent completion. Cursor skill: **`~/.cursor/skills/nexus-pm-advisor/SKILL.md`**.
+- **Support agents (parallel helpers):** **`support_build_verify`** (build gates, xcodebuild, bundle inspection → PASS/FAIL logs) and **`support_docs_drift`** (vision/delivery/fleet doc updates, honest drift labels, optional mirror sync). Assist primary specialties only — no vertical ownership. See **Support agents** in **`docs/NEXUS_AGENT_ORCHESTRATION.md`**. Cursor skill: **`~/.cursor/skills/nexus-support-agents/SKILL.md`**.
+- **Idle brainstorm protocol:** When a specialty has no in-flight task (blocked, waiting, or support PASS complete), agents run a **15-min bounded brainstorm** → **`## Brainstorm handoff`** with gap, proposed assist, pair specialty, P0–P3, and Advisor check. PM ingests into **`docs/NEXUS_AGENT_FLEET_STATUS.md`** (**Idle / brainstorming**); **no auto-spawn** without Advisor **APPROVED**. See **Idle agent brainstorm** in **`docs/NEXUS_AGENT_ORCHESTRATION.md`**.

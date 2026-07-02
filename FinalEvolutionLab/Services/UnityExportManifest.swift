@@ -180,8 +180,8 @@ struct UnityExportBuilder {
 
         let gameModes = GameModeId.allCases.map { modeId -> UnityExportManifest.GameModeExport in
             let mode = GameModeRegistry.mode(for: modeId)
-            let physics = GamePhysicsConfig.forMode(modeId, prq: metrics.prqScore, audit: audit)
-            let movement = ArenaPadConfig.forMode(modeId)
+            let physics = GamePhysicsConfig.forMode(modeId, prq: metrics.prqScore, audit: audit, metrics: metrics)
+            let movement = PS2MovementConfig.forMode(modeId)
             return UnityExportManifest.GameModeExport(
                 id: modeId.rawValue,
                 name: mode.name,
@@ -223,9 +223,9 @@ struct UnityExportBuilder {
         }
 
         let comboSystem = UnityExportManifest.ComboSystemExport(
-            maxChainLength: SignatureComboEngine.maxChainLength,
-            chainWindowSeconds: SignatureComboEngine.chainWindowSeconds,
-            styleLandingWindowSeconds: SignatureComboEngine.styleLandingWindowSeconds,
+            maxChainLength: GoldenEraComboEngine.maxChainLength,
+            chainWindowSeconds: GoldenEraComboEngine.chainWindowSeconds,
+            styleLandingWindowSeconds: GoldenEraComboEngine.styleLandingWindowSeconds,
             qteApexWindowSeconds: QTEApexWindow.windowDuration,
             qteGrades: qteGrades,
             dunkTricks: dunkTricks,
@@ -245,7 +245,7 @@ struct UnityExportBuilder {
             stateMachineBlendDuration: MatrixStateMachine.blendDuration
         )
 
-        let dda = PRQDrivenDDA(playerPRQ: metrics.prqScore, neuralDrive: metrics.neuralDrive, mode: .basketballDunkContest)
+        let dda = PRQDrivenDDA(playerPRQ: metrics.prqScore, neuralDrive: metrics.neuralDrive, mode: .basketballDunkContest3D)
         let ddaExport = UnityExportManifest.DDAExport(
             difficultyTier: dda.difficultyTier.rawValue,
             aiAggressionFloor: dda.aiAggressionFloor,

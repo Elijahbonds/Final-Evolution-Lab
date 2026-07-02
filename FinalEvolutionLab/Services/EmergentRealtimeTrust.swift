@@ -1,7 +1,6 @@
 import Foundation
 
-/// Gates WebSocket-driven gameplay mutations so spoofed JSON cannot rewrite PRQ without a matched
-/// trusted session id (set by NexusBridge or server after verification).
+/// Gates WebSocket-driven gameplay mutations so spoofed JSON cannot rewrite PRQ without a matched trusted session id (set by UE bridge or server after verification).
 enum EmergentRealtimeTrust {
     static func bindTrustedGameplaySession(id: String) {
         UserDefaults.standard.set(id, forKey: Config.trustedGameplaySessionDefaultsKey)

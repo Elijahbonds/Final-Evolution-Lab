@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Final Evolution Lab">
+  <rect width="512" height="512" rx="112" fill="#050505"/>
+  <circle cx="256" cy="256" r="196" fill="none" stroke="#00E5FF" stroke-width="18" opacity="0.75"/>
+  <path d="M292 54 132 292h102l-30 166 176-260H268l24-144Z" fill="#5CE1E6"/>
+  <path d="M132 292h102l-30 166 90-166H190l92-138-14 44h112L268 54l24 144H132Z" fill="#FFFFFF" opacity="0.16"/>
+  <text x="256" y="402" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="54" fill="#FFFFFF" letter-spacing="6">FEL</text>
+</svg>

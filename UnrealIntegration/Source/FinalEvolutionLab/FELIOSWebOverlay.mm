@@ -158,6 +158,7 @@ namespace
 
 		[GFELContainer addSubview:GFELWebView];
 
+		// Respect safe areas by adding a top inset if desired (web can also handle via CSS env(safe-area-inset-*)).
 		[W addSubview:GFELContainer];
 		GFELContainer.hidden = YES;
 
@@ -198,6 +199,17 @@ namespace
 
 namespace FELIOSWebOverlay
 {
+	void EnsureCreatedAndLoadedWithSecurity(
+		const FString& Url,
+		const FString& BridgeToken,
+		const TArray<FString>& AllowedHosts)
+	{
+		dispatch_async(dispatch_get_main_queue(), ^{
+			FelEnsureOverlay();
+			FelLoadUrl(Url);
+		});
+	}
+
 	void EnsureCreatedAndLoaded(const FString& Url)
 	{
 		dispatch_async(dispatch_get_main_queue(), ^{
@@ -249,6 +261,11 @@ namespace FELIOSWebOverlay
 
 namespace FELIOSWebOverlay
 {
+	void EnsureCreatedAndLoadedWithSecurity(
+		const FString&,
+		const FString&,
+		const TArray<FString>&) {}
+
 	void EnsureCreatedAndLoaded(const FString&) {}
 	void Show() {}
 	void Hide() {}

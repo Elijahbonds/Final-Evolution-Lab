@@ -1,0 +1,20 @@
+{
+  "id": "volleyball_player_character_model_fbx",
+  "name": "Volleyball Player Character",
+  "category": "models",
+  "type": "mixamo_avatar_fbx",
+  "file": "volleyball_player_character_model_fbx.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/26e931fe-3c38-432e-b4f9-94e60ace9365/1005853/source.fbx"],
+  "description": "Male beach volleyball player humanoid character in casual red t-shirt and denim shorts, T-pose, Unreal-ready mixamo rig",
+  "tags": ["volleyball", "character", "athlete", "male", "beach", "mixamo"],
+  "keywords": ["volleyball player", "beach casual", "red t-shirt", "denim shorts", "humanoid"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "property_id": "search_832d31882ecc_1",
+  "mixamo_id": 1005853,
+  "fel_modes": ["volleyball"]
+}

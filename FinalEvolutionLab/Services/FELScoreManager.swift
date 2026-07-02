@@ -24,8 +24,9 @@ final class FELScoreManager {
             queue: .main
         ) { [weak self] notification in
             guard let self,
-                  let score = notification.userInfo?["score"] as? Int else { return }
+                  let raw = notification.userInfo?["score"] as? Int else { return }
             MainActor.assumeIsolated {
+                let score = min(100, max(0, raw))
                 self.currentPrqScore = score
                 UserDefaults.standard.set(score, forKey: FELScoreManager.userDefaultsKey)
                 NotificationCenter.default.post(name: felScoreDidUpdateNotification, object: nil, userInfo: ["score": score])
@@ -57,9 +58,10 @@ final class FELScoreManager {
         )
     }
 
-    /// Clamps to 0…100 then applies the same path as Unity / Emergent score updates.
+    /// Clamps to 0…100 then applies the same path as Unity / Runtime score updates.
     func applyClampedPrq(_ score: Int) {
         let clamped = min(100, max(0, score))
         simulateUnityScore(clamped)
     }
 }
+
