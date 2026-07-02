@@ -2,9 +2,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+import sys
+import types
 
 import pytest
 from starlette.requests import Request
+
+if "asyncpg" not in sys.modules:
+    asyncpg_stub = types.ModuleType("asyncpg")
+
+    async def _unused_create_pool(*_args: Any, **_kwargs: Any) -> None:
+        raise RuntimeError("asyncpg is not used by server marketplace contract tests")
+
+    asyncpg_stub.create_pool = _unused_create_pool  # type: ignore[attr-defined]
+    sys.modules["asyncpg"] = asyncpg_stub
 
 import server
 
