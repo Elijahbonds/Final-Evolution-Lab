@@ -425,6 +425,20 @@ void arena_mode_registry_production_modes_match_validate_script() {
   }
 }
 
+void production_modes_have_runtime_implementations() {
+  nexus::gameplay::ThreadSafeFitnessData fitnessData;
+  nexus::gameplay::ModeRuntime runtime(fitnessData);
+
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
+    require(runtime.setMode(modeId).isOk(),
+            std::string("runtime accepts production mode: ") + std::string(modeId));
+    require(runtime.activeKind() != nexus::gameplay::ActiveModeKind::kComingSoon,
+            std::string("production mode is implemented in runtime: ") + std::string(modeId));
+    require(runtime.activeKind() != nexus::gameplay::ActiveModeKind::kNone,
+            std::string("production mode activates runtime kind: ") + std::string(modeId));
+  }
+}
+
 void gameplay_manager_evaluates_volleyball_outcome() {
   using nexus::gameplay::GameplayManager;
   using nexus::gameplay::MatchOutcome;
@@ -933,6 +947,19 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == nexus::gameplay::kProductionModeCount,
+          "academy demo mappings cover every production mode");
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
+    const auto modeMapping = nexus::gameplay::ExerciseDemoPipeline::mappingForMode(modeId);
+    require(modeMapping.has_value(),
+            std::string("academy demo mapping exists for ") + std::string(modeId));
+    require(!modeMapping->moduleId.empty(),
+            std::string("academy module id set for ") + std::string(modeId));
+    require(modeMapping->montagePath.find("/Game/FEL/Academy/Modules/") == 0,
+            std::string("academy montage path rooted for ") + std::string(modeId));
+  }
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -2052,6 +2079,93 @@ void session_receipt_requeues_on_real_http_non_2xx() {
   removeTreeBestEffort(tempDir);
 }
 
+void arena_flush_receipts_preserves_live_http_config() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_arena_live_flush_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+  std::error_code ec;
+  std::filesystem::create_directories(tempDir, ec);
+  require(!ec, "create live flush temp dir");
+
+  const auto fakeCurl = tempDir / "curl";
+  {
+    std::ofstream script(fakeCurl, std::ios::trunc);
+    script << "#!/bin/sh\n";
+    script << "printf '503'\n";
+    script << "exit 0\n";
+    require(script.good(), "write live flush fake curl script");
+  }
+  std::filesystem::permissions(fakeCurl,
+                               std::filesystem::perms::owner_read |
+                                   std::filesystem::perms::owner_write |
+                                   std::filesystem::perms::owner_exec,
+                               ec);
+  require(!ec, "mark live flush fake curl executable");
+
+  const char* previousPathRaw = std::getenv("PATH");
+  const std::string previousPath = previousPathRaw != nullptr ? previousPathRaw : "";
+  const char* previousReceiptUrlRaw = std::getenv("NEXUS_RECEIPT_URL");
+  const std::string previousReceiptUrl =
+      previousReceiptUrlRaw != nullptr ? previousReceiptUrlRaw : "";
+  setenv("PATH", tempDir.string().c_str(), 1);
+  unsetenv("NEXUS_RECEIPT_URL");
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "live_flush_user"}},
+              "live_flush_start")
+              .status == "ok",
+          "live flush session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "live_flush_end")
+              .status == "ok",
+          "live flush session ends");
+
+  const auto configureFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"base_url", "http://127.0.0.1:8000/api/games/session"},
+       {"persist_to_disk", false},
+       {"http_enabled", true},
+       {"use_stub_http_transport", false},
+       {"max_retries", 3}},
+      "live_flush_configure");
+  require(configureFlush.status == "ok", "live flush configure command ok");
+  require(configureFlush.payload["delivered"].get<std::size_t>() == 0,
+          "live 503 flush is not delivered");
+  require(configureFlush.payload["requeued"].get<std::size_t>() == 1,
+          "live 503 flush requeues receipt");
+
+  const auto retryFlush =
+      gameplay.handleGameplayCommand("fel.arena.flush_receipts", {}, "live_flush_retry");
+  require(retryFlush.status == "ok", "live flush retry command ok");
+  require(retryFlush.payload["delivered"].get<std::size_t>() == 0,
+          "retry preserves real HTTP transport instead of stub-delivering");
+  require(retryFlush.payload["requeued"].get<std::size_t>() == 1,
+          "retry preserves live config and keeps receipt queued");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "live_flush_receipts");
+  require(receipts.payload["receipts"].size() == 1, "receipt remains pending after live 503 retry");
+
+  if (previousPathRaw != nullptr) {
+    setenv("PATH", previousPath.c_str(), 1);
+  } else {
+    unsetenv("PATH");
+  }
+  if (previousReceiptUrlRaw != nullptr) {
+    setenv("NEXUS_RECEIPT_URL", previousReceiptUrl.c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_URL");
+  }
+  removeTreeBestEffort(tempDir);
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2485,7 +2599,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
+  const std::array<SprintProbe, 10> probes{{
       {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
       {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
        "fel.karate.action", "karate"},
@@ -2508,6 +2622,8 @@ void nexus_sprint_live_modes_agent_contract_integration() {
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.94F}, {"wave_difficulty", 0.72F}},
+       "fel.surf.carve", "surfing"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
@@ -2858,6 +2974,7 @@ auto main() -> int {
   gameplay_session_state_query_returns_coherent_payload();
   arena_mode_registry_lists_nineteen_modes();
   arena_mode_registry_production_modes_match_validate_script();
+  production_modes_have_runtime_implementations();
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();
   karate_h2h_sport_pulse_hp_combat();
@@ -2871,6 +2988,7 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_requeues_on_real_http_non_2xx();
+  arena_flush_receipts_preserves_live_http_config();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
