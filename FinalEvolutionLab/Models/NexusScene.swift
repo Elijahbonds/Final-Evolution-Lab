@@ -128,7 +128,8 @@ struct NexusEnvironment: Codable, Sendable {
 
     static func `default`(for mode: GameModeId) -> NexusEnvironment {
         switch mode {
-        case .basketballHeadToHead, .basketball3v3, .basketballDunkContest, .basketballIRL:
+        case .basketballHeadToHead, .venicePickup, .basketball3v3,
+             .basketballDunkContest3D, .basketballDunkContestIRL:
             return NexusEnvironment(backgroundColor: "#0A0F1E", accentColor: "#FF6B00", ambientLight: 0.85, floorY: 0.86, fogDensity: 0.02)
         case .karate, .karateEndless:
             return NexusEnvironment(backgroundColor: "#0A0A0A", accentColor: "#FF2D55", ambientLight: 0.70, floorY: 0.86, fogDensity: 0.04)
@@ -185,7 +186,8 @@ extension GameModeId {
     /// Default avatar animation category for this game mode.
     var avatarCategory: Exercise.ExerciseCategory {
         switch self {
-        case .basketballHeadToHead, .basketball3v3, .basketballDunkContest, .basketballIRL:
+        case .basketballHeadToHead, .venicePickup, .basketball3v3,
+             .basketballDunkContest3D, .basketballDunkContestIRL:
             .plyometric
         case .karate, .karateEndless, .soccer, .skateboarding, .snowboarding, .surfing:
             .agility

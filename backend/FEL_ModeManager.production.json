@@ -91,12 +91,14 @@
         "status": "production",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.0,
+        "scoring_enabled": true,
         "release_state": "production"
       },
       "who_scene_it": {
         "status": "production",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.1,
+        "scoring_enabled": true,
         "release_state": "production"
       },
       "court_carnival": {

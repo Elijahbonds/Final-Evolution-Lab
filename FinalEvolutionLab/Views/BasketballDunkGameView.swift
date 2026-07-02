@@ -1476,15 +1476,15 @@ struct BasketballDunkGameView: View {
         let winner: ResultScreen.ResultWinner = playerTotal > aiTotal ? .p1 : playerTotal < aiTotal ? .p2 : .draw
         return ResultScreen(
             winner: winner, p1Score: playerTotal, p2Score: aiTotal, title: "Dunk Contest", accentColor: accent,
-            prqGain: PRQ.modeReward(mode: .basketballDunkContest, won: playerTotal > aiTotal,
+            prqGain: PRQ.modeReward(mode: .basketballDunkContest3D, won: playerTotal > aiTotal,
                                     tied: playerTotal == aiTotal,
                                     combo: playerRoundScores.filter(\.playerWon).count,
                                     criticals: playerRoundScores.filter(\.isPerfect).count,
                                     scoreDifferential: max(0, playerTotal - aiTotal)),
             prqCurrent: viewModel.effectiveMetrics.prqScore,
-            modeAttributeLabel: PRQ.attributeLabel(for: .basketballDunkContest),
+            modeAttributeLabel: PRQ.attributeLabel(for: .basketballDunkContest3D),
             modeAttributeValue: PRQ.attributeValue(prq: viewModel.effectiveMetrics.prqScore,
-                                                   for: .basketballDunkContest),
+                                                   for: .basketballDunkContest3D),
             onReturn: { awardShards(winner: winner); dismiss() }
         )
     }

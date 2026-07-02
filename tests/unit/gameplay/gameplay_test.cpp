@@ -933,6 +933,16 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  for (const auto& mode : nexus::gameplay::ArenaModeRegistry::productionModes()) {
+    const auto productionMapping =
+        nexus::gameplay::ExerciseDemoPipeline::mappingForMode(mode.id);
+    require(productionMapping.has_value(),
+            "academy demo mapping exists for production mode " + std::string(mode.id));
+  }
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == nexus::gameplay::kProductionModeCount,
+          "academy demo mapping count matches production mode count");
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -2459,9 +2469,9 @@ void flagship_modes_emit_post_ready_receipts() {
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
 
-  const std::array<std::string, 5> modes = {
+  const std::array<std::string, 7> modes = {
       "basketball_dunk", "karate_endless", "basketball_h2h", "basketball_3v3",
-      "court_carnival"};
+      "court_carnival", "brain_brawl", "who_scene_it"};
   for (const auto& modeId : modes) {
     require(gameplay.handleGameplayCommand(
                 "fel.arena.start_session",
