@@ -48,6 +48,7 @@ public:
   auto setMode(std::string_view modeId) -> Result<void>;
   void reset();
   void setFitnessSnapshot(const FitnessSnapshot& fitness);
+  void update(double deltaSeconds);
   void update(double deltaSeconds, const FitnessSnapshot& fitness);
 
   auto handleCommand(std::string_view command, const nlohmann::json& params) -> Result<nlohmann::json>;
