@@ -220,7 +220,7 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     m_http.setUrl(resolvePostUrl(m_config));
     const auto postResult = m_http.post(receipt.dump());
     if (postResult.isErr()) {
-      return postResult;
+      return Result<bool>::err(postResult.error());
     }
     const int statusCode = postResult.value();
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
