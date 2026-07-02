@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Copy this file to GoogleService-Info.plist and replace ALL values from Firebase Console.
-  google_services_guidance: https://firebase.google.com/docs/ios/setup
+  PREVIEW / CI ONLY — copy to GoogleService-Info.plist for local archive without Firebase Console access.
+  Replace ALL REPLACE_ME values from Firebase Console before TestFlight with live Auth/Firestore.
+
+  Real plist: https://console.firebase.google.com/project/final-evolution-lab/settings/general
+  Or CLI: ./scripts/fetch-firebase-ios-plist.sh
 
   Do not commit GoogleService-Info.plist — add real file locally only.
 -->
@@ -19,11 +22,11 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.yourcompany.yourapp</string>
+	<string>com.finalevolutionlab.app</string>
 	<key>PROJECT_ID</key>
-	<string>your-firebase-project</string>
+	<string>final-evolution-lab</string>
 	<key>STORAGE_BUCKET</key>
-	<string>your-firebase-project.appspot.com</string>
+	<string>final-evolution-lab.appspot.com</string>
 	<key>IS_ADS_ENABLED</key>
 	<false/>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -36,5 +39,7 @@
 	<true/>
 	<key>GOOGLE_APP_ID</key>
 	<string>1:000000000000:ios:0000000000000000000000</string>
+	<key>FEL_FIREBASE_PREVIEW</key>
+	<string>1</string>
 </dict>
 </plist>

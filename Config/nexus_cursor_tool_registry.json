@@ -1,0 +1,340 @@
+{
+  "schema": "nexus-cursor-bridge-1",
+  "repo_root": {
+    "default": "/Users/elijahbonds/Final-Evolution-Lab",
+    "env_vars": [
+      "NEXUS_REPO_ROOT",
+      "FEL_NEXUS_REPO_ROOT"
+    ]
+  },
+  "cursor_uris": {
+    "open_repo": "cursor://file/{repo_root}",
+    "open_file": "cursor://file/{absolute_path}",
+    "open_file_line": "cursor://file/{absolute_path}:{line}"
+  },
+  "mcp_surface_tools": [
+    "list_modes",
+    "playtest",
+    "nexus_scan_playtest",
+    "build_gate",
+    "agent_command",
+    "read_state",
+    "list_artifacts",
+    "studio_open_file",
+    "studio_run_playtest"
+  ],
+  "tools": {
+    "list_modes": {
+      "description": "List NEXUS arena game modes with sprint priority and release state.",
+      "hosts": [
+        "ios_app",
+        "cursor_mcp"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "include_preview": {
+            "type": "boolean",
+            "description": "Include preview-tier modes (default follows Config.showPreviewGameModes)."
+          }
+        }
+      }
+    },
+    "playtest": {
+      "description": "Launch an arena mode for playtest (in-app navigation or macOS simulator build hint).",
+      "hosts": [
+        "ios_app",
+        "cursor_mcp"
+      ],
+      "implements": "launch_mode",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mode_id": {
+            "type": "string",
+            "description": "GameModeId raw value, e.g. basketball_dunk or karate_endless"
+          },
+          "readiness": {
+            "type": "number",
+            "description": "Session readiness 0\u2013100 (default 75)."
+          }
+        },
+        "required": [
+          "mode_id"
+        ]
+      }
+    },
+    "build_gate": {
+      "description": "Run a whitelisted NEXUS build gate script on macOS (headless + renderer ctest).",
+      "hosts": [
+        "ios_app",
+        "cursor_mcp"
+      ],
+      "implements": "run_build_gate",
+      "alias_of": "run_build_gate",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "full_gate",
+              "validate_only"
+            ],
+            "description": "full_gate \u2192 scripts/nexus_build_gate.sh; validate_only \u2192 scripts/nexus_validate_production_modes.sh"
+          }
+        }
+      }
+    },
+    "read_state": {
+      "description": "Read NEXUS repo state: delivery matrix summary, build gate log tail, ctest logs, last playtest artifact.",
+      "hosts": [
+        "cursor_mcp"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    "agent_command": {
+      "description": "Route a whitelisted sub-tool invocation through the shared sandbox registry.",
+      "hosts": [
+        "ios_app",
+        "cursor_mcp"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tool": {
+            "type": "string",
+            "description": "Whitelisted tool name to invoke"
+          },
+          "arguments": {
+            "type": "object",
+            "description": "Arguments object for the sub-tool"
+          }
+        },
+        "required": [
+          "tool"
+        ]
+      },
+      "routes_to": [
+        "list_modes",
+        "playtest",
+        "build_gate",
+        "run_build_gate",
+        "launch_mode",
+        "read_file",
+        "creative_command",
+        "scan_to_generate",
+        "generate_game",
+        "open_ide_file",
+        "studio_open_file",
+        "studio_run_playtest",
+        "list_artifacts",
+        "nexus_scan_playtest"
+      ]
+    },
+    "read_file": {
+      "description": "Read a text file under the NEXUS repo root (read-only, max 256 KB).",
+      "hosts": [
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Repo-relative path"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    "run_build_gate": {
+      "description": "Internal alias for build_gate.",
+      "hosts": [
+        "ios_app"
+      ],
+      "alias_of": "build_gate"
+    },
+    "launch_mode": {
+      "description": "Internal alias for playtest.",
+      "hosts": [
+        "ios_app"
+      ],
+      "alias_of": "playtest"
+    },
+    "creative_command": {
+      "description": "Apply a fel.creative.* voxel terrain command via the C++ gameplay bridge.",
+      "hosts": [
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "enum": [
+              "fel.creative.raise_terrain",
+              "fel.creative.lower_terrain",
+              "fel.creative.flatten_terrain",
+              "fel.creative.paint_terrain"
+            ]
+          },
+          "params": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "command",
+          "params"
+        ]
+      }
+    },
+    "scan_to_generate": {
+      "description": "Submit a scan envelope to fel.generate.arena_from_scan via ScanToGenerationBridge (simulated envelope when bridge unavailable).",
+      "hosts": [
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "use_simulated": {
+            "type": "boolean",
+            "description": "Use ScanCaptureService.simulatedEnvelope() when no envelope provided (default true)."
+          },
+          "envelope": {
+            "type": "object",
+            "description": "Optional ScanEnvelope JSON (schema_version, scan_id, joints, motion, \u2026)."
+          }
+        }
+      }
+    },
+    "generate_game": {
+      "description": "Natural language → fel.generate.game / fel.generate.refine_game playable spec (template MVP, honest PREVIEW).",
+      "hosts": [
+        "ios_app",
+        "cursor_mcp"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Prompt or refinement follow-up"
+          },
+          "refine": {
+            "type": "boolean",
+            "description": "Route to fel.generate.refine_game when true"
+          },
+          "include_arena": {
+            "type": "boolean",
+            "description": "Also execute arena voxel steps from prompt"
+          },
+          "start_session": {
+            "type": "boolean",
+            "description": "Bootstrap arena session after spec (default true)"
+          },
+          "force_template": {
+            "type": "boolean",
+            "description": "Skip AI Studio / Gemini even when API key is configured (CI / deterministic repro)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    "open_ide_file": {
+      "description": "Surface a repo-relative source path for IDE navigation (pasteboard + cursor:// URI).",
+      "hosts": [
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    "nexus_scan_playtest": {
+      "description": "Run headless nexus_scan_envelope_test (scan envelope unit smoke).",
+      "hosts": [
+        "cursor_mcp"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    "list_artifacts": {
+      "description": "List NEXUS artifact paths for Cursor observability (playtest, HUD snapshot, build gate logs).",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    "studio_open_file": {
+      "description": "Open a repo-relative source file in Cursor (alias of open_ide_file).",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "alias_of": "open_ide_file",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Repo-relative path"
+          },
+          "line": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    "studio_run_playtest": {
+      "description": "Run macOS playtest script for a mode (alias of playtest MCP tool).",
+      "hosts": [
+        "cursor_mcp"
+      ],
+      "alias_of": "playtest",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mode_id": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "duration_sec": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "mode_id"
+        ]
+      }
+    }
+  }
+}

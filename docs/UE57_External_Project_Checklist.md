@@ -4,14 +4,14 @@ Use this when merging **this repo’s** Unreal snippets and tooling into your **
 
 ---
 
-## Repo automation (Emergent)
+## Repo automation (FEL Bridge)
 
 - From repo root, with `PROJECT_DIR` pointing at your UE game folder:
-  - `PROJECT_DIR="/path/to/your/project" ./prepare_fel_emergent.sh`
-  - Optional: `./prepare_fel_emergent.sh --copy-sources`
-- Runtime URL override (matches iOS `Config.resolvedEmergentGameWebSocketURL()`):
-  - `EMERGENT_GAME_WS_URL=wss://your-host/ws/game/room-id`
-- Merge `UnrealIntegration/Config/DefaultGame.FEL_Emergent.snippet.ini` into your **DefaultGame.ini** `[Emergent]` section.
+  - `PROJECT_DIR="/path/to/your/project" ./prepare_fel_bridge.sh`
+  - Optional: `./prepare_fel_bridge.sh --copy-sources`
+- Runtime URL override (matches iOS `Config.resolvedFELGameWebSocketURL()`):
+  - `FEL_GAME_WS_URL=wss://your-host/ws/game/room-id`
+- Merge `UnrealIntegration/Config/DefaultGame.FEL_Bridge.snippet.ini` into your **DefaultGame.ini** `[FELBridge]` section.
 
 ---
 
@@ -20,7 +20,7 @@ Use this when merging **this repo’s** Unreal snippets and tooling into your **
 - Copy `UnrealIntegration/Source/FinalEvolutionLab/*.h|*.cpp` into your game’s `Source/FinalEvolutionLab/` (or use `--copy-sources`).
 - **FinalEvolutionLab.Build.cs**: add `WebSockets`, `Json` to `PrivateDependencyModuleNames`.
 - Editor → Plugins → enable **WebSockets**.
-- Blueprint/C++: `UFELEmergentBridgeSubsystem` — `SetGameWebSocketUrl`, `SendMatchScoreToWebSocket`, optional focus keepalive (see `COPY_INTO_GAME_MODULE.txt`).
+- Blueprint/C++: `UFELBridgeSubsystem` — `SetGameWebSocketUrl`, `SendMatchScoreToWebSocket`, optional focus keepalive (see `COPY_INTO_GAME_MODULE.txt`).
 
 ---
 
@@ -49,8 +49,8 @@ Use this when merging **this repo’s** Unreal snippets and tooling into your **
 
 ## iOS companion app (Swift)
 
-- Emergent WebSocket URL: environment variable `EMERGENT_GAME_WS_URL`, or UserDefaults key `fel_emergent_game_ws_url` (see `Config.swift`).
-- **Inbound JSON** handled in `EmergentRealtimeClient.applyEmergentPayload` — align backend messages with documented `type` / `prq` / `delta` fields.
+- FEL WebSocket URL: environment variable `FEL_GAME_WS_URL`, or UserDefaults key `fel_game_ws_url` (see `Config.swift`).
+- **Inbound JSON** handled in `FELRealtimeClient.applyFELPayload` — align backend messages with documented `type` / `prq` / `delta` fields.
 
 ---
 
@@ -63,13 +63,13 @@ Use this when merging **this repo’s** Unreal snippets and tooling into your **
 
 ## Verification
 
-- UE: packaged build connects to Emergent WS; outbound match scores appear on backend; inbound logs or Blueprint handlers receive frames.
-- iOS: set `fel_emergent_game_ws_url` in UserDefaults (or scheme env) and confirm PRQ tier updates after backend pushes `prq_update`.
+- UE: packaged build connects to FEL WS; outbound match scores appear on backend; inbound logs or Blueprint handlers receive frames.
+- iOS: set `fel_game_ws_url` in UserDefaults (or scheme env) and confirm PRQ tier updates after backend pushes `prq_update`.
 
 ---
 
 ## Next steps (suggested)
 
-- Define a single **JSON schema** document for Emergent (types, versioning, room ids) shared by UE bridge, iOS client, and backend.
+- Define a single **JSON schema** document for FEL Bridge (types, versioning, room ids) shared by UE bridge, iOS client, and backend.
 - Add **reconnect/backoff** policy on iOS to mirror UE `bAutoReconnect` behavior.
 - Expand **Swift tests** with seeded RNG wrappers for `DynamicDifficulty.opponentPoints` if you need probabilistic assertions.

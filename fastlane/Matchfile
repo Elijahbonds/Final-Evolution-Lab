@@ -1,0 +1,6 @@
+# Uncomment after configuring Apple Developer Portal + repo for codesigning_match
+# git_url("git@github.com:yourorg/certificates.git")
+# storage_mode("git")
+# type("appstore")          # or "adhoc" for internal Firebase IPA
+# app_identifier(["com.yourcompany.FinalEvolutionLab"])
+# username("you@example.com")

@@ -1,0 +1,20 @@
+{
+  "id": "gymnast_character_model_fbx",
+  "name": "Gymnast Character",
+  "category": "models",
+  "type": "mixamo_avatar_fbx",
+  "file": "gymnast_character_model_fbx.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/d0a8d26e-e21b-45bc-bcba-344b2ce4d909/1005908/source.fbx"],
+  "description": "Female gymnast humanoid character in red-black athletic bodysuit, T-pose, Unreal-ready mixamo rig",
+  "tags": ["gymnastics", "character", "athlete", "female", "mixamo"],
+  "keywords": ["gymnast", "bodysuit", "athletic", "female character", "humanoid"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "property_id": "search_c4b32276602d_1",
+  "mixamo_id": 1005908,
+  "fel_modes": ["gymnastics"]
+}

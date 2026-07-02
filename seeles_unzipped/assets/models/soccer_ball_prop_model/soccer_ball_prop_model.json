@@ -1,0 +1,19 @@
+{
+  "id": "soccer_ball_prop_model",
+  "name": "Soccer Ball Prop (GLB)",
+  "category": "models",
+  "type": "prop_glb",
+  "file": "soccer_ball_prop_model.glb",
+  "urls": ["https://static.seeles.ai/data/asset/export/4534155e-045c-4b50-9e27-d1e00c42c9c9/1012268/thing_1012268_2886008.glb"],
+  "description": "Classic black-and-white soccer ball prop with hexagonal panel pattern, GLB format for all engines",
+  "tags": ["soccer", "ball", "prop", "sport"],
+  "keywords": ["soccer ball", "football", "black white hexagon", "sport prop"],
+  "compat": ["all"],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "property_id": "search_4a1389df2160_1",
+  "fel_modes": ["soccer"]
+}

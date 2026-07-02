@@ -9,6 +9,8 @@
 	<string>export</string>
 	<key>signingStyle</key>
 	<string>automatic</string>
+	<key>teamID</key>
+	<string>7KJ6G7HLL4</string>
 	<key>compileBitcode</key>
 	<false/>
 	<key>uploadSymbols</key>

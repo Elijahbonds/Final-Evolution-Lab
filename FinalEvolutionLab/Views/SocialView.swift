@@ -47,7 +47,7 @@ struct SocialView: View {
     private var tierProgressCard: some View {
         VStack(spacing: 12) {
             HStack {
-                PRQTierBadge(tier: viewModel.userPRQTier, prq: viewModel.effectiveMetrics.prqScore)
+                PRQTierBadge(tier: viewModel.userPRQTier, prq: viewModel.competitivePRQScore)
 
                 Spacer()
 
@@ -64,7 +64,7 @@ struct SocialView: View {
                 }
             }
 
-            let progress = viewModel.globalLeaderboard.tierProgress(for: viewModel.effectiveMetrics.prqScore)
+            let progress = viewModel.globalLeaderboard.tierProgress(for: viewModel.competitivePRQScore)
             VStack(alignment: .leading, spacing: 4) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
@@ -127,11 +127,11 @@ struct SocialView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text(String(format: "%.1f", viewModel.effectiveMetrics.prqScore))
+                Text(String(format: "%.1f", viewModel.competitivePRQScore))
                     .font(.system(.title3, design: .monospaced, weight: .black))
                     .foregroundStyle(.white)
 
-                Text("PRQ")
+                Text("RANKED PRQ")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundStyle(.tertiary)
                     .tracking(2)

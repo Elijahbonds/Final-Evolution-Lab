@@ -1,11 +1,11 @@
-# Requires Firebase Auth (Anonymous or full account). Tighten with @auth(expr: ...) as you mature IAM.
+# Requires signed-in Firebase Auth (including anonymous). Sensitive writes resolve the SQL User row via firebaseUid == auth.uid (no client-supplied peer IDs).
 
 mutation RegisterSignedInUser(
   $username: String!
   $email: String!
   $profilePictureUrl: String
   $avatarUrl: String
-) @auth(level: USER) {
+) @auth(level: USER_ANON) {
   user_insert(
     data: {
       firebaseUid_expr: "auth.uid"
@@ -17,33 +17,39 @@ mutation RegisterSignedInUser(
   )
 }
 
-mutation LinkUserToFirebaseAuth($userKey: User_Key!) @auth(level: USER) {
-  user_update(key: $userKey, data: { firebaseUid_expr: "auth.uid" })
-}
-
-mutation UpdateUserTrainingProfile(
-  $userKey: User_Key!
-  $topPRQScore: Float!
-  $avatarUrl: String
-) @auth(level: USER) {
+# Prefer UpdateMyTrainingProfile: authorizes only the signed-in user's row (no client User_Key).
+mutation UpdateMyTrainingProfile($topPRQScore: Float!, $avatarUrl: String) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0", message: "No User row for this Firebase account.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+  }
   user_update(
-    key: $userKey
+    key: { id_expr: "response.query.users[0].id" }
     data: { topPRQScore: $topPRQScore, avatarUrl: $avatarUrl }
   )
 }
 
 mutation CreatePost(
   $content: String!
-  $authorId: UUID!
   $gameModeId: String
   $trainingScore: Float
   $clipUrl: String
   $feedSource: String
-) @auth(level: USER) {
+) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0", message: "Register before posting.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+  }
   post_insert(
     data: {
       content: $content
-      authorId: $authorId
+      authorId_expr: "response.query.users[0].id"
       gameModeId: $gameModeId
       trainingScore: $trainingScore
       clipUrl: $clipUrl
@@ -52,35 +58,489 @@ mutation CreatePost(
   )
 }
 
-mutation CreateComment($postId: UUID!, $authorId: UUID!, $content: String!) @auth(level: USER) {
+mutation CreateComment($postId: UUID!, $content: String!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0", message: "Register before commenting.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+  }
   comment_insert(
     data: {
       postId: $postId
-      authorId: $authorId
+      authorId_expr: "response.query.users[0].id"
       content: $content
     }
   )
 }
 
-mutation LikePost($postId: UUID!, $userId: UUID!) @auth(level: USER) {
+mutation LikePost($postId: UUID!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0", message: "Register before liking.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+  }
   postLike_insert(
     data: {
       postId: $postId
-      userId: $userId
+      userId_expr: "response.query.users[0].id"
     }
   )
 }
 
-mutation UnlikePost($postId: UUID!, $userId: UUID!) @auth(level: USER) {
-  postLike_delete(key: { postId: $postId, userId: $userId })
+mutation UnlikePost($postId: UUID!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0", message: "Register before unliking.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+  }
+  postLike_delete(key: { postId: $postId, userId_expr: "response.query.users[0].id" })
 }
 
-mutation DeletePost($postKey: Post_Key!) @auth(level: USER) {
-  post_delete(key: $postKey)
+mutation DeletePost($postId: UUID!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && response.query.posts.size() > 0 && response.query.posts[0].author.id == response.query.users[0].id", message: "Post not found or not authorized.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+    posts(where: { id: { eq: $postId } }, limit: 1) {
+      id
+      author {
+        id
+      }
+    }
+  }
+  post_delete(key: { id_expr: "response.query.posts[0].id" })
 }
 
-mutation DeleteComment($commentKey: Comment_Key!) @auth(level: USER) {
-  comment_delete(key: $commentKey)
+mutation DeleteComment($commentId: UUID!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && response.query.comments.size() > 0 && response.query.comments[0].author.id == response.query.users[0].id", message: "Comment not found or not authorized.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+    comments(where: { id: { eq: $commentId } }, limit: 1) {
+      id
+      author {
+        id
+      }
+    }
+  }
+  comment_delete(key: { id_expr: "response.query.comments[0].id" })
+}
+
+# Client-callable shard **spend** only (negative delta). `reason` is allowlisted so arbitrary spend labels cannot drain balance.
+# Allowed: `creator_card_purchase` (paired with ClaimCreatorCardOwnership), `shard_shop` (catalog cosmetics — ownership remains client-local until server inventory exists).
+# Positive grants use admin `AppendShardLedger` after verified sessions.
+mutation SpendEvolutionShards($deltaShards: Int!, $reason: String!, $referenceId: String) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && vars.deltaShards < 0 && vars.deltaShards >= -10000000 && response.query.users[0].evolutionShards + vars.deltaShards >= 0 && response.query.priorGrants.size() == 0 && (vars.reason == 'creator_card_purchase' || vars.reason == 'shard_shop')", message: "Invalid shard spend, insufficient balance, duplicate, or disallowed reason.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    priorGrants: shardLedgers(
+      where: {
+        user: { firebaseUid: { eq_expr: "auth.uid" } }
+        reason: { eq: $reason }
+        referenceId: { eq: $referenceId }
+      }
+      limit: 1
+    ) {
+      id
+    }
+  }
+  shardLedger_insert(
+    data: {
+      userId_expr: "response.query.users[0].id"
+      deltaShards: $deltaShards
+      reason: $reason
+      referenceId: $referenceId
+      dedupeKey_expr: "auth.uid + '|' + vars.reason + '|' + (vars.referenceId != null ? vars.referenceId : '')"
+    }
+  )
+  user_update(
+    key: { id_expr: "response.query.users[0].id" }
+    data: { evolutionShards_update: { inc: $deltaShards } }
+  )
+}
+
+# Call after a successful `SpendEvolutionShards` with reason `creator_card_purchase` and the same `catalogCardId` as ledger `referenceId`.
+mutation ClaimCreatorCardOwnership($catalogCardId: String!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && response.query.proofSpend.size() > 0 && response.query.proofSpend[0].deltaShards < 0 && response.query.catalogHits.size() > 0 && response.query.existingOwn.size() == 0", message: "Cannot claim ownership.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+    proofSpend: shardLedgers(
+      where: {
+        user: { firebaseUid: { eq_expr: "auth.uid" } }
+        reason: { eq: "creator_card_purchase" }
+        referenceId: { eq: $catalogCardId }
+      }
+      limit: 1
+    ) {
+      id
+      deltaShards
+    }
+    catalogHits: creatorCards(where: { catalogCardId: { eq: $catalogCardId } }, limit: 1) {
+      id
+      catalogCardId
+    }
+    existingOwn: userOwnedCreatorCards(
+      where: {
+        user: { firebaseUid: { eq_expr: "auth.uid" } }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      user {
+        id
+      }
+    }
+  }
+  userOwnedCreatorCard_insert(
+    data: {
+      userId_expr: "response.query.users[0].id"
+      creatorCardId_expr: "response.query.catalogHits[0].id"
+    }
+  )
+}
+
+# Atomic: escrow 500 shards + row (reason `critique_escrow` — not exposed on generic SpendEvolutionShards).
+mutation CreateCritiqueRequestWithEscrow($requestKey: String!, $exerciseName: String!, $notes: String) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && vars.requestKey.size() > 0 && vars.requestKey.size() <= 40 && response.query.users[0].evolutionShards >= 500 && response.query.priorLedger.size() == 0 && response.query.duplicateCritique.size() == 0", message: "Cannot create critique request.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    priorLedger: shardLedgers(
+      where: {
+        user: { firebaseUid: { eq_expr: "auth.uid" } }
+        reason: { eq: "critique_escrow" }
+        referenceId: { eq: $requestKey }
+      }
+      limit: 1
+    ) {
+      id
+    }
+    duplicateCritique: coachCritiqueRequests(where: { requestKey: { eq: $requestKey } }, limit: 1) {
+      requestKey
+    }
+  }
+  shardLedger_insert(
+    data: {
+      userId_expr: "response.query.users[0].id"
+      deltaShards: -500
+      reason: "critique_escrow"
+      referenceId: $requestKey
+      dedupeKey_expr: "auth.uid + '|' + 'critique_escrow' + '|' + vars.requestKey"
+    }
+  )
+  user_update(
+    key: { id_expr: "response.query.users[0].id" }
+    data: { evolutionShards_update: { inc: -500 } }
+  )
+  coachCritiqueRequest_insert(
+    data: {
+      requestKey: $requestKey
+      exerciseName: $exerciseName
+      notes: $notes
+      shardsEscrowed: 500
+      status: "pending"
+      userId_expr: "response.query.users[0].id"
+    }
+  )
+}
+
+# Requires catalog row, ownership row, sane price, no duplicate active listing per seller+card.
+mutation CreateCardMarketListing($catalogCardId: String!, $priceShards: Int!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && response.query.catalogHits.size() > 0 && response.query.ownershipHits.size() > 0 && vars.priceShards > 0 && vars.priceShards <= 100000000 && response.query.duplicateActiveListings.size() == 0", message: "Invalid listing or you do not own this card in Cloud SQL.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+    catalogHits: creatorCards(where: { catalogCardId: { eq: $catalogCardId } }, limit: 1) {
+      id
+      catalogCardId
+    }
+    ownershipHits: userOwnedCreatorCards(
+      where: {
+        user: { firebaseUid: { eq_expr: "auth.uid" } }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      user {
+        id
+      }
+    }
+    duplicateActiveListings: cardMarketListings(
+      where: {
+        seller: { firebaseUid: { eq_expr: "auth.uid" } }
+        catalogCardId: { eq: $catalogCardId }
+        active: { eq: true }
+      }
+      limit: 1
+    ) {
+      id
+    }
+  }
+  cardMarketListing_insert(
+    data: {
+      sellerId_expr: "response.query.users[0].id"
+      catalogCardId: $catalogCardId
+      priceShards: $priceShards
+      active: true
+    }
+  )
+}
+
+mutation DeactivateCardMarketListing($listingId: UUID!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && response.query.cardMarketListings.size() > 0 && response.query.cardMarketListings[0].seller.id == response.query.users[0].id", message: "Listing not found or not authorized.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+    }
+    cardMarketListings(where: { id: { eq: $listingId } }, limit: 1) {
+      id
+      seller {
+        id
+      }
+    }
+  }
+  cardMarketListing_update(key: { id_expr: "response.query.cardMarketListings[0].id" }, data: { active: false })
+}
+
+mutation ExecuteMarketplacePurchase(
+  $listingId: UUID!
+  $buyerId: UUID!
+  $sellerId: UUID!
+  $catalogCardId: String!
+  $buyerDeltaShards: Int!
+  $sellerDeltaShards: Int!
+) @auth(level: USER_ANON) @transaction {
+  query
+    @check(
+      expr: "response.query.buyer.size() > 0 && response.query.seller.size() > 0 && response.query.listing.size() > 0 && response.query.card.size() > 0 && response.query.buyer[0].evolutionShards + vars.buyerDeltaShards >= 0 && response.query.ownership.size() > 0 && response.query.existingOwn.size() == 0",
+      message: "Marketplace purchase validation failed: check buyer balance, card ownership, or active listing status."
+    )
+    @redact {
+    buyer: users(where: { id: { eq: $buyerId }, firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    seller: users(where: { id: { eq: $sellerId } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    listing: cardMarketListings(
+      where: { id: { eq: $listingId }, sellerId: { eq: $sellerId }, catalogCardId: { eq: $catalogCardId }, active: { eq: true } }
+      limit: 1
+    ) {
+      id
+    }
+    card: creatorCards(where: { catalogCardId: { eq: $catalogCardId } }, limit: 1) {
+      id
+    }
+    ownership: userOwnedCreatorCards(
+      where: {
+        userId: { eq: $sellerId }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      userId
+    }
+    existingOwn: userOwnedCreatorCards(
+      where: {
+        userId: { eq: $buyerId }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      userId
+    }
+  }
+
+  # 1. Debit buyer
+  buyer_update: user_update(
+    key: { id: $buyerId }
+    data: { evolutionShards_update: { inc: $buyerDeltaShards } }
+  )
+
+  # 2. Credit seller
+  seller_update: user_update(
+    key: { id: $sellerId }
+    data: { evolutionShards_update: { inc: $sellerDeltaShards } }
+  )
+
+  # 3. Revoke seller card ownership
+  revoke_ownership: userOwnedCreatorCard_delete(
+    key: { userId: $sellerId, creatorCardId_expr: "response.query.card[0].id" }
+  )
+
+  # 4. Grant buyer card ownership
+  grant_ownership: userOwnedCreatorCard_insert(
+    data: { userId: $buyerId, creatorCardId_expr: "response.query.card[0].id" }
+  )
+
+  # 5. Deactivate listing
+  deactivate_listing: cardMarketListing_update(
+    key: { id: $listingId }
+    data: { active: false }
+  )
+}
+
+# Client-callable catalog item creation for custom minted creator cards.
+mutation CreateCreatorCardCatalogItem($catalogCardId: String!, $displayName: String!, $rarityTier: String) @auth(level: USER_ANON) {
+  creatorCard_insert(
+    data: { catalogCardId: $catalogCardId, displayName: $displayName, rarityTier: $rarityTier }
+  )
+}
+
+
+# Atomic: execute marketplace purchase and credit 10% royalty to original creator
+mutation ExecuteMarketplacePurchaseWithRoyalty(
+  $listingId: UUID!
+  $buyerId: UUID!
+  $sellerId: UUID!
+  $catalogCardId: String!
+  $buyerDeltaShards: Int!
+  $sellerDeltaShards: Int!
+  $creatorId: UUID!
+  $royaltyShards: Int!
+) @auth(level: USER_ANON) @transaction {
+  query
+    @check(
+      expr: "response.query.buyer.size() > 0 && response.query.seller.size() > 0 && response.query.listing.size() > 0 && response.query.card.size() > 0 && response.query.creator.size() > 0 && response.query.buyer[0].evolutionShards + vars.buyerDeltaShards >= 0 && response.query.ownership.size() > 0 && response.query.existingOwn.size() == 0",
+      message: "Marketplace purchase validation failed: check buyer/creator status, seller balance, or listing."
+    )
+    @redact {
+    buyer: users(where: { id: { eq: $buyerId }, firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    seller: users(where: { id: { eq: $sellerId } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    creator: users(where: { id: { eq: $creatorId } }, limit: 1) {
+      id
+    }
+    listing: cardMarketListings(
+      where: { id: { eq: $listingId }, sellerId: { eq: $sellerId }, catalogCardId: { eq: $catalogCardId }, active: { eq: true } }
+      limit: 1
+    ) {
+      id
+    }
+    card: creatorCards(where: { catalogCardId: { eq: $catalogCardId } }, limit: 1) {
+      id
+    }
+    ownership: userOwnedCreatorCards(
+      where: {
+        userId: { eq: $sellerId }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      userId
+    }
+    existingOwn: userOwnedCreatorCards(
+      where: {
+        userId: { eq: $buyerId }
+        creatorCard: { catalogCardId: { eq: $catalogCardId } }
+      }
+      limit: 1
+    ) {
+      userId
+    }
+  }
+
+  # 1. Debit buyer
+  buyer_update: user_update(
+    key: { id: $buyerId }
+    data: { evolutionShards_update: { inc: $buyerDeltaShards } }
+  )
+
+  # 2. Credit seller
+  seller_update: user_update(
+    key: { id: $sellerId }
+    data: { evolutionShards_update: { inc: $sellerDeltaShards } }
+  )
+
+  # 3. Credit creator royalties
+  creator_ledger_insert: shardLedger_insert(
+    data: {
+      userId: $creatorId
+      deltaShards: $royaltyShards
+      reason: "creator_royalty_credit"
+      referenceId: $catalogCardId
+      dedupeKey_expr: "vars.creatorId + '|creator_royalty_credit|' + vars.listingId"
+    }
+  )
+
+  creator_update: user_update(
+    key: { id: $creatorId }
+    data: { pendingRoyaltyShards_update: { inc: $royaltyShards } }
+  )
+
+  # 4. Revoke seller card ownership
+  revoke_ownership: userOwnedCreatorCard_delete(
+    key: { userId: $sellerId, creatorCardId_expr: "response.query.card[0].id" }
+  )
+
+  # 5. Grant buyer card ownership
+  grant_ownership: userOwnedCreatorCard_insert(
+    data: { userId: $buyerId, creatorCardId_expr: "response.query.card[0].id" }
+  )
+
+  # 6. Deactivate listing
+  deactivate_listing: cardMarketListing_update(
+    key: { id: $listingId }
+    data: { active: false }
+  )
+}
+
+# Atomic claim flow: transfers creator's pending royalties to spendable shards
+mutation ClaimRoyalties($claimId: String!, $amount: Int!) @auth(level: USER_ANON) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && response.query.users[0].pendingRoyaltyShards == vars.amount", message: "No pending royalties or mismatched amount.")
+    @redact {
+    users(where: { firebaseUid: { eq_expr: "auth.uid" } }, limit: 1) {
+      id
+      pendingRoyaltyShards
+    }
+  }
+  user_update(
+    key: { id_expr: "response.query.users[0].id" }
+    data: {
+      evolutionShards_update: { inc: $amount }
+      pendingRoyaltyShards: 0
+    }
+  )
+  shardLedger_insert(
+    data: {
+      userId_expr: "response.query.users[0].id"
+      deltaShards: $amount
+      reason: "royalty_claim"
+      referenceId: $claimId
+      dedupeKey_expr: "auth.uid + '|royalty_claim|' + vars.claimId"
+    }
+  )
 }
 
 mutation AppendShardLedger(

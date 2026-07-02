@@ -1,0 +1,13 @@
+{
+  "id": "bgm_football",
+  "name": "Football BGM",
+  "category": "audio",
+  "type": "bgm",
+  "source_id": "122223",
+  "urls": ["https://static.seeles.ai/data/asset/export/357b10c5-a816-40dd-90fd-fb7f25fc37f8/122223/bgm_a9a7a24b-bbb0-4a6f-a026-ef78fcf5ec62.mp3"],
+  "compat": ["all"],
+  "tags": ["magnificent", "Tension", "Powerful"],
+  "fel_modes": ["football"],
+  "ue_path": "/Game/FEL/Audio/BGM/BGM_Football",
+  "created_at": "2026-05-23T20:19:41Z"
+}

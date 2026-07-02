@@ -10,11 +10,19 @@ import {
   Camera, Soup, Truck, Sparkles, Loader2, X, ChefHat, Beef, Droplet,
   Moon, Wind, Scale, Apple, ChevronRight, Upload, ShoppingCart, Plus
 } from "lucide-react";
+import { API_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const CUE_ICON = { Beef, Droplet, Moon, Wind, Scale, Sparkles, Soup };
+const FALLBACK_TODAY = {
+  intent_label: "Performance baseline",
+  targets_confidence: "default_assumption",
+  assumption_note: "Local shell fallback until BioFuel API is online.",
+  consumed: { calories: 0, protein_g: 0, carbs_g: 0, fats_g: 0 },
+  target: { calories: 2400, protein_g: 160, carbs_g: 280, fats_g: 75 },
+  pct: { calories: 0, protein_g: 0, carbs_g: 0, fats_g: 0 },
+};
 
 // ============================================================
 // BIOFUEL STRIPE (compact horizontal bar above the 4 quadrants)
@@ -24,8 +32,8 @@ export const BioFuelStripe = ({ onOpenScanner, onOpenCookbook, onOpenDoorDash })
   const [cues, setCues] = useState([]);
 
   const refresh = () => {
-    axios.get(`${API}/biofuel/today`).then((r) => setToday(r.data)).catch(console.error);
-    axios.get(`${API}/biofuel/cues`).then((r) => setCues(r.data.cues || [])).catch(console.error);
+    axios.get(`${API}/biofuel/today`).then((r) => setToday(r.data)).catch(() => setToday(FALLBACK_TODAY));
+    axios.get(`${API}/biofuel/cues`).then((r) => setCues(r.data.cues || [])).catch(() => setCues([]));
   };
   useEffect(() => { refresh(); }, []);
 
@@ -55,6 +63,9 @@ export const BioFuelStripe = ({ onOpenScanner, onOpenCookbook, onOpenDoorDash })
           <div>
             <div className="text-[10px] tracking-[0.4em] uppercase text-emerald-400">FEL OS · Bio-Fuel · NASM-CNC</div>
             <div className="font-bold tracking-tight" data-testid="biofuel-intent-label">{today.intent_label}</div>
+            {today.targets_confidence === "default_assumption" && today.assumption_note && (
+              <div className="text-[10px] text-amber-400/90 max-w-[220px]" data-testid="biofuel-targets-note">{today.assumption_note}</div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -93,7 +104,8 @@ export const BioFuelStripe = ({ onOpenScanner, onOpenCookbook, onOpenDoorDash })
               <div key={c.id} data-testid={`cue-${c.id}`} className="flex items-start gap-2 text-xs">
                 <Icon className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="font-bold text-emerald-300">{c.title}.</span>{" "}
+                  <span className="font-bold text-emerald-300">{c.title}</span>
+                  <span className="text-zinc-600"> · </span>
                   <span className="text-zinc-400">{c.message}</span>
                 </div>
               </div>
@@ -114,9 +126,13 @@ export const BioFuelScanner = ({ onClose, onLogged }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [hint, setHint] = useState("");
   const [scanning, setScanning] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const fileRef = useRef(null);
+
+  const MAX_EDGE_PX = 1280;
+  const JPEG_Q = 0.82;
 
   const onFile = (e) => {
     const f = e.target.files?.[0];
@@ -126,11 +142,29 @@ export const BioFuelScanner = ({ onClose, onLogged }) => {
       return;
     }
     setError(null);
+    setResult(null);
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target.result;
       setImagePreview(dataUrl);
-      setImageData(String(dataUrl).split(",")[1]);  // strip data: prefix
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > MAX_EDGE_PX || height > MAX_EDGE_PX) {
+          const scale = MAX_EDGE_PX / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        const jpeg = canvas.toDataURL("image/jpeg", JPEG_Q);
+        setImageData(String(jpeg).split(",")[1]);
+      };
+      img.onerror = () => setError("Could not decode image — try another photo.");
+      img.src = dataUrl;
     };
     reader.readAsDataURL(f);
   };
@@ -141,11 +175,32 @@ export const BioFuelScanner = ({ onClose, onLogged }) => {
     try {
       const r = await axios.post(`${API}/biofuel/scan`, { model, image_base64: imageData, hint: hint || undefined });
       setResult(r.data);
-      if (onLogged) onLogged();
     } catch (e) {
-      setError(e.response?.data?.detail || "Scan failed");
+      const d = e.response?.data?.detail;
+      setError(typeof d === "string" ? d : d ? JSON.stringify(d) : "Scan failed");
     } finally {
       setScanning(false);
+    }
+  };
+
+  const confirmScan = async () => {
+    if (!result?.scan_id) return;
+    setConfirming(true); setError(null);
+    try {
+      const r = await axios.post(`${API}/biofuel/scan/confirm`, { scan_id: result.scan_id });
+      setResult((prev) => ({
+        ...prev,
+        ...r.data,
+        pending_confirmation:
+          r.data.already_confirmed || r.data.pending_confirmation === false ? false : prev?.pending_confirmation,
+        nutri_shards_awarded: r.data.nutri_shards_awarded ?? prev?.nutri_shards_awarded,
+      }));
+      if (onLogged && !r.data.already_confirmed) onLogged();
+    } catch (e) {
+      const d = e.response?.data?.detail;
+      setError(typeof d === "string" ? d : d ? JSON.stringify(d) : "Confirm failed");
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -159,7 +214,7 @@ export const BioFuelScanner = ({ onClose, onLogged }) => {
         <div>
           <div className="text-[10px] tracking-[0.4em] uppercase text-emerald-400">Bio-Fuel · AI Vision Scanner</div>
           <h3 className="text-2xl font-black tracking-tight" style={{fontFamily:'Barlow Condensed'}}>SCAN YOUR MEAL</h3>
-          <p className="text-xs text-zinc-400 mt-1">Photo → calories, macros, micros. Earn Nutri-Shards.</p>
+          <p className="text-xs text-zinc-400 mt-1">Photo → estimate (pending). Confirm to log today&apos;s meal and earn Nutri-Shards.</p>
         </div>
 
         {/* Model picker */}
@@ -236,10 +291,27 @@ export const BioFuelScanner = ({ onClose, onLogged }) => {
                 </div>
               ))}
             </div>
-            <div className="text-xs text-zinc-400 flex items-center gap-2 pt-1">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              +{result.nutri_shards_awarded} Nutri-Shards · auto-logged to today
-            </div>
+            {result.pending_confirmation ? (
+              <>
+                <div className="text-xs text-amber-300/90 flex items-start gap-2 pt-1">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                  Pending — review the estimate, then confirm to add it to today and award shards (vision can misread photos).
+                </div>
+                <button
+                  data-testid="scanner-confirm-btn"
+                  disabled={confirming}
+                  onClick={confirmScan}
+                  className="w-full mt-2 py-3 bg-emerald-400 text-black text-sm font-bold hover:bg-emerald-300 disabled:opacity-50"
+                >
+                  {confirming ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Confirm & log meal"}
+                </button>
+              </>
+            ) : (
+              <div className="text-xs text-zinc-400 flex items-center gap-2 pt-1">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                +{result.nutri_shards_awarded ?? 0} Nutri-Shards · logged to today
+              </div>
+            )}
             <button data-testid="scanner-done-btn" onClick={onClose} className="w-full mt-2 py-2 bg-zinc-100 text-black text-sm font-bold hover:bg-white">Done</button>
           </div>
         )}
@@ -265,6 +337,12 @@ export const BioFuelCookbook = ({ onClose }) => {
     axios.get(url).then((r) => setData(r.data)).catch(console.error);
   }, [intent]);
 
+  const spinCss = `
+@keyframes fel-dish-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.fel-recipe-dish-spin { animation: fel-dish-spin 48s linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .fel-recipe-dish-spin { animation: none; } }
+`;
+
   const openCart = async (recipeId) => {
     try {
       const r = await axios.post(`${API}/biofuel/instacart-cart`, { recipe_id: recipeId });
@@ -282,6 +360,7 @@ export const BioFuelCookbook = ({ onClose }) => {
           <div className="text-[10px] tracking-[0.4em] uppercase text-emerald-400">FEL OS · 3D Cookbook</div>
           <h3 className="text-2xl font-black tracking-tight" style={{fontFamily:'Barlow Condensed'}}>RECIPES BY ATHLETIC INTENT</h3>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: spinCss }} />
 
         {/* Intent filter */}
         {data && (
@@ -316,17 +395,12 @@ export const BioFuelCookbook = ({ onClose }) => {
 
 // "3D" recipe card — animated SVG dish with rotating ingredient nodes
 const RecipeCard = ({ recipe, onClick }) => {
-  const [rot, setRot] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setRot((r) => (r + 1) % 360), 60);
-    return () => clearInterval(id);
-  }, []);
   const [a, b, c] = recipe.viz_palette || ["#34d399", "#059669", "#064e3b"];
   return (
     <button data-testid={`recipe-${recipe.id}`} onClick={onClick} className="text-left border border-zinc-800 hover:border-emerald-400/40 bg-zinc-950 p-4 group transition-colors">
       <div className="relative h-32 mb-3 overflow-hidden bg-black flex items-center justify-center">
-        {/* Animated 3D-ish dish */}
-        <svg viewBox="-100 -100 200 200" className="w-32 h-32" style={{ transform: `rotate(${rot}deg)`, transition: "transform 50ms linear" }}>
+        {/* CSS-driven rotation (NUTRI-10) — no per-card JS timers */}
+        <svg viewBox="-100 -100 200 200" className="w-32 h-32 fel-recipe-dish-spin">
           <defs>
             <radialGradient id={`g-${recipe.id}`}>
               <stop offset="0%" stopColor={a} />
@@ -412,6 +486,7 @@ const RecipeDetail = ({ recipe, onBack, onCart }) => (
 export const BioFuelDoorDash = ({ onClose, onLogged }) => {
   const [matches, setMatches] = useState(null);
   const [intent, setIntent] = useState(null);
+  const [logging, setLogging] = useState(false);
 
   const search = async (intentId) => {
     setIntent(intentId);
@@ -424,6 +499,10 @@ export const BioFuelDoorDash = ({ onClose, onLogged }) => {
   useEffect(() => { search(null); }, []);
 
   const logMeal = async (meal) => {
+    if (!matches || logging) return;
+    const dayKey = new Date().toISOString().slice(0, 10);
+    const client_event_id = `dd:${matches.intent}:${meal.name}:${dayKey}`;
+    setLogging(true);
     try {
       await axios.post(`${API}/biofuel/log`, {
         label: meal.name,
@@ -431,11 +510,14 @@ export const BioFuelDoorDash = ({ onClose, onLogged }) => {
         protein_g: meal.macros.protein_g,
         carbs_g: meal.macros.carbs_g,
         fats_g: meal.macros.fats_g,
-        intent: matches?.intent,
+        hydration_ml: typeof meal.macros?.hydration_ml === "number" ? meal.macros.hydration_ml : 0,
+        intent: matches.intent,
         source: "doordash",
+        client_event_id,
       });
       if (onLogged) onLogged();
     } catch (e) { console.error(e); }
+    finally { setLogging(false); }
   };
 
   const intents = [
@@ -465,6 +547,11 @@ export const BioFuelDoorDash = ({ onClose, onLogged }) => {
 
         {!matches ? (
           <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-emerald-400" /></div>
+        ) : matches.no_safe_matches ? (
+          <div className="rounded border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-zinc-300" data-testid="doordash-no-safe-matches">
+            <div className="text-amber-400/90 font-bold text-xs uppercase tracking-wider mb-1">No safe delivery matches</div>
+            <p className="text-zinc-400 leading-relaxed">{matches.message || "All options were removed by your allergy or diet filters for this macro window. Try another intent or log a custom meal."}</p>
+          </div>
         ) : (
           <div className="space-y-2" data-testid="doordash-matches">
             <div className="text-xs text-zinc-500 mb-1">
@@ -479,7 +566,7 @@ export const BioFuelDoorDash = ({ onClose, onLogged }) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button data-testid={`doordash-log-${i}`} onClick={() => logMeal(m)} className="p-2 border border-zinc-700 text-zinc-300 hover:border-emerald-400/40 hover:text-emerald-300" title="Log to today">
+                  <button data-testid={`doordash-log-${i}`} onClick={() => logMeal(m)} disabled={logging} className="p-2 border border-zinc-700 text-zinc-300 hover:border-emerald-400/40 hover:text-emerald-300 disabled:opacity-40 disabled:pointer-events-none" title="Log to today">
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                   <a data-testid={`doordash-open-${i}`} href={m.deep_link} target="_blank" rel="noreferrer" className="px-3 py-2 bg-emerald-400 text-black text-xs font-bold hover:bg-emerald-300 inline-flex items-center gap-1">

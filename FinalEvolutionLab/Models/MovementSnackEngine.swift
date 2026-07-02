@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore
 
 // MARK: - Bonds Standard → prescription taxonomy
 
@@ -11,8 +12,9 @@ nonisolated enum KineticLeakageCategory: String, Codable, Sendable, CaseIterable
 
     var id: String { rawValue }
 
-    /// Maps existing ``LeakageZone`` joints into prescription lanes (core = lumbo-pelvic–hip chain).
-    static func inferred(from audit: BiomechanicsAudit) -> [KineticLeakageCategory] {
+    /// Maps existing ``LeakageZone`` joints into prescription lanes.
+    /// ``corePelvicChain`` is **not** inferred from knee/hip leakage scores alone — only when ``MovementSnackDetectionContext/qualifiesForCorePelvicPrescription`` is true (pose evidence).
+    static func inferred(from audit: BiomechanicsAudit, detectionContext: MovementSnackDetectionContext = .unavailable) -> [KineticLeakageCategory] {
         var set: Set<KineticLeakageCategory> = []
         for zone in audit.kineticLeakageZones {
             switch zone.joint {
@@ -20,17 +22,11 @@ nonisolated enum KineticLeakageCategory: String, Codable, Sendable, CaseIterable
                 set.insert(.ankleInstability)
             case .knee:
                 set.insert(.kneeTracking)
-                if zone.severity >= 0.28 {
-                    set.insert(.corePelvicChain)
-                }
             case .hip:
                 set.insert(.hipExtensionPower)
-                set.insert(.corePelvicChain)
             }
         }
-        let kneeHip = audit.kineticLeakageZones.contains(where: { $0.joint == .knee })
-            && audit.kineticLeakageZones.contains(where: { $0.joint == .hip })
-        if kneeHip {
+        if detectionContext.qualifiesForCorePelvicPrescription {
             set.insert(.corePelvicChain)
         }
         return Array(set).sorted { $0.rawValue < $1.rawValue }
@@ -39,17 +35,17 @@ nonisolated enum KineticLeakageCategory: String, Codable, Sendable, CaseIterable
 
 // MARK: - Movement Snack (bite-sized prescription)
 
-/// A single **Movement Snack**: 60–90s, game-framed corrective loop with Unreal asset hooks.
+/// A single **Movement Snack**: 60–90s, game-framed corrective loop with NEXUS animation asset hooks.
 nonisolated struct MovementSnack: Identifiable, Codable, Sendable, Hashable {
     var id: String
-    /// Primary UE animation Montage / Sequence id (required for Phase B playback contract).
-    var requiredUnrealAnimationAssetID: String
+    /// Primary animation montage / sequence id (required for Phase B playback contract).
+    var requiredAnimationAssetID: String
     /// Phase A — capsule CARS / FRC-style joint prep.
     var phaseMappingCarsCue: String
-    /// Phase B — corrective posture demonstrated in Unreal (may equal `requiredUnrealAnimationAssetID` or a paired pose).
-    var unrealCorrectivePoseAssetID: String
+    /// Phase B — corrective posture demonstrated in NEXUS (may equal `requiredAnimationAssetID` or a paired pose).
+    var correctivePoseAssetID: String
     /// Phase C — diaphragm / IAP breath loop in-engine.
-    var unrealDiaphragmBreathAssetID: String
+    var diaphragmBreathAssetID: String
     var title: String
     var subtitle: String
     var targetedCategories: [KineticLeakageCategory]
@@ -63,11 +59,11 @@ nonisolated struct MovementSnack: Identifiable, Codable, Sendable, Hashable {
     static func sampleCoreLeakPatch() -> MovementSnack {
         MovementSnack(
             id: "snack_core_kinetic_patch_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_CoreSequence_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_CoreSequence_v1",
             phaseMappingCarsCue:
                 "Hip CARS: slow circles — internal→external rotation, pain-free range only. 45s · 3 reps each direction.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_Corrective_DeepSquatHold_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_Corrective_DeepSquatHold_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
             title: "Core Kinetic Patch",
             subtitle: "Close the loop — capsule map → stack → breath.",
             targetedCategories: [.corePelvicChain],
@@ -83,8 +79,8 @@ nonisolated struct MovementSnack: Identifiable, Codable, Sendable, Hashable {
 
 nonisolated enum MovementSnackEngine {
     /// Derives 1…n snacks from the latest biomechanical audit (Bonds Standard leakage → prescription).
-    static func snacks(from audit: BiomechanicsAudit, neuralFocus01: Double?) -> [MovementSnack] {
-        let categories = KineticLeakageCategory.inferred(from: audit)
+    static func snacks(from audit: BiomechanicsAudit, neuralFocus01: Double?, detectionContext: MovementSnackDetectionContext = .unavailable) -> [MovementSnack] {
+        let categories = KineticLeakageCategory.inferred(from: audit, detectionContext: detectionContext)
         if categories.isEmpty {
             return [primedMaintenanceSnack(neuralFocus01: neuralFocus01)]
         }
@@ -98,21 +94,22 @@ nonisolated enum MovementSnackEngine {
         if categories.contains(.ankleInstability) {
             result.append(ankleStabilitySnack(neuralFocus01: neuralFocus01))
         }
-        if categories.contains(.kneeTracking) && !categories.contains(.corePelvicChain) {
+        if categories.contains(.kneeTracking) {
             result.append(kneeStackSnack(neuralFocus01: neuralFocus01))
         }
-        if categories.contains(.hipExtensionPower) && !categories.contains(.corePelvicChain) {
+        if categories.contains(.hipExtensionPower) {
             result.append(hipDriveSnack(neuralFocus01: neuralFocus01))
         }
         var seen = Set<String>()
         return result.filter { seen.insert($0.id).inserted }
     }
 
-    /// Optional bridge from Firestore ``SystemScanRecord`` when no live demo scan exists — uses avatar vector only.
+    /// Optional bridge from Firestore ``SystemScanRecord`` when no live demo scan exists — avatar axes do **not** imply pose geometry; stability drives pelvic prescriptions only (SCAN-52).
     static func snacksFromRecord(_ record: SystemScanRecord) -> [MovementSnack] {
-        let audit = BiomechanicsAudit.fromAvatarAttributes(record.avatar, capturedAt: record.capturedAt.dateValue())
+        let audit = BiomechanicsAudit.coachingGuidanceFromAvatar(record.avatar, capturedAt: record.capturedAt.dateValue())
         let nf = record.avatar.neuralFocus
-        return snacks(from: audit, neuralFocus01: nf)
+        let ctx = MovementSnackDetectionContext.fromStability(record.stability)
+        return snacks(from: audit, neuralFocus01: nf, detectionContext: ctx)
     }
 
     static func proprioceptivePulsePeriodSeconds(neuralFocus01: Double) -> Double {
@@ -123,10 +120,10 @@ nonisolated enum MovementSnackEngine {
     private static func primedMaintenanceSnack(neuralFocus01: Double?) -> MovementSnack {
         MovementSnack(
             id: "snack_maintenance_cars_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_Maintenance_JointCircles_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_Maintenance_JointCircles_v1",
             phaseMappingCarsCue: "Full-body CARS lite: ankle, knee, hip — one slow rep each plane.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_NeutralStand_Alignment_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_BoxBreath_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_NeutralStand_Alignment_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_BoxBreath_Loop_v1",
             title: "Primed Maintenance",
             subtitle: "No major leakage — keep the chassis tuned.",
             targetedCategories: [],
@@ -139,10 +136,10 @@ nonisolated enum MovementSnackEngine {
     private static func ankleStabilitySnack(neuralFocus01: Double?) -> MovementSnack {
         MovementSnack(
             id: "snack_ankle_stability_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_Ankle_CARSequence_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_Ankle_CARSequence_v1",
             phaseMappingCarsCue: "Ankle CARS: dorsi/plantar + inversion/eversion in half-kneel, controlled.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_SplitSquat_IsometricHold_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_SplitSquat_IsometricHold_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
             title: "Ankle Stack Snack",
             subtitle: "Reclaim ground contact quality.",
             targetedCategories: [.ankleInstability],
@@ -155,10 +152,10 @@ nonisolated enum MovementSnackEngine {
     private static func kneeStackSnack(neuralFocus01: Double?) -> MovementSnack {
         MovementSnack(
             id: "snack_knee_tracking_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_Knee_TrackSequence_v1",
-            phaseMappingCarsCue: "Tibia / hip rotation CARS — own the knee window without valgus collapse.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_Corrective_SplitSquatKneeLine_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_RibAnchor_Loop_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_Knee_TrackSequence_v1",
+            phaseMappingCarsCue: "Tibia / hip rotation CARS — own the knee window without frontal-plane collapse (pose-informed coaching only).",
+            correctivePoseAssetID: "FEL_BodyIQ_Corrective_SplitSquatKneeLine_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_RibAnchor_Loop_v1",
             title: "Knee Line Snack",
             subtitle: "Bias tracking without losing torque.",
             targetedCategories: [.kneeTracking],
@@ -171,10 +168,10 @@ nonisolated enum MovementSnackEngine {
     private static func hipDriveSnack(neuralFocus01: Double?) -> MovementSnack {
         MovementSnack(
             id: "snack_hip_extension_v1",
-            requiredUnrealAnimationAssetID: "FEL_BodyIQ_Hip_CARSequence_v1",
+            requiredAnimationAssetID: "FEL_BodyIQ_Hip_CARSequence_v1",
             phaseMappingCarsCue: "Hip flex/extension CARS in quadruped → tall-kneel transitions.",
-            unrealCorrectivePoseAssetID: "FEL_BodyIQ_Corrective_HipExtensionWallDrill_v1",
-            unrealDiaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
+            correctivePoseAssetID: "FEL_BodyIQ_Corrective_HipExtensionWallDrill_v1",
+            diaphragmBreathAssetID: "FEL_BodyIQ_IAP_Diaphragm360_Loop_v1",
             title: "Hip Drive Snack",
             subtitle: "Expose length without losing intra-abdominal pressure.",
             targetedCategories: [.hipExtensionPower],
@@ -185,25 +182,3 @@ nonisolated enum MovementSnackEngine {
     }
 }
 
-// MARK: - BiomechanicsAudit + SystemScanRecord helpers
-
-private extension BiomechanicsAudit {
-    /// Lightweight audit when only persistent avatar axes exist (HealthKit / Firestore path).
-    static func fromAvatarAttributes(_ a: AvatarPerformanceAttributes, capturedAt: Date) -> BiomechanicsAudit {
-        let prq = a.prqScore
-        let vertical = a.hangTimeBonus * 40.0
-        let flight = a.speedMultiplier * 0.35
-        let synthetic = SystemScanResult(
-            id: "avatar_snapshot",
-            date: capturedAt,
-            prqScore: prq,
-            verticalEstimateInches: vertical,
-            flightTimeSeconds: flight,
-            movementGrade: a.readinessGrade,
-            notes: [],
-            recommendedTrack: "",
-            avatarConfig: .default
-        )
-        return BiomechanicsAudit.fromScanResult(synthetic)
-    }
-}

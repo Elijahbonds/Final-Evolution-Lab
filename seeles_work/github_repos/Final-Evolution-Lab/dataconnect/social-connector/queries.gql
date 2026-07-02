@@ -1,0 +1,108 @@
+# All operations require a signed-in Firebase user (including Anonymous Auth).
+# Replace `insecureReason` PUBLIC demos — production uses USER-only access.
+
+query ListRecentPosts @auth(level: USER) {
+  posts(orderBy: [{ createdAt: DESC }], limit: 50) {
+    id
+    content
+    createdAt
+    gameModeId
+    trainingScore
+    clipUrl
+    feedSource
+    author {
+      id
+      username
+      profilePictureUrl
+      avatarUrl
+      topPRQScore
+    }
+  }
+}
+
+query GetPostWithThread($postKey: Post_Key!) @auth(level: USER) {
+  post(key: $postKey) {
+    id
+    content
+    createdAt
+    gameModeId
+    trainingScore
+    clipUrl
+    feedSource
+    author {
+      id
+      username
+      email
+      profilePictureUrl
+      avatarUrl
+      topPRQScore
+    }
+    comments_on_post(orderBy: [{ createdAt: ASC }]) {
+      id
+      content
+      createdAt
+      author {
+        id
+        username
+        profilePictureUrl
+        avatarUrl
+      }
+    }
+    postLikes_on_post {
+      createdAt
+      user {
+        id
+        username
+      }
+    }
+  }
+}
+
+query GetUserByFirebaseUid($firebaseUid: String!) @auth(level: USER) {
+  users(where: { firebaseUid: { eq: $firebaseUid } }, limit: 1) {
+    id
+    username
+    email
+    profilePictureUrl
+    avatarUrl
+    topPRQScore
+    firebaseUid
+  }
+}
+
+query GetUserProfile($userId: UUID!) @auth(level: USER) {
+  user(key: { id: $userId }) {
+    id
+    username
+    email
+    profilePictureUrl
+    avatarUrl
+    topPRQScore
+  }
+  posts(
+    where: { author: { id: { eq: $userId } } }
+    orderBy: [{ createdAt: DESC }]
+    limit: 30
+  ) {
+    id
+    content
+    createdAt
+    gameModeId
+    trainingScore
+    feedSource
+  }
+}
+
+query ListCommentsForPost($postId: UUID!) @auth(level: USER) {
+  comments(where: { post: { id: { eq: $postId } } }, orderBy: [{ createdAt: ASC }]) {
+    id
+    content
+    createdAt
+    author {
+      id
+      username
+      profilePictureUrl
+      avatarUrl
+    }
+  }
+}

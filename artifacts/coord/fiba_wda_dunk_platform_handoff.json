@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-06-27T20:45:00-07:00",
+  "version": "v0.1.0-wda-fiba",
+  "featureName": "FIBA/WDA Head-to-Head Dunk Contest Platform",
+  "implementationDetails": {
+    "scoringEngine": {
+      "file": "FinalEvolutionLab/Services/WDAScoringEngine.swift",
+      "class": "WDAScoringEngine",
+      "heuristics": {
+        "executionDifficulty": {
+          "scoreRange": "10.0 to 30.0 pts",
+          "basis": "DunkTrickComplexity enum maps each trick (Rim Grazer to 720 Spin) to a base difficulty from 12.0 to 30.0. Performance scaling is applied based on takeoff velocity, flight vertical height, and degrees of rotation."
+        },
+        "artisticStyle": {
+          "scoreRange": "1.0 to 10.0 pts",
+          "basis": "Derived from average of fluid motion, landing control, and aesthetic impact. Applies safety/style deductions for biomechanical issues: -1.5 for knee valgus, -1.0 for severe ankle pronation."
+        },
+        "firstTrySuccess": {
+          "scoreRange": "1.0 to 10.0 pts",
+          "basis": "10.0 pts for 1st attempt, 7.0 for 2nd, 4.0 for 3rd, and 1.0 for additional attempts."
+        },
+        "timeLimit": {
+          "seconds": 75.0,
+          "basis": "Official FIBA 75-second attempt window. If time limit is exceeded, a penalty scales at 3.0 pts base + 0.25 pts per second over, clamped to a maximum 10.0 pts deduction."
+        }
+      }
+    },
+    "recordingTracker": {
+      "file": "FinalEvolutionLab/Views/DunkRecordingTrackerView.swift",
+      "view": "DunkRecordingTrackerView",
+      "poseTracking": {
+        "framework": "Apple Vision (VNDetectHumanBodyPoseRequest)",
+        "capabilities": {
+          "runUp": "Tracks athlete acceleration and horizontal translation across the calibrated ground floor.",
+          "takeoffAngleAndVelocity": "Computes vertical takeoff angle and impulse velocity vector from the initial jump frames.",
+          "flightHangTime": "Measures the duration (in seconds) that the average hip joint center remains above the baseline floor level.",
+          "trickComplexity": "Detects hand/wrist joint proximity relative to knees/shoulders (e.g. Eastbay under-the-leg pass) to classify active trick.",
+          "landingImpactAndBalance": "Analyzes left/right knee and ankle coordinates upon landing to identify knee valgus collapse or severe ankle pronation, providing visual feedback and style deductions."
+        },
+        "simulation": {
+          "modes": "Includes high-fidelity procedural skeleton rendering for the 10 available dunk tricks and biomechanical landing scenarios, ideal for Simulator or automated UI test environments."
+        }
+      }
+    },
+    "matchmakingView": {
+      "file": "FinalEvolutionLab/Views/DunkMatchmakingView.swift",
+      "view": "DunkMatchmakingView",
+      "features": {
+        "playerCards": "Displays side-by-side player and opponent stat cards, including active Creator Cards, PRQ readiness, and avatar/tag credentials.",
+        "recordedClipPreviews": "Integrates stylized clip preview widgets displaying active, verified telemetry data and looping visual skeleton feeds.",
+        "liveJudgesPanel": "Displays 3 virtual judges (Randy, Dominique, and Lisa) who score both participants live across the WDA scoring heuristics. Supports typed consensus commentary and individual board reveal animations."
+      }
+    },
+    "integrationNavigation": {
+      "gridSelectionView": "FinalEvolutionLab/Views/GameModeSelectionView.swift",
+      "arcadeLibraryView": "FinalEvolutionLab/Views/ArcadeLibraryView.swift",
+      "wiredState": "Intercepts selection of '.basketballDunkContest' to launch DunkMatchmakingView in a fullscreen navigation stack, replacing the legacy 3D/headless placeholder with the flagship WDA Dunk Platform."
+    },
+    "rewardsAndSave": {
+      "shardCredits": "+50 Evolution Shards credited on completion to UserProfile.evolutionShards",
+      "prqRating": "Updates competitive PRQ score via 'FELScoreManager.shared.applyClampedPrq(...)' using the official 'PRQ.rankingSessionPRQ(...)' formula (won vs lost, combo metrics, score differential, and neural drive)."
+    }
+  },
+  "compilationState": "Clean Swift compilation, zero linter/type errors.",
+  "status": "Production-Ready Canonical Shipment"
+}

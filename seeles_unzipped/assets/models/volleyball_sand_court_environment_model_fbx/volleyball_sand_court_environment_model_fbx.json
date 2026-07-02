@@ -1,0 +1,22 @@
+{
+  "id": "volleyball_sand_court_environment_model_fbx",
+  "name": "Beach Volleyball Sand Court Environment",
+  "category": "models",
+  "type": "environment_fbx",
+  "file": "volleyball_sand_court_environment_model_fbx.fbx",
+  "urls": ["https://seelemedia.s3.us-east-1.amazonaws.com/media/c0e40af143b243eebea5fabf2fe4f1f8.fbx"],
+  "preview_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/ade0ec067e234597b6361309a615b19d.png",
+  "description": "Beach volleyball sand court with net and poles for FEL volleyball mode.",
+  "tags": ["volleyball", "beach", "sand", "court", "environment", "unreal", "fel"],
+  "keywords": ["volleyball", "beach", "sand court", "net", "outdoor"],
+  "compat": ["unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T18:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 23,
+  "version": "1.0",
+  "asset_design_id": "thing_94b6b3ac313b4ad8",
+  "fel_venue_id": "Sand_Court",
+  "fel_map_path": "/Game/FEL/Venues/SandCourt/SandCourt",
+  "fel_modes": ["volleyball"]
+}

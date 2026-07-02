@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Final Evolution Lab — Superapp / agent manifest (Desktop bundle)",
+  "version": 2,
+  "desktop_bundle_root": "/Users/elijahbonds/Desktop/FEL-Superapp-Reference",
+  "repo_root": "/Users/elijahbonds/Documents/rork-final-evolution-lab",
+  "integration_branch": "setup-healthkit",
+  "description": "Curated index with absolute paths so tools that only index ~/Desktop can still resolve source locations.",
+  "critical_paths": {
+    "shipping_script": {
+      "path": "fel_ue5_ios_shipping_package.sh",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/fel_ue5_ios_shipping_package.sh",
+      "role": "UE RunUAT cook/stage/archive; descriptor-safe repack; optional app-store export via infra ExportOptions"
+    },
+    "export_options_app_store": {
+      "path": "infra/ue5_config/ExportOptions.plist",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/infra/ue5_config/ExportOptions.plist",
+      "role": "xcodebuild -exportArchive method app-store for TestFlight / ASC"
+    },
+    "ue5_default_game_reference": {
+      "path": "infra/ue5_config/DefaultGame.ini",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/infra/ue5_config/DefaultGame.ini",
+      "role": "Canonical merged packaging / venue cook reference"
+    },
+    "unreal_integration_source": {
+      "path": "UnrealIntegration/Source/",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/UnrealIntegration/Source/",
+      "role": "FEL C++ modules (overlay, deep links, iOS bridge)"
+    },
+    "unreal_integration_config_snippets": {
+      "path": "UnrealIntegration/Config/",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/UnrealIntegration/Config/",
+      "role": "INI snippets to merge into live UE project (URL scheme, privacy plist fragments)"
+    },
+    "unreal_starter_ue_project": {
+      "path": "UnrealStarter/BasketballGame/",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/UnrealStarter/BasketballGame/",
+      "role": "Bundled UE project tree / Content / Config snippets (may mirror external UE project on disk)"
+    },
+    "swift_ios_app": {
+      "path": "FinalEvolutionLab/",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/FinalEvolutionLab/",
+      "role": "Xcode SwiftUI shell — HealthKit services, views (parallel to Unreal-hosted product track)"
+    },
+    "backend_api": {
+      "path": "backend/",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/backend/",
+      "role": "FastAPI — vault hub, modes, fitness, analytics surfaces"
+    },
+    "frontend_dashboard": {
+      "path": "frontend/src/",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/frontend/src/",
+      "role": "React dashboard components loaded conceptually by WKWebView overlay on iOS"
+    },
+    "infra_automation": {
+      "path": "infra/",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/infra/",
+      "role": "UE config exports, native iOS notes, CI-adjacent assets"
+    },
+    "ios_capabilities_checklist": {
+      "path": "Config/FEL_IOS_CAPABILITIES_CHECKLIST.txt",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/Config/FEL_IOS_CAPABILITIES_CHECKLIST.txt",
+      "role": "Human checklist for entitlements / plist alignment"
+    },
+    "agents_notes": {
+      "path": "AGENTS.md",
+      "absolute_path": "/Users/elijahbonds/Documents/rork-final-evolution-lab/AGENTS.md",
+      "role": "Agent / IDE orientation if present"
+    }
+  },
+  "distribution_policy": {
+    "allowed": ["App Store Connect", "TestFlight", "Transporter", "Xcode Organizer"],
+    "disallowed_in_repo": ["AltStore", "SideStore", "OTA manifest install pages", "itms-services sideload feeds", "apps.json store sources"]
+  },
+  "outside_repo_note": "Live UE 5.7 project often lives under ~/Developer/FinalEvolutionLab57/ — not fully on Desktop. See LOCAL_AND_SECRET_POINTER.template.md."
+}

@@ -65,11 +65,27 @@ struct SaveSystem {
         }
     }
 
+    /// Last mode the player explicitly chose on the Arena grid (GAME-35); global matchmaking uses this instead of registry order.
+    private static let lastArenaModeIdKey = "fel_last_selected_arena_mode_id"
+
+    static func saveLastSelectedArenaModeId(_ rawValue: String) {
+        UserDefaults.standard.set(rawValue, forKey: lastArenaModeIdKey)
+    }
+
+    static func loadLastSelectedArenaModeId() -> String? {
+        UserDefaults.standard.string(forKey: lastArenaModeIdKey)
+    }
+
     private static let gameResultsKey = "finalEvolution_gameResults"
+    private static let maxCachedGameResults = 64
 
     static func saveGameResult(_ result: GameSessionResult) {
         var results = loadGameResults()
+        results.removeAll { $0.id == result.id }
         results.append(result)
+        if results.count > maxCachedGameResults {
+            results = Array(results.suffix(maxCachedGameResults))
+        }
         if let data = try? JSONEncoder().encode(results) {
             UserDefaults.standard.set(data, forKey: gameResultsKey)
         }
