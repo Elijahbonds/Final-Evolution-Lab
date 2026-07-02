@@ -1,6 +1,9 @@
 #include "nexus/gameplay/snowboarding_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
+#include <string>
 
 namespace nexus::gameplay {
 
@@ -171,7 +174,7 @@ auto SnowboardingMode::stateJson() const -> nlohmann::json {
   out["wipeouts"] = m_wipeouts;
   out["max_wipeouts"] = kMaxWipeouts;
   out["run_complete"] = isRunComplete();
-  out["release_state"] = "validate_only";
+  out["release_state"] = std::string(arenaModeReleaseStateName("snowboarding"));
   return out;
 }
 

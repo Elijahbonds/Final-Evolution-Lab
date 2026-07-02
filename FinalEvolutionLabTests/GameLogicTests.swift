@@ -248,6 +248,8 @@ struct GameLogicTests {
     @Test func gameGeneratorPlayableModeResolverHandlesAliases() {
         #expect(GameModeRegistry.playableMode(forRegistryId: "venice_pickup")?.id == .basketballHeadToHead)
         #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse")?.id == .marketBrowse)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse")?.nexusCapabilityTier == .nonGame)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse")?.isNexusSprintPlayable == false)
         #expect(GameModeRegistry.playableMode(forRegistryId: "snowboarding")?.id == .snowboarding)
     }
 

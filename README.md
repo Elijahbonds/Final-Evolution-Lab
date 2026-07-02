@@ -19,7 +19,7 @@ Build NEXUS static libs first on macOS:
 1. **First launch on a physical device** — full-screen onboarding (sport → age → goal). Tap through all three steps; **START EVOLUTION** opens the main shell.
 2. **After onboarding (or on Simulator)** — five-tab menu: **Lab**, **Train**, **Arena**, **Status**, **Profile**.
 
-Arena gameplay uses **NEXUS SceneKit preview** by default (`NEXUS_USE_METAL=1` for Metal embed stub). UI surfaces not yet at production bar show **PREVIEW · NEXUS** badges.
+Arena gameplay uses **NEXUS SceneKit preview** by default (`NEXUS_USE_METAL=1` for the partial Metal venue-mesh embed). UI surfaces not yet at production bar show **PREVIEW · NEXUS** badges.
 
 Do **not** add `-ScreenshotHarness` under **Edit Scheme → Run → Arguments Passed On Launch** for everyday use. That dev-only flag skips the tab shell and opens the PR screenshot harness (Arena grid / raw gameplay chrome).
 

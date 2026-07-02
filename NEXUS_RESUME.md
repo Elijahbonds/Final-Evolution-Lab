@@ -17,7 +17,7 @@
 | 5 | iOS NEXUS static libs | **pass** | `./scripts/build-nexus-ios.sh` → `build-ios/*.a` |
 | 6 | Full build gate | **pass** | `./scripts/nexus_build_gate.sh` → headless 4/4 + full 5/5 ctest |
 | 7 | Runtime smoke | **pass** | `bench_nexus_runtime.sh`, `smoke_v1.sh`, `smoke_gameplay_session.sh` |
-| 8 | iOS TestFlight packaging | **partial** | Dry-run OK; **no** `FEL.xcarchive`, **no** IPA, **no** `GoogleService-Info.plist` |
+| 8 | iOS TestFlight packaging | **partial** | Preview archive/IPA path evidenced in `NEXUS_DELIVERY_MATRIX.md`; production Firebase plist + ASC upload still open |
 | 9 | Docs (this file) | **pass** | Honest status — no fake “shipped” claims |
 | 10 | Delivery evidence | **pass** | `build/nexus-pass2-report.json` + logs under `build/` and `build/ios/` |
 
@@ -27,8 +27,8 @@ Machine-readable report: `build/nexus-pass2-report.json`
 
 ### What is NOT shipped
 
-- No App Store / TestFlight upload for NEXUS embed path
-- No `build/FEL.xcarchive` on disk (full `archive-ios-testflight.sh` not run)
+- No production App Store / TestFlight upload for NEXUS embed path
+- No production-Firebase `build/FEL.xcarchive` / IPA proof; preview placeholder-Firebase archive/export is documented in `NEXUS_DELIVERY_MATRIX.md`
 - No Instruments 60 FPS proof on device
 - GPU shadow / bloom / FXAA resolve passes still stubs (see `NEXUS_Engine_10_Phase_Pass.md`)
 

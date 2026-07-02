@@ -1,6 +1,9 @@
 #include "nexus/gameplay/who_scene_it_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
+#include <string>
 
 namespace nexus::gameplay {
 
@@ -129,7 +132,7 @@ auto WhoSceneItMode::stateJson() const -> nlohmann::json {
       {"current_category", m_currentCategory},
       {"player_has_buzz", m_playerHasBuzz},
       {"match_complete", isMatchComplete()},
-      {"release_state", "validate_only"},
+      {"release_state", std::string(arenaModeReleaseStateName("who_scene_it"))},
   };
 }
 

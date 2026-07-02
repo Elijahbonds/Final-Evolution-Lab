@@ -16,14 +16,18 @@
 #include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gameplay_application.h"
 #include "nexus/gameplay/gameplay_manager.h"
+#include "nexus/gameplay/gymnastics_mode.h"
 #include "nexus/gameplay/hud_relay_service.h"
 #include "nexus/gameplay/mode_runtime.h"
 #include "nexus/gameplay/outcome_sport_mode.h"
 #include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/session_receipt_client.h"
+#include "nexus/gameplay/skateboarding_mode.h"
+#include "nexus/gameplay/snowboarding_mode.h"
 #include "nexus/gameplay/surfing_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/voxel_command_parser.h"
+#include "nexus/gameplay/who_scene_it_mode.h"
 #include "nexus/physics/physics_world.h"
 
 #include <cstdio>
@@ -423,6 +427,33 @@ void arena_mode_registry_production_modes_match_validate_script() {
     require(mode->releaseState == nexus::gameplay::ArenaReleaseState::kProduction,
             std::string("production release state: ") + std::string(expectedId));
   }
+}
+
+void production_simulators_report_registry_release_state() {
+  nexus::gameplay::SkateboardingMode skateboarding;
+  require(skateboarding.stateJson()["release_state"].get<std::string>() == "production",
+          "skateboarding release_state matches registry");
+
+  nexus::gameplay::SnowboardingMode snowboarding;
+  require(snowboarding.stateJson()["release_state"].get<std::string>() == "production",
+          "snowboarding release_state matches registry");
+
+  nexus::gameplay::SurfingMode surfing;
+  require(surfing.stateJson()["release_state"].get<std::string>() == "production",
+          "surfing release_state matches registry");
+
+  nexus::gameplay::GymnasticsMode gymnastics;
+  require(gymnastics.stateJson()["release_state"].get<std::string>() == "production",
+          "gymnastics release_state matches registry");
+
+  nexus::gameplay::WhoSceneItMode whoSceneIt;
+  require(whoSceneIt.stateJson()["release_state"].get<std::string>() == "production",
+          "who scene it release_state matches registry");
+
+  nexus::gameplay::OutcomeSportMode outcomeSport;
+  outcomeSport.reset("baseball");
+  require(outcomeSport.stateJson()["release_state"].get<std::string>() == "production",
+          "outcome sport release_state matches registry");
 }
 
 void gameplay_manager_evaluates_volleyball_outcome() {
@@ -2791,6 +2822,7 @@ auto main() -> int {
   gameplay_session_state_query_returns_coherent_payload();
   arena_mode_registry_lists_nineteen_modes();
   arena_mode_registry_production_modes_match_validate_script();
+  production_simulators_report_registry_release_state();
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();
   karate_h2h_sport_pulse_hp_combat();

@@ -33,8 +33,8 @@ Unreal Engine 5.7 and Unity 6 are **no longer used for shipping**. Their code an
 
 NEXUS is the ship target, but not every pillar is production-grade yet. Until gaps in **`NEXUS_DELIVERY_MATRIX.md`** close, label UI and marketing copy **preview/beta** where applicable:
 
-- No signed `FEL.xcarchive` / TestFlight IPA on disk (Phase 8)
-- Metal renderer is stub; iOS dunk still SceneKit preview path
+- Production Firebase/App Store Connect upload is still blocked; preview archive/IPA evidence lives in `NEXUS_DELIVERY_MATRIX.md`
+- Metal embed is partial: bundled mobile mesh draw is wired, while full PBR/post-process/camera UX and device FPS proof remain open
 - Session receipt live Firebase POST open (DoD #4)
 - GPU shadow/bloom resolve passes deferred
 

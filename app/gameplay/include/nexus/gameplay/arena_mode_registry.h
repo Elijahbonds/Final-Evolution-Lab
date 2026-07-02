@@ -47,6 +47,9 @@ struct ArenaModeConfig {
   ArenaReleaseState releaseState{ArenaReleaseState::kProduction};
 };
 
+[[nodiscard]] auto arenaReleaseStateName(ArenaReleaseState state) -> std::string_view;
+[[nodiscard]] auto arenaModeReleaseStateName(std::string_view modeId) -> std::string_view;
+
 class ArenaModeRegistry {
 public:
   [[nodiscard]] static auto allModes() -> std::span<const ArenaModeConfig>;

@@ -1,6 +1,9 @@
 #include "nexus/gameplay/gymnastics_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
+#include <string>
 
 namespace nexus::gameplay {
 
@@ -55,7 +58,7 @@ auto GymnasticsMode::rhythmTap(float timingNormalized, float difficulty)
         {"grade", timing >= kTimingPerfectThreshold   ? "perfect"
                   : timing >= kTimingGoodThreshold    ? "good"
                                                       : "miss"}}},
-      {"release_state", "validate_only"},
+      {"release_state", std::string(arenaModeReleaseStateName("gymnastics"))},
   });
 }
 
@@ -73,7 +76,7 @@ auto GymnasticsMode::applyDeduction(float value) -> Result<nlohmann::json> {
   return Result<nlohmann::json>::ok({
       {"gymnastics", stateJson()},
       {"deduction", {{"value", deduction}, {"total_deductions", m_deductions}}},
-      {"release_state", "validate_only"},
+      {"release_state", std::string(arenaModeReleaseStateName("gymnastics"))},
   });
 }
 
@@ -103,6 +106,7 @@ auto GymnasticsMode::stateJson() const -> nlohmann::json {
       {"deductions", m_deductions},
       {"deduction_points", m_deductionPoints},
       {"routine_complete", isRoutineComplete()},
+      {"release_state", std::string(arenaModeReleaseStateName("gymnastics"))},
   };
 }
 

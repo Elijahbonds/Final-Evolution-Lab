@@ -81,7 +81,7 @@ extension GameModeId {
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 
@@ -107,7 +107,7 @@ extension GameModeId {
     var isNexusSprintPlayable: Bool {
         switch self {
         case .marketBrowse:
-            return true
+            return false
         default:
             break
         }
@@ -563,7 +563,8 @@ struct GameModeRegistry {
             multiplayerType: .solo,
             environmentName: "Luma Venice Shop",
             hint: "Browse the vault · scan venues · shop collectibles",
-            releaseState: .preview
+            releaseState: .preview,
+            capabilityTier: .nonGame
         ),
     ]
 
