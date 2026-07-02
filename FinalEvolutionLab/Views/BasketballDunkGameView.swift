@@ -1574,12 +1574,11 @@ struct BasketballDunkGameView: View {
                 padSwipeVector = padVector(for: d)
                 swipeDragOffset = CGSize(width: padSwipeVector.width * 0.25,
                                          height: padSwipeVector.height * 0.25)
-            case .primary:
+            case .primary, .style, .special:
+                // Commit the swipe the player built with stick/d-pad — quality
+                // comes from their input, never auto-perfect.
                 registerSwipe(translation: padSwipeVector == .zero
                               ? CGSize(width: 0, height: -160) : padSwipeVector)
-            case .style, .special:
-                // Mid-air signature style — commit the style's ideal swipe.
-                registerSwipe(translation: idealSwipeVector(for: selectedStyle))
             default: break
             }
         default:
@@ -1600,16 +1599,6 @@ struct BasketballDunkGameView: View {
         case .down:  return CGSize(width: 0,    height: 160)
         case .left:  return CGSize(width: -160, height: 0)
         case .right: return CGSize(width: 160,  height: 0)
-        }
-    }
-
-    private func idealSwipeVector(for style: DunkStyle) -> CGSize {
-        switch style.id {
-        case "power_slam", "tomahawk", "alley_oop": return CGSize(width: 0, height: -160)
-        case "windmill", "three_sixty":             return CGSize(width: 160, height: 0)
-        case "reverse":                             return CGSize(width: 0, height: 160)
-        case "between_legs":                        return CGSize(width: 110, height: -110)
-        default:                                    return CGSize(width: 0, height: -160)
         }
     }
 
