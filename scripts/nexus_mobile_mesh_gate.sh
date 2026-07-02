@@ -6,7 +6,20 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT}/build-full"
 cd "$ROOT"
 
+if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
+  export CC=gcc
+fi
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CXX=g++
+fi
+
 if [[ ! -x "${BUILD_DIR}/nexus_renderer_test" ]]; then
+  if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]] && \
+     grep -q "CMAKE_CXX_COMPILER:FILEPATH=/usr/bin/c++" "${BUILD_DIR}/CMakeCache.txt" && \
+     [[ "${CXX:-}" == "g++" || "${CXX:-}" == */g++ ]]; then
+    echo "==> Removing stale build-full cache that used broken /usr/bin/c++"
+    rm -rf "$BUILD_DIR"
+  fi
   cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=ON -DNEXUS_BUILD_TESTS=ON
   cmake --build "$BUILD_DIR" --target nexus_renderer_test
 fi
