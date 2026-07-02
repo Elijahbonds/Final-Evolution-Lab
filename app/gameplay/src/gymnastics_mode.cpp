@@ -109,6 +109,7 @@ auto GymnasticsMode::stateJson() const -> nlohmann::json {
       {"deductions", m_deductions},
       {"deduction_points", m_deductionPoints},
       {"routine_complete", isRoutineComplete()},
+      {"release_state", gymnasticsReleaseState()},
   };
 }
 
