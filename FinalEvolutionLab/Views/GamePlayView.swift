@@ -93,7 +93,7 @@ struct GamePlayView: View {
     @State private var showContestPill: Bool = false
     @State private var defenderSimDistance: Double = 4.0
 
-    @State private var goldenComboEngine = GoldenEraComboEngine()
+    @State private var goldenComboEngine = SignatureComboEngine()
     @State private var timeScaleManager = TimeScaleManager()
     @State private var matrixState = MatrixStateMachine()
     @State private var activeModifierState: ModifierState = .none
@@ -1006,8 +1006,8 @@ struct GamePlayView: View {
     private var controlPanel: some View {
         VStack(spacing: 8) {
             if inputScheme == .charge {
-                PS2GamepadOverlay(
-                    onFaceButton: handlePS2FaceButton,
+                ArenaPadOverlay(
+                    onFaceButton: handleArenaPadFaceButton,
                     onDPad: handlePS2DPad,
                     onLeftStick: handlePS2LeftStick,
                     onRightStick: handlePS2RightStick,
@@ -3502,7 +3502,7 @@ struct GamePlayView: View {
         showContestPill = false
         defenderSimDistance = 4.0
 
-        goldenComboEngine = GoldenEraComboEngine()
+        goldenComboEngine = SignatureComboEngine()
         timeScaleManager = TimeScaleManager()
         matrixState = MatrixStateMachine()
         activeModifierState = .none
@@ -4907,7 +4907,7 @@ struct GamePlayView: View {
 
     // MARK: - PS2 Controller Handlers
 
-    private func handlePS2FaceButton(_ button: PS2FaceButton) {
+    private func handleArenaPadFaceButton(_ button: ArenaPadFaceButton) {
         guard isActive else { return }
         if isDunkContest {
             switch dunkEngine.phase {
@@ -4949,7 +4949,7 @@ struct GamePlayView: View {
         }
     }
 
-    private func handlePS2DPad(_ direction: PS2DPadDirection) {
+    private func handlePS2DPad(_ direction: ArenaPadDPadDirection) {
         guard isActive else { return }
         let comboDir: ComboDirection
         switch direction {

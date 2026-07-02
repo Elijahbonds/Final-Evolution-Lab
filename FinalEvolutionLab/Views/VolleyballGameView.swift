@@ -74,7 +74,6 @@ private struct VBDrawer {
 
     mutating func render(ctx: inout GraphicsContext) {
         drawBeachBackground(&ctx)
-        drawCrowdScene(&ctx)
         drawSandCourt(&ctx)
         drawNetStructure(&ctx)
         drawPlayerFigures(&ctx)

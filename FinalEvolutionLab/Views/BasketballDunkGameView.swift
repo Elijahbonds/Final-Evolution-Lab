@@ -804,7 +804,7 @@ private struct CourtDraw {
 
         // #121 Dunk name banner (glowing pill)
         var bannerPill = Path()
-        bannerPill.addCapsule(in: CGRect(x: W * 0.25, y: H * 0.870, width: W * 0.50, height: 20))
+        bannerPill.addRoundedRect(in: CGRect(x: W * 0.25, y: H * 0.870, width: W * 0.50, height: 20), cornerSize: CGSize(width: 10, height: 10))
         var gcBanner = ctx; gcBanner.addFilter(.blur(radius: 6))
         gcBanner.fill(bannerPill, with: .color(Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.40)))
         ctx.fill(bannerPill, with: .color(Color(red: 0.02, green: 0.10, blue: 0.22).opacity(0.78)))
@@ -1476,15 +1476,15 @@ struct BasketballDunkGameView: View {
         let winner: ResultScreen.ResultWinner = playerTotal > aiTotal ? .p1 : playerTotal < aiTotal ? .p2 : .draw
         return ResultScreen(
             winner: winner, p1Score: playerTotal, p2Score: aiTotal, title: "Dunk Contest", accentColor: accent,
-            prqGain: PRQ.modeReward(mode: .basketballDunkContest, won: playerTotal > aiTotal,
+            prqGain: PRQ.modeReward(mode: .basketballDunkContest3D, won: playerTotal > aiTotal,
                                     tied: playerTotal == aiTotal,
                                     combo: playerRoundScores.filter(\.playerWon).count,
                                     criticals: playerRoundScores.filter(\.isPerfect).count,
                                     scoreDifferential: max(0, playerTotal - aiTotal)),
             prqCurrent: viewModel.effectiveMetrics.prqScore,
-            modeAttributeLabel: PRQ.attributeLabel(for: .basketballDunkContest),
+            modeAttributeLabel: PRQ.attributeLabel(for: .basketballDunkContest3D),
             modeAttributeValue: PRQ.attributeValue(prq: viewModel.effectiveMetrics.prqScore,
-                                                   for: .basketballDunkContest),
+                                                   for: .basketballDunkContest3D),
             onReturn: { awardShards(winner: winner); dismiss() }
         )
     }

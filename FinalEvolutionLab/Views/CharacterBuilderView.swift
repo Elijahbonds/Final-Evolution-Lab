@@ -489,25 +489,26 @@ struct CharacterBuilderView: View {
                     ? (scan?.prqScore ?? 0) >= tier.requiredPRQ
                     : false
                 let isCurrent = config.outfitTier == tier
+                let tierColor = Color(hex: tier.defaultJerseyHex) ?? Theme.brandCyan
 
                 VStack(spacing: 4) {
                     Text(tier.displayName.uppercased())
                         .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .foregroundStyle(isCurrent ? .white : (unlocked ? .secondary : .tertiary))
+                        .foregroundStyle(isCurrent ? Color.white : (unlocked ? Color.secondary : Color(.tertiaryLabel)))
 
                     Text(tier.requiredPRQ == 0 ? "FREE" : "PRQ \(Int(tier.requiredPRQ))"+"+")
                         .font(.system(size: 8, design: .monospaced))
-                        .foregroundStyle(isCurrent ? Color(hex: tier.defaultJerseyHex) ?? Theme.brandCyan : .quaternary)
+                        .foregroundStyle(isCurrent ? tierColor : Color(.quaternaryLabel))
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(isCurrent ? (Color(hex: tier.defaultJerseyHex) ?? Theme.brandCyan).opacity(0.1) : Color.white.opacity(0.03))
+                        .fill(isCurrent ? tierColor.opacity(0.1) : Color.white.opacity(0.03))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(isCurrent ? (Color(hex: tier.defaultJerseyHex) ?? Theme.brandCyan).opacity(0.3) : Color.white.opacity(0.06), lineWidth: 0.5)
+                                .stroke(isCurrent ? tierColor.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 0.5)
                         )
                 )
             }
@@ -684,16 +685,3 @@ struct CharacterBuilderView: View {
     }
 }
 
-// MARK: — Color(hex:) convenience
-
-private extension Color {
-    init?(hex: String) {
-        let h = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        guard h.count == 6, let val = UInt64(h, radix: 16) else { return nil }
-        self.init(
-            red:   Double((val >> 16) & 0xFF) / 255,
-            green: Double((val >>  8) & 0xFF) / 255,
-            blue:  Double( val        & 0xFF) / 255
-        )
-    }
-}

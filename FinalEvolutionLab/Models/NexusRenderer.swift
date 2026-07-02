@@ -105,8 +105,8 @@ final class NexusRenderer {
         let payload: [String: Any] = [
             "type": "body_iq_snack",
             "snackId": snack.id,
-            "animationAssetId": snack.requiredUnrealAnimationAssetID,
-            "correctivePoseId": snack.unrealCorrectivePoseAssetID,
+            "animationAssetId": snack.requiredAnimationAssetID,
+            "correctivePoseId": snack.correctivePoseAssetID,
             "durationSeconds": snack.durationSeconds,
             "targetCategories": snack.targetedCategories.map(\.rawValue),
         ]

@@ -589,13 +589,13 @@ private struct SkateDrawer {
         if boardAngle != 0 { boardGC.rotate(by: .radians(boardAngle)) }
         let bw: CGFloat = 28, bh: CGFloat = grinding ? 4 : 6
         boardGC.fill(Path(roundedRect: CGRect(x: -bw / 2, y: 0, width: bw, height: bh),
-                          cornerRadius: CGSize(width: 2, height: 2)),
+                          cornerSize: CGSize(width: 2, height: 2)),
                      with: .color(.white.opacity(0.90)))
         boardGC.fill(Path(roundedRect: CGRect(x: -bw / 2, y: 0, width: bw, height: 2),
-                          cornerRadius: CGSize(width: 1, height: 1)),
+                          cornerSize: CGSize(width: 1, height: 1)),
                      with: accentShading)
         boardGC.fill(Path(roundedRect: CGRect(x: -bw / 2 + 3, y: 1, width: bw - 6, height: 2),
-                          cornerRadius: CGSize(width: 1, height: 1)),
+                          cornerSize: CGSize(width: 1, height: 1)),
                      with: .color(.black.opacity(0.35)))
 
         let crouchDelta: CGFloat = grinding ? -4 : (airborne ? -2 : 0)

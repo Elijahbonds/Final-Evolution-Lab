@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import AVFoundation
 
 // MARK: - Camera Session
@@ -89,7 +90,7 @@ private struct KaiProctorCanvas: View {
                 let cx = W / 2; let cy = H * 0.44
                 let acc = Color(red: 0.0, green: 0.9, blue: 1.0)
 
-                ctx.fill(Path(CGRect(width: W, height: H)),
+                ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
                          with: .color(Color(red: 0.04, green: 0.06, blue: 0.10)))
 
                 ctx.stroke(Path(ellipseIn: CGRect(x: cx-22, y: cy-28, width: 44, height: 52)),
@@ -364,7 +365,7 @@ struct IRLDunkView: View {
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var camera = IRLCameraSession()
-    @StateObject private var healthKit = HealthKitService()
+    @State private var healthKit = HealthKitService()
     @State private var phase: IRLPhase = .ready
     @State private var jumpCount = 0
     @State private var scores: [Double] = []

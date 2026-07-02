@@ -312,6 +312,8 @@ class LabViewModel {
     }
 
     static let critiqueCostShards = 500
+    /// Platform takes 20 %; coach earns the remaining 80 %.
+    static let critiqueCoachEarningShards = 400
 
     func requestCritique(exerciseName: String, notes: String) async -> Bool {
         let cost = Self.critiqueCostShards

@@ -2156,7 +2156,7 @@ struct SoccerGameView: View {
                     if consecutivePlayerGoals >= 3 && !hasPowerShot {
                         hasPowerShot = true
                         consecutivePlayerGoals = 0
-                        awardPowerUp("POWER SHOT UNLOCKED!\n3 goals in a row!")
+                        awardPowerUp(message: "POWER SHOT UNLOCKED!\n3 goals in a row!")
                     }
                 } else if goalieCovers && tackleProbability < 0.4 {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -2182,7 +2182,7 @@ struct SoccerGameView: View {
                     if consecutiveAIGoals >= 3 && !hasGoldenGlove {
                         hasGoldenGlove = true
                         consecutiveAIGoals = 0
-                        awardPowerUp("GOLDEN GLOVE EARNED!\n3 goals conceded!")
+                        awardPowerUp(message: "GOLDEN GLOVE EARNED!\n3 goals conceded!")
                     }
 
                     // Yellow card accumulation

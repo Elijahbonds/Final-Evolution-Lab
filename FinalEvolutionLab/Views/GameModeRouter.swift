@@ -21,40 +21,40 @@ struct GameModeRouter: View {
     @ViewBuilder
     private var routedView: some View {
         switch gameMode.id {
-        case .basketballHeadToHead:
+        case .basketballHeadToHead, .venicePickup:
             BasketballH2HGameView(viewModel: viewModel)
         case .basketball3v3:
             Basketball3v3GameView(viewModel: viewModel)
-        case .basketballDunkContest:
+        case .basketballDunkContest3D:
             BasketballDunkGameView(viewModel: viewModel)
-        case .basketballIRL:
-            IRLDunkView(viewModel: viewModel)
+        case .basketballDunkContestIRL:
+            IRLDunkView(viewModel: viewModel, gameMode: gameMode)
         case .karate:
             KarateGameView(viewModel: viewModel)
         case .karateEndless:
             KarateEndlessGameView(viewModel: viewModel)
         case .baseball:
-            BaseballGameView(viewModel: viewModel)
+            BaseballGameView(viewModel: viewModel, gameMode: gameMode)
         case .football:
-            FootballGameView(viewModel: viewModel)
+            FootballGameView(viewModel: viewModel, gameMode: gameMode)
         case .soccer:
-            SoccerGameView(viewModel: viewModel)
+            SoccerGameView(viewModel: viewModel, gameMode: gameMode)
         case .golf:
-            GolfGameView(viewModel: viewModel)
+            GolfGameView(viewModel: viewModel, gameMode: gameMode)
         case .tennis:
-            TennisGameView(viewModel: viewModel)
+            TennisGameView(viewModel: viewModel, gameMode: gameMode)
         case .volleyball:
-            VolleyballGameView(viewModel: viewModel)
+            VolleyballGameView(viewModel: viewModel, gameMode: gameMode)
         case .gymnastics:
-            GymnasticsGameView(viewModel: viewModel)
+            GymnasticsGameView(viewModel: viewModel, gameMode: gameMode)
         case .surfing:
-            SurfingGameView(viewModel: viewModel)
+            SurfingGameView(viewModel: viewModel, gameMode: gameMode)
         case .skateboarding:
-            SkateboardingGameView(viewModel: viewModel)
+            SkateboardingGameView(viewModel: viewModel, gameMode: gameMode)
         case .snowboarding:
-            SnowboardingGameView(viewModel: viewModel)
+            SnowboardingGameView(viewModel: viewModel, gameMode: gameMode)
         case .brainBrawl:
-            BrainBrawlView(viewModel: viewModel)
+            BrainBrawlView(viewModel: viewModel, gameMode: gameMode)
         case .whoSceneIt:
             WhoSceneItView(viewModel: viewModel, gameMode: gameMode)
         case .courtCarnival:

@@ -448,10 +448,10 @@ private struct SurfWaveDrawer {
 
         // Board with jersey-tinted rail stripe
         gc.fill(Path(roundedRect: CGRect(x: -21, y: 4, width: 42, height: 7),
-                     cornerRadius: CGSize(width: 3.5, height: 3.5)),
+                     cornerSize: CGSize(width: 3.5, height: 3.5)),
                 with: .color(.white.opacity(0.92)))
         gc.fill(Path(roundedRect: CGRect(x: -21, y: 4, width: 42, height: 2),
-                     cornerRadius: CGSize(width: 1, height: 1)),
+                     cornerSize: CGSize(width: 1, height: 1)),
                 with: .color(jerseyColor.opacity(0.85)))
 
         // Leash — thin white line from ankle to board tail
@@ -739,10 +739,10 @@ private struct PaddleOceanDrawer {
         gc.translateBy(x: px, y: py)
 
         gc.fill(Path(roundedRect: CGRect(x: -30, y: -4, width: 60, height: 8),
-                     cornerRadius: CGSize(width: 4, height: 4)),
+                     cornerSize: CGSize(width: 4, height: 4)),
                 with: .color(.white.opacity(0.90)))
         gc.fill(Path(roundedRect: CGRect(x: -30, y: -4, width: 60, height: 2),
-                     cornerRadius: CGSize(width: 1, height: 1)),
+                     cornerSize: CGSize(width: 1, height: 1)),
                 with: .color(Color(red: 0.20, green: 0.75, blue: 1.0).opacity(0.80)))
 
         let bodyColor = GraphicsContext.Shading.color(Color(red: 0.06, green: 0.14, blue: 0.32))
