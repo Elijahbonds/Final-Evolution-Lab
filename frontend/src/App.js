@@ -8,7 +8,7 @@ import {
   Zap, Target, Clock, ChevronRight, Menu, X, Star,
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
-  Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
+  Crosshair, Timer, Flame, Crown, Medal, ChevronDown, Cpu,
   Swords, Video, Palette, UserPlus, Gift, Download, Smartphone
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
@@ -19,6 +19,7 @@ import { FELOSDashboard, EducationTracksPortal } from "@/components/FELOSDashboa
 import { LandingPage as RedesignedLandingPage } from "@/components/LandingPage";
 import DownloadPage from "@/components/DownloadPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
+import { NexusPage } from "@/components/NexusConsole";
 import Phase3HUD from "@/components/hud/Phase3HUD";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
 import { initializeApp } from "firebase/app";
@@ -277,6 +278,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navItems = [
     {id:'fel-os',icon:Crosshair,label:'FEL OS'},
+    {id:'nexus',icon:Cpu,label:'NEXUS Console'},
     {id:'dashboard',icon:Home,label:'Dashboard'},{id:'scan',icon:Activity,label:'System Scan'},
     {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'multiplayer',icon:Swords,label:'Multiplayer'},
     {id:'cards',icon:Users,label:'Creator Cards'},{id:'coach',icon:Trophy,label:'Coach Hub'},
@@ -1694,6 +1696,7 @@ const Dashboard = () => {
   const renderContent = () => {
     switch(activeTab) {
       case 'fel-os': return <FELOSDashboard setActiveTab={setActiveTab} />;
+      case 'nexus': return <NexusPage />;
       case 'dashboard': return <DashboardView setActiveTab={setActiveTab} />;
       case 'scan': return <SystemScanView />;
       case 'games': return <GameModesView />;
