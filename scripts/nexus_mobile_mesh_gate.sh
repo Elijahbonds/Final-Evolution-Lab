@@ -1,9 +1,27 @@
 #!/usr/bin/env bash
 # Phase 3 — validate NEXUS_MESH_PROFILE=mobile resolves for all environment assets.
+# Usage: ./scripts/nexus_mobile_mesh_gate.sh [--warn-only]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT}/build-full"
+WARN_ONLY=0
+
+for arg in "$@"; do
+  case "$arg" in
+    --warn-only) WARN_ONLY=1 ;;
+    -h|--help)
+      echo "Usage: $0 [--warn-only]"
+      exit 0
+      ;;
+    *)
+      echo "error: unknown argument: $arg" >&2
+      echo "Usage: $0 [--warn-only]" >&2
+      exit 2
+      ;;
+  esac
+done
+
 cd "$ROOT"
 
 if [[ ! -x "${BUILD_DIR}/nexus_renderer_test" ]]; then
@@ -14,10 +32,12 @@ fi
 export NEXUS_MESH_PROFILE=mobile
 "${BUILD_DIR}/nexus_renderer_test"
 
-python3 - <<'PY'
+python3 - "${WARN_ONLY}" <<'PY'
 import json
+import sys
 from pathlib import Path
 
+warn_only = sys.argv[1] == "1"
 manifest = json.loads(Path("assets/nexus/manifests/nexus_asset_manifest.json").read_text())
 import_root = Path(manifest.get("import_root", "assets/nexus/imported"))
 
@@ -48,8 +68,11 @@ for asset in manifest.get("assets", []):
         missing.append(asset["id"])
 
 if missing:
-    print("WARN: mobile sidecar missing for:", ", ".join(missing))
-    print("Runtime falls back to desktop mesh with decimation hook.")
+    level = "WARN" if warn_only else "ERROR"
+    print(f"{level}: mobile sidecar missing for:", ", ".join(missing))
+    print("Runtime would fall back to desktop mesh with decimation hook.")
+    if not warn_only:
+        sys.exit(1)
 else:
     print("All environment assets have mobile sidecars or within-budget desktop meshes.")
 PY

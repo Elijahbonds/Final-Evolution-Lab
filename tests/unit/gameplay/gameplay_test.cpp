@@ -822,7 +822,7 @@ void session_receipt_disk_keyed_by_session_id() {
   std::filesystem::create_directories(tempDir, ec);
 
   nexus::gameplay::SessionReceiptClient client(
-      {.queueDirectory = tempDir.string(), .persistToDisk = true});
+      {.queueDirectory = tempDir.string(), .persistToDisk = true, .httpEnabled = false});
 
   nlohmann::json receipt = {
       {"mode_id", "karate_endless"},
@@ -2093,6 +2093,39 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_http_success_prefers_post_over_disk_queue() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_persist_success_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = true,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 31},
+      {"outcome", "win"},
+      {"duration_seconds", 75},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_success_no_disk_queue"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.delivered == 1, "HTTP success delivers receipt");
+  require(flush.requeued == 0, "HTTP success does not requeue");
+  require(flush.queued_on_disk == 0, "HTTP success does not report fallback disk queue");
+  require(client.pendingCount() == 0, "HTTP success clears pending receipt");
+  require(client.postedRequests().size() == 1, "HTTP success posts once");
+  require(!std::filesystem::exists(tempDir), "HTTP success does not create disk queue");
+
+  removeTreeBestEffort(tempDir);
+}
+
 void session_receipt_real_http_success_does_not_report_disk_queue_when_disabled() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_http_204_test_" + std::to_string(getpid()));
@@ -2127,7 +2160,7 @@ void session_receipt_real_http_success_does_not_report_disk_queue_when_disabled(
   nexus::gameplay::SessionReceiptClient client({
       .queueDirectory = (tempDir / "queue").string(),
       .baseUrl = "http://127.0.0.1:8000/api/games/session",
-      .persistToDisk = false,
+      .persistToDisk = true,
       .httpEnabled = true,
       .useStubHttpTransport = false,
   });
@@ -2212,10 +2245,12 @@ void session_receipt_requeues_on_real_http_non_2xx() {
   const auto flush = client.flush();
   require(flush.delivered == 0, "503 curl response is not delivered");
   require(flush.requeued == 1, "503 curl response requeues receipt");
-  require(flush.queued_on_disk == 0, "HTTP-only 503 does not report disk queue");
+  require(flush.queued_on_disk == 1, "503 fallback persists receipt to disk queue");
   require(client.pendingCount() == 1, "receipt stays pending after 503");
   require(client.postedRequests().size() == 1, "real curl POST attempt recorded");
   require(client.postedRequests().front().statusCode == 503, "actual HTTP status captured");
+  require(std::filesystem::exists(tempDir / "queue" / "basketball_dunk_1.json"),
+          "503 fallback receipt file is queued by mode id");
 
   if (previousPathRaw != nullptr) {
     setenv("PATH", previousPath.c_str(), 1);
@@ -3050,6 +3085,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_http_success_prefers_post_over_disk_queue();
   session_receipt_real_http_success_does_not_report_disk_queue_when_disabled();
   session_receipt_requeues_on_real_http_non_2xx();
   karate_mode_input_strike_advances_wave();
