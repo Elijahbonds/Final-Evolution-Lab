@@ -235,7 +235,7 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
       NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                      "Session receipt persisted for iOS/SessionService pickup path=" + *path);
     } else {
-      return Result<int>::err("failed to persist receipt");
+      return Result<bool>::err("failed to persist receipt");
     }
   }
 
@@ -243,7 +243,7 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     m_http.setUrl(resolvePostUrl(m_config));
     const auto postResult = m_http.post(receipt.dump());
     if (postResult.isErr()) {
-      return postResult;
+      return Result<bool>::err(postResult.error());
     }
     const int statusCode = postResult.value();
     deliveredStatus = statusCode;
@@ -251,7 +251,7 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
                        " status=" + std::to_string(statusCode));
     if (statusCode < 200 || statusCode >= 300) {
-      return Result<int>::err("session receipt POST returned HTTP " + std::to_string(statusCode));
+      return Result<bool>::err("session receipt POST returned HTTP " + std::to_string(statusCode));
     }
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
