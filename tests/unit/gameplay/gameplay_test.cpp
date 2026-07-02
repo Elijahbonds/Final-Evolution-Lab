@@ -960,12 +960,68 @@ void prq_stub_returns_sprint_defaults() {
           "prq grade primed");
 }
 
+void prq_uses_fitness_snapshot_after_update() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update(
+      {0.95F, 0.90F, 1.0F},
+      {0.95F, 0.90F, 1});
+
+  const auto snapshot = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(snapshot) > 90.0F,
+          "fitness snapshot raises prq score");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive(snapshot) > 85.0F,
+          "fitness snapshot raises neural drive");
+  require(nexus::gameplay::PRQEngine::getGrade(snapshot) == nexus::gameplay::PRQGrade::kElite,
+          "fitness snapshot grades elite");
+}
+
 void arcade_physics_maps_prq_75() {
   const auto params =
       nexus::gameplay::ArcadePhysics::fromPRQ(75.0F, 60.0F);
   require(params.hangTimeMultiplier > 2.3F, "hang time multiplier at PRQ 75");
   require(params.explosiveFirstStep > 0.82F && params.explosiveFirstStep < 0.83F,
           "explosive first step at PRQ 75");
+}
+
+void dunk_physics_responds_to_fitness_readiness() {
+  auto hangTimeForReadiness = [](bool primeFitness) -> float {
+    nexus::creative::VoxelWorld world;
+    nexus::creative::WorldManipulator manipulator(world);
+    nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+    if (primeFitness) {
+      auto fitness = gameplay.handleGameplayCommand(
+          "fel.fitness.update",
+          {{"frc_mobility", 0.95F},
+           {"frc_active_range", 0.90F},
+           {"frc_control", 1.0F},
+           {"iap_engagement", 0.95F},
+           {"iap_confidence", 0.90F},
+           {"breath_phase", 1}},
+          "fitness_prime");
+      require(fitness.status == "ok", "fitness update primes prq");
+    }
+
+    auto start = gameplay.handleGameplayCommand(
+        "fel.arena.start_session",
+        {{"mode_id", "basketball_dunk"}, {"user_id", "fitness_prq_player"}},
+        "fitness_dunk_start");
+    require(start.status == "ok", "fitness dunk session starts");
+
+    require(gameplay.handleGameplayCommand("fel.dunk.charge_begin", {}, "charge").status == "ok",
+            "charge starts");
+    require(gameplay.handleGameplayCommand("fel.dunk.charge_release", {{"power", 0.8F}}, "release")
+                .status == "ok",
+            "release ok");
+    auto apex = gameplay.handleGameplayCommand("fel.dunk.apex_tap", {}, "apex");
+    require(apex.status == "ok", "apex ok");
+    return apex.payload["physics_feedback"]["hang_time_multiplier"].get<float>();
+  };
+
+  const float defaultHangTime = hangTimeForReadiness(false);
+  const float primedHangTime = hangTimeForReadiness(true);
+
+  require(primedHangTime > defaultHangTime, "fitness readiness increases dunk hang time");
 }
 
 void dunk_contest_charge_release_scores() {
@@ -2755,7 +2811,9 @@ auto main() -> int {
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
   prq_stub_returns_sprint_defaults();
+  prq_uses_fitness_snapshot_after_update();
   arcade_physics_maps_prq_75();
+  dunk_physics_responds_to_fitness_readiness();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
   karate_endless_local_coop_wave_survival();

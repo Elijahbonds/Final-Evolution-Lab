@@ -6,19 +6,13 @@ namespace {
 
 constexpr float kSprintPrqScore = 75.0F;
 constexpr float kSprintNeuralDrive = 60.0F;
+constexpr float kPercentScale = 100.0F;
 
-} // namespace
-
-auto PRQEngine::getScore() -> float {
-  return kSprintPrqScore;
+[[nodiscard]] auto hasFitnessSignal(const FitnessSnapshot& fitness) -> bool {
+  return fitness.revision > 0;
 }
 
-auto PRQEngine::getNeuralDrive() -> float {
-  return kSprintNeuralDrive;
-}
-
-auto PRQEngine::getGrade() -> PRQGrade {
-  const float score = getScore();
+[[nodiscard]] auto gradeForScore(float score) -> PRQGrade {
   if (score >= 80.0F) {
     return PRQGrade::kElite;
   }
@@ -29,6 +23,38 @@ auto PRQEngine::getGrade() -> PRQGrade {
     return PRQGrade::kReady;
   }
   return PRQGrade::kRecovering;
+}
+
+} // namespace
+
+auto PRQEngine::getScore() -> float {
+  return kSprintPrqScore;
+}
+
+auto PRQEngine::getScore(const FitnessSnapshot& fitness) -> float {
+  if (!hasFitnessSignal(fitness)) {
+    return getScore();
+  }
+  return fitness.powerReadiness * kPercentScale;
+}
+
+auto PRQEngine::getNeuralDrive() -> float {
+  return kSprintNeuralDrive;
+}
+
+auto PRQEngine::getNeuralDrive(const FitnessSnapshot& fitness) -> float {
+  if (!hasFitnessSignal(fitness)) {
+    return getNeuralDrive();
+  }
+  return fitness.iapComposite * kPercentScale;
+}
+
+auto PRQEngine::getGrade() -> PRQGrade {
+  return gradeForScore(getScore());
+}
+
+auto PRQEngine::getGrade(const FitnessSnapshot& fitness) -> PRQGrade {
+  return gradeForScore(getScore(fitness));
 }
 
 auto PRQEngine::gradeLabel(PRQGrade grade) -> std::string_view {

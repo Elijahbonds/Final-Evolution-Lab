@@ -7,6 +7,7 @@
 #include "nexus/gameplay/brain_brawl_mode.h"
 #include "nexus/gameplay/court_carnival_mode.h"
 #include "nexus/gameplay/dunk_contest_mode.h"
+#include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gymnastics_mode.h"
 #include "nexus/gameplay/karate_endless_mode.h"
 #include "nexus/gameplay/gameplay_manager.h"
@@ -44,6 +45,9 @@ enum class ActiveModeKind : std::uint8_t {
 
 class ModeRuntime {
 public:
+  ModeRuntime() = default;
+  explicit ModeRuntime(const ThreadSafeFitnessData& fitnessData);
+
   auto setMode(std::string_view modeId) -> Result<void>;
   void reset();
   void update(double deltaSeconds);
@@ -77,6 +81,7 @@ private:
   SurfingMode m_surfing;
   WhoSceneItMode m_whoSceneIt;
   OutcomeSportMode m_outcomeSport;
+  const ThreadSafeFitnessData* m_fitnessData{nullptr};
   std::uint64_t m_lastThrowPulseCount{0};
   std::int32_t m_browseItemsViewed{0};
 };

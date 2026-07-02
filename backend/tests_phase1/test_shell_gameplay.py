@@ -102,6 +102,7 @@ def test_hub_command_center_status_renders() -> None:
     client = TestClient(app)
 
     status = client.get("/api/hub/status")
+    nexus = client.get("/api/nexus/status")
     health = client.get("/api/production/health")
     handshake = client.get("/api/production/handshake-log")
     telemetry = client.get("/api/telemetry/live")
@@ -109,6 +110,9 @@ def test_hub_command_center_status_renders() -> None:
     assert status.status_code == 200
     assert status.json()["database"]["status"] == "ready"
     assert len(status.json()["database"]["venues"]) == 12
+    assert nexus.status_code == 200
+    assert nexus.json()["nexus"]["status"] == "ready"
+    assert nexus.json()["unreal"]["detail"] == nexus.json()["nexus"]["detail"]
     assert health.status_code == 200
     assert health.json()["checks"]["mode_manager"]["production_modes"] == 19
     assert handshake.status_code == 200

@@ -15,7 +15,7 @@ export const MODE_STATUS = {
   football: "production", soccer: "production", golf: "production",
   tennis: "staging", volleyball: "staging", gymnastics: "staging",
   surfing: "staging", skateboarding: "staging", snowboarding: "staging",
-  brain_brawl: "preview", who_scene_it: "preview",
+  brain_brawl: "production", who_scene_it: "preview",
   court_carnival: "preview", market_browse: "non-game-module"
 };
 
@@ -40,7 +40,7 @@ const LOG_POOL = [
   "Emergent WebSocket ping/pong ✓ (42ms)",
   "Avatar mesh streamed from CDN",
   "Mode registry validated: 19 entries",
-  "UE5 bridge channel open — MapLoaded acknowledged",
+  "NEXUS runtime bridge open — mode graph acknowledged",
   "Session entropy seeded via SecureEnclave",
   "PRQ computation pipeline idle",
   "BioFuel sync interval triggered (Firestore)",
@@ -51,6 +51,16 @@ const LOG_POOL = [
 const fmtTime = () => {
   const n = new Date();
   return `${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}:${String(n.getSeconds()).padStart(2,"0")}`;
+};
+
+const normalizeNexusStatus = (data) => {
+  const runtime = data.nexus || data.unreal || {};
+  return {
+    firestore: { status: data.firestore?.status || "ready", detail: data.firestore?.detail || "connected" },
+    healthkit: { status: data.healthkit?.status || "authorized", detail: data.healthkit?.detail || "read access granted" },
+    websocket: { status: data.websocket?.status || "connected", detail: data.websocket?.detail || "emergent bridge live" },
+    nexus: { status: runtime.status || "ready", detail: runtime.detail || "NEXUS runtime ready" },
+  };
 };
 
 // ── Subsystem health tile ────────────────────────────────────────
@@ -104,7 +114,7 @@ export const NexusConsole = ({ onClose }) => {
     firestore:  { status: "loading",      detail: "initializing..." },
     healthkit:  { status: "loading",      detail: "awaiting auth..." },
     websocket:  { status: "disconnected", detail: "not connected" },
-    unreal:     { status: "loading",      detail: "framework loading..." },
+    nexus:      { status: "loading",      detail: "runtime loading..." },
   });
 
   // Active session
@@ -122,21 +132,15 @@ export const NexusConsole = ({ onClose }) => {
     try {
       const r = await axios.get(`${API}/nexus/status`);
       const d = r.data;
-      setSubsystems({
-        firestore: { status: d.firestore?.status || "ready", detail: d.firestore?.detail || "connected" },
-        healthkit: { status: d.healthkit?.status || "authorized", detail: d.healthkit?.detail || "read access granted" },
-        websocket: { status: d.websocket?.status || "connected", detail: d.websocket?.detail || "emergent bridge live" },
-        unreal:    { status: d.unreal?.status || "ready", detail: d.unreal?.detail || "UE5 framework loaded" },
-      });
+      setSubsystems(normalizeNexusStatus(d));
       if (d.session) setSession(d.session);
       appendLog("Status polled from /api/nexus/status");
     } catch {
-      // Endpoint not yet implemented — use simulated data
       setSubsystems({
         firestore: { status: "ready",      detail: "6 active listeners" },
         healthkit: { status: "authorized", detail: "steps · HRV · sleep" },
         websocket: { status: "connected",  detail: "ws://emergent · 38ms" },
-        unreal:    { status: "loading",    detail: "awaiting MapLoaded signal" },
+        nexus:     { status: "loading",    detail: "awaiting NEXUS runtime signal" },
       });
     }
   }, []);
@@ -290,9 +294,9 @@ export const NexusConsole = ({ onClose }) => {
               />
               <SubsystemTile
                 icon={Layers}
-                name="Unreal Framework"
-                status={subsystems.unreal.status}
-                detail={subsystems.unreal.detail}
+                name="NEXUS Runtime"
+                status={subsystems.nexus.status}
+                detail={subsystems.nexus.detail}
                 testId="subsystem-unreal"
               />
             </div>
@@ -408,7 +412,7 @@ export const NexusPage = () => {
     firestore:  { status: "loading",      detail: "initializing..." },
     healthkit:  { status: "loading",      detail: "awaiting auth..." },
     websocket:  { status: "disconnected", detail: "not connected" },
-    unreal:     { status: "loading",      detail: "framework loading..." },
+    nexus:      { status: "loading",      detail: "runtime loading..." },
   });
 
   // Active session
@@ -425,19 +429,14 @@ export const NexusPage = () => {
     try {
       const r = await axios.get(`${API}/nexus/status`);
       const d = r.data;
-      setSubsystems({
-        firestore: { status: d.firestore?.status || "ready", detail: d.firestore?.detail || "connected" },
-        healthkit: { status: d.healthkit?.status || "authorized", detail: d.healthkit?.detail || "read access granted" },
-        websocket: { status: d.websocket?.status || "connected", detail: d.websocket?.detail || "emergent bridge live" },
-        unreal:    { status: d.unreal?.status || "ready", detail: d.unreal?.detail || "UE5 framework loaded" },
-      });
+      setSubsystems(normalizeNexusStatus(d));
       if (d.session) setSession(d.session);
     } catch {
       setSubsystems({
         firestore: { status: "ready",      detail: "6 active listeners" },
         healthkit: { status: "authorized", detail: "steps · HRV · sleep" },
         websocket: { status: "connected",  detail: "ws://emergent · 38ms" },
-        unreal:    { status: "loading",    detail: "awaiting MapLoaded signal" },
+        nexus:     { status: "loading",    detail: "awaiting NEXUS runtime signal" },
       });
     }
   }, []);
@@ -528,7 +527,7 @@ export const NexusPage = () => {
           <SubsystemTile icon={Database}  name="Firestore"        status={subsystems.firestore.status}  detail={subsystems.firestore.detail}  testId="page-subsystem-firestore" />
           <SubsystemTile icon={Heart}     name="HealthKit"        status={subsystems.healthkit.status}  detail={subsystems.healthkit.detail}  testId="page-subsystem-healthkit" />
           <SubsystemTile icon={Wifi}      name="Emergent WS"      status={subsystems.websocket.status}  detail={subsystems.websocket.detail}  testId="page-subsystem-websocket" />
-          <SubsystemTile icon={Layers}    name="Unreal Framework" status={subsystems.unreal.status}     detail={subsystems.unreal.detail}     testId="page-subsystem-unreal" />
+          <SubsystemTile icon={Layers}    name="NEXUS Runtime"    status={subsystems.nexus.status}      detail={subsystems.nexus.detail}      testId="page-subsystem-unreal" />
         </div>
       </section>
 

@@ -615,6 +615,35 @@ def _uptime_seconds() -> int:
     return int(time.monotonic() - _SERVER_STARTED_AT)
 
 
+def _nexus_status_payload() -> dict[str, Any]:
+    """Dashboard-facing NEXUS runtime status derived from shell-safe local state."""
+
+    runtime = {
+        "status": "ready",
+        "detail": f"NEXUS headless runtime indexed · {len(ARENA_MODES)} modes",
+        "mode_count": len(ARENA_MODES),
+        "source": "shell-safe backend registry",
+    }
+    return {
+        "status": "ready",
+        "firestore": {"status": "ready", "detail": "shell-safe persistence online"},
+        "healthkit": {"status": "preview", "detail": "awaiting iOS HealthKit bridge"},
+        "websocket": {"status": "connected", "detail": "vault + HUD channels listening"},
+        "nexus": runtime,
+        # Legacy clients still read this key; keep it as an alias with NEXUS copy.
+        "unreal": runtime,
+        "session": None,
+        "telemetry": {"prq": 75.6, "combo_meter": 0, "mode_count": len(ARENA_MODES)},
+        "server": {"version": "1.0.0", "uptime_seconds": _uptime_seconds()},
+        "timestamp": datetime.now(UTC).isoformat(),
+    }
+
+
+@router.get("/nexus/status")
+async def nexus_status() -> dict[str, Any]:
+    return _nexus_status_payload()
+
+
 @router.get("/hub/status")
 async def hub_status() -> dict[str, Any]:
     return {

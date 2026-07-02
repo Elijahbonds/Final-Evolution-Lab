@@ -19,7 +19,14 @@ namespace {
 
 } // namespace
 
+ModeRuntime::ModeRuntime(const ThreadSafeFitnessData& fitnessData) : m_fitnessData(&fitnessData) {}
+
 auto ModeRuntime::physicsParams() const -> ArcadePhysicsParams {
+  if (m_fitnessData != nullptr) {
+    const FitnessSnapshot fitness = m_fitnessData->snapshot();
+    return ArcadePhysics::fromPRQ(PRQEngine::getScore(fitness),
+                                  PRQEngine::getNeuralDrive(fitness));
+  }
   return ArcadePhysics::fromPRQ(PRQEngine::getScore(), PRQEngine::getNeuralDrive());
 }
 

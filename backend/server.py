@@ -2395,6 +2395,45 @@ async def get_vault_status():
         }
     }
 
+@api_router.get("/nexus/status")
+async def get_nexus_status():
+    """Dashboard-facing NEXUS runtime status without mock fallback."""
+    mode_maps = launchable_mode_maps(MODE_MANAGER, VENUE_REGISTRY, _ue_mode_maps())
+    runtime = {
+        "status": "ready",
+        "detail": f"NEXUS runtime indexed · {len(mode_maps)} launchable modes",
+        "mode_count": len(mode_maps),
+        "source": "FEL_ModeManager.production.json",
+    }
+    return {
+        "status": "ready",
+        "firestore": {
+            "status": vault_state["database_status"],
+            "detail": f"{vault_state.get('venue_collections', 0)} venue collections indexed",
+        },
+        "healthkit": {
+            "status": "preview",
+            "detail": "awaiting iOS HealthKit bridge",
+        },
+        "websocket": {
+            "status": vault_state["websocket_status"],
+            "detail": f"{len(vault_state['connected_clients'])} connected clients",
+        },
+        "nexus": runtime,
+        # Legacy dashboard clients still read this key; keep it as a NEXUS runtime alias.
+        "unreal": runtime,
+        "session": None,
+        "telemetry": vault_state.get("last_telemetry"),
+        "server": {
+            "version": "2.0.0",
+            "uptime_seconds": int((
+                datetime.now(timezone.utc) -
+                datetime.fromisoformat(vault_state["boot_time"]).replace(tzinfo=timezone.utc)
+            ).total_seconds()),
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
 @api_router.post("/hub/connect")
 @api_router.post("/vault/connect")
 async def connect_vault(data: Dict[str, Any], user: User = Depends(get_current_user)):

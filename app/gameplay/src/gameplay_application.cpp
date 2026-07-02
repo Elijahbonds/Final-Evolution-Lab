@@ -107,7 +107,7 @@ auto gamePromptOptionsFromParams(const nlohmann::json& params) -> ai::GamePrompt
 
 GameplayApplication::GameplayApplication(creative::WorldManipulator& manipulator,
                                          const creative::VoxelWorld& voxelWorld)
-    : m_voxelParser(manipulator, voxelWorld) {}
+    : m_voxelParser(manipulator, voxelWorld), m_modeRuntime(m_fitnessData) {}
 
 void GameplayApplication::setGenerativePipeline(
     generative::GenerativePipeline* generativePipeline) {
