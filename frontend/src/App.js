@@ -8,7 +8,7 @@ import {
   Zap, Target, Clock, ChevronRight, Menu, X, Star,
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
-  Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
+  Crosshair, Timer, Flame, Crown, Medal, ChevronDown, Cpu,
   Swords, Video, Palette, UserPlus, Gift, Download, Smartphone
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
@@ -18,6 +18,7 @@ import { HubDashboard } from "@/components/HubDashboard";
 import { FELOSDashboard, EducationTracksPortal } from "@/components/FELOSDashboard";
 import { LandingPage as RedesignedLandingPage } from "@/components/LandingPage";
 import DownloadPage from "@/components/DownloadPage";
+import { NexusPage } from "@/components/NexusConsole";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
@@ -283,6 +284,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {id:'ai-coach',icon:MessageCircle,label:'AI Coach'},
     {id:'education',icon:GraduationCap,label:'Education'},{id:'brain-brawl',icon:Brain,label:'Brain Brawl'},
     {id:'trivia',icon:Award,label:'Trivia Arena'},{id:'hud',icon:Radio,label:'HUD Overlay'},
+    {id:'nexus',icon:Cpu,label:'NEXUS Runtime'},
     {id:'streaks',icon:Flame,label:'Streaks'},{id:'social',icon:UserPlus,label:'Social'},
     {id:'tournaments',icon:Swords,label:'Tournaments'},{id:'avatar',icon:Palette,label:'Avatar'},
     {id:'critique',icon:Video,label:'Video Critique'},{id:'referral',icon:Gift,label:'Referrals'},
@@ -1704,6 +1706,7 @@ const Dashboard = () => {
       case 'brain-brawl': return <BrainBrawlView />;
       case 'trivia': return <TriviaArenaView onBack={() => setActiveTab('games')} />;
       case 'hud': return <Phase3HUD />;
+      case 'nexus': return <NexusPage />;
       case 'streaks': return <StreaksView />;
       case 'social': return <SocialView />;
       case 'tournaments': return <TournamentsView />;
