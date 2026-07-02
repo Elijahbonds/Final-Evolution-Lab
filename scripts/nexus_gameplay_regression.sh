@@ -76,14 +76,21 @@ gameplay_code = int(sys.argv[5])
 gameplay_log = Path(sys.argv[6]).read_text(errors="replace")
 ctest_log = Path(sys.argv[7]).read_text(errors="replace")
 
-sprint_modes = [
-    "basketball_dunk", "karate_endless", "basketball_h2h", "court_carnival",
-    "gymnastics", "brain_brawl", "skateboarding", "snowboarding", "surfing",
-    "who_scene_it",
+production_modes = [
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
+    "karate_h2h", "karate_endless", "baseball", "football", "soccer", "golf",
+    "tennis", "volleyball", "gymnastics", "surfing", "skateboarding",
+    "snowboarding", "brain_brawl", "who_scene_it",
 ]
 
-modes_exercised = [m for m in sprint_modes if f"mode={m}" in gameplay_log or f"mode_id={m}" in gameplay_log]
+probe_modes = re.findall(r"^PROBE: production_mode mode_id=([a-z0-9_]+)\b", gameplay_log, flags=re.MULTILINE)
+modes_exercised = [m for m in production_modes if m in set(probe_modes)]
+missing_modes = [m for m in production_modes if m not in set(probe_modes)]
 fail_lines = [line.strip() for line in gameplay_log.splitlines() if line.startswith("FAIL:")]
+pass_banner = "PASS: nexus_gameplay_test" in gameplay_log
+
+if overall == "pass" and (missing_modes or not pass_banner):
+    overall = "fail"
 
 payload = {
     "schema_version": "1",
@@ -91,11 +98,16 @@ payload = {
     "overall_status": overall,
     "ctest_exit_code": ctest_code,
     "gameplay_test_exit_code": gameplay_code,
-    "sprint_live_modes_expected": len(sprint_modes),
+    "production_modes_expected": len(production_modes),
+    "production_modes_seen_in_log": len(modes_exercised),
+    "production_modes": modes_exercised,
+    "production_modes_missing": missing_modes,
+    # Back-compat fields for older agent readers; prefer production_* above.
+    "sprint_live_modes_expected": len(production_modes),
     "sprint_live_modes_seen_in_log": len(modes_exercised),
     "sprint_live_modes": modes_exercised,
     "failures": fail_lines,
-    "pass_banner": "PASS: nexus_gameplay_test" in gameplay_log,
+    "pass_banner": pass_banner,
     "artifacts": {
         "gameplay_log": "artifacts/playtest/gameplay_regression_run.log",
         "ctest_log": "artifacts/playtest/gameplay_regression_ctest.log",
@@ -119,6 +131,7 @@ PY
 
 echo "==> Wrote ${REGRESSION_JSON}"
 
+OVERALL="$(python3 -c "import json; print(json.load(open('${REGRESSION_JSON}'))['overall_status'])")"
 if [[ "${OVERALL}" != "pass" ]]; then
   echo "==> nexus_gameplay_regression FAIL (ctest=${CTEST_CODE}, gameplay_test=${GAMEPLAY_CODE})" >&2
   exit 1

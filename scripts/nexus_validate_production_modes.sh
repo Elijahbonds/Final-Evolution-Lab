@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${ROOT}/build-full"
+BUILD_DIR="${BUILD_DIR:-${ROOT}/build-full}"
 cd "$ROOT"
 
 if [[ ! -x "${BUILD_DIR}/nexus_runtime" ]]; then

@@ -258,6 +258,7 @@ struct GameLogicTests {
 
     @Test func productionModeIdsMatchNexusRegistryAndValidateScript() {
         #expect(GameModeRegistry.productionModeIds.count == 19)
+        #expect(GameModeRegistry.nexusRuntimeProductionModeIds.count == 18)
         let arenaIds = Set(GameModeRegistry.arenaRegistryModeIds.map(\.rawValue))
         for rawId in GameModeRegistry.productionModeIds {
             #expect(GameModeId(rawValue: rawId) != nil)
@@ -266,8 +267,15 @@ struct GameLogicTests {
             #expect(mode.releaseState == .production)
             #expect(mode.felPreviewLabel == nil)
         }
+        for rawId in GameModeRegistry.nexusRuntimeProductionModeIds {
+            #expect(GameModeRegistry.playableMode(forRegistryId: rawId) != nil)
+            #expect(rawId != "basketball_dunk_irl")
+            #expect(rawId != "market_browse")
+        }
         #expect(!GameModeRegistry.productionModeIds.contains("market_browse"))
         #expect(!GameModeRegistry.productionModeIds.contains("venice_pickup"))
+        #expect(!GameModeRegistry.nexusRuntimeProductionModeIds.contains("basketball_dunk_irl"))
+        #expect(GameModeRegistry.nexusRuntimeProductionModeIds.contains("basketball_dunk"))
     }
 
     @Test func productionModesHaveArcadeRetroCartridgeTitles() {
@@ -292,6 +300,8 @@ struct GameLogicTests {
         #expect(irl.hint?.contains("Vision") == true)
         #expect(threeD.hint?.contains("Metal") == true)
         #expect(threeD.id.nexusRuntimeModeId == "basketball_dunk")
+        #expect(irl.id.isNexusRuntimeLaunchable == false)
+        #expect(threeD.id.isNexusRuntimeLaunchable)
         #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk")?.id == .basketballDunkContest3D)
     }
 

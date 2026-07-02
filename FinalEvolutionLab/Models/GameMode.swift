@@ -105,6 +105,16 @@ extension GameModeId {
         }
     }
 
+    /// True only when this Swift mode can start a NEXUS C++ arena runtime session.
+    var isNexusRuntimeLaunchable: Bool {
+        switch self {
+        case .basketballDunkContestIRL, .marketBrowse:
+            return false
+        default:
+            return nexusCapabilityTier == .prod || nexusCapabilityTier == .sim || nexusCapabilityTier == .staging
+        }
+    }
+
     /// Playable via NEXUS headless gameplay (full simulators + outcome evaluators).
     var isNexusSprintPlayable: Bool {
         switch self {
@@ -290,9 +300,18 @@ extension GameMode {
 }
 
 struct GameModeRegistry {
-    /// Canonical production mode ids — keep in sync with `arena_mode_registry.h` and `scripts/nexus_validate_production_modes.sh`.
+    /// Swift production entries. Dunk is intentionally split into IRL camera and 3D runtime products.
     static let productionModeIds: [String] = [
         "basketball_h2h", "basketball_dunk_irl", "basketball_dunk_3d", "basketball_3v3", "court_carnival",
+        "karate_h2h", "karate_endless",
+        "baseball", "football", "soccer", "golf", "tennis", "volleyball",
+        "gymnastics", "surfing", "skateboarding", "snowboarding",
+        "brain_brawl", "who_scene_it",
+    ]
+
+    /// Canonical C++ production runtime ids — keep in sync with `arena_mode_registry.h` and `scripts/nexus_validate_production_modes.sh`.
+    static let nexusRuntimeProductionModeIds: [String] = [
+        "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
         "karate_h2h", "karate_endless",
         "baseball", "football", "soccer", "golf", "tennis", "volleyball",
         "gymnastics", "surfing", "skateboarding", "snowboarding",

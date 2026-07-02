@@ -35,6 +35,7 @@
 #include <fstream>
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -2341,20 +2342,20 @@ void require_nested_object(const nlohmann::json& root,
           std::string(label) + " nested " + std::string(key) + " must be object");
 }
 
-void nexus_sprint_live_modes_agent_contract_integration() {
+void nexus_production_modes_agent_contract_integration() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
   nexus::gameplay::GameplayApplication gameplay(manipulator, world);
   nexus::physics::PhysicsWorld physics;
-  require(physics.init({}).isOk(), "sprint agent physics init");
+  require(physics.init({}).isOk(), "production mode agent physics init");
   nexus::ai::CommandRouter router;
   nexus::ai::AgentServer server;
 
-  require(router.init(&manipulator, &world).isOk(), "sprint router init");
+  require(router.init(&manipulator, &world).isOk(), "production mode router init");
   router.setGameplayHandler(&gameplay);
-  require(server.init(&router).isOk(), "sprint agent server init");
+  require(server.init(&router).isOk(), "production mode agent server init");
 
-  struct SprintProbe {
+  struct ProductionModeProbe {
     const char* modeId;
     const char* actionCommand;
     nlohmann::json actionParams;
@@ -2362,38 +2363,62 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
+  const std::array<ProductionModeProbe, nexus::gameplay::kProductionModeCount> probes{{
+      {"basketball_h2h", "fel.pickup.action",
+       {{"action", "shoot"}, {"timing", 0.95F}, {"success", true}}, "", "pickup"},
       {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
-      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
-       "fel.karate.action", "karate"},
-      {"basketball_h2h", "fel.fitness.update",
-       {{"frc_mobility", 0.6F},
-        {"frc_active_range", 0.6F},
-        {"frc_control", 0.6F},
-        {"iap_engagement", 0.6F},
-        {"iap_confidence", 0.6F},
-        {"breath_phase", 0}},
-       "", "pickup"},
+      {"basketball_3v3", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.95F}, {"shot_type", "three_pointer"}}, "",
+       "outcome_sport"},
       {"court_carnival", "fel.carnival.trigger_pad", {{"pad", "trick_shot"}, {"timing", 0.9F}},
        "fel.carnival.trigger_pad", "carnival"},
+      {"karate_h2h", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.93F}, {"action", "heavy_strike"}}, "",
+       "outcome_sport"},
+      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
+       "fel.karate.action", "karate"},
+      {"baseball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.94F}, {"sport_action", "home_run"}}, "",
+       "outcome_sport"},
+      {"football", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.88F}, {"play_type", "touchdown"}}, "",
+       "outcome_sport"},
+      {"soccer", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.91F}, {"sport_action", "penalty"}}, "",
+       "outcome_sport"},
+      {"golf", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.93F}, {"club", "putt"}}, "", "outcome_sport"},
+      {"tennis", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.94F}, {"shot_type", "ace"}}, "",
+       "outcome_sport"},
+      {"volleyball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.94F}, {"rally_type", "ace_serve"}}, "",
+       "outcome_sport"},
       {"gymnastics", "fel.gymnastics.tap", {{"timing", 0.92F}, {"difficulty", 0.75F}},
        "fel.gymnastics.tap", "gymnastics"},
-      {"brain_brawl", "fel.brain.answer",
-       {{"correct", true}, {"response_time", 5.0F}, {"category", "BodyIQ"}},
-       "fel.brain.answer", "brain_brawl"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.93F}, {"wave_difficulty", 0.75F}},
+       "fel.surf.carve", "surfing"},
       {"skateboarding", "fel.skate.trick", {{"difficulty", 0.85F}, {"combo_multiplier", 2}},
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"brain_brawl", "fel.brain.answer",
+       {{"correct", true}, {"response_time", 5.0F}, {"category", "BodyIQ"}},
+       "fel.brain.answer", "brain_brawl"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
 
-  for (const SprintProbe& probe : probes) {
-    const std::string startJson = std::string(R"json({"type":"command","id":"sprint_start","payload":{"command":"fel.arena.start_session","params":{"mode_id":")json") +
+  for (std::size_t i = 0; i < probes.size(); ++i) {
+    require(std::string_view(probes[i].modeId) == nexus::gameplay::kProductionModeIds[i],
+            std::string("production probe order matches registry for ") + probes[i].modeId);
+  }
+
+  for (const ProductionModeProbe& probe : probes) {
+    const std::string startJson = std::string(R"json({"type":"command","id":"production_start","payload":{"command":"fel.arena.start_session","params":{"mode_id":")json") +
                                 probe.modeId +
-                                R"json(","user_id":"sprint_agent"}}})json";
-    require(server.receiveJson(startJson).isOk(), "receive start for sprint mode");
+                                R"json(","user_id":"production_agent"}}})json";
+    require(server.receiveJson(startJson).isOk(), "receive start for production mode");
     auto startResponses = server.processQueuedCommands(4);
     require(startResponses.size() == 1, "one start response");
     require(startResponses[0].status == "ok", std::string("start ok for ") + probe.modeId);
@@ -2401,10 +2426,10 @@ void nexus_sprint_live_modes_agent_contract_integration() {
 
     nlohmann::json actionMsg = {
         {"type", "command"},
-        {"id", "sprint_action"},
+        {"id", "production_action"},
         {"payload", {{"command", probe.actionCommand}, {"params", probe.actionParams}}},
     };
-    require(server.receiveJson(actionMsg.dump()).isOk(), "receive action for sprint mode");
+    require(server.receiveJson(actionMsg.dump()).isOk(), "receive action for production mode");
     auto actionResponses = server.processQueuedCommands(4);
     require(actionResponses.size() == 1, "one action response");
     require(actionResponses[0].status == "ok", std::string("action ok for ") + probe.modeId);
@@ -2421,7 +2446,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
 
     gameplay.update(0.05, physics, {});
 
-    const std::string modeQuery = R"json({"type":"query","id":"sprint_mode","payload":{"query":"fel.query.get_mode_state"}})json";
+    const std::string modeQuery = R"json({"type":"query","id":"production_mode","payload":{"query":"fel.query.get_mode_state"}})json";
     require(server.receiveJson(modeQuery).isOk(), "receive mode state query");
     auto modeResponses = server.processQueuedCommands(4);
     require(modeResponses.size() == 1, "one mode state response");
@@ -2430,7 +2455,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
                           "mode_runtime state");
 
     const std::string hudQuery =
-        R"json({"type":"query","id":"sprint_hud","payload":{"query":"fel.hud.poll"}})json";
+        R"json({"type":"query","id":"production_hud","payload":{"query":"fel.hud.poll"}})json";
     require(server.receiveJson(hudQuery).isOk(), "receive hud poll query");
     auto hudResponses = server.processQueuedCommands(4);
     require(hudResponses.size() == 1, "one hud poll response");
@@ -2445,6 +2470,10 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     require(hudFrame["payload"]["mode_state"].is_object(), "hud mode_state object");
     require(hudFrame["payload"]["mode_state"].contains(probe.nestedStateKey),
             std::string("hud nested mode state for ") + probe.modeId);
+    std::fprintf(stderr, "PROBE: production_mode mode_id=%s command=%s state_key=%s\n",
+                 probe.modeId,
+                 probe.actionCommand,
+                 probe.nestedStateKey);
   }
 
   server.shutdown();
@@ -2803,7 +2832,7 @@ auto main() -> int {
   parse_game_prompt_without_key_uses_template_backend();
   gameplay_generate_game_produces_spec_and_session();
   gameplay_refine_game_harder_adjusts_difficulty();
-  nexus_sprint_live_modes_agent_contract_integration();
+  nexus_production_modes_agent_contract_integration();
   std::fprintf(stderr, "PASS: nexus_gameplay_test\n");
   return 0;
 }

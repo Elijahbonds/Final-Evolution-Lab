@@ -30,12 +30,11 @@ ctest --test-dir "$BUILD_DIR" --output-on-failure
 
 echo "==> Venue mesh validate (manifest + mobile LOD decimation)"
 cd "$ROOT"
-"$BUILD_DIR/nexus_runtime" --validate-only --mode basketball_dunk
-"$BUILD_DIR/nexus_runtime" --validate-only --mode karate_endless
+BUILD_DIR="$BUILD_DIR" "$ROOT/scripts/nexus_validate_production_modes.sh"
 
-echo "==> Headless gameplay: dunk lifecycle (via nexus_gameplay_test)"
+echo "==> Headless gameplay: production mode agent/HUD contracts"
 "$BUILD_DIR/nexus_gameplay_test" >/dev/null
-echo "    nexus_gameplay_test OK (includes dunk win → receipt queued)"
+echo "    nexus_gameplay_test OK (includes all production runtime mode probes)"
 
 cat <<'QA'
 

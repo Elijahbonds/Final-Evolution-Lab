@@ -1,6 +1,6 @@
 # NEXUS Gameplay Test Report
 
-**Date:** 2026-06-19 (error-editor pass)  
+**Date:** 2026-07-01 (production-mode coverage pass)  
 **Repo:** `/Users/elijahbonds/Final-Evolution-Lab`  
 **Role:** Senior Gameplay Tester + Senior Error Editor — ship-quality verification gate  
 **Artifacts:** `artifacts/playtest/gameplay_regression.json`, `artifacts/playtest/latest.json`
@@ -11,15 +11,15 @@
 
 | Gate | Result |
 |------|--------|
-| `./scripts/nexus_build_gate.sh` | **PASS** — headless 7/7 ctest; full 8/8 ctest (~64s); 14 production modes validate @ mobile |
-| `./scripts/smoke_v1.sh --skip-build` | **PASS** — 8/8 ctest + dunk/karate validate-only + `nexus_gameplay_test` |
+| `./scripts/nexus_build_gate.sh` | **PASS** — headless + full renderer ctest; 18 production modes validate @ mobile |
+| `./scripts/smoke_v1.sh --skip-build` | **PASS** — ctest + 18-mode validate-only + `nexus_gameplay_test` |
 | `./scripts/nexus_playtest.sh --duration 0 --skip-build` | **PASS** — validate + gameplay smoke artifact |
-| `./scripts/nexus_validate_production_modes.sh` | **PASS** — 14/14 modes |
-| `./scripts/nexus_gameplay_regression.sh --skip-build` | **PASS** — headless ctest + integration suite → `gameplay_regression.json` |
+| `./scripts/nexus_validate_production_modes.sh` | **PASS** — 18/18 modes |
+| `./scripts/nexus_gameplay_regression.sh --skip-build` | **PASS** — headless ctest + 18 production agent/HUD probes → `gameplay_regression.json` |
 | `./scripts/build-nexus-ios.sh` | **PASS** (with `DEVELOPER_DIR` / Xcode toolchain) — `NexusPrebuilt/libnexus_*.a` refreshed |
 | `xcodebuild` iOS Simulator (iPhone 17, Debug) | **PASS** — `** BUILD SUCCEEDED **` after DerivedData lock retry |
 
-**Sprint LIVE modes (9):** all covered in `tests/unit/gameplay/gameplay_test.cpp` via per-mode flagship integrations + consolidated `nexus_sprint_live_modes_agent_contract_integration()` (agent router, nested JSON contracts, safe `.value()` access).
+**Production runtime modes (18):** all covered in `tests/unit/gameplay/gameplay_test.cpp` via per-mode flagship/outcome integrations + consolidated `nexus_production_modes_agent_contract_integration()` (agent router, nested JSON contracts, safe `.value()` access, HUD `mode_state` coverage).
 
 ---
 
@@ -66,26 +66,35 @@
 |----|-------|
 | P2-1 | `nexus_renderer_test` ~62–67s — dominates gate wall time |
 | P2-2 | Device 60 FPS / Instruments proof not captured this pass |
-| P2-3 | Production modes beyond sprint LIVE (baseball, soccer, …) have validate-only mesh gates but no flagship gameplay integration tests |
+| P2-3 | Outcome-sport production modes are now agent/HUD contract-tested; full sport-sim depth remains a ship-bar gap |
 | P2-4 | PRQ engine still sprint stub (75, Primed) — not HealthKit-backed |
 
 ---
 
-## Sprint LIVE mode matrix (integration)
+## Production runtime mode matrix (integration)
 
 | Mode ID | Agent command probed | Nested `mode_state` key | Flagship test |
 |---------|---------------------|-------------------------|---------------|
+| `basketball_h2h` | `fel.pickup.action` | `pickup` | ✓ |
 | `basketball_dunk` | `fel.dunk.charge_begin` | `dunk` | ✓ |
-| `karate_endless` | `fel.karate.action` | `karate` | ✓ |
-| `basketball_h2h` | `fel.fitness.update` | `pickup` | ✓ |
+| `basketball_3v3` | `fel.sport.pulse` | `outcome_sport` | ✓ |
 | `court_carnival` | `fel.carnival.trigger_pad` | `carnival` | ✓ |
+| `karate_h2h` | `fel.sport.pulse` | `outcome_sport` | ✓ |
+| `karate_endless` | `fel.karate.action` | `karate` | ✓ |
+| `baseball` | `fel.sport.pulse` | `outcome_sport` | ✓ |
+| `football` | `fel.sport.pulse` | `outcome_sport` | ✓ |
+| `soccer` | `fel.sport.pulse` | `outcome_sport` | ✓ |
+| `golf` | `fel.sport.pulse` | `outcome_sport` | ✓ |
+| `tennis` | `fel.sport.pulse` | `outcome_sport` | ✓ |
+| `volleyball` | `fel.sport.pulse` | `outcome_sport` | ✓ |
 | `gymnastics` | `fel.gymnastics.tap` | `gymnastics` | ✓ |
-| `brain_brawl` | `fel.brain.answer` | `brain_brawl` | ✓ |
+| `surfing` | `fel.surf.carve` | `surfing` | ✓ |
 | `skateboarding` | `fel.skate.trick` | `skateboarding` | ✓ |
 | `snowboarding` | `fel.snow.carve` | `snowboarding` | ✓ |
+| `brain_brawl` | `fel.brain.answer` | `brain_brawl` | ✓ |
 | `who_scene_it` | `fel.scene.buzz_in` | `who_scene_it` | ✓ |
 
-Consolidated agent contract: `nexus_sprint_live_modes_agent_contract_integration()` — exercises all nine via `AgentServer` + `CommandRouter`, asserts `agent_envelope.command` where emitted, validates HUD `payload.mode_state.{mode}` without unchecked `.get()` on missing keys.
+Consolidated agent contract: `nexus_production_modes_agent_contract_integration()` — exercises all 18 production runtime modes via `AgentServer` + `CommandRouter`, asserts `agent_envelope.command` where emitted, validates HUD `payload.mode_state.{mode}` without unchecked `.get()` on missing keys, and emits one `PROBE: production_mode` line per mode for regression artifacts.
 
 ---
 

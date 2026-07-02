@@ -81,7 +81,17 @@ set +e
 "${RUNTIME}" --validate-only --mode "${MODE}" --venue "${VENUE}" >"${VALIDATE_LOG}" 2>&1
 VALIDATE_CODE=$?
 set -e
-VALIDATE_LINE="$(grep -E '^\[NEXUS\] validate-only OK' "${VALIDATE_LOG}" | tail -n 1 || true)"
+VALIDATE_LINE="$(python3 - "${VALIDATE_LOG}" <<'PY'
+import sys
+from pathlib import Path
+
+line = ""
+for candidate in Path(sys.argv[1]).read_text(errors="replace").splitlines():
+    if candidate.startswith("[NEXUS] validate-only OK"):
+        line = candidate
+print(line)
+PY
+)"
 VALIDATE_STATUS="fail"
 if [[ ${VALIDATE_CODE} -eq 0 && -n "${VALIDATE_LINE}" ]]; then
   VALIDATE_STATUS="pass"
@@ -110,14 +120,42 @@ if [[ "${DURATION_SEC}" -gt 0 ]]; then
   AGENT_FIFO="$(mktemp -u "${TMPDIR:-/tmp}/nexus-playtest-agent.XXXXXX")"
   mkfifo "${AGENT_FIFO}"
   (
-    sleep 2
-    printf '%s\n' \
-      '{"type":"command","id":"pt1","payload":{"command":"fel.arena.start_session","params":{"mode_id":"'"${MODE}"'","user_id":"playtest"}}}' \
-      '{"type":"command","id":"pt2","payload":{"command":"fel.dunk.charge_begin","params":{}}}' \
-      '{"type":"command","id":"pt3","payload":{"command":"fel.dunk.charge_release","params":{"power":0.85}}}' \
-      '{"type":"command","id":"pt4","payload":{"command":"fel.dunk.apex_tap","params":{}}}' \
-      '{"type":"query","id":"pt5","payload":{"query":"fel.query.get_mode_state"}}' \
-      '{"type":"query","id":"pt6","payload":{"query":"fel.query.get_session_state"}}'
+    sleep 1
+    python3 - "${MODE}" <<'PY'
+import json
+import sys
+
+mode = sys.argv[1]
+actions = {
+    "basketball_h2h": ("fel.pickup.action", {"action": "shoot", "timing": 0.95, "success": True}),
+    "basketball_dunk": ("fel.dunk.charge_begin", {}),
+    "basketball_3v3": ("fel.sport.pulse", {"success": True, "timing": 0.95, "shot_type": "three_pointer"}),
+    "court_carnival": ("fel.carnival.trigger_pad", {"pad": "trick_shot", "timing": 0.9}),
+    "karate_h2h": ("fel.sport.pulse", {"success": True, "timing": 0.93, "action": "heavy_strike"}),
+    "karate_endless": ("fel.karate.action", {"action": "heavy_strike"}),
+    "baseball": ("fel.sport.pulse", {"success": True, "timing": 0.94, "sport_action": "home_run"}),
+    "football": ("fel.sport.pulse", {"success": True, "timing": 0.88, "play_type": "touchdown"}),
+    "soccer": ("fel.sport.pulse", {"success": True, "timing": 0.91, "sport_action": "penalty"}),
+    "golf": ("fel.sport.pulse", {"success": True, "timing": 0.93, "club": "putt"}),
+    "tennis": ("fel.sport.pulse", {"success": True, "timing": 0.94, "shot_type": "ace"}),
+    "volleyball": ("fel.sport.pulse", {"success": True, "timing": 0.94, "rally_type": "ace_serve"}),
+    "gymnastics": ("fel.gymnastics.tap", {"timing": 0.92, "difficulty": 0.75}),
+    "surfing": ("fel.surf.carve", {"timing": 0.93, "wave_difficulty": 0.75}),
+    "skateboarding": ("fel.skate.trick", {"difficulty": 0.85, "combo_multiplier": 2}),
+    "snowboarding": ("fel.snow.carve", {"timing": 0.93, "line_difficulty": 0.75}),
+    "brain_brawl": ("fel.brain.answer", {"correct": True, "response_time": 5.0, "category": "BodyIQ"}),
+    "who_scene_it": ("fel.scene.buzz_in", {"timing": 0.91}),
+}
+command, params = actions.get(mode, ("fel.arena.mode_input", {"action": "browse"}))
+messages = [
+    {"type": "command", "id": "pt1", "payload": {"command": "fel.arena.start_session", "params": {"mode_id": mode, "user_id": "playtest"}}},
+    {"type": "command", "id": "pt2", "payload": {"command": command, "params": params}},
+    {"type": "query", "id": "pt3", "payload": {"query": "fel.query.get_mode_state"}},
+    {"type": "query", "id": "pt4", "payload": {"query": "fel.query.get_session_state"}},
+]
+for message in messages:
+    print(json.dumps(message, separators=(",", ":")), flush=True)
+PY
     sleep "${DURATION_SEC}"
   ) >"${AGENT_FIFO}" &
   FEED_PID=$!
@@ -180,6 +218,7 @@ env = {
 runtime = {"status": "${RUNTIME_STATUS}"}
 agent_responses = []
 mode_state = None
+agent_response_errors = []
 if dev_export.exists():
     tick = json.loads(dev_export.read_text())
     stats = tick.get("dev_stats", {})
@@ -193,14 +232,30 @@ if dev_export.exists():
         "tick_frames": tick.get("frame"),
     })
     agent_responses = tick.get("agent_responses", [])
+    agent_response_errors = [
+        {
+            "id": response.get("id"),
+            "error": response.get("error"),
+            "status": response.get("status"),
+        }
+        for response in agent_responses
+        if response.get("status") != "ok"
+    ]
     for response in agent_responses:
-        if response.get("id") == "pt5" and response.get("status") == "ok":
+        if response.get("id") == "pt3" and response.get("status") == "ok":
             mode_state = response.get("payload")
             break
 
 overall = "pass"
 if env["validate_status"] != "pass" or "${GAMEPLAY_STATUS}" != "pass":
     overall = "fail"
+if int("${DURATION_SEC}") > 0:
+    if runtime["status"] != "pass" or mode_state is None:
+        overall = "fail"
+    elif mode_state.get("mode_id") != "${MODE}":
+        overall = "fail"
+    if agent_response_errors:
+        overall = "fail"
 
 doc = {
     "schema_version": "1",
@@ -218,6 +273,7 @@ doc = {
     "gameplay_test": {"status": "${GAMEPLAY_STATUS}", "exit_code": int("${GAMEPLAY_CODE}")},
     "mode_state": mode_state,
     "agent_responses": agent_responses,
+    "agent_response_errors": agent_response_errors,
     "artifacts": {
         "latest_json": "artifacts/playtest/latest.json",
         "dev_stats_tick": "artifacts/playtest/dev_stats_tick.json",
