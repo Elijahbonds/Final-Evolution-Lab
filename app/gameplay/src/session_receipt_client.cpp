@@ -212,6 +212,10 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     if (postResult.isErr()) {
       return postResult;
     }
+    if (postResult.value() < 200 || postResult.value() >= 300) {
+      return Result<int>::err("session receipt POST returned non-2xx status " +
+                              std::to_string(postResult.value()));
+    }
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
                        " status=" + std::to_string(postResult.value()));

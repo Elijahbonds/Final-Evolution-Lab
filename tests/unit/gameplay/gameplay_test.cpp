@@ -1939,6 +1939,36 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_live_http_failure_requeues_receipt() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_failure_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:1/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  client.enqueue({
+      {"mode_id", "karate_endless"},
+      {"score", 15},
+      {"outcome", "win"},
+      {"duration_seconds", 90},
+      {"completed", true},
+      {"telemetry", {{"session_id", "live_failure_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live HTTP failure attempts receipt");
+  require(flush.delivered == 0, "live HTTP failure does not deliver receipt");
+  require(flush.requeued == 1, "live HTTP failure requeues receipt");
+  require(client.pendingCount() == 1, "receipt remains pending after live HTTP failure");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2757,6 +2787,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_live_http_failure_requeues_receipt();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
