@@ -3887,6 +3887,7 @@ struct GamePlayView: View {
         triggerScreenShake(intensity: 0.5 + impactLevel * 0.5)
         triggerImpactFlash()
         FELGameplayEventBus.postScored()
+        FELGameplayEventBus.postJudgeReveal(scores: [result.j1, result.j2, result.j3])
         FELSoundscapeEngine.shared.triggerCheer(intensity: result.total >= 138 ? 1.0 : 0.75)
         if result.total >= 45 {
             triggerCriticalFlash()

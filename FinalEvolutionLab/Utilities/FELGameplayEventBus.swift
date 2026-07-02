@@ -26,6 +26,14 @@ enum FELGameplayEventBus {
     static func postOpponentScored() {
         NotificationCenter.default.post(name: .felGameplayOpponentScored, object: nil)
     }
+
+    /// Dunk contest judging moment — score-card reveal VFX (``FELVFXTemplates``)
+    /// + announcer sting/duck (``FELAudioDirector``) in ``GameSceneHostView``.
+    static func postJudgeReveal(scores: [Int]) {
+        NotificationCenter.default.post(name: .felGameplayJudgeReveal,
+                                        object: nil,
+                                        userInfo: ["scores": scores])
+    }
 }
 
 extension Notification.Name {
@@ -35,4 +43,5 @@ extension Notification.Name {
     static let felGameplayKarateBlock = Notification.Name("FELGameplayKarateBlock")
     static let felGameplayWaveCompleted = Notification.Name("FELGameplayWaveCompleted")
     static let felGameplayOpponentScored = Notification.Name("FELGameplayOpponentScored")
+    static let felGameplayJudgeReveal = Notification.Name("FELGameplayJudgeReveal")
 }
