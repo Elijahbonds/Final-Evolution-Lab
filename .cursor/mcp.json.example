@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "nexus": {
+      "command": "node",
+      "args": [
+        "/Users/elijahbonds/Final-Evolution-Lab/tools/nexus-cursor-mcp/dist/index.js"
+      ],
+      "env": {
+        "NEXUS_REPO_ROOT": "/Users/elijahbonds/Final-Evolution-Lab",
+        "NEXUS_BUILD_DIR": "build-headless",
+        "NEXUS_RUNTIME_BUILD_DIR": "build-full"
+      }
+    }
+  }
+}

@@ -62,13 +62,13 @@ nonisolated struct DirectionalTrick: Sendable, Identifiable {
         DirectionalTrick(id: "sweep_std", name: "Leg Sweep", displayName: "SWEEP!", direction: .down, modifier: .none, basePoints: 7, riskFactor: 0.9, animationKey: "combat_sweep"),
         DirectionalTrick(id: "elbow_std", name: "Spinning Elbow", displayName: "SPINNING ELBOW!", direction: .left, modifier: .none, basePoints: 9, riskFactor: 1.1, animationKey: "combat_elbow"),
         DirectionalTrick(id: "counter_std", name: "Counter Strike", displayName: "COUNTER!", direction: .neutral, modifier: .none, basePoints: 10, riskFactor: 1.2, animationKey: "combat_counter"),
-        DirectionalTrick(id: "style_rasengan", name: "Rasengan Strike", displayName: "RASENGAN!", direction: .up, modifier: .style, basePoints: 14, riskFactor: 1.4, animationKey: "combat_rasengan"),
-        DirectionalTrick(id: "style_barrage", name: "Lion's Barrage", displayName: "LION'S BARRAGE!", direction: .down, modifier: .style, basePoints: 16, riskFactor: 1.5, animationKey: "combat_barrage"),
-        DirectionalTrick(id: "style_chidori", name: "Chidori Rush", displayName: "CHIDORI!", direction: .left, modifier: .style, basePoints: 15, riskFactor: 1.45, animationKey: "combat_chidori"),
+        DirectionalTrick(id: "style_vortex", name: "Vortex Strike", displayName: "VORTEX!", direction: .up, modifier: .style, basePoints: 14, riskFactor: 1.4, animationKey: "combat_rasengan"),
+        DirectionalTrick(id: "style_barrage", name: "Iron Barrage", displayName: "IRON BARRAGE!", direction: .down, modifier: .style, basePoints: 16, riskFactor: 1.5, animationKey: "combat_barrage"),
+        DirectionalTrick(id: "style_surge", name: "Surge Drive", displayName: "SURGE!", direction: .left, modifier: .style, basePoints: 15, riskFactor: 1.45, animationKey: "combat_chidori"),
         DirectionalTrick(id: "power_smash", name: "Earth Shatter", displayName: "EARTH SHATTER!", direction: .down, modifier: .power, basePoints: 18, riskFactor: 1.7, animationKey: "combat_shatter"),
         DirectionalTrick(id: "power_rush", name: "Berserker Rush", displayName: "BERSERKER!", direction: .up, modifier: .power, basePoints: 17, riskFactor: 1.6, animationKey: "combat_berserker"),
-        DirectionalTrick(id: "sig_gate", name: "Gate of Death", displayName: "GATE OF DEATH!", direction: .up, modifier: .special, basePoints: 30, riskFactor: 2.5, animationKey: "combat_gate"),
-        DirectionalTrick(id: "sig_shadow", name: "Shadow Clone Finisher", displayName: "SHADOW CLONE!", direction: .down, modifier: .special, basePoints: 28, riskFactor: 2.2, animationKey: "combat_shadow"),
+        DirectionalTrick(id: "sig_gate", name: "Final Gate Protocol", displayName: "FINAL GATE!", direction: .up, modifier: .special, basePoints: 30, riskFactor: 2.5, animationKey: "combat_gate"),
+        DirectionalTrick(id: "sig_shadow", name: "Phantom Echo Finisher", displayName: "PHANTOM ECHO!", direction: .down, modifier: .special, basePoints: 28, riskFactor: 2.2, animationKey: "combat_shadow"),
     ]
 
     static func resolve(direction: ComboDirection, modifier: ModifierState, mode: GameModeId) -> DirectionalTrick {

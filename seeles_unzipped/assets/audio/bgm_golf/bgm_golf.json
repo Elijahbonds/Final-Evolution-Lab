@@ -1,0 +1,13 @@
+{
+  "id": "bgm_golf",
+  "name": "Golf BGM",
+  "category": "audio",
+  "type": "bgm",
+  "source_id": "125173",
+  "urls": ["https://static.seeles.ai/data/asset/export/2e9180f9-0ef3-4182-93e0-6dc3e04d9911/125173/bgm_011fad2f-4ee7-42a7-8f2d-376ce71fec44.mp3"],
+  "compat": ["all"],
+  "tags": ["Calm", "Ambient", "Synth Pad", "Stylish"],
+  "fel_modes": ["golf"],
+  "ue_path": "/Game/FEL/Audio/BGM/BGM_Golf",
+  "created_at": "2026-05-23T20:19:41Z"
+}

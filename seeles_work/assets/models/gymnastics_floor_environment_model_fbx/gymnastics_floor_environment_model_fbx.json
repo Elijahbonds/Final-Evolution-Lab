@@ -1,0 +1,23 @@
+{
+  "id": "gymnastics_floor_environment_model_fbx",
+  "name": "Gymnastics Training Floor Environment",
+  "category": "models",
+  "type": "environment_fbx",
+  "file": "gymnastics_floor_environment_model_fbx.fbx",
+  "urls": ["https://seelemedia.s3.us-east-1.amazonaws.com/media/292a06ca9b374bde9924872573aab8df.fbx"],
+  "preview_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/a5d2cd0978af4a41807be9552255fcd1.png",
+  "description": "Indoor gymnastics arena with spring floor mat, balance beam, uneven bars, vault, foam pit, and trophy wall for FEL gymnastics mode",
+  "tags": ["gymnastics", "training", "floor", "arena", "environment", "indoor"],
+  "keywords": ["gymnastics floor", "spring mat", "balance beam", "uneven bars", "vault", "foam pit"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "asset_design_id": "thing_3e5ae6a01df44a9b",
+  "model_choice": "tripo3D",
+  "fel_venue_id": "Training_Floor",
+  "fel_map_path": "/Game/FEL/Venues/TrainingFloor/TrainingFloor",
+  "fel_modes": ["gymnastics"]
+}

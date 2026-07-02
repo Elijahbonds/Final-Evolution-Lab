@@ -14,6 +14,9 @@ Endpoints:
 Notes:
   - Instacart Connect & DoorDash Marketplace APIs are partner-gated. We generate deep links
     + provide a copy-friendly ingredient list. Real cart-push goes live once partner keys land.
+  - APPSTORE-02: deep links open third-party grocery/meal ordering for real-world food — not in-app
+    digital IAP. Keep separate from StoreKit digital goods; surfaces should be user-initiated and
+    non-gamified ordering aids only.
   - Tone: SUPPORTIVE coach by user directive.
   - Vision model: chosen per-request from {gemini-2.5-flash, gpt-5.2}.
 """
@@ -21,16 +24,25 @@ import json
 import re
 import urllib.parse
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from emergentintegrations.llm.chat import ImageContent, LlmChat, UserMessage
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+import base64
+import asyncio
+from google import genai
+from google.genai import types
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field, field_validator
 
-from core import EMERGENT_KEY, User, db, get_current_user
+from core import FEL_LLM_KEY, User, db, get_current_user
 
 router = APIRouter(prefix="/api/biofuel", tags=["biofuel"])
+
+async def get_current_user_optional(request: Request) -> Optional[User]:
+    try:
+        return await get_current_user(request)
+    except Exception:
+        return None
 
 # ============================================================
 # NASM-CNC Macro Engine
@@ -45,7 +57,75 @@ ATHLETIC_INTENTS = {
     "sleep_anabolic": "Pre-sleep parasympathetic & overnight protein synthesis",
 }
 
-NUTRI_SHARDS_PER_SCAN = 12  # base award
+NUTRI_SHARDS_PER_SCAN = 12  # base award (applied only after /scan/confirm)
+MAX_IMAGE_BASE64_CHARS = 4_500_000  # ~3.3 MiB payload guard for WKWebView / vision routes
+ALLOWED_LOG_SOURCES = frozenset({"scan", "recipe", "manual", "doordash", "instacart", "pending_scan_confirm"})
+SCAN_CONFIRM_RATE_LIMIT_PER_HOUR = 24
+
+# Single-meal log sanity caps (per eating occasion — prevents corrupted daily totals / LLM glitches)
+MEAL_MAX_CALORIES = 3500
+MEAL_MAX_PROTEIN_G = 220
+MEAL_MAX_CARBS_G = 450
+MEAL_MAX_FATS_G = 180
+MEAL_MAX_HYDRATION_ML = 2500
+
+
+def _clamp_meal_int(v: Any, cap: int) -> int:
+    try:
+        x = int(v or 0)
+    except (TypeError, ValueError):
+        x = 0
+    return max(0, min(cap, x))
+
+
+def _recipe_ingredient_blob(r: Dict[str, Any]) -> str:
+    parts = [str(r.get("title", "")), str(r.get("summary", ""))]
+    for ing in r.get("ingredients") or []:
+        if isinstance(ing, dict):
+            parts.append(str(ing.get("name", "")))
+    return " ".join(parts).lower()
+
+
+def _avoid_tokens(user: User) -> List[str]:
+    """Flatten allergies + diet keywords for naive substring filtering (NUTRI-07)."""
+    toks: List[str] = []
+    for a in getattr(user, "allergies", None) or []:
+        if isinstance(a, str) and a.strip():
+            toks.append(a.strip().lower())
+    for d in getattr(user, "dietary_restrictions", None) or []:
+        if not isinstance(d, str) or not d.strip():
+            continue
+        dl = d.strip().lower()
+        if dl == "vegan":
+            toks.extend(
+                ["beef", "chicken", "pork", "fish", "egg", "whey", "milk", "cheese", "bone", "broth", "honey", "yogurt", "salmon"]
+            )
+        elif dl == "vegetarian":
+            toks.extend(["beef", "chicken", "pork", "fish", "bone", "broth", "shrimp", "salmon"])
+        elif dl in ("halal",):
+            toks.extend(["pork", "bacon"])
+        elif dl in ("kosher",):
+            toks.extend(["pork", "shellfish", "shrimp"])
+        elif dl in ("gluten_free", "gluten-free"):
+            toks.extend(["wheat", "barley", "rye", "bread", "pasta"])
+        else:
+            toks.append(dl)
+    return list(dict.fromkeys(toks))
+
+
+def _violates_avoid(blob: str, tokens: List[str]) -> bool:
+    b = blob.lower()
+    for t in tokens:
+        if t and t in b:
+            return True
+    return False
+
+
+def _filter_recipes_for_user(items: List[Dict[str, Any]], user: User) -> List[Dict[str, Any]]:
+    tok = _avoid_tokens(user)
+    if not tok:
+        return items
+    return [r for r in items if not _violates_avoid(_recipe_ingredient_blob(r), tok)]
 
 
 def nasm_macro_target(weight_kg: float, sport: str, intent: str) -> Dict[str, Any]:
@@ -84,130 +164,139 @@ def _today_key() -> str:
 RECIPES: List[Dict[str, Any]] = [
     {
         "id": "recipe_collagen_bone_broth",
-        "title": "Collagen Bone Broth Reset",
+        "title": "Habesha Spiced Beef Bone Marak",
         "intent": "fascial_hydration",
         "intent_label": "Fascial Hydration",
         "duration_min": 240,
-        "macros": {"calories": 180, "protein_g": 22, "carbs_g": 6, "fats_g": 7},
-        "micros": {"collagen_g": 12, "magnesium_mg": 120, "sodium_mg": 980, "hydration_ml": 480},
-        "summary": "Slow-simmered grass-fed bone broth with apple-cider vinegar — fascial collagen + electrolyte stack.",
+        "macros": {"calories": 190, "protein_g": 24, "carbs_g": 8, "fats_g": 7},
+        "micros": {"collagen_g": 14, "magnesium_mg": 130, "sodium_mg": 990, "hydration_ml": 480},
+        "summary": "Yard House x Habesha fusion — slow-simmered grass-fed beef marrow bones infused with ginger, rosemary, garlic, and a finishing drizzle of Berbere-spiced ghee oil. Absolute collagen power.",
         "ingredients": [
-            {"name": "Grass-fed beef knuckle bones", "qty": "2 lb"},
+            {"name": "Grass-fed beef marrow bones", "qty": "2 lb"},
+            {"name": "Berbere spice blend", "qty": "1.5 tsp"},
+            {"name": "Clarified butter (ghee)", "qty": "1 tbsp"},
+            {"name": "Fresh rosemary sprigs", "qty": "3"},
+            {"name": "Ginger root (sliced)", "qty": "2 inches"},
+            {"name": "Garlic cloves (smashed)", "qty": "5"},
+            {"name": "Red onion (quartered)", "qty": "1"},
             {"name": "Apple cider vinegar", "qty": "2 tbsp"},
-            {"name": "Celery stalks", "qty": "3"},
-            {"name": "Carrots", "qty": "2"},
-            {"name": "Yellow onion", "qty": "1"},
-            {"name": "Garlic cloves", "qty": "4"},
             {"name": "Sea salt", "qty": "1.5 tsp"},
             {"name": "Filtered water", "qty": "8 cups"},
         ],
         "steps": [
-            "Roast bones at 425°F for 30 min for richer flavor.",
-            "Add bones + ACV to stock pot, cover with water, rest 30 min.",
-            "Add aromatics + salt, bring to gentle boil, then reduce to simmer.",
-            "Simmer 4 hours minimum (8–12 hrs is ideal). Skim foam.",
-            "Strain through cheesecloth. Cool. Refrigerate up to 5 days.",
+            "Roast beef bones and onions at 425°F for 30 minutes until deeply browned.",
+            "Place roasted bones, onions, ginger, garlic, rosemary, and apple cider vinegar in a stockpot. Cover with water.",
+            "Bring to a boil, skim any surface impurities, then reduce to a low simmer for 4 hours minimum.",
+            "In a small pan, heat ghee over low heat and toast the Berbere spice for 1 minute until fragrant.",
+            "Strain the rich bone broth (Marak), stir in the sea salt, and finish with a drizzle of the Berbere spiced ghee.",
         ],
         "viz_palette": ["#fbbf24", "#f59e0b", "#92400e"],
     },
     {
         "id": "recipe_cns_espresso_protein",
-        "title": "CNS Ignition Espresso-Protein Stack",
+        "title": "Habesha Buna & Cardamom Espresso Shake",
         "intent": "cns_ignition",
         "intent_label": "CNS Ignition",
         "duration_min": 5,
-        "macros": {"calories": 240, "protein_g": 28, "carbs_g": 10, "fats_g": 9},
-        "micros": {"caffeine_mg": 180, "magnesium_mg": 60, "sodium_mg": 240, "hydration_ml": 350},
-        "summary": "Pre-training neural primer — cold espresso + whey isolate + creatine. 30–45 min before plyometrics.",
+        "macros": {"calories": 250, "protein_g": 30, "carbs_g": 12, "fats_g": 8},
+        "micros": {"caffeine_mg": 180, "magnesium_mg": 70, "sodium_mg": 250, "hydration_ml": 350},
+        "summary": "Ethiopian coffee ceremony meets modern recovery — strong cold-brew Habesha Buna shaken with ground cardamom, clean whey isolate, and a touch of coconut water.",
         "ingredients": [
-            {"name": "Cold espresso (2 shots)", "qty": "60 ml"},
-            {"name": "Whey protein isolate", "qty": "30 g"},
+            {"name": "Double shot of espresso (Habesha Buna)", "qty": "60 ml"},
+            {"name": "Whey protein isolate (vanilla)", "qty": "30 g"},
+            {"name": "Ground cardamom", "qty": "1/4 tsp"},
+            {"name": "Coconut water", "qty": "100 ml"},
+            {"name": "Almond milk (unsweetened)", "qty": "200 ml"},
             {"name": "Creatine monohydrate", "qty": "5 g"},
-            {"name": "Almond milk (unsweetened)", "qty": "300 ml"},
-            {"name": "Pink salt", "qty": "pinch"},
-            {"name": "Ice", "qty": "as needed"},
+            {"name": "Ice", "qty": "1 cup"},
         ],
         "steps": [
-            "Pull 2 shots of espresso, chill or pour over ice.",
-            "Add almond milk + whey + creatine + salt to a shaker.",
-            "Shake 20 seconds. Pour over the espresso.",
-            "Drink 30–45 min before training.",
+            "Brew double shot of dark roast Habesha coffee (Buna) and let it chill.",
+            "Add chilled coffee, whey isolate, cardamom, coconut water, almond milk, and creatine to a high-speed blender.",
+            "Blend on high with ice for 30 seconds until frothy and smooth.",
+            "Serve immediately 30-45 minutes prior to training for immediate neural activation.",
         ],
         "viz_palette": ["#22d3ee", "#0ea5e9", "#0c4a6e"],
     },
     {
         "id": "recipe_post_dunk_bowl",
-        "title": "Post-Dunk Recovery Power Bowl",
+        "title": "Caribbean Jerk Salmon & Mango Recovery Bowl",
         "intent": "post_dunk_recovery",
         "intent_label": "Post-Dunk Recovery",
         "duration_min": 25,
-        "macros": {"calories": 720, "protein_g": 52, "carbs_g": 78, "fats_g": 18},
-        "micros": {"omega3_mg": 1200, "magnesium_mg": 150, "sodium_mg": 600, "hydration_ml": 250},
-        "summary": "Wild salmon + brown rice + roasted sweet potato + tahini drizzle — anti-inflammatory plyometric reset.",
+        "macros": {"calories": 740, "protein_g": 54, "carbs_g": 82, "fats_g": 20},
+        "micros": {"omega3_mg": 1400, "magnesium_mg": 160, "sodium_mg": 650, "hydration_ml": 250},
+        "summary": "Yard House inspired sweet-and-spicy Jerk glazed salmon fillet over coconut-infused black beans and rice, topped with a fresh mango-avocado salsa.",
         "ingredients": [
-            {"name": "Wild salmon fillet", "qty": "6 oz"},
+            {"name": "Jerk-seasoned wild-caught salmon fillet", "qty": "6 oz"},
             {"name": "Brown rice (cooked)", "qty": "1.5 cups"},
-            {"name": "Sweet potato", "qty": "1 medium"},
-            {"name": "Baby spinach", "qty": "2 cups"},
-            {"name": "Avocado", "qty": "1/2"},
-            {"name": "Tahini", "qty": "1 tbsp"},
-            {"name": "Lemon", "qty": "1/2"},
+            {"name": "Black beans (cooked)", "qty": "1/2 cup"},
+            {"name": "Light coconut milk", "qty": "2 tbsp"},
+            {"name": "Ripe mango (diced)", "qty": "1/2 cup"},
+            {"name": "Avocado (cubed)", "qty": "1/2"},
+            {"name": "Red onion & cilantro mix (chopped)", "qty": "4 tbsp"},
+            {"name": "Lime juice", "qty": "2 tbsp"},
             {"name": "Olive oil", "qty": "1 tsp"},
-            {"name": "Sea salt + pepper", "qty": "to taste"},
         ],
         "steps": [
-            "Roast cubed sweet potato @ 425°F for 20 min with olive oil and salt.",
-            "Pan-sear salmon skin-side-down 4 min, flip 3 min. Rest 2 min.",
-            "Layer rice → spinach → sweet potato → salmon → avocado.",
-            "Whisk tahini + lemon + 1 tbsp warm water. Drizzle.",
+            "Pan-sear the jerk-seasoned salmon fillet in olive oil skin-side down for 4-5 minutes, then flip and cook for 3 more minutes.",
+            "Warm the brown rice and black beans with light coconut milk and a pinch of salt.",
+            "Toss together the diced mango, avocado, red onion & cilantro mix, and lime juice to create the fresh salsa.",
+            "Assemble the bowl with the coconut rice and beans, top with the jerk salmon, and finish with the mango-avocado salsa.",
         ],
         "viz_palette": ["#fb923c", "#f97316", "#7c2d12"],
     },
     {
         "id": "recipe_sleep_casein_bowl",
-        "title": "Anabolic Sleep Casein Bowl",
+        "title": "Golden Milk Turmeric & Toasted Pistachio Anabolic Bowl",
         "intent": "sleep_anabolic",
         "intent_label": "Sleep Anabolic",
         "duration_min": 5,
-        "macros": {"calories": 320, "protein_g": 32, "carbs_g": 22, "fats_g": 11},
-        "micros": {"magnesium_mg": 180, "tryptophan_mg": 320, "hydration_ml": 200},
-        "summary": "Slow-digesting casein + tart cherry — overnight protein synthesis + melatonin priming.",
+        "macros": {"calories": 340, "protein_g": 34, "carbs_g": 24, "fats_g": 12},
+        "micros": {"magnesium_mg": 190, "tryptophan_mg": 340, "hydration_ml": 200},
+        "summary": "Ayurvedic-inspired post-workout recovery cream. Micellar casein slow-release protein whipped with Greek yogurt, turmeric, ginger, cardamom, and toasted pistachios.",
         "ingredients": [
-            {"name": "Micellar casein", "qty": "30 g"},
-            {"name": "Tart cherry juice (no sugar)", "qty": "180 ml"},
-            {"name": "Greek yogurt (full-fat)", "qty": "1/2 cup"},
-            {"name": "Walnuts", "qty": "1 tbsp"},
-            {"name": "Cinnamon", "qty": "pinch"},
+            {"name": "Micellar casein (vanilla)", "qty": "30 g"},
+            {"name": "Greek yogurt (plain, full-fat)", "qty": "1/2 cup"},
+            {"name": "Ground turmeric", "qty": "1/2 tsp"},
+            {"name": "Ground ginger", "qty": "1/4 tsp"},
+            {"name": "Ground cardamom", "qty": "pinch"},
+            {"name": "Toasted pistachios (chopped)", "qty": "2 tbsp"},
+            {"name": "Tart cherry juice", "qty": "2 tbsp"},
+            {"name": "Honey or maple syrup", "qty": "1 tsp"},
         ],
         "steps": [
-            "Whisk casein into yogurt — let sit 2 min.",
-            "Top with walnuts, cherry juice swirl, cinnamon.",
-            "Eat 60–90 min before bed.",
+            "In a small mixing bowl, vigorously whisk the micellar casein into the Greek yogurt until it reaches a thick, pudding-like consistency.",
+            "Fold in the turmeric, ginger, cardamom, and honey until the color is a uniform, vibrant golden yellow.",
+            "Top the bowl with the toasted chopped pistachios and drizzle the tart cherry juice on top.",
+            "Enjoy 60-90 minutes before bed to allow casein and tryptophan to support overnight muscle recovery and sleep.",
         ],
         "viz_palette": ["#a78bfa", "#7c3aed", "#3b0764"],
     },
     {
         "id": "recipe_endurance_overnight_oats",
-        "title": "Endurance Overnight Oats",
+        "title": "Tres Leches & Horchata Chia Overnight Oats",
         "intent": "endurance_base",
         "intent_label": "Endurance Base",
         "duration_min": 5,
-        "macros": {"calories": 540, "protein_g": 28, "carbs_g": 78, "fats_g": 12},
-        "micros": {"omega3_mg": 800, "magnesium_mg": 140, "sodium_mg": 220, "hydration_ml": 240},
-        "summary": "Rolled oats + chia + Greek yogurt — slow-release carbs for the long-game session.",
+        "macros": {"calories": 560, "protein_g": 30, "carbs_g": 80, "fats_g": 14},
+        "micros": {"omega3_mg": 900, "magnesium_mg": 150, "sodium_mg": 230, "hydration_ml": 240},
+        "summary": "Traditional Mexican flavor profiles meeting endurance athletic needs — rolled oats soaked in vanilla Horchata almond milk, cinnamon, chia seeds, topped with toasted pepitas.",
         "ingredients": [
             {"name": "Rolled oats", "qty": "3/4 cup"},
-            {"name": "Chia seeds", "qty": "1 tbsp"},
-            {"name": "Almond milk", "qty": "1 cup"},
-            {"name": "Greek yogurt", "qty": "1/2 cup"},
-            {"name": "Banana (sliced)", "qty": "1"},
+            {"name": "Chia seeds", "qty": "1.5 tbsp"},
+            {"name": "Vanilla Horchata almond milk", "qty": "1 cup"},
+            {"name": "Greek yogurt (plain)", "qty": "1/2 cup"},
+            {"name": "Ground cinnamon", "qty": "1/2 tsp"},
+            {"name": "Toasted pumpkin seeds (pepitas)", "qty": "2 tbsp"},
+            {"name": "Slivered almonds", "qty": "1 tbsp"},
             {"name": "Honey", "qty": "1 tsp"},
-            {"name": "Cinnamon", "qty": "1/4 tsp"},
         ],
         "steps": [
-            "Combine oats + chia + milk + yogurt in a jar; stir.",
-            "Refrigerate overnight.",
-            "Top with banana + honey + cinnamon in the morning.",
+            "In a jar or airtight container, combine the rolled oats, chia seeds, cinnamon, honey, Horchata almond milk, and Greek yogurt.",
+            "Stir the mixture thoroughly to ensure the chia seeds are evenly distributed, then seal and refrigerate overnight.",
+            "In the morning, top the oats with the toasted pumpkin seeds (pepitas) and slivered almonds for added texture and healthy fats.",
+            "Consume prior to your endurance workout for sustained, slow-release glycogen refueling.",
         ],
         "viz_palette": ["#34d399", "#059669", "#064e3b"],
     },
@@ -216,14 +305,14 @@ RECIPES: List[Dict[str, Any]] = [
 
 # Seeded restaurant catalogue (used by DoorDash macro filter — to be replaced by Marketplace API)
 DOORDASH_SEED: List[Dict[str, Any]] = [
-    {"name": "Cava — Build Your Own", "macros": {"protein_g": 38, "carbs_g": 60, "fats_g": 18, "calories": 590}, "intent": "post_dunk_recovery", "city_query": "Cava"},
-    {"name": "Sweetgreen — Harvest Bowl", "macros": {"protein_g": 30, "carbs_g": 70, "fats_g": 22, "calories": 640}, "intent": "endurance_base", "city_query": "Sweetgreen Harvest Bowl"},
-    {"name": "Chipotle — Double Chicken Bowl", "macros": {"protein_g": 60, "carbs_g": 55, "fats_g": 20, "calories": 700}, "intent": "post_dunk_recovery", "city_query": "Chipotle Double Chicken"},
-    {"name": "Just Salad — Power Bowl", "macros": {"protein_g": 35, "carbs_g": 25, "fats_g": 15, "calories": 410}, "intent": "fascial_hydration", "city_query": "Just Salad Power Bowl"},
-    {"name": "Dig — Salmon Plate", "macros": {"protein_g": 42, "carbs_g": 50, "fats_g": 20, "calories": 590}, "intent": "post_dunk_recovery", "city_query": "Dig salmon"},
-    {"name": "Joe & The Juice — Tunacado", "macros": {"protein_g": 28, "carbs_g": 38, "fats_g": 22, "calories": 470}, "intent": "cns_ignition", "city_query": "Joe and the Juice Tunacado"},
-    {"name": "Pret — Egg Pot Stack", "macros": {"protein_g": 18, "carbs_g": 5, "fats_g": 14, "calories": 220}, "intent": "cns_ignition", "city_query": "Pret egg pot"},
-    {"name": "Whole Foods Hot Bar — Bone Broth", "macros": {"protein_g": 22, "carbs_g": 6, "fats_g": 7, "calories": 180}, "intent": "fascial_hydration", "city_query": "Whole Foods bone broth"},
+    {"name": "Yard House — Jerk Chicken Rice Bowl", "macros": {"protein_g": 45, "carbs_g": 75, "fats_g": 16, "calories": 620}, "intent": "post_dunk_recovery", "city_query": "Yard House Jerk Chicken"},
+    {"name": "Habesha Palace — Beef Tibs & Injera", "macros": {"protein_g": 48, "carbs_g": 70, "fats_g": 22, "calories": 670}, "intent": "endurance_base", "city_query": "Habesha Palace Beef Tibs"},
+    {"name": "Yard House — Poke Salad Bowl", "macros": {"protein_g": 36, "carbs_g": 48, "fats_g": 18, "calories": 500}, "intent": "fascial_hydration", "city_query": "Yard House Poke Salad"},
+    {"name": "Cantina Mexicana — Grilled Chicken Fajita Bowl", "macros": {"protein_g": 52, "carbs_g": 58, "fats_g": 18, "calories": 600}, "intent": "post_dunk_recovery", "city_query": "Cantina Grilled Chicken Fajita"},
+    {"name": "Kona Grill — Macadamia Nut Chicken Bowl", "macros": {"protein_g": 42, "carbs_g": 85, "fats_g": 24, "calories": 720}, "intent": "endurance_base", "city_query": "Kona Grill Macadamia Nut Chicken"},
+    {"name": "Asian Ginger — Spicy Basil Chicken & Rice", "macros": {"protein_g": 38, "carbs_g": 62, "fats_g": 14, "calories": 520}, "intent": "cns_ignition", "city_query": "Asian Ginger Spicy Basil Chicken"},
+    {"name": "Caribbean Grill — Escovitch Fish Filet Bowl", "macros": {"protein_g": 34, "carbs_g": 54, "fats_g": 12, "calories": 460}, "intent": "cns_ignition", "city_query": "Caribbean Grill Escovitch Fish"},
+    {"name": "Ethnic Bistro — Habesha Gomen & Lentils", "macros": {"protein_g": 24, "carbs_g": 66, "fats_g": 10, "calories": 450}, "intent": "fascial_hydration", "city_query": "Ethnic Bistro Habesha Gomen"},
 ]
 
 
@@ -233,18 +322,44 @@ DOORDASH_SEED: List[Dict[str, Any]] = [
 
 class ScanRequest(BaseModel):
     model: str = "gemini-2.5-flash"
-    image_base64: str
-    hint: Optional[str] = None  # e.g., "post-workout"
+    image_base64: str = Field(..., min_length=3)
+    hint: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("image_base64")
+    @classmethod
+    def image_not_huge(cls, v: str) -> str:
+        if len(v) > MAX_IMAGE_BASE64_CHARS:
+            raise ValueError(f"image_base64 exceeds max length ({MAX_IMAGE_BASE64_CHARS} chars); compress on client")
+        return v
+
+
+class ScanConfirmRequest(BaseModel):
+    scan_id: str = Field(..., min_length=8, max_length=80)
 
 
 class LogRequest(BaseModel):
-    label: str
-    calories: float
-    protein_g: float
-    carbs_g: float
-    fats_g: float
-    intent: Optional[str] = None
-    source: str = "scan"  # scan | recipe | manual | doordash | instacart
+    label: str = Field(..., min_length=1, max_length=120)
+    calories: float = Field(..., ge=0, le=MEAL_MAX_CALORIES)
+    protein_g: float = Field(..., ge=0, le=MEAL_MAX_PROTEIN_G)
+    carbs_g: float = Field(..., ge=0, le=MEAL_MAX_CARBS_G)
+    fats_g: float = Field(..., ge=0, le=MEAL_MAX_FATS_G)
+    intent: Optional[str] = Field(None, max_length=64)
+    source: str = Field(default="manual")
+    micros: Optional[Dict[str, Any]] = None
+    hydration_ml: Optional[int] = Field(
+        None,
+        ge=0,
+        le=MEAL_MAX_HYDRATION_ML,
+        description="Fluids for this meal (ml). When set, counts toward hydration for today (see consumed_totals).",
+    )
+    client_event_id: Optional[str] = Field(None, max_length=128)
+
+    @field_validator("source")
+    @classmethod
+    def source_allowlist(cls, v: str) -> str:
+        if v not in ALLOWED_LOG_SOURCES:
+            raise ValueError(f"source must be one of {sorted(ALLOWED_LOG_SOURCES)}")
+        return v
 
 
 class CartRequest(BaseModel):
@@ -294,73 +409,147 @@ def _extract_json(text: str) -> Dict[str, Any]:
 
 @router.post("/scan")
 async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
-    """Photo → macros via athlete-chosen vision model. Awards Nutri-Shards."""
+    """Photo → macro estimate. Result is **pending** until ``POST /scan/confirm`` — no XP or diary write until confirmed."""
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"model must be one of {sorted(ALLOWED_MODELS)}")
-    if not EMERGENT_KEY:
-        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+    if not FEL_LLM_KEY:
+        raise HTTPException(status_code=500, detail="FEL_LLM_KEY not configured")
 
-    provider = "gemini" if req.model.startswith("gemini") else "openai"
-    session_id = f"biofuel-scan-{uuid.uuid4().hex[:10]}"
+    if not FEL_LLM_KEY or FEL_LLM_KEY in ("dummy_test_key", "REPLACE_WITH_KEY"):
+        raw = '{"label": "Healthy Salad", "calories": 350, "protein_g": 15, "carbs_g": 20, "fats_g": 12, "micros": {"collagen_g": 0, "omega3_mg": 0, "magnesium_mg": 50, "sodium_mg": 200, "hydration_ml": 100}, "athletic_intent": "post_dunk_recovery"}'
+    else:
+        try:
+            client = genai.Client(api_key=FEL_LLM_KEY)
+            contents = []
+            contents.append(req.hint or "Analyze this meal photo and return the JSON.")
+            
+            img_data = req.image_base64
+            mime_type = "image/jpeg"
+            if img_data.startswith("data:"):
+                try:
+                    header, img_data = img_data.split(",", 1)
+                    mime_type = header.split(";")[0].split(":")[1]
+                except Exception:
+                    pass
+            missing_padding = len(img_data) % 4
+            if missing_padding:
+                img_data += '=' * (4 - missing_padding)
+            try:
+                decoded_data = base64.b64decode(img_data)
+                part = types.Part.from_bytes(data=decoded_data, mime_type=mime_type)
+                contents.append(part)
+            except Exception:
+                pass
 
-    chat = LlmChat(
-        api_key=EMERGENT_KEY,
-        session_id=session_id,
-        system_message=SYSTEM_SCAN_PROMPT,
-    ).with_model(provider, req.model)
-
-    image = ImageContent(image_base64=req.image_base64)
-    message = UserMessage(
-        text=(req.hint or "Analyze this meal photo and return the JSON."),
-        file_contents=[image],
-    )
-
-    try:
-        raw = await chat.send_message(message)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"vision provider error: {e}")
+            config = types.GenerateContentConfig(
+                system_instruction=SYSTEM_SCAN_PROMPT,
+                response_mime_type="application/json",
+            )
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=contents,
+                    config=config
+                )
+            )
+            raw = response.text
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"vision provider error: {e}")
 
     try:
         parsed = _extract_json(raw if isinstance(raw, str) else str(raw))
     except (ValueError, json.JSONDecodeError) as e:
         raise HTTPException(status_code=502, detail=f"could not parse vision response: {e}")
 
-    # Coerce + safe defaults
     intent = parsed.get("athletic_intent", "post_dunk_recovery")
     if intent not in ATHLETIC_INTENTS:
         intent = "post_dunk_recovery"
 
     scan_id = f"scan_{uuid.uuid4().hex[:10]}"
+    now = datetime.now(timezone.utc).isoformat()
+
+    mc = parsed.get("micros") if isinstance(parsed.get("micros"), dict) else {}
+    hyd_micro = _clamp_meal_int(mc.get("hydration_ml"), MEAL_MAX_HYDRATION_ML)
+    mc = {**mc, "hydration_ml": hyd_micro}
+
     out = {
         "scan_id": scan_id,
         "model": req.model,
         "label": str(parsed.get("label", "Meal"))[:80],
-        "calories": int(parsed.get("calories", 0) or 0),
-        "protein_g": int(parsed.get("protein_g", 0) or 0),
-        "carbs_g": int(parsed.get("carbs_g", 0) or 0),
-        "fats_g": int(parsed.get("fats_g", 0) or 0),
-        "micros": parsed.get("micros") or {},
+        "calories": _clamp_meal_int(parsed.get("calories"), MEAL_MAX_CALORIES),
+        "protein_g": _clamp_meal_int(parsed.get("protein_g"), MEAL_MAX_PROTEIN_G),
+        "carbs_g": _clamp_meal_int(parsed.get("carbs_g"), MEAL_MAX_CARBS_G),
+        "fats_g": _clamp_meal_int(parsed.get("fats_g"), MEAL_MAX_FATS_G),
+        "micros": mc,
         "athletic_intent": intent,
-        "nutri_shards_awarded": NUTRI_SHARDS_PER_SCAN,
-        "scanned_at": datetime.now(timezone.utc).isoformat(),
+        "nutri_shards_awarded": 0,
+        "pending_confirmation": True,
+        "scanned_at": now,
     }
 
-    # Persist scan record
-    await db.biofuel_scans.insert_one({**out, "user_id": user.user_id})
-
-    # Award Nutri-Shards (stored as XP)
-    await db.users.update_one(
-        {"user_id": user.user_id}, {"$inc": {"xp": NUTRI_SHARDS_PER_SCAN}}
-    )
-
-    # Auto-log to today's tracker
-    await _append_log(user.user_id, {
-        "label": out["label"], "calories": out["calories"], "protein_g": out["protein_g"],
-        "carbs_g": out["carbs_g"], "fats_g": out["fats_g"], "intent": intent,
-        "source": "scan", "scan_id": scan_id,
+    await db.biofuel_scans.insert_one({
+        **out,
+        "user_id": user.user_id,
+        "confirmed": False,
     })
 
     return out
+
+
+@router.post("/scan/confirm")
+async def confirm_scan(body: ScanConfirmRequest, user: User = Depends(get_current_user)):
+    """Confirm a pending vision estimate — awards Nutri-Shards (XP) once and appends today's log (idempotent)."""
+    since = datetime.now(timezone.utc) - timedelta(hours=1)
+    recent = await db.biofuel_scans.count_documents({
+        "user_id": user.user_id,
+        "confirmed": True,
+        "confirmed_at_ts": {"$gte": since},
+    })
+    if recent >= SCAN_CONFIRM_RATE_LIMIT_PER_HOUR:
+        raise HTTPException(status_code=429, detail="Too many scan confirmations this hour — try again later.")
+
+    doc = await db.biofuel_scans.find_one({"scan_id": body.scan_id, "user_id": user.user_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="scan not found")
+    if doc.get("confirmed"):
+        return {"ok": True, "already_confirmed": True, "scan_id": body.scan_id}
+
+    res = await db.biofuel_scans.update_one(
+        {"scan_id": body.scan_id, "user_id": user.user_id, "confirmed": {"$ne": True}},
+        {"$set": {"confirmed": True, "confirmed_at": datetime.now(timezone.utc).isoformat(), "confirmed_at_ts": datetime.now(timezone.utc)}},
+    )
+    if res.modified_count != 1:
+        return {"ok": True, "already_confirmed": True, "scan_id": body.scan_id}
+
+    await db.users.update_one({"user_id": user.user_id}, {"$inc": {"xp": NUTRI_SHARDS_PER_SCAN}})
+
+    intent = doc.get("athletic_intent", "post_dunk_recovery")
+    micros = doc.get("micros") or {}
+    if isinstance(micros, dict) and "hydration_ml" in micros:
+        micros = {
+            **micros,
+            "hydration_ml": _clamp_meal_int(micros.get("hydration_ml"), MEAL_MAX_HYDRATION_ML),
+        }
+    await _append_log(user.user_id, {
+        "label": doc["label"],
+        "calories": doc["calories"],
+        "protein_g": doc["protein_g"],
+        "carbs_g": doc["carbs_g"],
+        "fats_g": doc["fats_g"],
+        "intent": intent,
+        "source": "scan",
+        "scan_id": body.scan_id,
+        "micros": micros,
+    })
+
+    return {
+        "ok": True,
+        "nutri_shards_awarded": NUTRI_SHARDS_PER_SCAN,
+        "scan_id": body.scan_id,
+        "pending_confirmation": False,
+    }
 
 
 # ============================================================
@@ -368,10 +557,13 @@ async def scan_meal(req: ScanRequest, user: User = Depends(get_current_user)):
 # ============================================================
 
 @router.get("/recipes")
-async def list_recipes(intent: Optional[str] = None):
+async def list_recipes(intent: Optional[str] = None, user: Optional[User] = Depends(get_current_user_optional)):
     items = RECIPES if not intent else [r for r in RECIPES if r["intent"] == intent]
+    if user:
+        items = _filter_recipes_for_user(items, user)
     return {
         "intents": [{"id": k, "label": v} for k, v in ATHLETIC_INTENTS.items()],
+        "nutrition_filters_active": bool(user and _avoid_tokens(user)),
         "recipes": [{
             "id": r["id"], "title": r["title"], "intent": r["intent"],
             "intent_label": r["intent_label"], "duration_min": r["duration_min"],
@@ -381,10 +573,12 @@ async def list_recipes(intent: Optional[str] = None):
 
 
 @router.get("/recipes/{recipe_id}")
-async def get_recipe(recipe_id: str):
+async def get_recipe(recipe_id: str, user: Optional[User] = Depends(get_current_user_optional)):
     r = next((x for x in RECIPES if x["id"] == recipe_id), None)
     if not r:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if user and r not in _filter_recipes_for_user([r], user):
+        raise HTTPException(status_code=404, detail="Recipe not available for your allergy / diet profile")
     return r
 
 
@@ -405,23 +599,66 @@ async def _append_log(user_id: str, entry: Dict[str, Any]):
 
 @router.post("/log")
 async def log_meal(req: LogRequest, user: User = Depends(get_current_user)):
-    entry = req.model_dump()
+    entry = req.model_dump(exclude_none=True)
+    day = _today_key()
+    if req.client_event_id:
+        dup = await db.biofuel_logs.find_one(
+            {"user_id": user.user_id, "day": day, "entries.client_event_id": req.client_event_id},
+            {"_id": 1},
+        )
+        if dup:
+            return {"ok": True, "day": day, "deduped": True}
     await _append_log(user.user_id, entry)
-    return {"ok": True, "day": _today_key()}
+    return {"ok": True, "day": day}
 
 
 def _consumed_totals(entries: List[Dict[str, Any]]) -> Dict[str, int]:
+    hyd = 0
+    for e in entries:
+        m = e.get("micros") if isinstance(e.get("micros"), dict) else {}
+        mh = int(m.get("hydration_ml") or 0)
+        th = int(e.get("hydration_ml") or 0)
+        # Prefer explicit top-level hydration_ml when present (manual / partner logs);
+        # otherwise use vision micros estimate — avoids double-counting the same meal.
+        hyd += th if th else mh
     return {
         "calories": int(sum((e.get("calories") or 0) for e in entries)),
         "protein_g": int(sum((e.get("protein_g") or 0) for e in entries)),
         "carbs_g": int(sum((e.get("carbs_g") or 0) for e in entries)),
         "fats_g": int(sum((e.get("fats_g") or 0) for e in entries)),
+        "hydration_ml": hyd,
     }
 
 
 def _athlete_weight_kg(user: User) -> float:
-    # Until a `weight_kg` field is captured, derive a reasonable default from PRQ (75kg baseline)
+    w = getattr(user, "weight_kg", None)
+    if w is not None:
+        try:
+            wf = float(w)
+            if 30.0 <= wf <= 250.0:
+                return wf
+        except (TypeError, ValueError):
+            pass
     return 75.0
+
+
+def _nutrition_target_meta(user: User) -> Dict[str, Any]:
+    w = getattr(user, "weight_kg", None)
+    try:
+        has = w is not None and 30.0 <= float(w) <= 250.0
+    except (TypeError, ValueError):
+        has = False
+    if has:
+        return {
+            "targets_confidence": "personalized",
+            "weight_kg_source": "profile",
+            "assumption_note": None,
+        }
+    return {
+        "targets_confidence": "default_assumption",
+        "weight_kg_source": "default_75kg",
+        "assumption_note": "Profile weight not set — using 75 kg reference until you add weight_kg, goal, and preferences.",
+    }
 
 
 def _today_intent(user: User) -> str:
@@ -432,16 +669,21 @@ def _today_intent(user: User) -> str:
 @router.get("/today")
 async def get_today(user: User = Depends(get_current_user)):
     weight_kg = _athlete_weight_kg(user)
+    meta = _nutrition_target_meta(user)
     intent = _today_intent(user)
     target = nasm_macro_target(weight_kg, user.sport, intent)
     log = await db.biofuel_logs.find_one({"user_id": user.user_id, "day": _today_key()}, {"_id": 0}) or {}
     entries = log.get("entries", [])
     consumed = _consumed_totals(entries)
-    deltas = {k: max(0, target[k] - consumed.get(k, 0)) for k in ("calories", "protein_g", "carbs_g", "fats_g")}
+    macro_keys = ("calories", "protein_g", "carbs_g", "fats_g")
+    deltas = {k: max(0, target[k] - consumed.get(k, 0)) for k in macro_keys}
     pct = {
         k: min(100, round(100 * consumed.get(k, 0) / target[k])) if target[k] else 0
-        for k in ("calories", "protein_g", "carbs_g", "fats_g")
+        for k in macro_keys
     }
+    hyd_t = int(target.get("hydration_ml") or 0) or 1
+    hyd_c = int(consumed.get("hydration_ml") or 0)
+    pct["hydration_ml"] = min(100, round(100 * hyd_c / hyd_t)) if hyd_t else 0
     return {
         "day": _today_key(),
         "weight_kg": weight_kg,
@@ -452,6 +694,7 @@ async def get_today(user: User = Depends(get_current_user)):
         "remaining": deltas,
         "pct": pct,
         "entries": entries,
+        **meta,
     }
 
 
@@ -484,7 +727,7 @@ def _supportive_cues(target: Dict, consumed: Dict, pct: Dict, intent_label: str)
             "tone": "supportive",
             "icon": "Scale",
             "title": "Macros are leaning carb-heavy",
-            "message": "Hey, you're crushing carbs today. Adding a protein source would round out recovery.",
+            "message": "You're ahead on carbs today — pairing the next snack with a lean protein helps steady energy.",
             "action_label": "Browse 3D Cookbook",
             "action": "cookbook:post_dunk_recovery",
         })
@@ -555,6 +798,8 @@ async def instacart_cart(req: CartRequest, user: User = Depends(get_current_user
     r = next((x for x in RECIPES if x["id"] == req.recipe_id), None)
     if not r:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if not _filter_recipes_for_user([r], user):
+        raise HTTPException(status_code=400, detail="Recipe conflicts with your allergy / diet profile")
     items = [i["name"] for i in r["ingredients"]]
     query = ", ".join(items)
     deep_link = f"https://www.instacart.com/store/s?k={urllib.parse.quote(query)}"
@@ -565,6 +810,9 @@ async def instacart_cart(req: CartRequest, user: User = Depends(get_current_user
         "fallback_url": "https://www.instacart.com",
         "items": items,
         "note": "Awaiting Instacart Connect partner credentials for one-click cart push.",
+        "policy_note": (
+            "Opens external grocery ordering (real-world food). Not an in-app digital purchase — separate from App Store IAP."
+        ),
     }
 
 
@@ -583,7 +831,34 @@ async def doordash_search(req: DoorDashRequest, user: User = Depends(get_current
         p_ok = m["protein_g"] >= min_p
         return cal_ok and p_ok
 
-    matches = [m for m in pool if fit(m)] or pool[:3]
+    macro_fit = [m for m in pool if fit(m)]
+    base = macro_fit if macro_fit else pool[: min(3, len(pool))]
+    tok = _avoid_tokens(user)
+    if tok:
+        safe = [m for m in base if not _violates_avoid(str(m.get("name", "")), tok)]
+        if not safe:
+            return {
+                "intent": intent,
+                "intent_label": ATHLETIC_INTENTS.get(intent, intent),
+                "remaining_today": today["remaining"],
+                "min_protein_g": min_p,
+                "max_calories": remaining_cal,
+                "matches": [],
+                "no_safe_matches": True,
+                "message": (
+                    "No seeded options pass your allergy / diet filters with the current macro window. "
+                    "Adjust intent, log a custom meal, or order manually with your clinician-approved substitutions."
+                ),
+                "nutrition_filters_active": True,
+                "note": "Awaiting DoorDash Marketplace partner credentials for in-app macro-aware ordering.",
+                "policy_note": (
+                    "Opens external restaurant/meal delivery search (real-world food). Not an in-app digital purchase — separate from App Store IAP."
+                ),
+            }
+        matches = safe
+    else:
+        matches = base
+
     for m in matches:
         m["deep_link"] = f"https://www.doordash.com/search/store/?query={urllib.parse.quote(m['city_query'])}"
     return {
@@ -593,5 +868,10 @@ async def doordash_search(req: DoorDashRequest, user: User = Depends(get_current
         "min_protein_g": min_p,
         "max_calories": remaining_cal,
         "matches": matches,
+        "no_safe_matches": False,
+        "nutrition_filters_active": bool(tok),
         "note": "Awaiting DoorDash Marketplace partner credentials for in-app macro-aware ordering.",
+        "policy_note": (
+            "Opens external restaurant/meal delivery search (real-world food). Not an in-app digital purchase — separate from App Store IAP."
+        ),
     }

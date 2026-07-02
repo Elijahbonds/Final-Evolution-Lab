@@ -30,12 +30,67 @@ private struct TrainingHubContent: View {
     @Binding var selectedDay: TrainingDay?
     @Binding var appeared: Bool
 
+    private var educationPreviewCard: some View {
+        NavigationLink {
+            BodyIQEducationLabView(viewModel: labViewModel)
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.elitePurple.opacity(0.12))
+                        .frame(width: 56, height: 56)
+                    Image(systemName: "figure.flexibility")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.elitePurple)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Text("BODY IQ · ANATOMY")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(Theme.elitePurple)
+                            .tracking(2)
+                        FELPreviewLabel(text: "PREVIEW")
+                    }
+                    Text("Movement snacks, drawing-in module, Bio-Digital anatomy")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Theme.elitePurple.opacity(0.25), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
+                NexusMiniSelfPreviewView(
+                    profile: labViewModel.profile,
+                    previewHeight: 180,
+                    motionNote: "Simulated exercise preview · your mini-self performs prescribed movements.",
+                    prqLabel: NexusMiniSelfPreviewView.prqPrescriptionLabel(for: labViewModel.profile)
+                )
+                educationPreviewCard
                 equipmentSelector
                 trackSelector
+                streamingPortalCard
                 progressCard
                 recoveryGateCard
                 nextWorkoutCard
@@ -48,6 +103,65 @@ private struct TrainingHubContent: View {
         .background(Theme.deepBlack)
         .sheet(item: $selectedDay) { day in
             WorkoutDayView(day: day, vm: vm)
+        }
+    }
+
+    private var streamingPortalCard: some View {
+        NavigationLink(destination: StreamingPortalView()) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Theme.brandCyan.opacity(0.12))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: "video.badge.checkmark.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("STREAMING PORTAL")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(Theme.brandCyan)
+                            .tracking(2)
+                        
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 6, height: 6)
+                            .flashingEffect()
+                        
+                        Text("LIVE")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.red)
+                    }
+                    
+                    Text("Venice Beach Flight Session")
+                        .font(.system(.subheadline, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    
+                    Text("Join active session with live biomechanical leaderboard")
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "play.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.brandCyan)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
+                    )
+            )
         }
     }
 

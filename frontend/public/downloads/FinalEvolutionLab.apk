@@ -1,0 +1,3 @@
+Final Evolution Lab - Android Package (APK) Sideload Build.
+This is a placeholder for the compiled com.finalevolutionlab.app package.
+In production, this file is compiled using infra/android/fel_android_shipping_build.sh.

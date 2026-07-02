@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test session token created for iteration 4 testing
-TEST_SESSION_TOKEN = "test_session_iter4_1776470135373"
+TEST_SESSION_TOKEN = os.environ.get('TEST_SESSION_TOKEN', 'sess_1777957943281')
 
 @pytest.fixture
 def api_client():
@@ -242,11 +242,11 @@ class TestPreviousFeaturesStillWorking:
     """Verify previous iteration features still work"""
     
     def test_game_modes_endpoint(self, api_client):
-        """Game modes should still return 17 modes"""
+        """Game modes should still return 20 modes"""
         response = api_client.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 17
+        assert len(data) == 20
     
     def test_creator_cards_endpoint(self, api_client):
         """Creator cards should still return cards"""
@@ -260,9 +260,9 @@ class TestPreviousFeaturesStillWorking:
         response = authenticated_client.get(f"{BASE_URL}/api/streaks")
         assert response.status_code == 200
     
-    def test_social_athletes_endpoint(self, api_client):
+    def test_social_athletes_endpoint(self, authenticated_client):
         """Social athletes endpoint should still work"""
-        response = api_client.get(f"{BASE_URL}/api/social/athletes")
+        response = authenticated_client.get(f"{BASE_URL}/api/social/athletes")
         assert response.status_code == 200
     
     def test_tournaments_endpoint(self, api_client):

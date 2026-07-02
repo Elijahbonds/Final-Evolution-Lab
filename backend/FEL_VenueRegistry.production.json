@@ -1,21 +1,7 @@
 {
-  "version": "2.0.0",
-  "generated": "2026-06-29",
-  "project": "Final Evolution Lab",
-  "engine": "Unreal Engine 5.7",
-  "nexus_engine_integration": true,
-  "streaming": "Eagle 3D Streaming (E3DS)",
-  "asset_pipeline": {
-    "3d_generator": "Meshy.ai",
-    "asset_creator": "Seele AI",
-    "naming_convention": "MESHY_{mode_id}_{asset_type}",
-    "seele_blueprint_prefix": "BP_",
-    "seele_animation_prefix": "ABP_",
-    "seele_sfx_prefix": "SFX_",
-    "seele_ambient_prefix": "AMB_",
-    "seele_texture_prefix": "T_",
-    "seele_mesh_prefix": "SK_"
-  },
+  "schema": "fel-venue-registry-2",
+  "notes": "Production venue + Luma/Meshy asset wiring. Dual dunk modes: basketball_dunk_3d (NEXUS C++ basketball_dunk) + basketball_dunk_irl (IRL; reconciled from claude branch basketball_irl). NEXUS runtime mesh/backdrop: assets/nexus/manifests/nexus_asset_manifest.json.",
+  "nexus_manifest_ref": "assets/nexus/manifests/nexus_asset_manifest.json",
   "luma_scan_pipeline": {
     "tool": "Luma AI",
     "export_format": "GLTF_USD",
@@ -23,526 +9,162 @@
     "scan_subfolder": "LumaScans/",
     "workflow": "Luma AI capture → export GLTF/USD → import UE5 Static Mesh → place in .umap as base geometry → fill gaps with Meshy/Seele generated assets",
     "confirmed_scans": ["venice_beach", "luma_venice_shop", "dojo"],
-    "extension_strategy": "Venice Beach scan is the primary world anchor. Any modes without a dedicated scan (e.g. baseball_park, gridiron) use Meshy/Seele generated venues. All scan-based venues include a lumaAssets block.",
-    "venice_beach_notes": "Single large Venice Beach scan covers: basketball court (h2h / dunk / 3v3), surf break (surfing), carnival area (court_carnival). Extend with Meshy fill assets where scan geometry ends.",
+    "extension_strategy": "Venice Beach scan is the primary world anchor. Modes without a dedicated scan use Meshy/Seele generated venues. Scan-based venues include a lumaAssets block.",
+    "venice_beach_notes": "Single Venice Beach scan covers basketball court (h2h / dunk / 3v3), surf break (surfing), carnival area (court_carnival). NEXUS mobile ships Seele FBX court mesh + Luma shop backdrop composite.",
     "luma_asset_naming": "T_LumaScan_{venue_key}_Albedo, SM_LumaScan_{venue_key}_Mesh"
   },
   "modes": [
     {
       "id": "basketball_h2h",
-      "analyticsMode": "basketball_h2h",
-      "venueKey": "venice_beach",
+      "analyticsMode": "head_to_head",
+      "venueKey": "venice_beach_court",
       "displayVenue": "Venice Beach Court",
       "renderMode": "3D_UE5",
-      "isIRLMode": false,
       "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
+        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/"
+      }
+    },
+    {
+      "id": "basketball_dunk_3d",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Blue Court",
+      "renderMode": "3D_UE5",
+      "nexusRuntimeModeId": "basketball_dunk",
+      "courtColor": "venice_blue",
+      "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx",
       "lumaAssets": {
         "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
         "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
         "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
-        "notes": "Primary Luma scan anchor for VeniceBeach.umap. Covers basketball court, boardwalk edge, surf break, and carnival zone. Fill remaining geometry with Meshy/Seele assets."
-      },
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach",
-      "meshyAssets": {
-        "venue": "MESHY_venice_beach_outdoor_court",
-        "athleteBase": "MESHY_athlete_basketball_h2h",
-        "ball": "MESHY_basketball_official"
-      },
-      "seeleAssets": {
-        "venueMap": "VeniceBeach.umap",
-        "bpGamemode": "BP_BasketballH2H.uasset",
-        "athleteAnim": "ABP_Basketball_H2H.uasset",
-        "ambient": "AMB_VeniceBeach.uasset"
+        "courtSurfaceOverride": "T_VeniceBlue_ConcreteCourtSurface"
       }
     },
     {
-      "id": "basketball_irl",
-      "analyticsMode": "basketball_irl",
+      "id": "basketball_dunk_irl",
+      "analyticsMode": "dunk_contest_irl",
       "venueKey": "regulation_court_irl",
       "displayVenue": "Regulation Court (IRL)",
       "renderMode": "IRL",
       "isIRLMode": true,
       "healthKitTracked": true,
       "rimHeightInches": 120,
-      "spawnPoint": null,
-      "ambientSFX": null,
-      "modeNote": "New addition. IRL mode: no UE5 venue map. HealthKit tracks real jump height, power, HR. Avatar PRQ synced after session.",
+      "modeNote": "IRL H2H dunk contest — phone camera, Vision pose, WDA/FIBA judges. No UE5 venue map; reconciled from claude branch basketball_irl.",
       "meshyAssets": {
         "uiHUD": "MESHY_hud_irl_basketball",
-        "avatarSlot": "MESHY_athlete_basketball_irl"
-      },
-      "seeleAssets": {
-        "widgetHUD": "WBP_HUD_IRL_Basketball.uasset",
-        "avatarSync": "ABP_Athlete_IRL_Sync.uasset"
-      }
-    },
-    {
-      "id": "basketball_dunk",
-      "analyticsMode": "basketball_dunk",
-      "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach Blue Court",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "modeNote": "3D Nexus Engine video game. NBA Live 07-style dunk contest on the iconic blue concrete court at Venice Beach.",
-      "lumaScanSource": "venice_beach",
-      "courtColor": "venice_blue",
-      "lumaAssets": {
-        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
-        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
-        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
-        "courtSurfaceOverride": "T_VeniceBlue_ConcreteCourtSurface",
-        "notes": "Luma scan base. Court surface overridden with blue painted concrete material. Seele adds crowd ring, backboard, judge panel overlay, palm trees, boardwalk backdrop."
-      },
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach",
-      "meshyAssets": {
-        "venue": "MESHY_venice_beach_outdoor_court",
-        "backboard": "MESHY_regulation_backboard_venice",
-        "athleteBase": "MESHY_athlete_basketball_dunk",
-        "crowd": "MESHY_venice_beach_crowd",
-        "ball": "MESHY_basketball_official"
-      },
-      "seeleAssets": {
-        "venueMap": "VeniceBeach.umap",
-        "bpGamemode": "BP_BasketballDunk.uasset",
-        "athleteAnim": "ABP_Basketball_Dunk.uasset",
-        "sfx": "SFX_Basketball_Dunk_Crowd.uasset",
-        "ambient": "AMB_VeniceBeach.uasset"
+        "avatarSlot": "MESHY_athlete_basketball_dunk_irl"
       }
     },
     {
       "id": "basketball_3v3",
-      "analyticsMode": "basketball_3v3",
-      "venueKey": "venice_beach",
+      "analyticsMode": "streetball_3v3",
+      "venueKey": "venice_beach_court",
       "displayVenue": "Venice Beach Court",
       "renderMode": "3D_UE5",
-      "isIRLMode": false,
       "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx",
       "lumaAssets": {
         "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
         "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
-        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
-        "notes": "Shares VeniceBeach Luma scan base. Seele populates 6 character spawn points across the court area."
-      },
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach",
-      "meshyAssets": {
-        "venue": "MESHY_venice_beach_outdoor_court",
-        "athleteBase": "MESHY_athlete_basketball_3v3",
-        "ball": "MESHY_basketball_official"
-      },
-      "seeleAssets": {
-        "venueMap": "VeniceBeach.umap",
-        "bpGamemode": "BP_Basketball3v3.uasset",
-        "athleteAnim": "ABP_Basketball_3v3.uasset",
-        "ambient": "AMB_VeniceBeach.uasset"
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/"
       }
     },
-    {
-      "id": "karate_h2h",
-      "analyticsMode": "karate_h2h",
-      "venueKey": "dojo",
-      "displayVenue": "Martial Arts Dojo",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "lumaScanSource": "dojo",
-      "lumaAssets": {
-        "baseMesh": "SM_LumaScan_Dojo_Mesh",
-        "albedoTexture": "T_LumaScan_Dojo_Albedo",
-        "importPath": "Content/FEL/Venues/Dojo/LumaScans/",
-        "notes": "Luma AI scan of the martial arts dojo. Used for both karate_h2h and karate_endless. Seele adds tatami decals, hit VFX, and fighter spawn points."
-      },
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_Dojo",
-      "meshyAssets": {
-        "venue": "MESHY_martial_arts_dojo",
-        "athleteBase": "MESHY_athlete_karate",
-        "tatami": "MESHY_dojo_tatami_floor"
-      },
-      "seeleAssets": {
-        "venueMap": "Dojo.umap",
-        "bpGamemode": "BP_KarateH2H.uasset",
-        "athleteAnim": "ABP_Karate.uasset",
-        "sfx": "SFX_Karate_Impact.uasset",
-        "ambient": "AMB_Dojo.uasset"
-      }
-    },
-    {
-      "id": "karate_endless",
-      "analyticsMode": "karate_endless",
-      "venueKey": "dojo",
-      "displayVenue": "Martial Arts Dojo",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "lumaScanSource": "dojo",
-      "lumaAssets": {
-        "baseMesh": "SM_LumaScan_Dojo_Mesh",
-        "albedoTexture": "T_LumaScan_Dojo_Albedo",
-        "importPath": "Content/FEL/Venues/Dojo/LumaScans/",
-        "notes": "Shares Dojo Luma scan. Wave spawn points added by Seele in radial pattern around center mat."
-      },
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_Dojo",
-      "meshyAssets": {
-        "venue": "MESHY_martial_arts_dojo",
-        "athleteBase": "MESHY_athlete_karate",
-        "enemyWaves": "MESHY_karate_opponent_variants"
-      },
-      "seeleAssets": {
-        "venueMap": "Dojo.umap",
-        "bpGamemode": "BP_KarateEndless.uasset",
-        "athleteAnim": "ABP_Karate.uasset",
-        "enemyVariants": "SK_KarateEnemy_Variants.uasset",
-        "ambient": "AMB_Dojo.uasset"
-      }
-    },
-    {
-      "id": "baseball",
-      "analyticsMode": "baseball",
-      "venueKey": "baseball_park",
-      "displayVenue": "Baseball Stadium",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_BaseballPark",
-      "meshyAssets": {
-        "venue": "MESHY_baseball_stadium",
-        "athleteBatter": "MESHY_athlete_baseball_batter",
-        "athletePitcher": "MESHY_athlete_baseball_pitcher",
-        "ball": "MESHY_baseball_official"
-      },
-      "seeleAssets": {
-        "venueMap": "BaseballPark.umap",
-        "bpGamemode": "BP_Baseball.uasset",
-        "athleteAnim": "ABP_Baseball.uasset",
-        "sfx": "SFX_Baseball_Crack.uasset",
-        "ambient": "AMB_BaseballPark.uasset"
-      }
-    },
-    {
-      "id": "football",
-      "analyticsMode": "football",
-      "venueKey": "gridiron",
-      "displayVenue": "Gridiron Stadium",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_Gridiron",
-      "meshyAssets": {
-        "venue": "MESHY_gridiron_stadium",
-        "athleteBase": "MESHY_athlete_football",
-        "ball": "MESHY_football_official"
-      },
-      "seeleAssets": {
-        "venueMap": "Gridiron.umap",
-        "bpGamemode": "BP_Football.uasset",
-        "athleteAnim": "ABP_Football.uasset",
-        "sfx": "SFX_Football_Tackle.uasset",
-        "ambient": "AMB_Gridiron.uasset"
-      }
-    },
-    {
-      "id": "soccer",
-      "analyticsMode": "soccer",
-      "venueKey": "soccer_stadium",
-      "displayVenue": "Soccer Stadium",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_SoccerStadium",
-      "meshyAssets": {
-        "venue": "MESHY_soccer_stadium",
-        "athleteBase": "MESHY_athlete_soccer",
-        "ball": "MESHY_soccer_ball_official",
-        "goal": "MESHY_soccer_goal_net"
-      },
-      "seeleAssets": {
-        "venueMap": "SoccerStadium.umap",
-        "bpGamemode": "BP_Soccer.uasset",
-        "athleteAnim": "ABP_Soccer.uasset",
-        "sfx": "SFX_Soccer_Kick.uasset",
-        "ambient": "AMB_SoccerStadium.uasset"
-      }
-    },
-    {
-      "id": "golf",
-      "analyticsMode": "golf",
-      "venueKey": "links",
-      "displayVenue": "Golf Links",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_Links",
-      "meshyAssets": {
-        "venue": "MESHY_golf_links_course",
-        "athleteBase": "MESHY_athlete_golf",
-        "ball": "MESHY_golf_ball_official",
-        "clubs": "MESHY_golf_club_set"
-      },
-      "seeleAssets": {
-        "venueMap": "Links.umap",
-        "bpGamemode": "BP_Golf.uasset",
-        "athleteAnim": "ABP_Golf.uasset",
-        "sfx": "SFX_Golf_Swing.uasset",
-        "ambient": "AMB_Links.uasset"
-      }
-    },
+    { "id": "karate_h2h", "analyticsMode": "karate_point_sparring", "venueKey": "dojo_arena", "displayVenue": "Zen Dojo", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
+    { "id": "karate_endless", "analyticsMode": "karate_endless", "venueKey": "dojo_arena", "displayVenue": "Zen Dojo", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
+    { "id": "baseball", "analyticsMode": "home_run_derby", "venueKey": "stadium_diamond", "displayVenue": "Stadium Diamond", "nexusEnvironmentAssetId": "baseball_park_environment_model_fbx" },
+    { "id": "football", "analyticsMode": "kick_return", "venueKey": "stadium_field", "displayVenue": "Stadium Field", "nexusEnvironmentAssetId": "gridiron_stadium_environment_model_fbx" },
+    { "id": "soccer", "analyticsMode": "penalty_shootout", "venueKey": "stadium_pitch", "displayVenue": "Stadium Pitch", "nexusEnvironmentAssetId": "soccer_stadium_environment_model_fbx" },
+    { "id": "golf", "analyticsMode": "closest_to_pin", "venueKey": "golf_green", "displayVenue": "Golf Green", "nexusEnvironmentAssetId": "golf_course_environment_model_fbx" },
     {
       "id": "tennis",
-      "analyticsMode": "tennis",
-      "venueKey": "tennis_court",
-      "displayVenue": "Tennis Court",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_TennisCourt",
-      "meshyAssets": {
-        "venue": "MESHY_tennis_court_hard",
-        "athleteBase": "MESHY_athlete_tennis",
-        "ball": "MESHY_tennis_ball_official",
-        "racket": "MESHY_tennis_racket"
-      },
-      "seeleAssets": {
-        "venueMap": "TennisCourt.umap",
-        "bpGamemode": "BP_Tennis.uasset",
-        "athleteAnim": "ABP_Tennis.uasset",
-        "sfx": "SFX_Tennis_Hit.uasset",
-        "ambient": "AMB_TennisCourt.uasset"
-      }
+      "analyticsMode": "rally_ace_tennis",
+      "venueKey": "venice_beach_court_tennis",
+      "displayVenue": "Venice Beach Court",
+      "nexusEnvironmentAssetId": "tennis_court_environment_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
-    {
-      "id": "volleyball",
-      "analyticsMode": "volleyball",
-      "venueKey": "sand_court",
-      "displayVenue": "Beach Volleyball Court",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_SandCourt",
-      "meshyAssets": {
-        "venue": "MESHY_beach_volleyball_sand_court",
-        "athleteBase": "MESHY_athlete_volleyball",
-        "ball": "MESHY_volleyball_official",
-        "net": "MESHY_volleyball_net"
-      },
-      "seeleAssets": {
-        "venueMap": "SandCourt.umap",
-        "bpGamemode": "BP_Volleyball.uasset",
-        "athleteAnim": "ABP_Volleyball.uasset",
-        "sfx": "SFX_Volleyball_Spike.uasset",
-        "ambient": "AMB_SandCourt.uasset"
-      }
-    },
+    { "id": "volleyball", "analyticsMode": "rally_ace_volleyball", "venueKey": "beach_court", "displayVenue": "Beach Court", "nexusEnvironmentAssetId": "volleyball_sand_court_environment_model_fbx" },
     {
       "id": "surfing",
-      "analyticsMode": "surfing",
-      "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach Surf Break",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
+      "analyticsMode": "surf_line",
+      "venueKey": "venice_beach_surf",
+      "displayVenue": "Venice Beach Surf",
       "lumaScanSource": "venice_beach",
-      "lumaAssets": {
-        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
-        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
-        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
-        "notes": "Uses Venice Beach scan waterline zone. Meshy dynamic wave geometry layered on top of scan shoreline."
-      },
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach",
-      "meshyAssets": {
-        "venue": "MESHY_venice_beach_surf_break",
-        "athleteBase": "MESHY_athlete_surfing",
-        "surfboard": "MESHY_surfboard_shortboard",
-        "oceanWave": "MESHY_ocean_wave_dynamic"
-      },
-      "seeleAssets": {
-        "venueMap": "VeniceBeach.umap",
-        "bpGamemode": "BP_Surfing.uasset",
-        "athleteAnim": "ABP_Surfing.uasset",
-        "sfx": "SFX_Surfing_Wave.uasset",
-        "ambient": "AMB_VeniceBeach.uasset"
-      }
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
-    {
-      "id": "skateboarding",
-      "analyticsMode": "skateboarding",
-      "venueKey": "skate_park",
-      "displayVenue": "Skate Park",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_SkatePark",
-      "meshyAssets": {
-        "venue": "MESHY_skate_park_outdoor",
-        "athleteBase": "MESHY_athlete_skateboarding",
-        "skateboard": "MESHY_skateboard_deck_complete",
-        "obstacles": "MESHY_skatepark_rails_ledges"
-      },
-      "seeleAssets": {
-        "venueMap": "SkatePark.umap",
-        "bpGamemode": "BP_Skateboarding.uasset",
-        "athleteAnim": "ABP_Skateboarding.uasset",
-        "sfx": "SFX_Skateboarding_Grind.uasset",
-        "ambient": "AMB_SkatePark.uasset"
-      }
-    },
-    {
-      "id": "snowboarding",
-      "analyticsMode": "snowboarding",
-      "venueKey": "mountain_slope",
-      "displayVenue": "Mountain Slope",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_MountainSlope",
-      "meshyAssets": {
-        "venue": "MESHY_mountain_slope_halfpipe",
-        "athleteBase": "MESHY_athlete_snowboarding",
-        "snowboard": "MESHY_snowboard_park_deck",
-        "terrain": "MESHY_mountain_snow_terrain"
-      },
-      "seeleAssets": {
-        "venueMap": "MountainSlope.umap",
-        "bpGamemode": "BP_Snowboarding.uasset",
-        "athleteAnim": "ABP_Snowboarding.uasset",
-        "sfx": "SFX_Snowboarding_Carve.uasset",
-        "ambient": "AMB_MountainSlope.uasset"
-      }
-    },
-    {
-      "id": "gymnastics",
-      "analyticsMode": "gymnastics",
-      "venueKey": "training_floor",
-      "displayVenue": "Gymnastics Training Floor",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_TrainingFloor",
-      "meshyAssets": {
-        "venue": "MESHY_gymnastics_training_floor",
-        "athleteBase": "MESHY_athlete_gymnastics",
-        "apparatusVault": "MESHY_gymnastics_vault",
-        "apparatusBars": "MESHY_gymnastics_parallel_bars",
-        "springFloor": "MESHY_gymnastics_spring_floor"
-      },
-      "seeleAssets": {
-        "venueMap": "TrainingFloor.umap",
-        "bpGamemode": "BP_Gymnastics.uasset",
-        "athleteAnim": "ABP_Gymnastics.uasset",
-        "apparatus": "SK_Gymnastics_Apparatus_Set.uasset",
-        "ambient": "AMB_TrainingFloor.uasset"
-      }
-    },
-    {
-      "id": "brain_brawl",
-      "analyticsMode": "brain_brawl",
-      "venueKey": "neuro_arena",
-      "displayVenue": "Neuro Arena",
-      "renderMode": "2D",
-      "isIRLMode": false,
-      "is2DMode": true,
-      "gameStyle": "quiz_battle",
-      "gameInspiration": ["Big Brain Academy", "Triumph", "Brain Age"],
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_NeuroArena",
-      "meshyAssets": {
-        "uiBackground": "MESHY_brain_brawl_2d_arena_bg",
-        "avatarIcon": "MESHY_brain_avatar_2d",
-        "questionCard": "MESHY_brain_brawl_question_panel"
-      },
-      "seeleAssets": {
-        "venueMap": "NeuroArena.umap",
-        "bpGamemode": "BP_BrainBrawl2D.uasset",
-        "uiCanvas": "WBP_BrainBrawl_2D_Canvas.uasset",
-        "avatarIcon": "T_BrainBrawl_AvatarIcon.uasset",
-        "sfx": "SFX_BrainBrawl_Correct.uasset"
-      }
-    },
-    {
-      "id": "who_scene_it",
-      "analyticsMode": "who_scene_it",
-      "venueKey": "neuro_arena",
-      "displayVenue": "Neuro Arena",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_NeuroArena",
-      "meshyAssets": {
-        "venue": "MESHY_neuro_arena_stage",
-        "hostAvatar": "MESHY_who_scene_it_host",
-        "questionDisplay": "MESHY_wsi_multimedia_panel"
-      },
-      "seeleAssets": {
-        "venueMap": "NeuroArena.umap",
-        "bpGamemode": "BP_WhoSceneIt.uasset",
-        "stageSet": "SK_WhoSceneIt_Stage.uasset",
-        "sfx": "SFX_WhoSceneIt_Reveal.uasset"
-      }
-    },
-    {
-      "id": "court_carnival",
-      "analyticsMode": "court_carnival",
-      "venueKey": "venice_beach",
-      "displayVenue": "Venice Beach Court",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
-      "lumaScanSource": "venice_beach",
-      "lumaAssets": {
-        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
-        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
-        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
-        "notes": "Uses the full Venice Beach scan as the board game world. Carnival board overlaid on top via BP_CourtCarnival procedural layout."
-      },
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_VeniceBeach",
-      "meshyAssets": {
-        "venue": "MESHY_venice_beach_carnival_board",
-        "boardPieces": "MESHY_carnival_board_game_pieces",
-        "minigameProps": "MESHY_carnival_sport_minigame_props"
-      },
-      "seeleAssets": {
-        "venueMap": "VeniceBeach.umap",
-        "bpGamemode": "BP_CourtCarnival.uasset",
-        "boardPieces": "SK_CourtCarnival_BoardSet.uasset",
-        "sfx": "SFX_CourtCarnival_Fanfare.uasset"
-      }
-    },
+    { "id": "skateboarding", "analyticsMode": "skate_line", "venueKey": "skate_park", "displayVenue": "Skate Park", "optional": true, "nexusEnvironmentAssetId": "skate_park_environment_model_fbx" },
+    { "id": "snowboarding", "analyticsMode": "snow_line", "venueKey": "mountain_slope", "displayVenue": "Mountain Slope", "optional": true, "nexusEnvironmentAssetId": "mountain_slope_environment_model_fbx" },
+    { "id": "gymnastics", "analyticsMode": "gymnastics_routine", "venueKey": "arena_floor", "displayVenue": "Arena", "optional": true, "nexusEnvironmentAssetId": "gymnastics_floor_environment_model_fbx" },
+    { "id": "brain_brawl", "analyticsMode": "brain_brawl", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena", "optional": true, "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
     {
       "id": "market_browse",
       "analyticsMode": "market_browse",
-      "venueKey": "luma_venice_shop",
+      "venueKey": "vault_shop",
       "displayVenue": "Luma Venice Shop",
-      "renderMode": "3D_UE5",
-      "isIRLMode": false,
+      "optional": true,
       "lumaScanSource": "luma_venice_shop",
+      "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx",
       "lumaAssets": {
         "baseMesh": "SM_LumaScan_LumaVeniceShop_Mesh",
         "albedoTexture": "T_LumaScan_LumaVeniceShop_Albedo",
-        "importPath": "Content/FEL/Venues/Luma_Venice_Shop/LumaScans/",
-        "notes": "Direct Luma AI scan of the Venice shop interior. Seele adds Creator Card display stands and holographic card shader on top of scan geometry."
-      },
-      "spawnPoint": {"x": 0.0, "y": 0.0, "z": 100.0},
-      "ambientSFX": "AMB_LumaVeniceShop",
-      "meshyAssets": {
-        "venue": "MESHY_luma_venice_shop_interior",
-        "cardDisplay": "MESHY_creator_card_3d_display",
-        "cardHolographic": "MESHY_creator_card_holo_shader"
-      },
-      "seeleAssets": {
-        "venueMap": "Luma_Venice_Shop.umap",
-        "bpModule": "BP_MarketBrowse.uasset",
-        "cardDisplay": "SK_CreatorCard_3D_Display.uasset",
-        "shopInterior": "SK_LumaShop_Interior.uasset"
+        "importPath": "Content/FEL/Venues/Luma_Venice_Shop/LumaScans/"
       }
+    },
+    { "id": "who_scene_it", "analyticsMode": "who_scene_it", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena", "optional": true, "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
+    {
+      "id": "court_carnival",
+      "analyticsMode": "court_carnival",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Court",
+      "optional": true,
+      "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     }
   ],
-  "total_venues": 14,
-  "total_game_modes": 20,
-  "sovereign_sync": {
-    "target": "M4 Pro Mac Mini",
-    "protocol": "WSS over Cloudflare Tunnel",
-    "encryption": "AES-256-GCM",
-    "signaling_server": "Private (local network)"
-  }
+  "venues": [
+    {
+      "venueKey": "venice_beach_court",
+      "analyticsPolicyName": "Venice Beach — Court + Luma shop backdrop",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "venice_beach_surf",
+      "analyticsPolicyName": "Venice Beach — Surf + Luma shop backdrop",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "venice_beach_court_tennis",
+      "analyticsPolicyName": "Venice Beach — Tennis + Luma shop backdrop",
+      "nexusEnvironmentAssetId": "tennis_court_environment_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "vault_shop",
+      "analyticsPolicyName": "Luma Venice Shop (primary scan)",
+      "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
+    { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
+    { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena", "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
+    { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },
+    { "venueKey": "mountain_slope", "analyticsPolicyName": "Mountain Slope" },
+    { "venueKey": "stadium_diamond", "analyticsPolicyName": "Stadium Diamond" },
+    { "venueKey": "stadium_field", "analyticsPolicyName": "Stadium Field" },
+    { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
+    { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
+    { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
+    { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
+  ]
 }

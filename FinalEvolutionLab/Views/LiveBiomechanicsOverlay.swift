@@ -13,6 +13,7 @@ struct LiveBiomechanicsOverlay: View {
     @State private var jointFlashHip: Bool = false
     @State private var liveLeakageIntensity: Double = 0
     @State private var formQualityLabel: String = "ANALYZING"
+    @State private var lastGameplayLeakageAt: [JointType: TimeInterval] = [:]
 
     private var ankleColor: Color {
         audit.ankleDorsiflexion.status == .optimal ? Theme.brandCyan :
@@ -273,8 +274,7 @@ struct LiveBiomechanicsOverlay: View {
 
     private func evaluateLiveForm() {
         let leakage = audit.leakagePercentage / 100.0
-        let jitter = Double.random(in: -0.05...0.05)
-        liveLeakageIntensity = min(1, max(0, leakage + jitter))
+        liveLeakageIntensity = min(1, max(0, leakage))
 
         if liveLeakageIntensity < 0.15 {
             formQualityLabel = "OPTIMAL"
@@ -286,7 +286,23 @@ struct LiveBiomechanicsOverlay: View {
             formQualityLabel = "LEAKING"
         }
 
+        let poseConfidence01 = min(
+            1,
+            max(
+                0,
+                (audit.ankleDorsiflexion.value + audit.kneeTracking.value + audit.hipExtension.value) / 300.0
+            )
+        )
+        let cooldown: TimeInterval = 1.15
+        let now = Date().timeIntervalSince1970
+
+        guard !currentAction.isEmpty else { return }
+        guard poseConfidence01 < 0.68 else { return }
+
         for zone in audit.kineticLeakageZones {
+            guard zone.severity >= 0.38 else { continue }
+            if let last = lastGameplayLeakageAt[zone.joint], now - last < cooldown { continue }
+            lastGameplayLeakageAt[zone.joint] = now
             onLeakageDetected?(zone.joint, zone.severity)
         }
     }

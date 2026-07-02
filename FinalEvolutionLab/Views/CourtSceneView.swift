@@ -12,6 +12,7 @@ struct CourtSceneView: UIViewRepresentable {
     var sprintCharge: Double = 0
     var jumpHeight: Double = 0
     var rotationProgress: Double = 0
+    var selectedAnimation: NexusAnimationAsset? = nil
 
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
@@ -45,6 +46,7 @@ struct CourtSceneView: UIViewRepresentable {
         context.coordinator.auraLevel = auraLevel
         context.coordinator.movementSignature = movementSignature
         context.coordinator.updateAura()
+        context.coordinator.updateSelectedAnimation(selectedAnimation)
         context.coordinator.updateDunkPhase(dunkPhase, trick: selectedTrick, sprintCharge: sprintCharge, jumpHeight: jumpHeight, rotationProgress: rotationProgress)
         SCNTransaction.commit()
     }
@@ -83,6 +85,86 @@ struct CourtSceneView: UIViewRepresentable {
         private var trailEmitter: SCNNode?
         private var currentDunkPhase: DunkPhase = .idle
         private var engineDrivenDunk = false
+        private var currentAnimationId: String? = nil
+
+        func updateSelectedAnimation(_ animation: NexusAnimationAsset?) {
+            guard let animation = animation else {
+                if currentAnimationId != nil {
+                    currentAnimationId = nil
+                    avatarRoot?.removeAction(forKey: "keyframeAnimation")
+                    completeDunk()
+                }
+                return
+            }
+            
+            guard currentAnimationId != animation.id else { return }
+            currentAnimationId = animation.id
+            playKeyframeAnimation(animation)
+        }
+
+        func playKeyframeAnimation(_ asset: NexusAnimationAsset) {
+            avatarRoot?.removeAction(forKey: "idle")
+            avatarRoot?.removeAction(forKey: "keyframeAnimation")
+            
+            let duration = asset.header.duration
+            let action = SCNAction.customAction(duration: duration) { [weak self] node, elapsed in
+                guard let self = self else { return }
+                let time = Double(elapsed)
+                
+                // Find the two keyframes to interpolate between
+                let sortedKeyframes = asset.keyframes.sorted { $0.timestamp < $1.timestamp }
+                guard !sortedKeyframes.isEmpty else { return }
+                
+                var prevFrame = sortedKeyframes.first!
+                var nextFrame = sortedKeyframes.first!
+                
+                for kf in sortedKeyframes {
+                    if kf.timestamp <= time {
+                        prevFrame = kf
+                    }
+                    if kf.timestamp >= time {
+                        nextFrame = kf
+                        break
+                    }
+                }
+                
+                let t: Double
+                if nextFrame.timestamp == prevFrame.timestamp {
+                    t = 0.0
+                } else {
+                    t = (time - prevFrame.timestamp) / (nextFrame.timestamp - prevFrame.timestamp)
+                }
+                
+                // Interpolate joint rotations and apply to nodes
+                let jointsToAnimate = ["head", "torso", "lUpperArm", "rUpperArm", "lLeg", "rLeg", "lShin", "rShin", "hip", "lKnee", "rKnee"]
+                for jointName in jointsToAnimate {
+                    guard let jointNode = self.avatarRoot.childNode(withName: jointName, recursively: false) else { continue }
+                    
+                    if let prevRot = prevFrame.jointRotations[jointName],
+                       let nextRot = nextFrame.jointRotations[jointName] {
+                        // Interpolate SCNVector4 (x, y, z, w)
+                        let rx = Float(prevRot.x + (nextRot.x - prevRot.x) * Float(t))
+                        let ry = Float(prevRot.y + (nextRot.y - prevRot.y) * Float(t))
+                        let rz = Float(prevRot.z + (nextRot.z - prevRot.z) * Float(t))
+                        let rw = Float(prevRot.w + (nextRot.w - prevRot.w) * Float(t))
+                        jointNode.eulerAngles = SCNVector3(rx * rw, ry * rw, rz * rw)
+                    }
+                    
+                    if let prevTrans = prevFrame.translationOffsets[jointName],
+                       let nextTrans = nextFrame.translationOffsets[jointName] {
+                        let px = Float(prevTrans.x + (nextTrans.x - prevTrans.x) * Float(t))
+                        let py = Float(prevTrans.y + (nextTrans.y - prevTrans.y) * Float(t))
+                        let pz = Float(prevTrans.z + (nextTrans.z - prevTrans.z) * Float(t))
+                        jointNode.position = SCNVector3(px, py, pz)
+                    }
+                }
+            }
+            
+            avatarRoot?.runAction(action, forKey: "keyframeAnimation") { [weak self] in
+                // Return to idle
+                self?.completeDunk()
+            }
+        }
 
         private let brandBlue = UIColor(red: 0, green: 0.83, blue: 1.0, alpha: 1)
         private let brandCyan = UIColor(red: 0, green: 0.95, blue: 0.9, alpha: 1)

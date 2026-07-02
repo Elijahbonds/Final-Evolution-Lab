@@ -42,6 +42,11 @@ struct CommunityFeedView: View {
         .background(Theme.deepBlack)
         .navigationTitle("Community")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                FELPreviewLabel(text: FELPremiumCopy.Preview.communityFeed)
+            }
+        }
         .task {
             await load()
         }

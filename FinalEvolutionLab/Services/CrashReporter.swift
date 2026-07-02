@@ -19,11 +19,5 @@ enum CrashReporter {
         Crashlytics.crashlytics().setCustomValue(id ?? "none", forKey: "fel_game_mode_id")
 #endif
     }
-
-    static func setUnrealLoaded(_ loaded: Bool) {
-#if canImport(FirebaseCrashlytics)
-        Crashlytics.crashlytics().setCustomValue(loaded, forKey: "fel_unreal_loaded")
-#endif
-    }
 }
 

@@ -1,0 +1,22 @@
+{
+  "id": "training_floor_environment_model_fbx",
+  "name": "Gymnastics Training Floor Environment",
+  "category": "models",
+  "type": "environment_fbx",
+  "file": "training_floor_environment_model_fbx.fbx",
+  "urls": ["https://seelemedia.s3.us-east-1.amazonaws.com/media/9c553445675a4af28f0f35e8add296ba.fbx"],
+  "preview_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/6fa0464499474531807a6527136a16e4.png",
+  "description": "Indoor gymnastics training facility with sprung floor mat and balance beam for FEL gymnastics mode.",
+  "tags": ["gymnastics", "training floor", "mat", "balance beam", "indoor", "environment", "unreal", "fel"],
+  "keywords": ["gymnastics", "sprung floor", "balance beam", "mat", "indoor gym"],
+  "compat": ["unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T18:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 23,
+  "version": "1.0",
+  "asset_design_id": "thing_a34e2f4f268a496f",
+  "fel_venue_id": "Training_Floor",
+  "fel_map_path": "/Game/FEL/Venues/TrainingFloor/TrainingFloor",
+  "fel_modes": ["gymnastics"]
+}

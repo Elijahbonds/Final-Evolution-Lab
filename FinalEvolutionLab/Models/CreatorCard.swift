@@ -18,16 +18,118 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
     let accentColor: Color
     let metricsBoost: PerformanceMetrics
     let movementSignature: MovementSignature
-    /// One-line creator tagline shown in the showcase screen.
+    let masterclassURL: String?
+    let productURL: String?
+    let imdbURL: String?
+    /// Artists / DJs — surfaced in IP showcase.
+    let spotifyURL: String?
+    /// Visual artists — surfaced in IP showcase.
+    let artGalleryURL: String?
+    let socialURL: String?
+    let creatorBio: String?
     let showcaseTagline: String
-    /// Key IP highlights the creator shares with their audience.
     let showcaseHighlights: [String]
-    /// Short bio paragraph (2–3 sentences) shown in the showcase screen.
     let miniBio: String
-    /// External links — masterclass, IMDb, product, website, etc.
     let links: [CreatorLink]
+    let meshAssetId: String?
+    let usesCatalogPlaceholderPreview: Bool
 
-    static let catalog: [CreatorCard] = [
+    init(
+        id: String,
+        creatorName: String,
+        title: String,
+        description: String,
+        costShards: Int,
+        iconName: String,
+        accentColor: Color,
+        metricsBoost: PerformanceMetrics,
+        movementSignature: MovementSignature,
+        masterclassURL: String? = nil,
+        productURL: String? = nil,
+        imdbURL: String? = nil,
+        spotifyURL: String? = nil,
+        artGalleryURL: String? = nil,
+        socialURL: String? = nil,
+        creatorBio: String? = nil,
+        showcaseTagline: String = "",
+        showcaseHighlights: [String] = [],
+        miniBio: String = "",
+        links: [CreatorLink] = [],
+        meshAssetId: String? = nil,
+        usesCatalogPlaceholderPreview: Bool = false
+    ) {
+        self.id = id
+        self.creatorName = creatorName
+        self.title = title
+        self.description = description
+        self.costShards = costShards
+        self.iconName = iconName
+        self.accentColor = accentColor
+        self.metricsBoost = metricsBoost
+        self.movementSignature = movementSignature
+        self.masterclassURL = masterclassURL
+        self.productURL = productURL
+        self.imdbURL = imdbURL
+        self.spotifyURL = spotifyURL
+        self.artGalleryURL = artGalleryURL
+        self.socialURL = socialURL
+        self.creatorBio = creatorBio
+        self.showcaseTagline = showcaseTagline
+        self.showcaseHighlights = showcaseHighlights
+        self.miniBio = miniBio
+        self.links = links
+        self.meshAssetId = meshAssetId
+        self.usesCatalogPlaceholderPreview = usesCatalogPlaceholderPreview
+    }
+
+    var resolvedShowcaseTagline: String {
+        showcaseTagline.isEmpty ? description : showcaseTagline
+    }
+
+    var resolvedMiniBio: String {
+        if !miniBio.isEmpty { return miniBio }
+        return creatorBio ?? description
+    }
+
+    var resolvedShowcaseHighlights: [String] {
+        if !showcaseHighlights.isEmpty { return showcaseHighlights }
+        return [description]
+    }
+
+    var resolvedLinks: [CreatorLink] {
+        if !links.isEmpty { return links }
+        var out: [CreatorLink] = []
+        if let url = masterclassURL {
+            out.append(CreatorLink(type: .masterclass, label: "\(creatorName) Masterclass", url: url))
+        }
+        if let url = productURL {
+            out.append(CreatorLink(type: .product, label: "\(title) Product", url: url))
+        }
+        if let url = imdbURL {
+            out.append(CreatorLink(type: .imdb, label: "IMDb", url: url))
+        }
+        if let url = spotifyURL {
+            out.append(CreatorLink(type: .spotify, label: "\(creatorName) on Spotify", url: url))
+        }
+        if let url = artGalleryURL {
+            out.append(CreatorLink(type: .gallery, label: "\(creatorName) Gallery", url: url))
+        }
+        if let url = socialURL {
+            out.append(CreatorLink(type: .instagram, label: creatorName, url: url))
+        }
+        return out
+    }
+
+    @MainActor static func card(forId id: String) -> CreatorCard? {
+        catalog.first { $0.id == id }
+    }
+
+    @MainActor static func activeCard(for profile: UserProfile) -> CreatorCard? {
+        guard let state = profile.activeCreatorCard else { return nil }
+        return card(forId: state.cardId)
+    }
+
+    @MainActor static var catalog: [CreatorCard] = [
         CreatorCard(
             id: "amir_smith",
             creatorName: "Amir Smith",
@@ -65,7 +167,8 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 CreatorLink(type: .product, label: "Amir Smith Training Program", url: "https://amirsmith.training"),
                 CreatorLink(type: .instagram, label: "@amirsmithhoops", url: "https://instagram.com/amirsmithhoops"),
                 CreatorLink(type: .youtube, label: "Amir Smith Movement Lab", url: "https://youtube.com/@amirsmith")
-            ]
+            ],
+            usesCatalogPlaceholderPreview: true
         ),
         CreatorCard(
             id: "coach_v_elite",
@@ -91,24 +194,13 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 limbEmission: 0.5,
                 trailColor: .yellow
             ),
-            showcaseTagline: "Twenty years of elite coaching compressed into one card.",
-            showcaseHighlights: [
-                "Head coach of 3 national championship programs",
-                "Developed 40+ D1 athletes from grassroots",
-                "Proprietary neural activation warm-up protocol",
-                "Zone 2 base + CNS spike periodization framework",
-                "Movement audit: elite biomechanics film library"
-            ],
-            miniBio: "Coach V is a veteran performance coach with two decades of elite-level experience building champions from the ground up. Known for turning raw athletes into D1 prospects, he combines periodization science with old-school intensity to produce results that speak for themselves.",
-            links: [
-                CreatorLink(type: .masterclass, label: "Coach V Masterclass", url: "https://coachv.training/masterclass"),
-                CreatorLink(type: .website, label: "CoachV.training", url: "https://coachv.training"),
-                CreatorLink(type: .youtube, label: "Coach V Performance", url: "https://youtube.com/@coachvperformance")
-            ]
+            productURL: "https://finalevolutiongroup.com/products/coach-v-elite",
+            imdbURL: "https://www.imdb.com/title/tt0468569/",
+            creatorBio: "Elite performance coach · movement science · Creator Card IP showcase."
         ),
         CreatorCard(
             id: "bonds_bounce",
-            creatorName: "Bonds Bounce",
+            creatorName: "Elijah Bonds",
             title: "Bonds Bounce Blueprint",
             description: "The vertical jump architecture. +12 PRQ, +25 Vertical, +8 Efficiency.",
             costShards: 750,
@@ -130,20 +222,18 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 limbEmission: 0.6,
                 trailColor: Color(red: 0.95, green: 0.49, blue: 0.15)
             ),
-            showcaseTagline: "Every inch of vertical was engineered, not gifted.",
+            masterclassURL: "https://finalevolutiongroup.com/masterclass/bonds-bounce",
+            productURL: "https://finalevolutiongroup.com/products/bonds-bounce",
+            socialURL: "https://finalevolutiongroup.com",
+            showcaseTagline: "Vertical architecture built on PRQ science.",
             showcaseHighlights: [
-                "42-inch verified standing vertical leap",
-                "Tendon stiffness training: depth drops to max intent",
-                "Plyometric periodization from base to peak in 12 weeks",
-                "Personal Meshy scan embedded as primary avatar",
-                "Full Final Evolution Lab methodology · Venice Beach origin"
+                "Founder of Final Evolution Lab · NEXUS athlete evolution",
+                "Bonds Standard methodology · drawing-in + V-stance stack",
+                "PRQ-driven vertical jump prescriptions",
+                "Venice Beach flight lab origin story"
             ],
-            miniBio: "Bonds Bounce is the vertical jump system born at Venice Beach — every inch of air engineered through tendon stiffness, plyometric periodization, and relentless max-intent training. The methodology is documented in the Final Evolution Lab and backed by a 42-inch standing vertical.",
-            links: [
-                CreatorLink(type: .product, label: "Bonds Bounce Program", url: "https://bondsbounce.com"),
-                CreatorLink(type: .instagram, label: "@bondsbounce", url: "https://instagram.com/bondsbounce"),
-                CreatorLink(type: .youtube, label: "Bonds Bounce Lab", url: "https://youtube.com/@bondsbounce")
-            ]
+            miniBio: "Founder of Final Evolution Lab — vertical architecture, PRQ science, and NEXUS athlete evolution.",
+            usesCatalogPlaceholderPreview: true
         ),
         CreatorCard(
             id: "flight_lab",
@@ -168,21 +258,7 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 firstStepBurst: 1.1,
                 limbEmission: 0.7,
                 trailColor: Color(red: 0, green: 0.95, blue: 0.9)
-            ),
-            showcaseTagline: "Hang time isn't luck — it's a skill you train.",
-            showcaseHighlights: [
-                "Flight mechanics research: air time vs. peak height study",
-                "Peak hang time optimization via hip flexor protocol",
-                "Aerial awareness drills: spin, grab, control",
-                "Cross-sport application: basketball, volleyball, gymnastics",
-                "Open-source movement library · 200+ hours of footage"
-            ],
-            miniBio: "Flight Lab is an open research collective dedicated to the science of hang time — studying how elite athletes maximize air time through hip flexor activation, body awareness, and aerial control. Their 200+ hour movement library spans basketball, volleyball, and gymnastics.",
-            links: [
-                CreatorLink(type: .website, label: "Flight Lab Research", url: "https://flightlabmovement.com"),
-                CreatorLink(type: .youtube, label: "Flight Lab Channel", url: "https://youtube.com/@flightlab"),
-                CreatorLink(type: .instagram, label: "@flightlabmovement", url: "https://instagram.com/flightlabmovement")
-            ]
+            )
         ),
         CreatorCard(
             id: "neural_max",
@@ -207,23 +283,230 @@ nonisolated struct CreatorCard: Identifiable, Sendable {
                 firstStepBurst: 1.5,
                 limbEmission: 0.9,
                 trailColor: Color(red: 0.6, green: 0.2, blue: 1.0)
+            )
+        ),
+        CreatorCard(
+            id: "scene_directors_cut",
+            creatorName: "Director Stella",
+            title: "Director's Cut Monologue",
+            description: "Stella Adler's dramatic monologue drill. Practice vocal range and emotional pacing. +15 PRQ, +20 Neural Drive.",
+            costShards: 550,
+            iconName: "film.fill",
+            accentColor: .purple,
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 8,
+                prqScore: 15,
+                readinessScore: 5,
+                verticalPotential: 10,
+                neuralDrive: 20,
+                currentOutfit: "directors_cut"
             ),
-            showcaseTagline: "Your nervous system is the real performance engine.",
+            movementSignature: MovementSignature(
+                style: .fluid,
+                jumpApex: 1.1,
+                hangTimeFactor: 1.2,
+                firstStepBurst: 1.0,
+                limbEmission: 0.4,
+                trailColor: .purple
+            )
+        ),
+        CreatorCard(
+            id: "scene_method_acting",
+            creatorName: "Method Master",
+            title: "Method Acting Dialogue Drill",
+            description: "A deep character immersion exercise focusing on subtext and emotional memory. +10 PRQ, +15 Readiness.",
+            costShards: 450,
+            iconName: "theatermasks.fill",
+            accentColor: .red,
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 12,
+                prqScore: 10,
+                readinessScore: 15,
+                verticalPotential: 5,
+                neuralDrive: 12,
+                currentOutfit: "method_acting"
+            ),
+            movementSignature: MovementSignature(
+                style: .neural,
+                jumpApex: 1.0,
+                hangTimeFactor: 1.1,
+                firstStepBurst: 1.3,
+                limbEmission: 0.5,
+                trailColor: .red
+            )
+        ),
+        CreatorCard(
+            id: "scene_action_sequence",
+            creatorName: "Stunt Director Jack",
+            title: "Action Sequence Cue",
+            description: "High-intensity physical blocking and spatial awareness challenge. +12 PRQ, +25 Vertical.",
+            costShards: 650,
+            iconName: "bolt.fill",
+            accentColor: .orange,
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 6,
+                prqScore: 12,
+                readinessScore: 8,
+                verticalPotential: 25,
+                neuralDrive: 10,
+                currentOutfit: "action_sequence"
+            ),
+            movementSignature: MovementSignature(
+                style: .explosive,
+                jumpApex: 1.4,
+                hangTimeFactor: 1.3,
+                firstStepBurst: 1.5,
+                limbEmission: 0.8,
+                trailColor: .orange
+            )
+        ),
+        CreatorCard(
+            id: "tyler_currie_flight",
+            creatorName: "Tyler Currie",
+            title: "Currie Flight Mechanics",
+            description: "Reactive jump mechanics and hang-time control. +11 PRQ, +20 Vertical.",
+            costShards: 550,
+            iconName: "airplane",
+            accentColor: Color(red: 0.35, green: 0.85, blue: 0.95),
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 7, prqScore: 11, readinessScore: 8,
+                verticalPotential: 20, neuralDrive: 10, currentOutfit: "tyler_currie"
+            ),
+            movementSignature: MovementSignature(
+                style: .fluid, jumpApex: 1.35, hangTimeFactor: 1.5,
+                firstStepBurst: 1.05, limbEmission: 0.55,
+                trailColor: Color(red: 0.35, green: 0.85, blue: 0.95)
+            ),
+            masterclassURL: "https://finalevolutiongroup.com/masterclass/tyler-currie",
+            showcaseTagline: "Hang time is a skill — train the reactive window.",
+            miniBio: "Flight mechanics coach — reactive plyometrics and contest hang-time packages.",
+            usesCatalogPlaceholderPreview: true
+        ),
+        CreatorCard(
+            id: "chris_staples_highlights",
+            creatorName: "Chris Staples",
+            title: "Staples Highlight Reel",
+            description: "Showtime dunk sequencing and crowd-energy cues. +10 PRQ, +18 Vertical.",
+            costShards: 500,
+            iconName: "play.rectangle.fill",
+            accentColor: Color(red: 1.0, green: 0.78, blue: 0.2),
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 5, prqScore: 10, readinessScore: 7,
+                verticalPotential: 18, neuralDrive: 14, currentOutfit: "chris_staples"
+            ),
+            movementSignature: MovementSignature(
+                style: .explosive, jumpApex: 1.38, hangTimeFactor: 1.42,
+                firstStepBurst: 1.2, limbEmission: 0.7,
+                trailColor: Color(red: 1.0, green: 0.78, blue: 0.2)
+            ),
+            artGalleryURL: "https://finalevolutiongroup.com/gallery/chris-staples",
+            socialURL: "https://youtube.com",
             showcaseHighlights: [
-                "CNS fatigue monitoring: HRV-based readiness scoring",
-                "Neural priming protocol: PAP complex for peak output",
-                "Slow-motion film analysis: CNS recruitment patterns",
-                "Sleep + recovery optimization framework for athletes",
-                "Collaborates with sports neuroscience research labs"
+                "Showtime dunk sequencing for contest energy",
+                "Crowd-read finish packages",
+                "Visual highlight reel archive"
             ],
-            miniBio: "Neural Max is a sports neuroscience platform that treats the central nervous system as the true engine of athletic performance. By monitoring HRV, optimizing sleep, and applying PAP complex protocols, they help athletes unlock recruitment patterns that most training programs leave untouched.",
-            links: [
-                CreatorLink(type: .masterclass, label: "Neural Max Protocol", url: "https://neuralmax.io/protocol"),
-                CreatorLink(type: .website, label: "NeuralMax.io", url: "https://neuralmax.io"),
-                CreatorLink(type: .youtube, label: "Neural Max Science", url: "https://youtube.com/@neuralmax")
-            ]
+            miniBio: "Highlight creator — showtime sequences, crowd reads, and contest presentation.",
+            usesCatalogPlaceholderPreview: true
+        ),
+        CreatorCard(
+            id: "andrew_mcfly_parkour",
+            creatorName: "Andrew McFly",
+            title: "McFly Parkour Flow",
+            description: "First-step burst and spatial awareness. +9 PRQ, +16 Neural Drive.",
+            costShards: 480,
+            iconName: "figure.run",
+            accentColor: Color(red: 0.55, green: 0.95, blue: 0.35),
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 9, prqScore: 9, readinessScore: 10,
+                verticalPotential: 14, neuralDrive: 16, currentOutfit: "andrew_mcfly"
+            ),
+            movementSignature: MovementSignature(
+                style: .explosive, jumpApex: 1.2, hangTimeFactor: 1.25,
+                firstStepBurst: 1.45, limbEmission: 0.5,
+                trailColor: Color(red: 0.55, green: 0.95, blue: 0.35)
+            ),
+            artGalleryURL: "https://finalevolutiongroup.com/gallery/andrew-mcfly",
+            creatorBio: "Parkour flow specialist — first-step burst, wall approaches, and spatial reads.",
+            miniBio: "Parkour flow specialist — first-step burst, wall approaches, and spatial reads.",
+            usesCatalogPlaceholderPreview: true
+        ),
+        CreatorCard(
+            id: "ty2_skills_lab",
+            creatorName: "Ty2.0",
+            title: "Ty2.0 Skills Lab",
+            description: "Handle-to-hang combo drills. +10 PRQ, +15 Vertical, +12 Neural.",
+            costShards: 520,
+            iconName: "basketball.fill",
+            accentColor: Color(red: 0.95, green: 0.35, blue: 0.55),
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 6, prqScore: 10, readinessScore: 8,
+                verticalPotential: 15, neuralDrive: 12, currentOutfit: "ty2_skills"
+            ),
+            movementSignature: MovementSignature(
+                style: .fluid, jumpApex: 1.25, hangTimeFactor: 1.35,
+                firstStepBurst: 1.25, limbEmission: 0.6,
+                trailColor: Color(red: 0.95, green: 0.35, blue: 0.55)
+            ),
+            masterclassURL: "https://finalevolutiongroup.com/masterclass/ty2",
+            spotifyURL: "https://open.spotify.com/artist/ty2skills",
+            miniBio: "Skills lab creator — handle-to-hang combos, game-speed footwork, and DJ sets.",
+            usesCatalogPlaceholderPreview: true
+        ),
+        CreatorCard(
+            id: "baller_bree_court",
+            creatorName: "Baller Bree",
+            title: "Baller Bree Court Presence",
+            description: "Women's game footwork and finish packages. +11 PRQ, +14 Vertical.",
+            costShards: 500,
+            iconName: "figure.female",
+            accentColor: Color(red: 0.85, green: 0.45, blue: 0.95),
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 8, prqScore: 11, readinessScore: 9,
+                verticalPotential: 14, neuralDrive: 11, currentOutfit: "baller_bree"
+            ),
+            movementSignature: MovementSignature(
+                style: .fluid, jumpApex: 1.22, hangTimeFactor: 1.3,
+                firstStepBurst: 1.18, limbEmission: 0.55,
+                trailColor: Color(red: 0.85, green: 0.45, blue: 0.95)
+            ),
+            spotifyURL: "https://open.spotify.com/artist/ballerbree",
+            socialURL: "https://instagram.com",
+            miniBio: "Women's basketball creator — court presence, footwork packages, and finish craft.",
+            usesCatalogPlaceholderPreview: true
+        ),
+        CreatorCard(
+            id: "bald_barbie_strength",
+            creatorName: "Bald Barbie",
+            title: "Bald Barbie Strength Arc",
+            description: "Strength-to-flight transfer and core stability. +8 PRQ, +12 Readiness.",
+            costShards: 450,
+            iconName: "dumbbell.fill",
+            accentColor: Color(red: 0.98, green: 0.55, blue: 0.75),
+            metricsBoost: PerformanceMetrics(
+                efficiencyScore: 10, prqScore: 8, readinessScore: 12,
+                verticalPotential: 12, neuralDrive: 9, currentOutfit: "bald_barbie"
+            ),
+            movementSignature: MovementSignature(
+                style: .standard, jumpApex: 1.15, hangTimeFactor: 1.2,
+                firstStepBurst: 1.1, limbEmission: 0.45,
+                trailColor: Color(red: 0.98, green: 0.55, blue: 0.75)
+            ),
+            productURL: "https://finalevolutiongroup.com/products/bald-barbie",
+            miniBio: "Strength and mobility creator — core stability, hinge patterns, and flight transfer.",
+            usesCatalogPlaceholderPreview: true
         ),
     ]
+
+    /// Encoded in each card’s QR. Optional ``athleteId`` scopes the active equipped card for sharing.
+    func qrPayload(includeAthleteId athleteId: String?) -> String {
+        var s = "https://finalevolutiongroup.com/creator-card/\(id)"
+        if let raw = athleteId?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty,
+           let enc = raw.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            s += "?athlete=\(enc)"
+        }
+        return s
+    }
 }
 
 nonisolated struct MovementSignature: Sendable {

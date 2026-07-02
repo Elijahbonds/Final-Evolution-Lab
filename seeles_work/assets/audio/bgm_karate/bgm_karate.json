@@ -1,0 +1,13 @@
+{
+  "id": "bgm_karate",
+  "name": "Karate BGM",
+  "category": "audio",
+  "type": "bgm",
+  "source_id": "124942",
+  "urls": ["https://static.seeles.ai/data/asset/export/0fd87a61-f6ec-414a-8c36-236a39b5fd6f/124942/bgm_b250a4e0-789e-4ee8-b389-0493ae1adbcd.mp3"],
+  "compat": ["all"],
+  "tags": ["magnificent", "Percussion", "Cinema", "Powerful", "intense"],
+  "fel_modes": ["karate_h2h", "karate_endless"],
+  "ue_path": "/Game/FEL/Audio/BGM/BGM_Karate",
+  "created_at": "2026-05-23T20:19:41Z"
+}

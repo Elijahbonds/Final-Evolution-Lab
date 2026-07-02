@@ -14,17 +14,14 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { registerSignedInUser, linkUserToFirebaseAuth, updateUserTrainingProfile, createPost, createComment, likePost, unlikePost, deletePost, deleteComment, listRecentPosts } from '@dataconnect/generated';
+import { registerSignedInUser, updateMyTrainingProfile, createPost, createComment, likePost, unlikePost, deletePost, deleteComment, spendEvolutionShards, claimCreatorCardOwnership } from '@dataconnect/generated';
 
 
 // Operation RegisterSignedInUser:  For variables, look at type RegisterSignedInUserVars in ../index.d.ts
 const { data } = await RegisterSignedInUser(dataConnect, registerSignedInUserVars);
 
-// Operation LinkUserToFirebaseAuth:  For variables, look at type LinkUserToFirebaseAuthVars in ../index.d.ts
-const { data } = await LinkUserToFirebaseAuth(dataConnect, linkUserToFirebaseAuthVars);
-
-// Operation UpdateUserTrainingProfile:  For variables, look at type UpdateUserTrainingProfileVars in ../index.d.ts
-const { data } = await UpdateUserTrainingProfile(dataConnect, updateUserTrainingProfileVars);
+// Operation UpdateMyTrainingProfile:  For variables, look at type UpdateMyTrainingProfileVars in ../index.d.ts
+const { data } = await UpdateMyTrainingProfile(dataConnect, updateMyTrainingProfileVars);
 
 // Operation CreatePost:  For variables, look at type CreatePostVars in ../index.d.ts
 const { data } = await CreatePost(dataConnect, createPostVars);
@@ -44,8 +41,11 @@ const { data } = await DeletePost(dataConnect, deletePostVars);
 // Operation DeleteComment:  For variables, look at type DeleteCommentVars in ../index.d.ts
 const { data } = await DeleteComment(dataConnect, deleteCommentVars);
 
-// Operation ListRecentPosts: 
-const { data } = await ListRecentPosts(dataConnect);
+// Operation SpendEvolutionShards:  For variables, look at type SpendEvolutionShardsVars in ../index.d.ts
+const { data } = await SpendEvolutionShards(dataConnect, spendEvolutionShardsVars);
+
+// Operation ClaimCreatorCardOwnership:  For variables, look at type ClaimCreatorCardOwnershipVars in ../index.d.ts
+const { data } = await ClaimCreatorCardOwnership(dataConnect, claimCreatorCardOwnershipVars);
 
 
 ```

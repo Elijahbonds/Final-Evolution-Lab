@@ -4,9 +4,15 @@
 
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
+#include "Engine/GameInstance.h"
+#include "TimerManager.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/Paths.h"
+
+#if PLATFORM_IOS || PLATFORM_MAC
+#include <sys/sysctl.h>
+#endif
 
 namespace
 {
@@ -35,7 +41,22 @@ void UFELPerformanceManagerSubsystem::Initialize(FSubsystemCollectionBase& Colle
 {
 	Super::Initialize(Collection);
 
-	DeviceModel = FPlatformMisc::GetDeviceModel();
+#if PLATFORM_IOS || PLATFORM_MAC
+	{
+		char Buffer[128];
+		size_t Size = sizeof(Buffer);
+		if (sysctlbyname("hw.machine", Buffer, &Size, nullptr, 0) == 0)
+		{
+			DeviceModel = FString(ANSI_TO_TCHAR(Buffer));
+		}
+		else
+		{
+			DeviceModel = TEXT("AppleDevice");
+		}
+	}
+#else
+	DeviceModel = TEXT("GenericDevice");
+#endif
 	DeviceModel.TrimStartAndEndInline();
 
 	ApplyNow();

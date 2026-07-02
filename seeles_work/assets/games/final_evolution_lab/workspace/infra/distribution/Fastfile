@@ -1,0 +1,155 @@
+# ============================================================
+# Fastfile — Final Evolution AI Coach (FEL)
+# com.finalevolutionlab.app
+#
+# Usage:
+#   iOS:     bundle exec fastlane ios build_ipa
+#            bundle exec fastlane ios upload_testflight
+#            bundle exec fastlane ios promote_appstore
+#   Android: bundle exec fastlane android build_aab
+#            bundle exec fastlane android upload_internal
+#            bundle exec fastlane android promote_production
+#
+# Required ENV vars (set in .env or CI secrets):
+#   FASTLANE_API_KEY_ID       — App Store Connect API Key ID
+#   FASTLANE_API_KEY_ISSUER   — App Store Connect Issuer ID
+#   FASTLANE_API_KEY_PATH     — Path to .p8 key file
+#   FASTLANE_APPLE_ID         — Apple ID email
+#   FASTLANE_APP_IDENTIFIER   — com.finalevolutionlab.app
+#   GOOGLE_JSON_KEY           — Path to Google Play JSON key
+#   ANDROID_KEYSTORE_PATH     — Path to release .keystore
+#   ANDROID_KEY_ALIAS         — Keystore alias
+#   ANDROID_KEY_PASSWORD      — Key password
+#   ANDROID_STORE_PASSWORD    — Store password
+# ============================================================
+
+fastlane_version "2.220.0"
+default_platform(:ios)
+
+# ============================================================
+# iOS Platform
+# ============================================================
+platform :ios do
+
+  # Build IPA from existing xcarchive
+  lane :build_ipa do
+    desc "Export IPA from existing xcarchive using automatic signing"
+    api_key = app_store_connect_api_key(
+      key_id:        ENV["FASTLANE_API_KEY_ID"],
+      issuer_id:     ENV["FASTLANE_API_KEY_ISSUER"],
+      key_filepath:  ENV["FASTLANE_API_KEY_PATH"]
+    )
+    export_xcarchive(
+      archive_path:        Dir["#{ENV["HOME"]}/Documents/Unreal Projects/MyProject/build/**/*.xcarchive"].sort.last,
+      export_method:       "app-store",
+      output_directory:    "Saved/iOS/fastlane_export",
+      include_bitcode:     false,
+      include_symbols:     true,
+      api_key:             api_key
+    )
+    UI.success("IPA exported to Saved/iOS/fastlane_export/")
+  end
+
+  # Upload most recent IPA to TestFlight
+  lane :upload_testflight do
+    desc "Upload IPA to TestFlight for internal beta testing"
+    api_key = app_store_connect_api_key(
+      key_id:        ENV["FASTLANE_API_KEY_ID"],
+      issuer_id:     ENV["FASTLANE_API_KEY_ISSUER"],
+      key_filepath:  ENV["FASTLANE_API_KEY_PATH"]
+    )
+    ipa_path = Dir["Saved/iOS/**/*.ipa"].sort.last ||
+               Dir["Binaries/IOS/Deploy/*.ipa"].sort.last
+    UI.user_error!("No IPA found — run build_ipa first") unless ipa_path
+    upload_to_testflight(
+      api_key:          api_key,
+      ipa:              ipa_path,
+      app_identifier:   ENV["FASTLANE_APP_IDENTIFIER"] || "com.finalevolutionlab.app",
+      skip_waiting_for_build_processing: false,
+      changelog:        "FEL v1.0 — 19-mode multi-sport AI coach"
+    )
+    UI.success("Uploaded to TestFlight: #{ipa_path}")
+  end
+
+  # Promote to App Store production
+  lane :promote_appstore do
+    desc "Submit latest TestFlight build for App Store review"
+    api_key = app_store_connect_api_key(
+      key_id:        ENV["FASTLANE_API_KEY_ID"],
+      issuer_id:     ENV["FASTLANE_API_KEY_ISSUER"],
+      key_filepath:  ENV["FASTLANE_API_KEY_PATH"]
+    )
+    deliver(
+      api_key:           api_key,
+      app_identifier:    ENV["FASTLANE_APP_IDENTIFIER"] || "com.finalevolutionlab.app",
+      submit_for_review: true,
+      automatic_release: false,
+      force:             true,
+      skip_screenshots:  true,
+      skip_metadata:     false
+    )
+    UI.success("Submitted for App Store review!")
+  end
+
+end
+
+# ============================================================
+# Android Platform
+# ============================================================
+platform :android do
+
+  # Build AAB via Gradle (post-UE cook)
+  lane :build_aab do
+    desc "Build release AAB from UE-cooked Android output"
+    gradle(
+      task:            "bundle",
+      build_type:      "Release",
+      project_dir:     "Saved/Android/Gradle",
+      properties: {
+        "android.injected.signing.store.file"     => ENV["ANDROID_KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["ANDROID_STORE_PASSWORD"],
+        "android.injected.signing.key.alias"      => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password"   => ENV["ANDROID_KEY_PASSWORD"]
+      }
+    )
+    UI.success("AAB built: #{lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]}")
+  end
+
+  # Upload AAB to Internal Testing track
+  lane :upload_internal do
+    desc "Upload AAB to Google Play Internal Testing track"
+    aab_path = Dir["Saved/Android/**/*.aab"].sort.last
+    UI.user_error!("No AAB found — run build_aab first") unless aab_path
+    upload_to_play_store(
+      track:                    "internal",
+      aab:                      aab_path,
+      package_name:             "com.finalevolutionlab.app",
+      json_key:                 ENV["GOOGLE_JSON_KEY"],
+      skip_upload_apk:          true,
+      skip_upload_metadata:     true,
+      skip_upload_images:       true,
+      skip_upload_screenshots:  true
+    )
+    UI.success("Uploaded AAB to Internal Testing: #{aab_path}")
+  end
+
+  # Promote Internal → Production
+  lane :promote_production do
+    desc "Promote Internal Testing release to Production track"
+    upload_to_play_store_internal_app_sharing(
+      package_name: "com.finalevolutionlab.app",
+      json_key:     ENV["GOOGLE_JSON_KEY"]
+    )
+    upload_to_play_store(
+      track:        "internal",
+      track_promote_to: "production",
+      package_name: "com.finalevolutionlab.app",
+      json_key:     ENV["GOOGLE_JSON_KEY"],
+      skip_upload_aab:          true,
+      skip_upload_apk:          true,
+      skip_upload_screenshots:  true
+    )
+    UI.success("Promoted to Production track!")
+  end
+
+end
