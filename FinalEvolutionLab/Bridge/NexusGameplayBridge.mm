@@ -26,8 +26,8 @@
               Poll HUD overlay via nexus_gameplay_session_hud_poll_json(handle)
               — response shape: { id, status, payload: { type: "fel.hud.frame", ... } }
 
-   3. end:    nexus_gameplay_session_end_arena(handle, playerScore, opponentScore)
-              — uses use_live_scores=true so mode runtime scores win over 0/0 passthrough
+   3. end:    nexus_gameplay_session_end_arena_with_authority(handle, playerScore, opponentScore, useLiveScores)
+              — useLiveScores=true makes mode runtime scores authoritative; false preserves Swift-visible scores
               — payload includes final_scores + arena.last_result for Agent 3 HUD flush
 
    4. flush:  nexus_gameplay_session_flush_receipts(handle)
@@ -216,9 +216,10 @@ char* nexus_gameplay_session_handle_command(NexusGameplayHandle handle, const ch
   }
 }
 
-char* nexus_gameplay_session_end_arena(NexusGameplayHandle handle,
-                                       float playerScore,
-                                       float opponentScore) {
+char* nexus_gameplay_session_end_arena_with_authority(NexusGameplayHandle handle,
+                                                      float playerScore,
+                                                      float opponentScore,
+                                                      bool useLiveScores) {
   auto* session = static_cast<NexusGameplaySession*>(handle);
   if (session == nullptr) {
     return nullptr;
@@ -229,12 +230,19 @@ char* nexus_gameplay_session_end_arena(NexusGameplayHandle handle,
       {"id", "ios_end_arena"},
       {"params",
        {
-           {"use_live_scores", true},
+           {"use_live_scores", useLiveScores},
            {"player_score", playerScore},
            {"opponent_score", opponentScore},
        }},
   };
   return copyJsonString(handleCommandJson(session->application, request));
+}
+
+char* nexus_gameplay_session_end_arena(NexusGameplayHandle handle,
+                                       float playerScore,
+                                       float opponentScore) {
+  return nexus_gameplay_session_end_arena_with_authority(
+      handle, playerScore, opponentScore, true);
 }
 
 char* nexus_gameplay_session_flush_receipts(NexusGameplayHandle handle) {

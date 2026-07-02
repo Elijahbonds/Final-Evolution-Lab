@@ -32,6 +32,15 @@ char *_Nullable nexus_gameplay_session_handle_command(NexusGameplayHandle _Nulla
                                                       const char *_Nullable commandJson);
 
 /// Ends the active arena session and returns the session result JSON.
+/// `useLiveScores` makes C++ mode runtime scores authoritative; false uses the
+/// supplied Swift-visible score values.
+char *_Nullable nexus_gameplay_session_end_arena_with_authority(
+    NexusGameplayHandle _Nullable handle,
+    float playerScore,
+    float opponentScore,
+    bool useLiveScores);
+
+/// Back-compat end helper: uses C++ live-score authority.
 char *_Nullable nexus_gameplay_session_end_arena(NexusGameplayHandle _Nullable handle,
                                                  float playerScore,
                                                  float opponentScore);

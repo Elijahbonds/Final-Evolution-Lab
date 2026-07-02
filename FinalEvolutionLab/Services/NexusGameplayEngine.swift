@@ -1262,20 +1262,26 @@ final class NexusGameplayEngine {
         }
     }
 
-    func stop(playerScore: Int = 0, opponentScore: Int = 0, skipScoreSync: Bool = false) {
+    func stop(
+        playerScore: Int = 0,
+        opponentScore: Int = 0,
+        skipScoreSync: Bool = false,
+        useLiveScores: Bool = false
+    ) {
         proMotionTicker.stop()
         lastHudPollTime = 0
-        sessionActive = false
 
         if session != nil {
-            if !skipScoreSync {
+            if !skipScoreSync && !useLiveScores {
                 syncScores(player: playerScore, opponent: opponentScore)
             }
+            sessionActive = false
 
             if let endRaw = NexusGameplayBridge.endArena(
                 session,
                 playerScore: Float(playerScore),
-                opponentScore: Float(opponentScore)
+                opponentScore: Float(opponentScore),
+                useLiveScores: useLiveScores
             ) {
                 lastEndSessionStatus = NexusCommandResponse.parse(endRaw)?.status
             }
@@ -1606,8 +1612,18 @@ enum NexusGameplayBridge {
         return String(cString: cString)
     }
 
-    static func endArena(_ session: NexusGameplayHandle?, playerScore: Float, opponentScore: Float) -> String? {
-        guard let cString = nexus_gameplay_session_end_arena(session, playerScore, opponentScore) else {
+    static func endArena(
+        _ session: NexusGameplayHandle?,
+        playerScore: Float,
+        opponentScore: Float,
+        useLiveScores: Bool = true
+    ) -> String? {
+        guard let cString = nexus_gameplay_session_end_arena_with_authority(
+            session,
+            playerScore,
+            opponentScore,
+            useLiveScores
+        ) else {
             return nil
         }
         defer { nexus_gameplay_session_free_string(cString) }

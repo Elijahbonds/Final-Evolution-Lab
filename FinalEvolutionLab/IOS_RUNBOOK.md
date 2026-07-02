@@ -245,17 +245,16 @@ ls ~/.fel/pending_receipts/*.json
 ./scripts/smoke_gameplay_session.sh --skip-build
 ```
 
-### NEXUS score authority (P0/P1)
+### NEXUS score authority (iOS Swift shell)
 
-For **Dunk Contest** (`basketball_dunk`) and **Karate Endless** (`karate_endless`), C++ is the **single source of truth**. Swift UI follows HUD poll — no reverse push during gameplay.
+For the current iOS Swift/SceneKit gameplay shell, **the user-visible Swift score is the receipt authority**. `GamePlayView` still routes supported taps into C++ (`fel.dunk.*`, `fel.karate.*`, `fel.sport.pulse`, board/academy, Brain Brawl, Who Scene It, pickup, and carnival helpers) so HUD telemetry and mode payloads stay live, but final receipt scores must match what the player saw unless a mode explicitly moves to HUD-only scoring.
 
 | Direction | P0/P1 (dunk, karate_endless) | Other modes |
 |-----------|------------------------------|-------------|
-| C++ → Swift | `onChange(nexusEngine.hud.playerScore)` → `score` | HUD overlay only |
-| C++ → Swift | `onChange(nexusEngine.hud.opponentScore)` → `opponentScore` (dunk) | — |
-| C++ → Swift | `onChange(nexusEngine.hud.combo)` → `combo` (karate) | — |
-| Swift → C++ | **Disabled** (`usesNexusScoreAuthority` gates `syncScores`) | `fel.arena.update_score` on score change |
-| Commands | `fel.dunk.*` / `fel.karate.action` update C++ runtime; HUD poll reflects next tick | — |
+| C++ → Swift | HUD telemetry and mode payloads | HUD telemetry and mode payloads |
+| Swift → C++ | Final `fel.arena.update_score` before end unless `usesNexusScoreAuthority` is enabled | Final `fel.arena.update_score` before end |
+| End session | `use_live_scores=false` until the visible UI is HUD-authoritative | `use_live_scores=false` |
+| Commands | `fel.dunk.*` / `fel.karate.action` update C++ runtime; HUD poll reflects next tick | `fel.sport.pulse`, board/academy, cognitive, pickup, carnival helpers |
 
 Karate nested state (`wave`, `player_hp`, `opponents_alive`, `combo_chain`) is parsed from `mode_state.karate` in `NexusHUDSnapshot`. `NexusGameplayEngine.refreshHUDPoll()` maps `fel.hud.frame` 1:1 with `gameplay_application.cpp::emitHudTickFrame()`.
 
