@@ -38,13 +38,13 @@ def game_mode_cases(source: str) -> dict[str, str]:
 
 
 def stale_case_references() -> list[str]:
-    stale_names = (".basketballDunkContest", ".basketballIRL")
+    stale_case_pattern = re.compile(r"\.(basketballDunkContest|basketballIRL)\b")
     hits: list[str] = []
     for root in SWIFT_ROOTS:
         for path in root.rglob("*.swift"):
             text = path.read_text(errors="replace")
             for line_no, line in enumerate(text.splitlines(), start=1):
-                if any(name in line for name in stale_names):
+                if stale_case_pattern.search(line):
                     hits.append(f"{path.relative_to(REPO_ROOT)}:{line_no}: {line.strip()}")
     return hits
 
