@@ -38,6 +38,8 @@
 #include <thread>
 #include <vector>
 
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace {
@@ -63,6 +65,72 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class OneShotHttpStatusServer {
+public:
+  explicit OneShotHttpStatusServer(int statusCode) : m_statusCode(statusCode) {
+    m_socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_socket >= 0, "test HTTP server socket opens");
+
+    int reuse = 1;
+    (void)::setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+
+    require(::bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "test HTTP server binds loopback");
+
+    socklen_t addressLength = sizeof(address);
+    require(::getsockname(m_socket, reinterpret_cast<sockaddr*>(&address), &addressLength) == 0,
+            "test HTTP server reports port");
+    m_port = ntohs(address.sin_port);
+
+    require(::listen(m_socket, 1) == 0, "test HTTP server listens");
+    m_thread = std::thread([this]() { serveOnce(); });
+  }
+
+  ~OneShotHttpStatusServer() {
+    if (m_socket >= 0) {
+      (void)::shutdown(m_socket, SHUT_RDWR);
+    }
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+    if (m_socket >= 0) {
+      (void)::close(m_socket);
+    }
+  }
+
+  [[nodiscard]] auto url(std::string_view path) const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + std::string(path);
+  }
+
+private:
+  void serveOnce() const {
+    const int client = ::accept(m_socket, nullptr, nullptr);
+    if (client < 0) {
+      return;
+    }
+
+    std::array<char, 4096> requestBuffer{};
+    (void)::recv(client, requestBuffer.data(), requestBuffer.size(), 0);
+
+    const std::string statusText =
+        m_statusCode == 503 ? "503 Service Unavailable" : std::to_string(m_statusCode) + " Status";
+    const std::string response = "HTTP/1.1 " + statusText +
+                                 "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+    (void)::send(client, response.data(), response.size(), 0);
+    (void)::close(client);
+  }
+
+  int m_socket{-1};
+  std::uint16_t m_port{0};
+  int m_statusCode{503};
+  std::thread m_thread;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -1929,6 +1997,41 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_real_http_requeues_on_rejected_status() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  OneShotHttpStatusServer server(503);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url("/api/games/session"),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_503_session"}, {"user_id", "test_user"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "real HTTP 503 flush attempted once");
+  require(flush.delivered == 0, "real HTTP 503 is not delivered");
+  require(flush.requeued == 1, "real HTTP 503 receipt requeued");
+  require(client.pendingCount() == 1, "real HTTP 503 keeps receipt pending");
+  require(client.postedRequests().size() == 1, "real HTTP 503 POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "real HTTP records server status");
+
+  removeTreeBestEffort(tempDir);
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2747,6 +2850,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_real_http_requeues_on_rejected_status();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
