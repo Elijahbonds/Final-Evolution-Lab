@@ -24,6 +24,9 @@ jobs:
       - name: Validate mode registry
         run: python3 scripts/validate_mode_registry.py
 
+      - name: Validate iOS/NEXUS mode registry parity
+        run: python3 scripts/validate_ios_mode_registry.py
+
       - name: Run NEXUS gameplay regression
         run: ./scripts/nexus_gameplay_regression.sh
 

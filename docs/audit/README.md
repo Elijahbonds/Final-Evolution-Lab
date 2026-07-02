@@ -4,7 +4,7 @@ Automated and manual readiness checks for the Final Evolution Lab product stack.
 
 ## Latest audit
 
-**[GAME_COMPLETION_AUDIT.md](./GAME_COMPLETION_AUDIT.md)** — Mode matrix, asset status, GDD coverage, ~58% completion estimate, next 10 tasks.
+**[GAME_COMPLETION_AUDIT.md](./GAME_COMPLETION_AUDIT.md)** — Mode matrix, asset status, GDD coverage, completion estimate, next 10 tasks.
 
 **[READINESS_AUDIT_2026-06-19.md](./READINESS_AUDIT_2026-06-19.md)** — iOS screenshot harness, NEXUS headless tests, runtime GPU notes.
 
@@ -24,32 +24,39 @@ Automated and manual readiness checks for the Final Evolution Lab product stack.
 # Build + export + rename in one step
 ./scripts/export_audit_screenshots.sh
 
-# NEXUS headless unit tests (no GPU)
-cmake -S . -B build-headless -DNEXUS_ENABLE_RENDERER=OFF -DNEXUS_BUILD_RUNTIME=OFF
-cmake --build build-headless && ctest --test-dir build-headless --output-on-failure
+# NEXUS headless gameplay regression (no GPU)
+CC=gcc CXX=g++ ./scripts/nexus_gameplay_regression.sh
 
-# Production preflight (Firebase, Data Connect, UE embed)
+# Registry consistency gates
+python3 scripts/validate_mode_registry.py
+python3 scripts/validate_ios_mode_registry.py
+
+# Full renderer + production-mode gate (requires Vulkan + SDL3)
+./scripts/nexus_build_gate.sh
+
+# Production preflight (Firebase, Data Connect, NEXUS readiness)
 ./scripts/verify_production_readiness.sh
 ```
 
-## Layer status (2026-06-19)
+## Layer status (refreshed 2026-07-02)
 
 | Layer | Status | Notes |
 |-------|--------|-------|
-| iOS shell (`FinalEvolutionLab/`) | Beta-ready | Tab bar, onboarding, 19 game modes |
-| App gameplay (`app/gameplay/`) | Complete | `nexus_gameplay` + unit tests green |
+| iOS shell (`FinalEvolutionLab/`) | Beta-ready | Tab bar, onboarding, 19 game modes; production Firebase/TestFlight actions still required |
+| App gameplay (`app/gameplay/`) | Complete for headless production-mode contracts | `nexus_gameplay_regression.sh` exercises all 18 production runtime modes |
 | Gameplay docs (`docs/gameplay_logic/`) | Restored | Integration manual + protocol specs |
-| NEXUS headless | Passing | `nexus_protocol_test`, `nexus_gameplay_test`, `nexus_generative_test` |
-| iOS NEXUS bridge | Linked | `NexusGameplayBridge` + simulator build green |
-| NEXUS runtime (Vulkan) | Failing | SIGSEGV on launch — see audit |
-| UE / Pixel Streaming | Not in scope | Separate capture runbook required |
+| NEXUS headless | Passing | Full headless CTest matrix + gameplay regression gate |
+| iOS NEXUS bridge | Linked | `NexusGameplayBridge`; simulator/device proof remains part of the iOS gate |
+| NEXUS runtime (Vulkan) | Passing in validate-only gates; device visual proof partial | `nexus_build_gate.sh` is the canonical renderer gate; full Linux runs require Vulkan + SDL3 |
+| UE / Pixel Streaming | Archived reference only | Not a NEXUS production ship dependency |
 
 ## Open gaps
 
-1. **NEXUS GPU runtime** — debug Vulkan/MoltenVK init crash before windowed audit.
-2. **SceneKit harness** — black viewports on some modes (dunk, penalty); timing/scene init.
-3. **Mode 19 screenshot** — re-run export after `expectedModeCount` fix for `market_browse`.
-4. **Live biometric bridge** — `fel.fitness.*` wired in C++; iOS→NEXUS transport not validated in audit pass.
+1. **Production Firebase/TestFlight** — live `GoogleService-Info.plist`, ASC app record, production archive/export, and upload proof remain user/action dependent.
+2. **Physical-device visual/performance proof** — Metal venue draw and 60 FPS mobile-mesh evidence still need iPhone + Instruments validation.
+3. **Live receipt POST** — C++ receipt queue and Swift drain are wired; production authenticated 2xx proof remains open outside preview lane.
+4. **Health/fitness bridge** — `fel.fitness.*` is wired in C++; live HealthKit/biometric transport needs device validation.
+5. **Content depth** — all 18 production runtime modes are contract-tested; outcome-sport sim depth, character/prop mesh coverage, and premium visual polish remain product-quality gaps.
 
 ## Related docs
 
