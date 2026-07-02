@@ -1,0 +1,33 @@
+{
+  "id": "sfx_referee_whistle",
+  "name": "Referee Whistle SFX",
+  "category": "audio",
+  "type": "sfx_mp3",
+  "file": "sfx_referee_whistle.mp3",
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/f3876987-50b4-45b0-8b84-c5cdf2250fe7/171886/sfx_a05bd0f0-49aa-4739-9469-a68ad82390a8.mp3"
+  ],
+  "description": "Referee Whistle SFX for Final Evolution Lab \u2014 modes: all",
+  "tags": [
+    "whistle",
+    "sfx",
+    "referee"
+  ],
+  "keywords": [
+    "referee",
+    "whistle",
+    "sport",
+    "match"
+  ],
+  "compat": [
+    "all"
+  ],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "fel_modes": [
+    "all"
+  ]
+}

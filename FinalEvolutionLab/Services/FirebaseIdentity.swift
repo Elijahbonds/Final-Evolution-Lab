@@ -4,9 +4,18 @@ import Foundation
 import FirebaseAuth
 #endif
 
-enum FirebaseIdentityError: Error {
+enum FirebaseIdentityError: Error, LocalizedError {
     case firebaseNotConfigured
     case noCurrentUser
+
+    var errorDescription: String? {
+        switch self {
+        case .firebaseNotConfigured:
+            return "Firebase is not configured in this environment."
+        case .noCurrentUser:
+            return "No current authenticated user."
+        }
+    }
 }
 
 /// Ensures a Firestore UID exists. Uses **anonymous** sign-in when no user is present so HealthKit / scan
@@ -34,7 +43,9 @@ enum FirebaseIdentity {
     @MainActor
     static func ensureUserSignedIn() async throws {
 #if canImport(FirebaseAuth)
-        guard FirebaseBootstrap.isConfigured else { return }
+        guard FirebaseBootstrap.isConfigured else {
+            throw FirebaseIdentityError.firebaseNotConfigured
+        }
         if Auth.auth().currentUser != nil { return }
         _ = try await Auth.auth().signInAnonymously()
 #endif

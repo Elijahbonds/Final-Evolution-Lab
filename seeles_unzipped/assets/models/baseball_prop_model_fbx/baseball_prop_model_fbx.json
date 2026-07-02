@@ -1,0 +1,20 @@
+{
+  "id": "baseball_prop_model_fbx",
+  "name": "Baseball Prop (FBX)",
+  "category": "models",
+  "type": "prop_fbx",
+  "file": "baseball_prop_model_fbx.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/300b2041-6393-4f46-9069-d5d4158758c7/1021255/unityModel_1021255_2895659.fbx"],
+  "description": "Aged weathered baseball prop with realistic stitching texture in FBX format for Unreal Engine import",
+  "tags": ["baseball", "prop", "ball", "sport", "fbx", "unreal", "fel"],
+  "keywords": ["baseball ball", "stitching", "weathered", "sports prop", "fbx", "unreal import"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T14:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 21,
+  "version": "1.0",
+  "property_id": "search_d948e1bdd751_0",
+  "preview_url": "https://static.seeles.ai/data/asset/export/79f8fa5b-a085-43f7-ae25-d8747ce8c223/1021255/cover_reader_deal_local/15089767_1021255_1775713322734/front.png",
+  "fel_modes": ["baseball"]
+}

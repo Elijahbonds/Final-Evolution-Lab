@@ -21,7 +21,7 @@ nonisolated enum PRQ: Sendable {
     static func matchReward(won: Bool, tied: Bool) -> Double {
         if won { return 2.0 }
         if tied { return 0.5 }
-        return 0.2
+        return 0
     }
 
     static func modeReward(mode: GameModeId, won: Bool, tied: Bool, combo: Int, criticals: Int, scoreDifferential: Int) -> Double {
@@ -33,10 +33,40 @@ nonisolated enum PRQ: Sendable {
         return clamp(base * modeMultiplier + comboBonus + criticalBonus + dominanceBonus)
     }
 
+    /// PRQ applied to the ranking metric after a session. Losses no longer grant inflation via readiness or generic loss PRQ (GAME-25).
+    static func rankingSessionPRQ(
+        mode: GameModeId,
+        won: Bool,
+        tied: Bool,
+        combo: Int,
+        criticals: Int,
+        scoreDifferential: Int,
+        participationEligible: Bool,
+        sessionReadiness: Double
+    ) -> Double {
+        let readinessTerm = (sessionReadiness / 100.0) * 0.3
+        if won || tied {
+            return modeReward(
+                mode: mode,
+                won: won,
+                tied: tied,
+                combo: combo,
+                criticals: criticals,
+                scoreDifferential: scoreDifferential
+            ) + readinessTerm
+        }
+        guard participationEligible else { return 0 }
+        let consolationCombo = Swift.min(0.06, Double(combo) * 0.012)
+        let consolationCrit = Swift.min(0.04, Double(criticals) * 0.02)
+        let learningPRQ = Swift.min(0.12, consolationCombo + consolationCrit)
+        let cappedReadiness = Swift.min(0.04, readinessTerm * 0.15)
+        return learningPRQ + cappedReadiness
+    }
+
     static func modeWeight(for mode: GameModeId) -> Double {
         switch mode {
-        case .basketballHeadToHead: 1.2
-        case .basketballDunkContest: 1.0
+        case .basketballHeadToHead, .venicePickup: 1.2
+        case .basketballDunkContestIRL, .basketballDunkContest3D: 1.0
         case .basketball3v3: 1.3
         case .karate, .karateEndless: 1.4
         case .baseball: 1.0
@@ -47,7 +77,9 @@ nonisolated enum PRQ: Sendable {
         case .volleyball: 1.2
         case .gymnastics: 1.0
         case .surfing, .skateboarding, .snowboarding: 1.05
-        case .brainBrawl: 1.1
+        case .brainBrawl, .whoSceneIt: 1.1
+        case .courtCarnival: 1.15
+        case .marketBrowse: 0.0
         }
     }
 
@@ -55,8 +87,8 @@ nonisolated enum PRQ: Sendable {
         let normalized = Swift.min(Swift.max(prq / 100.0, 0), 1)
         let modeBase: Double
         switch mode {
-        case .basketballHeadToHead, .basketball3v3: modeBase = 0.40
-        case .basketballDunkContest: modeBase = 0.45
+        case .basketballHeadToHead, .basketball3v3, .venicePickup: modeBase = 0.40
+        case .basketballDunkContestIRL, .basketballDunkContest3D: modeBase = 0.45
         case .karate, .karateEndless: modeBase = 0.38
         case .baseball: modeBase = 0.35
         case .football: modeBase = 0.42
@@ -66,15 +98,17 @@ nonisolated enum PRQ: Sendable {
         case .volleyball: modeBase = 0.40
         case .gymnastics: modeBase = 0.35
         case .surfing, .skateboarding, .snowboarding: modeBase = 0.36
-        case .brainBrawl: modeBase = 0.42
+        case .brainBrawl, .whoSceneIt: modeBase = 0.42
+        case .courtCarnival: modeBase = 0.40
+        case .marketBrowse: modeBase = 0.0
         }
         return modeBase + normalized * (0.90 - modeBase)
     }
 
     static func attributeLabel(for mode: GameModeId) -> String {
         switch mode {
-        case .basketballHeadToHead, .basketball3v3: "Court IQ"
-        case .basketballDunkContest: "Hang Time"
+        case .basketballHeadToHead, .basketball3v3, .venicePickup: "Court IQ"
+        case .basketballDunkContestIRL, .basketballDunkContest3D: "Hang Time"
         case .karate, .karateEndless: "Fight IQ"
         case .baseball: "Bat Speed"
         case .football: "Burst Speed"
@@ -86,7 +120,9 @@ nonisolated enum PRQ: Sendable {
         case .surfing: "Wave IQ"
         case .skateboarding: "Line Control"
         case .snowboarding: "Edge Control"
-        case .brainBrawl: "Cognitive Flex"
+        case .brainBrawl, .whoSceneIt: "Cognitive Flex"
+        case .courtCarnival: "Versatility"
+        case .marketBrowse: "Library IQ"
         }
     }
 
@@ -94,8 +130,8 @@ nonisolated enum PRQ: Sendable {
         let normalized = Swift.min(Swift.max(prq / 100.0, 0), 1)
         let modeScale: Double
         switch mode {
-        case .basketballHeadToHead, .basketball3v3: modeScale = 0.85
-        case .basketballDunkContest: modeScale = 0.90
+        case .basketballHeadToHead, .basketball3v3, .venicePickup: modeScale = 0.85
+        case .basketballDunkContestIRL, .basketballDunkContest3D: modeScale = 0.90
         case .karate, .karateEndless: modeScale = 0.80
         case .baseball: modeScale = 0.75
         case .football: modeScale = 0.80
@@ -105,7 +141,9 @@ nonisolated enum PRQ: Sendable {
         case .volleyball: modeScale = 0.82
         case .gymnastics: modeScale = 0.75
         case .surfing, .skateboarding, .snowboarding: modeScale = 0.76
-        case .brainBrawl: modeScale = 0.82
+        case .brainBrawl, .whoSceneIt: modeScale = 0.82
+        case .courtCarnival: modeScale = 0.84
+        case .marketBrowse: modeScale = 0.0
         }
         return (modeScale * normalized * 100).rounded() / 100
     }

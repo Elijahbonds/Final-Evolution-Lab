@@ -66,11 +66,12 @@ class GlobalLeaderboardService {
     var recentMatches: [RecentMatchRecord] = []
     var connectionQuality: ConnectionQuality = .good
 
+    private var presenceSimulationTask: Task<Void, Never>?
+
     func refreshRankings(userProfile: UserProfile, sampleData: [LeaderboardEntry]) {
         isLoading = true
         userTier = PRQTier.fromPRQ(userProfile.metrics.prqScore)
 
-        var combined = sampleData
         let userEntry = LeaderboardEntry(
             id: userProfile.id,
             athleteName: userProfile.displayName,
@@ -81,6 +82,26 @@ class GlobalLeaderboardService {
             avatarSystemName: userProfile.avatarSystemName
         )
 
+        guard Config.useDemoLeaderboardAndMatchmaking else {
+            globalRankings = [
+                LeaderboardEntry(
+                    id: userEntry.id,
+                    athleteName: userEntry.athleteName,
+                    athleteTag: userEntry.athleteTag,
+                    prqScore: userEntry.prqScore,
+                    evolutionShards: userEntry.evolutionShards,
+                    rank: 1,
+                    avatarSystemName: userEntry.avatarSystemName
+                )
+            ]
+            userGlobalRank = 1
+            matchmakingPool = []
+            onlinePlayerCount = 0
+            isLoading = false
+            return
+        }
+
+        var combined = sampleData
         if !combined.contains(where: { $0.id == userProfile.id }) {
             combined.append(userEntry)
         }
@@ -119,6 +140,10 @@ class GlobalLeaderboardService {
     }
 
     func findMatch(userPRQ: Double, preferredTier: PRQTier? = nil) async {
+        guard Config.useDemoLeaderboardAndMatchmaking else {
+            matchmakingState = .failed
+            return
+        }
         let tier = preferredTier ?? PRQTier.fromPRQ(userPRQ)
         matchmakingState = .searching(tier)
 
@@ -159,10 +184,19 @@ class GlobalLeaderboardService {
         matchmakingState = .idle
     }
 
+    func stopOnlinePresenceSimulation() {
+        presenceSimulationTask?.cancel()
+        presenceSimulationTask = nil
+    }
+
     func simulateOnlinePresence() {
-        Task {
+        guard Config.useDemoLeaderboardAndMatchmaking else { return }
+        presenceSimulationTask?.cancel()
+        presenceSimulationTask = Task { [weak self] in
+            guard let self else { return }
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(Double.random(in: 8...15)))
+                guard !Task.isCancelled else { return }
                 let delta = Int.random(in: -5...8)
                 onlinePlayerCount = max(80, onlinePlayerCount + delta)
                 connectionQuality = Double.random(in: 0...1) > 0.15 ? .good : .moderate

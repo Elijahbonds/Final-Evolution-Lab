@@ -20,15 +20,38 @@ nonisolated struct ShardReward: Sendable {
     let amount: Int
     let transaction: ShardTransaction
 
-    static func forGameResult(won: Bool, tied: Bool, combo: Int, criticals: Int) -> [ShardReward] {
+    /// Loss shards require meaningful play; daily cap prevents idle farming repeat losses.
+    static func forGameResult(
+        won: Bool,
+        tied: Bool,
+        combo: Int,
+        criticals: Int,
+        participationEligible: Bool,
+        calendar: Calendar = .current,
+        defaults: UserDefaults = .standard
+    ) -> [ShardReward] {
         var rewards: [ShardReward] = []
 
         if won {
             rewards.append(ShardReward(amount: 50, transaction: .gameWin))
         } else if tied {
             rewards.append(ShardReward(amount: 25, transaction: .gameDraw))
-        } else {
-            rewards.append(ShardReward(amount: 15, transaction: .gameLoss))
+        } else if participationEligible {
+            let dayStart = calendar.startOfDay(for: Date()).timeIntervalSince1970
+            let dayKey = "fel.shardEconomy.lossRewardDay"
+            let totalKey = "fel.shardEconomy.lossShardsDayTotal"
+            let prevDay = defaults.double(forKey: dayKey)
+            if prevDay != dayStart {
+                defaults.set(dayStart, forKey: dayKey)
+                defaults.set(0, forKey: totalKey)
+            }
+            let lossTotal = defaults.integer(forKey: totalKey)
+            let dailyLossShardCap = 24
+            let grant = min(8, max(0, dailyLossShardCap - lossTotal))
+            if grant > 0 {
+                rewards.append(ShardReward(amount: grant, transaction: .gameLoss))
+                defaults.set(lossTotal + grant, forKey: totalKey)
+            }
         }
 
         if combo > 3 {

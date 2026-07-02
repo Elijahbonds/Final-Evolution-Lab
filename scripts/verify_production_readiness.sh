@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
+# Prevent permission issues on user config directory when running under sandbox/restrictive CI
+export XDG_CONFIG_HOME="${ROOT}/.config"
+export HOME="${ROOT}/.home"
+
 FAIL=0
 
 warn() { echo "WARN: $*"; }
@@ -65,3 +69,4 @@ echo ""
 echo "=== All automated checks passed ==="
 echo "Live deploy (after firebase use <project>):"
 echo "  firebase deploy --only firestore:rules,dataconnect:elijahbonds"
+echo "  ./scripts/deploy-hosting.sh fel-dashboard   # static CRA dashboard → Firebase Hosting"

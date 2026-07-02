@@ -6,6 +6,23 @@
   --bg-card: #16161A;
   --bg-surface: #1A1A24;
   --primary: #00E5FF;
+  --alert: #FF3366;
+  --success: #00FF9D;
+  --neuro: #A855F7;
+  --gold: #FFD700;
+  --elite: #A855F7;
+  --primed: #00E5FF;
+  --ready: #00FF9D;
+  --recovering: #FFD700;
+  --unbreakable: #A855F7;
+  --resilient: #00E5FF;
+  --adapting: #00FF9D;
+  --vulnerable: #FFD700;
+  --perfect: #FFD700;
+  --great: #00E5FF;
+  --good: #00FF9D;
+  --ok: #FFFFFF;
+  --miss: #FF3366;
   --primary-hover: #00B3CC;
   --primary-muted: rgba(0, 229, 255, 0.15);
   --secondary: #2E2E38;
@@ -18,6 +35,22 @@
   --text-muted: #71717A;
   --border-default: rgba(255, 255, 255, 0.08);
   --border-focus: #00E5FF;
+  --font-heading: 'Barlow Condensed', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --hud-bg-opacity: 85%;
+  --score-size: 28pt;
+  --label-size: 14pt;
+  --stat-size: 12pt;
+  --ticker-size: 11pt;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
 * {
@@ -205,6 +238,172 @@ h1, h2, h3, h4 {
   margin-left: 16rem;
   min-height: 100vh;
   padding: 2rem;
+}
+
+/* Phase 3 HUD overlay */
+.phase3-hud {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(0, 229, 255, 0.14), transparent 28rem),
+    linear-gradient(180deg, rgba(5, 5, 5, 0.72), #050505);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  overflow: hidden;
+}
+
+.hud-score-strip,
+.hud-bottom-strip,
+.hud-card,
+.hud-meter-card {
+  background: rgba(5, 5, 5, 0.85);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.hud-score-strip {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.75rem 2rem;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  transform: translateX(-50%);
+}
+
+.hud-score {
+  min-width: 4rem;
+  color: var(--primary);
+  font-size: var(--score-size);
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.hud-score.opponent {
+  color: var(--alert);
+}
+
+.hud-score-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 12rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hud-score-center small,
+.hud-card small,
+.hud-meter-card small {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hud-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--alert);
+}
+
+.hud-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 12px var(--success);
+}
+
+.hud-left-stack,
+.hud-right-stack {
+  position: fixed;
+  top: 50%;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transform: translateY(-50%);
+}
+
+.hud-left-stack {
+  left: 1rem;
+}
+
+.hud-right-stack {
+  right: 1rem;
+}
+
+.hud-card,
+.hud-meter-card {
+  min-width: 10rem;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+}
+
+.hud-card strong,
+.hud-meter-card strong {
+  display: block;
+  margin: 0.35rem 0;
+  color: var(--primary);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.hud-meter-card strong {
+  font-size: 2.4rem;
+}
+
+.hud-label {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.hud-progress {
+  height: 0.5rem;
+  margin: 0.75rem 0 0.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hud-progress > div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--neuro));
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+}
+
+.hud-bottom-strip {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+
+.hud-bottom-strip button {
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.35rem 0.6rem;
+  text-transform: uppercase;
 }
 
 /* PRQ Gauge */

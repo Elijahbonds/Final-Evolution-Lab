@@ -1,0 +1,34 @@
+{
+  "id": "sfx_victory_fanfare",
+  "name": "Victory Fanfare Win SFX",
+  "category": "audio",
+  "type": "sfx_mp3",
+  "file": "sfx_victory_fanfare.mp3",
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/2bfbcd27-53e6-4cee-b112-7c45d72b2672/172287/sfx_c32e47b2-13c6-4154-a8b7-ce6b8c9f7702.mp3"
+  ],
+  "description": "Victory Fanfare Win SFX for Final Evolution Lab \u2014 modes: all",
+  "tags": [
+    "victory",
+    "sfx",
+    "fanfare",
+    "win"
+  ],
+  "keywords": [
+    "victory",
+    "fanfare",
+    "win",
+    "celebration"
+  ],
+  "compat": [
+    "all"
+  ],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "fel_modes": [
+    "all"
+  ]
+}

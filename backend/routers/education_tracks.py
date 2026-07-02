@@ -15,9 +15,13 @@ Kinesiology Certificate is unlocked when:
   - final_assessment passed (>=80%)
 """
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone, timedelta
+import os
+import random
 import uuid
+
+from pydantic import BaseModel, Field
 
 from core import db, get_current_user, User
 
@@ -29,6 +33,14 @@ KINESIOLOGY_PRQ_GATE = 80.0
 BIO_DIGITAL_REQUIRED_MODULES = [
     "skeletal_basics", "muscular_chains", "kinetic_chain_pillars", "neural_priming"
 ]
+# Only these IDs may ever be marked complete (blocks arbitrary client IDs).
+BIO_DIGITAL_ALLOWED_MODULES = frozenset(BIO_DIGITAL_REQUIRED_MODULES)
+BIO_DIGITAL_RECEIPT_TTL_HOURS = 4
+# Minimum wall time between begin-module and complete-module (anti instant-complete). Production should set env to 45–120s.
+BIO_DIGITAL_MIN_ACTIVE_SECONDS = max(0, int(os.environ.get("FEL_BIO_DIGITAL_MIN_ACTIVE_SECONDS", "3")))
+
+KIN_FINAL_COOLDOWN_SEC = 300
+KIN_FINAL_SESSION_TTL_HOURS = 2
 
 # ============================================================
 # SEED CONTENT — track lessons + quizzes
@@ -49,6 +61,14 @@ TRACKS: Dict[str, Dict[str, Any]] = {
                 "id": "cc_ela_1", "title": "Argumentative Reading & Rhetoric",
                 "summary": "Decode authorial intent, evidence, and counter-claim construction in non-fiction sport journalism.",
                 "duration_min": 22,
+                "minimum_study_seconds": 45,
+                "content_blocks": [
+                    {"type": "text", "heading": "Why this matters", "body": "Scholarship committees and NCAA pathways reward claims backed by evidence—not vibes. Sport journalism is a practical training ground for spotting weak reasoning."},
+                    {"type": "bullets", "heading": "Work through", "items": ["Underline the author’s central claim.", "Circle evidence vs. opinion.", "Note where a counter-claim would strengthen the argument."]},
+                ],
+                "resources": [
+                    {"label": "NCAA academic readiness", "url": "https://www.ncaa.org/sports/2014/11/10/academic_standards.aspx"},
+                ],
                 "quiz": [
                     {"q": "A claim supported only by a single anecdote is best described as:", "options": ["Empirical", "Anecdotal", "Statistical", "Axiomatic"], "correct": 1},
                     {"q": "An author's purpose to refute a prior idea is most often signaled by:", "options": ["However / Conversely", "In addition", "For example", "First"], "correct": 0},
@@ -159,7 +179,7 @@ TRACKS: Dict[str, Dict[str, Any]] = {
             },
             {
                 "id": "stem_tech_1", "title": "Wearables & Telemetry Pipelines",
-                "summary": "IMU, GPS, optical-tracking — and how they reach FEL's Sovereign Hub.",
+                "summary": "IMU, GPS, optical-tracking — and how they reach FEL's Vault Hub.",
                 "duration_min": 20,
                 "quiz": [
                     {"q": "IMU stands for:", "options": ["Inertial Measurement Unit", "Internal Motion Util", "Indoor Mapping Util", "Internet Move Unit"], "correct": 0},
@@ -170,12 +190,12 @@ TRACKS: Dict[str, Dict[str, Any]] = {
             },
             {
                 "id": "stem_data_1", "title": "Data Hygiene for Athletes",
-                "summary": "Outliers, normalization, and personal-data sovereignty.",
+                "summary": "Outliers, normalization, and personal-data privacy.",
                 "duration_min": 18,
                 "quiz": [
                     {"q": "An outlier should usually be:", "options": ["Deleted silently", "Investigated, not erased", "Doubled", "Hidden"], "correct": 1},
                     {"q": "Z-score normalization shifts data to:", "options": ["mean=0, sd=1", "mean=1, sd=0", "min=0, max=100", "median=0"], "correct": 0},
-                    {"q": "Sovereign data means:", "options": ["Cloud only", "Athlete-owned & local-first", "Public domain", "Sold to ads"], "correct": 1},
+                    {"q": "Vault data means:", "options": ["Cloud only", "Athlete-owned & local-first", "Public domain", "Sold to ads"], "correct": 1},
                     {"q": "PII includes:", "options": ["Score totals", "Email + biometric ID", "Team logo", "Game time"], "correct": 1},
                 ],
             },
@@ -302,7 +322,7 @@ TRACKS: Dict[str, Dict[str, Any]] = {
                 {"q": "Periodization deload reduces:", "options": ["Sleep", "Volume ~40–50%", "Hydration", "Sport"], "correct": 1},
                 {"q": "Sample rate ≥200 Hz is needed for:", "options": ["Sleep tracking", "Jump-takeoff capture", "Step count", "Steps/day"], "correct": 1},
                 {"q": "FMS score of 0 indicates:", "options": ["Elite", "Pain — refer out", "Recovery", "Average"], "correct": 1},
-                {"q": "Sovereign data means athlete data is:", "options": ["Sold", "Athlete-owned, local-first", "Public", "Lost"], "correct": 1},
+                {"q": "Vault data means athlete data is:", "options": ["Sold", "Athlete-owned, local-first", "Public", "Lost"], "correct": 1},
                 {"q": "Type II muscle fibers favor:", "options": ["Marathon", "Power & speed", "Posture", "Digestion"], "correct": 1},
                 {"q": "Acute:Chronic workload safe band:", "options": ["0.5–0.7", "0.8–1.3", "1.5–2.5", "≥3.0"], "correct": 1},
                 {"q": "Adolescent athlete sleep target:", "options": ["6 h", "8–10 h", "12+ h", "4 h"], "correct": 1},
@@ -394,6 +414,45 @@ def _strip_correct(quiz: List[Dict]) -> List[Dict]:
     return [{"q": q["q"], "options": q["options"]} for q in quiz]
 
 
+def _shuffle_kin_final_questions(fa_questions: List[Dict[str, Any]]):
+    """Randomize question order and per-question option order (EDU-08)."""
+    order = list(range(len(fa_questions)))
+    random.shuffle(order)
+    display: List[Dict[str, Any]] = []
+    meta: List[Dict[str, Any]] = []
+    for slot, orig_i in enumerate(order):
+        q = fa_questions[orig_i]
+        pair = list(enumerate(q["options"]))
+        random.shuffle(pair)
+        opts = [t[1] for t in pair]
+        correct_new = next(nj for nj, (oj, _) in enumerate(pair) if oj == q["correct"])
+        display.append({"index": slot, "q": q["q"], "options": opts})
+        meta.append({"correct_index": correct_new})
+    return display, meta
+
+
+TRACK_TO_COURSE_MAPPING = {
+    "stem": ["stem_sports"],
+    "common_core": ["college_prep"],
+    "kinesiology": ["kinesiology_cert"],
+    "brain_brawl": ["brain_brawl_101", "advanced_bb"]
+}
+
+async def check_track_enrollment(track_id: str, user_id: str):
+    if track_id not in TRACK_TO_COURSE_MAPPING:
+        return
+    allowed_courses = TRACK_TO_COURSE_MAPPING[track_id]
+    enrollment = await db.enrollments.find_one({
+        "user_id": user_id,
+        "course_id": {"$in": allowed_courses}
+    })
+    if not enrollment:
+        raise HTTPException(
+            status_code=403,
+            detail="Not enrolled in the course associated with this track. Please enroll first."
+        )
+
+
 # ============================================================
 # PUBLIC ENDPOINTS
 # ============================================================
@@ -429,13 +488,14 @@ async def get_track(track_id: str):
 
 
 @router.get("/tracks/{track_id}/lesson/{lesson_id}")
-async def get_lesson(track_id: str, lesson_id: str):
-    """Return a single lesson with quiz (answers stripped)."""
+async def get_lesson(track_id: str, lesson_id: str, user: User = Depends(get_current_user)):
+    """Return a single lesson with quiz (answers stripped) and optional instruction blocks (EDU-09)."""
+    await check_track_enrollment(track_id, user.user_id)
     track = _track_or_404(track_id)
     lesson = next((l for l in track["lessons"] if l["id"] == lesson_id), None)
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return {
+    out: Dict[str, Any] = {
         "id": lesson["id"],
         "title": lesson["title"],
         "summary": lesson["summary"],
@@ -443,6 +503,36 @@ async def get_lesson(track_id: str, lesson_id: str):
         "track_id": track_id,
         "quiz": _strip_correct(lesson["quiz"]),
     }
+    if lesson.get("content_blocks"):
+        out["content_blocks"] = lesson["content_blocks"]
+    if lesson.get("resources"):
+        out["resources"] = lesson["resources"]
+    if lesson.get("minimum_study_seconds") is not None:
+        out["minimum_study_seconds"] = lesson["minimum_study_seconds"]
+    return out
+
+
+@router.post("/tracks/{track_id}/lesson/{lesson_id}/open")
+async def open_lesson(track_id: str, lesson_id: str, user: User = Depends(get_current_user)):
+    """Record first open time for minimum-study gating before quiz submit."""
+    await check_track_enrollment(track_id, user.user_id)
+    track = _track_or_404(track_id)
+    if not any(l["id"] == lesson_id for l in track["lessons"]):
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.education_lesson_engagement.update_one(
+        {"user_id": user.user_id, "lesson_id": lesson_id},
+        {
+            "$setOnInsert": {
+                "opened_at": now,
+                "user_id": user.user_id,
+                "lesson_id": lesson_id,
+                "track_id": track_id,
+            },
+        },
+        upsert=True,
+    )
+    return {"ok": True}
 
 
 @router.post("/tracks/{track_id}/lesson/{lesson_id}/submit")
@@ -451,6 +541,7 @@ async def submit_lesson_quiz(
     user: User = Depends(get_current_user),
 ):
     """Auto-grade a quiz submission. Awards XP on first pass (>=75%)."""
+    await check_track_enrollment(track_id, user.user_id)
     track = _track_or_404(track_id)
     lesson = next((l for l in track["lessons"] if l["id"] == lesson_id), None)
     if not lesson:
@@ -460,41 +551,77 @@ async def submit_lesson_quiz(
     if len(answers) != len(lesson["quiz"]):
         raise HTTPException(status_code=400, detail="answers length mismatch")
 
+    min_sec = int(lesson.get("minimum_study_seconds") or 0)
+    if min_sec > 0:
+        eng = await db.education_lesson_engagement.find_one(
+            {"user_id": user.user_id, "lesson_id": lesson_id}, {"_id": 0}
+        )
+        if not eng or not eng.get("opened_at"):
+            raise HTTPException(
+                status_code=400,
+                detail="Open the lesson in the app before submitting the quiz so study time can be recorded.",
+            )
+        opened = datetime.fromisoformat(str(eng["opened_at"]).replace("Z", "+00:00"))
+        if opened.tzinfo is None:
+            opened = opened.replace(tzinfo=timezone.utc)
+        elapsed = (datetime.now(timezone.utc) - opened).total_seconds()
+        if elapsed < min_sec:
+            left = int(min_sec - elapsed) + 1
+            raise HTTPException(
+                status_code=400,
+                detail=f"Spend at least {min_sec}s with the lesson content before the quiz ({left}s remaining).",
+            )
+
     correct = sum(1 for i, q in enumerate(lesson["quiz"]) if answers[i] == q["correct"])
     total = len(lesson["quiz"])
     score = correct / total
     passed = score >= PASS_THRESHOLD
+    pct = round(score * 100, 1)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # Always persist quiz attempt score (idempotent write).
+    await db.education_progress.update_one(
+        {"user_id": user.user_id, "track_id": track_id},
+        {
+            "$set": {
+                "user_id": user.user_id,
+                "track_id": track_id,
+                f"quiz_scores.{lesson_id}": pct,
+                "updated_at": now_iso,
+            }
+        },
+        upsert=True,
+    )
+
+    xp_award = 0
+    first_pass = False
+    if passed:
+        # Atomic: only one writer increments XP per (user, track, lesson).
+        res = await db.education_progress.update_one(
+            {
+                "user_id": user.user_id,
+                "track_id": track_id,
+                "xp_awarded_lessons": {"$ne": lesson_id},
+            },
+            {"$addToSet": {"completed_lessons": lesson_id, "xp_awarded_lessons": lesson_id}},
+        )
+        if res.modified_count:
+            await db.users.update_one({"user_id": user.user_id}, {"$inc": {"xp": 50}})
+            xp_award = 50
+            first_pass = True
+        else:
+            await db.education_progress.update_one(
+                {"user_id": user.user_id, "track_id": track_id},
+                {"$addToSet": {"completed_lessons": lesson_id}},
+            )
 
     progress_doc = await db.education_progress.find_one(
         {"user_id": user.user_id, "track_id": track_id}, {"_id": 0}
     )
     completed_lessons = progress_doc.get("completed_lessons", []) if progress_doc else []
-    quiz_scores = progress_doc.get("quiz_scores", {}) if progress_doc else {}
-
-    first_pass = passed and lesson_id not in completed_lessons
-    xp_award = 0
-    if passed and lesson_id not in completed_lessons:
-        completed_lessons.append(lesson_id)
-        xp_award = 50
-
-    quiz_scores[lesson_id] = round(score * 100, 1)
-
-    await db.education_progress.update_one(
-        {"user_id": user.user_id, "track_id": track_id},
-        {"$set": {
-            "user_id": user.user_id, "track_id": track_id,
-            "completed_lessons": completed_lessons,
-            "quiz_scores": quiz_scores,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }},
-        upsert=True,
-    )
-
-    if xp_award:
-        await db.users.update_one({"user_id": user.user_id}, {"$inc": {"xp": xp_award}})
 
     return {
-        "score_pct": round(score * 100, 1),
+        "score_pct": pct,
         "correct": correct,
         "total": total,
         "passed": passed,
@@ -502,7 +629,7 @@ async def submit_lesson_quiz(
         "xp_earned": xp_award,
         "completed_lessons": completed_lessons,
         "results": [
-            {"correct_index": q["correct"], "your_answer": answers[i], "correct": answers[i] == q["correct"]}
+            {"your_answer": answers[i], "correct": answers[i] == q["correct"]}
             for i, q in enumerate(lesson["quiz"])
         ],
     }
@@ -539,73 +666,208 @@ async def get_progress(user: User = Depends(get_current_user)):
 # ============================================================
 
 @router.get("/kinesiology/final-assessment")
-async def get_kinesiology_final():
-    """Return the kinesiology final assessment questions (answers stripped)."""
+async def get_kinesiology_final_meta():
+    """Metadata only — questions come from ``POST .../final-assessment/start`` (EDU-08)."""
     fa = TRACKS["kinesiology"]["final_assessment"]
     return {
         "id": fa["id"],
         "title": fa["title"],
-        "questions": _strip_correct(fa["questions"]),
+        "question_count": len(fa["questions"]),
         "pass_threshold_pct": int(CERT_FINAL_THRESHOLD * 100),
+        "starts_via": "POST /api/education/kinesiology/final-assessment/start",
+    }
+
+
+@router.post("/kinesiology/final-assessment/start")
+async def start_kinesiology_final(user: User = Depends(get_current_user)):
+    """Begin a uniquely shuffled final attempt; returns attempt_token + questions (EDU-08)."""
+    await check_track_enrollment("kinesiology", user.user_id)
+    prog = await db.education_progress.find_one(
+        {"user_id": user.user_id, "track_id": "kinesiology"}, {"_id": 0}
+    ) or {}
+    na = prog.get("kin_final_next_attempt_at")
+    if na:
+        try:
+            until = datetime.fromisoformat(str(na).replace("Z", "+00:00"))
+            if until.tzinfo is None:
+                until = until.replace(tzinfo=timezone.utc)
+            now = datetime.now(timezone.utc)
+            if now < until:
+                remain = int((until - now).total_seconds())
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Final assessment cooldown after the last attempt — retry in {remain}s",
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
+    await db.kin_final_sessions.update_many(
+        {"user_id": user.user_id, "used": False},
+        {"$set": {"invalidated": True, "used": True}},
+    )
+
+    fa = TRACKS["kinesiology"]["final_assessment"]
+    raw_qs = fa["questions"]
+    display, meta = _shuffle_kin_final_questions(raw_qs)
+
+    attempt_token = uuid.uuid4().hex + uuid.uuid4().hex
+    now_ts = datetime.now(timezone.utc)
+    exp = now_ts + timedelta(hours=KIN_FINAL_SESSION_TTL_HOURS)
+    await db.kin_final_sessions.insert_one({
+        "attempt_token": attempt_token,
+        "user_id": user.user_id,
+        "question_meta": meta,
+        "created_at": now_ts,
+        "expires_at": exp,
+        "used": False,
+    })
+    return {
+        "attempt_token": attempt_token,
+        "id": fa["id"],
+        "title": fa["title"],
+        "questions": display,
+        "pass_threshold_pct": int(CERT_FINAL_THRESHOLD * 100),
+        "expires_at": exp.isoformat(),
     }
 
 
 @router.post("/kinesiology/final-assessment/submit")
 async def submit_kinesiology_final(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Submit the final assessment. Stores result on the kinesiology progress doc."""
-    fa = TRACKS["kinesiology"]["final_assessment"]
-    answers: List[int] = data.get("answers", [])
-    if len(answers) != len(fa["questions"]):
+    """Grade a server-issued attempt; on pass stores ``final_verified_receipt`` for certification (EDU-08)."""
+    await check_track_enrollment("kinesiology", user.user_id)
+    attempt_token = data.get("attempt_token")
+    answers = data.get("answers")
+    if not attempt_token or not isinstance(answers, list):
+        raise HTTPException(status_code=400, detail="attempt_token and answers[] required")
+
+    doc = await db.kin_final_sessions.find_one({"attempt_token": attempt_token, "user_id": user.user_id})
+    if not doc or doc.get("invalidated"):
+        raise HTTPException(status_code=400, detail="invalid or expired attempt")
+    if doc.get("used"):
+        raise HTTPException(status_code=400, detail="attempt already submitted")
+    
+    expires_at = doc["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    if getattr(expires_at, "tzinfo", None) is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="attempt expired")
+
+    meta = doc["question_meta"]
+    if len(answers) != len(meta):
         raise HTTPException(status_code=400, detail="answers length mismatch")
 
-    correct = sum(1 for i, q in enumerate(fa["questions"]) if answers[i] == q["correct"])
-    total = len(fa["questions"])
+    correct = sum(1 for i, m in enumerate(meta) if answers[i] == m["correct_index"])
+    total = len(meta)
     score = correct / total
     passed = score >= CERT_FINAL_THRESHOLD
+    pct = round(score * 100, 1)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # Atomic claim — only one concurrent submit can flip used:false (EDU-08 / Phase 6).
+    claim = await db.kin_final_sessions.update_one(
+        {"_id": doc["_id"], "used": False},
+        {"$set": {"used": True, "submitted_at": now_iso, "score_pct": pct, "passed": passed}},
+    )
+    if claim.modified_count != 1:
+        raise HTTPException(status_code=409, detail="attempt already submitted")
+
+    receipt: Optional[str] = uuid.uuid4().hex + uuid.uuid4().hex if passed else None
+
+    prev = await db.education_progress.find_one(
+        {"user_id": user.user_id, "track_id": "kinesiology"}, {"_id": 0}
+    )
+    had_pass = bool(prev and prev.get("final_passed"))
+
+    upd: Dict[str, Any] = {
+        "final_score_pct": pct,
+        "final_attempted_at": now_iso,
+    }
+    if passed:
+        upd["final_passed"] = True
+        upd["final_verified_receipt"] = receipt
+        upd["kin_final_next_attempt_at"] = None
+    else:
+        cooldown_until = datetime.now(timezone.utc) + timedelta(seconds=KIN_FINAL_COOLDOWN_SEC)
+        upd["kin_final_next_attempt_at"] = cooldown_until.isoformat()
+        if not had_pass:
+            upd["final_passed"] = False
+            upd["final_verified_receipt"] = None
 
     await db.education_progress.update_one(
         {"user_id": user.user_id, "track_id": "kinesiology"},
-        {"$set": {
-            "final_passed": passed,
-            "final_score_pct": round(score * 100, 1),
-            "final_attempted_at": datetime.now(timezone.utc).isoformat(),
-        }},
+        {"$set": upd},
         upsert=True,
     )
-    return {"score_pct": round(score * 100, 1), "passed": passed, "correct": correct, "total": total}
+
+    await db.education_progress.update_one(
+        {"user_id": user.user_id, "track_id": "kinesiology"},
+        {
+            "$push": {
+                "kin_final_attempt_history": {
+                    "$each": [{"at": now_iso, "passed": passed, "score_pct": pct}],
+                    "$slice": -30,
+                },
+            },
+        },
+    )
+
+    out: Dict[str, Any] = {"score_pct": pct, "passed": passed, "correct": correct, "total": total}
+    if receipt:
+        out["final_verified_receipt"] = receipt
+    return out
 
 
 @router.get("/kinesiology/eligibility")
 async def kinesiology_eligibility(user: User = Depends(get_current_user)):
     """Check whether the user meets all 4 prerequisites for the certificate."""
+    await check_track_enrollment("kinesiology", user.user_id)
     return await _build_kinesiology_eligibility(user)
 
 
 @router.post("/kinesiology/certify")
 async def claim_kinesiology_certificate(user: User = Depends(get_current_user)):
     """Issue the Applied Kinesiology Certificate if all gates pass."""
+    await check_track_enrollment("kinesiology", user.user_id)
+    
+    # Pre-check if already issued to avoid duplicate key errors and unnecessary writes
+    existing = await db.education_progress.find_one(
+        {"user_id": user.user_id, "track_id": "kinesiology"}, {"_id": 0}
+    )
+    if existing and existing.get("certificate_issued") is True:
+        return {"already_issued": True, "certificate_id": existing["certificate_id"], "issued_at": existing.get("issued_at")}
+
     elig = await _build_kinesiology_eligibility(user)
     if not elig["all_met"]:
         raise HTTPException(status_code=400, detail={"message": "Eligibility not met", "checks": elig["checks"]})
 
-    existing = await db.education_progress.find_one(
-        {"user_id": user.user_id, "track_id": "kinesiology", "certificate_issued": True},
-        {"_id": 0},
-    )
-    if existing and existing.get("certificate_id"):
-        return {"already_issued": True, "certificate_id": existing["certificate_id"], "issued_at": existing.get("issued_at")}
-
     cert_id = f"FEL-AK-{uuid.uuid4().hex[:10].upper()}"
     now = datetime.now(timezone.utc).isoformat()
-    await db.education_progress.update_one(
-        {"user_id": user.user_id, "track_id": "kinesiology"},
+    res = await db.education_progress.update_one(
+        {
+            "user_id": user.user_id,
+            "track_id": "kinesiology",
+            "certificate_issued": {"$ne": True},
+        },
         {"$set": {
             "certificate_issued": True,
             "certificate_id": cert_id,
             "issued_at": now,
         }},
-        upsert=True,
+        upsert=False,
     )
+    issued_new = bool(res.modified_count)
+    if not issued_new:
+        doc = await db.education_progress.find_one(
+            {"user_id": user.user_id, "track_id": "kinesiology"}, {"_id": 0}
+        )
+        if doc and doc.get("certificate_id"):
+            return {"already_issued": True, "certificate_id": doc["certificate_id"], "issued_at": doc.get("issued_at")}
+        raise HTTPException(status_code=409, detail="Certificate already issued")
+
     await db.users.update_one({"user_id": user.user_id}, {"$inc": {"xp": 1000}})
     return {
         "certificate_id": cert_id,
@@ -631,14 +893,24 @@ async def _build_kinesiology_eligibility(user: User) -> Dict[str, Any]:
     bd_modules = set(bd_doc.get("modules_completed", []))
     bd_done = set(BIO_DIGITAL_REQUIRED_MODULES).issubset(bd_modules)
 
-    prq_ok = (user.prq_score or 0.0) >= KINESIOLOGY_PRQ_GATE
-    final_ok = bool(prog.get("final_passed", False))
+    verified = getattr(user, "verified_performance_prq", None)
+    if verified is not None:
+        prq_ok = float(verified) >= KINESIOLOGY_PRQ_GATE
+        prq_detail = f"Verified competitive PRQ {float(verified):.1f} / {KINESIOLOGY_PRQ_GATE} required"
+    else:
+        prq_ok = False
+        prq_detail = "No verified competitive PRQ on file — complete a measured Lab assessment (demo/readiness scores do not qualify)"
+
+    final_ok = bool(prog.get("final_passed")) and bool(prog.get("final_verified_receipt"))
 
     checks = {
         "coursework_completed": {"met": coursework_done, "detail": f"{len(completed & needed_lessons)}/{len(needed_lessons)} lessons passed"},
         "bio_digital_modules": {"met": bd_done, "detail": f"{len(bd_modules & set(BIO_DIGITAL_REQUIRED_MODULES))}/{len(BIO_DIGITAL_REQUIRED_MODULES)} required overlays mastered"},
-        "prq_threshold": {"met": prq_ok, "detail": f"PRQ {user.prq_score:.1f} / {KINESIOLOGY_PRQ_GATE} required"},
-        "final_assessment": {"met": final_ok, "detail": "Final assessment passed" if final_ok else "Final assessment not yet passed"},
+        "prq_threshold": {"met": prq_ok, "detail": prq_detail},
+        "final_assessment": {
+            "met": final_ok,
+            "detail": "Final assessment passed (verified attempt)" if final_ok else "Pass the server-proctored final assessment with a verified receipt",
+        },
     }
     return {"all_met": all(c["met"] for c in checks.values()), "checks": checks}
 
@@ -647,15 +919,78 @@ async def _build_kinesiology_eligibility(user: User) -> Dict[str, Any]:
 # BIO-DIGITAL MODULE COMPLETION (mark anatomy module as mastered)
 # ============================================================
 
+
+class BioDigitalBeginBody(BaseModel):
+    module_id: str = Field(..., min_length=3, max_length=64)
+
+
+class BioDigitalCompleteBody(BaseModel):
+    module_id: str = Field(..., min_length=3, max_length=64)
+    completion_receipt: str = Field(..., min_length=8, max_length=128)
+
+
+@router.post("/bio-digital/begin-module")
+async def begin_bio_digital_module(body: BioDigitalBeginBody, user: User = Depends(get_current_user)):
+    """Issue a short-lived receipt — ``complete-module`` must reference it (pairs with a real Bio-Digital session)."""
+    if body.module_id not in BIO_DIGITAL_ALLOWED_MODULES:
+        raise HTTPException(status_code=400, detail="unknown module_id")
+    receipt = uuid.uuid4().hex + uuid.uuid4().hex
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(hours=BIO_DIGITAL_RECEIPT_TTL_HOURS)
+    await db.bio_digital_completion_receipts.insert_one({
+        "receipt": receipt,
+        "user_id": user.user_id,
+        "module_id": body.module_id,
+        "issued_at": now,
+        "expires_at": exp,
+        "used": False,
+    })
+    return {"completion_receipt": receipt, "expires_in_hours": BIO_DIGITAL_RECEIPT_TTL_HOURS}
+
+
 @router.post("/bio-digital/complete-module")
-async def complete_bio_digital_module(data: Dict[str, Any], user: User = Depends(get_current_user)):
+async def complete_bio_digital_module(body: BioDigitalCompleteBody, user: User = Depends(get_current_user)):
     """Mark a bio-digital anatomy module as mastered (used by Kinesiology gating)."""
-    module_id = data.get("module_id")
-    if not module_id:
-        raise HTTPException(status_code=400, detail="module_id required")
+    if body.module_id not in BIO_DIGITAL_ALLOWED_MODULES:
+        raise HTTPException(status_code=400, detail="unknown module_id")
+
+    now = datetime.now(timezone.utc)
+    rcpt = await db.bio_digital_completion_receipts.find_one(
+        {
+            "receipt": body.completion_receipt,
+            "user_id": user.user_id,
+            "module_id": body.module_id,
+            "used": False,
+            "expires_at": {"$gt": now},
+        }
+    )
+    if not rcpt:
+        raise HTTPException(status_code=400, detail="invalid or expired completion_receipt")
+
+    issued = rcpt.get("issued_at")
+    if issued is not None and BIO_DIGITAL_MIN_ACTIVE_SECONDS > 0:
+        if isinstance(issued, str):
+            issued = datetime.fromisoformat(str(issued).replace("Z", "+00:00"))
+        if getattr(issued, "tzinfo", None) is None:
+            issued = issued.replace(tzinfo=timezone.utc)
+        elapsed = (now - issued).total_seconds()
+        if elapsed < BIO_DIGITAL_MIN_ACTIVE_SECONDS:
+            need = int(BIO_DIGITAL_MIN_ACTIVE_SECONDS - elapsed) + 1
+            raise HTTPException(
+                status_code=429,
+                detail=f"Minimum module engagement not met — wait ~{need}s before completing (anti shortcut)",
+            )
+
+    consumed = await db.bio_digital_completion_receipts.update_one(
+        {"_id": rcpt["_id"], "used": False},
+        {"$set": {"used": True, "used_at": now.isoformat()}},
+    )
+    if consumed.modified_count != 1:
+        raise HTTPException(status_code=409, detail="completion receipt already consumed")
+
     doc = await db.bio_digital_progress.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
     modules = set(doc.get("modules_completed", []))
-    modules.add(module_id)
+    modules.add(body.module_id)
     await db.bio_digital_progress.update_one(
         {"user_id": user.user_id},
         {"$set": {

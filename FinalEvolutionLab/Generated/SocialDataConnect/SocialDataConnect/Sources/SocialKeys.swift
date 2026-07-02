@@ -6,6 +6,118 @@ import FirebaseDataConnect
 
 
 
+public struct CardMarketListingKey {
+  
+  public private(set) var id: UUID
+  
+
+  enum CodingKeys: String, CodingKey {
+    
+    case  id
+    
+  }
+}
+
+extension CardMarketListingKey : Codable {
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+  }
+
+  public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(id, forKey: .id, container: &container)
+      
+      
+    }
+}
+
+extension CardMarketListingKey : Equatable {
+  public static func == (lhs: CardMarketListingKey, rhs: CardMarketListingKey) -> Bool {
+    
+    if lhs.id != rhs.id {
+      return false
+    }
+    
+    return true
+  }
+}
+
+extension CardMarketListingKey : Hashable {
+  public func hash(into hasher: inout Hasher) {
+    
+    hasher.combine(self.id)
+    
+  }
+}
+
+extension CardMarketListingKey : Sendable {}
+
+
+
+public struct CoachCritiqueRequestKey {
+  
+  public private(set) var id: UUID
+  
+
+  enum CodingKeys: String, CodingKey {
+    
+    case  id
+    
+  }
+}
+
+extension CoachCritiqueRequestKey : Codable {
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+  }
+
+  public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(id, forKey: .id, container: &container)
+      
+      
+    }
+}
+
+extension CoachCritiqueRequestKey : Equatable {
+  public static func == (lhs: CoachCritiqueRequestKey, rhs: CoachCritiqueRequestKey) -> Bool {
+    
+    if lhs.id != rhs.id {
+      return false
+    }
+    
+    return true
+  }
+}
+
+extension CoachCritiqueRequestKey : Hashable {
+  public func hash(into hasher: inout Hasher) {
+    
+    hasher.combine(self.id)
+    
+  }
+}
+
+extension CoachCritiqueRequestKey : Sendable {}
+
+
+
 public struct CommentKey {
   
   public private(set) var id: UUID
@@ -59,6 +171,62 @@ extension CommentKey : Hashable {
 }
 
 extension CommentKey : Sendable {}
+
+
+
+public struct CreatorCardKey {
+  
+  public private(set) var id: UUID
+  
+
+  enum CodingKeys: String, CodingKey {
+    
+    case  id
+    
+  }
+}
+
+extension CreatorCardKey : Codable {
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+  }
+
+  public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(id, forKey: .id, container: &container)
+      
+      
+    }
+}
+
+extension CreatorCardKey : Equatable {
+  public static func == (lhs: CreatorCardKey, rhs: CreatorCardKey) -> Bool {
+    
+    if lhs.id != rhs.id {
+      return false
+    }
+    
+    return true
+  }
+}
+
+extension CreatorCardKey : Hashable {
+  public func hash(into hasher: inout Hasher) {
+    
+    hasher.combine(self.id)
+    
+  }
+}
+
+extension CreatorCardKey : Sendable {}
 
 
 
@@ -187,6 +355,134 @@ extension PostKey : Hashable {
 }
 
 extension PostKey : Sendable {}
+
+
+
+public struct ShardLedgerKey {
+  
+  public private(set) var id: UUID
+  
+
+  enum CodingKeys: String, CodingKey {
+    
+    case  id
+    
+  }
+}
+
+extension ShardLedgerKey : Codable {
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    self.id = try codecHelper.decode(UUID.self, forKey: .id, container: &container)
+    
+  }
+
+  public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(id, forKey: .id, container: &container)
+      
+      
+    }
+}
+
+extension ShardLedgerKey : Equatable {
+  public static func == (lhs: ShardLedgerKey, rhs: ShardLedgerKey) -> Bool {
+    
+    if lhs.id != rhs.id {
+      return false
+    }
+    
+    return true
+  }
+}
+
+extension ShardLedgerKey : Hashable {
+  public func hash(into hasher: inout Hasher) {
+    
+    hasher.combine(self.id)
+    
+  }
+}
+
+extension ShardLedgerKey : Sendable {}
+
+
+
+public struct UserOwnedCreatorCardKey {
+  
+  public private(set) var userId: UUID
+  
+  public private(set) var creatorCardId: UUID
+  
+
+  enum CodingKeys: String, CodingKey {
+    
+    case  userId
+    
+    case  creatorCardId
+    
+  }
+}
+
+extension UserOwnedCreatorCardKey : Codable {
+  public init(from decoder: any Decoder) throws {
+    var container = try decoder.container(keyedBy: CodingKeys.self)
+    let codecHelper = CodecHelper<CodingKeys>()
+
+    
+    self.userId = try codecHelper.decode(UUID.self, forKey: .userId, container: &container)
+    
+    self.creatorCardId = try codecHelper.decode(UUID.self, forKey: .creatorCardId, container: &container)
+    
+  }
+
+  public func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      let codecHelper = CodecHelper<CodingKeys>()
+      
+      
+      try codecHelper.encode(userId, forKey: .userId, container: &container)
+      
+      
+      
+      try codecHelper.encode(creatorCardId, forKey: .creatorCardId, container: &container)
+      
+      
+    }
+}
+
+extension UserOwnedCreatorCardKey : Equatable {
+  public static func == (lhs: UserOwnedCreatorCardKey, rhs: UserOwnedCreatorCardKey) -> Bool {
+    
+    if lhs.userId != rhs.userId {
+      return false
+    }
+    
+    if lhs.creatorCardId != rhs.creatorCardId {
+      return false
+    }
+    
+    return true
+  }
+}
+
+extension UserOwnedCreatorCardKey : Hashable {
+  public func hash(into hasher: inout Hasher) {
+    
+    hasher.combine(self.userId)
+    
+    hasher.combine(self.creatorCardId)
+    
+  }
+}
+
+extension UserOwnedCreatorCardKey : Sendable {}
 
 
 

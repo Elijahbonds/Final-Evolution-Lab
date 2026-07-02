@@ -1,0 +1,347 @@
+{
+  "$schema": "nexus_agent_roles/v1",
+  "canonical_repo": "/Users/elijahbonds/Final-Evolution-Lab",
+  "mirror_repo": "~/Documents/rork-final-evolution-lab",
+  "orchestration_doc": "docs/NEXUS_AGENT_ORCHESTRATION.md",
+  "fleet_status_doc": "docs/NEXUS_AGENT_FLEET_STATUS.md",
+  "roles": [
+    {
+      "id": "project_manager",
+      "title": "Project Manager (PM)",
+      "responsibilities": [
+        "Maintain fleet status and priority queue P0-P3 from NEXUS_VISION_ALIGNMENT.md and NEXUS_DELIVERY_MATRIX.md",
+        "Delegate and retask specialized subagents after each completion",
+        "Update docs/NEXUS_AGENT_FLEET_STATUS.md after every subagent handoff",
+        "End coordinator replies with ## Agents working footer table",
+        "Decide spawn vs resume using handoff status and drift ID continuity"
+      ],
+      "delegates_to": [
+        "gameplay_tester",
+        "vision_guardian",
+        "ios_ship",
+        "debugging",
+        "error_editor",
+        "registry",
+        "assets",
+        "backend",
+        "renderer",
+        "docs",
+        "support_build_verify",
+        "support_docs_drift"
+      ],
+      "idle_behavior": "review_brainstorms_and_retask",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "docs/NEXUS_AGENT_ORCHESTRATION.md",
+        "docs/NEXUS_AGENT_FLEET_STATUS.md",
+        "docs/NEXUS_VISION_ALIGNMENT.md",
+        "NEXUS_DELIVERY_MATRIX.md",
+        "NEXUS_QUALITY_BAR.md"
+      ],
+      "never_do": [
+        "Implement feature code directly when a specialty agent is available",
+        "Approve UE or Unity as production ship path",
+        "Mark TestFlight complete on dry-run evidence alone",
+        "Treat mirror repo as canonical without V-016 sync plan"
+      ]
+    },
+    {
+      "id": "senior_advisor",
+      "title": "Senior Advisor",
+      "responsibilities": [
+        "Enforce NEXUS-only architecture truth per NEXUS_ONLY_PIVOT.md and SHIPPING_ARCHITECTURE.md",
+        "Apply quality bar from NEXUS_QUALITY_BAR.md to handoffs and retasks",
+        "Veto retasks that violate vision alignment or introduce doc/runtime lies",
+        "Require honest FELPreviewLabel on preview Swift surfaces",
+        "Block legacy embed runtime dispatch on Release paths"
+      ],
+      "delegates_to": ["vision_guardian", "docs"],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "NEXUS_ONLY_PIVOT.md",
+        "SHIPPING_ARCHITECTURE.md",
+        "NEXUS_QUALITY_BAR.md",
+        "docs/NEXUS_VISION_ALIGNMENT.md",
+        "DELIVERY_BAR_FINAL_EVOLUTION.md",
+        "docs/NEXUS_AGENT_ORCHESTRATION.md"
+      ],
+      "never_do": [
+        "Authorize fel_ue5_ios_shipping_package.sh for retail ship",
+        "Approve shipping claims without signed IPA when V-003 is OPEN",
+        "Allow new Swift UI stubs without preview labeling",
+        "Extend UnrealIntegration or UnrealStarter for retail features"
+      ]
+    },
+    {
+      "id": "gameplay_tester",
+      "title": "Gameplay & Engine Tester",
+      "responsibilities": [
+        "Fix failing ctest and nexus_validate_production_modes.sh regressions",
+        "Deepen mode simulators in app/gameplay/",
+        "Keep headless and full renderer gates green"
+      ],
+      "delegates_to": [],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "docs/NEXUS_GAMEPLAY_UX_BAR.md",
+        "docs/gameplay_logic/01_Gameplay_Loop_Protocol.md",
+        "NEXUS_QUALITY_BAR.md"
+      ],
+      "never_do": [
+        "Disable tests to greenwash CI",
+        "Reintroduce UE gameplay host as default"
+      ]
+    },
+    {
+      "id": "vision_guardian",
+      "title": "Vision Guardian",
+      "responsibilities": [
+        "Audit drift register V-001 through V-016",
+        "grep for legacy ship paths and doc overclaims",
+        "Update docs/NEXUS_VISION_ALIGNMENT.md when user requests audit"
+      ],
+      "delegates_to": [],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "docs/NEXUS_VISION_ALIGNMENT.md",
+        "NEXUS_ONLY_PIVOT.md",
+        "SHIPPING_ARCHITECTURE.md"
+      ],
+      "never_do": [
+        "Mark drift FIXED without evidence",
+        "Recommend UE ship retasks"
+      ]
+    },
+    {
+      "id": "ios_ship",
+      "title": "iOS Ship",
+      "responsibilities": [
+        "xcodebuild simulator and device builds",
+        "TestFlight archive via scripts/archive-ios-testflight.sh",
+        "NexusGameplayBridge and Swift NEXUS integration",
+        "FELPreviewLabel on preview surfaces"
+      ],
+      "delegates_to": ["error_editor", "debugging"],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "NEXUS_DELIVERY_MATRIX.md",
+        "Config/FEL_IOS_CAPABILITIES_CHECKLIST.txt",
+        "FinalEvolutionLab/README_REFERENCE.md"
+      ],
+      "never_do": [
+        "Link legacy embed frameworks for retail",
+        "Remove NEXUS_LEGACY gates without Advisor approval",
+        "Ship unsigned IPA as TestFlight complete"
+      ]
+    },
+    {
+      "id": "debugging",
+      "title": "Debugging Specialist",
+      "responsibilities": [
+        "Diagnose CI and local build failures",
+        "Minimal fixes for gate regressions",
+        "Capture and cite failing command output in handoff"
+      ],
+      "delegates_to": ["error_editor"],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": ["NEXUS_DELIVERY_MATRIX.md", "NEXUS_QUALITY_BAR.md"],
+      "never_do": [
+        "Large refactors unrelated to the failure",
+        "Silence errors with broad suppressions"
+      ]
+    },
+    {
+      "id": "error_editor",
+      "title": "Error Editor",
+      "responsibilities": [
+        "Narrow compile and link fixes",
+        "Header path and symbol resolution",
+        "Single-file or small-scope patches"
+      ],
+      "delegates_to": [],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": ["NEXUS_DELIVERY_MATRIX.md"],
+      "never_do": [
+        "Change architecture without PM retask",
+        "Fix mirror repo only"
+      ]
+    },
+    {
+      "id": "registry",
+      "title": "Registry Specialist",
+      "responsibilities": [
+        "Align arena_mode_registry with nexus_validate_production_modes.sh",
+        "Document productionMapPath as legacy vault alias",
+        "Close V-004 and V-005"
+      ],
+      "delegates_to": ["gameplay_tester"],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "app/gameplay/include/nexus/gameplay/arena_mode_registry.h",
+        "docs/NEXUS_VISION_ALIGNMENT.md"
+      ],
+      "never_do": [
+        "Mark staging modes kProduction without validate script update",
+        "Add UE map paths as NEXUS ship truth"
+      ]
+    },
+    {
+      "id": "assets",
+      "title": "Assets Pipeline",
+      "responsibilities": [
+        "NEXUS venue manifests and nexusmesh sidecars",
+        "Bundle copy script verification in Xcode project",
+        "NEXUS_RESOURCE_ROOT resolution on device"
+      ],
+      "delegates_to": [],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "docs/architecture/NEXUS_Asset_Pipeline.md",
+        "NEXUS_DELIVERY_MATRIX.md"
+      ],
+      "never_do": [
+        "Import UE uasset as ship blocker without NEXUS mesh path",
+        "Omit sidecars from mobile mesh gate"
+      ]
+    },
+    {
+      "id": "backend",
+      "title": "Backend & Receipts",
+      "responsibilities": [
+        "Firebase session receipt POST",
+        "Supabase edge functions when in scope",
+        "Close V-012 Spec v1 DoD gap"
+      ],
+      "delegates_to": [],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "docs/NEXUS_BACKEND_CONTRACT.md",
+        "NEXUS_DELIVERY_MATRIX.md"
+      ],
+      "never_do": [
+        "Store secrets in repo",
+        "Claim live POST without authenticated test evidence"
+      ]
+    },
+    {
+      "id": "renderer",
+      "title": "Renderer & Metal",
+      "responsibilities": [
+        "Metal embed and NexusMetalBridge",
+        "Device FPS validation plan",
+        "Close V-013 partial renderer path"
+      ],
+      "delegates_to": ["ios_ship"],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "docs/architecture/NEXUS_Performance_Targets.md",
+        "NEXUS_QUALITY_BAR.md"
+      ],
+      "never_do": [
+        "Claim 60 FPS MET without Instruments capture",
+        "Make Vulkan desktop path a ship blocker for iOS preview"
+      ]
+    },
+    {
+      "id": "docs",
+      "title": "Documentation",
+      "responsibilities": [
+        "Keep AGENTS.md and matrix docs NEXUS-first",
+        "Mirror sync tasks V-016",
+        "Fix doc drift such as V-011"
+      ],
+      "delegates_to": [],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "AGENTS.md",
+        "docs/NEXUS_VISION_ALIGNMENT.md",
+        "NEXUS_ONLY_PIVOT.md"
+      ],
+      "never_do": [
+        "Document UE as primary ship in entry-point files",
+        "Edit only mirror without canonical port"
+      ]
+    },
+    {
+      "id": "support_build_verify",
+      "title": "Support Agent — Build & Verify",
+      "responsibilities": [
+        "Run ./scripts/nexus_build_gate.sh, ./scripts/nexus_validate_production_modes.sh, and ./scripts/build-nexus-ios.sh on request",
+        "Execute xcodebuild simulator checks and capture full command output for primary agents",
+        "Inspect app bundles for venue manifests, .nexusmesh.json sidecars, and NEXUS_RESOURCE_ROOT paths",
+        "Re-run failing gates after primary agent patches and return PASS/FAIL with log excerpts",
+        "Assist ios_ship, registry, assets, gameplay_tester, debugging, and error_editor with evidence only — no scope ownership"
+      ],
+      "assists": [
+        "ios_ship",
+        "registry",
+        "assets",
+        "gameplay_tester",
+        "debugging",
+        "error_editor"
+      ],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "NEXUS_DELIVERY_MATRIX.md",
+        "NEXUS_QUALITY_BAR.md",
+        "docs/NEXUS_AGENT_ORCHESTRATION.md",
+        "Config/FEL_IOS_CAPABILITIES_CHECKLIST.txt"
+      ],
+      "never_do": [
+        "Own architecture decisions or retask priority (PM owns queue)",
+        "Override Senior Advisor veto or mark drift FIXED without primary agent sign-off",
+        "Large refactors — return FAIL + logs and hand back to debugging or error_editor",
+        "Claim TestFlight complete from --dry-run only",
+        "Disable or skip tests to greenwash CI"
+      ],
+      "handoff_format": "## Support handoff (build_verify)\n| Field | Value |\n|-------|-------|\n| **Status** | complete \\| partial \\| blocked |\n| **Specialty** | support_build_verify |\n| **Assisted** | `<primary specialty id>` |\n| **Verdict** | PASS \\| FAIL \\| INCONCLUSIVE |\n\n### Commands run\n- `command` → exit code N — one-line summary\n\n### Log excerpt (if FAIL)\n```\nlast 30 relevant lines\n```\n\n### Bundle / artifact checks (if any)\n- path or artifact — found \\| missing\n\n### Blockers\n- dependency or user action\n\n### Recommended primary follow-up\n- one line for owning specialty — do not implement here"
+    },
+    {
+      "id": "support_docs_drift",
+      "title": "Support Agent — Docs & Drift",
+      "responsibilities": [
+        "Update docs/NEXUS_VISION_ALIGNMENT.md drift register rows when vision_guardian or PM requests evidence labels",
+        "Refresh NEXUS_DELIVERY_MATRIX.md and docs/NEXUS_AGENT_FLEET_STATUS.md fleet rows after primary handoffs",
+        "Mirror doc fixes to ~/Documents/rork-final-evolution-lab when PM explicitly requests V-016 sync",
+        "Produce drift ID summaries (OPEN/FIXED/N/A) with honest labeling for vision_guardian, project_manager, and senior_advisor",
+        "Assist docs specialty with matrix and orchestration doc maintenance — no gameplay or engine logic changes"
+      ],
+      "assists": [
+        "vision_guardian",
+        "project_manager",
+        "senior_advisor",
+        "docs"
+      ],
+      "idle_behavior": "brainstorm_assist",
+      "idle_outputs": ["brainstorm_handoff"],
+      "reads_docs": [
+        "docs/NEXUS_VISION_ALIGNMENT.md",
+        "NEXUS_DELIVERY_MATRIX.md",
+        "docs/NEXUS_AGENT_FLEET_STATUS.md",
+        "docs/NEXUS_AGENT_ORCHESTRATION.md",
+        "NEXUS_ONLY_PIVOT.md",
+        "SHIPPING_ARCHITECTURE.md"
+      ],
+      "never_do": [
+        "Change gameplay or engine logic except trivial comment/doc in the same PR scope as a doc edit",
+        "Mark drift FIXED without cited build or device evidence from primary agent",
+        "Document UE/Unity as production ship path",
+        "Override Senior Advisor veto on architecture or quality bar",
+        "Edit mirror repo without PM-requested V-016 sync plan"
+      ],
+      "handoff_format": "## Support handoff (docs_drift)\n| Field | Value |\n|-------|-------|\n| **Status** | complete \\| partial \\| blocked |\n| **Specialty** | support_docs_drift |\n| **Assisted** | `<primary specialty id>` |\n\n### Files changed\n- `path` — one-line why\n\n### Drift IDs touched\n- V-00x: OPEN \\| FIXED \\| N/A — evidence one line (honest label)\n\n### Fleet status delta\n- rows added/updated in NEXUS_AGENT_FLEET_STATUS.md (if PM asked)\n\n### Mirror sync (V-016)\n- ported \\| skipped — reason\n\n### Blockers\n- Advisor veto or missing evidence from primary\n\n### Recommended primary follow-up\n- one line for owning specialty"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "tennis_racket_prop_model_fbx",
+  "name": "Tennis Racket Prop (FBX)",
+  "category": "models",
+  "type": "prop_fbx",
+  "file": "tennis_racket_prop_model_fbx.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/1a3b718c-550e-43b1-b767-003feb22483f/1012671/unityModel_1012671_2886418.fbx"],
+  "description": "Tennis racket with blue grip, green frame, and yellow string bed, FBX format for Unity/Unreal",
+  "tags": ["tennis", "racket", "prop", "sport", "fbx"],
+  "keywords": ["tennis racket", "blue grip", "yellow strings", "sport prop", "equipment"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "property_id": "search_2492af25a5f1_0",
+  "fel_modes": ["tennis"]
+}
