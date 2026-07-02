@@ -1,8 +1,12 @@
 """Phase 1 economy checkpoint tests."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from app.schemas.session_receipt import SessionReceiptIn
 from app.services.economy_engine import economy_engine
+from app.utils.constants import PRQ_MODE_WEIGHTS
 from app.utils.formulas import calculate_mri, calculate_prq_delta, calculate_shards, grade_mri, grade_prq
 
 
@@ -26,6 +30,21 @@ def test_phase1_basketball_h2h_checkpoint() -> None:
     assert result.shards == 84
     assert result.prq_delta == 3.29
     assert result.pacing_bonus_applied is True
+
+
+def test_prq_mode_weights_match_production_registry() -> None:
+    registry_path = Path(__file__).resolve().parents[1] / "FEL_ModeManager.production.json"
+    registry = json.loads(registry_path.read_text())["mode_manager"]["mode_registry"]
+
+    for mode_id, config in registry.items():
+        if "prq_weight" not in config:
+            continue
+        assert mode_id in PRQ_MODE_WEIGHTS
+        assert PRQ_MODE_WEIGHTS[mode_id] == config["prq_weight"]
+
+    assert PRQ_MODE_WEIGHTS["basketball_dunk_irl"] == 1.5
+    assert PRQ_MODE_WEIGHTS["who_scene_it"] == 1.1
+    assert PRQ_MODE_WEIGHTS["court_carnival"] == 1.0
 
 
 def test_xp_caps_at_500() -> None:

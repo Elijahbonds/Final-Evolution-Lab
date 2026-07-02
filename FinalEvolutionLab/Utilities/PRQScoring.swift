@@ -66,7 +66,8 @@ nonisolated enum PRQ: Sendable {
     static func modeWeight(for mode: GameModeId) -> Double {
         switch mode {
         case .basketballHeadToHead, .venicePickup: 1.2
-        case .basketballDunkContestIRL, .basketballDunkContest3D: 1.0
+        case .basketballDunkContestIRL: 1.5
+        case .basketballDunkContest3D: 1.0
         case .basketball3v3: 1.3
         case .karate, .karateEndless: 1.4
         case .baseball: 1.0
@@ -76,9 +77,10 @@ nonisolated enum PRQ: Sendable {
         case .tennis: 1.1
         case .volleyball: 1.2
         case .gymnastics: 1.0
-        case .surfing, .skateboarding, .snowboarding: 1.05
-        case .brainBrawl, .whoSceneIt: 1.1
-        case .courtCarnival: 1.15
+        case .surfing: 1.05
+        case .skateboarding, .snowboarding: 0.9
+        case .brainBrawl, .courtCarnival: 1.0
+        case .whoSceneIt: 1.1
         case .marketBrowse: 0.0
         }
     }

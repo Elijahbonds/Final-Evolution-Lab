@@ -4,6 +4,7 @@ FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
 Tests each production mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
+import ast
 import json
 import sys
 import os
@@ -43,6 +44,29 @@ PRODUCTION_MODES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["status
 LAUNCHABLE_MODES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["launchable"]]
 NON_GAME_MODULES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["status"] == "non-game-module"]
 PREVIEW_MODES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["status"] == "preview"]
+
+
+def literal_assignment(path: Path, name: str):
+    module = ast.parse(path.read_text())
+    for node in module.body:
+        if isinstance(node, ast.Assign):
+            if any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+                return ast.literal_eval(node.value)
+    raise AssertionError(f"{name} not found in {path}")
+
+
+def literal_function_return(path: Path, name: str):
+    module = ast.parse(path.read_text())
+    for node in module.body:
+        if isinstance(node, ast.FunctionDef) and node.name == name:
+            for statement in node.body:
+                if isinstance(statement, ast.Return):
+                    return ast.literal_eval(statement.value)
+    raise AssertionError(f"{name} return literal not found in {path}")
+
+
+def seeded_ids_from_function(path: Path) -> set[str]:
+    return {mode["id"] for mode in literal_function_return(path, "get_seeded_game_modes")}
 
 
 def swift_ids_for(mode: str) -> list[str]:
@@ -225,21 +249,39 @@ def test_swift_enum():
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_server_seeded_modes():
     print("\n── Test 7: Server Seeded Game Modes ──")
-    server_path = REPO_ROOT / "backend" / "server.py"
-    content = server_path.read_text()
-
-    for mode in LAUNCHABLE_MODES:
-        candidate_ids = server_ids_for(mode)
-        if any(f'"id":"{candidate}"' in content or f'"id": "{candidate}"' in content for candidate in candidate_ids):
-            ok(f"{mode} in server seeded modes")
+    seeded_sources = {
+        "server.py": seeded_ids_from_function(REPO_ROOT / "backend" / "server.py"),
+        "routers/games.py": seeded_ids_from_function(REPO_ROOT / "backend" / "routers" / "games.py"),
+    }
+    for label, ids in seeded_sources.items():
+        for mode in RAW_REGISTRY:
+            if mode in ids:
+                ok(f"{mode} in {label} seeded modes")
+            else:
+                fail(f"{mode} missing from {label} seeded modes")
+        if "trivia_arena" in ids:
+            fail(f"trivia_arena legacy ghost mode still listed in {label}")
         else:
-            fail(f"{mode} missing from server.py seeded modes (checked {candidate_ids})")
+            ok(f"No trivia_arena ghost mode in {label}")
 
-    # Verify all mario_party references have been scrubbed
-    if 'mario_party' in content:
-        fail("mario_party still referenced in server.py — scrub incomplete")
-    else:
-        ok("No mario_party references in server.py")
+    shell_modes = {row[0] for row in literal_assignment(REPO_ROOT / "backend" / "app" / "routers" / "mechanics.py", "ARENA_MODES")}
+    for mode in RAW_REGISTRY:
+        if mode in shell_modes:
+            ok(f"{mode} in guide backend shell modes")
+        else:
+            fail(f"{mode} missing from guide backend shell modes")
+    for legacy_mode in ("trivia_arena", "karate"):
+        if legacy_mode in shell_modes:
+            fail(f"{legacy_mode} legacy alias still listed in guide backend shell modes")
+        else:
+            ok(f"No {legacy_mode} legacy alias in guide backend shell modes")
+
+    for rel_path in ("backend/server.py", "backend/routers/games.py"):
+        content = (REPO_ROOT / rel_path).read_text()
+        if "mario_party" in content:
+            fail(f"mario_party still referenced in {rel_path} — scrub incomplete")
+        else:
+            ok(f"No mario_party references in {rel_path}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 8: Economy Integration
@@ -264,18 +306,21 @@ def test_economy_integration():
         else:
             fail(f"{label} missing")
 
-    # Verify PRQ weights cover all scoring modes
-    scoring_modes = [
-        mode
-        for mode in PRODUCTION_MODES
-        if RAW_REGISTRY[mode].get("scoring_enabled", True) and mode not in ("basketball_dunk_irl",)
-    ]
-    for mode in scoring_modes:
-        candidate_ids = server_ids_for(mode)
-        if any(f'"{candidate}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0] for candidate in candidate_ids):
-            ok(f"PRQ weight defined for {mode}")
-        else:
-            fail(f"PRQ weight missing for {mode} (checked {candidate_ids})")
+    weight_sources = {
+        "server.py": literal_assignment(REPO_ROOT / "backend" / "server.py", "PRQ_MODE_WEIGHTS"),
+        "routers/games.py": literal_assignment(REPO_ROOT / "backend" / "routers" / "games.py", "PRQ_MODE_WEIGHTS"),
+        "app/utils/constants.py": literal_assignment(REPO_ROOT / "backend" / "app" / "utils" / "constants.py", "PRQ_MODE_WEIGHTS"),
+    }
+    for label, weights in weight_sources.items():
+        for mode, config in RAW_REGISTRY.items():
+            if "prq_weight" not in config:
+                continue
+            if mode not in weights:
+                fail(f"PRQ weight missing for {mode} in {label}")
+            elif weights[mode] != config["prq_weight"]:
+                fail(f"PRQ weight mismatch for {mode} in {label}: expected {config['prq_weight']}, got {weights[mode]}")
+            else:
+                ok(f"PRQ weight for {mode} matches registry in {label}")
 
 
 def main():

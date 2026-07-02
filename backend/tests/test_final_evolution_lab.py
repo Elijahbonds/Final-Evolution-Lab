@@ -84,7 +84,7 @@ class TestGameModes:
         assert response.status_code == 200
         modes = response.json()
         assert isinstance(modes, list)
-        assert len(modes) == 20, f"Expected 20 game modes, got {len(modes)}"
+        assert len(modes) == 22, f"Expected 22 registry game modes, got {len(modes)}"
         
         # Verify all modes have required fields
         for mode in modes:

@@ -1157,9 +1157,10 @@ PRQ_MODE_WEIGHTS = {
     "karate_h2h": 1.4,     "karate_endless": 1.4,
     "baseball": 1.0,       "football": 1.5,       "soccer": 1.1,
     "golf": 0.9,           "tennis": 1.1,          "volleyball": 1.2,
-    "surfing": 1.05,       "skateboarding": 1.0,   "snowboarding": 1.0,
-    "gymnastics": 1.0,     "brain_brawl": 0.8,
-    "who_scene_it": 0.7,   "court_carnival": 0.9,
+    "surfing": 1.05,       "skateboarding": 0.9,   "snowboarding": 0.9,
+    "gymnastics": 1.0,     "brain_brawl": 1.0,
+    "who_scene_it": 1.1,   "court_carnival": 1.0,
+    "market_browse": 0.0,  "movement_lab": 0.0,
 }
 
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
@@ -1378,7 +1379,9 @@ async def get_neurocognitive_baseline(user: User = Depends(get_current_user)):
 def get_seeded_game_modes():
     return [
         {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
-        {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"/images/ue5_basketball.png","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"NEXUS runtime alias for the 3D dunk contest","image_url":"/images/ue5_basketball.png","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk_3d","name":"3D H2H Dunk Contest","display_name":"3D H2H Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Hybrid 3D NEXUS dunk contest on the Venice blue court","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk_irl","name":"IRL H2H Dunk Contest","display_name":"IRL H2H Dunk Contest","venue":"Regulation Court","category":"Basketball","description":"Real-phone dunk recording with Vision pose and WDA/FIBA judging","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"camera"},
         {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"/images/ue5_basketball.png","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
         {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"/images/ue5_dojo.png","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
         {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"/images/ue5_dojo.png","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
@@ -1396,7 +1399,7 @@ def get_seeded_game_modes():
         {"id":"market_browse","name":"Module Library","display_name":"Module Library","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"/images/ue5_board.png","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
         {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"/images/ue5_soccer.png","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
         {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"/images/ue5_basketball.png","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"},
-        {"id":"trivia_arena","name":"Trivia Arena","display_name":"Trivia Arena · Academy","venue":"Neuro Arena","category":"Academy","description":"Spin the wheel and test your knowledge across 8 academic and sports categories","image_url":"/images/ue5_soccer.png","player_count":"1-4","duration":"10 min","difficulty":"Variable","playable":True,"game_type":"quiz"}
+        {"id":"movement_lab","name":"Movement Lab","display_name":"Movement Lab · Preview","venue":"Movement Lab","category":"Academy","description":"Interactive movement education preview with synthetic coaching labels","image_url":"/images/ue5_soccer.png","player_count":"1","duration":"Open","difficulty":"Preview","playable":False,"game_type":"education"}
     ]
 
 @api_router.get("/cards")

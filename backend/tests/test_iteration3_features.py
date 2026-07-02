@@ -317,16 +317,17 @@ class TestExistingFeaturesRegression:
         response = api_client.get(f"{BASE_URL}/api/games/modes")
         assert response.status_code == 200
         modes = response.json()
-        assert len(modes) == 20, f"Expected 20 game modes, got {len(modes)}"
+        assert len(modes) == 22, f"Expected 22 registry game modes, got {len(modes)}"
         
         # Verify expected modes exist
         mode_ids = [m["id"] for m in modes]
         expected_modes = [
-            "basketball_h2h", "basketball_dunk", "basketball_3v3",
+            "basketball_h2h", "basketball_dunk", "basketball_dunk_3d",
+            "basketball_dunk_irl", "basketball_3v3",
             "karate_h2h", "karate_endless", "baseball", "football",
             "soccer", "golf", "tennis", "volleyball", "gymnastics",
             "brain_brawl", "surfing", "skateboarding", "snowboarding", "market_browse",
-            "court_carnival", "who_scene_it", "trivia_arena"
+            "court_carnival", "who_scene_it", "movement_lab"
         ]
         for expected in expected_modes:
             assert expected in mode_ids, f"Missing game mode: {expected}"
