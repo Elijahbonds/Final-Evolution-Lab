@@ -3,6 +3,7 @@
 #include "nexus/assets/asset_manifest.h"
 #include "nexus/core/result.h"
 #include "nexus/renderer/arena_shader_spv.h"
+#include "nexus/renderer/material.h"
 #include "nexus/renderer/mesh.h"
 #include "nexus/renderer/mesh_lod.h"
 #include "nexus/core/log.h"
@@ -28,6 +29,10 @@ auto requiredValidationLayers() -> std::vector<const char*> {
 #else
   return {"VK_LAYER_KHRONOS_validation"};
 #endif
+}
+
+constexpr auto uniformBufferByteSize() -> VkDeviceSize {
+  return static_cast<VkDeviceSize>(sizeof(MaterialUniformBlock));
 }
 
 auto requiredDeviceExtensions() -> std::vector<const char*> {
@@ -468,7 +473,7 @@ auto VulkanRenderer::createPipelineResources() -> Result<void> {
   uboLayoutBinding.binding = 0;
   uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -726,7 +731,7 @@ auto VulkanRenderer::uploadSceneMeshes() -> Result<void> {
 auto VulkanRenderer::createDescriptorResources() -> Result<void> {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = sizeof(std::array<float, 16>);
+  bufferInfo.size = uniformBufferByteSize();
   bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -788,7 +793,7 @@ auto VulkanRenderer::createDescriptorResources() -> Result<void> {
   VkDescriptorBufferInfo bufferDescriptor{};
   bufferDescriptor.buffer = m_uniformBuffer;
   bufferDescriptor.offset = 0;
-  bufferDescriptor.range = sizeof(std::array<float, 16>);
+  bufferDescriptor.range = uniformBufferByteSize();
 
   VkWriteDescriptorSet descriptorWrite{};
   descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -874,7 +879,9 @@ void VulkanRenderer::updateUniformBuffer() {
       static_cast<float>(m_swapchainExtent.width) / static_cast<float>(m_swapchainExtent.height);
   m_scene.camera().setPerspective(50.0F, aspect, 0.1F, 100.0F);
   const auto viewProj = m_scene.camera().viewProjectionMatrix();
-  std::memcpy(m_uniformMapped, viewProj.data(), sizeof(viewProj));
+  const MaterialUniformBlock uniformBlock =
+      packMaterialUniform(MaterialLibrary{}.defaultVenueMaterial(), viewProj);
+  std::memcpy(m_uniformMapped, &uniformBlock, sizeof(uniformBlock));
 }
 
 void VulkanRenderer::advanceScene(double deltaSeconds) {
