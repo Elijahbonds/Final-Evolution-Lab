@@ -3,11 +3,11 @@ import Foundation
 /// Gates WebSocket-driven gameplay mutations so spoofed JSON cannot rewrite PRQ without a matched trusted session id (set by UE bridge or server after verification).
 enum EmergentRealtimeTrust {
     static func bindTrustedGameplaySession(id: String) {
-        UserDefaults.standard.set(id, forKey: Config.trustedGameplaySessionDefaultsKey)
+        UserDefaults.standard.set(id, forKey: Config.trustedUEGameplaySessionDefaultsKey)
     }
 
     static func clearTrustedGameplaySession() {
-        UserDefaults.standard.removeObject(forKey: Config.trustedGameplaySessionDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: Config.trustedUEGameplaySessionDefaultsKey)
     }
 
     static func extractSessionId(from obj: [String: Any]) -> String? {
@@ -26,7 +26,7 @@ enum EmergentRealtimeTrust {
         }
 #endif
         guard let sid = extractSessionId(from: obj), !sid.isEmpty else { return false }
-        let trusted = UserDefaults.standard.string(forKey: Config.trustedGameplaySessionDefaultsKey)
+        let trusted = UserDefaults.standard.string(forKey: Config.trustedUEGameplaySessionDefaultsKey)
         return trusted == sid
     }
 }
