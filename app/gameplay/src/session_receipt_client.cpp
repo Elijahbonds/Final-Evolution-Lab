@@ -109,7 +109,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (m_config.persistToDisk) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -119,7 +121,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
       remaining.push_back(std::move(receipt));
       remainingRetries.push_back(retries);
       if (m_config.persistToDisk) {
-        (void)persistReceipt(remaining.back());
+        if (persistReceipt(remaining.back()).has_value()) {
+          ++result.queued_on_disk;
+        }
       }
     } else {
       NEXUS_LOG_WARN(nexus::LogChannel::kAI,

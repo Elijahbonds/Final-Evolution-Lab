@@ -2084,12 +2084,82 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "stub HTTP-only flush does not report disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_real_http_success_does_not_report_disk_queue_when_disabled() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_204_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+  std::error_code ec;
+  std::filesystem::create_directories(tempDir, ec);
+  require(!ec, "create fake curl success temp dir");
+
+  const auto fakeCurl = tempDir / "curl";
+  {
+    std::ofstream script(fakeCurl, std::ios::trunc);
+    script << "#!/bin/sh\n";
+    script << "printf '204'\n";
+    script << "exit 0\n";
+    require(script.good(), "write fake curl success script");
+  }
+  std::filesystem::permissions(fakeCurl,
+                               std::filesystem::perms::owner_read |
+                                   std::filesystem::perms::owner_write |
+                                   std::filesystem::perms::owner_exec,
+                               ec);
+  require(!ec, "mark fake curl success executable");
+
+  const char* previousPathRaw = std::getenv("PATH");
+  const std::string previousPath = previousPathRaw != nullptr ? previousPathRaw : "";
+  const char* previousReceiptUrlRaw = std::getenv("NEXUS_RECEIPT_URL");
+  const std::string previousReceiptUrl =
+      previousReceiptUrlRaw != nullptr ? previousReceiptUrlRaw : "";
+  setenv("PATH", tempDir.string().c_str(), 1);
+  unsetenv("NEXUS_RECEIPT_URL");
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = (tempDir / "queue").string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"duration_seconds", 60},
+      {"completed", true},
+  });
+
+  const auto flush = client.flush();
+  require(flush.delivered == 1, "204 curl response delivers receipt");
+  require(flush.requeued == 0, "204 curl response does not requeue receipt");
+  require(flush.queued_on_disk == 0, "live HTTP-only success does not report disk queue");
+  require(client.pendingCount() == 0, "receipt cleared after 204");
+  require(client.postedRequests().size() == 1, "real curl success POST attempt recorded");
+  require(client.postedRequests().front().statusCode == 204, "actual 204 HTTP status captured");
+  require(!std::filesystem::exists(tempDir / "queue"), "HTTP-only success creates no queue dir");
+
+  if (previousPathRaw != nullptr) {
+    setenv("PATH", previousPath.c_str(), 1);
+  } else {
+    unsetenv("PATH");
+  }
+  if (previousReceiptUrlRaw != nullptr) {
+    setenv("NEXUS_RECEIPT_URL", previousReceiptUrl.c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_URL");
+  }
+  removeTreeBestEffort(tempDir);
 }
 
 void session_receipt_requeues_on_real_http_non_2xx() {
@@ -2142,6 +2212,7 @@ void session_receipt_requeues_on_real_http_non_2xx() {
   const auto flush = client.flush();
   require(flush.delivered == 0, "503 curl response is not delivered");
   require(flush.requeued == 1, "503 curl response requeues receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only 503 does not report disk queue");
   require(client.pendingCount() == 1, "receipt stays pending after 503");
   require(client.postedRequests().size() == 1, "real curl POST attempt recorded");
   require(client.postedRequests().front().statusCode == 503, "actual HTTP status captured");
@@ -2979,6 +3050,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_real_http_success_does_not_report_disk_queue_when_disabled();
   session_receipt_requeues_on_real_http_non_2xx();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
