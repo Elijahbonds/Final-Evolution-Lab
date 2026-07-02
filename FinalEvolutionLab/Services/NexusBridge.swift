@@ -80,12 +80,11 @@ final class NexusBridge {
     /// Delivers a system scan payload to NexusRenderer. Falls back gracefully if the
     /// JSON cannot be decoded; the renderer retains the latest valid PRQ value.
     func deliverSystemScanJSON(_ data: Data) {
-        guard let jsonString = String(data: data, encoding: .utf8) else {
+        guard String(data: data, encoding: .utf8) != nil else {
             Self.log.error("System scan bridge: invalid UTF-8 data (\(data.count) bytes)")
             return
         }
         Self.log.debug("System scan relay: \(data.count) bytes → NexusRenderer")
-        print("[NexusBridge] deliverSystemScanJSON: \(jsonString)")
 
         // Extract PRQ from the scan record and forward to renderer
         if let record = try? JSONDecoder().decode(SystemScanRecord.self, from: data) {

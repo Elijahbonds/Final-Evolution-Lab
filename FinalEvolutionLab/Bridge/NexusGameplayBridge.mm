@@ -38,7 +38,7 @@
  The C++ layer does not perform HTTP in v1; it only logs + writes queue files.
 
  Example Swift stop() sequence:
-   let result = NexusGameplayBridge.endArena(session, playerScore: score, opponentScore: 0)
+   let result = NexusGameplayBridge.endArena(session, playerScore: score, opponentScore: 0, useLiveScores: false)
    _ = NexusGameplayBridge.flushReceipts(session)
    NexusGameplayBridge.destroySession(session)
 */

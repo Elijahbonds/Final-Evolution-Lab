@@ -1616,7 +1616,7 @@ enum NexusGameplayBridge {
         _ session: NexusGameplayHandle?,
         playerScore: Float,
         opponentScore: Float,
-        useLiveScores: Bool = true
+        useLiveScores: Bool = false
     ) -> String? {
         guard let cString = nexus_gameplay_session_end_arena_with_authority(
             session,

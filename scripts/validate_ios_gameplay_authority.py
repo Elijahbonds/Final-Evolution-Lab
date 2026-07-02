@@ -65,6 +65,11 @@ def main() -> int:
         "Swift bridge wrapper must call the explicit score-authority helper",
         errors,
     )
+    require(
+        "static func endArena(\n        _ session: NexusGameplayHandle?,\n        playerScore: Float,\n        opponentScore: Float,\n        useLiveScores: Bool = false" in engine,
+        "Swift bridge endArena wrapper should default to Swift-visible score authority",
+        errors,
+    )
 
     stop_body = function_body(engine, "stop")
     sync_index = stop_body.find("syncScores(player: playerScore, opponent: opponentScore)")

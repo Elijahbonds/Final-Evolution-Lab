@@ -238,7 +238,7 @@ auto main(int argc, char** argv) -> int {
     return 1;
   }
 
-  std::cerr << "\n[NEXUS] macOS dev runtime — 3D venue preview (mode=" << options.modeId
+  std::cerr << "\n[NEXUS] desktop dev runtime — 3D venue preview (mode=" << options.modeId
             << ", venue=" << venueToken << ").\n"
             << "[NEXUS] Agent TCP: localhost:9090\n"
             << "[NEXUS] Dunk commands: fel.dunk.charge_begin / charge_release / apex_tap\n"

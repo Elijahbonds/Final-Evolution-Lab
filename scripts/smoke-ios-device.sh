@@ -57,8 +57,8 @@ D. Session end + receipt (DoD #4)
   1. Play one dunk or karate round → tap back / exit gameplay
   2. Xcode → Window → Devices and Simulators → select iPhone
   3. Download container → inspect:
-       Library/Application Support/.fel/pending_receipts/*.json
-     (or ~/Library/Containers/.../Data/... on simulator)
+       .fel/pending_receipts/*.json
+     (same NSHomeDirectory-relative queue as simulator ~/.fel/pending_receipts/)
   4. Relaunch app → foreground upload drains queue (HTTP 2xx when authed)
 
 E. Stability
@@ -81,6 +81,9 @@ cd "$ROOT"
 
 echo "==> iOS/NEXUS mode registry parity"
 python3 scripts/validate_ios_mode_registry.py
+
+echo "==> iOS gameplay score authority"
+python3 scripts/validate_ios_gameplay_authority.py
 
 echo "==> Headless ctest gate"
 ./scripts/smoke_gameplay_session.sh --skip-build

@@ -27,6 +27,9 @@ jobs:
       - name: Validate iOS/NEXUS runtime mode parity
         run: python3 scripts/validate_ios_mode_registry.py
 
+      - name: Validate iOS gameplay score authority
+        run: python3 scripts/validate_ios_gameplay_authority.py
+
       - name: Run NEXUS gameplay regression
         run: ./scripts/nexus_gameplay_regression.sh
 
