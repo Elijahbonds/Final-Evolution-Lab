@@ -842,6 +842,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto first = client.flush();
   require(first.delivered == 1, "first flush delivers receipt");
+  require(first.queued_on_disk == 1, "first flush reports disk queue");
 
   const auto receiptPath = tempDir / "abc123session.json";
   require(std::filesystem::exists(receiptPath), "receipt file keyed by telemetry.session_id");
@@ -850,6 +851,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto second = client.flush();
   require(second.delivered == 1, "re-flush delivers updated receipt");
+  require(second.queued_on_disk == 1, "re-flush reports disk queue");
 
   std::size_t jsonFileCount = 0;
   for (const auto& entry : std::filesystem::directory_iterator(tempDir)) {
@@ -2062,6 +2064,7 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only success does not report disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
@@ -2105,6 +2108,7 @@ void session_receipt_flush_requeues_on_non_2xx_post() {
   require(flush.attempted == 1, "non-2xx flush attempts receipt");
   require(flush.delivered == 0, "non-2xx flush does not deliver receipt");
   require(flush.requeued == 1, "non-2xx flush requeues receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only rejection does not report disk queue");
   require(client.pendingCount() == 1, "receipt remains pending after non-2xx POST");
   require(client.postedRequests().size() == 1, "non-2xx POST recorded");
   require(client.postedRequests().front().statusCode == 503, "recorded non-2xx status");
