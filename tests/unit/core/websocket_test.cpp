@@ -3,7 +3,14 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
+#include <thread>
+
+#include <netinet/in.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 namespace {
 
@@ -13,6 +20,67 @@ void require(bool condition, const char* message) {
     std::exit(1);
   }
 }
+
+class OneShotHttpServer {
+public:
+  explicit OneShotHttpServer(int statusCode) : m_statusCode(statusCode) {
+    m_fd = socket(AF_INET, SOCK_STREAM, 0);
+    require(m_fd >= 0, "test HTTP server socket");
+
+    const int enabled = 1;
+    (void)setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(bind(m_fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "test HTTP server bind");
+    require(listen(m_fd, 1) == 0, "test HTTP server listen");
+
+    socklen_t addressLength = sizeof(address);
+    require(getsockname(m_fd, reinterpret_cast<sockaddr*>(&address), &addressLength) == 0,
+            "test HTTP server port");
+    m_port = ntohs(address.sin_port);
+
+    m_thread = std::thread([this] { serveOnce(); });
+  }
+
+  ~OneShotHttpServer() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  void serveOnce() {
+    fd_set readySet;
+    FD_ZERO(&readySet);
+    FD_SET(m_fd, &readySet);
+    timeval timeout{5, 0};
+    const int ready = select(m_fd + 1, &readySet, nullptr, nullptr, &timeout);
+    const int client = ready > 0 ? accept(m_fd, nullptr, nullptr) : -1;
+    if (client >= 0) {
+      char buffer[1024];
+      (void)recv(client, buffer, sizeof(buffer), 0);
+      const std::string response = "HTTP/1.1 " + std::to_string(m_statusCode) +
+                                   " Service Unavailable\r\nContent-Length: 0\r\n"
+                                   "Connection: close\r\n\r\n";
+      (void)::send(client, response.data(), response.size(), 0);
+      close(client);
+    }
+    close(m_fd);
+  }
+
+  int m_fd{-1};
+  int m_port{0};
+  int m_statusCode{503};
+  std::thread m_thread;
+};
 
 void stub_connect_and_send() {
   nexus::core::WebSocketClient client({.url = "ws://127.0.0.1:8787/ws/vault",
@@ -90,6 +158,20 @@ void http_stub_post_records_session_contract() {
           "http stub session path");
 }
 
+void http_real_post_returns_server_status_code() {
+  OneShotHttpServer server(503);
+  nexus::core::HttpClient client({
+      .url = server.url(),
+      .useStubTransport = false,
+  });
+
+  const auto result = client.post(R"({"mode_id":"basketball_dunk","score":10})");
+  require(result.isOk(), "real HTTP post completes");
+  require(result.value() == 503, "real HTTP post returns server status");
+  require(client.postedRequests().size() == 1, "real HTTP post recorded");
+  require(client.postedRequests().front().statusCode == 503, "record stores server status");
+}
+
 } // namespace
 
 auto main() -> int {
@@ -100,6 +182,7 @@ auto main() -> int {
   stub_reconnect_after_disconnect();
   auto_reconnect_on_send_when_disconnected();
   http_stub_post_records_session_contract();
+  http_real_post_returns_server_status_code();
   std::fprintf(stderr, "PASS: nexus_realtime_test\n");
   return 0;
 }

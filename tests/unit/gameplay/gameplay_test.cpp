@@ -33,12 +33,14 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <fstream>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <vector>
 
+#include <netinet/in.h>
+#include <sys/select.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace {
@@ -64,6 +66,67 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class OneShotHttpServer {
+public:
+  explicit OneShotHttpServer(int statusCode) : m_statusCode(statusCode) {
+    m_fd = socket(AF_INET, SOCK_STREAM, 0);
+    require(m_fd >= 0, "test HTTP server socket");
+
+    const int enabled = 1;
+    (void)setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(bind(m_fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "test HTTP server bind");
+    require(listen(m_fd, 1) == 0, "test HTTP server listen");
+
+    socklen_t addressLength = sizeof(address);
+    require(getsockname(m_fd, reinterpret_cast<sockaddr*>(&address), &addressLength) == 0,
+            "test HTTP server port");
+    m_port = ntohs(address.sin_port);
+
+    m_thread = std::thread([this] { serveOnce(); });
+  }
+
+  ~OneShotHttpServer() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  void serveOnce() {
+    fd_set readySet;
+    FD_ZERO(&readySet);
+    FD_SET(m_fd, &readySet);
+    timeval timeout{5, 0};
+    const int ready = select(m_fd + 1, &readySet, nullptr, nullptr, &timeout);
+    const int client = ready > 0 ? accept(m_fd, nullptr, nullptr) : -1;
+    if (client >= 0) {
+      char buffer[1024];
+      (void)recv(client, buffer, sizeof(buffer), 0);
+      const std::string response = "HTTP/1.1 " + std::to_string(m_statusCode) +
+                                   " Service Unavailable\r\nContent-Length: 0\r\n"
+                                   "Connection: close\r\n\r\n";
+      (void)::send(client, response.data(), response.size(), 0);
+      close(client);
+    }
+    close(m_fd);
+  }
+
+  int m_fd{-1};
+  int m_port{0};
+  int m_statusCode{503};
+  std::thread m_thread;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -1930,6 +1993,90 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_http_non_2xx_requeues_receipt() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  OneShotHttpServer server(503);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 5,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 12},
+      {"outcome", "loss"},
+      {"duration_seconds", 45},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_503_session"}, {"user_id", "test_user"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "503 HTTP flush attempts receipt");
+  require(flush.delivered == 0, "503 HTTP flush does not deliver receipt");
+  require(flush.requeued == 1, "503 HTTP flush requeues receipt");
+  require(client.pendingCount() == 1, "receipt remains pending after 503");
+  require(client.postedRequests().size() == 1, "503 HTTP POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "503 status recorded");
+
+  removeTreeBestEffort(tempDir);
+}
+
+void session_receipt_flush_preserves_live_http_config_between_retries() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "live_retry_user"}},
+              "live_retry_start")
+              .status == "ok",
+          "live retry session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 8.0F}, {"opponent_score", 10.0F}},
+              "live_retry_end")
+              .status == "ok",
+          "live retry session ends");
+
+  const auto firstFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {
+          {"base_url", "http://127.0.0.1:1/api/games/session"},
+          {"persist_to_disk", false},
+          {"http_enabled", true},
+          {"use_stub_http_transport", false},
+          {"max_retries", 5},
+      },
+      "live_retry_flush_1");
+  require(firstFlush.status == "ok", "first live retry flush command ok");
+  require(firstFlush.payload["delivered"].get<std::size_t>() == 0,
+          "first live retry flush is not delivered");
+  require(firstFlush.payload["requeued"].get<std::size_t>() == 1,
+          "first live retry flush requeues receipt");
+
+  const auto secondFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts", {{"persist_to_disk", false}}, "live_retry_flush_2");
+  require(secondFlush.status == "ok", "second live retry flush command ok");
+  require(secondFlush.payload["delivered"].get<std::size_t>() == 0,
+          "second live retry flush preserves live HTTP transport");
+  require(secondFlush.payload["requeued"].get<std::size_t>() == 1,
+          "second live retry flush still requeues receipt");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "live_retry_query");
+  require(receipts.payload["receipts"].size() == 1,
+          "receipt remains pending after preserved live HTTP failures");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2776,6 +2923,8 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_http_non_2xx_requeues_receipt();
+  session_receipt_flush_preserves_live_http_config_between_retries();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
