@@ -24,6 +24,9 @@ mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
+  if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+    export CXX="$(command -v g++)"
+  fi
   echo "==> Configure + build headless gameplay tests"
   cmake -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
