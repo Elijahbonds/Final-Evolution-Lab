@@ -18,8 +18,8 @@ struct SessionReceiptClientConfig {
   std::string baseUrl{"http://127.0.0.1:8000/api/games/session"};
   std::string authToken;
   bool persistToDisk{true};
-  bool httpEnabled{true};
-  bool useStubHttpTransport{true};
+  bool httpEnabled{false};
+  bool useStubHttpTransport{false};
   float flushIntervalSeconds{5.0F};
   std::size_t maxRetries{5};
 };
@@ -43,6 +43,7 @@ public:
   [[nodiscard]] auto pendingReceipts() const -> std::span<const nlohmann::json>;
   [[nodiscard]] auto postedRequests() const -> std::span<const nexus::core::HttpPostRecord>;
   [[nodiscard]] auto queueDirectory() const -> const std::string&;
+  [[nodiscard]] auto config() const -> const SessionReceiptClientConfig&;
   void clearPending();
 
 private:

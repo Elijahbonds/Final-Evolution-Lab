@@ -859,6 +859,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto first = client.flush();
   require(first.delivered == 1, "first flush delivers receipt");
+  require(client.postedRequests().empty(), "default receipt flush does not use HTTP stub");
 
   const auto receiptPath = tempDir / "abc123session.json";
   require(std::filesystem::exists(receiptPath), "receipt file keyed by telemetry.session_id");
@@ -867,6 +868,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto second = client.flush();
   require(second.delivered == 1, "re-flush delivers updated receipt");
+  require(client.postedRequests().empty(), "default re-flush stays disk-only");
 
   std::size_t jsonFileCount = 0;
   for (const auto& entry : std::filesystem::directory_iterator(tempDir)) {
@@ -2032,6 +2034,62 @@ void session_receipt_real_http_requeues_on_rejected_status() {
   removeTreeBestEffort(tempDir);
 }
 
+void flush_receipts_command_honors_live_http_config() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_command_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "live_flush_user"}},
+              "live_flush_start")
+              .status == "ok",
+          "live flush session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "live_flush_end")
+              .status == "ok",
+          "live flush session ends");
+
+  OneShotHttpStatusServer server(503);
+  const auto flush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {
+          {"queue_directory", tempDir.string()},
+          {"base_url", server.url("/api/games/session")},
+          {"persist_to_disk", false},
+          {"http_enabled", true},
+          {"use_stub_http_transport", false},
+          {"max_retries", 2},
+      },
+      "live_flush");
+
+  require(flush.status == "ok", "live HTTP flush command ok");
+  require(flush.payload["attempted"].get<std::size_t>() == 1,
+          "live HTTP command attempts receipt");
+  require(flush.payload["delivered"].get<std::size_t>() == 0,
+          "live HTTP 503 is not delivered by command");
+  require(flush.payload["requeued"].get<std::size_t>() == 1,
+          "live HTTP command requeues rejected receipt");
+  require(flush.payload["http_enabled"].get<bool>(), "flush response reports HTTP enabled");
+  require(!flush.payload["use_stub_http_transport"].get<bool>(),
+          "flush response reports live transport");
+  require(flush.payload["base_url"].get<std::string>().find("/api/games/session") !=
+              std::string::npos,
+          "flush response keeps contract URL");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "live_receipts");
+  require(receipts.payload["receipts"].size() == 1, "rejected live receipt remains pending");
+
+  removeTreeBestEffort(tempDir);
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2851,6 +2909,7 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_real_http_requeues_on_rejected_status();
+  flush_receipts_command_honors_live_http_config();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();

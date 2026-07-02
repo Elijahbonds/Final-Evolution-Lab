@@ -160,6 +160,10 @@ auto SessionReceiptClient::queueDirectory() const -> const std::string& {
   return m_config.queueDirectory;
 }
 
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
+}
+
 void SessionReceiptClient::clearPending() {
   m_pending.clear();
   m_retryCounts.clear();
