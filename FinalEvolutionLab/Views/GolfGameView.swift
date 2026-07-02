@@ -1560,10 +1560,12 @@ struct GolfGameView: View {
     @State private var ballOnGreen: Bool = false
     @State private var shotState: ShotState = .idle
 
-    // MARK: Shot mechanic
+    // MARK: Shot mechanic (ArenaPad two-press swing)
     @State private var aimAngle: Double = 0.0
     @State private var pullDistance: CGFloat = 0.0
-    @State private var dragStartLocation: CGPoint = .zero
+    @State private var padPowerCharging: Bool = false
+    @State private var padMeterRising: Bool = true
+    @State private var padPowerTask: Task<Void, Never>? = nil
 
     // MARK: Ball position (normalized 0–1, origin bottom-left)
     @State private var ballX: Double = 0.5
@@ -1649,7 +1651,7 @@ struct GolfGameView: View {
             case .ready:
                 GetReadyScreen(
                     title: "Golf · Closest to Pin",
-                    subtitle: "9 Holes · Par 3 Each · Drag to Aim & Shoot",
+                    subtitle: "9 Holes · Par 3 Each · Stick to Aim · ✕ to Swing",
                     countdown: 3, accentColor: accentColor,
                     onComplete: { startHole() }
                 )
@@ -1681,11 +1683,6 @@ struct GolfGameView: View {
                             shotTypeLabel: shotTypeLabel
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { v in onDragChanged(v) }
-                                .onEnded   { v in onDragEnded(v) }
-                        )
 
                         if showFeedback {
                             Text(feedbackText)
@@ -1707,7 +1704,14 @@ struct GolfGameView: View {
 
                     controlPanel
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 28)
+
+                    // Universal ArenaPad controls (GameModeId.usesArenaPad):
+                    // left stick aims, first ✕ starts the power meter, second ✕ locks the swing.
+                    ArenaPadControlBar(accentColor: accentColor, isActive: shotState != .ballFlying) { action in
+                        handlePadAction(action)
+                    }
+                    .padding(.top, 4)
+                    .padding(.bottom, 12)
                 }
 
             case .result:
@@ -1739,6 +1743,7 @@ struct GolfGameView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .onDisappear { padPowerTask?.cancel() }
     }
 
     // MARK: - Hole Header
@@ -1892,8 +1897,8 @@ struct GolfGameView: View {
             windInfoRow
 
             HStack {
-                Image(systemName: "hand.draw.fill").font(.system(size: 10)).foregroundStyle(accentColor)
-                Text("Drag to rotate aim · Pull back & release to shoot")
+                Image(systemName: "gamecontroller.fill").font(.system(size: 10)).foregroundStyle(accentColor)
+                Text("Stick to aim · ✕ starts meter · ✕ again locks power")
                     .font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
             }
 
@@ -2467,30 +2472,66 @@ struct GolfGameView: View {
         }
     }
 
-    // MARK: - Drag Gesture
+    // MARK: - ArenaPad Input (replaces the drag/swipe gesture)
 
-    private func onDragChanged(_ v: DragGesture.Value) {
-        guard shotState == .idle || shotState == .aiming || shotState == .draggingBack else { return }
-        if shotState == .idle {
-            dragStartLocation = v.startLocation
-            shotState = .aiming
+    /// Universal pad mapping — left stick aims, first ✕ starts the power
+    /// meter, second ✕ locks power and swings. ◯ toggles the club picker.
+    private func handlePadAction(_ action: ArenaPadAction) {
+        guard !showHoleCard, !showFullScorecard else { return }
+        if case .secondary = action {
+            withAnimation(.spring(response: 0.3)) { showClubSelector.toggle() }
+            hapticSoft()
+            return
         }
-        let dx = v.location.x - dragStartLocation.x
-        let dy = v.location.y - dragStartLocation.y
-        let dist = sqrt(dx * dx + dy * dy)
-        if dist > 8 {
-            shotState = .draggingBack
-            aimAngle  = atan2(dx, -dy) * 180.0 / .pi
-            pullDistance = min(80, dist * 0.7)
+        guard !showClubSelector else { return }
+        switch action {
+        case .primary:
+            if padPowerCharging { lockPowerAndSwing() } else { beginPowerMeter() }
+        case .leftStick(let v):
+            guard shotState == .idle else { return }
+            let magnitude = sqrt(Double(v.x * v.x + v.y * v.y))
+            guard magnitude > 0.2 else { return }   // deadzone — keeps aim on stick release
+            aimAngle = atan2(Double(v.x), Double(v.y)) * 180.0 / .pi
+        case .direction(.left):
+            guard shotState == .idle else { return }
+            aimAngle = max(-180, aimAngle - 4)
+        case .direction(.right):
+            guard shotState == .idle else { return }
+            aimAngle = min(180, aimAngle + 4)
+        default:
+            break
         }
     }
 
-    private func onDragEnded(_ v: DragGesture.Value) {
-        guard shotState == .draggingBack || shotState == .aiming else {
-            shotState = .idle; return
+    /// First ✕ — start the oscillating power meter (POWER bar + aim arc stay as readouts).
+    private func beginPowerMeter() {
+        guard shotState == .idle, !ballOnGreen else { return }
+        shotState = .draggingBack
+        padPowerCharging = true
+        padMeterRising = true
+        pullDistance = 0
+        hapticSoft()
+        padPowerTask?.cancel()
+        padPowerTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 16_000_000)
+                await MainActor.run {
+                    guard padPowerCharging else { return }
+                    pullDistance += padMeterRising ? 1.6 : -1.6
+                    if pullDistance >= 80 { pullDistance = 80; padMeterRising = false }
+                    if pullDistance <= 0  { pullDistance = 0;  padMeterRising = true  }
+                }
+            }
         }
-        let power = Double(pullDistance / 80.0)
-        fireShot(power: power)
+    }
+
+    /// Second ✕ — lock power in the accuracy window and swing.
+    private func lockPowerAndSwing() {
+        guard padPowerCharging else { return }
+        padPowerCharging = false
+        padPowerTask?.cancel()
+        padPowerTask = nil
+        fireShot(power: Double(pullDistance / 80.0))
     }
 
     // MARK: - Shot Logic

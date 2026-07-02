@@ -1103,6 +1103,7 @@ struct VolleyballGameView: View {
     @State private var showFeedback: Bool = false
     @State private var showAce: Bool = false
     @State private var touchHighlight: VBTouchPhase? = nil
+    @State private var padAimX: CGFloat = 0.5
 
     // Canvas FX state
     @State private var spikeActive: Bool = false
@@ -1226,6 +1227,14 @@ struct VolleyballGameView: View {
                 }
                 .frame(height: 60)
                 .animation(.easeInOut(duration: 0.15), value: inputWindowOpen)
+
+                // Universal ArenaPad controls (GameModeId.usesArenaPad):
+                // stick/d-pad aims the spike target, ✕ = pass/set/spike in its window.
+                ArenaPadControlBar(accentColor: accentColor, isActive: phase == .playing) { action in
+                    handlePadAction(action)
+                }
+                .padding(.top, 4)
+
                 Spacer()
             }
 
@@ -1288,38 +1297,32 @@ struct VolleyballGameView: View {
         Group {
             switch touchPhase {
             case .pass:
-                tapButton(label: "TAP — PASS", color: accentColor)
+                tapButton(label: "✕ — PASS", color: accentColor)
             case .set:
-                tapButton(label: "TAP — SET", color: Theme.brandCyan)
+                tapButton(label: "✕ — SET", color: Theme.brandCyan)
             case .spike:
                 ZStack {
                     RoundedRectangle(cornerRadius: 14).fill(Color.red.opacity(0.12))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.4), lineWidth: 2))
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.down.circle.fill").font(.system(size: 18)).foregroundStyle(.red)
-                        Text("SWIPE DOWN — SPIKE").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundStyle(.red)
+                        Text("✕ — SPIKE").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundStyle(.red)
                     }
                 }
                 .frame(height: 54).padding(.horizontal, 40)
-                .contentShape(Rectangle())
-                .gesture(DragGesture(minimumDistance: 20).onEnded { v in
-                    if v.location.y - v.startLocation.y > 25 { handlePlayerInput() }
-                })
                 .transition(.scale.combined(with: .opacity))
             }
         }
     }
 
     private func tapButton(label: String, color: Color) -> some View {
-        Button { handlePlayerInput() } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "hand.tap.fill").font(.system(size: 16))
-                Text(label).font(.system(size: 17, weight: .black, design: .monospaced))
-            }
-            .foregroundStyle(.black).frame(maxWidth: .infinity).padding(.vertical, 15)
-            .background(color).clipShape(.rect(cornerRadius: 14))
-            .shadow(color: color.opacity(0.4), radius: 8)
+        HStack(spacing: 8) {
+            Image(systemName: "hand.tap.fill").font(.system(size: 16))
+            Text(label).font(.system(size: 17, weight: .black, design: .monospaced))
         }
+        .foregroundStyle(.black).frame(maxWidth: .infinity).padding(.vertical, 15)
+        .background(color).clipShape(.rect(cornerRadius: 14))
+        .shadow(color: color.opacity(0.4), radius: 8)
         .padding(.horizontal, 40)
         .transition(.scale.combined(with: .opacity))
     }
@@ -1413,6 +1416,23 @@ struct VolleyballGameView: View {
         }
     }
 
+    /// Universal pad mapping — left stick/d-pad aims the spike target, ✕ = pass/set/spike in its timing window.
+    private func handlePadAction(_ action: ArenaPadAction) {
+        guard phase == .playing else { return }
+        switch action {
+        case .leftStick(let v):
+            padAimX = min(0.8, max(0.2, 0.5 + CGFloat(v.x) * 0.3))
+        case .direction(.left):
+            padAimX = max(0.2, padAimX - 0.1)
+        case .direction(.right):
+            padAimX = min(0.8, padAimX + 0.1)
+        case .primary:
+            handlePlayerInput()
+        default:
+            break
+        }
+    }
+
     private func handlePlayerInput() {
         guard inputWindowOpen, phase == .playing else { return }
         inputWindowTask?.cancel(); inputWindowOpen = false
@@ -1444,7 +1464,7 @@ struct VolleyballGameView: View {
         // Haptic: heavy on spike kill
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         spikeActive = true
-        let spikeX = CGFloat.random(in: 0.2...0.8)
+        let spikeX = padAimX
         withAnimation(.easeIn(duration: 0.4)) { ball.position = CGPoint(x: spikeX, y: 0.25) }
         rallyState = .ballCrossing
         Task {

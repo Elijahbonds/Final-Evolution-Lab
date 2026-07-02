@@ -235,7 +235,14 @@ final class FELSoundscapeEngine: @unchecked Sendable {
         isSlowMoPtr.deallocate()
     }
     
+    /// Master gate — gameplay audio is cut until proper sound design ships.
+    /// Re-enable per-user via UserDefaults key "fel.audio.enabled" = true.
+    static var audioEnabled: Bool {
+        UserDefaults.standard.bool(forKey: "fel.audio.enabled")
+    }
+
     func start(for mode: GameModeId) {
+        guard Self.audioEnabled else { return }
         stateQueue.sync {
             guard !_isRunning else { return }
             _isRunning = true

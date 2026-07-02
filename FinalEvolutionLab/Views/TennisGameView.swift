@@ -1564,8 +1564,8 @@ struct TennisGameView: View {
     @State private var showWinner: Bool = false
     @State private var showFault: Bool = false
 
-    // MARK: Swipe & Drag
-    @State private var dragStart: CGPoint? = nil
+    // MARK: Pad Aim (universal ArenaPad placement)
+    @State private var padAim: SwipeDir = .right
     private let XP_CAP_PER_SESSION = 500
     @State private var sessionXP: Int = 0
 
@@ -1815,7 +1815,7 @@ struct TennisGameView: View {
                     }
                 }
 
-                Text("Tap to toss, then serve").font(.system(size: 12, design: .monospaced)).foregroundStyle(.secondary)
+                Text("✕ to toss, then ✕ to serve").font(.system(size: 12, design: .monospaced)).foregroundStyle(.secondary)
 
                 // Serve type picker — always visible before serve
                 ServeTypePicker(selected: $serveType)
@@ -1828,7 +1828,15 @@ struct TennisGameView: View {
                     Text("Tossing…").font(.system(size: 14, design: .monospaced)).foregroundStyle(.secondary)
                 }
             }
-            .padding(.bottom, 36)
+            .padding(.bottom, 8)
+
+            // Universal ArenaPad controls (GameModeId.usesArenaPad):
+            // d-pad cycles serve type, ✕ tosses then serves, ◯ quick-selects slice.
+            ArenaPadControlBar(accentColor: accentColor, isActive: !serveAnimating) { action in
+                handlePadAction(action)
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 8)
         }
     }
 
@@ -1851,7 +1859,7 @@ struct TennisGameView: View {
 
                     // Return window prompt
                     if swipeWindowOpen {
-                        Text("SWIPE TO RETURN!")
+                        Text("✕ TO RETURN — AIM \(padAimLabel)")
                             .font(.system(size: 14, weight: .black, design: .monospaced))
                             .foregroundStyle(accentColor).tracking(2)
                             .transition(.scale.combined(with: .opacity))
@@ -1882,19 +1890,16 @@ struct TennisGameView: View {
                 .frame(minHeight: 110)
                 .animation(.easeInOut(duration: 0.20), value: swipeWindowOpen)
                 .animation(.easeInOut(duration: 0.20), value: showShotPad)
-                .padding(.bottom, 20)
-            }
+                .padding(.bottom, 8)
 
-            Color.clear.contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 20)
-                        .onChanged { v in if dragStart == nil { dragStart = v.startLocation } }
-                        .onEnded { v in
-                            defer { dragStart = nil }
-                            guard swipeWindowOpen else { return }
-                            handlePlayerSwipe(detectSwipe(from: v.startLocation, to: v.location))
-                        }
-                )
+                // Universal ArenaPad controls (GameModeId.usesArenaPad):
+                // stick/d-pad aims placement, ✕ swings in the return window, ◯ cycles shot type.
+                ArenaPadControlBar(accentColor: accentColor, isActive: true) { action in
+                    handlePadAction(action)
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 8)
+            }
         }
     }
 
@@ -1929,6 +1934,74 @@ struct TennisGameView: View {
             .background(accentColor).clipShape(.rect(cornerRadius: 14))
         }
         .padding(.horizontal, 40)
+    }
+
+    // MARK: - Universal Pad Input
+
+    private var padAimLabel: String {
+        switch padAim {
+        case .left:  return "LEFT"
+        case .right: return "RIGHT"
+        case .up:    return "DEEP"
+        case .none:  return "CENTER"
+        }
+    }
+
+    /// Universal pad mapping — stick/d-pad = aim placement, ✕ = toss/serve/swing, ◯ = slice serve / cycle alt shot.
+    private func handlePadAction(_ action: ArenaPadAction) {
+        switch phase {
+        case .serving:
+            switch action {
+            case .primary:
+                guard !serveAnimating else { return }
+                if serveReady { launchServe() } else { tossBall() }
+            case .secondary:
+                guard !serveAnimating else { return }
+                serveType = .slice
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            case .direction(.left):
+                cycleServeType(-1)
+            case .direction(.right):
+                cycleServeType(1)
+            default:
+                break
+            }
+        case .rally:
+            switch action {
+            case .leftStick(let v):
+                if v.y > 0.5 { padAim = .up }
+                else if v.x < -0.3 { padAim = .left }
+                else if v.x > 0.3 { padAim = .right }
+            case .direction(.left):  padAim = .left
+            case .direction(.right): padAim = .right
+            case .direction(.up):    padAim = .up
+            case .primary:
+                guard swipeWindowOpen else { return }
+                handlePlayerSwipe(padAim)
+            case .secondary:
+                guard !swipeWindowOpen else { return }
+                cycleShotType()
+            default:
+                break
+            }
+        default:
+            break
+        }
+    }
+
+    private func cycleServeType(_ step: Int) {
+        guard !serveAnimating else { return }
+        let all = ServeType.allCases
+        guard let idx = all.firstIndex(of: serveType) else { return }
+        serveType = all[(idx + step + all.count) % all.count]
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func cycleShotType() {
+        let all = ShotType.allCases
+        guard let idx = all.firstIndex(of: shotSelection) else { return }
+        shotSelection = all[(idx + 1) % all.count]
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     // MARK: - FX Helpers
@@ -2453,14 +2526,6 @@ struct TennisGameView: View {
     }
 
     private func endMatch() { cancelAllTasks(); GameResultService.saveResult(modeId: "tennis", userScore: playerSets, opponentScore: opponentSets); withAnimation(.spring(response: 0.4)) { phase = .result } }
-
-    private func detectSwipe(from start: CGPoint, to end: CGPoint) -> SwipeDir {
-        let dx = end.x - start.x; let dy = end.y - start.y
-        let threshold: CGFloat = 20
-        if abs(dx) > abs(dy) && abs(dx) > threshold { return dx < 0 ? .left : .right }
-        else if dy < -threshold { return .up }
-        return .none
-    }
 
     private func flashFeedback(_ text: String) {
         feedbackText = text

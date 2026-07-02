@@ -108,6 +108,35 @@ enum PremiumViewpointConfig {
         let placement = backdropPlacement(for: mode)
         node.renderingOrder = placement.renderingOrder
         node.categoryBitMask = 1 << 1
+        attachVenueIllumination(to: node, for: mode)
+    }
+
+    /// PBR venue meshes react to light (the old unlit .constant venues were
+    /// self-bright in any darkness). Give venues their own category-masked
+    /// sun + ambient so they read fully lit without washing out the moody
+    /// gameplay lighting (venues live on categoryBitMask 1 << 1).
+    private static func attachVenueIllumination(to node: SCNNode, for mode: GameModeId) {
+        guard node.childNode(withName: "venueSun", recursively: false) == nil else { return }
+        let tint = clusterTint(for: mode)
+
+        let sun = SCNNode()
+        sun.name = "venueSun"
+        sun.light = SCNLight()
+        sun.light!.type = .directional
+        sun.light!.intensity = 950
+        sun.light!.color = UIColor.white
+        sun.light!.categoryBitMask = 1 << 1
+        sun.eulerAngles = SCNVector3(-0.9, 0.5, 0)
+        node.addChildNode(sun)
+
+        let fill = SCNNode()
+        fill.name = "venueFill"
+        fill.light = SCNLight()
+        fill.light!.type = .ambient
+        fill.light!.intensity = 420
+        fill.light!.color = tint
+        fill.light!.categoryBitMask = 1 << 1
+        node.addChildNode(fill)
     }
 
     private static func clusterTint(for mode: GameModeId) -> UIColor {
@@ -181,40 +210,45 @@ enum PremiumViewpointConfig {
         ),
     ]
 
+    // Venue meshes are unit-normalized (Venice court spans ~2.9 units wide);
+    // gameplay scenes are metric (courts 8–14 units). Scale venues to real-
+    // world size with floors at y=0, centered on the play area.
     private static let backdropByCluster: [Cluster: BackdropPlacement] = [
+        // Verified against the game chase-cam (5,4,8)->(0,1.5,0) with the
+        // offline framing iterator (scripts kept in the session pipeline).
         .basketball: BackdropPlacement(
-            manifestPosition: SCNVector3(0, 0.2, -16),
-            manifestScale: SCNVector3(2.85, 2.85, 2.85),
-            environmentPosition: SCNVector3(0, -0.35, -8),
-            environmentScale: SCNVector3(1.55, 1.55, 1.55),
+            manifestPosition: SCNVector3(0, 0, -18),
+            manifestScale: SCNVector3(8.0, 8.0, 8.0),
+            environmentPosition: SCNVector3(0, 0, -4),
+            environmentScale: SCNVector3(8.0, 8.0, 8.0),
             renderingOrder: -120
         ),
         .dojo: BackdropPlacement(
             manifestPosition: SCNVector3(0, 0, -14),
-            manifestScale: SCNVector3(2.45, 2.45, 2.45),
-            environmentPosition: SCNVector3(0, -0.25, -7),
-            environmentScale: SCNVector3(1.35, 1.35, 1.35),
+            manifestScale: SCNVector3(9.0, 9.0, 9.0),
+            environmentPosition: SCNVector3(0, 0, -5),
+            environmentScale: SCNVector3(9.0, 9.0, 9.0),
             renderingOrder: -120
         ),
         .stadium: BackdropPlacement(
-            manifestPosition: SCNVector3(0, 0.4, -18),
-            manifestScale: SCNVector3(3.05, 3.05, 3.05),
-            environmentPosition: SCNVector3(0, -0.6, -9),
-            environmentScale: SCNVector3(1.65, 1.65, 1.65),
+            manifestPosition: SCNVector3(0, 0, -20),
+            manifestScale: SCNVector3(8.0, 8.0, 8.0),
+            environmentPosition: SCNVector3(0, 0, -2),
+            environmentScale: SCNVector3(8.0, 8.0, 8.0),
             renderingOrder: -130
         ),
         .outdoor: BackdropPlacement(
-            manifestPosition: SCNVector3(0, 0.1, -17),
-            manifestScale: SCNVector3(2.75, 2.75, 2.75),
-            environmentPosition: SCNVector3(0, -0.4, -8.5),
-            environmentScale: SCNVector3(1.5, 1.5, 1.5),
+            manifestPosition: SCNVector3(0, 0, -18),
+            manifestScale: SCNVector3(7.0, 7.0, 7.0),
+            environmentPosition: SCNVector3(0, 0, -1.5),
+            environmentScale: SCNVector3(7.0, 7.0, 7.0),
             renderingOrder: -120
         ),
         .indoor: BackdropPlacement(
             manifestPosition: SCNVector3(0, 0, -13),
-            manifestScale: SCNVector3(2.35, 2.35, 2.35),
-            environmentPosition: SCNVector3(0, -0.2, -6.5),
-            environmentScale: SCNVector3(1.3, 1.3, 1.3),
+            manifestScale: SCNVector3(5.5, 5.5, 5.5),
+            environmentPosition: SCNVector3(0, 0, -1),
+            environmentScale: SCNVector3(5.5, 5.5, 5.5),
             renderingOrder: -110
         ),
     ]

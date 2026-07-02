@@ -1,10 +1,10 @@
 import Foundation
 import SceneKit
+import UIKit
 
 /// Loads bundled `.nexusmesh.json` sidecars for SceneKit fallback when Metal is unavailable.
 enum NexusBundledMeshLoader {
     private static let manifestRelativePath = "assets/nexus/manifests/nexus_asset_manifest.json"
-    private static let sceneKitVertexBudget = 18_000
 
     struct VenueAssets {
         let environmentAssetId: String
@@ -26,15 +26,53 @@ enum NexusBundledMeshLoader {
         let ok = assetId.withCString { cStr in
             nexus_metal_bridge_resolve_bundled_mesh_path(cStr, &buffer, buffer.count)
         }
-        guard ok else { return nil }
-        let path = String(cString: buffer)
-        return path.isEmpty ? nil : path
+        if ok {
+            let path = String(cString: buffer)
+            if !path.isEmpty { return path }
+        }
+        // Swift-native fallback so every mode's environment loads even when the
+        // C++ bridge can't resolve it (SceneKit-only builds, tests). Resolves
+        // the manifest's imported-mesh filename from the app bundle.
+        return resolveMeshPathNatively(assetId: assetId)
     }
+
+    /// Resolve `assetId` → bundled `.nexusmesh.json` file path from the manifest
+    /// `assets` map, preferring the mobile LOD. No C++ dependency.
+    static func resolveMeshPathNatively(assetId: String, preferMobile: Bool = true) -> String? {
+        guard let (desktop, mobile) = importedMeshFilenames[assetId] else { return nil }
+        let candidates = preferMobile ? [mobile, desktop].compactMap { $0 } : [desktop, mobile].compactMap { $0 }
+        for filename in candidates {
+            // filename e.g. "zen_dojo_environment_model_fbx_mobile.nexusmesh.json"
+            let base = (filename as NSString).deletingPathExtension        // ...nexusmesh
+            if let url = Bundle.main.url(forResource: base, withExtension: "json",
+                                        subdirectory: "assets/nexus/imported") {
+                return url.path
+            }
+            if let url = Bundle.main.url(forResource: base, withExtension: "json") {
+                return url.path
+            }
+        }
+        return nil
+    }
+
+    /// `asset_id → (desktopFilename, mobileFilename?)` parsed once from the manifest.
+    static let importedMeshFilenames: [String: (desktop: String, mobile: String?)] = {
+        guard let url = bundledManifestURL(),
+              let data = try? Data(contentsOf: url) else { return [:] }
+        return parseImportedMeshFilenames(from: data)
+    }()
 
     static func venueAssets(for mode: GameModeId) -> VenueAssets? {
         guard let manifestURL = bundledManifestURL(),
-              let data = try? Data(contentsOf: manifestURL),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let data = try? Data(contentsOf: manifestURL) else {
+            return nil
+        }
+        return venueAssets(for: mode, manifestData: data)
+    }
+
+    /// Data-injectable resolution (testable from the repo manifest without a bundle).
+    static func venueAssets(for mode: GameModeId, manifestData data: Data) -> VenueAssets? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let venues = json["venues"] as? [[String: Any]] else {
             return nil
         }
@@ -49,6 +87,21 @@ enum NexusBundledMeshLoader {
             return VenueAssets(environmentAssetId: environmentId, backdropAssetId: backdropId)
         }
         return nil
+    }
+
+    /// Parse `asset_id → (desktopFilename, mobileFilename?)` from manifest data.
+    static func parseImportedMeshFilenames(from data: Data) -> [String: (desktop: String, mobile: String?)] {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let assets = json["assets"] as? [[String: Any]] else {
+            return [:]
+        }
+        var map: [String: (desktop: String, mobile: String?)] = [:]
+        for asset in assets {
+            guard let id = asset["id"] as? String,
+                  let desktop = asset["imported_mesh"] as? String else { continue }
+            map[id] = (desktop, asset["imported_mesh_mobile"] as? String)
+        }
+        return map
     }
 
     /// Backdrop mesh from manifest (`backdrop_asset_id` or scaled primary environment).
@@ -111,6 +164,16 @@ enum NexusBundledMeshLoader {
         position: SCNVector3,
         scale: SCNVector3
     ) -> SCNNode? {
+        // Prefer the recreated textured .scn (full PBR: albedo/roughness/
+        // metalness/normal recovered from the source FBX); fall back to the
+        // vertex-colored .nexusmesh.json.
+        if let node = loadSceneKitSceneNode(assetId: assetId) {
+            node.name = nodeName
+            node.position = position
+            node.scale = scale
+            node.renderingOrder = -100
+            return node
+        }
         guard let path = resolveMeshPath(assetId: assetId),
               let geometry = loadGeometry(from: path) else {
             return nil
@@ -121,6 +184,27 @@ enum NexusBundledMeshLoader {
         node.scale = scale
         node.renderingOrder = -100
         return node
+    }
+
+    /// Loads a bundled recreated venue scene (assets/nexus/scenekit/<id>.scn)
+    /// and returns its content wrapped in a single node. Cached per asset.
+    private static let sceneCache = NSCache<NSString, SCNNode>()
+
+    static func loadSceneKitSceneNode(assetId: String) -> SCNNode? {
+        if let cached = sceneCache.object(forKey: assetId as NSString) {
+            return cached.clone()
+        }
+        let url = Bundle.main.url(forResource: assetId, withExtension: "scn",
+                                  subdirectory: "assets/nexus/scenekit")
+            ?? Bundle.main.url(forResource: assetId, withExtension: "scn")
+        guard let url, let scene = try? SCNScene(url: url, options: nil) else { return nil }
+        let wrapper = SCNNode()
+        for child in scene.rootNode.childNodes {
+            wrapper.addChildNode(child)
+        }
+        guard !wrapper.childNodes.isEmpty else { return nil }
+        sceneCache.setObject(wrapper, forKey: assetId as NSString)
+        return wrapper.clone()
     }
 
     private static func bundledManifestURL() -> URL? {
@@ -136,8 +220,23 @@ enum NexusBundledMeshLoader {
     }
 
     private static func loadGeometry(from path: String) -> SCNGeometry? {
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return nil }
+        return buildGeometry(fromJSONData: data)
+    }
+
+    /// Builds lit SceneKit geometry from a `.nexusmesh.json` payload.
+    ///
+    /// Quality notes vs. the prior implementation:
+    ///  - Loads the per-vertex `normal` array (previously discarded), enabling
+    ///    real physically-based shading instead of flat `.constant` lighting.
+    ///  - Loads vertices faithfully with 1:1 indices — the prior stride-sampling
+    ///    decimation dropped vertices then discarded any triangle referencing a
+    ///    removed vertex, shredding meshes into holes. The bundled `_mobile`
+    ///    LODs are already decimated (~40k verts), well within SceneKit budget.
+    ///  - Vertex colors drive albedo (mobile LODs carry no textures).
+    /// Internal (not private) so unit tests can exercise it directly.
+    static func buildGeometry(fromJSONData data: Data) -> SCNGeometry? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let verticesJson = json["vertices"] as? [[String: Any]],
               let indicesJson = json["indices"] as? [Int],
               !verticesJson.isEmpty,
@@ -145,76 +244,59 @@ enum NexusBundledMeshLoader {
             return nil
         }
 
-        let vertexSampleStride = max(1, verticesJson.count / sceneKitVertexBudget)
-        var remappedIndices = [Int32]()
-        var positions = [SCNVector3]()
-        var colors = [SCNVector3]()
-        positions.reserveCapacity(min(verticesJson.count, sceneKitVertexBudget + 1))
-        colors.reserveCapacity(min(verticesJson.count, sceneKitVertexBudget + 1))
+        var positions = [SCNVector3](); positions.reserveCapacity(verticesJson.count)
+        var normals = [SCNVector3](); normals.reserveCapacity(verticesJson.count)
+        var colors = [Float](); colors.reserveCapacity(verticesJson.count * 3)
+        var hasNormals = true
 
-        var oldToNew = [Int: Int]()
-        for (oldIndex, vertexJson) in verticesJson.enumerated() where oldIndex % vertexSampleStride == 0 {
+        for vertexJson in verticesJson {
             guard let position = vertexJson["position"] as? [Double], position.count == 3 else {
-                continue
+                return nil // faithful load — a malformed vertex invalidates the index mapping
             }
-            let colorComponents = vertexJson["color"] as? [Double] ?? [0.8, 0.85, 0.9]
-            let newIndex = positions.count
-            oldToNew[oldIndex] = newIndex
             positions.append(SCNVector3(Float(position[0]), Float(position[1]), Float(position[2])))
-            colors.append(SCNVector3(
-                Float(colorComponents[safe: 0] ?? 0.8),
-                Float(colorComponents[safe: 1] ?? 0.85),
-                Float(colorComponents[safe: 2] ?? 0.9)
-            ))
-        }
 
-        for triStart in stride(from: 0, to: indicesJson.count - 2, by: 3) {
-            let a = indicesJson[triStart]
-            let b = indicesJson[triStart + 1]
-            let c = indicesJson[triStart + 2]
-            guard let na = oldToNew[a], let nb = oldToNew[b], let nc = oldToNew[c] else {
-                continue
+            if let n = vertexJson["normal"] as? [Double], n.count == 3 {
+                normals.append(SCNVector3(Float(n[0]), Float(n[1]), Float(n[2])))
+            } else {
+                hasNormals = false
             }
-            remappedIndices.append(contentsOf: [Int32(na), Int32(nb), Int32(nc)])
+
+            let c = vertexJson["color"] as? [Double] ?? [0.8, 0.85, 0.9]
+            colors.append(Float(c[safe: 0] ?? 0.8))
+            colors.append(Float(c[safe: 1] ?? 0.85))
+            colors.append(Float(c[safe: 2] ?? 0.9))
         }
 
-        guard remappedIndices.count >= 3, !positions.isEmpty else { return nil }
+        let vertexCount = positions.count
+        let indices = indicesJson.map { Int32($0) }
+        guard indices.allSatisfy({ $0 >= 0 && Int($0) < vertexCount }) else { return nil }
 
-        let vertexSource = SCNGeometrySource(
-            data: Data(bytes: positions, count: MemoryLayout<SCNVector3>.stride * positions.count),
-            semantic: .vertex,
-            vectorCount: positions.count,
-            usesFloatComponents: true,
-            componentsPerVector: 3,
-            bytesPerComponent: MemoryLayout<Float>.size,
-            dataOffset: 0,
-            dataStride: MemoryLayout<SCNVector3>.stride
-        )
-
-        let colorData = colors.flatMap { [Float($0.x), Float($0.y), Float($0.z)] }
-        let colorSource = SCNGeometrySource(
-            data: colorData.withUnsafeBufferPointer { Data(buffer: $0) },
+        let vertexSource = SCNGeometrySource(vertices: positions)
+        var sources = [vertexSource]
+        if hasNormals, normals.count == vertexCount {
+            sources.append(SCNGeometrySource(normals: normals))
+        }
+        sources.append(SCNGeometrySource(
+            data: colors.withUnsafeBufferPointer { Data(buffer: $0) },
             semantic: .color,
-            vectorCount: colors.count,
+            vectorCount: vertexCount,
             usesFloatComponents: true,
             componentsPerVector: 3,
             bytesPerComponent: MemoryLayout<Float>.size,
             dataOffset: 0,
             dataStride: MemoryLayout<Float>.stride * 3
-        )
+        ))
 
-        let indexData = Data(bytes: remappedIndices, count: MemoryLayout<Int32>.stride * remappedIndices.count)
-        let element = SCNGeometryElement(
-            data: indexData,
-            primitiveType: .triangles,
-            primitiveCount: remappedIndices.count / 3,
-            bytesPerIndex: MemoryLayout<Int32>.size
-        )
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        let geometry = SCNGeometry(sources: sources, elements: [element])
 
-        let geometry = SCNGeometry(sources: [vertexSource, colorSource], elements: [element])
         let material = SCNMaterial()
-        material.lightingModel = .constant
+        // Real lighting when normals are present; fall back to unlit only if a
+        // mesh genuinely lacks them.
+        material.lightingModel = (hasNormals && normals.count == vertexCount) ? .physicallyBased : .constant
         material.isDoubleSided = true
+        material.diffuse.contents = UIColor.white   // vertex colors modulate albedo
+        material.roughness.contents = 0.85
         geometry.materials = [material]
         return geometry
     }
