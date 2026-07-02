@@ -10,20 +10,25 @@
 #include "nexus/gameplay/arena_mode_registry.h"
 #include "nexus/gameplay/arcade_physics.h"
 #include "nexus/gameplay/arena_session_manager.h"
+#include "nexus/gameplay/brain_brawl_mode.h"
 #include "nexus/gameplay/exercise_demo_pipeline.h"
 #include "nexus/gameplay/fel_bridge_service.h"
 #include "nexus/gameplay/fel_session_types.h"
 #include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gameplay_application.h"
 #include "nexus/gameplay/gameplay_manager.h"
+#include "nexus/gameplay/gymnastics_mode.h"
 #include "nexus/gameplay/hud_relay_service.h"
 #include "nexus/gameplay/mode_runtime.h"
 #include "nexus/gameplay/outcome_sport_mode.h"
 #include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/session_receipt_client.h"
+#include "nexus/gameplay/skateboarding_mode.h"
+#include "nexus/gameplay/snowboarding_mode.h"
 #include "nexus/gameplay/surfing_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/voxel_command_parser.h"
+#include "nexus/gameplay/who_scene_it_mode.h"
 #include "nexus/physics/physics_world.h"
 
 #include <cstdio>
@@ -984,6 +989,73 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto productionModes = nexus::gameplay::ArenaModeRegistry::productionModes();
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == productionModes.size(),
+          "all production modes have demo mapping entries");
+  require(allMappings["production_demo_mappings"].size() == productionModes.size(),
+          "production demo mapping array matches registry count");
+
+  for (const auto& mode : productionModes) {
+    const auto modeMapping = nexus::gameplay::ExerciseDemoPipeline::mappingForMode(mode.id);
+    require(modeMapping.has_value(),
+            std::string("demo mapping exists for production mode ") + std::string(mode.id));
+    require(!modeMapping->moduleId.empty(),
+            std::string("demo module id populated for ") + std::string(mode.id));
+    require(modeMapping->montagePath.find(modeMapping->moduleId) != std::string::npos,
+            std::string("montage path includes module id for ") + std::string(mode.id));
+    const auto mappingJson = nexus::gameplay::ExerciseDemoPipeline::mappingJson(mode.id);
+    require(mappingJson["module_id"].is_string(),
+            std::string("demo JSON module id is string for ") + std::string(mode.id));
+    require(!mappingJson.contains("note"),
+            std::string("production demo JSON has no missing-mapping note for ") +
+                std::string(mode.id));
+  }
+}
+
+void promoted_mode_payloads_use_registry_release_labels() {
+  require(nexus::gameplay::ArenaModeRegistry::releaseStateLabelForMode("basketball_h2h") ==
+              "production",
+          "registry release label resolves production");
+
+  nexus::gameplay::SkateboardingMode skateboarding;
+  require(skateboarding.stateJson()["release_state"].get<std::string>() == "production",
+          "skateboarding state reports production");
+
+  nexus::gameplay::SnowboardingMode snowboarding;
+  require(snowboarding.stateJson()["release_state"].get<std::string>() == "production",
+          "snowboarding state reports production");
+
+  nexus::gameplay::SurfingMode surfing;
+  require(surfing.stateJson()["release_state"].get<std::string>() == "production",
+          "surfing state reports production");
+
+  nexus::gameplay::GymnasticsMode gymnastics;
+  require(gymnastics.stateJson()["release_state"].get<std::string>() == "production",
+          "gymnastics state reports production");
+  const auto gymTap = gymnastics.rhythmTap(0.95F, 0.8F);
+  require(gymTap.isOk(), "gymnastics release label tap succeeds");
+  require(gymTap.value()["release_state"].get<std::string>() == "production",
+          "gymnastics action reports production");
+
+  nexus::gameplay::BrainBrawlMode brainBrawl;
+  require(brainBrawl.stateJson()["release_state"].get<std::string>() == "production",
+          "brain brawl state reports production");
+
+  nexus::gameplay::WhoSceneItMode whoSceneIt;
+  require(whoSceneIt.stateJson()["release_state"].get<std::string>() == "production",
+          "who scene it state reports production");
+
+  nexus::gameplay::OutcomeSportMode outcomeSport;
+  outcomeSport.reset("baseball");
+  require(outcomeSport.stateJson()["release_state"].get<std::string>() == "production",
+          "outcome sport state reports production");
+  const auto pulse = outcomeSport.pulse(
+      {{"success", true}, {"timing", 0.95F}, {"action", "power_swing"}});
+  require(pulse.isOk(), "outcome sport release label pulse succeeds");
+  require(pulse.value()["release_state"].get<std::string>() == "production",
+          "outcome sport action reports production");
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -2893,6 +2965,7 @@ auto main() -> int {
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
   exercise_demo_pipeline_maps_production_modes();
+  promoted_mode_payloads_use_registry_release_labels();
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();

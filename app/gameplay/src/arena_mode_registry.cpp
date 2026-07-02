@@ -242,6 +242,20 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
   return nullptr;
 }
 
+[[nodiscard]] constexpr auto releaseStateLabelFor(ArenaReleaseState releaseState) -> std::string_view {
+  switch (releaseState) {
+  case ArenaReleaseState::kProduction:
+    return "production";
+  case ArenaReleaseState::kStaging:
+    return "staging";
+  case ArenaReleaseState::kPreview:
+    return "preview";
+  case ArenaReleaseState::kNonGameModule:
+    return "non_game_module";
+  }
+  return "unknown";
+}
+
 } // namespace
 
 auto ArenaModeRegistry::allModes() -> std::span<const ArenaModeConfig> {
@@ -293,6 +307,17 @@ auto ArenaModeRegistry::legacyUeMapAliasForMode(std::string_view modeId) -> std:
   return {};
 }
 
+auto ArenaModeRegistry::releaseStateLabel(ArenaReleaseState releaseState) -> std::string_view {
+  return releaseStateLabelFor(releaseState);
+}
+
+auto ArenaModeRegistry::releaseStateLabelForMode(std::string_view modeId) -> std::string_view {
+  if (const ArenaModeConfig* found = lookup(modeId)) {
+    return releaseStateLabelFor(found->releaseState);
+  }
+  return "unknown";
+}
+
 auto ArenaModeRegistry::modeToJson(const ArenaModeConfig& config) -> nlohmann::json {
   return {
       {"mode_id", std::string(config.id)},
@@ -306,6 +331,7 @@ auto ArenaModeRegistry::modeToJson(const ArenaModeConfig& config) -> nlohmann::j
       {"default_match_duration_seconds", config.defaultMatchDurationSeconds},
       {"scoring_enabled", config.scoringEnabled},
       {"release_state", static_cast<int>(config.releaseState)},
+      {"release_state_label", std::string(releaseStateLabelFor(config.releaseState))},
   };
 }
 

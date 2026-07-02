@@ -1,5 +1,7 @@
 #include "nexus/gameplay/brain_brawl_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
 
 namespace nexus::gameplay {
@@ -93,6 +95,7 @@ auto BrainBrawlMode::stateJson() const -> nlohmann::json {
       {"streak_multiplier", m_streakMultiplier},
       {"current_category", m_currentCategory},
       {"match_complete", isMatchComplete()},
+      {"release_state", std::string(ArenaModeRegistry::releaseStateLabelForMode("brain_brawl"))},
   };
 }
 

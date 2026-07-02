@@ -26,7 +26,7 @@ public:
   void update(double deltaSeconds);
 
   auto buzzIn(float timing) -> Result<nlohmann::json>;
-  /// Validate-only: `correct` simulates server verify for film clip answer.
+  /// Local harness: `correct` simulates server verify for film clip answer.
   auto submitAnswer(bool correct, float responseTimeSeconds, std::string_view clipCategory)
       -> Result<nlohmann::json>;
 

@@ -24,7 +24,7 @@ public:
   void reset();
   void update(double deltaSeconds);
 
-  /// Validate-only: `correct` simulates server verify at POST /games/brainstorm/verify.
+  /// Local harness: `correct` simulates server verify at POST /games/brainstorm/verify.
   auto submitAnswer(bool correct, float responseTimeSeconds, std::string_view category)
       -> Result<nlohmann::json>;
 
