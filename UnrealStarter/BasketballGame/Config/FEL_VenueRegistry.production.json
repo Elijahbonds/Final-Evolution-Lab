@@ -151,6 +151,13 @@
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
     {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court — IRL dunk capture",
+      "renderMode": "IRL",
+      "healthKitTracked": true,
+      "notes": "Phone camera / HealthKit session venue; intentionally has no UE5 map or NEXUS mesh."
+    },
+    {
       "venueKey": "vault_shop",
       "analyticsPolicyName": "Luma Venice Shop (primary scan)",
       "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
