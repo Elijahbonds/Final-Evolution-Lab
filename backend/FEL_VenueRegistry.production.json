@@ -165,6 +165,7 @@
     { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
     { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
     { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
+    { "venueKey": "regulation_court_irl", "analyticsPolicyName": "Regulation Court — IRL Dunk" },
     { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
   ]
 }
