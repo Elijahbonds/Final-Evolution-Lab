@@ -23,9 +23,13 @@ cd "$ROOT"
 
 if [[ "$SKIP_BUILD" -eq 0 ]]; then
   echo "==> Configure headless build"
-  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=OFF
+  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=OFF -DNEXUS_BUILD_RUNTIME=OFF -DNEXUS_BUILD_TESTS=ON
   echo "==> Build"
   cmake --build "$BUILD_DIR" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+elif [[ ! -x "${BUILD_DIR}/nexus_gameplay_test" ]]; then
+  echo "==> Headless build missing; building C++ gameplay smoke target"
+  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=OFF -DNEXUS_BUILD_RUNTIME=OFF -DNEXUS_BUILD_TESTS=ON
+  cmake --build "$BUILD_DIR" --target nexus_gameplay_test -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 echo "==> ctest (nexus_gameplay_test)"
