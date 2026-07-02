@@ -56,6 +56,7 @@ public:
   [[nodiscard]] static auto vaultDisplayModeForMode(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto nexusMeshPathForMode(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto legacyUeMapAliasForMode(std::string_view modeId) -> std::string;
+  [[nodiscard]] static auto releaseStateForMode(std::string_view modeId) -> ArenaReleaseState;
   [[nodiscard]] static auto modeToJson(const ArenaModeConfig& config) -> nlohmann::json;
 };
 

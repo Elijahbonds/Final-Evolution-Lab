@@ -1,5 +1,7 @@
 #include "nexus/gameplay/outcome_sport_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
 #include <string_view>
 
@@ -37,6 +39,10 @@ constexpr int32_t kSoccerWinGoals = 5;
     return params.at("rally_type").get<std::string>();
   }
   return {};
+}
+
+[[nodiscard]] auto releaseStateValueForMode(std::string_view modeId) -> int {
+  return static_cast<int>(ArenaModeRegistry::releaseStateForMode(modeId));
 }
 
 } // namespace
@@ -302,7 +308,7 @@ auto OutcomeSportMode::pulse(const nlohmann::json& params) -> Result<nlohmann::j
                       {"points", points},
                       {"sport_action", m_lastAction},
                       {"streak", m_streak}};
-  payload["release_state"] = "validate_only";
+  payload["release_state"] = releaseStateValueForMode(m_modeId);
   return Result<nlohmann::json>::ok(std::move(payload));
 }
 
@@ -319,6 +325,7 @@ auto OutcomeSportMode::stateJson() const -> nlohmann::json {
       {"streak", m_streak},
       {"last_action", m_lastAction},
       {"match_complete", m_matchComplete},
+      {"release_state", releaseStateValueForMode(m_modeId)},
   };
 
   if (m_modeId == "tennis") {

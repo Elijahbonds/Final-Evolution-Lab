@@ -16,14 +16,18 @@
 #include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gameplay_application.h"
 #include "nexus/gameplay/gameplay_manager.h"
+#include "nexus/gameplay/gymnastics_mode.h"
 #include "nexus/gameplay/hud_relay_service.h"
 #include "nexus/gameplay/mode_runtime.h"
 #include "nexus/gameplay/outcome_sport_mode.h"
 #include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/session_receipt_client.h"
+#include "nexus/gameplay/skateboarding_mode.h"
+#include "nexus/gameplay/snowboarding_mode.h"
 #include "nexus/gameplay/surfing_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/voxel_command_parser.h"
+#include "nexus/gameplay/who_scene_it_mode.h"
 #include "nexus/physics/physics_world.h"
 
 #include <cstdio>
@@ -34,8 +38,10 @@
 #include <filesystem>
 #include <fstream>
 #include <fstream>
+#include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <unistd.h>
@@ -63,6 +69,38 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class ScopedEnvVar {
+public:
+  ScopedEnvVar(std::string name, std::optional<std::string> value)
+      : m_name(std::move(name)) {
+    if (const char* existing = std::getenv(m_name.c_str())) {
+      m_hadValue = true;
+      m_oldValue = existing;
+    }
+    if (value.has_value()) {
+      setenv(m_name.c_str(), value->c_str(), 1);
+    } else {
+      unsetenv(m_name.c_str());
+    }
+  }
+
+  ~ScopedEnvVar() {
+    if (m_hadValue) {
+      setenv(m_name.c_str(), m_oldValue.c_str(), 1);
+    } else {
+      unsetenv(m_name.c_str());
+    }
+  }
+
+  ScopedEnvVar(const ScopedEnvVar&) = delete;
+  auto operator=(const ScopedEnvVar&) -> ScopedEnvVar& = delete;
+
+private:
+  std::string m_name;
+  bool m_hadValue{false};
+  std::string m_oldValue;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -1862,6 +1900,52 @@ void flagship_who_scene_it_validate_only_integration() {
   physics.shutdown();
 }
 
+void production_mode_payloads_emit_registry_release_state() {
+  const int production = static_cast<int>(nexus::gameplay::ArenaReleaseState::kProduction);
+
+  nexus::gameplay::GymnasticsMode gymnastics;
+  const auto gymTap = gymnastics.rhythmTap(0.95F, 0.8F);
+  require(gymTap.isOk(), "gymnastics release-state tap succeeds");
+  require(gymTap.value()["release_state"].get<int>() == production,
+          "gymnastics payload reports production release state");
+  require(gymnastics.stateJson()["release_state"].get<int>() == production,
+          "gymnastics state reports production release state");
+
+  nexus::gameplay::SkateboardingMode skateboarding;
+  const auto skateTrick = skateboarding.landTrick(0.85F, 3);
+  require(skateTrick.isOk(), "skateboarding release-state trick succeeds");
+  require(skateTrick.value()["release_state"].get<int>() == production,
+          "skateboarding payload reports production release state");
+
+  nexus::gameplay::SnowboardingMode snowboarding;
+  const auto snowCarve = snowboarding.carve(0.95F, 0.8F);
+  require(snowCarve.isOk(), "snowboarding release-state carve succeeds");
+  require(snowCarve.value()["release_state"].get<int>() == production,
+          "snowboarding payload reports production release state");
+
+  nexus::gameplay::SurfingMode surfing;
+  const auto surfCarve = surfing.carve(0.94F, 0.8F);
+  require(surfCarve.isOk(), "surfing release-state carve succeeds");
+  require(surfCarve.value()["release_state"].get<int>() == production,
+          "surfing payload reports production release state");
+
+  nexus::gameplay::WhoSceneItMode scene;
+  const auto sceneBuzz = scene.buzzIn(0.94F);
+  require(sceneBuzz.isOk(), "who scene it release-state buzz succeeds");
+  require(sceneBuzz.value()["release_state"].get<int>() == production,
+          "who scene it payload reports production release state");
+
+  nexus::gameplay::OutcomeSportMode baseball;
+  baseball.reset("baseball");
+  const auto baseballPulse =
+      baseball.pulse({{"success", true}, {"timing", 0.9F}, {"sport_action", "swing"}});
+  require(baseballPulse.isOk(), "outcome sport release-state pulse succeeds");
+  require(baseballPulse.value()["release_state"].get<int>() == production,
+          "outcome sport payload reports production release state");
+  require(baseball.stateJson()["release_state"].get<int>() == production,
+          "outcome sport state reports production release state");
+}
+
 void fel_bridge_websocket_stub_sends_outbound() {
   nexus::gameplay::FelBridgeService bridge;
   bridge.setWebSocketUrl("ws://127.0.0.1:8787/ws/vault");
@@ -1897,6 +1981,101 @@ void hud_relay_websocket_stub_emits_frames() {
   require(!relay.sentTransportFrames().empty(), "hud relay stub sent WS frame");
   require(relay.sentTransportFrames().front().find("fel.hud.frame") != std::string::npos,
           "hud relay WS payload type");
+}
+
+void session_receipt_default_transport_stays_stub_without_live_target() {
+  ScopedEnvVar receiptUrl("NEXUS_RECEIPT_URL", std::nullopt);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_default_stub_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 20},
+      {"outcome", "win"},
+      {"duration_seconds", 45},
+      {"completed", true},
+      {"telemetry", {{"session_id", "default_stub_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.delivered == 1, "default receipt client uses stub transport");
+  require(client.pendingCount() == 0, "default stub receipt clears pending queue");
+  require(client.postedRequests().size() == 1, "default stub records POST");
+  require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
+          "default stub targets session endpoint fallback");
+}
+
+void session_receipt_explicit_base_url_uses_live_transport_by_default() {
+  ScopedEnvVar receiptUrl("NEXUS_RECEIPT_URL", std::nullopt);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_base_url_live_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:1/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .maxRetries = 2,
+  });
+
+  client.enqueue({
+      {"mode_id", "karate_endless"},
+      {"score", 15},
+      {"outcome", "win"},
+      {"duration_seconds", 90},
+      {"completed", true},
+      {"telemetry", {{"session_id", "base_url_live_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "explicit base URL attempts live receipt");
+  require(flush.delivered == 0, "explicit base URL does not stub-deliver failed live receipt");
+  require(flush.requeued == 1, "explicit base URL live failure requeues receipt");
+  require(client.pendingCount() == 1, "explicit base URL leaves receipt pending after live failure");
+  require(client.postedRequests().size() == 1, "explicit base URL records live POST attempt");
+  require(client.postedRequests().front().url.find("127.0.0.1:1") != std::string::npos,
+          "explicit base URL live POST targets configured endpoint");
+}
+
+void session_receipt_env_url_uses_live_transport_by_default() {
+  ScopedEnvVar receiptUrl("NEXUS_RECEIPT_URL",
+                          std::optional<std::string>("http://127.0.0.1:1/api/games/session"));
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_env_live_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .maxRetries = 2,
+  });
+
+  client.enqueue({
+      {"mode_id", "surfing"},
+      {"score", 75},
+      {"outcome", "win"},
+      {"duration_seconds", 90},
+      {"completed", true},
+      {"telemetry", {{"session_id", "env_live_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "env receipt URL attempts live receipt");
+  require(flush.delivered == 0, "env receipt URL does not stub-deliver failed live receipt");
+  require(flush.requeued == 1, "env receipt URL live failure requeues receipt");
+  require(client.pendingCount() == 1, "env receipt URL leaves receipt pending after live failure");
+  require(client.postedRequests().size() == 1, "env receipt URL records live POST attempt");
+  require(client.postedRequests().front().url.find("127.0.0.1:1") != std::string::npos,
+          "env receipt URL live POST targets configured endpoint");
 }
 
 void session_receipt_http_stub_posts_localhost_contract() {
@@ -2786,6 +2965,9 @@ auto main() -> int {
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
+  session_receipt_default_transport_stays_stub_without_live_target();
+  session_receipt_explicit_base_url_uses_live_transport_by_default();
+  session_receipt_env_url_uses_live_transport_by_default();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_live_http_failure_requeues_receipt();
   karate_mode_input_strike_advances_wave();
@@ -2818,6 +3000,7 @@ auto main() -> int {
   flagship_outcome_sport_validate_only_integration();
   soccer_penalty_validate_only_integration();
   flagship_who_scene_it_validate_only_integration();
+  production_mode_payloads_emit_registry_release_state();
   session_receipt_body_matches_api_contract();
   flagship_modes_emit_post_ready_receipts();
   venice_pickup_action_scores_and_reaches_win_target();

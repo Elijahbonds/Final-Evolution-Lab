@@ -149,8 +149,7 @@ void GameplayManager::setReceiptClientConfig(SessionReceiptClientConfig config) 
 }
 
 auto GameplayManager::receiptClientConfig() const -> SessionReceiptClientConfig {
-  SessionReceiptClientConfig config;
-  config.queueDirectory = m_receiptClient.queueDirectory();
+  SessionReceiptClientConfig config = m_receiptClient.config();
   config.persistToDisk = true;
   return config;
 }

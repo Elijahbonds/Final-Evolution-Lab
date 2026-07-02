@@ -1,5 +1,7 @@
 #include "nexus/gameplay/snowboarding_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
 
 namespace nexus::gameplay {
@@ -8,6 +10,10 @@ namespace {
 
 constexpr float kTimingPerfectThreshold = 0.92F;
 constexpr float kTimingGoodThreshold = 0.65F;
+
+[[nodiscard]] auto snowboardingReleaseState() -> int {
+  return static_cast<int>(ArenaModeRegistry::releaseStateForMode("snowboarding"));
+}
 
 } // namespace
 
@@ -171,7 +177,7 @@ auto SnowboardingMode::stateJson() const -> nlohmann::json {
   out["wipeouts"] = m_wipeouts;
   out["max_wipeouts"] = kMaxWipeouts;
   out["run_complete"] = isRunComplete();
-  out["release_state"] = "validate_only";
+  out["release_state"] = snowboardingReleaseState();
   return out;
 }
 

@@ -293,6 +293,13 @@ auto ArenaModeRegistry::legacyUeMapAliasForMode(std::string_view modeId) -> std:
   return {};
 }
 
+auto ArenaModeRegistry::releaseStateForMode(std::string_view modeId) -> ArenaReleaseState {
+  if (const ArenaModeConfig* found = lookup(modeId)) {
+    return found->releaseState;
+  }
+  return ArenaReleaseState::kPreview;
+}
+
 auto ArenaModeRegistry::modeToJson(const ArenaModeConfig& config) -> nlohmann::json {
   return {
       {"mode_id", std::string(config.id)},

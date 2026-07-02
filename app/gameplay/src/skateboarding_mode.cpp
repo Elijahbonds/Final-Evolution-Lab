@@ -1,8 +1,18 @@
 #include "nexus/gameplay/skateboarding_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
 
 namespace nexus::gameplay {
+
+namespace {
+
+[[nodiscard]] auto skateboardingReleaseState() -> int {
+  return static_cast<int>(ArenaModeRegistry::releaseStateForMode("skateboarding"));
+}
+
+} // namespace
 
 void SkateboardingMode::reset() {
   m_phase = SkatePhase::kRun;
@@ -75,7 +85,7 @@ auto SkateboardingMode::stateJson() const -> nlohmann::json {
       {"tricks_bailed", m_tricksBailed},
       {"max_bails", kMaxBails},
       {"run_complete", isRunComplete()},
-      {"release_state", "validate_only"},
+      {"release_state", skateboardingReleaseState()},
   };
 }
 

@@ -1,8 +1,18 @@
 #include "nexus/gameplay/who_scene_it_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
 
 namespace nexus::gameplay {
+
+namespace {
+
+[[nodiscard]] auto whoSceneItReleaseState() -> int {
+  return static_cast<int>(ArenaModeRegistry::releaseStateForMode("who_scene_it"));
+}
+
+} // namespace
 
 void WhoSceneItMode::reset() {
   m_phase = WhoSceneItPhase::kLobby;
@@ -129,7 +139,7 @@ auto WhoSceneItMode::stateJson() const -> nlohmann::json {
       {"current_category", m_currentCategory},
       {"player_has_buzz", m_playerHasBuzz},
       {"match_complete", isMatchComplete()},
-      {"release_state", "validate_only"},
+      {"release_state", whoSceneItReleaseState()},
   };
 }
 

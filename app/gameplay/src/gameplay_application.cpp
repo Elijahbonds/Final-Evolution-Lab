@@ -1071,9 +1071,11 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     }
     config.persistToDisk = params.value("persist_to_disk", true);
     config.httpEnabled = params.value("http_enabled", config.httpEnabled);
-    config.useStubHttpTransport =
-        params.value("use_stub_http_transport",
-                     params.value("use_stub_http", config.useStubHttpTransport));
+    if (params.contains("use_stub_http_transport")) {
+      config.useStubHttpTransport = params.value("use_stub_http_transport", true);
+    } else if (params.contains("use_stub_http")) {
+      config.useStubHttpTransport = params.value("use_stub_http", true);
+    }
     config.flushIntervalSeconds =
         std::max(0.0F, params.value("flush_interval_seconds", config.flushIntervalSeconds));
     config.maxRetries = static_cast<std::size_t>(

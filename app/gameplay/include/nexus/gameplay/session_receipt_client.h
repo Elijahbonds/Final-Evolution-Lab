@@ -15,11 +15,13 @@ namespace nexus::gameplay {
 struct SessionReceiptClientConfig {
   std::string queueDirectory;
   /// Full POST URL including path, e.g. `http://127.0.0.1:8000/api/games/session`.
-  std::string baseUrl{"http://127.0.0.1:8000/api/games/session"};
+  /// Empty means use the local-dev fallback URL while remaining on stub transport.
+  std::string baseUrl;
   std::string authToken;
   bool persistToDisk{true};
   bool httpEnabled{true};
-  bool useStubHttpTransport{true};
+  /// Nullopt auto-selects: stub for offline/default use, live curl when baseUrl or NEXUS_RECEIPT_URL is set.
+  std::optional<bool> useStubHttpTransport;
   float flushIntervalSeconds{5.0F};
   std::size_t maxRetries{5};
 };
@@ -43,6 +45,7 @@ public:
   [[nodiscard]] auto pendingReceipts() const -> std::span<const nlohmann::json>;
   [[nodiscard]] auto postedRequests() const -> std::span<const nexus::core::HttpPostRecord>;
   [[nodiscard]] auto queueDirectory() const -> const std::string&;
+  [[nodiscard]] auto config() const -> const SessionReceiptClientConfig&;
   void clearPending();
 
 private:
