@@ -23,6 +23,8 @@ struct GameModeRouter: View {
         switch gameMode.id {
         case .basketballHeadToHead:
             BasketballH2HGameView(viewModel: viewModel)
+        case .venicePickup:
+            BasketballH2HGameView(viewModel: viewModel)
         case .basketball3v3:
             Basketball3v3GameView(viewModel: viewModel)
         case .basketballDunkContest3D:

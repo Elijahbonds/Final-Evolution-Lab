@@ -42,8 +42,7 @@ jobs:
 
       - name: Run smoke tests
         run: |
-          pip install -r backend/requirements.txt --quiet 2>/dev/null || true
-          python3 scripts/smoke_test_modes.py || echo "Smoke tests need backend deps — skipped in CI"
+          python3 scripts/smoke_test_modes.py
 
   # ── 2. Deploy to Firebase (push only) ─────────────────────────
   deploy-firebase:

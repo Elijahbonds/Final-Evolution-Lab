@@ -8,6 +8,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GAME_MODE_SWIFT = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
+CONFIG_SWIFT = REPO_ROOT / "FinalEvolutionLab" / "Config.swift"
+GAME_MODE_ROUTER_SWIFT = REPO_ROOT / "FinalEvolutionLab" / "Views" / "GameModeRouter.swift"
 CPP_REGISTRY = REPO_ROOT / "app" / "gameplay" / "include" / "nexus" / "gameplay" / "arena_mode_registry.h"
 SWIFT_ROOTS = [REPO_ROOT / "FinalEvolutionLab", REPO_ROOT / "FinalEvolutionLabTests"]
 
@@ -49,9 +51,27 @@ def stale_case_references() -> list[str]:
     return hits
 
 
+def duplicate_static_lets(source: str) -> list[str]:
+    names = re.findall(r"\bstatic\s+let\s+([A-Za-z_][A-Za-z0-9_]*)\b", source)
+    return sorted({name for name in names if names.count(name) > 1})
+
+
+def router_cases(source: str) -> set[str]:
+    switch_match = re.search(r"switch\s+gameMode\.id\s*\{(.*?)\n\s*\}", source, flags=re.DOTALL)
+    if not switch_match:
+        return set()
+
+    cases: set[str] = set()
+    for case_group in re.findall(r"\bcase\s+([^:]+):", switch_match.group(1)):
+        cases.update(re.findall(r"\.([A-Za-z][A-Za-z0-9_]*)", case_group))
+    return cases
+
+
 def main() -> int:
     errors: list[str] = []
     swift_source = GAME_MODE_SWIFT.read_text()
+    config_source = CONFIG_SWIFT.read_text()
+    router_source = GAME_MODE_ROUTER_SWIFT.read_text()
     cpp_source = CPP_REGISTRY.read_text()
 
     try:
@@ -87,6 +107,14 @@ def main() -> int:
     stale_hits = stale_case_references()
     if stale_hits:
         errors.append("stale GameModeId case references found:\n  " + "\n  ".join(stale_hits))
+
+    duplicate_config_symbols = duplicate_static_lets(config_source)
+    if duplicate_config_symbols:
+        errors.append(f"duplicate Config static let symbols: {duplicate_config_symbols}")
+
+    missing_router_cases = sorted(set(swift_case_raw_values) - router_cases(router_source))
+    if missing_router_cases:
+        errors.append(f"GameModeRouter switch is missing cases: {missing_router_cases}")
 
     required_cases = {"basketballDunkContestIRL", "basketballDunkContest3D"}
     missing_cases = sorted(required_cases - set(swift_case_raw_values))

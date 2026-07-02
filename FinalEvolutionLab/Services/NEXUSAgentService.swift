@@ -305,6 +305,7 @@ final class NEXUSAgentService {
         let rows: [[String: Any]] = modes.map { mode in
             [
                 "mode_id": mode.id.rawValue,
+                "nexus_runtime_mode_id": mode.id.nexusRuntimeModeId,
                 "name": mode.name,
                 "subtitle": mode.subtitle,
                 "release_state": mode.releaseState.rawValue,
@@ -433,13 +434,11 @@ final class NEXUSAgentService {
             return failure(.launchMode, "Missing mode_id")
         }
 
-        guard let parsed = GameModeId(rawValue: modeId) else {
-            let valid = GameModeRegistry.arenaRegistryModeIds.map(\.rawValue).joined(separator: ", ")
+        guard let mode = GameModeRegistry.playableMode(forRegistryId: modeId) else {
+            let swiftIds = GameModeRegistry.arenaRegistryModeIds.map(\.rawValue)
+            let runtimeIds = GameModeRegistry.nexusRuntimeProductionModeIds
+            let valid = Array(Set(swiftIds + runtimeIds)).sorted().joined(separator: ", ")
             return failure(.launchMode, "Unknown mode_id '\(modeId)'. Valid: \(valid)")
-        }
-
-        guard let mode = GameModeRegistry.all.first(where: { $0.id == parsed }) else {
-            return failure(.launchMode, "Mode registry missing \(modeId)")
         }
 
         if mode.releaseState == .preview && !Config.showPreviewGameModes {
@@ -454,7 +453,9 @@ final class NEXUSAgentService {
             name: .nexusAgentLaunchMode,
             object: nil,
             userInfo: [
-                "mode_id": modeId,
+                "mode_id": mode.id.rawValue,
+                "requested_mode_id": modeId,
+                "nexus_runtime_mode_id": mode.id.nexusRuntimeModeId,
                 "mode_name": mode.name,
                 "readiness": readiness,
             ]
@@ -463,9 +464,13 @@ final class NEXUSAgentService {
         return NEXUSAgentToolResult(
             tool: .launchMode,
             success: true,
-            summary: "Playtest: launching \(mode.name) (\(modeId))",
+            summary: modeId == mode.id.rawValue
+                ? "Playtest: launching \(mode.name) (\(modeId))"
+                : "Playtest: launching \(mode.name) (\(mode.id.rawValue), requested \(modeId))",
             payload: [
-                "mode_id": modeId,
+                "mode_id": mode.id.rawValue,
+                "requested_mode_id": modeId,
+                "nexus_runtime_mode_id": mode.id.nexusRuntimeModeId,
                 "mode_name": mode.name,
                 "readiness": readiness,
                 "preview_label": mode.isNexusSprintPlayable ? "sprint_playable" : "preview_or_p2",

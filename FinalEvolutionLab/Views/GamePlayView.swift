@@ -4395,12 +4395,19 @@ struct GamePlayView: View {
     private func finalizeResults() {
         if finalizedMatchSessionId == matchSessionId { return }
 
+        let backendSessionModeId: String
+        if gameMode.id.isNexusRuntimeLaunchable {
+            backendSessionModeId = gameMode.id.nexusRuntimeModeId
+        } else {
+            backendSessionModeId = gameMode.id.rawValue
+        }
+
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
         if shardsReward > 0 {
             viewModel.profile.pendingUnverifiedShardCredits += shardsReward
             Task {
                 await TrainingLabSocialBridge.shared.recordShardLedgerForArenaSession(
-                    gameModeId: gameMode.id.rawValue,
+                    gameModeId: backendSessionModeId,
                     deltaShards: shardsReward,
                     sessionId: matchSessionId.uuidString
                 )
@@ -4421,7 +4428,7 @@ struct GamePlayView: View {
 
         let result = GameSessionResult(
             id: "local:\(matchSessionId.uuidString)",
-            gameModeId: gameMode.id.rawValue,
+            gameModeId: backendSessionModeId,
             date: Date(),
             score: score,
             opponentScore: opponentScore,
@@ -4441,7 +4448,7 @@ struct GamePlayView: View {
         Task {
             await GameplaySessionReceiptCoordinator.shared.submitNativeSessionReceipt(
                 matchSessionId: matchSessionId,
-                gameModeId: gameMode.id.rawValue,
+                gameModeId: backendSessionModeId,
                 playerScore: score,
                 opponentScore: opponentScore,
                 durationSeconds: elapsedSeconds,

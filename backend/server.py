@@ -1139,11 +1139,11 @@ async def log_workout(data: Dict[str, Any], user: User = Depends(get_current_use
 
 @api_router.get("/games/modes")
 async def get_game_modes():
-    return get_seeded_game_modes()
+    return get_registry_game_modes()
 
 @api_router.get("/games/modes/{mode_id}")
 async def get_game_mode(mode_id: str):
-    modes = get_seeded_game_modes()
+    modes = get_registry_game_modes()
     for m in modes:
         if m["id"] == mode_id:
             return m
@@ -1398,6 +1398,54 @@ def get_seeded_game_modes():
         {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"/images/ue5_basketball.png","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"},
         {"id":"trivia_arena","name":"Trivia Arena","display_name":"Trivia Arena · Academy","venue":"Neuro Arena","category":"Academy","description":"Spin the wheel and test your knowledge across 8 academic and sports categories","image_url":"/images/ue5_soccer.png","player_count":"1-4","duration":"10 min","difficulty":"Variable","playable":True,"game_type":"quiz"}
     ]
+
+
+def get_registry_game_modes():
+    """UI-friendly game cards generated from the production registry source of truth."""
+    seeded_by_id = {mode["id"]: mode for mode in get_seeded_game_modes()}
+    cards = []
+
+    for mode in _normalized_modes():
+        mode_id = mode["mode_id"]
+        seed = seeded_by_id.get(mode_id)
+
+        if not seed and mode_id == "basketball_dunk_3d":
+            seed = seeded_by_id.get("basketball_dunk")
+        elif not seed and mode_id == "basketball_dunk_irl":
+            seed = {
+                **seeded_by_id.get("basketball_dunk", {}),
+                "name": "IRL Dunk",
+                "display_name": "IRL Dunk Contest",
+                "description": "Real-phone dunk capture with Vision pose scoring",
+                "game_type": "irl_capture",
+            }
+
+        seed = seed or {}
+        name = seed.get("name") or mode["name"]
+        display_name = seed.get("display_name") or mode["name"]
+        card = {
+            "id": mode_id,
+            "name": name,
+            "display_name": display_name,
+            "venue": seed.get("venue") or mode["venue_display"],
+            "category": seed.get("category") or mode["render_mode"],
+            "description": seed.get("description") or f"{display_name} on {mode['venue_display']}",
+            "image_url": seed.get("image_url") or "/images/ue5_soccer.png",
+            "player_count": seed.get("player_count") or "1",
+            "duration": seed.get("duration") or "10 min",
+            "difficulty": seed.get("difficulty") or "Intermediate",
+            "playable": bool(mode["launchable"]),
+            "game_type": seed.get("game_type") or "nexus",
+            "status": mode["status"],
+            "render_mode": mode["render_mode"],
+            "launchable": mode["launchable"],
+            "map_path": mode["map_path"],
+            "venue_token": mode["map"] or mode["venue_key"],
+            "nexus_runtime_mode_id": mode["nexus_runtime_mode_id"],
+        }
+        cards.append(card)
+
+    return cards
 
 @api_router.get("/cards")
 async def get_creator_cards(category: Optional[str] = None):
@@ -1836,27 +1884,24 @@ async def get_progress(user: User = Depends(get_current_user)):
 @api_router.get("/registry/venues")
 async def get_venue_registry():
     """Centralized venue registry — apps fetch this on launch, no hardcoded links"""
-    venues = VENUE_REGISTRY.get("venues", {})
-    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     ws_url = os.environ.get("HUB_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/vault")
 
     result = []
-    for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
-            continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = venues.get(venue_key, {})
+    for mode in _normalized_modes():
+        mode_id = mode["mode_id"]
+        venue_key = mode["map"] or mode["venue_key"] or mode_id
         result.append({
             "mode_id": mode_id,
             "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
-            "map_path": map_path,
+            "map_path": mode["map_path"],
             "venue_token": venue_key,
-            "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
-            "category": venue_data.get("category", "Unknown"),
-            "binary": config.get("binary", ""),
-            "status": config.get("status", "staging"),
-            "gamemode_class": config.get("gamemode_class", "")
+            "venue_display": mode["venue_display"],
+            "category": mode["render_mode"],
+            "binary": mode["binary"],
+            "status": mode["status"],
+            "launchable": mode["launchable"],
+            "nexus_runtime_mode_id": mode["nexus_runtime_mode_id"],
+            "gamemode_class": mode["gamemode_class"]
         })
 
     return {
