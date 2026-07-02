@@ -126,6 +126,7 @@ struct SettingsSheet: View {
                     }
                 }
 
+                #if DEBUG
                 if let vm = viewModel {
                     Section {
                         Button {
@@ -140,9 +141,9 @@ struct SettingsSheet: View {
                         } label: {
                             Label {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Export Unity Manifest")
+                                    Text("Export Archived Unity Manifest")
                                         .font(.body.weight(.semibold))
-                                    Text("JSON export of PRQ, Neural Drive & game data")
+                                    Text("Debug-only JSON export for legacy reference imports")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -152,9 +153,10 @@ struct SettingsSheet: View {
                             }
                         }
                     } header: {
-                        Text("Unity Bridge")
+                        Text("Archived Unity Bridge")
                     }
                 }
+                #endif
 
                 Section {
                     Label {
@@ -182,13 +184,13 @@ struct SettingsSheet: View {
         }
         .presentationDetents([.medium])
         .presentationBackground(Theme.deepBlack)
-        .alert("Unity Manifest", isPresented: $showExportAlert) {
+        .alert("Archived Unity Manifest", isPresented: $showExportAlert) {
             Button("Copy to Clipboard") {
                 UIPasteboard.general.string = exportJSON
             }
             Button("OK", role: .cancel) { }
         } message: {
-            Text("JSON manifest generated (\(exportJSON.count) chars). Copy to clipboard for Unity import.")
+            Text("Debug-only JSON manifest generated (\(exportJSON.count) chars). Copy to clipboard for archived Unity reference imports.")
         }
     }
 }

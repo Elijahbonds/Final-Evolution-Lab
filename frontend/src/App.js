@@ -1616,7 +1616,7 @@ const DownloadPortalView = () => {
       <div className="surface-card p-6 rounded-lg">
         <h3 className="text-lg font-bold mb-3" style={{fontFamily:'Barlow Condensed'}}>HOW TO ACCESS THE STREAM</h3>
         <p className="text-zinc-400 text-sm leading-relaxed mb-4">
-          Final Evolution utilizes a cloud-native architecture. You don’t download the Lab; you stream the simulation. Our Unreal Engine 5.7 core runs on high-performance GPU instances and pipes the visual experience directly to your browser. This eliminates local hardware limitations and provides an industrial-grade digital twin experience.
+          Final Evolution utilizes a cloud-native architecture. You stream the simulation through the NEXUS runtime or install early access mobile builds when your membership lane is enabled. This keeps heavyweight compute off local hardware while preserving the athlete OS experience across devices.
         </p>
         <div className="bg-black/50 p-4 border border-white/5 font-mono text-xs text-zinc-400 rounded">
           <div className="text-zinc-600 font-bold"># Start local client mapping</div>

@@ -30,7 +30,7 @@ const FALLBACK_HUB_STATUS = {
 };
 const FALLBACK_HUB_HEALTH = {
   status: "STANDBY",
-  checks: { mode_manager: { production_modes: 19 } },
+  checks: { mode_manager: { production_modes: 19 }, blocking_issues: 0 },
 };
 const FALLBACK_HUB_HANDSHAKE = {
   handshake_status: "STANDBY",
@@ -86,6 +86,7 @@ export const HubDashboard = () => {
   const integrityOk = status.integrity?.status === 'ACTIVE';
   const telem = status.telemetry;
   const card = status.active_creator_card;
+  const blockingIssues = health?.checks?.blocking_issues ?? health?.blocking_issues ?? 0;
 
   return (
     <div className="space-y-6 fade-in">
@@ -222,7 +223,7 @@ export const HubDashboard = () => {
             <div className="flex items-center justify-between mb-3"><h3 className="font-bold" style={{fontFamily:'Barlow Condensed'}}>PRODUCTION HEALTH</h3><span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>{health.status}</span></div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">MODES</span><div className="font-mono">{health.checks?.mode_manager?.production_modes} prod</div></div>
-              <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">PLACEHOLDER</span><div className="font-mono text-green-400">NONE</div></div>
+              <div className="bg-black/30 p-2 border border-white/5"><span className="metric-label">BLOCKERS</span><div className={`font-mono ${blockingIssues === 0 ? 'text-green-400' : 'text-yellow-400'}`}>{blockingIssues}</div></div>
             </div>
           </div>
         )}

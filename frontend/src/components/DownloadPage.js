@@ -9,6 +9,8 @@ export default function DownloadPage() {
   const [hasPurchased, setHasPurchased] = useState(false);
   const [passcode, setPasscode] = useState("");
   const [passcodeError, setPasscodeError] = useState("");
+  const devUnlockCode = process.env.REACT_APP_DEV_UNLOCK_CODE || "";
+  const devUnlockEnabled = process.env.REACT_APP_ENABLE_DEV_UNLOCK === "true" && devUnlockCode.length > 0;
 
   useEffect(() => {
     const purchased = localStorage.getItem("fel_has_purchased") === "true";
@@ -22,12 +24,12 @@ export default function DownloadPage() {
 
   const handlePasscodeSubmit = (e) => {
     e.preventDefault();
-    if (passcode.toLowerCase().trim() === "igotbounce") {
+    if (devUnlockEnabled && passcode.trim() === devUnlockCode) {
       localStorage.setItem("fel_has_purchased", "true");
       setHasPurchased(true);
       setPasscodeError("");
     } else {
-      setPasscodeError("Invalid bypass code");
+      setPasscodeError("Developer unlock is disabled for this build");
     }
   };
 
@@ -66,40 +68,43 @@ export default function DownloadPage() {
               Go to Store & Checkout
             </Link>
             
-            <button
-              onClick={simulatePurchase}
-              className="block w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs tracking-widest uppercase transition-all rounded-sm"
-            >
-              Simulate Purchase (Test Unlock)
-            </button>
-
-            {/* Bypass Code Form */}
-            <form onSubmit={handlePasscodeSubmit} className="space-y-2 pt-4 border-t border-white/5">
-              <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest block text-left">
-                ENTER BYPASS CODE
-              </label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="e.g. igotbounce"
-                  value={passcode}
-                  onChange={(e) => {
-                    setPasscode(e.target.value);
-                    setPasscodeError("");
-                  }}
-                  className="flex-1 bg-[#050505] border border-white/10 text-white font-mono px-3 py-2 text-xs focus:outline-none focus:border-cyan-400"
-                />
-                <button 
-                  type="submit"
-                  className="px-4 py-2 bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs uppercase tracking-wider transition-all"
+            {devUnlockEnabled && (
+              <div className="space-y-3 pt-4 border-t border-white/5">
+                <button
+                  onClick={simulatePurchase}
+                  className="block w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs tracking-widest uppercase transition-all rounded-sm"
                 >
-                  Apply
+                  Developer Unlock (Local Test)
                 </button>
+
+                <form onSubmit={handlePasscodeSubmit} className="space-y-2">
+                  <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest block text-left">
+                    DEVELOPER UNLOCK CODE
+                  </label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Local dev only"
+                      value={passcode}
+                      onChange={(e) => {
+                        setPasscode(e.target.value);
+                        setPasscodeError("");
+                      }}
+                      className="flex-1 bg-[#050505] border border-white/10 text-white font-mono px-3 py-2 text-xs focus:outline-none focus:border-cyan-400"
+                    />
+                    <button 
+                      type="submit"
+                      className="px-4 py-2 bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs uppercase tracking-wider transition-all"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {passcodeError && (
+                    <div className="text-red-400 font-mono text-[10px] text-left">{passcodeError}</div>
+                  )}
+                </form>
               </div>
-              {passcodeError && (
-                <div className="text-red-400 font-mono text-[10px] text-left">{passcodeError}</div>
-              )}
-            </form>
+            )}
           </div>
         </div>
       </div>

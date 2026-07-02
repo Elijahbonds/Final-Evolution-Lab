@@ -226,8 +226,8 @@ extension PlayerAvatarConfig {
         )
     }
 
-    /// Full JSON payload delivered to Unreal via `receiveAvatarAppearanceJSON:`.
-    func toUnrealPayload() -> [String: Any] {
+    /// Full JSON payload delivered to NEXUS via `NexusBridge.deliverAvatarAppearanceJSON`.
+    func toNexusBridgePayload() -> [String: Any] {
         [
             "type": "avatar_appearance",
             "userId": userId,
@@ -261,5 +261,10 @@ extension PlayerAvatarConfig {
                 "trailIntensity": trailIntensity
             ]
         ]
+    }
+
+    @available(*, deprecated, message: "Use toNexusBridgePayload() for the NEXUS runtime bridge.")
+    func toUnrealPayload() -> [String: Any] {
+        toNexusBridgePayload()
     }
 }

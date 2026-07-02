@@ -10,6 +10,8 @@ import {
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
 const API = `${BACKEND_URL}/api`;
+const DEV_UNLOCK_CODE = process.env.REACT_APP_DEV_UNLOCK_CODE || "";
+const DEV_UNLOCK_ENABLED = process.env.REACT_APP_ENABLE_DEV_UNLOCK === "true" && DEV_UNLOCK_CODE.length > 0;
 
 export function LandingPage() {
   const [activeTab, setActiveTab] = useState("simulator");
@@ -110,8 +112,7 @@ export function LandingPage() {
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
     
-    // Check for bypass promo code first
-    if (promoCode.toLowerCase().trim() === "igotbounce") {
+    if (DEV_UNLOCK_ENABLED && promoCode.trim() === DEV_UNLOCK_CODE) {
       setBookingStatus("booking");
       setTimeout(() => {
         localStorage.setItem("fel_has_purchased", "true");
@@ -1203,20 +1204,21 @@ export function LandingPage() {
             ) : (
               <form onSubmit={handleBookingSubmit} className="space-y-5">
                 
-                {/* Promo/Bypass Code field */}
-                <div className="space-y-2 border-b border-white/5 pb-3">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-mono text-[#5ce1e6] uppercase tracking-widest">PROMO / BYPASS CODE</label>
-                    <span className="text-[9px] text-zinc-500 font-mono">Use code to skip checkout validation</span>
+                {DEV_UNLOCK_ENABLED && (
+                  <div className="space-y-2 border-b border-white/5 pb-3">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-mono text-[#5ce1e6] uppercase tracking-widest">DEVELOPER UNLOCK CODE</label>
+                      <span className="text-[9px] text-zinc-500 font-mono">Local test builds only</span>
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder="Enter local dev unlock code"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      className="w-full bg-[#050505] border border-[#5ce1e6]/30 text-white font-mono px-4 py-3 rounded-none focus:outline-none focus:border-[#5ce1e6] text-sm"
+                    />
                   </div>
-                  <input 
-                    type="text" 
-                    placeholder="Enter bypass code (e.g. igotbounce)"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    className="w-full bg-[#050505] border border-[#5ce1e6]/30 text-white font-mono px-4 py-3 rounded-none focus:outline-none focus:border-[#5ce1e6] text-sm"
-                  />
-                </div>
+                )}
                 
                 <div className="space-y-2">
                   <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">Athlete Name *</label>

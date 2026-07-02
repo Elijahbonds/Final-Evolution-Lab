@@ -1,7 +1,7 @@
 {
   "name": "Final Evolution Lab",
   "short_name": "FEL",
-  "description": "Your body is the controller. Unreal Engine 5.7 is the arena.",
+  "description": "Your body is the controller. NEXUS is the arena.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#050505",
