@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+import asyncio
 import sys
 import types
 
@@ -95,42 +96,46 @@ def test_seeded_creator_cards_are_marketplace_priced() -> None:
     assert next(card for card in cards if card["id"] == "card_eric")["price_shards"] == 500
 
 
-@pytest.mark.asyncio
-async def test_marketplace_stripe_purchase_returns_checkout_contract(monkeypatch: pytest.MonkeyPatch) -> None:
-    fake_db = FakeDb({"user_id": "test-user", "coins": 1000})
-    monkeypatch.setattr(server, "db", fake_db)
+def test_marketplace_stripe_purchase_returns_checkout_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _run() -> None:
+        fake_db = FakeDb({"user_id": "test-user", "coins": 1000})
+        monkeypatch.setattr(server, "db", fake_db)
 
-    data = await server.purchase_marketplace_item(
-        _request(),
-        {
-            "item_type": "creator_card",
-            "item_id": "card_elijah",
-            "payment_method": "stripe",
-            "return_url": "http://localhost:3000/cards",
-        },
-        _user(),
-    )
+        data = await server.purchase_marketplace_item(
+            _request(),
+            {
+                "item_type": "creator_card",
+                "item_id": "card_elijah",
+                "payment_method": "stripe",
+                "return_url": "http://localhost:3000/cards",
+            },
+            _user(),
+        )
 
-    assert data["status"] == "pending"
-    assert data["payment_method"] == "stripe"
-    assert data["stripe_client_secret"].startswith("pi_offline_")
-    assert "checkout_session=cs_offline_" in data["checkout_url"]
-    assert fake_db.orders.inserted[0]["item_type"] == "card"
+        assert data["status"] == "pending"
+        assert data["payment_method"] == "stripe"
+        assert data["stripe_client_secret"].startswith("pi_offline_")
+        assert "checkout_session=cs_offline_" in data["checkout_url"]
+        assert fake_db.orders.inserted[0]["item_type"] == "card"
+
+    asyncio.run(_run())
 
 
-@pytest.mark.asyncio
-async def test_marketplace_shard_purchase_deducts_and_grants_card(monkeypatch: pytest.MonkeyPatch) -> None:
-    fake_db = FakeDb({"user_id": "test-user", "shards": 1000, "coins": 1000})
-    monkeypatch.setattr(server, "db", fake_db)
+def test_marketplace_shard_purchase_deducts_and_grants_card(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _run() -> None:
+        fake_db = FakeDb({"user_id": "test-user", "shards": 1000, "coins": 1000})
+        monkeypatch.setattr(server, "db", fake_db)
 
-    data = await server.purchase_marketplace_item(
-        _request(),
-        {"item_type": "creator_card", "item_id": "card_eric", "payment_method": "shards"},
-        _user(),
-    )
+        data = await server.purchase_marketplace_item(
+            _request(),
+            {"item_type": "creator_card", "item_id": "card_eric", "payment_method": "shards"},
+            _user(),
+        )
 
-    assert data["status"] == "completed"
-    assert data["amount_shards"] == 500
-    assert fake_db.users.docs[0]["shards"] == 500
-    assert fake_db.users.docs[0]["coins"] == 500
-    assert fake_db.user_cards.updates[0][0] == {"user_id": "test-user", "card_id": "card_eric"}
+        assert data["status"] == "completed"
+        assert data["amount_shards"] == 500
+        assert fake_db.users.docs[0]["shards"] == 500
+        assert fake_db.users.docs[0]["coins"] == 500
+        assert fake_db.user_cards.updates[0][0] == {"user_id": "test-user", "card_id": "card_eric"}
+
+    asyncio.run(_run())
