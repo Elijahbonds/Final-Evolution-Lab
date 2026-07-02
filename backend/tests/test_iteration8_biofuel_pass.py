@@ -1,10 +1,10 @@
 """
 Iteration 8 backend tests:
 - DB indexes (education_progress unique compound, brain_brawl_launches TTL)
-- /api/sovereign/handshake/verify
+- /api/vault/handshake/verify
 - /api/system-scan/pass/{user_id}.png + /api/system-scan/pass-meta/{user_id}
 - /api/biofuel/* — recipes (public), today/cues/log/scan/instacart/doordash (auth)
-- system-scan/unified biofuel block, sovereign/status biofuel block
+- system-scan/unified biofuel block, vault/status biofuel block
 """
 import base64
 import io
@@ -19,11 +19,17 @@ from pymongo import MongoClient
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 if not BASE_URL:
     # fallback to frontend/.env
-    with open("/app/frontend/.env") as f:
-        for line in f:
-            if line.startswith("REACT_APP_BACKEND_URL="):
-                BASE_URL = line.split("=", 1)[1].strip().rstrip("/")
+    for path in ["frontend/.env", "../frontend/.env", "/app/frontend/.env"]:
+        if os.path.exists(path):
+            with open(path) as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        BASE_URL = line.split("=", 1)[1].strip().rstrip("/")
+                        break
+            if BASE_URL:
                 break
+    if not BASE_URL:
+        BASE_URL = "http://localhost:8000"
 
 MONGO_URL = "mongodb://localhost:27017"
 DB_NAME = "test_database"
@@ -62,14 +68,14 @@ class TestMongoIndexes:
             "TTL index not on launched_at_ts field"
 
 
-# ============ SOVEREIGN HANDSHAKE VERIFY ============
-class TestSovereignHandshake:
+# ============ VAULT HANDSHAKE VERIFY ============
+class TestVaultHandshake:
     def test_verify_returns_expected_payload(self):
-        r = requests.get(f"{BASE_URL}/api/sovereign/handshake/verify", timeout=10)
+        r = requests.get(f"{BASE_URL}/api/vault/handshake/verify", timeout=10)
         assert r.status_code == 200
         d = r.json()
         assert d["ok"] is True
-        assert d["expected_ws_url"] == "wss://finalevolutiongroup.com/ws/sovereign"
+        assert d["expected_ws_url"] == "wss://finalevolutiongroup.com/ws/vault"
         assert d["encryption"] == "AES-256-GCM"
         assert d["mode"] == "production"
         assert d["device_target"] == "iPhone16,2"
@@ -207,7 +213,7 @@ class TestBiofuelAuthenticated:
                   "fats_g", "micros", "athletic_intent", "nutri_shards_awarded", "scanned_at"):
             assert k in d, f"missing key {k}"
         assert d["model"] == model
-        assert d["nutri_shards_awarded"] == 12
+        assert d["nutri_shards_awarded"] == 0  # awarded only after POST /scan/confirm
 
     def test_instacart_cart_valid_recipe(self):
         r = requests.post(f"{BASE_URL}/api/biofuel/instacart-cart", headers=hdr(),
@@ -232,7 +238,7 @@ class TestBiofuelAuthenticated:
             assert m["deep_link"].startswith("https://www.doordash.com/search/store/?query=")
 
 
-# ============ UNIFIED + SOVEREIGN STATUS ============
+# ============ UNIFIED + VAULT STATUS ============
 class TestUnifiedAndStatus:
     def test_system_scan_unified_includes_biofuel(self):
         r = requests.get(f"{BASE_URL}/api/system-scan/unified", headers=hdr(), timeout=10)
@@ -243,8 +249,8 @@ class TestUnifiedAndStatus:
         for k in ("intent", "target", "consumed", "pct"):
             assert k in bf, f"biofuel.{k} missing"
 
-    def test_sovereign_status_includes_biofuel_block(self):
-        r = requests.get(f"{BASE_URL}/api/sovereign/status", timeout=10)
+    def test_vault_status_includes_biofuel_block(self):
+        r = requests.get(f"{BASE_URL}/api/vault/status", timeout=10)
         assert r.status_code == 200
         d = r.json()
         assert "biofuel" in d, f"biofuel block missing. keys: {list(d.keys())}"

@@ -1,0 +1,101 @@
+{
+  "migration_date": "2026-06-27",
+  "summary": "Retired Vercel; Firebase Hosting (Classic) is the static deploy path for all web surfaces.",
+  "former_vercel": {
+    "inventory": [
+      {
+        "path": "frontend/vercel.json",
+        "framework": "create-react-app",
+        "build_output": "frontend/build",
+        "install_command": "npm install --legacy-peer-deps",
+        "status": "removed"
+      },
+      {
+        "path": ".gitignore (.vercel/)",
+        "status": "kept — harmless if CLI cache dir appears"
+      }
+    ],
+    "not_found": [
+      "No VERCEL_* env vars in .env.example or CI",
+      "No .github/workflows Vercel deploy",
+      "No sites/ or web/ Vercel configs (dirs not in canonical repo yet)",
+      "No README mentions of Vercel outside removed vercel.json schema URL"
+    ]
+  },
+  "replacement": {
+    "platform": "Firebase Hosting (Classic)",
+    "firebase_project": "final-evolution-lab",
+    "rationale": "Same GCP/Firebase stack as iOS App Distribution, Firestore, Data Connect; SPA rewrites already in firebase.json; no new vendor."
+  },
+  "deploy_commands": {
+    "fel-dashboard": {
+      "description": "CRA athlete dashboard (formerly on Vercel)",
+      "local_dev": "cd frontend && npm install --legacy-peer-deps && npm start",
+      "build": "cd frontend && npm run build",
+      "deploy": "./scripts/deploy-hosting.sh fel-dashboard",
+      "firebase_only": "firebase deploy --only hosting:fel-dashboard",
+      "preview_channel": "firebase hosting:channel:deploy preview --only hosting:fel-dashboard",
+      "hosting_target": "fel-dashboard",
+      "hosting_site_id": "final-evolution-lab",
+      "public_dir": "frontend/build",
+      "default_urls": [
+        "https://final-evolution-lab.web.app",
+        "https://final-evolution-lab.firebaseapp.com"
+      ]
+    },
+    "fel-marketing": {
+      "description": "finalevolutiongroup.com Vite marketing site (planned — not on Vercel)",
+      "local_dev": "cd sites/finalevolutiongroup.com && npm run dev",
+      "deploy_when_ready": "./scripts/deploy-hosting.sh fel-marketing",
+      "hosting_target": "fel-marketing",
+      "suggested_site_id": "finalevolutiongroup",
+      "public_dir": "sites/finalevolutiongroup.com/dist",
+      "setup": "firebase hosting:sites:create finalevolutiongroup && firebase target:apply hosting fel-marketing finalevolutiongroup"
+    },
+    "fel-legacy-site": {
+      "description": "Legacy main marketing/app site (planned)",
+      "local_dev": "cd sites/final-evolution-main-site && npm run dev",
+      "deploy_when_ready": "./scripts/deploy-hosting.sh fel-legacy-site",
+      "hosting_target": "fel-legacy-site",
+      "suggested_site_id": "final-evolution-main",
+      "public_dir": "sites/final-evolution-main-site/dist"
+    },
+    "fel-clinical-gate": {
+      "description": "Clinical gate React component (planned)",
+      "local_dev": "cd web/clinical-gate-react && npm run dev",
+      "deploy_when_ready": "./scripts/deploy-hosting.sh fel-clinical-gate",
+      "hosting_target": "fel-clinical-gate",
+      "suggested_site_id": "fel-clinical-gate",
+      "public_dir": "web/clinical-gate-react/dist"
+    },
+    "fel-web-shell": {
+      "description": "Static PWA gateway shell (planned)",
+      "local_dev": "npx serve web -l 8080",
+      "deploy_when_ready": "./scripts/deploy-hosting.sh fel-web-shell",
+      "hosting_target": "fel-web-shell",
+      "suggested_site_id": "fel-web-shell",
+      "public_dir": "web"
+    }
+  },
+  "dns_custom_domain": {
+    "primary_domain": "finalevolutiongroup.com",
+    "notes": [
+      "Point finalevolutiongroup.com at Firebase Hosting via Console → Hosting → Add custom domain.",
+      "Use dedicated Hosting site finalevolutiongroup for marketing when sites/finalevolutiongroup.com/ ships.",
+      "www.finalevolutiongroup.com: add as redirect or second custom domain in same Hosting site.",
+      "api.finalevolutiongroup.com stays on Cloud Run/backend — not Firebase Hosting.",
+      "Allowlist in auth_testing.md already lists https://finalevolutiongroup.com and https://www.finalevolutiongroup.com."
+    ]
+  },
+  "docs_updated": [
+    "docs/FIREBASE_HOSTING_DEPLOY.md",
+    "Config/firebase_hosting_targets.txt",
+    "scripts/deploy-hosting.sh",
+    "AGENTS.md (deploy section)",
+    "firebase.json (hosting target fel-dashboard)",
+    ".firebaserc (target mapping)"
+  ],
+  "files_removed": [
+    "frontend/vercel.json"
+  ]
+}

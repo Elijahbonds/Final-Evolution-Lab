@@ -1,0 +1,38 @@
+import Foundation
+
+/// Posts gameplay notifications consumed by ``GameSceneHostView`` for event-triggered scenic camera cuts.
+enum FELGameplayEventBus {
+    static func postScored() {
+        NotificationCenter.default.post(name: .felGameplayScored, object: nil)
+    }
+
+    static func postBuzzIn() {
+        NotificationCenter.default.post(name: .felGameplayBuzzIn, object: nil)
+    }
+
+    static func postPenalty() {
+        NotificationCenter.default.post(name: .felGameplayPenalty, object: nil)
+    }
+
+    static func postKarateBlock() {
+        NotificationCenter.default.post(name: .felGameplayKarateBlock, object: nil)
+    }
+
+    static func postWaveCompleted() {
+        NotificationCenter.default.post(name: .felGameplayWaveCompleted, object: nil)
+    }
+
+    /// Opponent H2H turn — scenic broadcast cut + opponent avatar focus in ``GameSceneHostView``.
+    static func postOpponentScored() {
+        NotificationCenter.default.post(name: .felGameplayOpponentScored, object: nil)
+    }
+}
+
+extension Notification.Name {
+    static let felGameplayScored = Notification.Name("FELGameplayScored")
+    static let felGameplayBuzzIn = Notification.Name("FELGameplayBuzzIn")
+    static let felGameplayPenalty = Notification.Name("FELGameplayPenalty")
+    static let felGameplayKarateBlock = Notification.Name("FELGameplayKarateBlock")
+    static let felGameplayWaveCompleted = Notification.Name("FELGameplayWaveCompleted")
+    static let felGameplayOpponentScored = Notification.Name("FELGameplayOpponentScored")
+}

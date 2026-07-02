@@ -1,0 +1,476 @@
+Final Evolution Lab — Firebase TestFlight checklist (V-003 / P0)
+================================================================================
+Project: final-evolution-lab
+Console: https://console.firebase.google.com/project/final-evolution-lab/overview
+Canonical repo: /Users/elijahbonds/Final-Evolution-Lab
+
+This checklist unblocks `./scripts/archive-ios-testflight.sh --export` for TestFlight.
+Do NOT commit GoogleService-Info.plist or any Firebase secrets to git.
+
+--- GOOGLE AI STUDIO (PRIMARY AI — NO FIREBASE REQUIRED) ---
+
+AI Studio replaces Firebase AI Logic for builder / game generation / agent chat.
+
+  Setup doc:     docs/NEXUS_AI_STUDIO_SETUP.md
+  iOS bootstrap: FinalEvolutionLab/Services/NexusAIStudioBootstrap.swift
+  Engine config: engine/ai_interface/src/nexus_ai_studio_config.cpp
+
+  [ ] Create API key: https://aistudio.google.com/apikey
+  [ ] Configure ONE of:
+        - Xcode scheme env: NEXUS_AI_STUDIO_API_KEY (preferred) or NEXUS_AGENT_GEMINI_KEY
+        - Keychain via NEXUS Studio → AI Studio settings panel
+        - Headless/CI: export NEXUS_AI_STUDIO_API_KEY before nexus_agent_cli / gameplay tests
+  [ ] Optional model override: NEXUS_AI_STUDIO_MODEL=gemini-2.0-flash
+  [ ] Verify Dashboard shows: AI STUDIO · CONNECTED (not PREVIEW · FIREBASE OFFLINE for AI)
+  [ ] Generator works without Firebase: Arena → Create → spec metadata ai_provider: ai_studio OR template_mvp
+  [ ] Do NOT commit API keys; gitignore .env.local if used locally
+
+  Firebase is OPTIONAL for AI. Required Firebase touchpoints (distribution/analytics only):
+    - Crashlytics symbol upload (Release archive with real plist)
+    - Anonymous Auth / Firestore (production social lane)
+    - Firebase App Distribution (ad-hoc IPA upload — see LANE A below)
+
+--- DISK SPACE (ARCHIVE / EXPORT) ---
+
+  REQUIRE ≥ 15 GB free on internal data volume before archive or export.
+
+    df -g / | awk 'NR==2 {print "Free GB:", $4}'
+
+  Archive creates build/FEL.xcarchive + build/DerivedData-archive/ (~several GB).
+  Script warns below 12 GB; 15 GB+ recommended to avoid build.db I/O failures.
+  Recovery: rm -rf build/DerivedData-archive; or --export-only from existing xcarchive.
+
+--- FIREBASE iOS SDK (Swift Package Manager) ---
+
+Official repo: https://github.com/firebase/firebase-ios-sdk
+Install method: Swift Package Manager (preferred; CocoaPods EOL Oct 2026)
+
+NEXUS integration (FinalEvolutionLab.xcodeproj):
+  Package URL:    https://github.com/firebase/firebase-ios-sdk
+  Version pin:    exact 12.15.0
+  Linked products: FirebaseCore, FirebaseAuth, FirebaseFirestore, FirebaseCrashlytics
+  Not linked:     FirebaseAnalytics (optional), FirebaseAppDistribution (not needed for console uploads)
+
+Bootstrap:
+  FinalEvolutionLab/Services/FirebaseBootstrap.swift — configureIfNeeded() in FinalEvolutionLabApp.init()
+  FinalEvolutionLab/Services/CrashReporter.swift — Crashlytics custom keys after configure
+
+Plist validation (rejects FinalEvoLab bundle ID mismatch):
+  ./scripts/lib/firebase-plist-check.sh validate FinalEvolutionLab/GoogleService-Info.plist
+  ./scripts/lib/firebase-plist-check.sh validate-bundle-id FinalEvolutionLab/GoogleService-Info.plist
+
+Preview lane compatibility:
+  --preview-firebase works with placeholder plist (FirebaseBootstrap.isPreviewMode)
+  Real plist required for production archive without --preview-firebase
+  SPM modules resolve the same in preview and production lanes
+
+Full SDK notes: infra/FIREBASE_IOS_SDK.md
+
+--- AUDIT STATUS (2026-06-19, ios_ship handoff — distribution errors FIXED) ---
+
+  GoogleService-Info.plist on disk: PLACEHOLDER (GOOGLE_APP_ID 1:000000000000:ios:…) — BUNDLE_ID com.finalevolutionlab.app OK
+  Real console plist: NOT present in repo (gitignored when added locally)
+    Fetch when ready: ./scripts/fetch-firebase-ios-plist.sh --download
+    Correct app ID: 1:760396881212:ios:279a55f97749059acb1239 (Final Evolution Lab)
+  .gitignore: FinalEvolutionLab/GoogleService-Info.plist (line 15) — OK
+  Xcode bundle ID: com.finalevolutionlab.app (must match Firebase iOS app registration)
+  V-003 workaround: PREVIEW archive path (Crashlytics skip + FirebaseBootstrap preview mode)
+  Xcode: 26.5 (17F42) | Disk: ≥15 GB free required for archive/export (≥12 GB minimum warning)
+
+  xcodebuild sim (Debug, iPhone 17, OS 26.5): PASS — ** BUILD SUCCEEDED **
+  archive-ios-testflight.sh --dry-run --preview-firebase: PASS
+  Archive (--preview-firebase): PASS → build/FEL.xcarchive (Apple Distribution, FEL_TestFlight_Distribution)
+  Export (--export-adhoc, full): PASS → build/FEL-export-adhoc/FinalEvolutionLab.ipa
+  Export (--export-only --export-adhoc): PASS — skips archive rebuild; reliable re-export after UDID add
+  Export (--export): PASS → build/FEL-export/FinalEvolutionLab.ipa (~83 MB, App Store distribution signed)
+  Both IPAs: Authority=Apple Distribution: FINAL EVOLUTION LLC (7KJ6G7HLL4), TeamIdentifier=7KJ6G7HLL4
+
+  Export (--export, old destination=upload): FAIL — missingApp(bundleId: "com.finalevolutionlab.app")
+    Root cause: NO App Store Connect app record for com.finalevolutionlab.app (team 7KJ6G7HLL4)
+    Fix applied: infra/ios/ExportOptions.testflight.plist destination=export (IPA on disk works)
+  TestFlight upload (Transporter): BLOCKED — ASC app record still missing (user action)
+
+  Firebase bundle ID mismatch (FinalEvoLab): FIXED (2026-06-19)
+    Firebase now has TWO iOS apps — upload to Final Evolution Lab only:
+      | Display name        | Bundle ID              | Firebase App ID                         | Upload? |
+      |---------------------|------------------------|-----------------------------------------|---------|
+      | Final Evolution Lab | com.finalevolutionlab.app | 1:760396881212:ios:279a55f97749059acb1239 | YES     |
+      | FEL (legacy)        | FinalEvoLab            | 1:760396881212:ios:1cc1b32780934231cb1239 | NO      |
+
+  Firebase App Distribution upload: READY
+    Console: https://console.firebase.google.com/project/final-evolution-lab/appdistribution/app/ios:com.finalevolutionlab.app/releases
+    Canonical IPA: build/FEL-Firebase-Distribution.ipa (auto-copied by --export-adhoc)
+    Latest build: 75,057,139 bytes, 2026-06-19 18:19, CFBundleIdentifier=com.finalevolutionlab.app
+    Ad-hoc profile: iOS Team Ad Hoc Provisioning Profile: com.finalevolutionlab.app
+    UDIDs in profile: 1 (00008140-001079E402FA801C) — add more at developer.apple.com → Devices → re-export
+
+  Script reliability fixes (2026-06-19):
+    archive-ios-testflight.sh — --export-only flag; auto-copy to FEL-Firebase-Distribution.ipa; UDID count
+    fetch-firebase-ios-plist.sh — auto-resolve correct app ID; --download flag; legacy bundle rejection
+    infra/FIREBASE_APP_DISTRIBUTION.md — NEXUS ship path (replaces UE-only doc)
+
+--- MULTI-LANE SHIP PATH (resilient decision tree) ---
+
+  Pick the lane that matches your blockers. All lanes share preflight + NEXUS lib build.
+
+  GATE 0 — Compile proof (always run first):
+    xcodebuild -project FinalEvolutionLab.xcodeproj -scheme FinalEvolutionLab \
+      -derivedDataPath /tmp/FEL-DD-NEXUS \
+      -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' -configuration Debug build
+    ./scripts/archive-ios-testflight.sh --dry-run --preview-firebase
+
+  LANE A — Internal QA NOW (no Firebase plist, no ASC app):
+    Blockers bypassed: V-003 placeholder plist, ASC missingApp
+    Command: ./scripts/archive-ios-testflight.sh --preview-firebase --export-adhoc
+    Output:  build/FEL-export-adhoc/FinalEvolutionLab.ipa
+    Runtime: PREVIEW · FIREBASE OFFLINE banner; Auth/Firestore offline
+    Install: Firebase App Distribution OR Apple Configurator / devicectl (registered UDIDs)
+    Best when: Need signed Release on device today; Firebase/ASC not ready
+
+  LANE B — TestFlight beta (needs ASC app record; Firebase optional for first upload):
+    Blockers: ASC app record REQUIRED for Transporter upload (NOT for IPA export)
+    Command: ./scripts/archive-ios-testflight.sh --preview-firebase --export
+    Output:  build/FEL-export/FinalEvolutionLab.ipa (~83 MB, App Store distribution signed)
+    Upload:  Transporter.app → drag IPA → Deliver
+    Best when: External testers, Apple review path, 90-day builds, crash symbolication via ASC
+
+  LANE C — Production Firebase TestFlight (full V-003 close):
+    Blockers: Real GoogleService-Info.plist (console or fetch-firebase-ios-plist.sh)
+    Command: ./scripts/archive-ios-testflight.sh --export   # no --preview-firebase
+    Output:  build/FEL-export/FinalEvolutionLab.ipa + live Auth/Firestore/Crashlytics
+    Best when: Retail ship QA with live backend
+
+  LANE D — Dev device sideload (single registered device, fastest iteration):
+    Command: ./scripts/archive-ios-testflight.sh --preview-firebase --export-dev
+    Output:  build/FEL-export-dev/FinalEvolutionLab.ipa
+    Best when: One engineer device; no tester list management
+
+  EXPORT-ONLY (archive already on disk — skip full rebuild):
+    ./scripts/archive-ios-testflight.sh --export-only --export-adhoc --preview-firebase
+    ./scripts/archive-ios-testflight.sh --export-only --export --preview-firebase
+    # Manual equivalent:
+    xcodebuild -exportArchive -archivePath build/FEL.xcarchive \
+      -exportPath build/FEL-export-adhoc \
+      -exportOptionsPlist infra/ios/ExportOptions.ad-hoc.plist -allowProvisioningUpdates
+
+  RECOVERY — DerivedData disk I/O / PCH missing (concurrent xcodebuild):
+    1) Do NOT run sim + archive builds in parallel (shared DerivedData-archive corrupts build.db)
+    2) rm -rf build/DerivedData-archive
+    3) Re-run: ./scripts/archive-ios-testflight.sh --preview-firebase [--export-adhoc]
+    4) Or export-only from existing build/FEL.xcarchive (see EXPORT-ONLY above)
+
+--- DISTRIBUTION LANE COMPARISON (sideload vs TestFlight vs Firebase App Distribution) ---
+
+  | Lane                    | ASC app? | Firebase plist? | Tester setup          | Expiry   | OTA updates |
+  |-------------------------|----------|-----------------|-----------------------|----------|-------------|
+  | devicectl / Configurator| No       | No (preview OK) | USB + trusted Mac     | 7 days*  | Manual      |
+  | --export-dev sideload   | No       | No (preview OK) | UDID in dev portal    | 1 year   | Manual IPA  |
+  | --export-adhoc + Firebase App Dist | No | No (preview OK) | Email invite + UDID registry | 1 year | Firebase console |
+  | --export + TestFlight   | YES      | Real for prod   | Email invite (ASC)    | 90 days  | ASC auto    |
+  | App Store retail        | YES      | Real            | Public                | —        | ASC auto    |
+  * Debug direct install; Release ad-hoc/dev profiles vary.
+
+  Recommendation matrix:
+    - Blocked on Firebase plist + ASC app → LANE A (Firebase App Distribution with ad-hoc IPA)
+    - Have ASC app, no Firebase yet → LANE B (TestFlight PREVIEW build for UI/gameplay QA)
+    - Full retail path → LANE C after real plist + ASC app + device QA
+    - Solo dev on one phone → LANE D or Xcode Run (Debug-iphoneos)
+
+  Firebase App Distribution steps (LANE A):
+    1) Ensure tester UDIDs registered: developer.apple.com → Devices
+    2) ./scripts/archive-ios-testflight.sh --preview-firebase --export-adhoc
+       (or use existing IPA: build/FEL-Firebase-Distribution.ipa — bundle com.finalevolutionlab.app)
+    3) Open App Distribution releases (iOS app com.finalevolutionlab.app):
+         https://console.firebase.google.com/project/final-evolution-lab/appdistribution/app/ios:com.finalevolutionlab.app/releases
+       (Do NOT use the legacy FinalEvoLab / "FEL" app — see mismatch section below)
+    4) Drag IPA → add tester emails → install via Firebase App Tester app (or download link)
+       Canonical IPA path: /Users/elijahbonds/Final-Evolution-Lab/build/FEL-Firebase-Distribution.ipa
+
+--- FIREBASE APP DISTRIBUTION: Bundle ID mismatch (FinalEvoLab vs com.finalevolutionlab.app) ---
+
+  STATUS: FIXED (2026-06-19) — correct Firebase iOS app registered; upload lane unblocked.
+
+  Historical error (uploading to wrong Firebase app row):
+    "The IPA bundle ID 'com.finalevolutionlab.app' does not match your Firebase app's
+     bundle ID 'FinalEvoLab'."
+
+  Current Firebase project (final-evolution-lab) has TWO iOS apps:
+
+    | Display name        | Bundle ID                 | Firebase App ID                         | Use for NEXUS upload |
+    |---------------------|---------------------------|-----------------------------------------|----------------------|
+    | Final Evolution Lab | com.finalevolutionlab.app | 1:760396881212:ios:279a55f97749059acb1239 | YES — drag IPA here  |
+    | FEL (legacy)        | FinalEvoLab               | 1:760396881212:ios:1cc1b32780934231cb1239 | NO — bundle mismatch |
+
+  DO NOT:
+    - Change Xcode PRODUCT_BUNDLE_IDENTIFIER to FinalEvoLab (breaks Apple signing / profiles)
+    - Upload com.finalevolutionlab.app IPA to the FEL / FinalEvoLab Firebase app row
+    - Assume the Firebase app nickname ("FEL") is the bundle ID — check Project settings
+
+  Upload steps (verified):
+    1) Build or re-export:
+         ./scripts/archive-ios-testflight.sh --preview-firebase --export-adhoc
+         # or: ./scripts/archive-ios-testflight.sh --export-only --export-adhoc --preview-firebase
+    2) Canonical IPA: build/FEL-Firebase-Distribution.ipa (auto-copied by script)
+    3) Console: https://console.firebase.google.com/project/final-evolution-lab/appdistribution/app/ios:com.finalevolutionlab.app/releases
+    4) Select app: Final Evolution Lab (NOT FEL)
+    5) Drag IPA → add testers → Send
+
+  Plist download (production Firebase — closes V-003):
+    ./scripts/fetch-firebase-ios-plist.sh --download
+    # Writes gitignored FinalEvolutionLab/GoogleService-Info.plist with BUNDLE_ID=com.finalevolutionlab.app
+
+  OPTIONAL: Keep legacy FinalEvoLab app for old builds; do not delete unless no dependents.
+
+--- AD-HOC UDID PROVISIONING (Firebase App Distribution / sideload) ---
+
+  Ad-hoc IPAs install ONLY on devices whose UDIDs are in the provisioning profile.
+  Export uses automatic signing (infra/ios/ExportOptions.ad-hoc.plist, method=release-testing).
+
+  Current profile (2026-06-19):
+    Name: iOS Team Ad Hoc Provisioning Profile: com.finalevolutionlab.app
+    UDIDs: 1 registered (00008140-001079E402FA801C)
+
+  Add a new tester device:
+    1) Collect UDID (Xcode → Window → Devices and Simulators, or Settings → General → About)
+    2) Register: https://developer.apple.com/account/resources/devices/list → + (Devices)
+    3) Re-export (no full rebuild needed):
+         ./scripts/archive-ios-testflight.sh --export-only --export-adhoc --preview-firebase
+    4) Confirm script prints: Ad-hoc UDIDs in profile: N (N must include new device)
+    5) Re-upload build/FEL-Firebase-Distribution.ipa to Firebase App Distribution
+
+  Common failure: "Unable to install" on device
+    - UDID not in profile → register + re-export
+    - Uploaded App Store IPA instead of ad-hoc → use FEL-Firebase-Distribution.ipa
+    - Uploaded to wrong Firebase app (FinalEvoLab) → use Final Evolution Lab app row
+
+--- USER ACTION: Create App Store Connect app record (required for TestFlight upload) ---
+
+Signing and archive succeed WITHOUT this step. Export to IPA also works (destination=export).
+Transporter / Organizer upload to TestFlight REQUIRES an ASC app record.
+
+1) Sign in: https://appstoreconnect.apple.com (team FINAL EVOLUTION LLC, 7KJ6G7HLL4)
+
+2) My Apps → + (New App)
+
+3) Fill in:
+   - Platforms: iOS
+   - Name: Final Evolution Lab (or your store display name)
+   - Primary Language: English (U.S.)
+   - Bundle ID: com.finalevolutionlab.app
+     (must already exist in Apple Developer → Identifiers — it does for this team)
+   - SKU: finalevolutionlab-app (any unique string; not visible to users)
+   - User Access: Full Access (or limit per your org policy)
+
+4) Click Create — no binary upload required to create the record.
+
+5) Verify export no longer hits missingApp (optional — export already works with destination=export):
+     ./scripts/archive-ios-testflight.sh --preview-firebase --export
+     ls -la build/FEL-export/FinalEvolutionLab.ipa
+
+6) Upload IPA to TestFlight:
+   - Open Transporter.app → drag build/FEL-export/FinalEvolutionLab.ipa → Deliver
+   - Or Xcode Organizer → Distribute App → App Store Connect → Upload
+   - Or CLI (requires App Store Connect API key):
+       xcrun altool --upload-app -f build/FEL-export/FinalEvolutionLab.ipa \
+         --type ios --apiKey YOUR_KEY --apiIssuer YOUR_ISSUER
+
+7) After ASC app exists, add App Store ID to Firebase iOS app registration (optional):
+   Firebase Console → Project settings → iOS app → App Store ID field
+
+--- EXPORT LANES (pick one) ---
+
+  TestFlight / App Store Connect upload (distribution-signed, Transporter-ready):
+    ./scripts/archive-ios-testflight.sh --preview-firebase --export
+    Output: build/FEL-export/FinalEvolutionLab.ipa
+    Plist: infra/ios/ExportOptions.testflight.plist (method=app-store-connect, destination=export)
+
+  Firebase App Distribution / internal sideload (NO ASC app record needed):
+    ./scripts/archive-ios-testflight.sh --preview-firebase --export-adhoc
+    Output: build/FEL-export-adhoc/FinalEvolutionLab.ipa
+    Plist: infra/ios/ExportOptions.ad-hoc.plist (method=release-testing)
+    Requires: tester device UDIDs in Apple Developer portal
+
+  Development install on registered devices:
+    ./scripts/archive-ios-testflight.sh --preview-firebase --export-dev
+    Output: build/FEL-export-dev/FinalEvolutionLab.ipa
+
+  NOTE: destination=upload in ExportOptions fails until ASC app record exists.
+        Use destination=export (now default) + Transporter for upload.
+
+--- WORKAROUND: Signed archive / internal install WITHOUT real Firebase plist ---
+
+  Use when Firebase Console download is blocked but you need a signed Release build now.
+  Runtime: Auth, Firestore, session receipt POST remain OFFLINE (honest PREVIEW labeling in app).
+
+  1) Ensure preview plist on disk (copy committed example — safe, no secrets):
+       cp FinalEvolutionLab/GoogleService-Info.example.plist FinalEvolutionLab/GoogleService-Info.plist
+
+  2) Preflight (NEXUS libs + placeholder detection):
+       ./scripts/archive-ios-testflight.sh --dry-run --preview-firebase
+
+  3) Release archive (skips Crashlytics upload when plist is placeholder):
+       ./scripts/archive-ios-testflight.sh --preview-firebase
+       ./scripts/archive-ios-testflight.sh --preview-firebase --export        # App Store IPA (Transporter)
+       ./scripts/archive-ios-testflight.sh --preview-firebase --export-adhoc   # sideload / Firebase
+
+  What the workaround does:
+    - Xcode build phase "Crashlytics upload symbols (Release)" skips when plist has REPLACE_ME,
+      example GOOGLE_APP_ID, or FEL_FIREBASE_PREVIEW=1
+    - FirebaseBootstrap.isPreviewMode == true → FirebaseApp.configure() not called
+    - ContentView shows banner: PREVIEW · FIREBASE OFFLINE
+    - TrainingLabSocialBridge errors already say "PREVIEW"
+
+  What it does NOT claim:
+    - NOT a production Firebase TestFlight build
+    - NOT V-003 FIXED — label stays PARTIAL until real plist + live Auth/Firestore verified
+
+  Escape hatches (explicit):
+    NEXUS_FIREBASE_DISABLED=1          — disable Firebase at runtime + skip Crashlytics
+    SKIP_CRASHLYTICS_UPLOAD=1          — skip Crashlytics symbol upload only
+
+--- OPTIONAL: Fetch plist via Firebase CLI (no secrets in repo) ---
+
+  Requires: firebase login + access to project final-evolution-lab
+
+  1) List iOS apps (find app ID for com.finalevolutionlab.app):
+       ./scripts/fetch-firebase-ios-plist.sh
+
+  2) Download plist to gitignored path:
+       ./scripts/fetch-firebase-ios-plist.sh <IOS_APP_ID>
+
+  Manual equivalent:
+       firebase login
+       firebase apps:list IOS --project final-evolution-lab
+       firebase apps:sdkconfig IOS <APP_ID> --project final-evolution-lab \
+         -o FinalEvolutionLab/GoogleService-Info.plist
+
+--- USER ACTION: Download GoogleService-Info.plist from Firebase Console (full Firebase) ---
+
+1) Open Firebase Console
+   https://console.firebase.google.com/project/final-evolution-lab/overview
+
+2) Go to Project settings (gear icon, top-left) → General tab
+
+3) Under "Your apps", find or add the iOS app:
+   - Platform: iOS
+   - Apple bundle ID MUST be exactly: com.finalevolutionlab.app
+   - App nickname (optional): Final Evolution Lab
+   - App Store ID: leave blank until App Store Connect listing exists
+
+   If no iOS app exists:
+   - Click "Add app" → iOS
+   - Register bundle ID: com.finalevolutionlab.app
+   - Skip App Store ID for now → Register app
+
+4) Download config file
+   - On the iOS app row → click GoogleService-Info.plist download
+   - Or: Project settings → Your apps → iOS app → "GoogleService-Info.plist" download button
+
+5) Place the file (exact path)
+   /Users/elijahbonds/Final-Evolution-Lab/FinalEvolutionLab/GoogleService-Info.plist
+
+   Replace any preview/placeholder copy. Do not rename the file.
+
+6) Verify locally (no secrets printed to git)
+
+   a) File exists:
+      test -f FinalEvolutionLab/GoogleService-Info.plist && echo "OK: plist present"
+
+   b) Bundle ID matches Xcode:
+      /usr/libexec/PlistBuddy -c "Print :BUNDLE_ID" FinalEvolutionLab/GoogleService-Info.plist
+      Expected output: com.finalevolutionlab.app
+
+   c) Not a placeholder (must NOT contain REPLACE_ME):
+      ! grep -q REPLACE_ME FinalEvolutionLab/GoogleService-Info.plist && echo "OK: not placeholder"
+
+   d) Project ID matches Firebase project:
+      /usr/libexec/PlistBuddy -c "Print :PROJECT_ID" FinalEvolutionLab/GoogleService-Info.plist
+      Expected output: final-evolution-lab
+
+   e) Git will ignore it (must show .gitignore rule):
+      git check-ignore -v FinalEvolutionLab/GoogleService-Info.plist
+
+   f) Confirm NOT staged for commit:
+      git status -- FinalEvolutionLab/GoogleService-Info.plist
+      (should show nothing, or "Untracked" with ignore — never "Changes to be committed")
+
+--- MIGRATION: Preview archive → production Firebase TestFlight ---
+
+  1) Replace plist with real console or CLI download (steps above)
+  2) Verify: ! grep -q REPLACE_ME FinalEvolutionLab/GoogleService-Info.plist
+  3) Archive WITHOUT --preview-firebase:
+       ./scripts/archive-ios-testflight.sh --export
+  4) Device QA: FirebaseBootstrap.isConfigured == true; anonymous auth; Firestore writes
+  5) Update NEXUS_DELIVERY_MATRIX.md V-003 row from PARTIAL → PASS with IPA evidence
+
+--- FIREBASE CONSOLE: Enable services used by the app ---
+
+In Firebase Console for project final-evolution-lab:
+
+  Authentication → Sign-in method → Anonymous: ENABLED
+    (FirebaseIdentity.ensureUserSignedIn() uses anonymous auth)
+
+  Firestore Database → Create database (production mode or test mode per your policy)
+    Rules: see infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md
+
+  Optional later: Crashlytics, Analytics (FirebaseBootstrap + CrashReporter hooks exist)
+
+--- ARCHIVE / TESTFLIGHT ---
+
+From repo root:
+
+  ./scripts/archive-ios-testflight.sh --dry-run --preview-firebase   # workaround preflight
+  ./scripts/archive-ios-testflight.sh --preview-firebase             # PREVIEW signed archive
+  ./scripts/archive-ios-testflight.sh --preview-firebase --export    # PREVIEW App Store IPA → build/FEL-export/
+  ./scripts/archive-ios-testflight.sh --preview-firebase --export-adhoc  # PREVIEW ad-hoc IPA (no ASC app)
+
+  ./scripts/archive-ios-testflight.sh --dry-run                      # requires real plist
+  ./scripts/archive-ios-testflight.sh                                # production Firebase archive
+  ./scripts/archive-ios-testflight.sh --export                       # production App Store IPA
+
+Requirements (archive-ios-testflight.sh):
+  - GoogleService-Info.plist at FinalEvolutionLab/GoogleService-Info.plist (real or preview)
+  - Apple Team ID: 7KJ6G7HLL4
+  - Provisioning profile: FEL_TestFlight_Distribution (com.finalevolutionlab.app)
+  - ExportOptions: infra/ios/ExportOptions.testflight.plist (destination=export)
+  - App Store Connect app record: REQUIRED for TestFlight upload (NOT for --export-adhoc)
+  - ≥15 GB free disk required (archive-ios-testflight.sh warns below 12 GB)
+
+CI-only compile (NOT for TestFlight):
+  ALLOW_GOOGLE_SERVICE_PLACEHOLDER=1 ./scripts/archive-ios-testflight.sh --dry-run
+
+--- WHAT FAILS WITHOUT ASC APP RECORD ---
+
+  exportArchive with destination=upload (old default):
+    error: exportArchive Error Downloading App Information
+    Verbose: IDEDistributionFetchAppRecordStep → missingApp(bundleId: "com.finalevolutionlab.app")
+    Fix: create app in App Store Connect (steps above) OR use destination=export (fixed in tree)
+
+  TestFlight upload via Transporter:
+    Blocked until ASC app record exists for com.finalevolutionlab.app
+
+--- WHAT FAILS WITHOUT WORKAROUND (Firebase plist) ---
+
+  xcodebuild Release archive (placeholder plist, no Crashlytics skip — FIXED in tree):
+    Previously: Crashlytics phase failed on GOOGLE_APP_ID
+    Now: skipped automatically for placeholder plist
+
+  TestFlight device runtime (placeholder plist):
+    FirebaseBootstrap.isPreviewMode == true
+    FirebaseBootstrap.isConfigured == false
+    Anonymous sign-in, Firestore sync, TrainingLabSocialBridge writes all no-op (PREVIEW labeled)
+
+--- RELATED FILES ---
+
+  FinalEvolutionLab/Services/FirebaseBootstrap.swift — isPreviewMode + placeholder guard
+  FinalEvolutionLab/GoogleService-Info.example.plist — preview template (safe to commit)
+  scripts/lib/firebase-plist-check.sh — placeholder + BUNDLE_ID validation (validate-bundle-id)
+  scripts/fetch-firebase-ios-plist.sh — optional CLI download
+  scripts/archive-ios-testflight.sh — --preview-firebase, --export, --export-adhoc, --export-dev, --export-only
+  scripts/fetch-firebase-ios-plist.sh — --download (auto-resolve com.finalevolutionlab.app app)
+  infra/FIREBASE_APP_DISTRIBUTION.md — NEXUS Firebase upload + UDID guide
+  infra/ios/ExportOptions.{testflight,ad-hoc,development}.plist — export methods
+  infra/FIREBASE_IOS_SDK.md — SPM install, version pin, module matrix (https://github.com/firebase/firebase-ios-sdk)
+  docs/NEXUS_AI_STUDIO_SETUP.md — AI Studio key + Keychain (primary AI; no Firebase for gen)
+  Config/FEL_IOS_CAPABILITIES_CHECKLIST.txt — Apple capabilities (separate from Firebase)
+  docs/NEXUS_AGENT_FLEET_STATUS.md — fleet blocked tracker (V-003)

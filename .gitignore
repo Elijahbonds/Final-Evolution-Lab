@@ -11,8 +11,12 @@ package-lock.json
 tsconfig.json
 app.json
 
-# Xcode
+# Xcode / NEXUS embed artifacts (never sync into app bundle)
 FinalEvolutionLab/GoogleService-Info.plist
+FinalEvolutionLab/Bridge/prebuilt/
+build-ios/
+build-ios-*/
+NexusPrebuilt/_deps/
 build/
 DerivedData/
 *.xcuserstate
@@ -111,16 +115,23 @@ rork-eslint.config.js
 scripts/emulator_seed/node_modules/
 
 # Misc tooling
-.netlify
+.vercel
 .chainlit
 .ipynb_checkpoints/
 
 # Mobile development
 android-sdk/
 
-# Build artifacts (UE + iOS)
-/artifacts/
-artifacts/
+# Build artifacts (UE + iOS) — playtest template dir is tracked (see artifacts/playtest/.gitignore)
+/artifacts/*
+!/artifacts/coord/
+/artifacts/coord/*
+!/artifacts/coord/vercel_migration_handoff.json
+!/artifacts/playtest/
+/artifacts/playtest/*
+!/artifacts/playtest/.gitkeep
+!/artifacts/playtest/latest.json.template
+!/artifacts/playtest/.gitignore
 *.ipa
 *.app
 *.dSYM
@@ -130,4 +141,22 @@ artifacts/
 Saved/
 Intermediate/
 DerivedDataCache/
-.claude/
+
+# Unity bridge leftovers (prototype/reference)
+FinalEvolutionLab/Services/UnityHostBridge.swift
+FinalEvolutionLab/Services/MovementSnack+UnityBridge.swift
+
+# NEXUS asset pipeline — full-res / desktop meshes (mobile LOD is committed instead)
+assets/nexus/imported/full/
+assets/nexus/imported/*_environment_model_fbx.nexusmesh.json
+!assets/nexus/imported/*_mobile.nexusmesh.json
+assets/nexus/source/*.fbx
+assets/nexus/source/*.glb
+
+.config/
+.home/
+scratch/
+*.log
+dataconnect/.dataconnect/
+
+

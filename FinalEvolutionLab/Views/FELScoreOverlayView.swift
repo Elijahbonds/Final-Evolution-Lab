@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Minimal PRQ badge — top-trailing corner, translucent, non-blocking except tap target.
 struct FELScoreOverlayView: View {
     @State private var scoreManager = FELScoreManager.shared
     @State private var showDetail: Bool = false
@@ -9,106 +10,105 @@ struct FELScoreOverlayView: View {
             HStack {
                 Spacer()
                 compactBadge
-                    .padding(.trailing, 16)
-                    .padding(.top, 8)
+                    .padding(.trailing, 12)
+                    .padding(.top, 6)
             }
-
+            Spacer()
+        }
+        .allowsHitTesting(false)
+        .overlay(alignment: .bottom) {
             if showDetail {
-                Spacer()
                 detailCard
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else {
-                Spacer()
             }
         }
     }
 
     private var compactBadge: some View {
         Button {
-            withAnimation(.spring(duration: 0.35)) {
+            withAnimation(.spring(duration: 0.3)) {
                 showDetail.toggle()
             }
         } label: {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(badgeColor)
-                    .frame(width: 8, height: 8)
+            HStack(spacing: 5) {
+                Image(systemName: "bolt.heart.fill")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(badgeColor.opacity(0.9))
 
                 Text("\(scoreManager.currentPrqScore)")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
+                    .font(FELTypography.mono(13, weight: .black))
+                    .foregroundStyle(.white.opacity(0.92))
                     .contentTransition(.numericText())
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
             .background {
                 Capsule()
-                    .fill(.ultraThinMaterial)
+                    .fill(.ultraThinMaterial.opacity(0.65))
                     .overlay {
                         Capsule()
-                            .strokeBorder(badgeColor.opacity(0.4), lineWidth: 1)
+                            .strokeBorder(badgeColor.opacity(0.28), lineWidth: 0.5)
                     }
             }
         }
+        .buttonStyle(.plain)
+        .allowsHitTesting(true)
+        .accessibilityLabel("\(FELPremiumCopy.HUD.readiness) \(scoreManager.currentPrqScore)")
+        .accessibilityHint(FELPremiumCopy.HUD.readinessHint)
     }
 
     private var detailCard: some View {
-        VStack(spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("PERFORMANCE READINESS")
-                        .font(.system(size: 9, weight: .heavy))
-                        .foregroundStyle(.secondary)
-                        .tracking(1.5)
-
-                    Text("\(scoreManager.currentPrqScore)")
-                        .font(.system(size: 36, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .contentTransition(.numericText())
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.heart.fill")
+                        .font(.system(size: 9, weight: .bold))
+                    Text(FELPremiumCopy.HUD.readiness)
+                        .font(FELTypography.mono(8, weight: .heavy))
+                        .tracking(1.2)
                 }
+                .foregroundStyle(.secondary)
 
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(scoreManager.prqTier)
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundStyle(badgeColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background {
-                            Capsule().fill(badgeColor.opacity(0.15))
-                        }
-
-                    Text("NEURAL DRIVE")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.tertiary)
-                        .tracking(1)
-                }
+                Text("\(scoreManager.currentPrqScore)")
+                    .font(FELTypography.mono(28, weight: .black))
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
             }
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.08))
+            Spacer(minLength: 8)
 
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(badgeColor)
-                        .frame(width: geo.size.width * CGFloat(scoreManager.currentPrqScore) / 100.0)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(scoreManager.prqTier)
+                    .font(FELTypography.mono(9, weight: .black))
+                    .foregroundStyle(badgeColor)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(badgeColor.opacity(0.14)))
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.08))
+                        Capsule()
+                            .fill(badgeColor)
+                            .frame(width: geo.size.width * CGFloat(scoreManager.currentPrqScore) / 100.0)
+                    }
                 }
+                .frame(width: 72, height: 4)
             }
-            .frame(height: 6)
         }
-        .padding(16)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.ultraThinMaterial.opacity(0.72))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
                 }
         }
+        .allowsHitTesting(true)
     }
 
     private var badgeColor: Color {

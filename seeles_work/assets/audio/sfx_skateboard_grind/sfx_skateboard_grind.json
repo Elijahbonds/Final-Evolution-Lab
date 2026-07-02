@@ -1,0 +1,35 @@
+{
+  "id": "sfx_skateboard_grind",
+  "name": "Skateboard Grind Rail SFX",
+  "category": "audio",
+  "type": "sfx_mp3",
+  "file": "sfx_skateboard_grind.mp3",
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/cc58c40d-5c38-4b0f-b420-675daba18ac4/172403/sfx_ec97e821-120a-4868-85ae-d1fd5439ecd6.mp3"
+  ],
+  "description": "Skateboard Grind Rail SFX for Final Evolution Lab \u2014 modes: skateboarding",
+  "tags": [
+    "skateboarding",
+    "sfx",
+    "grind",
+    "sport"
+  ],
+  "keywords": [
+    "skateboard",
+    "grind",
+    "rail",
+    "concrete",
+    "wheels"
+  ],
+  "compat": [
+    "all"
+  ],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "fel_modes": [
+    "skateboarding"
+  ]
+}

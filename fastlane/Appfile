@@ -1,1 +1,5 @@
-# Optional: set apple_id "you@example.com" and team_id "ABCDE12345" for lanes that need Apple APIs.
+# TestFlight / App Store Connect (uncomment and fill for `fastlane` lanes that need Apple auth)
+app_identifier("com.finalevolutionlab.app")   # Must match Xcode bundle ID
+# apple_id("you@example.com")
+# team_id("ABCDE12345")
+# itc_team_id("123456789")                             # optional App Store Connect team

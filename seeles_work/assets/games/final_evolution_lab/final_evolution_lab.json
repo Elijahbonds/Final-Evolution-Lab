@@ -1,0 +1,30 @@
+{
+  "id": "final_evolution_lab",
+  "name": "Final Evolution AI Coach",
+  "category": "games",
+  "type": "unreal_game",
+  "file": "SimpleGame.uproject",
+  "urls": [],
+  "description": "Multi-sport mobile game with 19 game modes, a neurocognitive coaching engine (MRI/ARV/ESI/Pacing), shard economy, React HUD overlay, and UE5 C++ NeuroCognitive subsystem targeting iOS",
+  "tags": ["sports", "mobile", "ios", "unreal", "neurocognitive", "ai-coach", "economy", "hud", "multi-mode"],
+  "keywords": ["FEL", "final-evolution", "mental-resiliency-index", "mri", "prq", "shards", "brain-brawl", "basketball", "karate", "soccer", "mode-registry", "court-carnival", "who-scene-it", "market-browse"],
+  "compat": ["unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T02:16:04Z",
+  "source_date": "2026-05-23",
+  "source_turn": 2,
+  "version": "1.0",
+  "game_id": "final_evolution_lab",
+  "workspace": "/assets/games/final_evolution_lab/workspace",
+  "build": {
+    "archive_status": "SUCCEEDED",
+    "export_status": "BLOCKED_PROVISIONING_PROFILE",
+    "bundle_id": "com.finalevolutionlab.app",
+    "ipa_local_path": "/Users/elijahbonds/Documents/Unreal Projects/MyProject/Binaries/IOS/Deploy/MyProject.ipa",
+    "blocking_error": "exportArchive No profiles for 'com.finalevolutionlab.app' were found",
+    "fix_required": "Download App Store distribution provisioning profile from developer.apple.com and install it, then update infra/ios/ExportOptions.plist with profile name",
+    "archive_path": "/Users/elijahbonds/Documents/Unreal Projects/MyProject/build/FEL.xcarchive",
+    "build_host": "M4 Pro Mac Mini",
+    "built_at": "2026-05-23"
+  }
+}

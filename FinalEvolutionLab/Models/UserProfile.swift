@@ -6,6 +6,10 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var athleteTag: String
     var metrics: PerformanceMetrics
     var evolutionShards: Int
+    /// Shards credited locally from arena/coach flows until a server ledger grant exists (GAME-43 / GAME-46).
+    var pendingUnverifiedShardCredits: Int
+    /// Pending creator royalty shards
+    var pendingRoyaltyShards: Int
     var totalWorkouts: Int
     var streakDays: Int
     var joinDate: Date
@@ -15,16 +19,29 @@ nonisolated struct UserProfile: Sendable, Identifiable {
     var sport: String?
     var age: Int?
     var goal: String?
-    /// Gates public feed, HealthKit connect, and paid critique/cash competition for under-18 users.
+    /// Parent/guardian acknowledgment for athletes under 18 — gates public feed, HealthKit connect, and paid coach critique flows (MINORS-01).
     var guardianConsentForMinorFeatures: Bool
     var hasCompletedOnboarding: Bool
     var systemScan: SystemScanResult?
     var activeCreatorCard: CreatorCardState?
     var ownedCardIds: [String]
-    var playerAvatarConfig: PlayerAvatarConfig?
+    var ownedCosmetics: [String]
+    var avatarConfig: AvatarSkinConfig
+    var brainBrawlProgression: BrainBrawlProgression?
+    var academicProgress: AcademicProgress?
+    var competitionAnimations: [NexusAnimationAsset]
+    var mintedCreatorCards: [MintedCreatorCard]
+    var activeSignatureAnimationId: String?
+    var pendingShardRoyalties: Int
+    var totalRoyaltySales: Int
+    var totalRoyaltyEarnings: Int
 
     func ownsCard(_ cardId: String) -> Bool {
         ownedCardIds.contains(cardId)
+    }
+
+    func ownsCosmetic(_ cosmeticId: String) -> Bool {
+        ownedCosmetics.contains(cosmeticId)
     }
 }
 
@@ -36,6 +53,8 @@ extension UserProfile: Codable {
         athleteTag = try container.decode(String.self, forKey: .athleteTag)
         metrics = try container.decode(PerformanceMetrics.self, forKey: .metrics)
         evolutionShards = try container.decode(Int.self, forKey: .evolutionShards)
+        pendingUnverifiedShardCredits = (try? container.decode(Int.self, forKey: .pendingUnverifiedShardCredits)) ?? 0
+        pendingRoyaltyShards = (try? container.decode(Int.self, forKey: .pendingRoyaltyShards)) ?? 0
         totalWorkouts = try container.decode(Int.self, forKey: .totalWorkouts)
         streakDays = try container.decode(Int.self, forKey: .streakDays)
         joinDate = try container.decode(Date.self, forKey: .joinDate)
@@ -49,16 +68,16 @@ extension UserProfile: Codable {
         systemScan = try container.decodeIfPresent(SystemScanResult.self, forKey: .systemScan)
         activeCreatorCard = try container.decodeIfPresent(CreatorCardState.self, forKey: .activeCreatorCard)
         ownedCardIds = (try? container.decode([String].self, forKey: .ownedCardIds)) ?? []
-        playerAvatarConfig = try container.decodeIfPresent(PlayerAvatarConfig.self, forKey: .playerAvatarConfig)
-    }
-
-    /// The avatar config to use in-game: saved custom config, scan-derived default, or a factory default.
-    func effectiveAvatarConfig() -> PlayerAvatarConfig {
-        if let saved = playerAvatarConfig { return saved }
-        if let scan = systemScan {
-            return PlayerAvatarConfig.fromScan(scan, userId: id, displayName: displayName)
-        }
-        return PlayerAvatarConfig.makeDefault(userId: id, displayName: displayName)
+        ownedCosmetics = (try? container.decode([String].self, forKey: .ownedCosmetics)) ?? []
+        avatarConfig = (try? container.decode(AvatarSkinConfig.self, forKey: .avatarConfig)) ?? systemScan?.avatarConfig ?? .default
+        brainBrawlProgression = try container.decodeIfPresent(BrainBrawlProgression.self, forKey: .brainBrawlProgression)
+        academicProgress = try container.decodeIfPresent(AcademicProgress.self, forKey: .academicProgress)
+        competitionAnimations = (try? container.decode([NexusAnimationAsset].self, forKey: .competitionAnimations)) ?? []
+        mintedCreatorCards = (try? container.decode([MintedCreatorCard].self, forKey: .mintedCreatorCards)) ?? []
+        activeSignatureAnimationId = try container.decodeIfPresent(String.self, forKey: .activeSignatureAnimationId)
+        pendingShardRoyalties = (try? container.decode(Int.self, forKey: .pendingShardRoyalties)) ?? 0
+        totalRoyaltySales = (try? container.decode(Int.self, forKey: .totalRoyaltySales)) ?? 0
+        totalRoyaltyEarnings = (try? container.decode(Int.self, forKey: .totalRoyaltyEarnings)) ?? 0
     }
 
     static let guest = UserProfile(
@@ -67,21 +86,39 @@ extension UserProfile: Codable {
         athleteTag: "0xGuest",
         metrics: .empty,
         evolutionShards: 0,
+        pendingUnverifiedShardCredits: 0,
+        pendingRoyaltyShards: 0,
         totalWorkouts: 0,
         streakDays: 0,
         joinDate: Date(),
         avatarSystemName: "figure.run",
         blueprintCredits: 0,
-        sport: nil,
-        age: nil,
-        goal: nil,
+        sport: nil as String?,
+        age: nil as Int?,
+        goal: nil as String?,
         guardianConsentForMinorFeatures: false,
         hasCompletedOnboarding: false,
-        systemScan: nil,
-        activeCreatorCard: nil,
-        ownedCardIds: [],
-        playerAvatarConfig: nil
+        systemScan: nil as SystemScanResult?,
+        activeCreatorCard: nil as CreatorCardState?,
+        ownedCardIds: [] as [String],
+        ownedCosmetics: [] as [String],
+        avatarConfig: AvatarSkinConfig.default,
+        brainBrawlProgression: nil as BrainBrawlProgression?,
+        academicProgress: nil as AcademicProgress?,
+        competitionAnimations: [] as [NexusAnimationAsset],
+        mintedCreatorCards: [] as [MintedCreatorCard],
+        activeSignatureAnimationId: nil as String?,
+        pendingShardRoyalties: 0,
+        totalRoyaltySales: 0,
+        totalRoyaltyEarnings: 0
     )
+}
+
+nonisolated enum SystemScanSource: String, Codable, Sendable {
+    /// Random goal-band demo (`SystemScanView`); does not measure pose or performance.
+    case demoSynthetic = "demo_synthetic"
+    /// Trusted capture (pose / mesh / verified lab instrument). Required for competitive PRQ commits.
+    case measured = "measured"
 }
 
 nonisolated struct SystemScanResult: Codable, Sendable {
@@ -94,8 +131,37 @@ nonisolated struct SystemScanResult: Codable, Sendable {
     let notes: [String]
     let recommendedTrack: String
     var avatarConfig: AvatarSkinConfig
+    /// Where the numbers came from — drives profile / feed / SQL eligibility (SCAN-49 / SCAN-51).
+    var source: SystemScanSource
+    /// 0…1; measured pipeline must clear ``minimumConfidenceForCompetitiveCommit`` to affect ranked state.
+    var confidence01: Double
 
-    init(id: String, date: Date, prqScore: Double, verticalEstimateInches: Double, flightTimeSeconds: Double, movementGrade: String, notes: [String], recommendedTrack: String, avatarConfig: AvatarSkinConfig = .default) {
+    /// Minimum confidence required before a measured scan may update competitive PRQ, SQL peak, or Lab feed.
+    static let minimumConfidenceForCompetitiveCommit: Double = 0.72
+
+    /// Body IQ / kinetic-leakage prescriptions, athlete-specific coaching claims, and arcade joint modifiers from scan — **never** from demo synthetic bands.
+    var supportsBiomechanicalPrescription: Bool {
+        source == .measured && confidence01 >= Self.minimumConfidenceForCompetitiveCommit
+    }
+
+    /// True only for verified instrument/pose pipelines — never for ``demoSynthetic``.
+    var commitsCompetitiveMetrics: Bool {
+        supportsBiomechanicalPrescription
+    }
+
+    init(
+        id: String,
+        date: Date,
+        prqScore: Double,
+        verticalEstimateInches: Double,
+        flightTimeSeconds: Double,
+        movementGrade: String,
+        notes: [String],
+        recommendedTrack: String,
+        avatarConfig: AvatarSkinConfig = .default,
+        source: SystemScanSource = .demoSynthetic,
+        confidence01: Double = 0
+    ) {
         self.id = id
         self.date = date
         self.prqScore = prqScore
@@ -105,6 +171,12 @@ nonisolated struct SystemScanResult: Codable, Sendable {
         self.notes = notes
         self.recommendedTrack = recommendedTrack
         self.avatarConfig = avatarConfig
+        self.source = source
+        self.confidence01 = confidence01
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, date, prqScore, verticalEstimateInches, flightTimeSeconds, movementGrade, notes, recommendedTrack, avatarConfig, source, confidence01
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -118,7 +190,33 @@ nonisolated struct SystemScanResult: Codable, Sendable {
         notes = try container.decode([String].self, forKey: .notes)
         recommendedTrack = try container.decode(String.self, forKey: .recommendedTrack)
         avatarConfig = (try? container.decode(AvatarSkinConfig.self, forKey: .avatarConfig)) ?? .default
+        source = (try? container.decode(SystemScanSource.self, forKey: .source)) ?? .demoSynthetic
+        confidence01 = (try? container.decode(Double.self, forKey: .confidence01)) ?? 0
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(date, forKey: .date)
+        try container.encode(prqScore, forKey: .prqScore)
+        try container.encode(verticalEstimateInches, forKey: .verticalEstimateInches)
+        try container.encode(flightTimeSeconds, forKey: .flightTimeSeconds)
+        try container.encode(movementGrade, forKey: .movementGrade)
+        try container.encode(notes, forKey: .notes)
+        try container.encode(recommendedTrack, forKey: .recommendedTrack)
+        try container.encode(avatarConfig, forKey: .avatarConfig)
+        try container.encode(source, forKey: .source)
+        try container.encode(confidence01, forKey: .confidence01)
+    }
+}
+
+nonisolated enum AvatarHairstyle: String, Codable, Sendable, CaseIterable {
+    case buzzcut = "Buzzcut"
+    case dreadlocks = "Dreadlocks"
+    case mohawk = "Mohawk"
+    case undercut = "Undercut"
+    case ponytail = "Ponytail"
+    case none = "None"
 }
 
 nonisolated struct AvatarSkinConfig: Codable, Sendable {
@@ -131,6 +229,7 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
     var auraColorG: Double
     var auraColorB: Double
     var trailIntensity: Double
+    var hairstyle: AvatarHairstyle
 
     static let `default` = AvatarSkinConfig(
         heightScale: 1.0,
@@ -141,8 +240,51 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
         auraColorR: 0,
         auraColorG: 0.83,
         auraColorB: 1.0,
-        trailIntensity: 0.3
+        trailIntensity: 0.3,
+        hairstyle: .none
     )
+
+    private enum CodingKeys: String, CodingKey {
+        case heightScale, weightScale, limbLength, skinTone, outfitStyle, auraColorR, auraColorG, auraColorB, trailIntensity, hairstyle
+    }
+
+    nonisolated init(
+        heightScale: Double,
+        weightScale: Double,
+        limbLength: Double,
+        skinTone: AvatarSkinTone,
+        outfitStyle: AvatarOutfitStyle,
+        auraColorR: Double,
+        auraColorG: Double,
+        auraColorB: Double,
+        trailIntensity: Double,
+        hairstyle: AvatarHairstyle = .none
+    ) {
+        self.heightScale = heightScale
+        self.weightScale = weightScale
+        self.limbLength = limbLength
+        self.skinTone = skinTone
+        self.outfitStyle = outfitStyle
+        self.auraColorR = auraColorR
+        self.auraColorG = auraColorG
+        self.auraColorB = auraColorB
+        self.trailIntensity = trailIntensity
+        self.hairstyle = hairstyle
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        heightScale = (try? container.decode(Double.self, forKey: .heightScale)) ?? 1.0
+        weightScale = (try? container.decode(Double.self, forKey: .weightScale)) ?? 1.0
+        limbLength = (try? container.decode(Double.self, forKey: .limbLength)) ?? 1.0
+        skinTone = (try? container.decode(AvatarSkinTone.self, forKey: .skinTone)) ?? .cyan
+        outfitStyle = (try? container.decode(AvatarOutfitStyle.self, forKey: .outfitStyle)) ?? .standard
+        auraColorR = (try? container.decode(Double.self, forKey: .auraColorR)) ?? 0.0
+        auraColorG = (try? container.decode(Double.self, forKey: .auraColorG)) ?? 0.83
+        auraColorB = (try? container.decode(Double.self, forKey: .auraColorB)) ?? 1.0
+        trailIntensity = (try? container.decode(Double.self, forKey: .trailIntensity)) ?? 0.3
+        hairstyle = (try? container.decode(AvatarHairstyle.self, forKey: .hairstyle)) ?? .none
+    }
 
     static func fromScan(prq: Double, vertical: Double, flight: Double, sport: String?) -> AvatarSkinConfig {
         let normalizedPRQ = min(max(prq / 100.0, 0), 1)
@@ -191,12 +333,13 @@ nonisolated struct AvatarSkinConfig: Codable, Sendable {
             auraColorR: auraR,
             auraColorG: auraG,
             auraColorB: auraB,
-            trailIntensity: 0.2 + normalizedPRQ * 0.6
+            trailIntensity: 0.2 + normalizedPRQ * 0.6,
+            hairstyle: .none
         )
     }
 }
 
-nonisolated enum AvatarSkinTone: String, Codable, Sendable {
+nonisolated enum AvatarSkinTone: String, Codable, Sendable, CaseIterable {
     case cyan
     case blue
     case green
@@ -204,11 +347,15 @@ nonisolated enum AvatarSkinTone: String, Codable, Sendable {
     case orange
 }
 
-nonisolated enum AvatarOutfitStyle: String, Codable, Sendable {
+nonisolated enum AvatarOutfitStyle: String, Codable, Sendable, CaseIterable {
     case standard
     case developing
     case flight
     case elite
+    case neon
+    case shadow
+    case chrome
+    case gold
 }
 
 nonisolated struct CreatorCardState: Codable, Sendable {

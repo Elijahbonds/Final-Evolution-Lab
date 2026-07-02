@@ -50,3 +50,4 @@ final class NativeBridgeManager {
         FELScoreManager.shared.simulateUnityScore(score)
     }
 }
+

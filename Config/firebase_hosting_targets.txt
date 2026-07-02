@@ -1,0 +1,10 @@
+# Firebase Hosting targets — add when Vite/static sites land in-repo.
+# 1. Create site:  firebase hosting:sites:create SITE_ID
+# 2. Map target:   firebase target:apply hosting TARGET SITE_ID
+# 3. Append block to firebase.json "hosting" array (see docs/FIREBASE_HOSTING_DEPLOY.md)
+#
+# Planned targets (not on former Vercel — local dev only today):
+#   fel-marketing     → sites/finalevolutiongroup.com/dist      → finalevolutiongroup
+#   fel-legacy-site   → sites/final-evolution-main-site/dist    → final-evolution-main
+#   fel-clinical-gate → web/clinical-gate-react/dist            → fel-clinical-gate
+#   fel-web-shell     → web/                                    → fel-web-shell

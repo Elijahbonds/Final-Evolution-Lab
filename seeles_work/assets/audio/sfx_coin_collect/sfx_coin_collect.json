@@ -1,0 +1,35 @@
+{
+  "id": "sfx_coin_collect",
+  "name": "Coin Shard Collect Reward SFX",
+  "category": "audio",
+  "type": "sfx_mp3",
+  "file": "sfx_coin_collect.mp3",
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/366e07f3-d191-437a-9b18-faa4874b1fc1/173895/sfx_7d58a2c1-c59b-4d0a-9d3b-76cbcb29b50a.mp3"
+  ],
+  "description": "Coin Shard Collect Reward SFX for Final Evolution Lab \u2014 modes: all",
+  "tags": [
+    "economy",
+    "sfx",
+    "coin",
+    "reward"
+  ],
+  "keywords": [
+    "coin",
+    "collect",
+    "reward",
+    "pickup",
+    "sparkle"
+  ],
+  "compat": [
+    "all"
+  ],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "fel_modes": [
+    "all"
+  ]
+}
