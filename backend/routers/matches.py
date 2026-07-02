@@ -251,7 +251,14 @@ async def create_match(
         "judge_offsets": judge_offsets,
     }
     await _persist_match(match)
-    return {"match_id": match_id, "status": "waiting", "mode_id": body.mode_id}
+    return {
+        "match_id": match_id,
+        "state": "waiting",
+        "status": "waiting",  # legacy alias for existing clients
+        "mode_id": body.mode_id,
+        "seed": seed,
+        "judge_offsets": judge_offsets,
+    }
 
 
 @router.post("/api/matches/join")

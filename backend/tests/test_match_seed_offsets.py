@@ -110,6 +110,16 @@ class TestMatchRecordPersistence:
         assert isinstance(match["seed"], int) and 0 <= match["seed"] < 2 ** 64
         assert match["judge_offsets"] == derive_judge_offsets(match["seed"])
 
+    def test_create_response_returns_seed_state_and_offsets(self):
+        """Contract: POST /api/matches/create -> {match_id, state, seed, judge_offsets}."""
+        resp = _client().post("/api/matches/create", json={"mode_id": "basketball_dunk_3d"})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["state"] == "waiting"
+        assert isinstance(body["seed"], int) and 0 <= body["seed"] < 2 ** 64
+        assert body["judge_offsets"] == derive_judge_offsets(body["seed"])
+        assert body["seed"] == _matches[body["match_id"]]["seed"]
+
     def test_two_matches_get_independent_seeds(self):
         c = _client()
         m1 = _matches[c.post("/api/matches/create", json={}).json()["match_id"]]
