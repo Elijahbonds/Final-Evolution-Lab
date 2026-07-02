@@ -37,6 +37,26 @@ def game_mode_cases(source: str) -> dict[str, str]:
     return dict(re.findall(r"\bcase\s+([A-Za-z][A-Za-z0-9_]*)\s*=\s*\"([^\"]+)\"", enum_match.group(1)))
 
 
+def game_mode_tiers(source: str) -> dict[str, str]:
+    tier_match = re.search(
+        r"var\s+nexusCapabilityTier\s*:\s*NexusCapabilityTier\s*\{\s*switch\s+self\s*\{(.*?)\n\s*\}\s*\n\s*\}",
+        source,
+        flags=re.DOTALL,
+    )
+    if not tier_match:
+        raise ValueError("missing Swift nexusCapabilityTier switch")
+
+    tiers: dict[str, str] = {}
+    for cases_block, tier in re.findall(
+        r"case\s+(.*?)\s*:\s*return\s+\.([A-Za-z][A-Za-z0-9_]*)",
+        tier_match.group(1),
+        flags=re.DOTALL,
+    ):
+        for case_name in re.findall(r"\.([A-Za-z][A-Za-z0-9_]*)", cases_block):
+            tiers[case_name] = tier
+    return tiers
+
+
 def stale_case_references() -> list[str]:
     stale_pattern = re.compile(r"\.(basketballDunkContest|basketballIRL)\b")
     hits: list[str] = []
@@ -56,20 +76,32 @@ def main() -> int:
 
     try:
         swift_case_raw_values = game_mode_cases(swift_source)
+        swift_case_tiers = game_mode_tiers(swift_source)
         swift_production = string_array(swift_source, "productionModeIds")
         swift_runtime_production = string_array(swift_source, "nexusRuntimeProductionModeIds")
         cpp_runtime_production = cpp_production_ids(cpp_source)
     except ValueError as exc:
         errors.append(str(exc))
         swift_case_raw_values = {}
+        swift_case_tiers = {}
         swift_production = []
         swift_runtime_production = []
         cpp_runtime_production = []
 
     known_swift_raw_values = set(swift_case_raw_values.values())
+    swift_cases_by_raw_value = {raw: case for case, raw in swift_case_raw_values.items()}
     for raw_id in swift_production:
         if raw_id not in known_swift_raw_values:
             errors.append(f"Swift production id {raw_id} is not a GameModeId raw value")
+            continue
+        case_name = swift_cases_by_raw_value[raw_id]
+        tier = swift_case_tiers.get(case_name)
+        if tier not in {"prod", "sim"}:
+            errors.append(
+                f"Swift production id {raw_id} has nexusCapabilityTier .{tier or 'missing'}, expected .prod or .sim"
+            )
+        if raw_id == "brain_brawl" and tier != "prod":
+            errors.append("brain_brawl must stay .prod in Swift to match C++ runtime production validation")
 
     if swift_runtime_production != cpp_runtime_production:
         errors.append(

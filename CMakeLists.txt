@@ -257,6 +257,9 @@ if(NEXUS_BUILD_TESTS)
   if(APPLE)
     target_link_options(nexus_gameplay_test PRIVATE
       "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  elseif(UNIX)
+    target_link_options(nexus_gameplay_test PRIVATE
+      "LINKER:--whole-archive,$<TARGET_FILE:nexus_gameplay>,--no-whole-archive")
   endif()
   add_test(NAME nexus_gameplay_test COMMAND nexus_gameplay_test)
 
@@ -265,6 +268,9 @@ if(NEXUS_BUILD_TESTS)
   if(APPLE)
     target_link_options(nexus_scan_envelope_test PRIVATE
       "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  elseif(UNIX)
+    target_link_options(nexus_scan_envelope_test PRIVATE
+      "LINKER:--whole-archive,$<TARGET_FILE:nexus_gameplay>,--no-whole-archive")
   endif()
   add_test(NAME nexus_scan_envelope_test COMMAND nexus_scan_envelope_test)
 

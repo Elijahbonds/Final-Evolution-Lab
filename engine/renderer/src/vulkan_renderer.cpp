@@ -30,6 +30,32 @@ auto requiredValidationLayers() -> std::vector<const char*> {
 #endif
 }
 
+auto availableInstanceLayers() -> std::vector<VkLayerProperties> {
+  std::uint32_t layerCount = 0;
+  if (vkEnumerateInstanceLayerProperties(&layerCount, nullptr) != VK_SUCCESS || layerCount == 0) {
+    return {};
+  }
+
+  std::vector<VkLayerProperties> layers(layerCount);
+  if (vkEnumerateInstanceLayerProperties(&layerCount, layers.data()) != VK_SUCCESS) {
+    return {};
+  }
+  return layers;
+}
+
+auto validationLayersAvailable(const std::vector<const char*>& requestedLayers) -> bool {
+  if (requestedLayers.empty()) {
+    return true;
+  }
+
+  const auto layers = availableInstanceLayers();
+  return std::all_of(requestedLayers.begin(), requestedLayers.end(), [&](const char* requested) {
+    return std::any_of(layers.begin(), layers.end(), [&](const VkLayerProperties& layer) {
+      return std::strcmp(layer.layerName, requested) == 0;
+    });
+  });
+}
+
 auto requiredDeviceExtensions() -> std::vector<const char*> {
   std::vector<const char*> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 #if defined(__APPLE__)
@@ -161,6 +187,11 @@ auto VulkanRenderer::init(const RendererConfig& config) -> Result<void> {
 
   auto validationLayers = config.enableValidation ? requiredValidationLayers()
                                                   : std::vector<const char*>{};
+  if (!validationLayersAvailable(validationLayers)) {
+    NEXUS_LOG_WARN(LogChannel::kRenderer,
+                   "Vulkan validation layer requested but unavailable; continuing without it");
+    validationLayers.clear();
+  }
 
   std::vector<const char*> instanceExtensions{};
   Uint32 sdlExtensionCount = 0;

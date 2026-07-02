@@ -161,10 +161,10 @@ final class NexusGameplayEngine {
     private let hudPollMinInterval: CFAbsoluteTime = 1.0 / Double(FELViewportRefreshPolicy.gameplayTickHz)
 
     /// Boots a lightweight session so fel.generate.* / fel.creative.* commands can run outside active play.
-    func bootstrapForCreativeCommands(readiness: Double = 72) {
-        guard session == nil else { return }
-        start(modeId: "basketball_dunk", readiness: readiness, userId: "creative_author")
-        sessionActive = true
+    @discardableResult
+    func bootstrapForCreativeCommands(readiness: Double = 72) -> Bool {
+        guard session == nil else { return sessionActive }
+        return start(modeId: "basketball_dunk", readiness: readiness, userId: "creative_author")
     }
 
     struct ArenaPromptPreview: Equatable {
@@ -550,13 +550,23 @@ final class NexusGameplayEngine {
     }
 
     /// Boots the C++ gameplay session, syncs readiness, and starts an arena session for ``modeId``.
-    func start(modeId: String, readiness: Double, userId: String = "ios_player", coopPlayerCount: Int = 1) {
+    @discardableResult
+    func start(modeId: String, readiness: Double, userId: String = "ios_player", coopPlayerCount: Int = 1) -> Bool {
         stop()
-        guard NexusGameplayBridge.isLinked else { return }
+        guard NexusGameplayBridge.isLinked else {
+            isLinked = false
+            sessionActive = false
+            lastCommandError = "NEXUS gameplay bridge not linked in this build"
+            return false
+        }
 
-        guard let created = NexusGameplayBridge.createSession() else { return }
+        guard let created = NexusGameplayBridge.createSession() else {
+            isLinked = false
+            sessionActive = false
+            lastCommandError = "Could not create NEXUS gameplay session"
+            return false
+        }
         session = created
-        isLinked = true
         activeModeId = modeId
         NexusGameplayBridge.syncReadiness(session, readiness: Float(readiness))
 
@@ -570,6 +580,7 @@ final class NexusGameplayEngine {
         ]
         let startResponse = sendCommand(startPayload)
         if startResponse?.status == "ok" {
+            isLinked = true
             sessionActive = true
             lastCommandError = nil
             if modeId == GameModeId.karateEndless.rawValue {
@@ -577,7 +588,12 @@ final class NexusGameplayEngine {
             }
         } else {
             lastCommandError = startResponse?.error ?? "fel.arena.start_session failed"
+            NexusGameplayBridge.destroySession(session)
+            session = nil
+            isLinked = false
             sessionActive = false
+            activeModeId = ""
+            return false
         }
 
         refreshHUDPoll()
@@ -589,6 +605,7 @@ final class NexusGameplayEngine {
             NexusGameplayBridge.tick(self.session, deltaSeconds: deltaSeconds)
             self.refreshHUDPollIfDue()
         }
+        return true
     }
 
     /// Pushes Swift gameplay scores into the C++ arena session (non-P0/P1 modes only).
@@ -1304,7 +1321,7 @@ final class NexusGameplayEngine {
         lastKarateDamage = 0
         lastDunkScoringResult = nil
         lastEngineDunkDetailsCount = 0
-        isLinked = NexusGameplayBridge.isLinked
+        isLinked = false
         FELHUDRelayClient.shared.stop()
     }
 
