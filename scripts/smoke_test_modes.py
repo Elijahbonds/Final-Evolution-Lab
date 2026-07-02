@@ -45,6 +45,25 @@ NON_GAME_MODULES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["status
 PREVIEW_MODES = [mode["mode_id"] for mode in NORMALIZED_MODES if mode["status"] == "preview"]
 
 
+def load_json_with_duplicate_key_check(path: Path, label: str):
+    duplicates: list[str] = []
+
+    def reject_duplicate_keys(pairs):
+        seen = set()
+        for key, _ in pairs:
+            if key in seen:
+                duplicates.append(key)
+            seen.add(key)
+        return dict(pairs)
+
+    data = json.loads(path.read_text(), object_pairs_hook=reject_duplicate_keys)
+    if duplicates:
+        fail(f"{label} duplicate JSON keys: {', '.join(sorted(set(duplicates)))}")
+    else:
+        ok(f"{label} has no duplicate JSON keys")
+    return data
+
+
 def swift_ids_for(mode: str) -> list[str]:
     if mode == "basketball_dunk":
         return ["basketball_dunk_3d", "basketball_dunk_irl"]
@@ -126,7 +145,10 @@ def test_ue_mode_maps():
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_arena_settings():
     print("\n── Test 3: ArenaSettings Config ──")
-    arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
+    arena = load_json_with_duplicate_key_check(
+        REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json",
+        "ArenaSettings.json",
+    )
     modes = arena["modes"]
 
     for mode in LAUNCHABLE_MODES:
@@ -172,6 +194,7 @@ def test_fel_play_map():
     content = (REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini").read_text()
 
     play_map = {}
+    duplicate_keys = []
     in_section = False
     for line in content.split("\n"):
         if line.strip() == "[FELPlayMap]":
@@ -182,7 +205,15 @@ def test_fel_play_map():
                 break
             if "=" in line and not line.strip().startswith(";"):
                 k, v = line.strip().split("=", 1)
-                play_map[k.strip()] = v.strip()
+                key = k.strip()
+                if key in play_map:
+                    duplicate_keys.append(key)
+                play_map[key] = v.strip()
+
+    if duplicate_keys:
+        fail(f"FELPlayMap duplicate mode entries: {', '.join(sorted(set(duplicate_keys)))}")
+    else:
+        ok("FELPlayMap has no duplicate mode entries")
 
     for mode in LAUNCHABLE_MODES:
         play_mode = mode if mode in play_map else next((alias for alias in ue_aliases_for(mode) if alias in play_map), None)

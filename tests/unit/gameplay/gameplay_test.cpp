@@ -415,6 +415,13 @@ void arena_mode_registry_lists_nineteen_modes() {
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+
+  const auto splitDunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_3d");
+  require(splitDunk.has_value(), "basketball_dunk_3d resolves to runtime dunk mode");
+  require(splitDunk->id == std::string_view("basketball_dunk"),
+          "split dunk alias returns canonical runtime id");
+  require(!nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_irl").has_value(),
+          "basketball_dunk_irl remains non-runtime IRL mode");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
@@ -2631,6 +2638,95 @@ void basketball_3v3_hot_streak_three_pointer() {
           "last action records three_pointer shot_type");
 }
 
+void basketball_dunk_3d_alias_dispatches_canonical_receipt() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk_3d"}, {"user_id", "split_dunk_receipt"}},
+              "split_dunk_start")
+              .status == "ok",
+          "basketball_dunk_3d alias session starts");
+
+  const auto session =
+      gameplay.handleGameplayQuery("fel.query.get_session_state", {}, "split_dunk_session");
+  require(session.payload["arena"]["mode_id"].get<std::string>() == "basketball_dunk",
+          "split dunk alias resolves arena session to basketball_dunk");
+  require(gameplay.mode_runtime().activeModeId() == std::string_view("basketball_dunk"),
+          "split dunk alias resolves mode runtime to basketball_dunk");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session",
+      {{"player_score", 21.0F}, {"opponent_score", 12.0F}},
+      "split_dunk_end");
+  require(end.status == "ok", "split dunk alias session ends");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "split_dunk_receipts");
+  require(!receipts.payload["receipts"].empty(), "split dunk alias receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "basketball_dunk",
+          "split dunk alias receipt uses canonical runtime mode id");
+}
+
+void outcome_sport_session_end_dispatches_receipt(std::string_view modeId,
+                                                  const nlohmann::json& pulseParams,
+                                                  int pulseCount) {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", std::string(modeId)}, {"user_id", "outcome_receipt"}},
+              "outcome_receipt_start")
+              .status == "ok",
+          "outcome sport receipt session starts for " + std::string(modeId));
+
+  for (int i = 0; i < pulseCount && !gameplay.mode_runtime().shouldAutoEndSession(); ++i) {
+    const auto pulse = gameplay.handleGameplayCommand(
+        "fel.sport.pulse",
+        pulseParams,
+        "outcome_receipt_pulse");
+    require(pulse.status == "ok", "outcome sport pulse ok for " + std::string(modeId));
+  }
+  require(gameplay.mode_runtime().shouldAutoEndSession(),
+          "outcome sport match completes for " + std::string(modeId));
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session",
+      {{"use_live_scores", true}},
+      "outcome_receipt_end");
+  require(end.status == "ok", "outcome sport session ends for " + std::string(modeId));
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "outcome_receipts");
+  require(!receipts.payload["receipts"].empty(),
+          "outcome sport receipt queued for " + std::string(modeId));
+  const auto& receipt = receipts.payload["receipts"].back();
+  require(receipt["mode_id"].get<std::string>() == std::string(modeId),
+          "outcome sport receipt mode id for " + std::string(modeId));
+  require(receipt.contains("telemetry"), "outcome sport receipt telemetry for " + std::string(modeId));
+  require(receipt["telemetry"]["mode_specific"]["outcome_sport"].is_object(),
+          "outcome sport receipt includes mode_specific state for " + std::string(modeId));
+}
+
+void football_golf_tennis_session_end_dispatches_receipts() {
+  outcome_sport_session_end_dispatches_receipt(
+      "football",
+      {{"success", true}, {"timing", 0.96F}, {"play_type", "touchdown"}},
+      3);
+  outcome_sport_session_end_dispatches_receipt(
+      "golf",
+      {{"success", true}, {"timing", 0.93F}, {"club", "putt"}},
+      9);
+  outcome_sport_session_end_dispatches_receipt(
+      "tennis",
+      {{"success", true}, {"timing", 0.95F}, {"shot_type", "ace"}},
+      4);
+}
+
 void basketball_3v3_session_end_dispatches_receipt() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
@@ -2872,6 +2968,8 @@ auto main() -> int {
   venice_pickup_action_scores_and_reaches_win_target();
   venice_pickup_session_end_dispatches_receipt();
   basketball_3v3_hot_streak_three_pointer();
+  basketball_dunk_3d_alias_dispatches_canonical_receipt();
+  football_golf_tennis_session_end_dispatches_receipts();
   basketball_3v3_session_end_dispatches_receipt();
   court_carnival_session_end_dispatches_receipt();
   karate_h2h_session_end_dispatches_receipt();
