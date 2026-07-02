@@ -1,0 +1,2 @@
+/usr/bin/ar qc libnexus_assets.a CMakeFiles/nexus_assets.dir/engine/assets/src/asset_manifest.cpp.o
+/usr/bin/ranlib libnexus_assets.a

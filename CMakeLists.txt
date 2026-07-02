@@ -182,8 +182,10 @@ if(NEXUS_BUILD_ANY_RENDERER)
     engine/renderer/src/material.cpp
     engine/renderer/src/mesh.cpp
     engine/renderer/src/mesh_lod.cpp
+    engine/renderer/src/particle_system.cpp
     engine/renderer/src/post_process.cpp
     engine/renderer/src/scene.cpp
+    engine/renderer/src/skinning_batch.cpp
     engine/renderer/src/shadow_runtime.cpp
     engine/renderer/src/bloom_runtime.cpp
     engine/renderer/src/console_tier_lod.cpp
@@ -307,5 +309,10 @@ if(NEXUS_BUILD_TESTS)
     target_link_libraries(nexus_console_tier_test PRIVATE nexus_renderer nexus_core)
     add_test(NAME nexus_console_tier_test COMMAND nexus_console_tier_test)
     set_tests_properties(nexus_console_tier_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+    add_executable(nexus_gfx_batch_test tests/unit/renderer/gfx_batch_test.cpp)
+    target_link_libraries(nexus_gfx_batch_test PRIVATE nexus_renderer nexus_core)
+    add_test(NAME nexus_gfx_batch_test COMMAND nexus_gfx_batch_test)
+    set_tests_properties(nexus_gfx_batch_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   endif()
 endif()
