@@ -6,6 +6,7 @@
 #include "nexus/creative/voxel_world.h"
 #include "nexus/core/log.h"
 #include "nexus/gameplay/arena_mode_registry.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/scan_envelope_mapper.h"
 #include "nexus/generative/generative_pipeline.h"
 #include "nexus/generative/generative_types.h"
@@ -125,6 +126,7 @@ void GameplayApplication::update(double deltaSeconds,
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
 
   const auto fitness = m_fitnessData.snapshot();
+  m_modeRuntime.syncFitnessSnapshot(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
     m_modeRuntime.update(deltaSeconds);
@@ -147,7 +149,7 @@ void GameplayApplication::update(double deltaSeconds,
     }
   }
 
-  const float prqScore = fitness.frc.controlScore * 100.0F;
+  const float prqScore = PRQEngine::scoreFromSnapshot(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive) {
     const auto& arenaState = m_arenaSession.state();
     m_felBridge.tickVaultTelemetry(
@@ -556,6 +558,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  m_modeRuntime.syncFitnessSnapshot(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -601,6 +604,7 @@ auto GameplayApplication::applyScanGenerateCommand(std::string_view command,
   }
 
   const auto fitnessSnapshot = m_fitnessData.snapshot();
+  m_modeRuntime.syncFitnessSnapshot(fitnessSnapshot);
   nlohmann::json commandsApplied = nlohmann::json::array({
       "fel.fitness.update",
       "fel.creative.fill_region",
@@ -929,7 +933,8 @@ auto GameplayApplication::applyGameGenerationCommand(std::string_view command,
       return response(id, "error", {}, modeSet.error());
     }
     m_felBridge.notifyVenueTravel(spec.venueToken, spec.modeId);
-    m_felBridge.emitVaultSessionSnapshot(spec.modeId, 0.0F, 0.0F, 0.0F);
+    m_felBridge.emitVaultSessionSnapshot(
+        spec.modeId, PRQEngine::scoreFromSnapshot(m_fitnessData.snapshot()), 0.0F, 0.0F);
     sessionState = m_arenaSession.stateJson();
   }
 
@@ -977,7 +982,8 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     }
     const auto& arena = m_arenaSession.state();
     m_felBridge.notifyVenueTravel(arena.venueToken, arena.modeId);
-    m_felBridge.emitVaultSessionSnapshot(arena.modeId, 0.0F, 0.0F, 0.0F);
+    m_felBridge.emitVaultSessionSnapshot(
+        arena.modeId, PRQEngine::scoreFromSnapshot(m_fitnessData.snapshot()), 0.0F, 0.0F);
     return response(id, "ok", m_arenaSession.stateJson());
   }
 
@@ -996,7 +1002,8 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     }
     const auto& arena = m_arenaSession.state();
     m_felBridge.notifyVenueTravel(arena.venueToken, arena.modeId);
-    m_felBridge.emitVaultSessionSnapshot(arena.modeId, 0.0F, 0.0F, 0.0F);
+    m_felBridge.emitVaultSessionSnapshot(
+        arena.modeId, PRQEngine::scoreFromSnapshot(m_fitnessData.snapshot()), 0.0F, 0.0F);
     return response(id, "ok", m_arenaSession.stateJson());
   }
 
@@ -1148,7 +1155,7 @@ auto GameplayApplication::applyBridgeCommand(std::string_view command,
     if (!mapToken.has_value() || !modeId.has_value()) {
       return response(id, "error", {}, paramError.empty() ? "map and mode_id required" : paramError);
     }
-    const float prq = m_fitnessData.snapshot().frc.controlScore * 100.0F;
+    const float prq = PRQEngine::scoreFromSnapshot(m_fitnessData.snapshot());
     m_felBridge.broadcastMapLoaded(*mapToken, *modeId, prq);
     return response(id, "ok", {{"queued", true}});
   }

@@ -1,5 +1,7 @@
-// Spec §7.4 — sprint PRQ stub (hardcoded 75 until HealthKit bridge)
+// Spec §7.4 — PRQ score derived from the latest fitness snapshot.
 #pragma once
+
+#include "nexus/gameplay/fitness_data.h"
 
 #include <string_view>
 #include <cstdint>
@@ -18,6 +20,9 @@ public:
   [[nodiscard]] static auto getScore() -> float;
   [[nodiscard]] static auto getNeuralDrive() -> float;
   [[nodiscard]] static auto getGrade() -> PRQGrade;
+  [[nodiscard]] static auto scoreFromSnapshot(const FitnessSnapshot& snapshot) -> float;
+  [[nodiscard]] static auto neuralDriveFromSnapshot(const FitnessSnapshot& snapshot) -> float;
+  [[nodiscard]] static auto gradeForScore(float score) -> PRQGrade;
   [[nodiscard]] static auto gradeLabel(PRQGrade grade) -> std::string_view;
 };
 

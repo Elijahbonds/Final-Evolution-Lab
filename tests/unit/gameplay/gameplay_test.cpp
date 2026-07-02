@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -52,6 +53,18 @@ void require(bool condition, const char* message) {
 
 void require(bool condition, const std::string& message) {
   require(condition, message.c_str());
+}
+
+void requireNear(float actual, float expected, float epsilon, const char* message) {
+  if (std::fabs(actual - expected) > epsilon) {
+    std::fprintf(stderr,
+                 "FAIL: %s (actual=%f expected=%f epsilon=%f)\n",
+                 message,
+                 actual,
+                 expected,
+                 epsilon);
+    std::exit(1);
+  }
 }
 
 void removeTreeBestEffort(const std::filesystem::path& root) {
@@ -1074,10 +1087,13 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_returns_fallback_without_fitness() {
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+  require(nexus::gameplay::PRQEngine::gradeLabel(nexus::gameplay::PRQEngine::gradeForScore(55.0F)) ==
+              std::string_view("BUILDING"),
+          "prq low grade uses receipt contract label");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1086,6 +1102,129 @@ void arcade_physics_maps_prq_75() {
   require(params.hangTimeMultiplier > 2.3F, "hang time multiplier at PRQ 75");
   require(params.explosiveFirstStep > 0.82F && params.explosiveFirstStep < 0.83F,
           "explosive first step at PRQ 75");
+}
+
+void prq_tracks_fitness_power_readiness_and_mode_physics() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  auto start = gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "basketball_dunk"}, {"user_id", "fitness_player"}},
+      "prq_start");
+  require(start.status == "ok", "prq fitness session starts");
+
+  auto baseline = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_baseline");
+  require(baseline.status == "ok", "baseline mode state query ok");
+  const float baselinePrq = baseline.payload["prq"].get<float>();
+  const float baselineHang =
+      baseline.payload["arcade_physics"]["hang_time_multiplier"].get<float>();
+  requireNear(baselinePrq, 75.0F, 0.001F, "baseline PRQ falls back to sprint default");
+
+  auto fitness = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {
+          {"frc_mobility", 0.95F},
+          {"frc_active_range", 0.95F},
+          {"frc_control", 0.95F},
+          {"iap_engagement", 0.95F},
+          {"iap_confidence", 0.95F},
+          {"breath_phase", 1},
+      },
+      "prq_fitness_high");
+  require(fitness.status == "ok", "high readiness fitness update ok");
+
+  const float expectedScore =
+      nexus::gameplay::computePowerReadiness({0.95F, 0.95F, 0.95F},
+                                             {0.95F, 0.95F, 1}) *
+      100.0F;
+  auto modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_mode_state");
+  require(modeState.status == "ok", "mode state query after fitness ok");
+  const float updatedPrq = modeState.payload["prq"].get<float>();
+  const float updatedHang =
+      modeState.payload["arcade_physics"]["hang_time_multiplier"].get<float>();
+  requireNear(updatedPrq, expectedScore, 0.001F, "mode PRQ tracks power readiness");
+  require(modeState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "high readiness mode grade elite");
+  require(updatedHang > baselineHang, "high readiness increases dunk hang time");
+}
+
+void vault_telemetry_prq_matches_mode_state_after_fitness_update() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "vault telemetry physics init");
+
+  auto start = gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "basketball_dunk"}, {"user_id", "vault_player"}},
+      "vault_prq_start");
+  require(start.status == "ok", "vault prq session starts");
+
+  auto fitness = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {
+          {"frc_mobility", 0.82F},
+          {"frc_active_range", 0.88F},
+          {"frc_control", 0.91F},
+          {"iap_engagement", 0.9F},
+          {"iap_confidence", 0.86F},
+          {"breath_phase", 1},
+      },
+      "vault_prq_fitness");
+  require(fitness.status == "ok", "vault prq fitness update ok");
+
+  gameplay.update(0.11, physics, {});
+
+  const auto modeState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "vault_prq_mode");
+  require(modeState.status == "ok", "vault prq mode query ok");
+  const float modePrq = modeState.payload["prq"].get<float>();
+
+  bool foundTelemetry = false;
+  for (const nlohmann::json& message : gameplay.fel_bridge().outboundMessages()) {
+    if (message.value("type", std::string{}) != "vault_telemetry") {
+      continue;
+    }
+    foundTelemetry = true;
+    requireNear(message["prq"].get<float>(), modePrq, 0.001F, "vault telemetry PRQ matches mode state");
+  }
+  require(foundTelemetry, "vault telemetry emitted after update");
+
+  physics.shutdown();
+}
+
+void prq_grade_labels_match_receipt_contract() {
+  struct Case {
+    float score;
+    std::string_view label;
+  };
+  const Case cases[] = {
+      {55.0F, "BUILDING"},
+      {68.0F, "READY"},
+      {75.0F, "PRIMED"},
+      {85.0F, "PRIMED"},
+      {92.0F, "ELITE"},
+  };
+
+  for (const Case& testCase : cases) {
+    nexus::gameplay::SessionResult result{};
+    result.modeId = "basketball_dunk";
+    result.sessionId = "grade-contract";
+    result.userId = "grade-player";
+    result.resultType = "win";
+    result.mriScore = testCase.score;
+
+    const std::string prqLabel(
+        nexus::gameplay::PRQEngine::gradeLabel(
+            nexus::gameplay::PRQEngine::gradeForScore(testCase.score)));
+    const nlohmann::json body = nexus::gameplay::sessionReceiptBody(result);
+    require(prqLabel == testCase.label, "PRQ engine grade label matches expected contract");
+    require(body["telemetry"]["prq_snapshot"]["grade"].get<std::string>() == prqLabel,
+            "receipt grade uses PRQ engine contract");
+  }
 }
 
 void dunk_contest_charge_release_scores() {
@@ -2957,8 +3096,11 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_returns_fallback_without_fitness();
   arcade_physics_maps_prq_75();
+  prq_tracks_fitness_power_readiness_and_mode_physics();
+  vault_telemetry_prq_matches_mode_state_after_fitness_update();
+  prq_grade_labels_match_receipt_contract();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
   karate_endless_local_coop_wave_survival();

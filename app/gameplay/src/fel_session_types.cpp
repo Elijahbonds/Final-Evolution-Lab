@@ -1,5 +1,7 @@
 #include "nexus/gameplay/fel_session_types.h"
 
+#include "nexus/gameplay/prq_engine.h"
+
 #include <algorithm>
 #include <chrono>
 #include <ctime>
@@ -22,19 +24,6 @@ namespace {
   std::ostringstream stream;
   stream << std::put_time(&utc, "%Y-%m-%dT%H:%M:%SZ");
   return stream.str();
-}
-
-[[nodiscard]] auto prqGradeForScore(float score) -> std::string_view {
-  if (score >= 90.0F) {
-    return "ELITE";
-  }
-  if (score >= 75.0F) {
-    return "PRIMED";
-  }
-  if (score >= 60.0F) {
-    return "READY";
-  }
-  return "BUILDING";
 }
 
 } // namespace
@@ -112,7 +101,8 @@ auto sessionReceiptBody(const SessionResult& result) -> nlohmann::json {
       {"prq_snapshot",
        {
            {"score", std::clamp(result.mriScore, 0.0F, 100.0F)},
-           {"grade", std::string(prqGradeForScore(result.mriScore))},
+           {"grade",
+            std::string(PRQEngine::gradeLabel(PRQEngine::gradeForScore(result.mriScore)))},
            {"delta_candidate", result.prqDeltaCandidate},
        }},
       {"device",
