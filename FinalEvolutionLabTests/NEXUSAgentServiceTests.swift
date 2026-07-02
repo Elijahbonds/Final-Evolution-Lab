@@ -76,6 +76,34 @@ struct NEXUSAgentServiceTests {
         #expect(result.payload["mode_id"] as? String == GameModeId.basketballDunkContest3D.rawValue)
     }
 
+    @Test("playtest accepts canonical C++ dunk alias")
+    func playtestCanonicalDunkAlias() async {
+        let service = NEXUSAgentService.shared
+        let result = await service.execute(
+            toolCall: NEXUSAgentToolCall(
+                name: .playtest,
+                arguments: ["mode_id": "basketball_dunk"]
+            )
+        )
+        #expect(result.success)
+        #expect(result.payload["mode_id"] as? String == GameModeId.basketballDunkContest3D.rawValue)
+        #expect(result.payload["registry_mode_id"] as? String == "basketball_dunk")
+        #expect(result.payload["runtime_mode_id"] as? String == "basketball_dunk")
+    }
+
+    @Test("playtest rejects non-runtime mode")
+    func playtestRejectsNonRuntimeMode() async {
+        let service = NEXUSAgentService.shared
+        let result = await service.execute(
+            toolCall: NEXUSAgentToolCall(
+                name: .playtest,
+                arguments: ["mode_id": GameModeId.basketballDunkContestIRL.rawValue]
+            )
+        )
+        #expect(result.success == false)
+        #expect(result.summary.contains("not launchable"))
+    }
+
     @Test("scan_to_generate returns simulated plan when bridge unlinked")
     func scanToGenerateSimulated() async {
         let service = NEXUSAgentService.shared

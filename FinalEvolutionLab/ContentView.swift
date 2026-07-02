@@ -155,29 +155,20 @@ struct ContentView: View {
             }
         }
         .onChange(of: NEXUSAgentCoordinator.shared.pendingLaunch?.modeId) { _, modeId in
-            guard let modeId,
-                  let parsed = GameModeId(rawValue: modeId),
-                  let mode = GameModeRegistry.all.first(where: { $0.id == parsed })
-            else { return }
+            guard let modeId else { return }
 
-            agentLaunchMode = mode
-            agentLaunchReadiness = NEXUSAgentCoordinator.shared.pendingLaunchReadiness
+            stageAgentLaunch(
+                modeId: modeId,
+                readiness: NEXUSAgentCoordinator.shared.pendingLaunchReadiness
+            )
             NEXUSAgentCoordinator.shared.pendingLaunch = nil
-            selectedTab = .social
-            showAgentLaunchedGame = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .nexusAgentLaunchMode)) { notification in
-            guard let modeId = notification.userInfo?["mode_id"] as? String,
-                  let parsed = GameModeId(rawValue: modeId),
-                  let mode = GameModeRegistry.all.first(where: { $0.id == parsed })
-            else { return }
-
-            agentLaunchMode = mode
-            agentLaunchReadiness = (notification.userInfo?["readiness"] as? Double)
+            guard let modeId = notification.userInfo?["mode_id"] as? String else { return }
+            let readiness = (notification.userInfo?["readiness"] as? Double)
                 ?? (notification.userInfo?["readiness"] as? NSNumber)?.doubleValue
                 ?? 75
-            selectedTab = .social
-            showAgentLaunchedGame = true
+            stageAgentLaunch(modeId: modeId, readiness: readiness)
         }
         .onReceive(NotificationCenter.default.publisher(for: .nexusStudioOpen)) { _ in
             showNexusStudio = true
@@ -213,6 +204,17 @@ struct ContentView: View {
         .onOpenURL { url in
             _ = router.handle(url: url)
         }
+    }
+
+    private func stageAgentLaunch(modeId: String, readiness: Double) {
+        guard let mode = GameModeRegistry.playableMode(forRegistryId: modeId),
+              mode.id.isNexusRuntimeLaunchable
+        else { return }
+
+        agentLaunchMode = mode
+        agentLaunchReadiness = readiness
+        selectedTab = .social
+        showAgentLaunchedGame = true
     }
 
     private var brandHeader: some View {

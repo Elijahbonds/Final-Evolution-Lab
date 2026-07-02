@@ -20,12 +20,6 @@
 #include <fstream>
 #include <string>
 
-#include <cstdio>
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <string>
-
 #include <chrono>
 #include <thread>
 #include <unistd.h>
@@ -444,14 +438,16 @@ void shadow_runtime_flags_label_preview_mode() {
   require(label.find("PREVIEW") != std::string::npos, "preview label present");
 }
 
-void shadow_runtime_flags_from_environment_enables_gpu() {
+void shadow_runtime_flags_from_environment_requests_gpu() {
   ScopedEnvVar gpuShadow("NEXUS_GPU_SHADOW", "1");
   const auto flags = nexus::renderer::ShadowPassRuntimeFlags::fromEnvironment();
-  require(flags.gpuDepthResolveEnabled, "env enables gpu shadow");
-  require(!flags.previewShadowStub, "preview stub off when gpu enabled");
-  require(!flags.shouldLogPreviewOnce(), "no preview log when gpu enabled");
+  require(flags.gpuDepthResolveRequested, "env requests gpu shadow");
+  require(!flags.gpuDepthResolveEnabled, "gpu shadow remains disabled until implemented");
+  require(flags.previewShadowStub, "preview stub remains active when gpu shadow is requested");
+  require(flags.shouldLogPreviewOnce(), "preview log remains enabled when gpu shadow is requested");
   const std::string label(flags.previewLabel());
-  require(label.find("GPU") != std::string::npos, "gpu shadow label present");
+  require(label.find("PREVIEW") != std::string::npos, "preview shadow label remains present");
+  require(label.find("NEXUS_GPU_SHADOW=1") != std::string::npos, "gpu shadow request label present");
 }
 
 void bloom_runtime_flags_label_preview_mode() {
@@ -463,14 +459,16 @@ void bloom_runtime_flags_label_preview_mode() {
   require(label.find("PREVIEW") != std::string::npos, "bloom preview label present");
 }
 
-void bloom_runtime_flags_from_environment_enables_gpu() {
+void bloom_runtime_flags_from_environment_requests_gpu() {
   ScopedEnvVar gpuBloom("NEXUS_GPU_BLOOM", "1");
   const auto flags = nexus::renderer::BloomPassRuntimeFlags::fromEnvironment();
-  require(flags.gpuBloomResolveEnabled, "env enables gpu bloom");
-  require(!flags.previewBloomStub, "preview stub off when gpu enabled");
-  require(!flags.shouldLogPreviewOnce(), "no preview log when gpu enabled");
+  require(flags.gpuBloomResolveRequested, "env requests gpu bloom");
+  require(!flags.gpuBloomResolveEnabled, "gpu bloom remains disabled until implemented");
+  require(flags.previewBloomStub, "preview stub remains active when gpu bloom is requested");
+  require(flags.shouldLogPreviewOnce(), "preview log remains enabled when gpu bloom is requested");
   const std::string label(flags.previewLabel());
-  require(label.find("GPU") != std::string::npos, "gpu bloom label present");
+  require(label.find("PREVIEW") != std::string::npos, "preview bloom label remains present");
+  require(label.find("NEXUS_GPU_BLOOM=1") != std::string::npos, "gpu bloom request label present");
 }
 
 void metal_renderer_config_defaults_validate_only() {
@@ -518,9 +516,9 @@ auto main() -> int {
   draw_stats_budget_gate();
   perf_monitor_fps_target_gate();
   shadow_runtime_flags_label_preview_mode();
-  shadow_runtime_flags_from_environment_enables_gpu();
+  shadow_runtime_flags_from_environment_requests_gpu();
   bloom_runtime_flags_label_preview_mode();
-  bloom_runtime_flags_from_environment_enables_gpu();
+  bloom_runtime_flags_from_environment_requests_gpu();
   metal_renderer_config_defaults_validate_only();
   metal_manifest_scene_has_mesh_indices();
   metal_renderer_null_layer_fails();

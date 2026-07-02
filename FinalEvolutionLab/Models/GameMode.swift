@@ -76,10 +76,8 @@ extension GameModeId {
         case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival,
              .whoSceneIt:
             return .prod
-        case .gymnastics, .skateboarding, .snowboarding, .surfing:
+        case .gymnastics, .skateboarding, .snowboarding, .surfing, .brainBrawl:
             return .prod
-        case .brainBrawl:
-            return .staging
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -324,7 +322,7 @@ struct GameModeRegistry {
         .gymnastics, .brainBrawl, .skateboarding, .snowboarding, .surfing, .whoSceneIt,
     ]
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// Catalog mode IDs: 19 C++ arena modes plus the iOS dunk split overlay.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,

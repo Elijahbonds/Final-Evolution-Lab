@@ -276,6 +276,7 @@ struct GameLogicTests {
         #expect(!GameModeRegistry.productionModeIds.contains("venice_pickup"))
         #expect(!GameModeRegistry.nexusRuntimeProductionModeIds.contains("basketball_dunk_irl"))
         #expect(GameModeRegistry.nexusRuntimeProductionModeIds.contains("basketball_dunk"))
+        #expect(GameModeRegistry.mode(for: .brainBrawl).nexusCapabilityTier == .prod)
     }
 
     @Test func productionModesHaveArcadeRetroCartridgeTitles() {

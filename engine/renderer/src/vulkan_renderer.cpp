@@ -930,7 +930,7 @@ void VulkanRenderer::recordShadowPassStub(VkCommandBuffer commandBuffer) {
     m_shadowPassExtensionLogged = true;
   }
 
-  if (m_shadowRuntime.gpuDepthResolveEnabled) {
+  if (m_shadowRuntime.gpuDepthResolveRequested) {
     NEXUS_LOG_WARN(LogChannel::kRenderer,
                    "Request for Engine API Extension: VkFramebuffer depth resolve for shadow pass");
   }

@@ -7,6 +7,8 @@ namespace nexus::renderer {
 
 /// Runtime flags for the bloom post-process pass — honest preview labeling when GPU resolve is deferred.
 struct BloomPassRuntimeFlags {
+  /// True when the environment requested the future GPU bloom pass.
+  bool gpuBloomResolveRequested{false};
   /// True when GPU bloom extract/blur passes are wired (future extension).
   bool gpuBloomResolveEnabled{false};
   /// True when the frame graph records CPU/stub bloom only.
