@@ -212,7 +212,7 @@ Timing grade (`timing_grade`) and scores (`player_score`, `opponent_score`) retu
 On exit (`GamePlayView.onDisappear`):
 
 1. **`nexus_gameplay_session_end_arena(session, playerScore, opponentScore)`** — finalizes arena session and generates receipt JSON.
-2. **`nexus_gameplay_session_flush_receipts(session)`** — writes queued receipts to `~/.fel/pending_receipts/*.json` for offline sync.
+2. **`nexus_gameplay_session_flush_receipts(session)`** — writes queued receipts to `~/.fel/pending_receipts/*.json` with C++ HTTP disabled (no stub POST).
 3. **`SessionReceiptUploadService.uploadPendingReceipts()`** — scans that directory and POSTs each JSON to `Config.gameplaySessionReceiptURL` with Firebase Bearer auth. Files delete on HTTP 2xx; failures log via `os.Logger` and leave files for retry.
 
 `ContentView.onAppear` and **foreground resume** (`scenePhase == .active`) drain pending receipts. Set `FEL_SESSION_RECEIPT_URL` to override the POST endpoint (local: `http://127.0.0.1:8000/api/games/session`).

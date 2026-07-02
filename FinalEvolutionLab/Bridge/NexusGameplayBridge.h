@@ -36,7 +36,8 @@ char *_Nullable nexus_gameplay_session_end_arena(NexusGameplayHandle _Nullable h
                                                  float playerScore,
                                                  float opponentScore);
 
-/// Flushes queued session receipts to ~/.fel/pending_receipts/ (caller frees returned JSON).
+/// Persists queued session receipts to ~/.fel/pending_receipts/ for Swift authenticated upload
+/// (caller frees returned JSON).
 char *_Nullable nexus_gameplay_session_flush_receipts(NexusGameplayHandle _Nullable handle);
 
 /// Returns arena state with final_scores after session end (caller frees returned JSON).

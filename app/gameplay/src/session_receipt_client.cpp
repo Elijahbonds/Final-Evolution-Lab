@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -19,6 +20,32 @@ namespace {
     return std::string(home);
   }
   return std::filesystem::temp_directory_path().string();
+}
+
+[[nodiscard]] auto defaultQueueDirectoryPath() -> std::string {
+  return (std::filesystem::path(homeDirectory()) / ".fel" / "pending_receipts").string();
+}
+
+[[nodiscard]] auto nonEmptyEnv(const char* name) -> std::optional<std::string> {
+  if (const char* value = std::getenv(name)) {
+    if (value[0] != '\0') {
+      return std::string(value);
+    }
+  }
+  return std::nullopt;
+}
+
+[[nodiscard]] auto envFlagValue(std::string value) -> std::optional<bool> {
+  for (char& ch : value) {
+    ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+  }
+  if (value == "1" || value == "true" || value == "yes" || value == "on") {
+    return true;
+  }
+  if (value == "0" || value == "false" || value == "no" || value == "off") {
+    return false;
+  }
+  return std::nullopt;
 }
 
 [[nodiscard]] auto sanitizeFileStem(std::string stem) -> std::string {
@@ -46,10 +73,8 @@ namespace {
 }
 
 [[nodiscard]] auto resolvePostUrl(const SessionReceiptClientConfig& config) -> std::string {
-  if (const char* envUrl = std::getenv("NEXUS_RECEIPT_URL")) {
-    if (envUrl[0] != '\0') {
-      return envUrl;
-    }
+  if (const auto envUrl = nonEmptyEnv("NEXUS_RECEIPT_URL")) {
+    return *envUrl;
   }
   if (!config.baseUrl.empty()) {
     return config.baseUrl;
@@ -57,29 +82,49 @@ namespace {
   return "http://127.0.0.1:8000/api/games/session";
 }
 
+[[nodiscard]] auto resolveStubTransportEnabled(const SessionReceiptClientConfig& config) -> bool {
+  for (const char* envName :
+       {"NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT", "NEXUS_RECEIPT_USE_STUB"}) {
+    if (const auto overrideValue = nonEmptyEnv(envName)) {
+      if (const auto parsed = envFlagValue(*overrideValue)) {
+        return *parsed;
+      }
+    }
+  }
+
+  // A live receipt URL is an explicit production signal. Do not let the default
+  // test stub convert an unreachable/non-2xx backend into a fake delivery.
+  if (nonEmptyEnv("NEXUS_RECEIPT_URL")) {
+    return false;
+  }
+
+  return config.useStubHttpTransport;
+}
+
+[[nodiscard]] auto normalizeConfig(SessionReceiptClientConfig config) -> SessionReceiptClientConfig {
+  if (config.queueDirectory.empty()) {
+    config.queueDirectory = defaultQueueDirectoryPath();
+  }
+  config.useStubHttpTransport = resolveStubTransportEnabled(config);
+  return config;
+}
+
 } // namespace
 
 auto SessionReceiptClient::defaultQueueDirectory() -> std::string {
-  return (std::filesystem::path(homeDirectory()) / ".fel" / "pending_receipts").string();
+  return defaultQueueDirectoryPath();
 }
 
 SessionReceiptClient::SessionReceiptClient(SessionReceiptClientConfig config)
-    : m_config(std::move(config)),
+    : m_config(normalizeConfig(std::move(config))),
       m_http(nexus::core::HttpClientConfig{
           .url = resolvePostUrl(m_config),
           .authToken = m_config.authToken,
           .useStubTransport = m_config.useStubHttpTransport,
-      }) {
-  if (m_config.queueDirectory.empty()) {
-    m_config.queueDirectory = defaultQueueDirectory();
-  }
-}
+      }) {}
 
 void SessionReceiptClient::setConfig(SessionReceiptClientConfig config) {
-  if (config.queueDirectory.empty()) {
-    config.queueDirectory = defaultQueueDirectory();
-  }
-  m_config = std::move(config);
+  m_config = normalizeConfig(std::move(config));
   m_http.setUrl(resolvePostUrl(m_config));
   m_http.setAuthToken(m_config.authToken);
   m_http.setStubTransportEnabled(m_config.useStubHttpTransport);

@@ -31,7 +31,7 @@
               — payload includes final_scores + arena.last_result for Agent 3 HUD flush
 
    4. flush:  nexus_gameplay_session_flush_receipts(handle)
-              — persists receipts to ~/.fel/pending_receipts/*.json for offline queue
+              — persists receipts to ~/.fel/pending_receipts/*.json for Swift URLSession upload
 
  Swift SessionService should read that directory and POST each file to
  /api/games/session when connectivity is available (Bearer Firebase JWT).
@@ -246,7 +246,12 @@ char* nexus_gameplay_session_flush_receipts(NexusGameplayHandle handle) {
   const nlohmann::json request = {
       {"command", "fel.arena.flush_receipts"},
       {"id", "ios_flush_receipts"},
-      {"params", {{"persist_to_disk", true}}},
+      {"params",
+       {
+           {"persist_to_disk", true},
+           {"http_enabled", false},
+           {"use_stub_http_transport", false},
+       }},
   };
   return copyJsonString(handleCommandJson(session->application, request));
 }

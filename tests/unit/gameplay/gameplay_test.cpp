@@ -821,8 +821,12 @@ void session_receipt_disk_keyed_by_session_id() {
   std::error_code ec;
   std::filesystem::create_directories(tempDir, ec);
 
-  nexus::gameplay::SessionReceiptClient client(
-      {.queueDirectory = tempDir.string(), .persistToDisk = true});
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .persistToDisk = true,
+      .httpEnabled = false,
+      .useStubHttpTransport = false,
+  });
 
   nlohmann::json receipt = {
       {"mode_id", "karate_endless"},
@@ -2024,6 +2028,10 @@ void session_receipt_http_stub_posts_localhost_contract() {
                        ("fel_receipt_http_stub_test_" + std::to_string(getpid()));
   removeTreeBestEffort(tempDir);
 
+  const char* previousStubRaw = std::getenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT");
+  const std::string previousStub = previousStubRaw != nullptr ? previousStubRaw : "";
+  setenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT", "1", 1);
+
   nexus::gameplay::SessionReceiptClient client({
       .queueDirectory = tempDir.string(),
       .baseUrl = "http://127.0.0.1:8000/api/games/session",
@@ -2057,6 +2065,12 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+
+  if (previousStubRaw != nullptr) {
+    setenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT", previousStub.c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT");
+  }
 }
 
 void session_receipt_requeues_on_real_http_non_2xx() {
@@ -2122,6 +2136,106 @@ void session_receipt_requeues_on_real_http_non_2xx() {
     setenv("NEXUS_RECEIPT_URL", previousReceiptUrl.c_str(), 1);
   } else {
     unsetenv("NEXUS_RECEIPT_URL");
+  }
+  removeTreeBestEffort(tempDir);
+}
+
+void session_receipt_env_url_uses_live_http_by_default() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_env_live_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+  std::error_code ec;
+  std::filesystem::create_directories(tempDir, ec);
+  require(!ec, "create env live receipt temp dir");
+
+  const auto fakeCurl = tempDir / "curl";
+  {
+    std::ofstream script(fakeCurl, std::ios::trunc);
+    script << "#!/bin/sh\n";
+    script << "printf '503'\n";
+    script << "exit 0\n";
+    require(script.good(), "write env live fake curl script");
+  }
+  std::filesystem::permissions(fakeCurl,
+                               std::filesystem::perms::owner_read |
+                                   std::filesystem::perms::owner_write |
+                                   std::filesystem::perms::owner_exec,
+                               ec);
+  require(!ec, "mark env live fake curl executable");
+
+  const char* previousPathRaw = std::getenv("PATH");
+  const std::string previousPath = previousPathRaw != nullptr ? previousPathRaw : "";
+  const char* previousReceiptUrlRaw = std::getenv("NEXUS_RECEIPT_URL");
+  const std::string previousReceiptUrl =
+      previousReceiptUrlRaw != nullptr ? previousReceiptUrlRaw : "";
+  const char* previousStubRaw = std::getenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT");
+  const std::string previousStub = previousStubRaw != nullptr ? previousStubRaw : "";
+  const char* previousLegacyStubRaw = std::getenv("NEXUS_RECEIPT_USE_STUB");
+  const std::string previousLegacyStub =
+      previousLegacyStubRaw != nullptr ? previousLegacyStubRaw : "";
+
+  setenv("PATH", tempDir.string().c_str(), 1);
+  setenv("NEXUS_RECEIPT_URL", "http://127.0.0.1:8000/api/games/session/env-live", 1);
+  unsetenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT");
+  unsetenv("NEXUS_RECEIPT_USE_STUB");
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = (tempDir / "queue").string(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+  });
+  require(!client.config().useStubHttpTransport,
+          "NEXUS_RECEIPT_URL disables default stub transport");
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"duration_seconds", 60},
+      {"completed", true},
+  });
+  const auto liveFlush = client.flush();
+  require(liveFlush.delivered == 0, "env live URL does not stub-deliver non-2xx");
+  require(liveFlush.requeued == 1, "env live URL requeues non-2xx receipt");
+  require(client.pendingCount() == 1, "env live receipt remains pending");
+  require(client.postedRequests().size() == 1, "env live curl POST attempt recorded");
+  require(client.postedRequests().front().statusCode == 503, "env live actual status captured");
+  require(client.postedRequests().front().url.find("env-live") != std::string::npos,
+          "env live URL overrides default base URL");
+
+  setenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT", "1", 1);
+  nexus::gameplay::SessionReceiptClient stubClient({
+      .queueDirectory = (tempDir / "stub_queue").string(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+  });
+  require(stubClient.config().useStubHttpTransport,
+          "explicit receipt stub override remains available for tests");
+  stubClient.enqueue({{"mode_id", "karate_endless"}, {"score", 42}});
+  const auto stubFlush = stubClient.flush();
+  require(stubFlush.delivered == 1, "explicit stub override delivers in-process");
+  require(stubClient.postedRequests().size() == 1, "explicit stub POST recorded");
+  require(stubClient.postedRequests().front().statusCode == 200, "explicit stub status is 200");
+
+  if (previousPathRaw != nullptr) {
+    setenv("PATH", previousPath.c_str(), 1);
+  } else {
+    unsetenv("PATH");
+  }
+  if (previousReceiptUrlRaw != nullptr) {
+    setenv("NEXUS_RECEIPT_URL", previousReceiptUrl.c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_URL");
+  }
+  if (previousStubRaw != nullptr) {
+    setenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT", previousStub.c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_USE_STUB_HTTP_TRANSPORT");
+  }
+  if (previousLegacyStubRaw != nullptr) {
+    setenv("NEXUS_RECEIPT_USE_STUB", previousLegacyStub.c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_USE_STUB");
   }
   removeTreeBestEffort(tempDir);
 }
@@ -2947,6 +3061,7 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_requeues_on_real_http_non_2xx();
+  session_receipt_env_url_uses_live_http_by_default();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
