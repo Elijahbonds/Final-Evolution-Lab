@@ -17,6 +17,16 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def mode_registry():
+    mode_mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+    if not mode_mgr_path.exists():
+        return {}
+    mgr = json.loads(mode_mgr_path.read_text())
+    return mgr.get("mode_manager", {}).get("mode_registry", {})
+
+def is_irl_mode(info):
+    return info.get("render_mode") == "IRL" or info.get("healthkit_tracked") is True
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -77,8 +87,15 @@ def validate_fel_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        registry = mode_registry()
+        for mode_id, map_token in ue_maps.items():
+            info = registry.get(mode_id, {})
+            if map_token is None or is_irl_mode(info):
+                continue
             if mode_id not in play_map_section:
+                runtime_alias = info.get("nexus_runtime_mode_id")
+                if runtime_alias and runtime_alias in play_map_section:
+                    continue
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
 
@@ -115,10 +132,14 @@ def validate_arena_settings():
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mgr_path.exists():
-        mgr = json.loads(mgr_path.read_text())
-        registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+        registry = mode_registry()
         for mode_id, info in registry.items():
             if mode_id not in modes:
+                runtime_alias = info.get("nexus_runtime_mode_id")
+                if runtime_alias and runtime_alias in modes:
+                    continue
+                if is_irl_mode(info):
+                    continue
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 
