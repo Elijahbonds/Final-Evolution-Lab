@@ -24,8 +24,37 @@ done
 
 cd "$ROOT"
 
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CXX=g++
+fi
+
+CMAKE_COMPILER_ARGS=()
+if [[ -n "${CXX:-}" ]]; then
+  CXX_PATH="$(command -v "${CXX}" || true)"
+  CXX_PATH="${CXX_PATH:-${CXX}}"
+  CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX_PATH}")
+
+  if [[ -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
+    CACHED_CXX="$(python3 - "${BUILD_DIR}/CMakeCache.txt" <<'PY'
+import sys
+from pathlib import Path
+
+for line in Path(sys.argv[1]).read_text(errors="replace").splitlines():
+    if line.startswith("CMAKE_CXX_COMPILER:"):
+        print(line.split("=", 1)[1])
+        break
+PY
+)"
+    if [[ -n "${CACHED_CXX}" && "${CACHED_CXX}" != "${CXX_PATH}" && "${CACHED_CXX}" != "${CXX}" ]]; then
+      echo "==> Resetting stale full build cache (${CACHED_CXX} -> ${CXX_PATH})"
+      rm -rf "${BUILD_DIR}"
+    fi
+  fi
+fi
+
 if [[ ! -x "${BUILD_DIR}/nexus_renderer_test" ]]; then
-  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=ON -DNEXUS_BUILD_TESTS=ON
+  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=ON -DNEXUS_BUILD_TESTS=ON \
+    "${CMAKE_COMPILER_ARGS[@]}"
   cmake --build "$BUILD_DIR" --target nexus_renderer_test
 fi
 
