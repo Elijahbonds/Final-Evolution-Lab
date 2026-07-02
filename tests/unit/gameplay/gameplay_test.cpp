@@ -2034,6 +2034,42 @@ void session_receipt_real_http_requeues_on_rejected_status() {
   removeTreeBestEffort(tempDir);
 }
 
+void session_receipt_real_http_2xx_clears_queue_without_disk_fallback() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_2xx_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  OneShotHttpStatusServer server(201);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url("/api/games/session"),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_2xx_session"}, {"user_id", "test_user"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "real HTTP 2xx flush attempted once");
+  require(flush.delivered == 1, "real HTTP 2xx delivers receipt");
+  require(flush.requeued == 0, "real HTTP 2xx does not requeue receipt");
+  require(flush.queued_on_disk == 0, "live HTTP 2xx without persistence does not report disk queue");
+  require(client.pendingCount() == 0, "real HTTP 2xx clears receipt pending queue");
+  require(client.postedRequests().size() == 1, "real HTTP 2xx POST recorded");
+  require(client.postedRequests().front().statusCode == 201, "real HTTP records success status");
+
+  removeTreeBestEffort(tempDir);
+}
+
 void flush_receipts_command_honors_live_http_config() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_live_command_test_" + std::to_string(getpid()));
@@ -2086,6 +2122,61 @@ void flush_receipts_command_honors_live_http_config() {
   const auto receipts =
       gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "live_receipts");
   require(receipts.payload["receipts"].size() == 1, "rejected live receipt remains pending");
+
+  removeTreeBestEffort(tempDir);
+}
+
+void flush_receipts_command_clears_queue_on_live_http_success() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_success_command_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "live_success_user"}},
+              "live_success_start")
+              .status == "ok",
+          "live success session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "live_success_end")
+              .status == "ok",
+          "live success session ends");
+
+  OneShotHttpStatusServer server(204);
+  const auto flush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {
+          {"queue_directory", tempDir.string()},
+          {"base_url", server.url("/api/games/session")},
+          {"persist_to_disk", false},
+          {"http_enabled", true},
+          {"use_stub_http_transport", false},
+          {"max_retries", 2},
+      },
+      "live_success_flush");
+
+  require(flush.status == "ok", "live HTTP success flush command ok");
+  require(flush.payload["attempted"].get<std::size_t>() == 1,
+          "live HTTP success command attempts receipt");
+  require(flush.payload["delivered"].get<std::size_t>() == 1,
+          "live HTTP success command delivers receipt");
+  require(flush.payload["requeued"].get<std::size_t>() == 0,
+          "live HTTP success command leaves no requeued receipt");
+  require(flush.payload["queued_on_disk"].get<std::size_t>() == 0,
+          "live HTTP success command reports no disk fallback");
+  require(flush.payload["http_enabled"].get<bool>(), "live HTTP success response reports HTTP enabled");
+  require(!flush.payload["use_stub_http_transport"].get<bool>(),
+          "live HTTP success response reports live transport");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "live_success_receipts");
+  require(receipts.payload["receipts"].empty(), "successful live receipt clears pending queue");
 
   removeTreeBestEffort(tempDir);
 }
@@ -2909,7 +3000,9 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_real_http_requeues_on_rejected_status();
+  session_receipt_real_http_2xx_clears_queue_without_disk_fallback();
   flush_receipts_command_honors_live_http_config();
+  flush_receipts_command_clears_queue_on_live_http_success();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
