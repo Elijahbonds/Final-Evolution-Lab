@@ -122,6 +122,10 @@ void ModeRuntime::setFitnessSnapshot(const FitnessSnapshot& fitness) {
   m_fitness = fitness;
 }
 
+void ModeRuntime::update(double deltaSeconds) {
+  update(deltaSeconds, m_fitness);
+}
+
 void ModeRuntime::update(double deltaSeconds, const FitnessSnapshot& fitness) {
   setFitnessSnapshot(fitness);
   const ArcadePhysicsParams physics = physicsParams();

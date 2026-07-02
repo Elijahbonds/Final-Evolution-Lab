@@ -938,6 +938,9 @@ void karate_mode_input_strike_advances_wave() {
 
 void mode_runtime_tracks_dunk_combo_metrics() {
   nexus::gameplay::ModeRuntime runtime;
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.9F, 0.85F, 0.95F}, {0.8F, 0.9F, 1});
+  runtime.setFitnessSnapshot(fitness.snapshot());
   require(runtime.setMode("basketball_dunk").isOk(), "dunk mode set");
   require(runtime.handleCommand("fel.dunk.charge_begin", {}).isOk(), "charge");
   require(runtime.handleCommand("fel.dunk.charge_release", {{"power", 0.9F}}).isOk(), "release");
@@ -951,6 +954,12 @@ void mode_runtime_tracks_dunk_combo_metrics() {
   require(runtime.comboCount() >= 0, "combo count available");
   require(runtime.criticalCount() >= 0, "critical count available");
   require(runtime.modeSpecificPayload().contains("dunk_details"), "dunk details payload");
+  const auto state = runtime.stateJson();
+  require(state["prq"].get<float>() > 80.0F, "stored fitness snapshot drives prq");
+  require(state["prq_source"].get<std::string>() == "fitness_snapshot",
+          "stored fitness snapshot source retained");
+  require(state["arcade_physics"]["hang_time_multiplier"].get<float>() > 2.3F,
+          "stored fitness snapshot drives arcade physics");
 }
 
 void venue_volume_overlap_triggers_travel() {
