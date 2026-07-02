@@ -40,6 +40,9 @@ cd /Users/elijahbonds/Final-Evolution-Lab
 # Phase 6 — full gate (~30s)
 ./scripts/nexus_build_gate.sh
 
+# Linux CI — gameplay + SDL/Vulkan-free renderer asset/manifest gate
+./scripts/nexus_gameplay_regression.sh
+
 # Phase 7 — runtime smoke
 ./scripts/bench_nexus_runtime.sh
 ./scripts/smoke_v1.sh --skip-build

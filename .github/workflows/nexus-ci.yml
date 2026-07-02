@@ -39,4 +39,6 @@ jobs:
             artifacts/playtest/gameplay_regression.json
             artifacts/playtest/gameplay_regression_run.log
             artifacts/playtest/gameplay_regression_ctest.log
+            artifacts/playtest/renderer_asset_regression.json
+            artifacts/playtest/renderer_asset_regression_ctest.log
           if-no-files-found: ignore
