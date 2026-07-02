@@ -21,13 +21,21 @@ cmake -S . -B build-headless \
 cmake --build build-headless -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 ctest --test-dir build-headless --output-on-failure
 
-echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
-cmake -S . -B build-full \
-  -DNEXUS_ENABLE_RENDERER=ON \
-  -DNEXUS_BUILD_RUNTIME=ON \
-  -DNEXUS_BUILD_TESTS=ON
-cmake --build build-full -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
-ctest --test-dir build-full --output-on-failure
+if [[ "${NEXUS_SKIP_RENDERER_BUILD:-}" != "1" ]]; then
+  echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
+  cmake -S . -B build-full \
+    -DNEXUS_ENABLE_RENDERER=ON \
+    -DNEXUS_BUILD_RUNTIME=ON \
+    -DNEXUS_BUILD_TESTS=ON
+  cmake --build build-full -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+  ctest --test-dir build-full --output-on-failure
+else
+  if [[ "${NEXUS_SKIP_PRODUCTION_MODE_VALIDATE:-}" != "1" ]]; then
+    echo "error: NEXUS_SKIP_RENDERER_BUILD=1 requires NEXUS_SKIP_PRODUCTION_MODE_VALIDATE=1" >&2
+    exit 1
+  fi
+  echo "==> Phase 1: skipped full renderer build (NEXUS_SKIP_RENDERER_BUILD=1)"
+fi
 
 # Production mode mesh budget (mobile profile). Skips when NEXUS_SKIP_PRODUCTION_MODE_VALIDATE=1.
 if [[ "${NEXUS_SKIP_PRODUCTION_MODE_VALIDATE:-}" != "1" ]]; then

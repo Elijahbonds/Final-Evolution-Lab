@@ -16,6 +16,8 @@ FinalEvolutionLab/GoogleService-Info.plist
 FinalEvolutionLab/Bridge/prebuilt/
 build-ios/
 build-ios-*/
+build-full/
+build-headless/
 NexusPrebuilt/_deps/
 build/
 DerivedData/
