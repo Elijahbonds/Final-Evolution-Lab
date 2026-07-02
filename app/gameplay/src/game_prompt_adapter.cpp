@@ -371,6 +371,10 @@ auto buildSpecFromGeminiHintsInternal(std::string_view prompt, const nlohmann::j
 
 auto normalizeGameModeId(std::string_view modeId) -> std::string {
   const std::string lowered = toLower(modeId);
+  if (lowered == "basketball_dunk_3d" || lowered == "basketball_dunk_contest" ||
+      lowered == "dunk_contest" || lowered == "dunk_contest_3d") {
+    return "basketball_dunk";
+  }
   if (lowered == "venice_pickup" || lowered == "pickup" || lowered == "pickup_basketball") {
     return "basketball_h2h";
   }

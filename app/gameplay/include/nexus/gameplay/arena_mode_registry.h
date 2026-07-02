@@ -50,6 +50,7 @@ struct ArenaModeConfig {
 class ArenaModeRegistry {
 public:
   [[nodiscard]] static auto allModes() -> std::span<const ArenaModeConfig>;
+  [[nodiscard]] static auto canonicalModeId(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto find(std::string_view modeId) -> std::optional<ArenaModeConfig>;
   [[nodiscard]] static auto productionModes() -> std::vector<ArenaModeConfig>;
   [[nodiscard]] static auto venueTokenForMode(std::string_view modeId) -> std::string;

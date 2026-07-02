@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -45,16 +46,35 @@ namespace {
   return "receipt_" + std::to_string(++counter);
 }
 
-[[nodiscard]] auto resolvePostUrl(const SessionReceiptClientConfig& config) -> std::string {
+[[nodiscard]] auto envReceiptUrl() -> std::optional<std::string> {
   if (const char* envUrl = std::getenv("NEXUS_RECEIPT_URL")) {
     if (envUrl[0] != '\0') {
-      return envUrl;
+      return std::string(envUrl);
     }
+  }
+  if (const char* envUrl = std::getenv("FEL_SESSION_RECEIPT_URL")) {
+    if (envUrl[0] != '\0') {
+      return std::string(envUrl);
+    }
+  }
+  return std::nullopt;
+}
+
+[[nodiscard]] auto resolvePostUrl(const SessionReceiptClientConfig& config) -> std::string {
+  if (const auto envUrl = envReceiptUrl()) {
+    return *envUrl;
   }
   if (!config.baseUrl.empty()) {
     return config.baseUrl;
   }
   return "http://127.0.0.1:8000/api/games/session";
+}
+
+[[nodiscard]] auto resolveStubTransportEnabled(const SessionReceiptClientConfig& config) -> bool {
+  if (envReceiptUrl().has_value()) {
+    return false;
+  }
+  return config.useStubHttpTransport;
 }
 
 } // namespace
@@ -68,11 +88,12 @@ SessionReceiptClient::SessionReceiptClient(SessionReceiptClientConfig config)
       m_http(nexus::core::HttpClientConfig{
           .url = resolvePostUrl(m_config),
           .authToken = m_config.authToken,
-          .useStubTransport = m_config.useStubHttpTransport,
+          .useStubTransport = resolveStubTransportEnabled(m_config),
       }) {
   if (m_config.queueDirectory.empty()) {
     m_config.queueDirectory = defaultQueueDirectory();
   }
+  m_config.useStubHttpTransport = resolveStubTransportEnabled(m_config);
 }
 
 void SessionReceiptClient::setConfig(SessionReceiptClientConfig config) {
@@ -82,6 +103,7 @@ void SessionReceiptClient::setConfig(SessionReceiptClientConfig config) {
   m_config = std::move(config);
   m_http.setUrl(resolvePostUrl(m_config));
   m_http.setAuthToken(m_config.authToken);
+  m_config.useStubHttpTransport = resolveStubTransportEnabled(m_config);
   m_http.setStubTransportEnabled(m_config.useStubHttpTransport);
 }
 
@@ -109,7 +131,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (delivery.value()) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -119,7 +143,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
       remaining.push_back(std::move(receipt));
       remainingRetries.push_back(retries);
       if (m_config.persistToDisk) {
-        (void)persistReceipt(remaining.back());
+        if (persistReceipt(remaining.back()).has_value()) {
+          ++result.queued_on_disk;
+        }
       }
     } else {
       NEXUS_LOG_WARN(nexus::LogChannel::kAI,
@@ -197,13 +223,15 @@ auto SessionReceiptClient::persistReceipt(const nlohmann::json& receipt) -> std:
   return path.string();
 }
 
-auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<int> {
+auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<bool> {
   const std::string modeId = receipt.value("mode_id", std::string("unknown"));
   const int score = receipt.value("score", 0);
   int deliveredStatus = 200;
+  bool queuedOnDisk = false;
 
   if (m_config.persistToDisk) {
     if (const auto path = persistReceipt(receipt)) {
+      queuedOnDisk = true;
       NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                      "Session receipt persisted for iOS/SessionService pickup path=" + *path);
     } else {
@@ -231,7 +259,8 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
                        " score=" + std::to_string(score));
   }
 
-  return Result<int>::ok(deliveredStatus);
+  (void)deliveredStatus;
+  return Result<bool>::ok(queuedOnDisk);
 }
 
 } // namespace nexus::gameplay

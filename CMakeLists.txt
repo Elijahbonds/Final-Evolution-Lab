@@ -242,6 +242,16 @@ endif()
 
 if(NEXUS_BUILD_TESTS)
   enable_testing()
+  function(nexus_force_load_static_library target library_target)
+    if(APPLE)
+      target_link_options(${target} PRIVATE
+        "LINKER:-force_load,$<TARGET_FILE:${library_target}>")
+    elseif(UNIX)
+      target_link_options(${target} PRIVATE
+        "LINKER:--whole-archive,$<TARGET_FILE:${library_target}>,--no-whole-archive")
+    endif()
+  endfunction()
+
   add_executable(nexus_protocol_test tests/unit/ai_interface/command_test.cpp)
   target_link_libraries(nexus_protocol_test PRIVATE nexus_ai_interface)
   add_test(NAME nexus_protocol_test COMMAND nexus_protocol_test)
@@ -254,18 +264,12 @@ if(NEXUS_BUILD_TESTS)
 
   add_executable(nexus_gameplay_test tests/unit/gameplay/gameplay_test.cpp)
   target_link_libraries(nexus_gameplay_test PRIVATE nexus_gameplay)
-  if(APPLE)
-    target_link_options(nexus_gameplay_test PRIVATE
-      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
-  endif()
+  nexus_force_load_static_library(nexus_gameplay_test nexus_gameplay)
   add_test(NAME nexus_gameplay_test COMMAND nexus_gameplay_test)
 
   add_executable(nexus_scan_envelope_test tests/unit/gameplay/scan_envelope_test.cpp)
   target_link_libraries(nexus_scan_envelope_test PRIVATE nexus_gameplay)
-  if(APPLE)
-    target_link_options(nexus_scan_envelope_test PRIVATE
-      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
-  endif()
+  nexus_force_load_static_library(nexus_scan_envelope_test nexus_gameplay)
   add_test(NAME nexus_scan_envelope_test COMMAND nexus_scan_envelope_test)
 
   add_executable(nexus_generative_test tests/unit/generative/generative_test.cpp)

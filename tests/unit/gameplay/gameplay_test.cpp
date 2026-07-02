@@ -30,9 +30,9 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -475,6 +475,12 @@ void arena_mode_registry_lists_nineteen_modes() {
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+  require(nexus::gameplay::ArenaModeRegistry::canonicalModeId("basketball_dunk_3d") ==
+              "basketball_dunk",
+          "split iOS dunk id canonicalizes");
+  const auto splitDunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_3d");
+  require(splitDunk.has_value(), "basketball_dunk_3d alias found");
+  require(splitDunk->id == dunk->id, "split dunk alias resolves to canonical config");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
@@ -786,6 +792,40 @@ void dunk_contest_lifecycle_generates_win_receipt() {
   physics.shutdown();
 }
 
+void split_dunk_mode_alias_runs_canonical_dunk_session() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk_3d"}, {"user_id", "split_dunk_user"}},
+              "split_dunk_start")
+              .status == "ok",
+          "split dunk alias session starts");
+
+  const auto session =
+      gameplay.handleGameplayQuery("fel.query.get_session_state", {}, "split_dunk_session");
+  require(session.payload["arena"]["mode_id"].get<std::string>() == "basketball_dunk",
+          "split dunk session stores canonical mode id");
+
+  require(gameplay.handleGameplayCommand("fel.dunk.charge_begin", {}, "split_dunk_charge")
+              .status == "ok",
+          "split dunk alias enters dunk runtime");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session",
+      {{"player_score", 12.0F}, {"opponent_score", 8.0F}},
+      "split_dunk_end");
+  require(end.status == "ok", "split dunk alias session ends");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "split_dunk_receipts");
+  require(!receipts.payload["receipts"].empty(), "split dunk receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "basketball_dunk",
+          "split dunk receipt uses canonical mode id");
+}
+
 void arena_pause_resume_preserves_session() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
@@ -855,6 +895,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto first = client.flush();
   require(first.delivered == 1, "first flush delivers receipt");
+  require(first.queued_on_disk == 1, "first flush reports one disk-queued receipt");
 
   const auto receiptPath = tempDir / "abc123session.json";
   require(std::filesystem::exists(receiptPath), "receipt file keyed by telemetry.session_id");
@@ -863,6 +904,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto second = client.flush();
   require(second.delivered == 1, "re-flush delivers updated receipt");
+  require(second.queued_on_disk == 1, "re-flush reports one disk-queued receipt");
 
   std::size_t jsonFileCount = 0;
   for (const auto& entry : std::filesystem::directory_iterator(tempDir)) {
@@ -951,7 +993,8 @@ void karate_mode_input_strike_advances_wave() {
 
 void mode_runtime_tracks_dunk_combo_metrics() {
   nexus::gameplay::ModeRuntime runtime;
-  require(runtime.setMode("basketball_dunk").isOk(), "dunk mode set");
+  require(runtime.setMode("basketball_dunk_3d").isOk(), "split dunk alias mode set");
+  require(runtime.activeModeId() == "basketball_dunk", "split dunk alias stores canonical mode id");
   require(runtime.handleCommand("fel.dunk.charge_begin", {}).isOk(), "charge");
   require(runtime.handleCommand("fel.dunk.charge_release", {{"power", 0.9F}}).isOk(), "release");
   for (int step = 0; step < 8; ++step) {
@@ -2062,12 +2105,42 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "stub HTTP without disk does not report disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_env_url_defaults_to_live_http_transport() {
+  const char* oldNexusUrl = std::getenv("NEXUS_RECEIPT_URL");
+  const char* oldFelUrl = std::getenv("FEL_SESSION_RECEIPT_URL");
+  const std::optional<std::string> restoreNexus =
+      oldNexusUrl == nullptr ? std::nullopt : std::optional<std::string>(oldNexusUrl);
+  const std::optional<std::string> restoreFel =
+      oldFelUrl == nullptr ? std::nullopt : std::optional<std::string>(oldFelUrl);
+
+  setenv("NEXUS_RECEIPT_URL", "http://127.0.0.1:9/api/games/session", 1);
+  unsetenv("FEL_SESSION_RECEIPT_URL");
+
+  nexus::gameplay::SessionReceiptClient client({
+      .persistToDisk = false,
+      .httpEnabled = true,
+  });
+  require(!client.config().useStubHttpTransport, "receipt env URL disables stub transport");
+
+  if (restoreNexus.has_value()) {
+    setenv("NEXUS_RECEIPT_URL", restoreNexus->c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_URL");
+  }
+  if (restoreFel.has_value()) {
+    setenv("FEL_SESSION_RECEIPT_URL", restoreFel->c_str(), 1);
+  } else {
+    unsetenv("FEL_SESSION_RECEIPT_URL");
+  }
 }
 
 void session_receipt_http_non_2xx_requeues_receipt() {
@@ -2099,6 +2172,7 @@ void session_receipt_http_non_2xx_requeues_receipt() {
   require(flush.attempted == 1, "503 HTTP flush attempts receipt");
   require(flush.delivered == 0, "503 HTTP flush does not deliver receipt");
   require(flush.requeued == 1, "503 HTTP flush requeues receipt");
+  require(flush.queued_on_disk == 0, "503 HTTP without disk does not report disk queue");
   require(client.pendingCount() == 1, "receipt remains pending after 503");
   require(client.postedRequests().size() == 1, "503 HTTP POST recorded");
   require(client.postedRequests().front().statusCode == 503, "503 status recorded");
@@ -2374,6 +2448,8 @@ void game_prompt_adapter_covers_all_playable_modes() {
 }
 
 void game_prompt_adapter_normalizes_mode_aliases() {
+  require(nexus::ai::normalizeGameModeId("basketball_dunk_3d") == "basketball_dunk",
+          "basketball_dunk_3d alias");
   require(nexus::ai::normalizeGameModeId("venice_pickup") == "basketball_h2h", "venice_pickup alias");
   require(nexus::ai::normalizeGameModeId("karate_kata") == "karate_endless", "karate_kata alias");
   require(nexus::ai::normalizeGameModeId("market_browse").empty(), "market_browse excluded");
@@ -2993,6 +3069,7 @@ auto main() -> int {
   karate_h2h_sport_pulse_hp_combat();
   arena_session_end_dispatches_receipt_and_bridge_messages();
   dunk_contest_lifecycle_generates_win_receipt();
+  split_dunk_mode_alias_runs_canonical_dunk_session();
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
   session_receipt_disk_keyed_by_session_id();
@@ -3000,6 +3077,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_env_url_defaults_to_live_http_transport();
   session_receipt_http_non_2xx_requeues_receipt();
   session_receipt_flush_preserves_live_http_config_between_retries();
   karate_mode_input_strike_advances_wave();

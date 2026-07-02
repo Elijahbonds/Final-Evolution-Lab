@@ -223,6 +223,10 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
 }};
 
 [[nodiscard]] auto resolveModeId(std::string_view modeId) -> std::string_view {
+  if (modeId == "basketball_dunk_3d" || modeId == "basketball_dunk_contest" ||
+      modeId == "dunk_contest" || modeId == "dunk_contest_3d") {
+    return "basketball_dunk";
+  }
   if (modeId == "venice_pickup") {
     return "basketball_h2h";
   }
@@ -246,6 +250,10 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
 
 auto ArenaModeRegistry::allModes() -> std::span<const ArenaModeConfig> {
   return kModes;
+}
+
+auto ArenaModeRegistry::canonicalModeId(std::string_view modeId) -> std::string {
+  return std::string(resolveModeId(modeId));
 }
 
 auto ArenaModeRegistry::find(std::string_view modeId) -> std::optional<ArenaModeConfig> {

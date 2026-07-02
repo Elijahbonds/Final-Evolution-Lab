@@ -41,12 +41,13 @@ auto ModeRuntime::parseCarnivalPad(std::string_view label) -> std::optional<Carn
 }
 
 auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
-  const auto config = ArenaModeRegistry::find(modeId);
+  const std::string canonicalModeId = ArenaModeRegistry::canonicalModeId(modeId);
+  const auto config = ArenaModeRegistry::find(canonicalModeId);
   if (!config.has_value()) {
     return Result<void>::err("unknown mode_id");
   }
 
-  m_modeId = std::string(modeId);
+  m_modeId = canonicalModeId;
   m_dunk.reset();
   m_karate.reset();
   m_pickup.reset();
@@ -61,32 +62,32 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 
-  if (modeId == "basketball_dunk") {
+  if (canonicalModeId == "basketball_dunk") {
     m_kind = ActiveModeKind::kDunkContest;
-  } else if (modeId == "karate_endless" || modeId == "karate_kata") {
+  } else if (canonicalModeId == "karate_endless") {
     m_kind = ActiveModeKind::kKarateEndless;
-  } else if (modeId == "basketball_h2h" || modeId == "venice_pickup") {
+  } else if (canonicalModeId == "basketball_h2h") {
     m_kind = ActiveModeKind::kVenicePickup;
-  } else if (modeId == "court_carnival") {
+  } else if (canonicalModeId == "court_carnival") {
     m_kind = ActiveModeKind::kCourtCarnival;
-  } else if (modeId == "gymnastics") {
+  } else if (canonicalModeId == "gymnastics") {
     m_kind = ActiveModeKind::kGymnastics;
-  } else if (modeId == "brain_brawl") {
+  } else if (canonicalModeId == "brain_brawl") {
     m_kind = ActiveModeKind::kBrainBrawl;
-  } else if (modeId == "skateboarding") {
+  } else if (canonicalModeId == "skateboarding") {
     m_kind = ActiveModeKind::kSkateboarding;
-  } else if (modeId == "snowboarding") {
+  } else if (canonicalModeId == "snowboarding") {
     m_kind = ActiveModeKind::kSnowboarding;
-  } else if (modeId == "surfing") {
+  } else if (canonicalModeId == "surfing") {
     m_kind = ActiveModeKind::kSurfing;
-  } else if (modeId == "who_scene_it") {
+  } else if (canonicalModeId == "who_scene_it") {
     m_kind = ActiveModeKind::kWhoSceneIt;
-  } else if (modeId == "market_browse") {
+  } else if (canonicalModeId == "market_browse") {
     m_kind = ActiveModeKind::kMarketBrowse;
     m_browseItemsViewed = 0;
-  } else if (isOutcomeSportMode(modeId)) {
+  } else if (isOutcomeSportMode(canonicalModeId)) {
     m_kind = ActiveModeKind::kOutcomeSport;
-    m_outcomeSport.reset(modeId);
+    m_outcomeSport.reset(canonicalModeId);
   } else if (config->releaseState == ArenaReleaseState::kProduction ||
              config->releaseState == ArenaReleaseState::kStaging) {
     m_kind = ActiveModeKind::kComingSoon;
