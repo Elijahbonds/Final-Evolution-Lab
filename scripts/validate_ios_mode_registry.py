@@ -29,7 +29,10 @@ def extract_bracket_body(source: str, marker: str) -> str:
     start = source.find(marker)
     if start == -1:
         raise ValueError(f"Missing Swift marker: {marker}")
-    bracket = source.find("[", start)
+    assignment = source.find("=", start)
+    if assignment == -1:
+        raise ValueError(f"Missing Swift assignment after: {marker}")
+    bracket = source.find("[", assignment)
     if bracket == -1:
         raise ValueError(f"Missing Swift list bracket after: {marker}")
     depth = 0
@@ -44,8 +47,28 @@ def extract_bracket_body(source: str, marker: str) -> str:
     raise ValueError(f"Unclosed Swift list after: {marker}")
 
 
+def extract_brace_body(source: str, marker: str) -> str:
+    start = source.find(marker)
+    if start == -1:
+        raise ValueError(f"Missing Swift marker: {marker}")
+    brace = source.find("{", start)
+    if brace == -1:
+        raise ValueError(f"Missing Swift body after: {marker}")
+    depth = 0
+    for index in range(brace, len(source)):
+        char = source[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[brace + 1 : index]
+    raise ValueError(f"Unclosed Swift body after: {marker}")
+
+
 def swift_enum_cases(source: str) -> dict[str, str]:
-    return dict(re.findall(r"case\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\"([^\"]+)\"", source))
+    enum_body = extract_brace_body(source, "enum GameModeId")
+    return dict(re.findall(r"case\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\"([^\"]+)\"", enum_body))
 
 
 def swift_string_list(source: str, marker: str) -> list[str]:
