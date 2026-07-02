@@ -101,6 +101,52 @@ def _fel_ios_client(request: Request) -> bool:
     return "fel-ios" in ua or x == "ios" or "fel/unreal-ios" in ua
 
 
+def _marketplace_item_type(item_type: Optional[str]) -> str:
+    raw = (item_type or "card").strip().lower()
+    return "card" if raw in ("card", "creator_card", "creator-card") else raw
+
+
+def _usd_to_shards(price_usd: Any) -> int:
+    try:
+        price = float(price_usd)
+    except (TypeError, ValueError):
+        price = 0.0
+    return max(1, int(round(price * 10)))
+
+
+def _creator_card_response(card: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(card)
+    price_usd = float(out.get("price_usd", out.get("price", 0)) or 0)
+    out["price"] = round(price_usd, 2)
+    out["price_usd"] = round(price_usd, 2)
+    out["price_shards"] = int(out.get("price_shards") or _usd_to_shards(price_usd))
+    return out
+
+
+async def _grant_creator_card_entitlement(user: User, card_id: str, source: str) -> None:
+    card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
+    if not card:
+        card = next((c for c in get_seeded_creator_cards() if c["id"] == card_id), None)
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+
+    card = _creator_card_response(card)
+    await db.user_cards.update_one(
+        {"user_id": user.user_id, "card_id": card_id},
+        {"$setOnInsert": {
+            "id": f"{user.user_id}_{card_id}",
+            "user_id": user.user_id,
+            "card_id": card_id,
+            "name": card.get("name"),
+            "rarity": card.get("tier", "creator"),
+            "modifier_summary": card.get("title"),
+            "source": source,
+            "acquired_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+
+
 def _age_from_iso_dob(dob: Optional[str]) -> Optional[int]:
     if not dob:
         return None
@@ -432,6 +478,7 @@ async def create_paypal_order(request: Request, data: Dict[str, Any], user: User
 async def _fulfill_paid_order(order: Dict[str, Any], user: User):
     """Grant entitlements once per paid order (idempotent at DB level where possible)."""
     if order["item_type"] == "card":
+        await _grant_creator_card_entitlement(user, order["item_id"], "payment_capture")
         await db.creator_cards.update_one(
             {"id": order["item_id"], "for_sale": True},
             {"$set": {"owner_id": user.user_id, "for_sale": False}},
@@ -1355,17 +1402,121 @@ def get_seeded_game_modes():
 @api_router.get("/cards")
 async def get_creator_cards(category: Optional[str] = None):
     cards = await db.creator_cards.find({} if not category else {"sport": category}, {"_id": 0}).to_list(100)
-    return cards if cards else get_seeded_creator_cards()
+    source = cards if cards else get_seeded_creator_cards()
+    return [_creator_card_response(card) for card in source]
 
 @api_router.get("/cards/{card_id}")
 async def get_creator_card(card_id: str):
     card = await db.creator_cards.find_one({"id": card_id}, {"_id": 0})
     if card:
-        return card
+        return _creator_card_response(card)
     for c in get_seeded_creator_cards():
         if c["id"] == card_id:
-            return c
+            return _creator_card_response(c)
     raise HTTPException(status_code=404, detail="Card not found")
+
+
+@api_router.get("/marketplace/cards")
+async def get_marketplace_cards(category: Optional[str] = None):
+    return await get_creator_cards(category)
+
+
+@api_router.post("/marketplace/purchase")
+async def purchase_marketplace_item(request: Request, data: Dict[str, Any], user: User = Depends(get_current_user)):
+    item_id = (data.get("item_id") or "").strip()
+    item_type = _marketplace_item_type(data.get("item_type"))
+    payment_method = (data.get("payment_method") or "stripe").strip().lower()
+
+    if _fel_ios_client(request) and item_type in ("card", "course"):
+        raise HTTPException(
+            status_code=400,
+            detail="Digital purchases in the iOS app must use In-App Purchase (StoreKit), not web checkout.",
+        )
+
+    meta = resolve_paypal_line_item(item_type, item_id)
+    amount_usd = round(float(meta["price_usd"]), 2)
+    amount_shards = _usd_to_shards(amount_usd)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if payment_method in ("stripe", "card", "credit_card"):
+        checkout_session = f"cs_offline_{uuid.uuid4().hex[:16]}"
+        payment_intent = f"pi_offline_{uuid.uuid4().hex[:16]}"
+        return_url = data.get("return_url") or "http://localhost:3000/marketplace/success"
+        sep = "&" if "?" in return_url else "?"
+        checkout_url = f"{return_url}{sep}checkout_session={checkout_session}&offline=1"
+
+        await db.orders.insert_one({
+            "id": payment_intent,
+            "checkout_session_id": checkout_session,
+            "user_id": user.user_id,
+            "item_type": item_type,
+            "item_id": item_id,
+            "amount": amount_usd,
+            "provider": "stripe_offline",
+            "status": "pending",
+            "fulfilled": False,
+            "created_at": now_iso,
+        })
+        return {
+            "status": "pending",
+            "payment_method": "stripe",
+            "item_type": data.get("item_type") or item_type,
+            "item_id": item_id,
+            "amount_usd": amount_usd,
+            "amount_shards": amount_shards,
+            "checkout_session_id": checkout_session,
+            "checkout_url": checkout_url,
+            "stripe_client_secret": f"{payment_intent}_secret_offline",
+            "offline": True,
+        }
+
+    if payment_method in ("shards", "coins"):
+        user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0}) or user.model_dump()
+        balance_key = "shards" if "shards" in user_doc else "coins"
+        available = int(user_doc.get(balance_key, 0) or 0)
+        if available < amount_shards:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Insufficient shards ({available} available, {amount_shards} required)",
+            )
+
+        inc = {balance_key: -amount_shards}
+        if balance_key == "shards" and "coins" in user_doc:
+            inc["coins"] = -amount_shards
+        result = await db.users.update_one(
+            {"user_id": user.user_id, balance_key: {"$gte": amount_shards}},
+            {"$inc": inc},
+        )
+        if result.modified_count == 0:
+            raise HTTPException(status_code=409, detail="Shard balance changed; retry purchase")
+
+        if item_type == "card":
+            await _grant_creator_card_entitlement(user, item_id, "shard_purchase")
+
+        order_id = f"shard_{uuid.uuid4().hex[:16]}"
+        await db.orders.insert_one({
+            "id": order_id,
+            "user_id": user.user_id,
+            "item_type": item_type,
+            "item_id": item_id,
+            "amount_shards": amount_shards,
+            "provider": "shards",
+            "status": "completed",
+            "fulfilled": True,
+            "created_at": now_iso,
+            "completed_at": now_iso,
+        })
+        return {
+            "status": "completed",
+            "payment_method": "shards",
+            "order_id": order_id,
+            "item_type": data.get("item_type") or item_type,
+            "item_id": item_id,
+            "amount_shards": amount_shards,
+            "remaining_shards": available - amount_shards,
+        }
+
+    raise HTTPException(status_code=400, detail="payment_method must be stripe or shards")
 
 def get_seeded_creator_cards():
     return [

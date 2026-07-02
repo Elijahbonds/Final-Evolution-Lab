@@ -983,7 +983,24 @@ const GameModesView = () => {
       const r = await axios.post(`${API}/hub/launch-mode`, { mode_id: mode.id });
       setSessionState(r.data);
 
-      // Deep link to UE5 native binary
+      const openBrowserPlayable = (ws, reason = 'web_fallback') => {
+        try { ws?.close?.(); } catch (_e) { /* ignore close failures */ }
+        if (r.data?.session_id) {
+          axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: reason }).catch(() => {});
+        }
+        setLaunchingMode(null);
+        setLaunchStatus(null);
+        setPlayingMode(mode);
+      };
+
+      // Desktop browsers cannot reliably complete the custom-scheme handoff.
+      // Keep them in the product loop by entering the verified browser game immediately.
+      if (!felIOSHostedWebView()) {
+        openBrowserPlayable(null, 'browser_playable');
+        return;
+      }
+
+      // Deep link to UE5/native iOS binary when hosted inside the app shell.
       const deepLink = r.data.deep_link;
       if (deepLink) {
         window.location.href = deepLink;
@@ -994,12 +1011,16 @@ const GameModesView = () => {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setLaunchStatus('map_loading');
+        const fallbackTimer = window.setTimeout(() => {
+          openBrowserPlayable(ws, 'native_handoff_timeout_browser_fallback');
+        }, 10000);
 
         ws.onmessage = (e) => {
           try {
             const msg = JSON.parse(e.data);
             if (msg.type === 'vault_handshake' || msg.type === 'map_loaded') {
               // MapLoaded signal received from UFELBridgeSubsystem
+              window.clearTimeout(fallbackTimer);
               setLaunchStatus(null);
               setLaunchingMode(null);
               ws.close();
@@ -1007,17 +1028,10 @@ const GameModesView = () => {
           } catch {}
         };
 
-        // 10s System Re-auth (NOT browser fallback)
-        // If no MapLoaded signal, trigger re-auth instead of showing placeholder
-        setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
-            ws.close();
-            setLaunchStatus('timeout');
-            // System Re-auth: re-verify session, do NOT fall back to browser game
-            axios.post(`${API}/session/state`, { session_id: r.data.session_id, state: 'timeout' }).catch(() => {});
-            setLaunchingMode(null);
-          }
-        }, 10000);
+        ws.onerror = () => {
+          window.clearTimeout(fallbackTimer);
+          openBrowserPlayable(ws, 'native_handoff_ws_error_browser_fallback');
+        };
       } else {
         // No deep link available (desktop/web) — use browser version
         setLaunchingMode(null);
@@ -1140,6 +1154,7 @@ const CreatorCardsView = () => {
   }, []);
 
   if (selected) {
+    const shardPrice = selected.price_shards ?? Math.max(1, Math.round(Number(selected.price || selected.price_usd || 0) * 10));
     return (
       <div className="space-y-6 fade-in max-w-3xl mx-auto" data-testid="card-detail">
         <button onClick={() => setSelected(null)} className="btn-secondary text-sm">Back to Gallery</button>
@@ -1195,11 +1210,11 @@ const CreatorCardsView = () => {
                     <button data-testid="purchase-card-shards" className="btn-secondary w-full text-sm" onClick={() => {
                       setPurchaseState({status:'spending_shards', card:selected.id});
                       axios.post(`${API}/marketplace/purchase`, {item_type: 'creator_card', item_id: selected.id, payment_method: 'shards'}).then(r => {
-                        setPurchaseState({status:r.data.status, card:selected.id, message:`Spent ${r.data.amount_shards || selected.price_shards} Shards`});
+                        setPurchaseState({status:r.data.status, card:selected.id, message:`Spent ${r.data.amount_shards || shardPrice} Shards`});
                       }).catch(err => {
                         setPurchaseState({status:'error', card:selected.id, message: err?.response?.data?.detail || err.message});
                       });
-                    }}>Buy with {selected.price_shards} Shards</button>
+                    }}>Buy with {shardPrice} Shards</button>
                     {purchaseState?.card === selected.id && (
                       <p className="text-xs text-zinc-500 font-mono">
                         PAYMENT: {purchaseState.status}{purchaseState.offline ? ' · OFFLINE SANDBOX' : ''}{purchaseState.message ? ` · ${purchaseState.message}` : ''}
@@ -1321,10 +1336,26 @@ const AICoachView = () => {
 const CoachHubView = () => {
   const [coaches, setCoaches] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [bookingState, setBookingState] = useState(null);
   useEffect(() => {
     Promise.all([axios.get(`${API}/coach/available`), axios.get(`${API}/coach/sessions`)])
       .then(([c,s]) => {setCoaches(c.data);setSessions(s.data);}).catch(() => { setCoaches(FALLBACK_COACHES); setSessions([]); });
   }, []);
+  const bookCoach = async (coach) => {
+    const coachId = coach.user_id || coach.id || coach.name;
+    setBookingState({coach_id: coachId, status: 'booking'});
+    try {
+      const r = await axios.post(`${API}/coach/sessions`, {
+        coach_id: coachId,
+        sport: coach.sport || 'training',
+        session_type: coach.specialty || 'training',
+      });
+      setSessions(prev => [r.data, ...prev.filter(s => s.id !== r.data.id)]);
+      setBookingState({coach_id: coachId, status: 'booked', message: 'Session requested'});
+    } catch (err) {
+      setBookingState({coach_id: coachId, status: 'error', message: err?.response?.data?.detail || err.message});
+    }
+  };
   return (
     <div className="space-y-8 fade-in">
       <div><p className="overline mb-1">TRAINING NETWORK</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>COACH HUB</h1></div>
@@ -1339,7 +1370,19 @@ const CoachHubView = () => {
                 <div className="text-right"><div className="font-mono text-lg text-cyan-400">${c.rate || 25}</div><div className="text-xs text-zinc-500">per session</div></div>
               </div>
               <div className="flex items-center gap-4 text-sm text-zinc-400 mb-4"><span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" />{c.rating}</span><span>{c.sessions} sessions</span></div>
-              <button data-testid={`book-coach-${i}`} className="btn-primary w-full">Book Session</button>
+              <button
+                data-testid={`book-coach-${i}`}
+                className="btn-primary w-full"
+                disabled={bookingState?.coach_id === (c.user_id || c.id || c.name) && bookingState?.status === 'booking'}
+                onClick={() => bookCoach(c)}
+              >
+                {bookingState?.coach_id === (c.user_id || c.id || c.name) && bookingState?.status === 'booking' ? 'Booking...' : 'Book Session'}
+              </button>
+              {bookingState?.coach_id === (c.user_id || c.id || c.name) && bookingState?.message && (
+                <p className={`text-xs mt-2 font-mono ${bookingState.status === 'error' ? 'text-red-400' : 'text-cyan-400'}`}>
+                  {bookingState.message}
+                </p>
+              )}
             </div>
           ))}
         </div>
