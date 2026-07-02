@@ -45,3 +45,46 @@ Base branch: `integration/nexus-aaa` @ `faba51d` (post anti-gravity-fel → main
 - Backend instanced submission (Metal/Vulkan `instanceCount`) — 1.5 w
 - Particle instanced-quad draw in `MetalRenderer` — 1 w (then compute promotion, 2 w)
 - GPU skinning Option B phase 1 (pose palette upload) — 1 w
+
+---
+
+# AGENT_STATUS — Nexus AAA Sprint 0 (Agents 1–6)
+
+Single writer: Sprint 0 coordinator. Updated: 2026-07-01.
+Sequential branch chain (matches.py ownership 1 → 2 → 3 → 4 → 5 → 6), forked from
+`integration/nexus-aaa` @ `427aee2` (pre main-merge; small conflict pass expected at merge —
+merge PRs in stack order #95 → #96 → #97 → #98 → #99 → #101).
+
+| Agent | Workstream | Branch | Head SHA | PR | Status |
+|---|---|---|---|---|---|
+| 1 | Judge/Seed Authority | `nexus/judge-offsets` | `92d627f` | [#95](https://github.com/Elijahbonds/Final-Evolution-Lab/pull/95) (draft) | DONE — 9/9 tests |
+| 2 | Server Dunk Scoring (WDA port) | `nexus/dunk-server-scoring` | `d1ca595` | [#96](https://github.com/Elijahbonds/Final-Evolution-Lab/pull/96) (draft) | DONE — 30/30 tests, 4 pinned vectors |
+| 3 | Match Events + Replay Export | `nexus/match-replay` | `c8ea469` | [#97](https://github.com/Elijahbonds/Final-Evolution-Lab/pull/97) (draft) | DONE — 13/13 tests |
+| 4 | Sim Harness + Replay Validator | `nexus/sim-harness` | `18acf2e` | [#98](https://github.com/Elijahbonds/Final-Evolution-Lab/pull/98) (draft) | DONE — 3/3 replays validate, tamper → exit 1 |
+| 5 | Snapshot Netcode Foundation | `nexus/netcode-snapshot` | `2321194` | [#99](https://github.com/Elijahbonds/Final-Evolution-Lab/pull/99) (draft) | DONE — 7/7 tests, live client demo 8/8 inputs |
+| 6 | GameView QA & Replay UX | `nexus/gameview-debug` | `aaf81ee` | [#101](https://github.com/Elijahbonds/Final-Evolution-Lab/pull/101) (draft) | DONE — `npm run build` green |
+
+## Verification evidence (all with MOCK_DB=1, no real DB)
+
+- Full backend suite on chain head: `cd backend && MOCK_DB=1 python3 -m pytest
+  tests/test_matches.py tests/test_dunk_scoring.py tests/test_match_seed_offsets.py
+  tests/test_replay_export.py tests/test_netcode_snapshot.py` → **79 passed**.
+- Determinism: fixed seed → `random.Random(seed).randint(-5,5)` offsets pinned in tests;
+  WDA engine-3D scoring has 4 exact-value vectors; `replay_validator.py` re-computes all
+  dunk_results + score accumulation from exported replays (exit 0 clean / exit 1 on tamper — both verified).
+- End-to-end: `uvicorn sim_app:app` + `scripts/simulate_matches.py --base ... --count 3`
+  → 3/3 replays exported and validated; `scripts/netcode_client_example.py` → 19 snapshots,
+  8/8 inputs persisted, reconciliation loop demonstrated.
+- Frontend: `npm install && npm run build` (npm; no yarn.lock) → build green after removing
+  the broken global `ajv` override.
+
+## Blockers / notes
+
+1. `backend/server.py` on this lineage imports `emergentintegrations` (not installed
+   locally) — harness uses `backend/sim_app.py` instead; full-server smoke deferred to CI.
+2. Branch chain forked pre main-merge (`427aee2` vs integration `faba51d`): ~2 files
+   overlap (`backend/routers/matches.py` lineage, frontend lockfile-adjacent). Resolve
+   when promoting the stack.
+3. WS `player_id` is client-asserted under MOCK_DB (guest auth) — per-connection auth
+   binding is a pre-production TODO (documented in `infra/netcode_contract.md`).
+4. No secrets touched; no task required one.
