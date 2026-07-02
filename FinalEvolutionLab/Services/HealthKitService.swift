@@ -109,41 +109,45 @@ class HealthKitService {
         refreshTask = nil
     }
 
-    // MARK: - Vertical jump tracking (CoreMotion flight-time estimation)
+    // MARK: - Vertical jump tracking (flight-time estimation via motion seam)
 
-    private let jumpMotionManager = CMMotionManager()
+    @ObservationIgnored private lazy var motionProvider: MotionSampleProviding = MotionProviderFactory.makeDefault()
     private var jumpHandler: ((Double) -> Void)?
     private var freefallStartTimestamp: TimeInterval?
+
+    /// Test/harness hook: swap the motion source (e.g. ``ReplayMotionProvider``).
+    func setMotionProvider(_ provider: MotionSampleProviding) {
+        motionProvider.stopUpdates()
+        motionProvider = provider
+    }
 
     /// Starts vertical-jump detection; `onJump` receives estimated height in inches.
     /// Uses the flight-time method (h = g·t²/8): airborne = total acceleration near 0g,
     /// landing = impact spike. Requires the phone on the athlete (pocket/waistband).
+    /// Runs from recorded traces when launched with `-FELSimulatedSensors`.
     func startJumpTracking(onJump: @escaping (Double) -> Void) {
-        guard jumpMotionManager.isDeviceMotionAvailable else { return }
+        guard motionProvider.isAvailable else { return }
         jumpHandler = onJump
         freefallStartTimestamp = nil
-        jumpMotionManager.deviceMotionUpdateInterval = 1.0 / 100.0
-        jumpMotionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
-            guard let self, let motion else { return }
-            let g = motion.gravity, u = motion.userAcceleration
-            let totalG = ((g.x + u.x) * (g.x + u.x)
-                        + (g.y + u.y) * (g.y + u.y)
-                        + (g.z + u.z) * (g.z + u.z)).squareRoot()
-            let now = motion.timestamp
-            if totalG < 0.35 {
-                if self.freefallStartTimestamp == nil { self.freefallStartTimestamp = now }
-            } else if totalG > 1.6, let start = self.freefallStartTimestamp {
-                self.freefallStartTimestamp = nil
-                let flight = now - start
-                guard flight > 0.15, flight < 1.2 else { return }
-                let meters = 9.81 * flight * flight / 8.0
-                self.jumpHandler?(meters * 39.3701)
-            }
+        motionProvider.startUpdates(interval: 1.0 / 100.0) { [weak self] sample in
+            self?.ingestMotionSample(sample)
+        }
+    }
+
+    private func ingestMotionSample(_ sample: MotionSample) {
+        if sample.totalG < 0.35 {
+            if freefallStartTimestamp == nil { freefallStartTimestamp = sample.timestamp }
+        } else if sample.totalG > 1.6, let start = freefallStartTimestamp {
+            freefallStartTimestamp = nil
+            let flight = sample.timestamp - start
+            guard flight > 0.15, flight < 1.2 else { return }
+            let meters = 9.81 * flight * flight / 8.0
+            jumpHandler?(meters * 39.3701)
         }
     }
 
     func stopJumpTracking() {
-        jumpMotionManager.stopDeviceMotionUpdates()
+        motionProvider.stopUpdates()
         jumpHandler = nil
         freefallStartTimestamp = nil
     }
