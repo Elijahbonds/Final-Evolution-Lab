@@ -1352,20 +1352,24 @@ struct BaseballGameView: View {
                 }
                 Spacer()
                 if !playerSwung && pitchProgress >= 0 {
-                    Text("TAP OR SWIPE TO SWING")
+                    Text("PRESS ✕ TO SWING")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(.white.opacity(swingWindowOpen ? 0.85 : 0.35)).tracking(2)
                         .shadow(color: swingWindowOpen ? .green.opacity(0.6) : .clear, radius: 8)
-                        .padding(.bottom, 22)
                         .animation(.easeInOut(duration: 0.25), value: swingWindowOpen)
                 } else if pitchProgress < 0 && !playerSwung {
                     Text("GET READY…").font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.3)).tracking(2).padding(.bottom, 22)
+                        .foregroundStyle(.white.opacity(0.3)).tracking(2)
                 }
+
+                // Universal ArenaPad controls (GameModeId.usesArenaPad):
+                // ✕ swings at the pitch in the same timing window the tap/swipe used.
+                ArenaPadControlBar(accentColor: gameMode.accentColor, isActive: !playerSwung) { action in
+                    handlePadAction(action)
+                }
+                .padding(.top, 4)
             }
         }
-        .gesture(TapGesture().onEnded { _ in handleSwing() })
-        .simultaneousGesture(DragGesture(minimumDistance: 18).onEnded { _ in handleSwing() })
         .ignoresSafeArea(edges: .bottom)
     }
 
@@ -1547,7 +1551,7 @@ struct BaseballGameView: View {
                 scoreHUD
                 Spacer()
                 if fieldingWindow && fieldingSuccess == nil {
-                    Text(isGrounder ? "GROUNDER — TAP FAST!" : "FLY BALL — TAP TO CATCH")
+                    Text(isGrounder ? "GROUNDER — PICK A ZONE FAST!" : "FLY BALL — PICK A ZONE")
                         .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundStyle(.yellow)
                         .shadow(color: .yellow.opacity(0.6), radius: 8)
@@ -1557,28 +1561,29 @@ struct BaseballGameView: View {
                         .transition(.opacity)
                 }
                 Spacer()
-                // Tap zones row
+                // Zone readout row (zones are picked on the pad: ◀ LF · ▲ CF · ▶ RF)
                 HStack(spacing: 0) {
                     ForEach(0..<3) { idx in
-                        Button {
-                            handleFieldingTap(zone: idx)
-                        } label: {
-                            Text(zoneLabels[idx])
-                                .font(.system(size: 14, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(zoneColors[idx].opacity(fieldingWindow ? 0.45 : 0.20))
-                                .overlay(
-                                    Rectangle()
-                                        .frame(height: 2)
-                                        .foregroundStyle(zoneColors[idx].opacity(0.8)),
-                                    alignment: .top
-                                )
-                        }
-                        .disabled(!fieldingWindow || fieldingSuccess != nil)
+                        Text(zoneLabels[idx])
+                            .font(.system(size: 14, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(zoneColors[idx].opacity(fieldingWindow ? 0.45 : 0.20))
+                            .overlay(
+                                Rectangle()
+                                    .frame(height: 2)
+                                    .foregroundStyle(zoneColors[idx].opacity(0.8)),
+                                alignment: .top
+                            )
                     }
                 }
+
+                // Universal ArenaPad controls: d-pad / stick fields LF / CF / RF.
+                ArenaPadControlBar(accentColor: gameMode.accentColor, isActive: fieldingWindow && fieldingSuccess == nil) { action in
+                    handlePadAction(action)
+                }
+                .padding(.top, 4)
             }
         }
         .ignoresSafeArea(edges: .bottom)
@@ -1712,6 +1717,33 @@ struct BaseballGameView: View {
         }
         pitchProgress = -1.0
         recordSwingResult(result)
+    }
+
+    /// Universal pad mapping — ✕ swings in the pitch timing window;
+    /// d-pad / left stick picks the fielding zone (LF / CF / RF).
+    private func handlePadAction(_ action: ArenaPadAction) {
+        switch phase {
+        case .batting:
+            if case .primary = action { handleSwing() }
+        case .fielding:
+            guard fieldingWindow, fieldingSuccess == nil else { return }
+            switch action {
+            case .direction(.left):
+                handleFieldingTap(zone: 0)
+            case .direction(.up), .direction(.down):
+                handleFieldingTap(zone: 1)
+            case .direction(.right):
+                handleFieldingTap(zone: 2)
+            case .leftStick(let v):
+                if v.x < -0.5 { handleFieldingTap(zone: 0) }
+                else if v.x > 0.5 { handleFieldingTap(zone: 2) }
+                else if v.y < -0.5 { handleFieldingTap(zone: 1) }
+            default:
+                break
+            }
+        default:
+            break
+        }
     }
 
     private func recordSwingResult(_ result: SwingResult) {

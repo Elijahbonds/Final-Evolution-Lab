@@ -958,6 +958,7 @@ struct BasketballDunkGameView: View {
 
     // Execution
     @State private var swipeDragOffset: CGSize = .zero
+    @State private var padSwipeVector: CGSize = .zero
     @State private var swipeRegistered    = false
     @State private var executionQuality: Double = 0.0
     @State private var swipeFlash         = false
@@ -1099,7 +1100,15 @@ struct BasketballDunkGameView: View {
                 .background(accent)
                 .clipShape(.rect(cornerRadius: 16))
                 .shadow(color: accent.opacity(0.35), radius: 12)
-            }.padding(.horizontal, 24).padding(.bottom, 32)
+            }.padding(.horizontal, 24).padding(.bottom, 8)
+
+            // Universal ArenaPad controls (GameModeId.usesArenaPad):
+            // ▢/d-pad/stick cycles dunk styles, ✕ confirms and starts the approach.
+            ArenaPadControlBar(accentColor: accent, isActive: true) { action in
+                handlePadAction(action)
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 12)
         }
     }
 
@@ -1165,17 +1174,23 @@ struct BasketballDunkGameView: View {
             scoreHeader.padding(.top, 12)
             courtCanvas.padding(.horizontal, 20).padding(.top, 10)
             styleTag.padding(.top, 12)
-            Text("HOLD TO BUILD POWER")
+            Text("PRESS ✕ TO BUILD POWER")
                 .font(.system(size: 11, weight: .black, design: .monospaced))
                 .foregroundStyle(accent.opacity(0.8)).tracking(3).padding(.top, 14)
-            Text("Release in the sweet spot (78–90%)")
+            Text("Press ✕ again in the sweet spot (78–90%)")
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.secondary).padding(.top, 3)
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 16)
             powerBarView.padding(.horizontal, 24)
-            Spacer().frame(height: 28)
-            holdButton
             Spacer()
+
+            // Universal ArenaPad controls (GameModeId.usesArenaPad):
+            // ✕ starts the charge, ✕ again releases in the sweet spot.
+            ArenaPadControlBar(accentColor: accent, isActive: !approachReleased) { action in
+                handlePadAction(action)
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 12)
         }
     }
 
@@ -1208,31 +1223,6 @@ struct BasketballDunkGameView: View {
         }.frame(height: 52)
     }
 
-    private var holdButton: some View {
-        ZStack {
-            Circle()
-                .fill(powerFilling ? accent.opacity(0.15) : Color.white.opacity(0.05))
-                .frame(width: 130, height: 130)
-            Circle()
-                .strokeBorder(powerFilling ? accent : Color.white.opacity(0.18), lineWidth: 3)
-                .frame(width: 130, height: 130)
-                .scaleEffect(powerFilling ? 1.06 : 1.0)
-                .animation(.easeInOut(duration: 0.45).repeatForever(autoreverses: true), value: powerFilling)
-            VStack(spacing: 6) {
-                Image(systemName: powerFilling ? "hand.raised.fill" : "hand.tap.fill")
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(powerFilling ? accent : .white.opacity(0.5))
-                Text(powerFilling ? "RELEASE!" : "HOLD")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(powerFilling ? accent : .white.opacity(0.5)).tracking(2)
-            }
-        }
-        .contentShape(Circle())
-        .gesture(DragGesture(minimumDistance: 0)
-            .onChanged { _ in if !powerFilling && !approachReleased { startCharge() } }
-            .onEnded   { _ in releasePower() })
-    }
-
     // MARK: - Execution
 
     private var executionScreen: some View {
@@ -1247,7 +1237,7 @@ struct BasketballDunkGameView: View {
                 .scaleEffect(swipeFlash ? 1.1 : 1.0)
                 .animation(.spring(response: 0.2), value: swipeFlash)
                 .padding(.top, 10)
-            Text("SWIPE TO EXECUTE")
+            Text("AIM WITH STICK/D-PAD · PRESS ✕")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundStyle(.secondary).tracking(3).padding(.top, 6)
             Spacer().frame(height: 24)
@@ -1262,7 +1252,7 @@ struct BasketballDunkGameView: View {
                     Image(systemName: swipeRegistered ? "checkmark.circle.fill" : selectedStyle.icon)
                         .font(.system(size: 40, weight: .bold))
                         .foregroundStyle(swipeRegistered ? .green : accent.opacity(0.75))
-                    Text(swipeRegistered ? "EXECUTED!" : "SWIPE HERE")
+                    Text(swipeRegistered ? "EXECUTED!" : "PRESS ✕")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(swipeRegistered ? .green : accent.opacity(0.6)).tracking(2)
                 }
@@ -1272,10 +1262,15 @@ struct BasketballDunkGameView: View {
                         .animation(.interactiveSpring(), value: swipeDragOffset)
                 }
             }
-            .gesture(DragGesture(minimumDistance: 12)
-                .onChanged { v in guard !swipeRegistered else { return }; swipeDragOffset = v.translation }
-                .onEnded   { v in guard !swipeRegistered else { return }; registerSwipe(translation: v.translation) })
             Spacer()
+
+            // Universal ArenaPad controls (GameModeId.usesArenaPad):
+            // stick/d-pad aims the swipe, ✕ executes, ▢/△ mid-air signature style.
+            ArenaPadControlBar(accentColor: accent, isActive: !swipeRegistered) { action in
+                handlePadAction(action)
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 12)
         }
     }
 
@@ -1541,6 +1536,81 @@ struct BasketballDunkGameView: View {
     private func resetApproach() {
         powerLevel = 0; approachReleased = false; powerFilling = false
         execProgress = 0; postDunk = false; swipeRegistered = false; swipeDragOffset = .zero
+        padSwipeVector = .zero
+    }
+
+    // MARK: - ArenaPad mapping
+
+    /// Universal pad mapping — ▢/d-pad cycles styles, ✕ = the timing press each
+    /// phase's swipe/hold performed, stick/d-pad aims the dunk swipe in execution.
+    private func handlePadAction(_ action: ArenaPadAction) {
+        switch phase {
+        case .styleSelect:
+            switch action {
+            case .style, .direction(.right), .shoulderRight:
+                cycleStyle(by: 1)
+            case .direction(.left), .shoulderLeft:
+                cycleStyle(by: -1)
+            case .leftStick(let v):
+                if v.x > 0.6 { cycleStyle(by: 1) }
+                else if v.x < -0.6 { cycleStyle(by: -1) }
+            case .primary:
+                withAnimation { phase = .approach }
+                resetApproach()
+            default: break
+            }
+        case .approach:
+            guard action == .primary, !approachReleased else { return }
+            if powerFilling { releasePower() } else { startCharge() }
+        case .execution:
+            guard !swipeRegistered else { return }
+            switch action {
+            case .leftStick(let v):
+                // Stick up is +y; swipe translations are screen-space (up = -height).
+                padSwipeVector = CGSize(width: v.x * 160, height: -v.y * 160)
+                swipeDragOffset = CGSize(width: padSwipeVector.width * 0.25,
+                                         height: padSwipeVector.height * 0.25)
+            case .direction(let d):
+                padSwipeVector = padVector(for: d)
+                swipeDragOffset = CGSize(width: padSwipeVector.width * 0.25,
+                                         height: padSwipeVector.height * 0.25)
+            case .primary:
+                registerSwipe(translation: padSwipeVector == .zero
+                              ? CGSize(width: 0, height: -160) : padSwipeVector)
+            case .style, .special:
+                // Mid-air signature style — commit the style's ideal swipe.
+                registerSwipe(translation: idealSwipeVector(for: selectedStyle))
+            default: break
+            }
+        default:
+            break
+        }
+    }
+
+    private func cycleStyle(by delta: Int) {
+        guard let idx = DunkStyle.all.firstIndex(where: { $0.id == selectedStyle.id }) else { return }
+        let count = DunkStyle.all.count
+        selectedStyle = DunkStyle.all[(idx + delta + count) % count]
+        impactSoft.impactOccurred()
+    }
+
+    private func padVector(for direction: ArenaPadDPadDirection) -> CGSize {
+        switch direction {
+        case .up:    return CGSize(width: 0,    height: -160)
+        case .down:  return CGSize(width: 0,    height: 160)
+        case .left:  return CGSize(width: -160, height: 0)
+        case .right: return CGSize(width: 160,  height: 0)
+        }
+    }
+
+    private func idealSwipeVector(for style: DunkStyle) -> CGSize {
+        switch style.id {
+        case "power_slam", "tomahawk", "alley_oop": return CGSize(width: 0, height: -160)
+        case "windmill", "three_sixty":             return CGSize(width: 160, height: 0)
+        case "reverse":                             return CGSize(width: 0, height: 160)
+        case "between_legs":                        return CGSize(width: 110, height: -110)
+        default:                                    return CGSize(width: 0, height: -160)
+        }
     }
 
     private func startCharge() {

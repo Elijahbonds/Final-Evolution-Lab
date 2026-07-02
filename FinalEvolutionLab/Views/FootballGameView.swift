@@ -1651,6 +1651,9 @@ struct FootballGameView: View {
     @State private var playResultLabel: String = ""
     @State private var playResultColor: Color = .white
 
+    // ArenaPad: edge-latch so a held stick fires one juke per push
+    @State private var padStickDodgeLatched: Bool = false
+
     var body: some View {
         ZStack {
             switch phase {
@@ -1759,14 +1762,19 @@ struct FootballGameView: View {
                     Text("ROUTE: \(currentRoute.rawValue)")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
                         .foregroundStyle(gameMode.accentColor).tracking(2)
-                    Text(windowOpen ? "TAP TO THROW!" : (playerThrew ? "" : "WATCH THE ROUTE…"))
+                    Text(windowOpen ? "✕ TO THROW!" : (playerThrew ? "" : "WATCH THE ROUTE…"))
                         .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundStyle(windowOpen ? .green : .white.opacity(0.4))
-                }.padding(.bottom, 24)
+                }.padding(.bottom, 8)
+
+                // Universal ArenaPad controls (GameModeId.usesArenaPad):
+                // ✕ throws to the receiver when the window is open.
+                ArenaPadControlBar(accentColor: gameMode.accentColor, isActive: !playerThrew) { action in
+                    handlePadAction(action)
+                }
+                .padding(.top, 4)
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture { handleThrow() }
         .ignoresSafeArea(edges: .bottom)
     }
 
@@ -1816,21 +1824,22 @@ struct FootballGameView: View {
                 Spacer()
                 progressBar
                 VStack(spacing: 6) {
-                    Text("SWIPE LEFT/RIGHT TO JUKE")
+                    Text("STICK / D-PAD TO JUKE")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.35)).tracking(2)
-                    Text("TAP TO SPRINT")
+                    Text("✕ TO SPRINT")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.25)).tracking(2)
-                }.padding(.bottom, 30)
+                }.padding(.bottom, 8)
+
+                // Universal ArenaPad controls (GameModeId.usesArenaPad):
+                // stick/d-pad jukes between lanes, ✕ = sprint burst.
+                ArenaPadControlBar(accentColor: gameMode.accentColor, isActive: phase == .run) { action in
+                    handlePadAction(action)
+                }
+                .padding(.top, 4)
             }
         }
-        .contentShape(Rectangle())
-        .gesture(DragGesture(minimumDistance: 25).onEnded { val in
-            if val.translation.width < -30 { handleDodge(.left) }
-            else if val.translation.width > 30 { handleDodge(.right) }
-        })
-        .onTapGesture { advanceRun(yards: 1) }
         .ignoresSafeArea(edges: .bottom)
     }
 
@@ -1999,6 +2008,35 @@ struct FootballGameView: View {
         case .post:    return (0.5, 0.2)
         case .fly:     return (0.5, 0.1)
         case .out:     return (0.8, 0.5)
+        }
+    }
+
+    /// Universal pad mapping — stick/d-pad changes lanes (juke), ✕ throws in the
+    /// catch window then sprints on the return. No power-up in this mode, so △ is unused.
+    private func handlePadAction(_ action: ArenaPadAction) {
+        switch action {
+        case .leftStick(let v):
+            guard phase == .run else { padStickDodgeLatched = false; return }
+            if abs(v.x) > 0.5 {
+                if !padStickDodgeLatched {
+                    padStickDodgeLatched = true
+                    handleDodge(v.x < 0 ? .left : .right)
+                }
+            } else if abs(v.x) < 0.2 {
+                padStickDodgeLatched = false
+            }
+        case .direction(.left):
+            handleDodge(.left)
+        case .direction(.right):
+            handleDodge(.right)
+        case .primary:
+            switch phase {
+            case .catchRoute: handleThrow()
+            case .run: advanceRun(yards: 1)
+            default: break
+            }
+        default:
+            break
         }
     }
 
