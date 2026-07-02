@@ -773,6 +773,56 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   require(receipts.payload["receipts"].size() == 0, "receipt cleared after successful flush");
 }
 
+void session_receipt_flush_preserves_http_config_between_agent_calls() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "flush_live_user"}},
+              "flush_preserve_start")
+              .status == "ok",
+          "session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "flush_preserve_end")
+              .status == "ok",
+          "session ends");
+
+  const nlohmann::json liveRejectingConfig = {
+      {"persist_to_disk", false},
+      {"http_enabled", true},
+      {"use_stub_http_transport", true},
+      {"stub_http_status_code", 503},
+      {"max_retries", 5},
+  };
+  const auto firstFlush =
+      gameplay.handleGameplayCommand("fel.arena.flush_receipts", liveRejectingConfig, "flush_503");
+  require(firstFlush.status == "ok", "first flush command ok");
+  require(firstFlush.payload["attempted"].get<std::size_t>() == 1, "first flush attempts receipt");
+  require(firstFlush.payload["delivered"].get<std::size_t>() == 0,
+          "first flush does not deliver rejected receipt");
+  require(firstFlush.payload["requeued"].get<std::size_t>() == 1,
+          "first flush requeues rejected receipt");
+
+  const auto secondFlush =
+      gameplay.handleGameplayCommand("fel.arena.flush_receipts", {}, "flush_preserved_503");
+  require(secondFlush.status == "ok", "second flush command ok");
+  require(secondFlush.payload["attempted"].get<std::size_t>() == 1,
+          "second flush attempts retained receipt");
+  require(secondFlush.payload["delivered"].get<std::size_t>() == 0,
+          "second flush preserves rejecting HTTP status");
+  require(secondFlush.payload["requeued"].get<std::size_t>() == 1,
+          "second flush preserves live/stub HTTP config and requeues");
+
+  const auto receipts = gameplay.handleGameplayQuery(
+      "fel.query.get_pending_session_receipts", {}, "flush_preserve_receipts");
+  require(receipts.payload["receipts"].size() == 1,
+          "receipt remains pending after preserved non-2xx config");
+}
+
 void session_receipt_disk_keyed_by_session_id() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_dedup_test_" + std::to_string(getpid()));
@@ -1877,6 +1927,28 @@ void fel_bridge_websocket_stub_sends_outbound() {
           "fel bridge POST body includes mode_id");
 }
 
+void fel_bridge_session_post_rejects_non_2xx_status() {
+  nexus::gameplay::FelBridgeService bridge({
+      .sessionReceiptUrl = "http://127.0.0.1:8000/api/games/session",
+      .useStubTransport = true,
+      .stubHttpStatusCode = 503,
+  });
+
+  const nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"duration_seconds", 60},
+      {"completed", true},
+      {"telemetry", {{"session_id", "bridge_rejected_session"}}},
+  };
+  const auto rejected = bridge.postSessionPayload(receipt);
+  require(rejected.isErr(), "fel bridge rejects non-2xx session POST");
+  require(!bridge.postedSessionRequests().empty(), "fel bridge recorded rejected HTTP POST");
+  require(bridge.postedSessionRequests().front().statusCode == 503,
+          "fel bridge recorded non-2xx status");
+}
+
 void hud_relay_websocket_stub_emits_frames() {
   nexus::gameplay::HudRelayService relay;
   relay.setWebSocketUrl("ws://127.0.0.1:8787/ws/hud");
@@ -2835,6 +2907,7 @@ auto main() -> int {
   fitness_update_rejects_non_finite_values();
   mode_runtime_rejects_non_object_snow_and_scene_params();
   snowboarding_action_payloads_are_objects();
+  session_receipt_flush_preserves_http_config_between_agent_calls();
   flagship_basketball_dunk_validate_only_integration();
   flagship_karate_kata_validate_only_integration();
   flagship_venice_pickup_validate_only_integration();
@@ -2855,6 +2928,7 @@ auto main() -> int {
   basketball_3v3_session_end_dispatches_receipt();
   court_carnival_session_end_dispatches_receipt();
   karate_h2h_session_end_dispatches_receipt();
+  fel_bridge_session_post_rejects_non_2xx_status();
   text_prompt_adapter_maps_beach_arena_prompt();
   gameplay_from_text_executes_mixed_plan();
   agent_router_routes_from_text_to_gameplay();

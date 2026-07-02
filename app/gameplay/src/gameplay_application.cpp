@@ -1069,7 +1069,15 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    config.useStubHttpTransport =
+        params.value("use_stub_http_transport", config.useStubHttpTransport);
+    config.stubHttpStatusCode =
+        params.value("stub_http_status_code", config.stubHttpStatusCode);
+    config.flushIntervalSeconds =
+        params.value("flush_interval_seconds", config.flushIntervalSeconds);
+    config.maxRetries = params.value("max_retries", config.maxRetries);
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",

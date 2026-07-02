@@ -27,6 +27,7 @@ FelBridgeService::FelBridgeService(FelBridgeConfig config)
       m_sessionHttp(nexus::core::HttpClientConfig{
           .url = m_config.sessionReceiptUrl,
           .useStubTransport = m_config.useStubTransport,
+          .stubStatusCode = m_config.stubHttpStatusCode,
       }) {}
 
 auto FelBridgeService::connectTransport() -> nexus::Result<void> {
@@ -146,8 +147,16 @@ auto FelBridgeService::postSessionPayload(const nlohmann::json& receiptBody) -> 
                    "FEL bridge session POST failed: " + result.error());
     return result;
   }
+  const int statusCode = result.value();
+  if (statusCode < 200 || statusCode >= 300) {
+    const std::string message =
+        "FEL bridge session POST rejected status=" + std::to_string(statusCode);
+    NEXUS_LOG_WARN(nexus::LogChannel::kAI, message);
+    return nexus::Result<int>::err(message);
+  }
   NEXUS_LOG_INFO(nexus::LogChannel::kAI,
-                 "FEL bridge session POST ok mode=" + receiptBody.value("mode_id", "unknown"));
+                 "FEL bridge session POST ok mode=" + receiptBody.value("mode_id", "unknown") +
+                     " status=" + std::to_string(statusCode));
   return result;
 }
 

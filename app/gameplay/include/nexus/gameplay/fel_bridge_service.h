@@ -19,6 +19,7 @@ struct FelBridgeConfig {
   float keepaliveIntervalSeconds{0.5F};
   bool autoReconnect{true};
   bool useStubTransport{true};
+  int stubHttpStatusCode{200};
 };
 
 class FelBridgeService {

@@ -154,6 +154,10 @@ auto SessionReceiptClient::pendingReceipts() const -> std::span<const nlohmann::
   return m_pending;
 }
 
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
+}
+
 auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core::HttpPostRecord> {
   return m_http.postedRequests();
 }
