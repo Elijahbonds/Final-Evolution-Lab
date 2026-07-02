@@ -35,7 +35,7 @@ from core import User
 from lib.match_utils import generate_seed, derive_judge_offsets
 from lib.dunk_scoring import DunkEngine3DInput, score_dunk, score_engine3d_dunk
 from lib.card_effects import compute_loadout_modifiers, CARD_EFFECT_MAP
-from routers.matches import router as match_router, get_current_user, _matches, _events
+from routers.matches import router as match_router, get_match_user, _matches, _events
 from routers.dunk import router as dunk_router
 
 _app = FastAPI()
@@ -48,7 +48,7 @@ _USER_B = User(user_id="player_b", email="b@fellab.io", name="Player B",
                sport="basketball", prq_score=75.0, level=1, xp=100, streak_days=1, coins=50)
 
 def _client_as(user: User) -> TestClient:
-    _app.dependency_overrides[get_current_user] = lambda: user
+    _app.dependency_overrides[get_match_user] = lambda: user
     return TestClient(_app, raise_server_exceptions=True)
 
 @pytest.fixture(autouse=True)

@@ -185,11 +185,87 @@ def run_simulation(games: int, mode: str) -> None:
     print(f"\n{'='*60}\n")
 
 
+# ── HTTP end-to-end simulation (Agent 4) ─────────────────────────────────────
+#
+# Drives a *running* backend (MOCK_DB=1 recommended) over HTTP:
+#   create -> join -> inputs -> server dunk scoring -> end -> export-replay,
+# saving each replay JSON to --out for backend/tools/replay_validator.py.
+
+def run_http_simulation(base: str, count: int, out_dir: str, seed0: int = 424242) -> int:
+    import urllib.request
+    import urllib.error
+
+    def call(method: str, path: str, body: Dict[str, Any] = None,
+             player: str = "sim_p1") -> Dict[str, Any]:
+        url = base.rstrip("/") + path
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(url, data=data, method=method, headers={
+            "Content-Type": "application/json",
+            "X-FEL-Sim-Player": player,
+        })
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+
+    os.makedirs(out_dir, exist_ok=True)
+    failures = 0
+    print(f"\n=== HTTP match simulation → {base} (count={count}) ===")
+
+    for i in range(count):
+        rng = random.Random(seed0 + i)
+        try:
+            created = call("POST", "/api/matches/create",
+                           {"mode_id": "basketball_dunk_3d", "player_id": "sim_p1"})
+            mid = created["match_id"]
+            call("POST", "/api/matches/join",
+                 {"match_id": mid, "player_id": "sim_p2"}, player="sim_p2")
+
+            # deterministic input + scoring sequence from the local rng
+            for seq in range(1, 4):
+                call("POST", f"/api/matches/{mid}/events",
+                     {"type": "input", "player_id": "sim_p1",
+                      "payload": {"seq": seq,
+                                  "input": {"action": "charge", "power": round(rng.random(), 3)},
+                                  "ts": round(seq * 0.5, 2)}})
+                call("POST", f"/api/matches/{mid}/score_dunk",
+                     {"engine3d": {
+                         "jump_height": round(rng.uniform(0.4, 1.0), 3),
+                         "launch_quality": round(rng.uniform(0.4, 1.0), 3),
+                         "landing_quality": round(rng.uniform(0.4, 1.0), 3),
+                         "completed_rotation": round(rng.uniform(0.0, 1.0), 3),
+                         "trick": rng.choice(["windmill", "three_sixty", "double_clutch"]),
+                         "attempts_count": 1,
+                      },
+                      "player_id": "sim_p1"})
+            call("POST", f"/api/matches/{mid}/events",
+                 {"type": "score_event", "player_id": "sim_p2", "payload": {"points": 2}})
+            call("POST", f"/api/matches/{mid}/end", {"reason": "sim_complete"})
+
+            replay = call("GET", f"/api/matches/{mid}/export-replay")
+            path = os.path.join(out_dir, f"replay_{mid}.json")
+            with open(path, "w") as f:
+                json.dump(replay, f, indent=2)
+            n_events = len(replay.get("events", []))
+            print(f"  [{i+1}/{count}] match {mid}: {n_events} events -> {path}")
+        except (urllib.error.URLError, urllib.error.HTTPError, KeyError) as exc:
+            failures += 1
+            print(f"  [{i+1}/{count}] FAILED: {exc}")
+
+    print(f"=== done: {count - failures}/{count} replays exported ===\n")
+    return 1 if failures else 0
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Nexus headless match simulator")
-    parser.add_argument("--games", type=int, default=100, help="Number of games to simulate")
+    parser = argparse.ArgumentParser(description="Nexus match simulator (headless or HTTP)")
+    parser.add_argument("--games", type=int, default=100, help="[headless] number of games")
     parser.add_argument("--mode", default="all",
                         choices=["basketball_h2h", "basketball_dunk", "all"],
-                        help="Mode to simulate")
+                        help="[headless] mode to simulate")
+    parser.add_argument("--base", default=None,
+                        help="Base URL of a running backend (e.g. http://localhost:8000); enables HTTP mode")
+    parser.add_argument("--count", type=int, default=5, help="[HTTP] number of matches")
+    parser.add_argument("--out", default="artifacts/replays", help="[HTTP] replay output dir")
     args = parser.parse_args()
+
+    if args.base:
+        sys.exit(run_http_simulation(args.base, args.count, args.out))
     run_simulation(args.games, args.mode)
