@@ -1,0 +1,8 @@
+{
+  "placeholder": true,
+  "note": "No ASTC encoder available at generation time; runtime falls back to PNG. Re-run with an encoder installed.",
+  "source": "tex_env_checker_d.png",
+  "source_sha256": "c7811b4d72ee8185984b99ed5f7499f725642a6143fa22dc45babd6ccba84e1d",
+  "target_format": "astc",
+  "block_size": "6x6"
+}

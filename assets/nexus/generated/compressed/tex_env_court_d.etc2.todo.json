@@ -1,0 +1,8 @@
+{
+  "placeholder": true,
+  "note": "No ETC2 encoder available at generation time; runtime falls back to PNG. Re-run with an encoder installed.",
+  "source": "tex_env_court_d.png",
+  "source_sha256": "3a72d5385ce9dd8050115c236647756e5402ced8e166b8bf8c976ef146e7e4ae",
+  "target_format": "etc2",
+  "profile": "RGBA8"
+}
