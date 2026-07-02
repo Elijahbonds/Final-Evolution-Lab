@@ -1,0 +1,26 @@
+{
+  "name": "@final-evolution-lab/nexus-cursor-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cursor MCP server for controlling and auditing the NEXUS app/game runtime.",
+  "type": "module",
+  "bin": {
+    "nexus-cursor-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest"
+  }
+}

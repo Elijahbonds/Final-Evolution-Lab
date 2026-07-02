@@ -33,7 +33,7 @@ npm run build
 
 ## Cursor Desktop setup
 
-Copy the example config and adjust paths if your repo lives elsewhere:
+Copy the example config and adjust paths if you install it globally:
 
 ```bash
 mkdir -p ~/.cursor
@@ -50,7 +50,6 @@ cp ~/Final-Evolution-Lab/.cursor/mcp.json.example ~/.cursor/mcp.json
       "command": "node",
       "args": ["tools/nexus-cursor-mcp/dist/index.js"],
       "env": {
-        "NEXUS_REPO_ROOT": "/Users/elijahbonds/Final-Evolution-Lab",
         "NEXUS_BUILD_DIR": "build-headless",
         "NEXUS_RUNTIME_BUILD_DIR": "build-full"
       }
@@ -65,7 +64,7 @@ Restart Cursor (or reload MCP servers in **Settings → MCP**) after building.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `NEXUS_REPO_ROOT` | `~/Final-Evolution-Lab` | Repo root for scripts and docs |
+| `NEXUS_REPO_ROOT` | env → git root → package-relative repo root | Optional repo root override for scripts and docs |
 | `FEL_NEXUS_REPO_ROOT` | (fallback) | Same as above when set by NEXUS Studio IDE |
 | `NEXUS_BUILD_DIR` | `build-headless` | Directory containing `nexus_agent_cli` |
 | `NEXUS_RUNTIME_BUILD_DIR` | `build-full` | Directory containing `nexus_runtime` |

@@ -10,6 +10,9 @@ package.json
 package-lock.json
 tsconfig.json
 app.json
+!tools/nexus-cursor-mcp/package.json
+!tools/nexus-cursor-mcp/package-lock.json
+!tools/nexus-cursor-mcp/tsconfig.json
 
 # Xcode / NEXUS embed artifacts (never sync into app bundle)
 FinalEvolutionLab/GoogleService-Info.plist

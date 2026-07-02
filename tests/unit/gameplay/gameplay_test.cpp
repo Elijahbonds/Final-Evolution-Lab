@@ -1973,6 +1973,25 @@ void hud_relay_websocket_stub_emits_frames() {
           "hud relay WS payload type");
 }
 
+void hud_relay_env_url_uses_live_transport() {
+  const char* previous = std::getenv("FEL_HUD_WS_URL");
+  const std::string previousValue = previous != nullptr ? previous : "";
+  setenv("FEL_HUD_WS_URL", "http://127.0.0.1:8787/ws/hud", 1);
+
+  nexus::gameplay::HudRelayService relay;
+  const auto connect = relay.connectRelay();
+  require(connect.isErr(), "hud relay env URL should use live transport validation");
+  require(relay.relayState() == nexus::core::WebSocketClientState::kError,
+          "hud relay live transport reports invalid URL error");
+  require(relay.lastRelayError().code == "invalid_url", "hud relay invalid URL error code");
+
+  if (previous != nullptr) {
+    setenv("FEL_HUD_WS_URL", previousValue.c_str(), 1);
+  } else {
+    unsetenv("FEL_HUD_WS_URL");
+  }
+}
+
 void session_receipt_http_stub_posts_localhost_contract() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_http_stub_test_" + std::to_string(getpid()));
@@ -2899,6 +2918,7 @@ auto main() -> int {
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
+  hud_relay_env_url_uses_live_transport();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_flush_requeues_on_non_2xx_post();
   karate_mode_input_strike_advances_wave();

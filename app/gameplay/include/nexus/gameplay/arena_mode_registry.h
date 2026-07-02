@@ -20,7 +20,7 @@ enum class ArenaReleaseState : std::uint8_t {
   kNonGameModule = 3,
 };
 
-/// Canonical production mode ids — keep in sync with `scripts/nexus_validate_production_modes.sh`.
+/// Canonical production mode ids. Validation scripts derive their mode set from this list.
 inline constexpr std::string_view kProductionModeIds[] = {
     "basketball_h2h",  "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h",      "karate_endless",  "baseball",       "football",

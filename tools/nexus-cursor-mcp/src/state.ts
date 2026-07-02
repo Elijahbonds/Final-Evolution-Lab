@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import {
   buildGateLogPath,
   ctestLogCandidates,
@@ -22,6 +23,14 @@ export type NexusState = {
     lastBuildGateLog?: string;
     lastBuildGateTail?: string;
     ctestLogs: Array<{ path: string; exists: boolean; tail?: string }>;
+  };
+  runtimeArtifacts: {
+    headlessBuildDir: string;
+    fullBuildDir: string;
+    agentCliExists: boolean;
+    scanEnvelopeTestExists: boolean;
+    runtimeExists: boolean;
+    productionValidateScriptExists: boolean;
   };
   lastPlaytest?: unknown;
 };
@@ -66,6 +75,7 @@ function parseDeliveryMatrix(source: string): NexusState["deliveryMatrixSummary"
 export function readNexusState(): NexusState {
   ensureArtifactDir();
 
+  const root = repoRoot();
   const matrixPath = deliveryMatrixPath();
   const matrixSource = fs.existsSync(matrixPath)
     ? fs.readFileSync(matrixPath, "utf8")
@@ -95,12 +105,36 @@ export function readNexusState(): NexusState {
   }
 
   return {
-    repoRoot: repoRoot(),
+    repoRoot: root,
     deliveryMatrixSummary: parseDeliveryMatrix(matrixSource),
     buildLogs: {
       lastBuildGateLog: fs.existsSync(buildGateLog) ? buildGateLog : undefined,
       lastBuildGateTail: tailText(buildGateLog, 50),
       ctestLogs,
+    },
+    runtimeArtifacts: {
+      headlessBuildDir: process.env.NEXUS_BUILD_DIR?.trim() || "build-headless",
+      fullBuildDir: process.env.NEXUS_RUNTIME_BUILD_DIR?.trim() || "build-full",
+      agentCliExists: fs.existsSync(
+        path.join(root, process.env.NEXUS_BUILD_DIR?.trim() || "build-headless", "nexus_agent_cli"),
+      ),
+      scanEnvelopeTestExists: fs.existsSync(
+        path.join(
+          root,
+          process.env.NEXUS_BUILD_DIR?.trim() || "build-headless",
+          "nexus_scan_envelope_test",
+        ),
+      ),
+      runtimeExists: fs.existsSync(
+        path.join(
+          root,
+          process.env.NEXUS_RUNTIME_BUILD_DIR?.trim() || "build-full",
+          "nexus_runtime",
+        ),
+      ),
+      productionValidateScriptExists: fs.existsSync(
+        path.join(root, "scripts", "nexus_validate_production_modes.sh"),
+      ),
     },
     lastPlaytest,
   };

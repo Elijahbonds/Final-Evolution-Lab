@@ -2,9 +2,55 @@
 
 #include "nexus/core/log.h"
 
+#include <cctype>
+#include <cstdlib>
+#include <string>
+#include <string_view>
+#include <utility>
+
 namespace nexus::gameplay {
 
 namespace {
+
+constexpr std::string_view kDefaultHudWebSocketUrl{"ws://127.0.0.1:8787/ws/hud"};
+
+auto trimCopy(std::string_view value) -> std::string {
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())) != 0) {
+    value.remove_prefix(1);
+  }
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())) != 0) {
+    value.remove_suffix(1);
+  }
+  return std::string(value);
+}
+
+auto hudWebSocketUrlFromEnv() -> std::string {
+  for (const char* key : {"FEL_HUD_WS_URL", "NEXUS_HUD_WS_URL"}) {
+    const char* value = std::getenv(key);
+    if (value == nullptr) {
+      continue;
+    }
+    std::string trimmed = trimCopy(value);
+    if (!trimmed.empty()) {
+      return trimmed;
+    }
+  }
+  return {};
+}
+
+struct HudRelayInitialConfig {
+  std::string url{std::string(kDefaultHudWebSocketUrl)};
+  bool useStubTransport{true};
+};
+
+auto initialHudRelayConfig() -> HudRelayInitialConfig {
+  HudRelayInitialConfig config;
+  if (std::string envUrl = hudWebSocketUrlFromEnv(); !envUrl.empty()) {
+    config.url = std::move(envUrl);
+    config.useStubTransport = false;
+  }
+  return config;
+}
 
 nexus::core::WebSocketClient makeRelayClient(std::string url, bool useStubTransport) {
   return nexus::core::WebSocketClient{
@@ -18,11 +64,16 @@ nexus::core::WebSocketClient makeRelayClient(std::string url, bool useStubTransp
 
 } // namespace
 
-HudRelayService::HudRelayService()
-    : m_relay(makeRelayClient(m_websocketUrl, true)) {}
+HudRelayService::HudRelayService() {
+  HudRelayInitialConfig config = initialHudRelayConfig();
+  m_websocketUrl = std::move(config.url);
+  m_useStubTransport = config.useStubTransport;
+  m_relay = makeRelayClient(m_websocketUrl, m_useStubTransport);
+}
 
 auto HudRelayService::connectRelay() -> nexus::Result<void> {
   m_relay.setUrl(m_websocketUrl);
+  m_relay.setStubTransportEnabled(m_useStubTransport);
   return m_relay.connect();
 }
 
