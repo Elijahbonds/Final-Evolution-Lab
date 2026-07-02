@@ -23,6 +23,9 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
+echo "==> validate app/game production registry sync"
+python3 "${ROOT}/scripts/validate_arena_registry_sync.py"
+
 if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
   export CXX=g++
 fi

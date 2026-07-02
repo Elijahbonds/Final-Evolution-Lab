@@ -24,6 +24,15 @@ jobs:
       - name: Validate mode registry
         run: python3 scripts/validate_mode_registry.py
 
+      - name: Validate app/game registry sync
+        run: python3 scripts/validate_arena_registry_sync.py
+
+      - name: Validate backend session receipt contract
+        run: |
+          python3 -m pip install -r backend/requirements.txt
+          cd backend
+          python3 -m pytest tests_phase1/test_session_receipt_upload.py -q
+
       - name: Run NEXUS gameplay regression
         run: ./scripts/nexus_gameplay_regression.sh
 
