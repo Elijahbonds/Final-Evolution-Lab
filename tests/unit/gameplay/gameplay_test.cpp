@@ -1018,10 +1018,30 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
-  require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
+void prq_defaults_without_fitness_and_scores_athlete_readiness() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  require(nexus::gameplay::PRQEngine::getScore(fitness.snapshot()) == 75.0F,
+          "prq sprint default without fitness");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
-          "prq grade primed");
+          "prq default grade primed");
+
+  fitness.update({1.0F, 1.0F, 1.0F}, {1.0F, 1.0F, 1});
+  auto snapshot = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(snapshot) >= 99.0F,
+          "elite fitness drives PRQ near 100");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive(snapshot) >= 99.0F,
+          "elite breath/control drives neural drive near 100");
+  require(nexus::gameplay::PRQEngine::getGrade(nexus::gameplay::PRQEngine::getScore(snapshot)) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "elite fitness maps to elite PRQ grade");
+
+  fitness.update({0.0F, 0.0F, 0.0F}, {0.0F, 0.0F, 0});
+  snapshot = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(snapshot) <= 1.0F,
+          "low fitness lowers PRQ readiness");
+  require(nexus::gameplay::PRQEngine::getGrade(nexus::gameplay::PRQEngine::getScore(snapshot)) ==
+              nexus::gameplay::PRQGrade::kRecovering,
+          "low fitness maps to recovering PRQ grade");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1030,6 +1050,63 @@ void arcade_physics_maps_prq_75() {
   require(params.hangTimeMultiplier > 2.3F, "hang time multiplier at PRQ 75");
   require(params.explosiveFirstStep > 0.82F && params.explosiveFirstStep < 0.83F,
           "explosive first step at PRQ 75");
+}
+
+void mode_runtime_arcade_physics_tracks_fitness_updates() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  auto start = gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "basketball_dunk"}, {"user_id", "test"}},
+      "fitness_prq_start");
+  require(start.status == "ok", "fitness-prq session starts");
+
+  auto response = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {
+          {"frc_mobility", 0.0F},
+          {"frc_active_range", 0.0F},
+          {"frc_control", 0.0F},
+          {"iap_engagement", 0.0F},
+          {"iap_confidence", 0.0F},
+          {"breath_phase", 0},
+      },
+      "fitness_prq_low");
+  require(response.status == "ok", "low fitness update ok");
+
+  auto lowState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "low_state");
+  require(lowState.status == "ok", "low fitness mode query ok");
+  const float lowPrq = lowState.payload["prq"].get<float>();
+  const float lowHangTime =
+      lowState.payload["arcade_physics"]["hang_time_multiplier"].get<float>();
+
+  response = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {
+          {"frc_mobility", 1.0F},
+          {"frc_active_range", 1.0F},
+          {"frc_control", 1.0F},
+          {"iap_engagement", 1.0F},
+          {"iap_confidence", 1.0F},
+          {"breath_phase", 1},
+      },
+      "fitness_prq_high");
+  require(response.status == "ok", "high fitness update ok");
+
+  auto highState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "high_state");
+  require(highState.status == "ok", "high fitness mode query ok");
+  const float highPrq = highState.payload["prq"].get<float>();
+  const float highHangTime =
+      highState.payload["arcade_physics"]["hang_time_multiplier"].get<float>();
+
+  require(lowPrq <= 1.0F, "low fitness lowers mode PRQ");
+  require(highPrq >= 99.0F, "high fitness raises mode PRQ");
+  require(highState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "high fitness mode grade elite");
+  require(highHangTime > lowHangTime + 0.5F,
+          "fitness-driven PRQ changes arcade hang time");
 }
 
 void dunk_contest_charge_release_scores() {
@@ -2932,8 +3009,9 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_defaults_without_fitness_and_scores_athlete_readiness();
   arcade_physics_maps_prq_75();
+  mode_runtime_arcade_physics_tracks_fitness_updates();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
   karate_endless_local_coop_wave_survival();

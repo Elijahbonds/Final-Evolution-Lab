@@ -1,24 +1,56 @@
 #include "nexus/gameplay/prq_engine.h"
 
+#include <algorithm>
+
 namespace nexus::gameplay {
 
 namespace {
 
-constexpr float kSprintPrqScore = 75.0F;
-constexpr float kSprintNeuralDrive = 60.0F;
+constexpr float kNoDataPrqScore = 75.0F;
+constexpr float kNoDataNeuralDrive = 60.0F;
+
+[[nodiscard]] auto percent(float unitValue) -> float {
+  return std::clamp(unitValue, 0.0F, 1.0F) * 100.0F;
+}
 
 } // namespace
 
 auto PRQEngine::getScore() -> float {
-  return kSprintPrqScore;
+  return kNoDataPrqScore;
+}
+
+auto PRQEngine::getScore(const FitnessSnapshot& fitness) -> float {
+  if (fitness.revision == 0) {
+    return getScore();
+  }
+
+  const float composite = fitness.powerReadiness * 0.60F + fitness.frcComposite * 0.30F +
+                          fitness.iapComposite * 0.10F;
+  return percent(composite);
 }
 
 auto PRQEngine::getNeuralDrive() -> float {
-  return kSprintNeuralDrive;
+  return kNoDataNeuralDrive;
+}
+
+auto PRQEngine::getNeuralDrive(const FitnessSnapshot& fitness) -> float {
+  if (fitness.revision == 0) {
+    return getNeuralDrive();
+  }
+
+  const float breathPhaseBoost = fitness.iap.breathPhase == 1   ? 0.08F
+                                : fitness.iap.breathPhase == -1 ? -0.06F
+                                                                : 0.0F;
+  const float composite = fitness.iapComposite * 0.45F + fitness.frc.controlScore * 0.35F +
+                          fitness.frcComposite * 0.20F + breathPhaseBoost;
+  return percent(composite);
 }
 
 auto PRQEngine::getGrade() -> PRQGrade {
-  const float score = getScore();
+  return getGrade(getScore());
+}
+
+auto PRQEngine::getGrade(float score) -> PRQGrade {
   if (score >= 80.0F) {
     return PRQGrade::kElite;
   }
