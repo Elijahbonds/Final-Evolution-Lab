@@ -31,11 +31,11 @@
               — payload includes final_scores + arena.last_result for Agent 3 HUD flush
 
    4. flush:  nexus_gameplay_session_flush_receipts(handle)
-              — persists receipts to ~/.fel/pending_receipts/*.json for offline queue
+              — persists receipts to ~/.fel/pending_receipts/*.json for Swift upload
 
  Swift SessionService should read that directory and POST each file to
  /api/games/session when connectivity is available (Bearer Firebase JWT).
- The C++ layer does not perform HTTP in v1; it only logs + writes queue files.
+The iOS bridge explicitly disables C++ HTTP so Swift owns auth, retries, and user-facing errors.
 
  Example Swift stop() sequence:
    let result = NexusGameplayBridge.endArena(session, playerScore: score, opponentScore: 0)
@@ -246,7 +246,7 @@ char* nexus_gameplay_session_flush_receipts(NexusGameplayHandle handle) {
   const nlohmann::json request = {
       {"command", "fel.arena.flush_receipts"},
       {"id", "ios_flush_receipts"},
-      {"params", {{"persist_to_disk", true}}},
+      {"params", {{"persist_to_disk", true}, {"http_enabled", false}}},
   };
   return copyJsonString(handleCommandJson(session->application, request));
 }

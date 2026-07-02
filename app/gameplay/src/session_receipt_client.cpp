@@ -111,7 +111,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (delivery.value()) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -158,6 +160,10 @@ auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core
   return m_http.postedRequests();
 }
 
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
+}
+
 auto SessionReceiptClient::queueDirectory() const -> const std::string& {
   return m_config.queueDirectory;
 }
@@ -195,16 +201,18 @@ auto SessionReceiptClient::persistReceipt(const nlohmann::json& receipt) -> std:
   return path.string();
 }
 
-auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<int> {
+auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<bool> {
   const std::string modeId = receipt.value("mode_id", std::string("unknown"));
   const int score = receipt.value("score", 0);
+  bool queuedOnDisk = false;
 
   if (m_config.persistToDisk) {
     if (const auto path = persistReceipt(receipt)) {
+      queuedOnDisk = true;
       NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                      "Session receipt persisted for iOS/SessionService pickup path=" + *path);
     } else {
-      return Result<int>::err("failed to persist receipt");
+      return Result<bool>::err("failed to persist receipt");
     }
   }
 
@@ -219,17 +227,17 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
                        " status=" + std::to_string(statusCode));
     if (statusCode < 200 || statusCode >= 300) {
-      return Result<int>::err("session receipt POST rejected status=" +
-                              std::to_string(statusCode));
+      return Result<bool>::err("session receipt POST rejected status=" +
+                               std::to_string(statusCode));
     }
-    return Result<int>::ok(statusCode);
+    return Result<bool>::ok(queuedOnDisk);
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +
                        " score=" + std::to_string(score));
   }
 
-  return Result<int>::ok(200);
+  return Result<bool>::ok(queuedOnDisk);
 }
 
 } // namespace nexus::gameplay

@@ -82,7 +82,7 @@ enum Config {
     static let sqlSocialFirebaseUidKey = "fel_sql_social_firebase_uid"
 
     /// UE / server sets this to the active verified gameplay session id; inbound Emergent WS payloads must repeat it to mutate PRQ or surface ``fel_game_result``.
-    static let trustedGameplaySessionDefaultsKey = "fel_trusted_ue_gameplay_session_id"
+    static let trustedUEGameplaySessionDefaultsKey = "fel_trusted_ue_gameplay_session_id"
 
     /// FastAPI base (`docs/NEXUS_BACKEND_CONTRACT.md`). Override: `FEL_API_BASE_URL`.
     static var felBackendApiBaseURL: String { NexusBackendClient.apiBaseURL }

@@ -773,6 +773,55 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   require(receipts.payload["receipts"].size() == 0, "receipt cleared after successful flush");
 }
 
+void session_receipt_flush_preserves_transport_config_on_partial_updates() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto configure = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {
+          {"base_url", "http://receipts.example.test/api/games/session"},
+          {"auth_token", "live-token"},
+          {"persist_to_disk", false},
+          {"http_enabled", true},
+          {"use_stub_http_transport", false},
+          {"stub_http_status_code", 503},
+          {"flush_interval_seconds", 0.25F},
+          {"max_retries", 9},
+      },
+      "flush_configure");
+  require(configure.status == "ok", "initial receipt config command ok");
+
+  const auto configured = gameplay.gameplay_manager().receiptClientConfig();
+  require(configured.baseUrl == "http://receipts.example.test/api/games/session",
+          "receipt base URL configured");
+  require(configured.authToken == "live-token", "receipt auth token configured");
+  require(!configured.persistToDisk, "receipt persist flag configured");
+  require(configured.httpEnabled, "receipt HTTP flag configured");
+  require(!configured.useStubHttpTransport, "receipt live transport configured");
+  require(configured.stubHttpStatusCode == 503, "receipt stub status configured");
+  require(configured.flushIntervalSeconds == 0.25F, "receipt flush interval configured");
+  require(configured.maxRetries == 9, "receipt max retries configured");
+
+  const auto partial = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "flush_partial");
+  require(partial.status == "ok", "partial receipt config command ok");
+
+  const auto preserved = gameplay.gameplay_manager().receiptClientConfig();
+  require(preserved.baseUrl == configured.baseUrl, "partial flush preserves base URL");
+  require(preserved.authToken == configured.authToken, "partial flush preserves auth token");
+  require(preserved.persistToDisk, "partial flush applies persist override");
+  require(preserved.httpEnabled == configured.httpEnabled, "partial flush preserves HTTP flag");
+  require(preserved.useStubHttpTransport == configured.useStubHttpTransport,
+          "partial flush preserves live transport flag");
+  require(preserved.stubHttpStatusCode == configured.stubHttpStatusCode,
+          "partial flush preserves stub status");
+  require(preserved.flushIntervalSeconds == configured.flushIntervalSeconds,
+          "partial flush preserves interval");
+  require(preserved.maxRetries == configured.maxRetries, "partial flush preserves retries");
+}
+
 void session_receipt_disk_keyed_by_session_id() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_dedup_test_" + std::to_string(getpid()));
@@ -2811,6 +2860,7 @@ auto main() -> int {
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
+  session_receipt_flush_preserves_transport_config_on_partial_updates();
   session_receipt_disk_keyed_by_session_id();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
