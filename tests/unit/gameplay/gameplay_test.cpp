@@ -955,10 +955,79 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_uses_fitness_snapshot_and_preserves_sprint_fallback() {
+  nexus::gameplay::FitnessSnapshot emptySnapshot{};
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
+  require(nexus::gameplay::PRQEngine::getScore(emptySnapshot) == 75.0F,
+          "empty snapshot preserves sprint prq fallback");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive(emptySnapshot) == 60.0F,
+          "empty snapshot preserves neural drive fallback");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.10F, 0.20F, 0.30F}, {0.20F, 0.50F, 0});
+  const auto lowSnapshot = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(lowSnapshot) < 25.0F,
+          "low readiness lowers PRQ");
+  require(nexus::gameplay::PRQEngine::getGrade(lowSnapshot) ==
+              nexus::gameplay::PRQGrade::kRecovering,
+          "low readiness grades recovering");
+
+  fitness.update({1.0F, 1.0F, 1.0F}, {1.0F, 1.0F, 1});
+  const auto eliteSnapshot = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(eliteSnapshot) == 100.0F,
+          "elite readiness reaches PRQ cap");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive(eliteSnapshot) == 100.0F,
+          "elite readiness reaches neural cap");
+  require(nexus::gameplay::PRQEngine::getGrade(eliteSnapshot) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "elite readiness grades elite");
+}
+
+void mode_runtime_prq_tracks_live_fitness_updates() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "prq_live"}},
+              "prq_live_start")
+              .status == "ok",
+          "prq live session starts");
+
+  const auto baseline =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_baseline");
+  require(baseline.status == "ok", "baseline mode state ok");
+  const float baselinePrq = baseline.payload["prq"].get<float>();
+  const float baselineExplosive =
+      baseline.payload["arcade_physics"]["explosive_first_step"].get<float>();
+  require(baselinePrq == 75.0F, "cold-start mode state uses sprint fallback prq");
+
+  const auto update = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {{"frc_mobility", 1.0F},
+       {"frc_active_range", 1.0F},
+       {"frc_control", 1.0F},
+       {"iap_engagement", 1.0F},
+       {"iap_confidence", 1.0F},
+       {"breath_phase", 1}},
+      "prq_fitness_update");
+  require(update.status == "ok", "fitness update for prq ok");
+
+  const auto live = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_live_state");
+  require(live.status == "ok", "live mode state ok");
+  require(live.payload["prq"].get<float>() == 100.0F, "mode state PRQ follows fitness");
+  require(live.payload["neural_drive"].get<float>() == 100.0F,
+          "mode state neural drive follows fitness");
+  require(live.payload["prq_grade"].get<std::string>() == "ELITE",
+          "mode state PRQ grade follows fitness");
+  require(live.payload["fitness_revision"].get<std::uint64_t>() >= 1,
+          "mode state exposes fitness revision");
+  require(live.payload["arcade_physics"]["explosive_first_step"].get<float>() >
+              baselineExplosive,
+          "arcade physics updates from live PRQ");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1930,6 +1999,38 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_real_http_failure_keeps_receipt_pending() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_failure_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:1/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_failure_session"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "real HTTP failure attempted once");
+  require(flush.delivered == 0, "real HTTP failure is not delivered");
+  require(flush.requeued == 1, "real HTTP failure requeues receipt");
+  require(client.pendingCount() == 1, "receipt remains pending after failed POST");
+
+  removeTreeBestEffort(tempDir);
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2776,6 +2877,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_real_http_failure_keeps_receipt_pending();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
@@ -2783,7 +2885,8 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_uses_fitness_snapshot_and_preserves_sprint_fallback();
+  mode_runtime_prq_tracks_live_fitness_updates();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();

@@ -2,8 +2,15 @@
 #include "nexus/core/websocket_client.h"
 
 #include <cstdio>
+#include <cstdint>
 #include <cstdlib>
 #include <string>
+#include <thread>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 namespace {
 
@@ -90,6 +97,78 @@ void http_stub_post_records_session_contract() {
           "http stub session path");
 }
 
+class OneShotHttpResponder {
+public:
+  explicit OneShotHttpResponder(int statusCode) : m_statusCode(statusCode) {
+    m_socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_socket >= 0, "test http socket created");
+
+    int yes = 1;
+    (void)::setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port = 0;
+    require(::bind(m_socket, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == 0,
+            "test http bind");
+    require(::listen(m_socket, 1) == 0, "test http listen");
+
+    socklen_t len = sizeof(addr);
+    require(::getsockname(m_socket, reinterpret_cast<sockaddr*>(&addr), &len) == 0,
+            "test http getsockname");
+    m_port = ntohs(addr.sin_port);
+
+    m_thread = std::thread([this]() { serveOnce(); });
+  }
+
+  ~OneShotHttpResponder() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+    if (m_socket >= 0) {
+      ::close(m_socket);
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  void serveOnce() const {
+    const int client = ::accept(m_socket, nullptr, nullptr);
+    if (client < 0) {
+      return;
+    }
+    char buffer[1024];
+    (void)::read(client, buffer, sizeof(buffer));
+    const std::string reason = m_statusCode == 503 ? "Service Unavailable" : "OK";
+    const std::string response = "HTTP/1.1 " + std::to_string(m_statusCode) + " " +
+                                 reason + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+    (void)::write(client, response.data(), response.size());
+    ::close(client);
+  }
+
+  int m_statusCode{200};
+  int m_socket{-1};
+  std::uint16_t m_port{0};
+  std::thread m_thread;
+};
+
+void http_real_post_surfaces_non_2xx_status() {
+  OneShotHttpResponder server(503);
+  nexus::core::HttpClient client({
+      .url = server.url(),
+      .useStubTransport = false,
+  });
+
+  const auto result = client.post(R"({"mode_id":"basketball_dunk","score":10})");
+  require(result.isErr(), "http real post rejects 503");
+  require(client.postedRequests().size() == 1, "http real post recorded failure");
+  require(client.postedRequests().front().statusCode == 503, "http real post captures 503");
+}
+
 } // namespace
 
 auto main() -> int {
@@ -100,6 +179,7 @@ auto main() -> int {
   stub_reconnect_after_disconnect();
   auto_reconnect_on_send_when_disconnected();
   http_stub_post_records_session_contract();
+  http_real_post_surfaces_non_2xx_status();
   std::fprintf(stderr, "PASS: nexus_realtime_test\n");
   return 0;
 }

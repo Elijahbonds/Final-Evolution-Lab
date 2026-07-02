@@ -125,6 +125,7 @@ void GameplayApplication::update(double deltaSeconds,
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
 
   const auto fitness = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
     m_modeRuntime.update(deltaSeconds);
@@ -218,6 +219,7 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
       command.rfind("fel.scene.", 0) == 0 ||
       command.rfind("fel.sport.", 0) == 0 ||
       command.rfind("fel.mode.", 0) == 0) {
+    m_modeRuntime.setFitnessSnapshot(m_fitnessData.snapshot());
     const auto modeResult = m_modeRuntime.handleCommand(command, safeParams);
     if (modeResult.isErr()) {
       return response(id, "error", {}, modeResult.error());
@@ -347,6 +349,7 @@ auto GameplayApplication::handleGameplayQuery(std::string_view query,
   }
 
   if (query == "fel.query.get_mode_state") {
+    m_modeRuntime.setFitnessSnapshot(m_fitnessData.snapshot());
     return response(id, "ok", m_modeRuntime.stateJson());
   }
 
@@ -556,6 +559,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -585,6 +589,7 @@ auto GameplayApplication::applyScanGenerateCommand(std::string_view command,
 
   const auto& result = mapped.value();
   m_fitnessData.update(result.frc, result.iap);
+  m_modeRuntime.setFitnessSnapshot(m_fitnessData.snapshot());
 
   const int radius = result.generative.paintRadius;
   const int material = result.generative.voxelMaterial;
