@@ -108,6 +108,9 @@ async def _persist_match(match: Dict[str, Any]) -> None:
 
 
 async def _persist_event(match_id: str, event: Dict[str, Any]) -> None:
+    # Server-authoritative sequence number for replay ordering (Agent 3).
+    if "seq" not in event:
+        event["seq"] = len(_events.get(match_id, []))
     if _MOCK_DB:
         _events.setdefault(match_id, []).append(event)
         return
@@ -330,14 +333,104 @@ async def get_match(match_id: str, limit: int = 20) -> MatchResponse:
 # (server-authoritative WDA engine-3D scoring with seeded judge_offsets).
 
 
-@router.get("/api/matches/{match_id}/export-replay")
-async def export_replay(match_id: str) -> Dict[str, Any]:
-    """Export full match replay: metadata + all events."""
+class AppendEventRequest(BaseModel):
+    type: str  # e.g. "input" | "score_event"
+    payload: Dict[str, Any] = {}
+    player_id: Optional[str] = None
+
+
+class EndMatchRequest(BaseModel):
+    score: Optional[Dict[str, int]] = None
+    reason: str = "completed"
+
+
+@router.post("/api/matches/{match_id}/events")
+async def append_match_event(match_id: str, body: AppendEventRequest) -> Dict[str, Any]:
+    """Append a server-stamped event (input, score_event, ...) to the match log."""
     match = await _load_match(match_id)
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
-    events = await _load_events(match_id, limit=1000)
+    if match["status"] == "finished":
+        raise HTTPException(status_code=409, detail="Match already finished")
+    allowed = {"input", "score_event", "checkpoint", "custom"}
+    if body.type not in allowed:
+        raise HTTPException(status_code=422, detail=f"Event type must be one of {sorted(allowed)}")
+
+    event: Dict[str, Any] = {
+        "type": body.type,
+        "match_id": match_id,
+        "player_id": body.player_id,
+        "payload": body.payload,
+        "timestamp": _now(),
+    }
+    if body.type == "score_event":
+        points = int(body.payload.get("points", 0))
+        pid = body.player_id or (match["players"][0] if match["players"] else "unknown")
+        match["score"][pid] = match["score"].get(pid, 0) + points
+        event["points"] = points
+        event["score_snapshot"] = dict(match["score"])
+        await _persist_match(match)
+
+    await _persist_event(match_id, event)
+    await _broadcast(match_id, event)
+    return {"ok": True, "seq": event["seq"], "type": body.type}
+
+
+@router.post("/api/matches/{match_id}/end")
+async def end_match(match_id: str, body: EndMatchRequest) -> Dict[str, Any]:
+    """Finish a match: sets status, stamps finished_at, appends match_end event."""
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if match["status"] == "finished":
+        raise HTTPException(status_code=409, detail="Match already finished")
+    if body.score:
+        match["score"].update(body.score)
+    match["status"] = "finished"
+    match["finished_at"] = _now()
+    await _persist_match(match)
+    end_event = {
+        "type": "match_end",
+        "match_id": match_id,
+        "score": dict(match["score"]),
+        "reason": body.reason,
+        "timestamp": match["finished_at"],
+    }
+    await _persist_event(match_id, end_event)
+    await _broadcast(match_id, end_event)
+    return {"match_id": match_id, "status": "finished", "score": match["score"]}
+
+
+@router.get("/api/matches/{match_id}/export-replay")
+async def export_replay(match_id: str) -> Dict[str, Any]:
+    """Export full match replay: {metadata: {...}, events: [...]} (Agent 3 contract).
+
+    Flat top-level fields are kept for backwards compatibility with older
+    clients; the canonical shape is `metadata` + `events`.
+    """
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    events = await _load_events(match_id, limit=10_000)
+    # Guarantee chronological order regardless of storage backend: `seq` is
+    # server-stamped at append time, so it is the authoritative replay order.
+    events = sorted(events, key=lambda e: e.get("seq", 0))
+    metadata = {
+        "match_id": match_id,
+        "mode_id": match.get("mode_id"),
+        "seed": match.get("seed"),
+        "judge_offsets": match.get("judge_offsets", []),
+        "players": match.get("players", []),
+        "start_time": match.get("started_at"),
+        "finished_at": match.get("finished_at"),
+        "status": match.get("status"),
+        "export_version": "1.1",
+        "event_count": len(events),
+    }
     return {
+        "metadata": metadata,
+        "events": events,
+        # Back-compat flat fields (deprecated; prefer metadata.*)
         "match_id": match_id,
         "mode_id": match.get("mode_id"),
         "seed": match.get("seed"),
@@ -346,11 +439,6 @@ async def export_replay(match_id: str) -> Dict[str, Any]:
         "started_at": match.get("started_at"),
         "finished_at": match.get("finished_at"),
         "status": match.get("status"),
-        "events": events,
-        "metadata": {
-            "export_version": "1.0",
-            "event_count": len(events),
-        }
     }
 
 
