@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// The shared on-screen controller, designed for landscape (emulator-style).
-/// Left edge: D-pad above the left stick. Right edge: face buttons above the
-/// right stick. Top corners: L2/L1 and R2/R1. Monochrome premium styling —
-/// white glyphs on dark glass, cyan press states; no per-button rainbow.
+/// The shared on-screen controller (emulator-style), edge-anchored so it
+/// reflows for portrait and landscape. Left edge: D-pad above the left stick.
+/// Right edge: face buttons above the right stick. Top corners: L2/L1 and
+/// R2/R1. Monochrome premium styling — white glyphs on dark glass, cyan
+/// press states; no per-button rainbow.
 ///
 /// All input flows into one `FELGamepadState`, shared by every game mode.
 struct FELGamepadView: View {

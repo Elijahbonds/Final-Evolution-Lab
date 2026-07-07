@@ -227,6 +227,9 @@ struct GamePlayView: View {
         return score > 0 || maxCombo >= 2 || criticalHits > 0 || playerActionCount >= minA
     }
 
+    /// Shared controller state (Phase 2 input layer) — one instance per session.
+    @State private var felPad = FELGamepadState()
+
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
@@ -242,6 +245,21 @@ struct GamePlayView: View {
                 controlPanel
             }
             .offset(x: screenShake)
+
+            // Shared controller overlay (Phase 2 input layer): full-screen for
+            // all pad-driven ("charge") modes. Works in portrait and landscape —
+            // the pad is edge-anchored and reflows with orientation.
+            if inputScheme == .charge {
+                FELGamepadView(state: felPad, isActive: isActive)
+                    .offset(x: screenShake)
+                    .onAppear { configureFELPadBridge() }
+                    .onChange(of: felPad.leftStick) { _, vector in
+                        handlePS2LeftStick(vector)
+                    }
+                    .onChange(of: felPad.rightStick) { _, vector in
+                        handlePS2RightStick(vector)
+                    }
+            }
 
             if showBiomechanicsHUD, let audit = viewModel.biomechanicsAudit {
                 LiveBiomechanicsOverlay(
@@ -1006,19 +1024,8 @@ struct GamePlayView: View {
     private var controlPanel: some View {
         VStack(spacing: 8) {
             if inputScheme == .charge {
-                ArenaPadOverlay(
-                    onFaceButton: handleArenaPadFaceButton,
-                    onDPad: handlePS2DPad,
-                    onLeftStick: handlePS2LeftStick,
-                    onRightStick: handlePS2RightStick,
-                    onLeftShoulder: handlePS2LeftShoulder,
-                    onRightShoulder: handlePS2RightShoulder,
-                    accentColor: gameMode.accentColor,
-                    isActive: isActive
-                )
-                .frame(height: 190)
-                .padding(.horizontal, 4)
-
+                // Pad input now comes from the full-screen FELGamepadView
+                // overlay (see body); only mode-specific quick actions remain.
                 if isDunkContest {
                     dunkContestActionButtons
                         .padding(.horizontal, 12)
@@ -5027,6 +5034,28 @@ struct GamePlayView: View {
             } else {
                 activeModifierState = .power
                 isModifierHeld = true
+            }
+        }
+    }
+
+    /// Routes shared-gamepad events into the existing mode handlers.
+    /// L2/R2 mirror L1/R1 (style/power modifiers) until modes gain
+    /// trigger-specific actions.
+    private func configureFELPadBridge() {
+        felPad.onEvent = { event in
+            switch event {
+            case .buttonDown(let button):
+                if let face = button.legacyFaceButton {
+                    handleArenaPadFaceButton(face)
+                } else if button == .l1 || button == .l2 {
+                    handlePS2LeftShoulder()
+                } else if button == .r1 || button == .r2 {
+                    handlePS2RightShoulder()
+                }
+            case .dpadDown(let direction):
+                handlePS2DPad(direction.legacyDirection)
+            case .buttonUp, .dpadUp:
+                break
             }
         }
     }

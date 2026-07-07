@@ -158,14 +158,28 @@ struct GameSceneFactory {
     }
 
     /// Strips procedural venue geometry; hybrid keeps distant sky backdrops for Metal/SceneKit depth composite.
+    /// Venue/avatar/prop subtrees are kept whole — loaded USDZ hierarchies have
+    /// unnamed child mesh nodes that must not be pruned individually.
     static func cleanProceduralEnvironment(in scene: SCNScene, hybridOverlay: Bool = false) {
-        var remove: [SCNNode] = []
-        scene.rootNode.enumerateChildNodes { node, _ in
-            if !isGameplayCritical(node, hybridOverlay: hybridOverlay) {
-                remove.append(node)
+        func keepsWholeSubtree(_ name: String) -> Bool {
+            isGameplayAvatarNodeName(name)
+                || isGameplayPropNodeName(name)
+                || (!hybridOverlay && isBundledVenueNodeName(name))
+                || (hybridOverlay && isEnvironmentBackdropNodeName(name))
+        }
+
+        func prune(_ node: SCNNode) {
+            for child in Array(node.childNodes) {
+                let name = child.name ?? ""
+                if keepsWholeSubtree(name) { continue }
+                if isGameplayCritical(child, hybridOverlay: hybridOverlay) {
+                    prune(child)
+                } else {
+                    child.removeFromParentNode()
+                }
             }
         }
-        for node in remove { node.removeFromParentNode() }
+        prune(scene.rootNode)
     }
 
     /// SceneKit depth layer behind avatars when Metal owns the playable venue mesh.
@@ -191,14 +205,53 @@ struct GameSceneFactory {
     }
 
     /// Bundled mesh priority + procedural cleanup + cluster lighting for production scenes.
+    /// Textured USDZ venues (Meshy, via the Blender pipeline) take priority over
+    /// precooked `.nexusmesh.json` manifest meshes; procedural stays as final fallback.
     static func finalizeSceneEnvironment(_ scene: SCNScene, for mode: GameModeId) {
-        let hasBundled = NexusBundledMeshLoader.attachBackdropFromManifest(for: mode, to: scene)
+        let hasBundled = attachBundledUSDZVenue(for: mode, to: scene)
+            || NexusBundledMeshLoader.attachBackdropFromManifest(for: mode, to: scene)
             || NexusBundledMeshLoader.attachEnvironmentBackdrop(for: mode, to: scene)
         if hasBundled {
             cleanProceduralEnvironment(in: scene, hybridOverlay: false)
         }
         PremiumViewpointConfig.applyToScene(scene, for: mode)
         adjustSceneQuality(scene, for: FELPerformanceMonitor.shared.currentTier)
+    }
+
+    /// Attaches the mode's textured USDZ venue if bundled. Node is named for
+    /// the `isBundledVenueNodeName` keep-list; a neutral fill light lifts the
+    /// PBR textures under stylized cluster lighting.
+    @discardableResult
+    private static func attachBundledUSDZVenue(for mode: GameModeId, to scene: SCNScene) -> Bool {
+        let asset: FELBundledAsset?
+        let footprint: Float
+        switch mode {
+        case .karate, .karateEndless:
+            asset = .venueShimogamoDojo
+            footprint = 30 // interior must clear the dojo chase camera (z≈7.8)
+        case .basketballDunkContest3D, .basketballHeadToHead, .venicePickup, .basketball3v3:
+            asset = .venueVeniceBlacktop
+            footprint = 26
+        default:
+            asset = nil
+            footprint = 0
+        }
+        guard let asset, let venue = FELBundledAssets.venueNode(asset, footprint: footprint) else {
+            return false
+        }
+        venue.name = "bundledVenueBackdrop"
+        PremiumViewpointConfig.applyBackdropTuning(to: venue, for: mode)
+        scene.rootNode.addChildNode(venue)
+
+        let fill = SCNNode()
+        fill.name = "venueFillLight"
+        fill.light = SCNLight()
+        fill.light?.type = .omni
+        fill.light?.color = UIColor(white: 1.0, alpha: 1)
+        fill.light?.intensity = 650
+        fill.position = SCNVector3(0, 6, 0)
+        scene.rootNode.addChildNode(fill)
+        return true
     }
 
     private static func buildSceneCore(for mode: GameModeId) -> SCNScene {
@@ -371,7 +424,16 @@ struct GameSceneFactory {
 
         let dunker = brandBlue
         let opponentColor = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4), color: dunker, name: "dunker")
+        // Elijah Bonds Meshy character (baked running loop) as the dunker;
+        // procedural avatar remains the fallback.
+        if let elijah = FELBundledAssets.characterNode(.characterElijahRunning, height: 1.85) {
+            elijah.name = "dunker"
+            elijah.position = SCNVector3(0, 0, 4)
+            elijah.eulerAngles.y = .pi // face the hoop at -z/-x
+            scene.rootNode.addChildNode(elijah)
+        } else {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4), color: dunker, name: "dunker")
+        }
         addAvatar(to: scene, at: SCNVector3(2.8, 0, 2.5), color: opponentColor, name: "opponent")
         addBall(to: scene, at: SCNVector3(0, 1.4, 4), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
 
@@ -576,8 +638,26 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(toriiNode)
 
         let redTint = UIColor(red: 1.0, green: 0.15, blue: 0.1, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
-        addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan, name: "fighter2")
+
+        // Skinned mocap fighters (Seeles karate clips, baked loops); procedural
+        // stick avatars remain the fallback. Node names stay stable — combat
+        // FX and per-limb actions nil-guard their child lookups.
+        if let player = FELBundledAssets.characterNode(.fighterKarateIdle, height: 1.75) {
+            player.name = "fighter1"
+            player.position = SCNVector3(-1.2, 0, 0)
+            player.eulerAngles.y = .pi / 2
+            scene.rootNode.addChildNode(player)
+        } else {
+            addPlayerAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
+        }
+        if let opponent = FELBundledAssets.characterNode(.fighterKarateCombo, height: 1.75) {
+            opponent.name = "fighter2"
+            opponent.position = SCNVector3(1.2, 0, 0)
+            opponent.eulerAngles.y = -.pi / 2
+            scene.rootNode.addChildNode(opponent)
+        } else {
+            addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan, name: "fighter2")
+        }
 
         addKarateAnimations(to: scene)
 

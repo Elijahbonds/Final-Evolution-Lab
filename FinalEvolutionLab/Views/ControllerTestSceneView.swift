@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Phase 2 gate demo: the shared controller driving a live test scene, in
-/// forced landscape, built entirely from `FELDesign` tokens.
+/// Phase 2 gate demo: the shared controller driving a live test scene,
+/// built entirely from `FELDesign` tokens. Supports portrait and landscape.
 ///
 /// Left stick / D-pad move the player marker; right stick aims the reticle;
 /// face buttons, bumpers and triggers light the input monitor and pulse the
@@ -31,7 +31,6 @@ struct ControllerTestSceneView: View {
         .background(FELDesign.Colors.ink)
         .persistentSystemOverlays(.hidden)
         .statusBarHidden()
-        .felLandscapeLocked()
         .onAppear { configurePad() }
     }
 
