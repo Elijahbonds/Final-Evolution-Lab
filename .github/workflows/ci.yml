@@ -1,0 +1,168 @@
+name: FEL Backend CI
+
+on:
+  push:
+    branches:
+      - claude/nexus-engine-setup-2qgkik
+      - "nexus/**"
+      - main
+  pull_request:
+    branches:
+      - claude/nexus-engine-setup-2qgkik
+      - main
+
+jobs:
+  backend-tests:
+    name: Backend Tests (MOCK_DB)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scoring + match tests
+        env:
+          MOCK_DB: "1"
+          MONGO_URL: "mongodb://localhost:27017"
+          DB_NAME: "test_fel"
+          EMERGENT_LLM_KEY: "test-key-unused"
+        run: |
+          python -m pytest \
+            tests/test_judge_component.py \
+            tests/test_dunk_scoring.py \
+            tests/test_ghost.py \
+            tests/test_matches.py \
+            -v --tb=short
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/.pytest_cache/
+
+  schema-lint:
+    name: JSON Schema Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install jsonschema
+        run: pip install jsonschema
+
+      - name: Validate fel_event_schema.json
+        run: |
+          python3 - <<'EOF'
+          import json, jsonschema, sys
+
+          with open("infra/fel_event_schema.json") as f:
+              schema = json.load(f)
+
+          validator_cls = jsonschema.Draft7Validator
+          validator_cls.check_schema(schema)
+          print("✓ fel_event_schema.json is valid JSON Schema draft-07")
+
+          for i, example in enumerate(schema.get("examples", [])):
+              errors = list(validator_cls(schema).iter_errors(example))
+              if errors:
+                  for e in errors:
+                      print(f"✗ example[{i}]: {e.message}", file=sys.stderr)
+                  sys.exit(1)
+              print(f"✓ example[{i}] (mode_id={example['header']['mode_id']}) validates")
+          EOF
+
+      - name: Validate dunk_event_schema.json
+        run: |
+          python3 - <<'EOF'
+          import json, jsonschema, sys
+
+          with open("infra/dunk_event_schema.json") as f:
+              schema = json.load(f)
+
+          validator_cls = jsonschema.Draft7Validator
+          validator_cls.check_schema(schema)
+          print("✓ dunk_event_schema.json is valid JSON Schema draft-07")
+
+          for i, example in enumerate(schema.get("examples", [])):
+              errors = list(validator_cls(schema).iter_errors(example))
+              if errors:
+                  for e in errors:
+                      print(f"✗ example[{i}]: {e.message}", file=sys.stderr)
+                  sys.exit(1)
+              print(f"✓ example[{i}] validates")
+          EOF
+
+  sim-harness:
+    name: Match Simulation Harness
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run headless match simulation
+        env:
+          MOCK_DB: "1"
+          MONGO_URL: "mongodb://localhost:27017"
+          DB_NAME: "test_fel"
+          EMERGENT_LLM_KEY: "test-key-unused"
+        run: |
+          python3 - <<'EOF'
+          import sys
+          sys.path.insert(0, ".")
+
+          from lib.match_utils import generate_seed, derive_judge_offsets
+          from lib.dunk_scoring import score_dunk_from_player_inputs
+
+          CASES = [
+              (1.0, 1.0, "360_windmill", 27),
+              (0.87, 0.91, "360_windmill", 20),
+              (0.5, 0.5, "power_slam", 12),
+              (0.1, 0.1, "finger_roll", 9),
+          ]
+
+          seed = generate_seed()
+          offsets = derive_judge_offsets(seed)
+          print(f"Seed: {seed}  Offsets: {offsets}")
+
+          all_ok = True
+          for launch, land, style, min_total in CASES:
+              r = score_dunk_from_player_inputs(launch, land, offsets, style_key=style)
+              ok = r.total >= min_total and r.total == r.j1 + r.j2 + r.j3
+              status = "✓" if ok else "✗"
+              print(f"{status}  launch={launch} land={land} style={style} → total={r.total} msg={r.message}")
+              if not ok:
+                  all_ok = False
+
+          sys.exit(0 if all_ok else 1)
+          EOF
