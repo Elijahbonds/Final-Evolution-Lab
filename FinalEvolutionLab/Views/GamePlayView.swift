@@ -230,6 +230,10 @@ struct GamePlayView: View {
     /// Shared controller state (Phase 2 input layer) — one instance per session.
     @State private var felPad = FELGamepadState()
 
+    /// One-shot karate strike playback signal (see GameSceneHostView).
+    @State private var karateStrikeNonce = 0
+    @State private var karateStrikeAsset: FELBundledAsset?
+
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
@@ -277,7 +281,7 @@ struct GamePlayView: View {
 
             if showCriticalFlash {
                 LinearGradient(
-                    colors: [Theme.brandCyan.opacity(0.3), Theme.elitePurple.opacity(0.2)],
+                    colors: [FELDesign.Colors.cyan.opacity(0.3), FELDesign.Colors.purple.opacity(0.2)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -311,20 +315,17 @@ struct GamePlayView: View {
                     .allowsHitTesting(false)
                     .transition(.opacity)
                     .overlay(
-                        Text("SLOW MOTION")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.4))
-                            .tracking(4)
+                        FELMicroLabel(text: "Slow Motion", color: FELDesign.Colors.textTertiary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                             .padding(.top, 60)
-                            .padding(.leading, 16)
+                            .padding(.leading, FELDesign.Space.md)
                             .allowsHitTesting(false)
                     )
             }
 
             if showPerfectGuard {
                 RadialGradient(
-                    colors: [Theme.brandCyan.opacity(0.5), Theme.elitePurple.opacity(0.3), .clear],
+                    colors: [FELDesign.Colors.cyan.opacity(0.5), FELDesign.Colors.purple.opacity(0.3), .clear],
                     center: .center,
                     startRadius: 10,
                     endRadius: 300
@@ -345,18 +346,9 @@ struct GamePlayView: View {
                 VStack {
                     Spacer()
                     Text(lastTrickName)
-                        .font(.system(size: 24, weight: .black, design: .monospaced))
-                        .italic()
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [gameMode.accentColor, .white, gameMode.accentColor],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .shadow(color: gameMode.accentColor.opacity(0.8), radius: 12)
-                        .shadow(color: .black, radius: 4)
-                        .tracking(3)
+                        .font(FELDesign.Typography.title)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
+                        .shadow(color: .black.opacity(0.6), radius: 4)
                         .transition(.asymmetric(
                             insertion: .scale(scale: 0.3).combined(with: .opacity),
                             removal: .opacity.combined(with: .move(edge: .top))
@@ -436,13 +428,14 @@ struct GamePlayView: View {
                 Button {
                     dismiss()
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 14, weight: .bold))
                         Text("EXIT")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .font(FELDesign.Typography.micro)
+                            .tracking(FELDesign.Typography.microTracking)
                     }
-                    .foregroundStyle(gameMode.accentColor)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
                 .accessibilityIdentifier("GameplayExitButton")
             }
@@ -452,13 +445,13 @@ struct GamePlayView: View {
                         Button("Accept") {
                             multipeerService.acceptPendingInvitation()
                         }
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
+                        .font(FELDesign.Typography.micro)
+                        .foregroundStyle(FELDesign.Colors.success)
                         Button("Decline") {
                             multipeerService.rejectPendingInvitation()
                         }
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.orange)
+                        .font(FELDesign.Typography.micro)
+                        .foregroundStyle(FELDesign.Colors.danger)
                     }
                     Button {
                         withAnimation(.spring(response: 0.3)) {
@@ -467,9 +460,9 @@ struct GamePlayView: View {
                     } label: {
                         Image(systemName: showBiomechanicsHUD ? "figure.run.motion" : "figure.stand")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(showBiomechanicsHUD ? Theme.brandCyan : .secondary)
+                            .foregroundStyle(showBiomechanicsHUD ? FELDesign.Colors.cyan : FELDesign.Colors.textTertiary)
                             .frame(width: 28, height: 28)
-                            .background(Color.white.opacity(0.06))
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Circle())
                     }
                     NeuralAuraBadge(auraLevel: arcadePhysics.auraLevel)
@@ -520,11 +513,9 @@ struct GamePlayView: View {
     // MARK: - HUD Honesty
 
     private var gameplayHonestyStrip: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 8) {
-                Text(gameMode.subtitle.uppercased())
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.55))
+        VStack(spacing: FELDesign.Space.xxs) {
+            HStack(spacing: FELDesign.Space.xs) {
+                FELMicroLabel(text: gameMode.subtitle, color: FELDesign.Colors.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .accessibilityIdentifier("GameplayModeSubtitle")
@@ -535,20 +526,20 @@ struct GamePlayView: View {
                 }
             }
             if let proxyNote = gameMode.id.venueMeshProxyNote {
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: "info.circle")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 9, weight: .semibold))
                     Text(proxyNote)
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .font(.system(size: 9, weight: .medium))
                         .multilineTextAlignment(.leading)
                 }
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("GameplayVenueProxyNote")
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 6)
+        .padding(.horizontal, FELDesign.Space.md)
+        .padding(.bottom, FELDesign.Space.xs)
     }
 
     // MARK: - HUD Bar
@@ -556,69 +547,65 @@ struct GamePlayView: View {
     private var hudBar: some View {
         ZStack {
             HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Circle()
                             .fill(effectiveHudPrimary)
                             .frame(width: 5, height: 5)
-                        Text("YOU")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(effectiveHudAccent.opacity(0.8))
+                        FELMicroLabel(text: "You", color: FELDesign.Colors.textSecondary)
                     }
                     if let badge = generatorHudBadge {
                         Text(badge)
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .font(FELDesign.Typography.micro)
+                            .tracking(FELDesign.Typography.microTracking)
                             .foregroundStyle(effectiveHudAccent)
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, FELDesign.Space.xs)
                             .padding(.vertical, 2)
                             .background(effectiveHudAccent.opacity(0.12))
                             .clipShape(Capsule())
                             .accessibilityIdentifier("GeneratorHudBadgeLabel")
                     }
                     Text("\(score)")
-                        .font(.system(size: 36, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 36, weight: .bold, design: .monospaced))
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                         .contentTransition(.numericText())
-                        .shadow(color: effectiveHudAccent.opacity(0.3), radius: 8)
                     HStack(spacing: 3) {
                         Image(systemName: "brain.head.profile.fill")
-                            .font(.system(size: 7))
+                            .font(.system(size: 8))
                         Text("\(prqAttributeLabel) \(Int(prqAttributeValue * 100))")
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .font(FELDesign.Typography.statSmall)
                     }
-                    .foregroundStyle(playerPRQ >= PRQ.legendaryThreshold ? .yellow : gameMode.accentColor.opacity(0.6))
+                    .foregroundStyle(playerPRQ >= PRQ.legendaryThreshold ? FELDesign.Colors.purple : FELDesign.Colors.textTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                VStack(spacing: 5) {
+                VStack(spacing: FELDesign.Space.xxs) {
                     ZStack {
                         Circle()
-                            .fill(gameMode.accentColor.opacity(0.1))
+                            .fill(FELDesign.Colors.surfaceRaised)
                             .frame(width: 36, height: 36)
                         Image(systemName: gameMode.iconName)
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(gameMode.accentColor)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
 
                     if isDunkContest {
                         Text("Round \(dunkRound)/3")
-                            .font(.system(size: 11, weight: .black, design: .monospaced))
-                            .foregroundStyle(.orange)
-                            .shadow(color: .orange.opacity(0.3), radius: 6)
+                            .font(FELDesign.Typography.stat)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     } else if isBlacktop {
                         Text("First to \(targetScore)")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(gameMode.accentColor)
+                            .font(FELDesign.Typography.stat)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     } else if isTimerBased {
                         Text(timeFormatted)
-                            .font(.system(size: 20, weight: .black, design: .monospaced))
-                            .foregroundStyle(timeRemaining <= 10 ? .red : gameMode.accentColor)
+                            .font(.system(size: 20, weight: .bold, design: .monospaced))
+                            .foregroundStyle(timeRemaining <= 10 ? FELDesign.Colors.danger : FELDesign.Colors.textPrimary)
                             .contentTransition(.numericText())
-                            .shadow(color: (timeRemaining <= 10 ? Color.red : gameMode.accentColor).opacity(0.4), radius: 8)
                     } else {
                         Text("R\(roundNumber)/\(maxRounds)")
-                            .font(.system(size: 14, weight: .black, design: .monospaced))
-                            .foregroundStyle(gameMode.accentColor)
+                            .font(FELDesign.Typography.stat)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     }
 
                     if arcadePhysics.neuralBurstActive {
@@ -626,44 +613,41 @@ struct GamePlayView: View {
                             Image(systemName: "bolt.fill")
                                 .font(.system(size: 8))
                             Text("1.5x")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .font(FELDesign.Typography.statSmall)
                         }
-                        .foregroundStyle(Theme.elitePurple)
-                        .shadow(color: Theme.elitePurple.opacity(0.4), radius: 6)
+                        .foregroundStyle(FELDesign.Colors.purple)
                     }
 
                     if nexusEngine.isLinked {
                         HStack(spacing: 3) {
                             Circle()
-                                .fill(Theme.brandCyan)
+                                .fill(FELDesign.Colors.cyan)
                                 .frame(width: 5, height: 5)
                             Text("NEXUS \(nexusEngine.throwCatchPhase.label)")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .font(FELDesign.Typography.statSmall)
                             Text(String(format: "%.2fx", nexusEngine.powerMultiplier))
-                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                                .font(FELDesign.Typography.statSmall)
                         }
-                        .foregroundStyle(Theme.brandCyan.opacity(0.85))
+                        .foregroundStyle(FELDesign.Colors.cyan)
                     }
                 }
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text("OPP")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                VStack(alignment: .trailing, spacing: FELDesign.Space.xxs) {
+                    HStack(spacing: FELDesign.Space.xxs) {
+                        FELMicroLabel(text: "Opp", color: FELDesign.Colors.textTertiary)
                         Circle()
-                            .fill(.secondary.opacity(0.4))
+                            .fill(FELDesign.Colors.textTertiary)
                             .frame(width: 5, height: 5)
                     }
                     Text("\(opponentScore)")
-                        .font(.system(size: 36, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .font(.system(size: 36, weight: .bold, design: .monospaced))
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                         .contentTransition(.numericText())
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
+            .padding(.horizontal, FELDesign.Space.md)
+            .padding(.vertical, FELDesign.Space.md)
 
             if isKarate {
                 VStack {
@@ -671,21 +655,13 @@ struct GamePlayView: View {
                     HStack {
                         Spacer()
                         VStack(alignment: .trailing, spacing: 2) {
-                            Text("CHAKRA")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.orange.opacity(0.9))
+                            FELMicroLabel(text: "Chakra", color: FELDesign.Colors.textTertiary)
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: 3)
                                         .fill(Color.black.opacity(0.5))
                                     RoundedRectangle(cornerRadius: 3)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [.orange, .yellow],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
+                                        .fill(FELDesign.Colors.cyan)
                                         .frame(width: geo.size.width * (chakraBar / 100))
                                         .animation(.spring(response: 0.3), value: chakraBar)
                                 }
@@ -694,35 +670,20 @@ struct GamePlayView: View {
                             .clipShape(.rect(cornerRadius: 3))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 3)
-                                    .stroke(.orange.opacity(0.4), lineWidth: 0.5)
+                                    .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                             )
                         }
-                        .padding(.trailing, 20)
+                        .padding(.trailing, FELDesign.Space.md)
                     }
                 }
                 .padding(.bottom, 4)
             }
         }
-        .background(
-            ZStack {
-                Theme.cardBackground.opacity(0.9)
-                LinearGradient(
-                    colors: [gameMode.accentColor.opacity(0.04), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-        )
+        .background(FELDesign.Colors.surface.opacity(0.92))
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [gameMode.accentColor.opacity(0.4), gameMode.accentColor.opacity(0.0)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(height: 1)
+                .fill(FELDesign.Colors.hairline)
+                .frame(height: FELDesign.Stroke.hairline)
         }
     }
 
@@ -747,7 +708,9 @@ struct GamePlayView: View {
                 isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
                 isSpecialMove: isSlowMo || showVanishFlash || showPerfectGuard,
                 isSlowMotion: isSlowMo,
-                avatarAppearance: GameplayAvatarAppearance.fromProfile(viewModel.profile)
+                avatarAppearance: GameplayAvatarAppearance.fromProfile(viewModel.profile),
+                karateStrikeNonce: karateStrikeNonce,
+                karateStrikeAsset: karateStrikeAsset
             )
             .clipShape(.rect(cornerRadius: 0))
 
@@ -760,27 +723,27 @@ struct GamePlayView: View {
                     Spacer()
                     HStack {
                         Spacer()
-                        VStack(spacing: 4) {
+                        VStack(spacing: FELDesign.Space.xxs) {
                             Text(isKarate ? "\(combo) HIT COMBO!" : "\(combo)x COMBO")
-                                .font(.system(size: isKarate ? 20 : 16, weight: .black, design: .monospaced))
-                                .foregroundStyle(isKarate ? .orange : (combo >= 5 ? Theme.brandCyan : gameMode.accentColor))
-                                .shadow(color: isKarate ? .orange.opacity(0.6) : .clear, radius: 8)
+                                .font(FELDesign.Typography.stat)
+                                .foregroundStyle(combo >= 5 ? FELDesign.Colors.cyan : FELDesign.Colors.textPrimary)
                             if !isKarate {
                                 Text(String(format: "%.1fx", arcadePhysics.comboMultiplier(for: combo)))
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.6))
+                                    .font(FELDesign.Typography.statSmall)
+                                    .foregroundStyle(FELDesign.Colors.textSecondary)
                             }
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(
-                            isKarate ? .orange.opacity(0.15) :
-                            (combo >= 5 ? Theme.brandCyan.opacity(0.2) : gameMode.accentColor.opacity(0.15))
+                        .padding(.horizontal, FELDesign.Space.md)
+                        .padding(.vertical, FELDesign.Space.xs)
+                        .background(FELDesign.Colors.surface.opacity(0.85))
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                .stroke(combo >= 5 ? FELDesign.Colors.glow(FELDesign.Colors.cyan) : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                         )
-                        .clipShape(.rect(cornerRadius: 12))
                         .scaleEffect(combo >= 5 ? 1.1 : 1.0)
                         .animation(.spring(response: 0.2, dampingFraction: 0.5), value: combo)
-                        .padding(16)
+                        .padding(FELDesign.Space.md)
                     }
                 }
             }
@@ -831,20 +794,13 @@ struct GamePlayView: View {
 
     private var sceneViewportLoadingOverlay: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Theme.deepBlack.opacity(0.92),
-                    gameMode.accentColor.opacity(0.08)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            VStack(spacing: 10) {
+            FELDesign.Colors.ink.opacity(0.92)
+            VStack(spacing: FELDesign.Space.sm) {
                 ProgressView()
-                    .tint(gameMode.accentColor)
+                    .tint(FELDesign.Colors.cyan)
                 Text("Loading \(gameMode.name) arena…")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
         }
         .allowsHitTesting(false)
@@ -950,48 +906,30 @@ struct GamePlayView: View {
                     judgeScoreView(label: "Judge 2", score: j2, isElite: isElite)
                     judgeScoreView(label: "Judge 3", score: j3, isElite: isElite)
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.horizontal, FELDesign.Space.lg)
+                .padding(.vertical, FELDesign.Space.md)
                 .background(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
                         .fill(.ultraThinMaterial)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 20)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
                                 .stroke(
-                                    LinearGradient(
-                                        colors: [.orange.opacity(0.6), .yellow.opacity(0.3)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 2
+                                    isElite ? FELDesign.Colors.glow(FELDesign.Colors.purple, 0.5) : FELDesign.Colors.hairlineStrong,
+                                    lineWidth: FELDesign.Stroke.hairline
                                 )
                         )
-                        .shadow(color: .orange.opacity(0.2), radius: 20)
                 )
 
                 Text("\(total)")
-                    .font(.system(size: 42, weight: .black, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: isElite ? [.yellow, .orange, .yellow] : [.white, .white.opacity(0.8)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .shadow(color: isElite ? .orange.opacity(0.5) : .clear, radius: 16)
+                    .font(.system(size: 42, weight: .bold, design: .monospaced))
+                    .foregroundStyle(isElite ? FELDesign.Colors.purple : FELDesign.Colors.textPrimary)
+                    .shadow(color: isElite ? FELDesign.Colors.glow(FELDesign.Colors.purple) : .clear, radius: 12)
 
                 if !crowdMessage.isEmpty {
                     Text(crowdMessage)
-                        .font(.system(size: 18, weight: .black, design: .monospaced))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.orange, .yellow],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .tracking(3)
-                        .shadow(color: .orange.opacity(0.6), radius: 12)
+                        .font(FELDesign.Typography.heading)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
+                        .shadow(color: .black.opacity(0.6), radius: 4)
                 }
             }
             .padding(.bottom, 80)
@@ -1002,20 +940,17 @@ struct GamePlayView: View {
 
     private func judgeScoreView(label: String, score: Int, isElite: Bool) -> some View {
         VStack(spacing: 6) {
-            Text(label.uppercased())
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.5))
-                .tracking(1)
+            FELMicroLabel(text: label)
             Text("\(score)")
-                .font(.system(size: 32, weight: .black, design: .monospaced))
+                .font(.system(size: 32, weight: .bold, design: .monospaced))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: score >= 47 ? [.yellow, .orange] : [.orange, .orange.opacity(0.8)],
+                        colors: score >= 47 ? [FELDesign.Colors.cyan, FELDesign.Colors.purple] : [FELDesign.Colors.textPrimary, FELDesign.Colors.textSecondary],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
-                .shadow(color: score >= 47 ? .yellow.opacity(0.5) : .clear, radius: 8)
+                .shadow(color: score >= 47 ? FELDesign.Colors.glow(FELDesign.Colors.cyan) : .clear, radius: 8)
         }
     }
 
@@ -2642,33 +2577,31 @@ struct GamePlayView: View {
                     dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
                 }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: "l2.button.roundedbottom.horizontal")
                         .font(.system(size: 11, weight: .bold))
                     Text("STYLE")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .font(FELDesign.Typography.micro)
+                        .tracking(FELDesign.Typography.microTracking)
                 }
-                .foregroundStyle(styleTriggerHeld ? .black : .purple)
+                .foregroundStyle(styleTriggerHeld ? FELDesign.Colors.ink : FELDesign.Colors.purple)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(styleTriggerHeld ? Color.purple : Color.purple.opacity(0.12))
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                        .fill(styleTriggerHeld ? FELDesign.Colors.purple : FELDesign.Colors.surfaceRaised)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.purple.opacity(0.4), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .stroke(styleTriggerHeld ? FELDesign.Colors.purple : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                         )
                 )
             }
 
             VStack(spacing: 2) {
-                Text(dunkEngine.activeModifier.label)
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(modifierLabelColor)
-                    .tracking(1)
+                FELMicroLabel(text: dunkEngine.activeModifier.label, color: modifierLabelColor)
                 Text(String(format: "%.1fx", dunkEngine.activeModifier.scoreMultiplier))
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
             .frame(width: 70)
 
@@ -2678,21 +2611,22 @@ struct GamePlayView: View {
                     dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
                 }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: "r2.button.roundedbottom.horizontal")
                         .font(.system(size: 11, weight: .bold))
                     Text("POWER")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .font(FELDesign.Typography.micro)
+                        .tracking(FELDesign.Typography.microTracking)
                 }
-                .foregroundStyle(powerTriggerHeld ? .black : .red)
+                .foregroundStyle(powerTriggerHeld ? FELDesign.Colors.ink : FELDesign.Colors.cyan)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(powerTriggerHeld ? Color.red : Color.red.opacity(0.12))
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                        .fill(powerTriggerHeld ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.red.opacity(0.4), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .stroke(powerTriggerHeld ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                         )
                 )
             }
@@ -2701,27 +2635,24 @@ struct GamePlayView: View {
 
     private var modifierLabelColor: Color {
         switch dunkEngine.activeModifier {
-        case .standard: return .white.opacity(0.6)
-        case .flashy: return .purple
-        case .power: return .red
-        case .signature: return .yellow
+        case .standard: return FELDesign.Colors.textSecondary
+        case .flashy: return FELDesign.Colors.purple
+        case .power: return FELDesign.Colors.cyan
+        case .signature: return FELDesign.Colors.purple
         }
     }
 
     private var dunkTrickSelector: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.orange)
-                Text("SELECT TRICK")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.orange)
-                    .tracking(2)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
+                FELMicroLabel(text: "Select Trick", color: FELDesign.Colors.textSecondary)
                 Spacer()
                 Text("R\(dunkEngine.round)/\(dunkEngine.totalRounds)")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -2732,29 +2663,31 @@ struct GamePlayView: View {
                                 dunkEngine.selectedTrick = trick
                             }
                         } label: {
-                            VStack(spacing: 4) {
+                            VStack(spacing: FELDesign.Space.xxs) {
                                 Image(systemName: trick.icon)
                                     .font(.system(size: 16, weight: .bold))
                                 Text(trick.rawValue)
-                                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                                    .font(.system(size: 9, weight: .semibold))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.7)
                                 HStack(spacing: 2) {
                                     ForEach(0..<5, id: \.self) { i in
                                         Circle()
-                                            .fill(Double(i) / 5.0 < trick.complexity ? .orange : .white.opacity(0.15))
+                                            .fill(Double(i) / 5.0 < trick.complexity
+                                                ? (dunkEngine.selectedTrick == trick ? FELDesign.Colors.ink : FELDesign.Colors.cyan)
+                                                : (dunkEngine.selectedTrick == trick ? FELDesign.Colors.ink.opacity(0.3) : FELDesign.Colors.hairline))
                                             .frame(width: 4, height: 4)
                                     }
                                 }
                             }
-                            .foregroundStyle(dunkEngine.selectedTrick == trick ? .black : .white)
+                            .foregroundStyle(dunkEngine.selectedTrick == trick ? FELDesign.Colors.ink : FELDesign.Colors.textPrimary)
                             .frame(width: 72, height: 70)
                             .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(dunkEngine.selectedTrick == trick ? .orange : .orange.opacity(0.1))
+                                RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                    .fill(dunkEngine.selectedTrick == trick ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised)
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(dunkEngine.selectedTrick == trick ? .orange : .orange.opacity(0.25), lineWidth: 1.5)
+                                        RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                            .stroke(dunkEngine.selectedTrick == trick ? FELDesign.Colors.cyan : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                                     )
                             )
                         }
@@ -2774,20 +2707,13 @@ struct GamePlayView: View {
                 Image(systemName: "figure.run")
                     .font(.system(size: 18, weight: .bold))
                 Text("START APPROACH")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                    .font(FELDesign.Typography.label)
             }
-            .foregroundStyle(.black)
+            .foregroundStyle(FELDesign.Colors.ink)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .background(
-                LinearGradient(
-                    colors: [.orange, Color(red: 1.0, green: 0.5, blue: 0.0)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(.rect(cornerRadius: 16))
-            .shadow(color: .orange.opacity(0.3), radius: 12)
+            .background(FELDesign.Colors.cyan)
+            .clipShape(.rect(cornerRadius: FELDesign.Radius.lg))
         }
         .disabled(!isActive)
         .opacity(isActive ? 1 : 0.5)
@@ -2795,18 +2721,15 @@ struct GamePlayView: View {
 
     private var dunkSprintChargeView: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.cyan)
-                Text("HOLD TO SPRINT")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(1)
+                    .foregroundStyle(FELDesign.Colors.cyan)
+                FELMicroLabel(text: "Hold to Sprint", color: FELDesign.Colors.textPrimary)
                 Spacer()
                 Text("\(Int(dunkEngine.sprintCharge * 100))%")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(.cyan)
+                    .font(FELDesign.Typography.stat)
+                    .foregroundStyle(FELDesign.Colors.cyan)
                     .contentTransition(.numericText())
             }
 
@@ -2815,13 +2738,7 @@ struct GamePlayView: View {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(Color.black.opacity(0.6))
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(
-                            LinearGradient(
-                                colors: [.cyan, dunkEngine.sprintCharge > 0.8 ? .orange : .blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(dunkEngine.sprintCharge > 0.8 ? FELDesign.Colors.purple : FELDesign.Colors.cyan)
                         .frame(width: geo.size.width * dunkEngine.sprintCharge)
                         .animation(.linear(duration: 0.05), value: dunkEngine.sprintCharge)
                 }
@@ -2830,90 +2747,77 @@ struct GamePlayView: View {
             .clipShape(.rect(cornerRadius: 6))
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(.cyan.opacity(0.4), lineWidth: 1)
+                    .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
             )
 
             Button {
                 releaseDunkSprint()
             } label: {
                 Text("RELEASE TO LAUNCH")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(
-                        LinearGradient(
-                            colors: [.cyan, .blue],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(.rect(cornerRadius: 14))
+                    .background(FELDesign.Colors.cyan)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
     }
 
     private var dunkLaunchTimingView: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.green)
-                Text("TAP TO JUMP")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(1)
+                    .foregroundStyle(FELDesign.Colors.success)
+                FELMicroLabel(text: "Tap to Jump", color: FELDesign.Colors.textPrimary)
                 Spacer()
             }
 
             dunkTimingBar(
                 value: dunkEngine.launchTiming,
                 greenZone: dunkEngine.launchGreenZone,
-                accentColor: .green
+                accentColor: FELDesign.Colors.success
             )
 
             Button {
                 confirmDunkLaunch()
             } label: {
                 Text("JUMP!")
-                    .font(.system(size: 16, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(
                         dunkEngine.launchGreenZone.contains(dunkEngine.launchTiming)
-                            ? Color.green
-                            : Color.green.opacity(0.4)
+                            ? FELDesign.Colors.cyan
+                            : FELDesign.Colors.glow(FELDesign.Colors.cyan, 0.4)
                     )
-                    .clipShape(.rect(cornerRadius: 14))
-                    .shadow(color: .green.opacity(0.3), radius: 8)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
     }
 
     private var dunkArcadeAirborneControls: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "figure.highintensity.intervaltraining")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.purple)
-                Text(dunkEngine.selectedTrick.rawValue)
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(1)
+                    .foregroundStyle(FELDesign.Colors.purple)
+                FELMicroLabel(text: dunkEngine.selectedTrick.rawValue, color: FELDesign.Colors.textPrimary)
                 Spacer()
                 if dunkEngine.midAirState.branchCount > 0 {
                     HStack(spacing: 3) {
                         Image(systemName: "link")
                             .font(.system(size: 8, weight: .bold))
                         Text("\(dunkEngine.midAirState.branchCount)x CHAIN")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .font(FELDesign.Typography.statSmall)
                     }
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(FELDesign.Colors.purple)
                 }
                 Text("\(Int(dunkEngine.completedRotation * 100))%")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(dunkEngine.completedRotation >= 0.9 ? .green : .purple)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(dunkEngine.completedRotation >= 0.9 ? FELDesign.Colors.success : FELDesign.Colors.textPrimary)
                     .contentTransition(.numericText())
             }
 
@@ -2922,13 +2826,7 @@ struct GamePlayView: View {
                     RoundedRectangle(cornerRadius: 5)
                         .fill(Color.black.opacity(0.6))
                     RoundedRectangle(cornerRadius: 5)
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple, dunkEngine.completedRotation >= 0.9 ? .green : .pink],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(dunkEngine.completedRotation >= 0.9 ? FELDesign.Colors.success : FELDesign.Colors.purple)
                         .frame(width: geo.size.width * min(1, dunkEngine.completedRotation))
                         .animation(.linear(duration: 0.05), value: dunkEngine.completedRotation)
                 }
@@ -2938,8 +2836,8 @@ struct GamePlayView: View {
 
             if !dunkEngine.midAirState.trickChainLabel.isEmpty {
                 Text(dunkEngine.midAirState.trickChainLabel)
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.cyan.opacity(0.8))
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.cyan)
                     .lineLimit(1)
                     .transition(.opacity)
             }
@@ -2958,8 +2856,9 @@ struct GamePlayView: View {
                                     blue: button.displayColor.b
                                 ))
                             Text(button.dunkCategory.uppercased())
-                                .font(.system(size: 6, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.7))
+                                .font(.system(size: 8, weight: .semibold))
+                                .tracking(0.8)
+                                .foregroundStyle(FELDesign.Colors.textSecondary)
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity)
@@ -2993,24 +2892,18 @@ struct GamePlayView: View {
                     Button {
                         handleStyleLanding()
                     } label: {
-                        HStack(spacing: 5) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: "l1.button.roundedbottom.horizontal")
                                 .font(.system(size: 11, weight: .bold))
                             Text("STYLE LAND")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .font(FELDesign.Typography.micro)
+                                .tracking(FELDesign.Typography.microTracking)
                         }
-                        .foregroundStyle(.black)
+                        .foregroundStyle(FELDesign.Colors.ink)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
-                        .background(
-                            LinearGradient(
-                                colors: [.cyan, .blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(.rect(cornerRadius: 12))
-                        .shadow(color: .cyan.opacity(0.4), radius: 8)
+                        .background(FELDesign.Colors.purple)
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                     }
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
                 }
@@ -3018,39 +2911,33 @@ struct GamePlayView: View {
                 Button {
                     confirmDunkLanding()
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Image(systemName: "arrow.down.to.line.compact")
                             .font(.system(size: 13, weight: .bold))
                         Text("SLAM!")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .font(FELDesign.Typography.micro)
+                            .tracking(FELDesign.Typography.microTracking)
                     }
-                    .foregroundStyle(.black)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
-                    .background(
-                        LinearGradient(
-                            colors: [.orange, .yellow],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(.rect(cornerRadius: 12))
-                    .shadow(color: .orange.opacity(0.4), radius: 8)
+                    .background(FELDesign.Colors.cyan)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
             }
 
             if dunkEngine.totalFreestylePoints > 0 {
-                HStack(spacing: 6) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "star.fill")
                         .font(.system(size: 9))
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(FELDesign.Colors.purple)
                     Text("FREESTYLE: +\(dunkEngine.totalFreestylePoints)")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .foregroundStyle(.yellow)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.purple)
                     if dunkEngine.midAirState.comboMultiplier > 1.0 {
                         Text(String(format: "(%.1fx)", dunkEngine.midAirState.comboMultiplier))
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.yellow.opacity(0.7))
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
                 }
                 .transition(.opacity)
@@ -3060,38 +2947,34 @@ struct GamePlayView: View {
 
     private var dunkLandingTimingView: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "arrow.down.to.line.compact")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.orange)
-                Text("STICK THE LANDING!")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(1)
+                    .foregroundStyle(FELDesign.Colors.cyan)
+                FELMicroLabel(text: "Stick the Landing", color: FELDesign.Colors.textPrimary)
                 Spacer()
             }
 
             dunkTimingBar(
                 value: dunkEngine.landingTiming,
                 greenZone: dunkEngine.landingGreenZone,
-                accentColor: .orange
+                accentColor: FELDesign.Colors.success
             )
 
             Button {
                 confirmDunkLanding()
             } label: {
                 Text("LAND!")
-                    .font(.system(size: 16, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(
                         dunkEngine.landingGreenZone.contains(dunkEngine.landingTiming)
-                            ? Color.orange
-                            : Color.orange.opacity(0.4)
+                            ? FELDesign.Colors.cyan
+                            : FELDesign.Colors.glow(FELDesign.Colors.cyan, 0.4)
                     )
-                    .clipShape(.rect(cornerRadius: 14))
-                    .shadow(color: .orange.opacity(0.3), radius: 8)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
     }
@@ -3110,7 +2993,7 @@ struct GamePlayView: View {
                     .offset(x: geo.size.width * greenZone.lowerBound)
 
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(greenZone.contains(value) ? accentColor : .red)
+                    .fill(greenZone.contains(value) ? accentColor : FELDesign.Colors.danger)
                     .frame(width: 4)
                     .offset(x: geo.size.width * value - 2)
                     .animation(.linear(duration: 0.03), value: value)
@@ -3120,7 +3003,7 @@ struct GamePlayView: View {
         .clipShape(.rect(cornerRadius: 6))
         .overlay(
             RoundedRectangle(cornerRadius: 6)
-                .stroke(accentColor.opacity(0.3), lineWidth: 1)
+                .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
         )
     }
 
@@ -3129,27 +3012,24 @@ struct GamePlayView: View {
             Spacer()
             HStack {
                 Spacer()
-                VStack(spacing: 6) {
-                    Text(dunkPhaseLabel)
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(dunkPhaseColor)
-                        .tracking(2)
+                VStack(spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: dunkPhaseLabel, color: dunkPhaseColor)
                     if dunkEngine.phase == .airborne {
                         Text(String(format: "HEIGHT: %.0f%%", dunkEngine.jumpHeight * 100))
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
                 }
-                .padding(10)
+                .padding(FELDesign.Space.sm)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
                         .fill(.black.opacity(0.6))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(dunkPhaseColor.opacity(0.3), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                         )
                 )
-                .padding(.trailing, 16)
+                .padding(.trailing, FELDesign.Space.md)
                 .padding(.bottom, 100)
             }
         }
@@ -3168,11 +3048,11 @@ struct GamePlayView: View {
 
     private var dunkPhaseColor: Color {
         switch dunkEngine.phase {
-        case .approach: return .cyan
-        case .launch: return .green
-        case .airborne: return .purple
-        case .landing: return .orange
-        default: return .white
+        case .approach: return FELDesign.Colors.cyan
+        case .launch: return FELDesign.Colors.success
+        case .airborne: return FELDesign.Colors.purple
+        case .landing: return FELDesign.Colors.cyan
+        default: return FELDesign.Colors.textPrimary
         }
     }
 
@@ -3261,57 +3141,57 @@ struct GamePlayView: View {
     private var matchLobbyOverlay: some View {
         ZStack {
             Color.black.opacity(0.94).ignoresSafeArea()
-            VStack(spacing: 20) {
-                Text("MULTIPLAYER SETUP")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(gameMode.accentColor)
+            VStack(spacing: FELDesign.Space.lg) {
+                FELMicroLabel(text: "Multiplayer Setup", color: FELDesign.Colors.textSecondary)
                 Text(gameMode.name)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(FELDesign.Typography.heading)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
                 Text("Session key: \(gameMode.id.rawValue)")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
                 if multipeerService.pendingInvitationPeerName != nil {
                     Text("Incoming invite — use Accept or Decline in the toolbar.")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.orange)
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
-                HStack(spacing: 16) {
+                HStack(spacing: FELDesign.Space.md) {
                     Button {
                         multipeerService.startHosting(gameId: gameMode.id.rawValue)
                     } label: {
                         Label("HOST", systemImage: "antenna.radiowaves.left.and.right")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                            .foregroundStyle(Theme.brandCyan)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Theme.brandCyan.opacity(0.12))
+                            .font(FELDesign.Typography.micro)
+                            .foregroundStyle(FELDesign.Colors.cyan)
+                            .padding(.horizontal, FELDesign.Space.md)
+                            .padding(.vertical, FELDesign.Space.xs)
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Capsule())
+                            .overlay(Capsule().stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                     }
                     Button {
                         multipeerService.startBrowsing(gameId: gameMode.id.rawValue)
                     } label: {
                         Label("JOIN", systemImage: "magnifyingglass")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                            .foregroundStyle(.orange)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.orange.opacity(0.12))
+                            .font(FELDesign.Typography.micro)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
+                            .padding(.horizontal, FELDesign.Space.md)
+                            .padding(.vertical, FELDesign.Space.xs)
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Capsule())
+                            .overlay(Capsule().stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                     }
                 }
                 Button {
                     withAnimation(.spring(response: 0.35)) { matchLobbyComplete = true }
                 } label: {
                     Text("CONTINUE TO COUNTDOWN")
-                        .font(.system(.subheadline, design: .monospaced, weight: .black))
-                        .foregroundStyle(.black)
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.ink)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(gameMode.accentColor)
-                        .clipShape(.rect(cornerRadius: 14))
+                        .padding(.vertical, FELDesign.Space.md)
+                        .background(FELDesign.Colors.cyan)
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -4507,29 +4387,21 @@ struct GamePlayView: View {
         VStack {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Image(systemName: specialMeterFull ? "flame.fill" : "bolt.fill")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(specialMeterFull ? .orange : Theme.brandCyan)
-                        Text(specialMeterFull ? "SPECIAL READY" : "SPECIAL")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .foregroundStyle(specialMeterFull ? .orange : Theme.brandCyan.opacity(0.8))
-                            .tracking(1)
+                            .foregroundStyle(specialMeterFull ? FELDesign.Colors.purple : FELDesign.Colors.cyan)
+                        FELMicroLabel(
+                            text: specialMeterFull ? "Special Ready" : "Special",
+                            color: specialMeterFull ? FELDesign.Colors.purple : FELDesign.Colors.textSecondary
+                        )
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color.black.opacity(0.6))
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    LinearGradient(
-                                        colors: specialMeterFull
-                                            ? [.orange, .yellow, .orange]
-                                            : [Theme.brandCyan.opacity(0.6), Theme.elitePurple.opacity(0.8)],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .fill(specialMeterFull ? FELDesign.Colors.purple : FELDesign.Colors.cyan)
                                 .frame(width: geo.size.width * min(1, specialMeter / 100))
                                 .animation(.spring(response: 0.25), value: specialMeter)
                         }
@@ -4538,22 +4410,22 @@ struct GamePlayView: View {
                     .clipShape(.rect(cornerRadius: 4))
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)
-                            .stroke(specialMeterFull ? .orange.opacity(0.6) : Theme.brandCyan.opacity(0.3), lineWidth: 1)
+                            .stroke(specialMeterFull ? FELDesign.Colors.glow(FELDesign.Colors.purple, 0.5) : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                     )
                 }
-                .padding(10)
+                .padding(FELDesign.Space.sm)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
                         .fill(.black.opacity(0.5))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(specialMeterFull ? .orange.opacity(0.3) : .clear, lineWidth: 1)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .stroke(specialMeterFull ? FELDesign.Colors.glow(FELDesign.Colors.purple, 0.3) : .clear, lineWidth: FELDesign.Stroke.hairline)
                         )
                 )
                 Spacer()
             }
-            .padding(.leading, 16)
-            .padding(.top, 8)
+            .padding(.leading, FELDesign.Space.md)
+            .padding(.top, FELDesign.Space.xs)
             Spacer()
         }
         .allowsHitTesting(false)
@@ -4568,11 +4440,8 @@ struct GamePlayView: View {
                 Spacer()
                 VStack(spacing: 6) {
                     if isModifierHeld {
-                        VStack(spacing: 4) {
-                            Text("TRICK MODE")
-                                .font(.system(size: 8, weight: .black, design: .monospaced))
-                                .foregroundStyle(Theme.elitePurple)
-                                .tracking(2)
+                        VStack(spacing: FELDesign.Space.xxs) {
+                            FELMicroLabel(text: "Trick Mode", color: FELDesign.Colors.purple)
                             HStack(spacing: 12) {
                                 trickDirectionButton(.up, label: "\u{25B2}", hint: isKarate ? "Vortex" : "Windmill")
                                 trickDirectionButton(.down, label: "\u{25BC}", hint: isKarate ? "Barrage" : "Between")
@@ -4584,17 +4453,12 @@ struct GamePlayView: View {
                                     executeSpecialTrick()
                                 } label: {
                                     Text(isKarate ? "FINAL GATE" : "GIANT KILLER")
-                                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                                        .foregroundStyle(.black)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(
-                                            LinearGradient(
-                                                colors: [.orange, .yellow],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
+                                        .font(FELDesign.Typography.micro)
+                                        .tracking(FELDesign.Typography.microTracking)
+                                        .foregroundStyle(FELDesign.Colors.ink)
+                                        .padding(.horizontal, FELDesign.Space.sm)
+                                        .padding(.vertical, FELDesign.Space.xxs)
+                                        .background(FELDesign.Colors.purple)
                                         .clipShape(Capsule())
                                 }
                             }
@@ -4618,22 +4482,23 @@ struct GamePlayView: View {
                                 activeModifierState = isModifierHeld ? .style : .none
                             }
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: FELDesign.Space.xxs) {
                                 Image(systemName: "l1.button.roundedbottom.horizontal")
                                     .font(.system(size: 12, weight: .bold))
                                 Text("STYLE")
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .font(FELDesign.Typography.micro)
+                                    .tracking(FELDesign.Typography.microTracking)
                             }
-                            .foregroundStyle(activeModifierState == .style ? .black : Theme.elitePurple)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
+                            .foregroundStyle(activeModifierState == .style ? FELDesign.Colors.ink : FELDesign.Colors.purple)
+                            .padding(.horizontal, FELDesign.Space.sm)
+                            .padding(.vertical, FELDesign.Space.xs)
                             .background(
                                 activeModifierState == .style
-                                    ? AnyShapeStyle(Theme.elitePurple)
-                                    : AnyShapeStyle(Theme.elitePurple.opacity(0.15))
+                                    ? AnyShapeStyle(FELDesign.Colors.purple)
+                                    : AnyShapeStyle(FELDesign.Colors.surfaceRaised.opacity(0.8))
                             )
                             .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Theme.elitePurple.opacity(0.4), lineWidth: 1))
+                            .overlay(Capsule().stroke(activeModifierState == .style ? FELDesign.Colors.purple : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                         }
 
                         Button {
@@ -4647,22 +4512,23 @@ struct GamePlayView: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: FELDesign.Space.xxs) {
                                 Image(systemName: "r1.button.roundedbottom.horizontal")
                                     .font(.system(size: 12, weight: .bold))
                                 Text("POWER")
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .font(FELDesign.Typography.micro)
+                                    .tracking(FELDesign.Typography.microTracking)
                             }
-                            .foregroundStyle(activeModifierState == .power ? .black : .orange)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
+                            .foregroundStyle(activeModifierState == .power ? FELDesign.Colors.ink : FELDesign.Colors.cyan)
+                            .padding(.horizontal, FELDesign.Space.sm)
+                            .padding(.vertical, FELDesign.Space.xs)
                             .background(
                                 activeModifierState == .power
-                                    ? AnyShapeStyle(Color.orange)
-                                    : AnyShapeStyle(Color.orange.opacity(0.15))
+                                    ? AnyShapeStyle(FELDesign.Colors.cyan)
+                                    : AnyShapeStyle(FELDesign.Colors.surfaceRaised.opacity(0.8))
                             )
                             .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Color.orange.opacity(0.4), lineWidth: 1))
+                            .overlay(Capsule().stroke(activeModifierState == .power ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                         }
                     }
                 }
@@ -4680,16 +4546,16 @@ struct GamePlayView: View {
                 Text(label)
                     .font(.system(size: 14, weight: .bold))
                 Text(hint)
-                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .font(.system(size: 8, weight: .semibold))
                     .lineLimit(1)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(FELDesign.Colors.textPrimary)
             .frame(width: 50, height: 44)
-            .background(Theme.elitePurple.opacity(0.2))
-            .clipShape(.rect(cornerRadius: 8))
+            .background(FELDesign.Colors.surfaceRaised.opacity(0.8))
+            .clipShape(.rect(cornerRadius: FELDesign.Radius.sm))
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Theme.elitePurple.opacity(0.3), lineWidth: 1)
+                RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                    .stroke(FELDesign.Colors.glow(FELDesign.Colors.purple, 0.3), lineWidth: FELDesign.Stroke.hairline)
             )
         }
     }
@@ -4944,6 +4810,20 @@ struct GamePlayView: View {
             return
         }
 
+        if isKarate {
+            // Visual strike clip (retargeted Meshy presets on the Elijah rig)
+            // fires alongside the existing action/scoring path.
+            let strike: FELBundledAsset
+            switch button {
+            case .square: strike = .elijahStrikeJab
+            case .circle: strike = .elijahStrikeHook
+            case .triangle: strike = .elijahStrikeRoundhouse
+            case .cross: strike = .elijahStrikeUppercut
+            }
+            karateStrikeAsset = strike
+            karateStrikeNonce += 1
+        }
+
         switch button {
         case .triangle:
             performAction("Shoot")
@@ -5190,30 +5070,24 @@ struct GamePlayView: View {
             Spacer()
             HStack {
                 Spacer()
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Text("\(percent)%")
-                        .font(.system(size: 22, weight: .black, design: .monospaced))
+                        .font(.system(size: 22, weight: .bold, design: .monospaced))
                         .foregroundStyle(contestTierColor(tier))
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(label.uppercased())
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
-                            .tracking(1)
-                        Text("SHOT CONTEST")
-                            .font(.system(size: 7, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.5))
+                        FELMicroLabel(text: label, color: FELDesign.Colors.textPrimary)
+                        FELMicroLabel(text: "Shot Contest")
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, FELDesign.Space.md)
+                .padding(.vertical, FELDesign.Space.xs)
                 .background(
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.md)
                         .fill(.ultraThinMaterial)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(contestTierColor(tier).opacity(0.5), lineWidth: 1.5)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                         )
-                        .shadow(color: contestTierColor(tier).opacity(0.3), radius: 12)
                 )
                 Spacer()
             }
@@ -5225,11 +5099,11 @@ struct GamePlayView: View {
 
     private func contestTierColor(_ tier: ContestTier) -> Color {
         switch tier {
-        case .smothered: return .red
-        case .heavy: return .orange
-        case .contested: return .yellow
-        case .light: return Color(red: 0.6, green: 0.8, blue: 0.3)
-        case .open: return .green
+        case .smothered: return FELDesign.Colors.danger
+        case .heavy: return FELDesign.Colors.danger.opacity(0.75)
+        case .contested: return FELDesign.Colors.textSecondary
+        case .light: return FELDesign.Colors.success.opacity(0.75)
+        case .open: return FELDesign.Colors.success
         }
     }
 
@@ -5255,16 +5129,17 @@ struct GamePlayView: View {
                             Image(systemName: defensiveState.handsUp ? "hand.raised.fill" : "hand.raised")
                                 .font(.system(size: 16, weight: .bold))
                             Text("CONTEST")
-                                .font(.system(size: 7, weight: .black, design: .monospaced))
+                                .font(.system(size: 8, weight: .semibold))
+                                .tracking(0.8)
                         }
-                        .foregroundStyle(defensiveState.handsUp ? .black : .white)
+                        .foregroundStyle(defensiveState.handsUp ? FELDesign.Colors.ink : FELDesign.Colors.textPrimary)
                         .frame(width: 56, height: 52)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(defensiveState.handsUp ? gameMode.accentColor : gameMode.accentColor.opacity(0.15))
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                .fill(defensiveState.handsUp ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised.opacity(0.8))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                        .stroke(defensiveState.handsUp ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                                 )
                         )
                     }
@@ -5285,16 +5160,17 @@ struct GamePlayView: View {
                             Image(systemName: defensiveState.isQuickProtectActive ? "shield.fill" : "shield")
                                 .font(.system(size: 16, weight: .bold))
                             Text("PROTECT")
-                                .font(.system(size: 7, weight: .black, design: .monospaced))
+                                .font(.system(size: 8, weight: .semibold))
+                                .tracking(0.8)
                         }
-                        .foregroundStyle(defensiveState.isQuickProtectActive ? .black : .white)
+                        .foregroundStyle(defensiveState.isQuickProtectActive ? FELDesign.Colors.ink : FELDesign.Colors.textPrimary)
                         .frame(width: 56, height: 52)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(defensiveState.isQuickProtectActive ? Theme.brandCyan : Theme.brandCyan.opacity(0.15))
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                .fill(defensiveState.isQuickProtectActive ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised.opacity(0.8))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Theme.brandCyan.opacity(0.4), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                        .stroke(defensiveState.isQuickProtectActive ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                                 )
                         )
                     }
@@ -5306,8 +5182,8 @@ struct GamePlayView: View {
                                 .fill(contestTierColor(defensiveState.contestResult().tier))
                                 .frame(width: 5, height: 5)
                             Text("\(Int(defenderSimDistance * 10) / 10)ft")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.6))
+                                .font(FELDesign.Typography.statSmall)
+                                .foregroundStyle(FELDesign.Colors.textSecondary)
                         }
                         .transition(.opacity.combined(with: .scale(scale: 0.8)))
                     }

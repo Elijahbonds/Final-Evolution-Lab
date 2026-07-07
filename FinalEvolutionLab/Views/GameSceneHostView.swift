@@ -99,6 +99,11 @@ struct GameSceneHostView: UIViewRepresentable {
     var isSpecialMove: Bool = false
     var isSlowMotion: Bool = false
     var avatarAppearance: GameplayAvatarAppearance = .default
+    /// One-shot karate strike signal: set `karateStrikeAsset` and bump the
+    /// nonce to fire; the coordinator plays the clip once and restores the
+    /// fighter. Defaults keep existing call sites compiling unchanged.
+    var karateStrikeNonce: Int = 0
+    var karateStrikeAsset: FELBundledAsset? = nil
 
     func makeUIView(context: Context) -> UIView {
         if Nexus3DGameplayCoordinator.shouldUseHybridMetal(for: gameMode, explicit3D: useNexus3DEngine) {
@@ -120,6 +125,12 @@ struct GameSceneHostView: UIViewRepresentable {
             context.coordinator.setDunkClipActive(isMidAir)
         }
         context.coordinator.isMidAir = isMidAir
+        if context.coordinator.lastKarateStrikeNonce != karateStrikeNonce {
+            context.coordinator.lastKarateStrikeNonce = karateStrikeNonce
+            if let asset = karateStrikeAsset {
+                context.coordinator.playKarateStrike(asset)
+            }
+        }
         context.coordinator.isSpecialMove = isSpecialMove
         context.coordinator.isSlowMotion = isSlowMotion
         context.coordinator.updateAvatarAppearanceIfNeeded(avatarAppearance, in: scnView.scene)
@@ -164,6 +175,9 @@ struct GameSceneHostView: UIViewRepresentable {
         var isSlowMotion: Bool = false
         private var lastAvatarAppearance: GameplayAvatarAppearance = .default
         private var dunkClipNode: SCNNode?
+        var lastKarateStrikeNonce: Int = 0
+        private var strikeClipNode: SCNNode?
+        private var strikeRestoreTask: Task<Void, Never>?
 
         /// Dunk contest: while airborne the dunker swaps to the retargeted
         /// mocap dunk clip (Elijah Bonds model, rim-normalized to the 3.05m
@@ -187,6 +201,56 @@ struct GameSceneHostView: UIViewRepresentable {
                 dunkClipNode?.removeFromParentNode()
                 dunkClipNode = nil
                 dunker.isHidden = false
+            }
+        }
+
+        /// Karate strike one-shot: swaps "fighter1" for the requested Meshy
+        /// preset strike clip (Elijah Bonds model, joint-normalized) and
+        /// schedules restore after the clip's baked animation finishes.
+        /// Mirrors ``setDunkClipActive(_:)`` — the clip node is loaded fresh
+        /// (never cloned; SCNSkinner nodes must not be cloned) and inserted
+        /// at the fighter's position/orientation.
+        func playKarateStrike(_ asset: FELBundledAsset) {
+            guard gameMode == .karate || gameMode == .karateEndless,
+                  let scene = activeSceneKitView?.scene,
+                  let fighter = scene.rootNode.childNode(withName: "fighter1", recursively: true) else {
+                return
+            }
+            // Overlapping strike — tear down the active clip before starting.
+            if let existing = strikeClipNode {
+                strikeRestoreTask?.cancel()
+                strikeRestoreTask = nil
+                existing.removeFromParentNode()
+                strikeClipNode = nil
+            }
+            guard let clip = FELBundledAssets.characterNode(asset, height: 1.75) else { return }
+            clip.name = "fighter1StrikeClip"
+            clip.position = fighter.position
+            clip.eulerAngles = fighter.eulerAngles
+            (fighter.parent ?? scene.rootNode).addChildNode(clip)
+            fighter.isHidden = true
+            strikeClipNode = clip
+
+            // Restore after the baked clip's duration (longest animation
+            // player anywhere in the loaded hierarchy; 1.2s fallback).
+            var clipDuration: Double = 0
+            clip.enumerateHierarchy { node, _ in
+                for key in node.animationKeys {
+                    if let player = node.animationPlayer(forKey: key) {
+                        clipDuration = max(clipDuration, player.animation.duration)
+                    }
+                }
+            }
+            if clipDuration <= 0 { clipDuration = 1.2 }
+
+            strikeRestoreTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(clipDuration))
+                guard let self, !Task.isCancelled else { return }
+                self.strikeClipNode?.removeFromParentNode()
+                self.strikeClipNode = nil
+                self.strikeRestoreTask = nil
+                self.activeSceneKitView?.scene?.rootNode
+                    .childNode(withName: "fighter1", recursively: true)?.isHidden = false
             }
         }
 
@@ -938,6 +1002,9 @@ struct GameSceneHostView: UIViewRepresentable {
             NotificationCenter.default.removeObserver(self)
             overrideTimerTask?.cancel()
             opponentFocusTimerTask?.cancel()
+            strikeRestoreTask?.cancel()
+            strikeRestoreTask = nil
+            strikeClipNode = nil
             avatarFocusOverride = nil
             if let container = view as? NexusHybridGameplayContainerView {
                 container.overlayView.delegate = nil

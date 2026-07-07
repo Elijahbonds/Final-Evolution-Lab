@@ -36,7 +36,7 @@ struct LabView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: FELDesign.Space.lg) {
                 headerSection
                 tierBanner
                 scanSection
@@ -57,11 +57,11 @@ struct LabView: View {
                 quickStartSection
                 recentActivitySection
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            .padding(.horizontal, FELDesign.Space.md)
+            .padding(.bottom, FELDesign.Space.xl)
         }
         .scrollIndicators(.hidden)
-        .background(Theme.deepBlack)
+        .background(FELDesign.Colors.ink)
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
             Task {
@@ -126,7 +126,7 @@ struct LabView: View {
             NavigationStack {
                 BondsStandardCoachView()
             }
-            .presentationBackground(Theme.deepBlack)
+            .presentationBackground(FELDesign.Colors.ink)
         }
         .onChange(of: viewModel.biomechanicsAudit?.auditDate) { _, _ in
             guard let audit = viewModel.biomechanicsAudit else { return }
@@ -141,279 +141,165 @@ struct LabView: View {
         }
     }
 
-    private var mocapStudioEntry: some View {
-        Button {
-            showMoCapStudio = true
-        } label: {
-            HStack(spacing: 14) {
+    // MARK: - Studio Entry Rows
+
+    /// Shared compact entry row for lab studios — one accent, one container, low element count.
+    private func studioEntryRow(
+        icon: String,
+        title: String,
+        badge: String,
+        subtitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: FELDesign.Space.sm) {
                 ZStack {
                     Circle()
-                        .fill(Theme.brandCyan.opacity(0.14))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "figure.walk.motion")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
+                        .fill(FELDesign.Colors.cyan.opacity(0.12))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: icon)
+                        .font(FELDesign.Typography.body.weight(.semibold))
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("3D MOCAP STUDIO")
-                            .font(.system(.subheadline, weight: .black))
-                            .foregroundStyle(.white)
-                        FELPreviewLabel(text: "BETA")
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    HStack(spacing: FELDesign.Space.xs) {
+                        Text(title)
+                            .font(FELDesign.Typography.label)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
+                        FELPreviewLabel(text: badge)
                     }
-                    Text("Markerless 3D motion capture · Real-time retargeting")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
+                    Text(subtitle)
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
+                        .lineLimit(1)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.35))
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Theme.brandCyan.opacity(0.45), Theme.brandBlue.opacity(0.25)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-            )
+            .felCard()
         }
         .buttonStyle(.plain)
+    }
+
+    private var mocapStudioEntry: some View {
+        studioEntryRow(
+            icon: "figure.walk.motion",
+            title: "3D MOCAP STUDIO",
+            badge: "BETA",
+            subtitle: "Markerless 3D motion capture · Real-time retargeting"
+        ) {
+            showMoCapStudio = true
+        }
     }
 
     private var faceScanStudioEntry: some View {
-        Button {
+        studioEntryRow(
+            icon: "faceid",
+            title: "FACE SCAN STUDIO",
+            badge: "LIVE LINK",
+            subtitle: "Markerless 3D face scan · Real-time facial expression tracking"
+        ) {
             showFaceScanStudio = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.brandCyan.opacity(0.14))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "faceid")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("FACE SCAN STUDIO")
-                            .font(.system(.subheadline, weight: .black))
-                            .foregroundStyle(.white)
-                        FELPreviewLabel(text: "LIVE LINK")
-                    }
-                    Text("Markerless 3D face scan · Real-time facial expression tracking")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.35))
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Theme.brandCyan.opacity(0.45), Theme.brandBlue.opacity(0.25)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-            )
         }
-        .buttonStyle(.plain)
     }
 
     private var bodyIQEducationEntry: some View {
-        Button {
+        studioEntryRow(
+            icon: "figure.flexibility",
+            title: "BODY IQ LAB",
+            badge: FELPremiumCopy.Preview.education,
+            subtitle: "Movement Snacks · Bonds Standard prescriptions"
+        ) {
             showBodyIQLab = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.elitePurple.opacity(0.14))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "figure.flexibility")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.elitePurple)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("BODY IQ LAB")
-                            .font(.system(.subheadline, weight: .black))
-                            .foregroundStyle(.white)
-                        FELPreviewLabel(text: FELPremiumCopy.Preview.education)
-                    }
-                    Text("Movement Snacks · Bonds Standard prescriptions")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.35))
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Theme.elitePurple.opacity(0.45), Theme.brandCyan.opacity(0.25)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-            )
         }
-        .buttonStyle(.plain)
     }
 
     private var creatorHubEntry: some View {
-        Button {
+        studioEntryRow(
+            icon: "video.badge.plus",
+            title: "MOCAP CREATOR HUB",
+            badge: "MINTING",
+            subtitle: "Mint custom cards · Track shard royalties"
+        ) {
             showCreatorHub = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.brandCyan.opacity(0.14))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "video.badge.plus")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("MOCAP CREATOR HUB")
-                            .font(.system(.subheadline, weight: .black))
-                            .foregroundStyle(.white)
-                        FELPreviewLabel(text: "MINTING")
-                    }
-                    Text("Mint custom cards · Track shard royalties")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.35))
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Theme.brandCyan.opacity(0.45), Theme.elitePurple.opacity(0.25)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-            )
         }
-        .buttonStyle(.plain)
     }
 
+    // MARK: - Header
+
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("VENICE BEACH")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
-                .foregroundStyle(Theme.brandBlue)
-                .tracking(4)
+        VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+            FELMicroLabel(text: "Venice Beach", color: FELDesign.Colors.cyan)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 10)
 
             Text("Lab")
-                .font(.system(size: 52, weight: .black, design: .default))
-                .italic()
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.display)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 15)
 
-            HStack(spacing: 8) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Circle()
-                    .fill(Theme.brandBlue)
-                    .frame(width: 8, height: 8)
-                    .symbolEffect(.pulse)
+                    .fill(FELDesign.Colors.cyan)
+                    .frame(width: 6, height: 6)
 
                 Text(SimpleModeLabels.neuralEngine(simpleMode))
-                    .font(.system(.caption2, design: .monospaced, weight: .semibold))
-                    .foregroundStyle(Theme.brandBlue.opacity(0.8))
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
 
                 Spacer()
 
                 NeuralAuraBadge(auraLevel: viewModel.arcadePhysics.auraLevel)
             }
-            .padding(.top, 2)
+            .padding(.top, FELDesign.Space.xxs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 8)
+        .padding(.top, FELDesign.Space.xs)
     }
 
     private var tierBanner: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: FELDesign.Space.sm) {
             PRQTierBadge(tier: viewModel.userPRQTier, prq: viewModel.competitivePRQScore)
 
             Spacer()
 
             if viewModel.globalLeaderboard.userGlobalRank > 0 {
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: "globe")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.brandBlue)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                     Text("#\(viewModel.globalLeaderboard.userGlobalRank)")
-                        .font(.system(.caption, design: .monospaced, weight: .black))
-                        .foregroundStyle(.white)
-                    Text("GLOBAL")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.tertiary)
-                        .tracking(1)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
+                    FELMicroLabel(text: "Global")
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.white.opacity(0.04))
-                .clipShape(.rect(cornerRadius: 8))
+                .padding(.horizontal, FELDesign.Space.sm)
+                .padding(.vertical, FELDesign.Space.xxs)
+                .background(FELDesign.Colors.surfaceRaised)
+                .clipShape(.rect(cornerRadius: FELDesign.Radius.sm))
             }
 
             if viewModel.arcadePhysics.neuralBurstActive {
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.elitePurple)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                     Text("1.5x")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(Theme.elitePurple)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(Theme.elitePurple.opacity(0.1))
+                .padding(.horizontal, FELDesign.Space.xs)
+                .padding(.vertical, FELDesign.Space.xxs)
+                .background(FELDesign.Colors.cyan.opacity(0.10))
                 .clipShape(Capsule())
             }
         }
     }
+
+    // MARK: - Biomechanics
 
     @ViewBuilder
     private var biomechanicsSection: some View {
@@ -430,53 +316,47 @@ struct LabView: View {
     private var biomechanicsDetailSheet: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: FELDesign.Space.lg) {
                     if let audit = viewModel.biomechanicsAudit {
                         BiomechanicsDashboardCard(audit: audit)
 
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("JOINT ANALYSIS")
-                                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                                .foregroundStyle(Theme.brandCyan)
-                                .tracking(2)
+                        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+                            FELMicroLabel(text: "Joint Analysis", color: FELDesign.Colors.cyan)
 
                             BiomechanicsOverlayView(audit: audit)
                                 .frame(height: 350)
-                                .clipShape(.rect(cornerRadius: 16))
+                                .clipShape(.rect(cornerRadius: FELDesign.Radius.lg))
                                 .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(Theme.cardBackground)
+                                    RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
+                                        .fill(FELDesign.Colors.surface)
                                 )
                         }
 
                         attributeImpactSection(audit: audit)
                     }
                 }
-                .padding()
+                .padding(FELDesign.Space.md)
             }
-            .background(Theme.deepBlack)
+            .background(FELDesign.Colors.ink)
             .navigationTitle("Biomechanics Audit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { showBiomechanicsDetail = false }
-                        .foregroundStyle(Theme.brandCyan)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .presentationDetents([.large])
-        .presentationBackground(Theme.deepBlack)
+        .presentationBackground(FELDesign.Colors.ink)
     }
 
     private func attributeImpactSection(audit: BiomechanicsAudit) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("ATTRIBUTE IMPACT")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                .foregroundStyle(Theme.brandBlue)
-                .tracking(2)
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Attribute Impact", color: FELDesign.Colors.cyan)
 
-            VStack(spacing: 8) {
+            VStack(spacing: FELDesign.Space.xs) {
                 AttributeImpactRow(
                     attribute: "Explosive First Step",
                     joint: "Ankle",
@@ -497,16 +377,10 @@ struct LabView: View {
                 )
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.brandBlue.opacity(0.15), lineWidth: 1)
-                )
-        )
+        .felCard()
     }
+
+    // MARK: - Global Arena
 
     private var globalArenaCard: some View {
         Button {
@@ -514,83 +388,73 @@ struct LabView: View {
             pendingArenaMode = mode
             showGlobalMatchmaking = true
         } label: {
-            HStack(spacing: 14) {
+            HStack(spacing: FELDesign.Space.sm) {
                 ZStack {
                     Circle()
-                        .fill(Theme.brandCyan.opacity(0.12))
-                        .frame(width: 48, height: 48)
+                        .fill(FELDesign.Colors.cyan.opacity(0.12))
+                        .frame(width: 40, height: 40)
 
                     Image(systemName: "globe")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                        .symbolEffect(.pulse)
+                        .font(FELDesign.Typography.body.weight(.semibold))
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                     Text("GLOBAL ARENA")
-                        .font(.system(.subheadline, weight: .black))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
 
                     if let last = GameModeRegistry.resolvedLastSelectedMode() {
-                        HStack(spacing: 8) {
-                            HStack(spacing: 3) {
+                        HStack(spacing: FELDesign.Space.xs) {
+                            HStack(spacing: FELDesign.Space.xxs) {
                                 Circle()
-                                    .fill(.green)
+                                    .fill(FELDesign.Colors.success)
                                     .frame(width: 5, height: 5)
                                 Text("\(viewModel.globalLeaderboard.onlinePlayerCount) online")
-                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                    .foregroundStyle(.green.opacity(0.7))
+                                    .font(FELDesign.Typography.statSmall)
+                                    .foregroundStyle(FELDesign.Colors.textSecondary)
                             }
 
                             Text(last.name.uppercased())
-                                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Theme.brandCyan.opacity(0.6))
+                                .font(FELDesign.Typography.statSmall)
+                                .foregroundStyle(FELDesign.Colors.textTertiary)
                         }
                     } else {
                         Text("Choose a mode in Arena tab first")
-                            .font(.system(size: 9, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.orange.opacity(0.85))
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
                     }
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.cyan)
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
-                    )
-            )
+            .felCard()
         }
         .buttonStyle(.plain)
         .disabled(GameModeRegistry.resolvedLastSelectedMode() == nil)
         .opacity(GameModeRegistry.resolvedLastSelectedMode() == nil ? 0.55 : 1)
     }
 
+    // MARK: - Court
+
     private var courtSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("FREESTYLE DUNK PRACTICE")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
-                        .foregroundStyle(Theme.brandBlue)
-                        .tracking(2)
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: "Freestyle Dunk Practice", color: FELDesign.Colors.cyan)
 
                     Text("Venice Beach Court")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
 
                 Spacer()
 
-                HStack(spacing: 6) {
+                HStack(spacing: FELDesign.Space.xs) {
                     NeuralAuraBadge(auraLevel: viewModel.arcadePhysics.auraLevel)
 
                     Button {
@@ -599,10 +463,10 @@ struct LabView: View {
                         }
                     } label: {
                         Image(systemName: showCourtExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(Theme.brandBlue)
-                            .padding(8)
-                            .background(Color.white.opacity(0.06))
+                            .font(FELDesign.Typography.caption.weight(.semibold))
+                            .foregroundStyle(FELDesign.Colors.cyan)
+                            .padding(FELDesign.Space.xs)
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Circle())
                     }
                 }
@@ -612,17 +476,10 @@ struct LabView: View {
                 if courtLoaded {
                     GameSceneHostView(gameMode: .basketballDunkContest3D, neuralDrive: viewModel.profile.metrics.neuralDrive)
                         .frame(height: showCourtExpanded ? 420 : 280)
-                        .clipShape(.rect(cornerRadius: 20))
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.lg))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [Theme.brandBlue.opacity(0.3), Theme.brandCyan.opacity(0.15), .clear],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1
-                                )
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
+                                .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                         )
                         .overlay(alignment: .topTrailing) {
                             freestyleDunkPhaseIndicator
@@ -632,43 +489,33 @@ struct LabView: View {
                         }
                         .overlay(alignment: .topLeading) {
                             Text("NEURAL DRIVE \(Int(viewModel.profile.metrics.neuralDrive))%")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(Theme.brandCyan)
-                                .padding(8)
+                                .font(FELDesign.Typography.statSmall)
+                                .foregroundStyle(FELDesign.Colors.cyan)
+                                .padding(FELDesign.Space.xs)
                         }
                         .overlay(alignment: .bottom) {
                             Text("HOLD X TO GATHER")
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.7))
-                                .padding(.bottom, 40)
+                                .font(FELDesign.Typography.statSmall)
+                                .foregroundStyle(FELDesign.Colors.textSecondary)
+                                .padding(.bottom, FELDesign.Space.xl + FELDesign.Space.xs)
                         }
                         .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Theme.cardBackground)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
+                        .fill(FELDesign.Colors.surfaceRaised)
                         .frame(height: 280)
                         .overlay {
-                            VStack(spacing: 12) {
+                            VStack(spacing: FELDesign.Space.sm) {
                                 ProgressView()
-                                    .tint(Theme.brandBlue)
-                                Text("LOADING COURT")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(Theme.brandBlue.opacity(0.6))
-                                    .tracking(2)
+                                    .tint(FELDesign.Colors.cyan)
+                                FELMicroLabel(text: "Loading Court")
                             }
                         }
                 }
 
                 if dunkFlash {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(
-                            RadialGradient(
-                                colors: [Theme.brandCyan.opacity(0.2), Theme.brandBlue.opacity(0.08), .clear],
-                                center: .center,
-                                startRadius: 10,
-                                endRadius: 200
-                            )
-                        )
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
+                        .fill(FELDesign.Colors.glow(FELDesign.Colors.cyan, 0.15))
                         .allowsHitTesting(false)
                         .transition(.opacity)
                 }
@@ -677,15 +524,7 @@ struct LabView: View {
 
             freestyleDunkControls
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.brandBlue.opacity(0.15), lineWidth: 1)
-                )
-        )
+        .felCard()
     }
 
     // MARK: - Freestyle Dunk Engine Controls
@@ -694,38 +533,38 @@ struct LabView: View {
     private var freestyleDunkControls: some View {
         switch freestyleDunk.phase {
         case .idle:
-            VStack(spacing: 8) {
+            VStack(spacing: FELDesign.Space.xs) {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         ForEach(DunkTrickSlot.allCases, id: \.rawValue) { trick in
                             Button {
                                 withAnimation(.spring(response: 0.2)) {
                                     freestyleDunk.selectedTrick = trick
                                 }
                             } label: {
-                                VStack(spacing: 3) {
+                                VStack(spacing: FELDesign.Space.xxs) {
                                     Image(systemName: trick.icon)
-                                        .font(.system(size: 13, weight: .bold))
+                                        .font(FELDesign.Typography.caption.weight(.semibold))
                                     Text(trick.rawValue)
-                                        .font(.system(size: 6, weight: .black, design: .monospaced))
+                                        .font(FELDesign.Typography.statSmall)
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.6)
                                     HStack(spacing: 1) {
                                         ForEach(0..<5, id: \.self) { i in
                                             Circle()
-                                                .fill(Double(i) / 5.0 < trick.complexity ? .orange : .white.opacity(0.15))
+                                                .fill(Double(i) / 5.0 < trick.complexity ? FELDesign.Colors.cyan : FELDesign.Colors.hairline)
                                                 .frame(width: 3, height: 3)
                                         }
                                     }
                                 }
-                                .foregroundStyle(freestyleDunk.selectedTrick == trick ? .black : .white)
-                                .frame(width: 60, height: 54)
+                                .foregroundStyle(freestyleDunk.selectedTrick == trick ? FELDesign.Colors.ink : FELDesign.Colors.textPrimary)
+                                .frame(width: 64, height: 56)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(freestyleDunk.selectedTrick == trick ? .orange : .orange.opacity(0.1))
+                                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                        .fill(freestyleDunk.selectedTrick == trick ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised)
                                         .overlay(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(freestyleDunk.selectedTrick == trick ? .orange : .orange.opacity(0.25), lineWidth: 1)
+                                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                                .stroke(freestyleDunk.selectedTrick == trick ? FELDesign.Colors.cyan : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                                         )
                                 )
                             }
@@ -737,239 +576,193 @@ struct LabView: View {
                 Button {
                     startFreestyleApproach()
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         Image(systemName: "figure.run")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(FELDesign.Typography.label)
                         Text("START APPROACH")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .font(FELDesign.Typography.label)
                     }
-                    .foregroundStyle(.black)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
-                    .background(
-                        LinearGradient(
-                            colors: [.orange, Color(red: 1.0, green: 0.5, blue: 0.0)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(.rect(cornerRadius: 14))
-                    .shadow(color: .orange.opacity(0.3), radius: 8)
+                    .background(FELDesign.Colors.cyan)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
             }
 
         case .approach:
-            VStack(spacing: 8) {
-                HStack(spacing: 6) {
+            VStack(spacing: FELDesign.Space.xs) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.cyan)
-                    Text("HOLD TO SPRINT")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .tracking(1)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.cyan)
+                    FELMicroLabel(text: "Hold to Sprint", color: FELDesign.Colors.textPrimary)
                     Spacer()
                     Text("\(Int(freestyleDunk.sprintCharge * 100))%")
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .foregroundStyle(.cyan)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                         .contentTransition(.numericText())
                 }
 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(Color.black.opacity(0.6))
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(
-                                LinearGradient(
-                                    colors: [.cyan, freestyleDunk.sprintCharge > 0.8 ? .orange : .blue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm / 2)
+                            .fill(FELDesign.Colors.ink)
+                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm / 2)
+                            .fill(FELDesign.Colors.cyan)
                             .frame(width: geo.size.width * freestyleDunk.sprintCharge)
                             .animation(.linear(duration: 0.05), value: freestyleDunk.sprintCharge)
                     }
                 }
                 .frame(height: 12)
-                .clipShape(.rect(cornerRadius: 5))
+                .clipShape(.rect(cornerRadius: FELDesign.Radius.sm / 2))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 5)
-                        .stroke(.cyan.opacity(0.4), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm / 2)
+                        .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                 )
 
                 Button {
                     releaseFreestyleSprint()
                 } label: {
                     Text("RELEASE TO LAUNCH")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(.black)
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.ink)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(
-                            LinearGradient(
-                                colors: [.cyan, .blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(.rect(cornerRadius: 12))
+                        .frame(height: 48)
+                        .background(FELDesign.Colors.cyan)
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
             }
 
         case .launch:
-            VStack(spacing: 8) {
-                HStack(spacing: 6) {
+            VStack(spacing: FELDesign.Space.xs) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.green)
-                    Text("TAP TO JUMP")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .tracking(1)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.success)
+                    FELMicroLabel(text: "Tap to Jump", color: FELDesign.Colors.textPrimary)
                     Spacer()
                 }
 
                 freestyleTimingBar(
                     value: freestyleDunk.launchTiming,
                     greenZone: freestyleDunk.launchGreenZone,
-                    accentColor: .green
+                    accentColor: FELDesign.Colors.success
                 )
 
                 Button {
                     confirmFreestyleLaunch()
                 } label: {
                     Text("JUMP!")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
-                        .foregroundStyle(.black)
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.ink)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                         .background(
                             freestyleDunk.launchGreenZone.contains(freestyleDunk.launchTiming)
-                                ? Color.green
-                                : Color.green.opacity(0.4)
+                                ? FELDesign.Colors.success
+                                : FELDesign.Colors.success.opacity(0.4)
                         )
-                        .clipShape(.rect(cornerRadius: 12))
-                        .shadow(color: .green.opacity(0.3), radius: 6)
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
             }
 
         case .airborne:
-            VStack(spacing: 8) {
-                HStack(spacing: 6) {
+            VStack(spacing: FELDesign.Space.xs) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "figure.highintensity.intervaltraining")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.purple)
-                    Text(freestyleDunk.selectedTrick.rawValue)
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .tracking(1)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.cyan)
+                    FELMicroLabel(text: freestyleDunk.selectedTrick.rawValue, color: FELDesign.Colors.textPrimary)
                     Spacer()
                     Text("\(Int(freestyleDunk.completedRotation * 100))%")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(freestyleDunk.completedRotation >= 0.9 ? .green : .purple)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(freestyleDunk.completedRotation >= 0.9 ? FELDesign.Colors.success : FELDesign.Colors.cyan)
                         .contentTransition(.numericText())
                 }
 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(Color.black.opacity(0.6))
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(
-                                LinearGradient(
-                                    colors: [.purple, freestyleDunk.completedRotation >= 0.9 ? .green : .pink],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm / 2)
+                            .fill(FELDesign.Colors.ink)
+                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm / 2)
+                            .fill(freestyleDunk.completedRotation >= 0.9 ? FELDesign.Colors.success : FELDesign.Colors.cyan)
                             .frame(width: geo.size.width * min(1, freestyleDunk.completedRotation))
                             .animation(.linear(duration: 0.05), value: freestyleDunk.completedRotation)
                     }
                 }
                 .frame(height: 8)
-                .clipShape(.rect(cornerRadius: 5))
+                .clipShape(.rect(cornerRadius: FELDesign.Radius.sm / 2))
 
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Button {
                         withAnimation(.spring(response: 0.15)) {
                             freestyleDunk.isRotating.toggle()
                         }
                     } label: {
-                        HStack(spacing: 5) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: freestyleDunk.isRotating ? "arrow.trianglehead.2.clockwise.rotate.90" : "play.fill")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(FELDesign.Typography.caption.weight(.semibold))
                             Text(freestyleDunk.isRotating ? "ROTATING" : "SPIN")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .font(FELDesign.Typography.caption)
                         }
-                        .foregroundStyle(freestyleDunk.isRotating ? .black : .purple)
+                        .foregroundStyle(freestyleDunk.isRotating ? FELDesign.Colors.ink : FELDesign.Colors.cyan)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 42)
+                        .frame(height: 40)
                         .background(
-                            freestyleDunk.isRotating ? AnyShapeStyle(Color.purple) : AnyShapeStyle(Color.purple.opacity(0.15))
+                            freestyleDunk.isRotating ? AnyShapeStyle(FELDesign.Colors.cyan) : AnyShapeStyle(FELDesign.Colors.cyan.opacity(0.15))
                         )
-                        .clipShape(.rect(cornerRadius: 10))
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.sm))
                     }
 
                     Button {
                         confirmFreestyleLanding()
                     } label: {
-                        HStack(spacing: 5) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: "arrow.down.to.line.compact")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(FELDesign.Typography.caption.weight(.semibold))
                             Text("SLAM!")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .font(FELDesign.Typography.caption)
                         }
-                        .foregroundStyle(.black)
+                        .foregroundStyle(FELDesign.Colors.ink)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 42)
-                        .background(
-                            LinearGradient(
-                                colors: [.orange, .yellow],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(.rect(cornerRadius: 10))
-                        .shadow(color: .orange.opacity(0.4), radius: 6)
+                        .frame(height: 40)
+                        .background(FELDesign.Colors.cyan)
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.sm))
                     }
                 }
             }
 
         case .landing:
-            VStack(spacing: 8) {
-                HStack(spacing: 6) {
+            VStack(spacing: FELDesign.Space.xs) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "arrow.down.to.line.compact")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.orange)
-                    Text("STICK THE LANDING!")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .tracking(1)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.success)
+                    FELMicroLabel(text: "Stick the Landing!", color: FELDesign.Colors.textPrimary)
                     Spacer()
                 }
 
                 freestyleTimingBar(
                     value: freestyleDunk.landingTiming,
                     greenZone: freestyleDunk.landingGreenZone,
-                    accentColor: .orange
+                    accentColor: FELDesign.Colors.success
                 )
 
                 Button {
                     confirmFreestyleLanding()
                 } label: {
                     Text("LAND!")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
-                        .foregroundStyle(.black)
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.ink)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                         .background(
                             freestyleDunk.landingGreenZone.contains(freestyleDunk.landingTiming)
-                                ? Color.orange
-                                : Color.orange.opacity(0.4)
+                                ? FELDesign.Colors.success
+                                : FELDesign.Colors.success.opacity(0.4)
                         )
-                        .clipShape(.rect(cornerRadius: 12))
-                        .shadow(color: .orange.opacity(0.3), radius: 6)
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
             }
 
@@ -981,8 +774,8 @@ struct LabView: View {
     private func freestyleTimingBar(value: Double, greenZone: ClosedRange<Double>, accentColor: Color) -> some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(Color.black.opacity(0.6))
+                RoundedRectangle(cornerRadius: FELDesign.Radius.sm / 2)
+                    .fill(FELDesign.Colors.ink)
 
                 RoundedRectangle(cornerRadius: 4)
                     .fill(accentColor.opacity(0.25))
@@ -992,44 +785,44 @@ struct LabView: View {
                     .offset(x: geo.size.width * greenZone.lowerBound)
 
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(greenZone.contains(value) ? accentColor : .red)
+                    .fill(greenZone.contains(value) ? accentColor : FELDesign.Colors.danger)
                     .frame(width: 4)
                     .offset(x: geo.size.width * value - 2)
                     .animation(.linear(duration: 0.03), value: value)
             }
         }
         .frame(height: 16)
-        .clipShape(.rect(cornerRadius: 5))
+        .clipShape(.rect(cornerRadius: FELDesign.Radius.sm / 2))
         .overlay(
-            RoundedRectangle(cornerRadius: 5)
-                .stroke(accentColor.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: FELDesign.Radius.sm / 2)
+                .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
         )
     }
 
     @ViewBuilder
     private var freestyleDunkPhaseIndicator: some View {
         if freestyleDunk.phase != .idle && freestyleDunk.phase != .scored {
-            VStack(spacing: 4) {
+            VStack(spacing: FELDesign.Space.xxs) {
                 Text(freestylePhaseLabel)
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .font(FELDesign.Typography.statSmall)
                     .foregroundStyle(freestylePhaseColor)
                     .tracking(1)
                 if freestyleDunk.phase == .airborne {
                     Text(String(format: "HEIGHT: %.0f%%", freestyleDunk.jumpHeight * 100))
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
             }
-            .padding(8)
+            .padding(FELDesign.Space.xs)
             .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.black.opacity(0.7))
+                RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                    .fill(FELDesign.Colors.ink.opacity(0.7))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(freestylePhaseColor.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                            .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                     )
             )
-            .padding(10)
+            .padding(FELDesign.Space.sm)
             .allowsHitTesting(false)
         }
     }
@@ -1037,36 +830,36 @@ struct LabView: View {
     @ViewBuilder
     private var freestyleScoringOverlay: some View {
         if let scores = freestyleJudgeScores {
-            VStack(spacing: 4) {
+            VStack(spacing: FELDesign.Space.xxs) {
                 if !freestyleCrowdMessage.isEmpty {
                     Text(freestyleCrowdMessage)
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(.orange)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                         .tracking(1)
                 }
-                HStack(spacing: 12) {
+                HStack(spacing: FELDesign.Space.sm) {
                     ForEach([scores.0, scores.1, scores.2], id: \.self) { s in
                         Text("\(s)")
-                            .font(.system(size: 16, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.stat)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                             .frame(width: 36, height: 36)
                             .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(.orange.opacity(0.2))
+                                RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                    .fill(FELDesign.Colors.surfaceRaised)
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(.orange.opacity(0.4), lineWidth: 1)
+                                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                            .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                                     )
                             )
                     }
                 }
             }
-            .padding(10)
+            .padding(FELDesign.Space.sm)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.black.opacity(0.75))
+                RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                    .fill(FELDesign.Colors.ink.opacity(0.75))
             )
-            .padding(.bottom, 10)
+            .padding(.bottom, FELDesign.Space.sm)
             .allowsHitTesting(false)
             .transition(.scale.combined(with: .opacity))
         }
@@ -1084,11 +877,11 @@ struct LabView: View {
 
     private var freestylePhaseColor: Color {
         switch freestyleDunk.phase {
-        case .approach: return .cyan
-        case .launch: return .green
-        case .airborne: return .purple
-        case .landing: return .orange
-        default: return .white
+        case .approach: return FELDesign.Colors.cyan
+        case .launch: return FELDesign.Colors.success
+        case .airborne: return FELDesign.Colors.cyan
+        case .landing: return FELDesign.Colors.success
+        default: return FELDesign.Colors.textPrimary
         }
     }
 
@@ -1226,6 +1019,8 @@ struct LabView: View {
         }
     }
 
+    // MARK: - System Scan
+
     @ViewBuilder
     private var scanSection: some View {
         if let scan = viewModel.profile.systemScan {
@@ -1239,165 +1034,145 @@ struct LabView: View {
         Button {
             showSystemScan = true
         } label: {
-            VStack(spacing: 16) {
+            VStack(spacing: FELDesign.Space.md) {
                 ZStack {
                     Circle()
-                        .fill(Theme.brandCyan.opacity(0.08))
-                        .frame(width: 72, height: 72)
+                        .fill(FELDesign.Colors.cyan.opacity(0.08))
+                        .frame(width: 64, height: 64)
 
                     Image(systemName: "figure.basketball")
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                        .symbolEffect(.pulse)
+                        .font(FELDesign.Typography.title)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
 
-                VStack(spacing: 6) {
-                    Text("SYSTEM SCAN")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(Theme.brandCyan)
-                        .tracking(3)
+                VStack(spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: "System Scan", color: FELDesign.Colors.cyan)
 
                     Text("Upload a jump video to get your PRQ")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(FELDesign.Typography.body)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "video.badge.plus")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(FELDesign.Typography.caption.weight(.semibold))
                     Text("START SCAN")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .font(FELDesign.Typography.label)
                 }
-                .foregroundStyle(.black)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 10)
-                .background(Theme.brandCyan)
+                .foregroundStyle(FELDesign.Colors.ink)
+                .padding(.horizontal, FELDesign.Space.lg)
+                .padding(.vertical, FELDesign.Space.sm)
+                .background(FELDesign.Colors.cyan)
                 .clipShape(Capsule())
             }
             .frame(maxWidth: .infinity)
-            .padding(24)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1)
-                    )
-            )
+            .felCard(padding: FELDesign.Space.lg)
         }
         .buttonStyle(.plain)
     }
 
     private func scanDataDashboard(_ scan: SystemScanResult) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("SCAN DATA")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                        .tracking(2)
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: "Scan Data", color: FELDesign.Colors.cyan)
 
                     if !scan.commitsCompetitiveMetrics {
                         Text("Preview PRQ — not applied to ranked PRQ or Body IQ prescriptions")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.tertiary)
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
                     }
 
                     Text(scan.movementGrade)
-                        .font(.system(.title3, weight: .black))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.heading)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
 
                 Spacer()
 
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Button {
                         showCharacterEditor = true
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: "person.crop.circle.badge.exclamationmark")
                             Text("CUSTOMIZE")
                         }
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Theme.brandBlue.opacity(0.12))
-                        .foregroundStyle(Theme.brandBlue)
+                        .font(FELDesign.Typography.statSmall)
+                        .padding(.horizontal, FELDesign.Space.sm)
+                        .padding(.vertical, FELDesign.Space.xxs)
+                        .background(FELDesign.Colors.surfaceRaised)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                         .clipShape(Capsule())
+                        .overlay(Capsule().stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                     }
 
                     Button {
                         showSystemScan = true
                     } label: {
                         Text("RESCAN")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Theme.brandCyan.opacity(0.12))
-                            .foregroundStyle(Theme.brandCyan)
+                            .font(FELDesign.Typography.statSmall)
+                            .padding(.horizontal, FELDesign.Space.sm)
+                            .padding(.vertical, FELDesign.Space.xxs)
+                            .background(FELDesign.Colors.cyan.opacity(0.12))
+                            .foregroundStyle(FELDesign.Colors.cyan)
                             .clipShape(Capsule())
                     }
                 }
             }
 
-            HStack(spacing: 10) {
-                ScanStatPill(label: "PRQ", value: String(format: "%.1f", scan.prqScore), color: Theme.brandBlue)
-                ScanStatPill(label: "VERTICAL", value: String(format: "%.1f\"", scan.verticalEstimateInches), color: Theme.brandCyan)
-                ScanStatPill(label: "FLIGHT", value: String(format: "%.2fs", scan.flightTimeSeconds), color: Theme.elitePurple)
+            HStack(spacing: FELDesign.Space.sm) {
+                ScanStatPill(label: "PRQ", value: String(format: "%.1f", scan.prqScore), color: FELDesign.Colors.cyan)
+                ScanStatPill(label: "VERTICAL", value: String(format: "%.1f\"", scan.verticalEstimateInches), color: FELDesign.Colors.cyan)
+                ScanStatPill(label: "FLIGHT", value: String(format: "%.2fs", scan.flightTimeSeconds), color: FELDesign.Colors.cyan)
             }
 
             if let firstNote = scan.notes.first {
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: FELDesign.Space.xs) {
                     Image(systemName: "arrow.right.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Theme.brandBlue)
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                         .padding(.top, 2)
 
                     Text(firstNote)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                         .lineLimit(2)
                 }
             }
 
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "clock.fill")
-                    .font(.system(size: 9))
+                    .font(FELDesign.Typography.statSmall)
                 Text(scan.date, style: .relative)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(FELDesign.Typography.statSmall)
                 Text("Recommended: \(scan.recommendedTrack)")
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(FELDesign.Typography.statSmall)
             }
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(FELDesign.Colors.textTertiary)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.brandCyan.opacity(0.15), lineWidth: 1)
-                )
-        )
+        .felCard()
     }
+
+    // MARK: - Athlete Profile
 
     @ViewBuilder
     private var athleteProfileBanner: some View {
         if viewModel.profile.sport != nil {
-            HStack(spacing: 12) {
+            HStack(spacing: FELDesign.Space.sm) {
                 Image(systemName: sportIcon(viewModel.profile.sport ?? ""))
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(Theme.brandBlue)
+                    .font(FELDesign.Typography.body.weight(.semibold))
+                    .foregroundStyle(FELDesign.Colors.cyan)
                     .frame(width: 40, height: 40)
-                    .background(Theme.brandBlue.opacity(0.1))
+                    .background(FELDesign.Colors.cyan.opacity(0.10))
                     .clipShape(Circle())
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                     Text(viewModel.profile.sport?.uppercased() ?? "")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         if let age = viewModel.profile.age {
                             Text("Age \(age)")
                         }
@@ -1405,17 +1180,13 @@ struct LabView: View {
                             Text(goal)
                         }
                     }
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
 
                 Spacer()
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Theme.cardBackground)
-            )
+            .felCard(padding: FELDesign.Space.sm)
         }
     }
 
@@ -1434,18 +1205,17 @@ struct LabView: View {
         }
     }
 
+    // MARK: - Neural Drive
+
     private var neuralDriveCard: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: FELDesign.Space.md) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(SimpleModeLabels.neuralDrive(simpleMode))
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
-                        .foregroundStyle(Theme.brandBlue)
-                        .tracking(2)
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: SimpleModeLabels.neuralDrive(simpleMode), color: FELDesign.Colors.cyan)
 
                     Text("\(Int(effectiveMetrics.neuralDrive))%")
-                        .font(.system(size: 44, weight: .black))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.display)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
 
                 Spacer()
@@ -1457,169 +1227,146 @@ struct LabView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.white.opacity(0.06))
+                        .fill(FELDesign.Colors.surfaceRaised)
 
                     Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Theme.brandBlue, Theme.brandCyan],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(FELDesign.Colors.cyan)
                         .frame(width: geo.size.width * min(effectiveMetrics.neuralDrive, 100) / 100)
-                        .shadow(color: Theme.brandBlue.opacity(0.5), radius: 8)
                 }
             }
             .frame(height: 6)
 
             if viewModel.arcadePhysics.neuralBurstActive {
-                HStack(spacing: 6) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.elitePurple)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                     Text("NEURAL BURST ACTIVE — 1.5x SCORING")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .foregroundStyle(Theme.elitePurple)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                         .tracking(1)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Theme.elitePurple.opacity(0.08))
+                .padding(.horizontal, FELDesign.Space.sm)
+                .padding(.vertical, FELDesign.Space.xxs)
+                .background(FELDesign.Colors.cyan.opacity(0.08))
                 .clipShape(Capsule())
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.brandBlue.opacity(0.15), lineWidth: 1)
-                )
-        )
+        .felCard(padding: FELDesign.Space.lg)
     }
 
+    // MARK: - HRV Readiness
+
     private var hrvReadinessCard: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: FELDesign.Space.sm) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("NEURAL READINESS")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                        .tracking(2)
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: "Neural Readiness", color: FELDesign.Colors.cyan)
 
                     Text(viewModel.healthKit.neuralReadinessGrade.rawValue)
-                        .font(.system(.title3, weight: .black))
+                        .font(FELDesign.Typography.heading)
                         .foregroundStyle(hrvGradeColor)
                 }
 
                 Spacer()
 
                 if viewModel.healthKit.isAuthorized {
-                    VStack(alignment: .trailing, spacing: 2) {
+                    VStack(alignment: .trailing, spacing: FELDesign.Space.xxs) {
                         Text(String(format: "%.0f", viewModel.healthKit.neuralReadinessScore))
-                            .font(.system(size: 28, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
-                        HStack(spacing: 3) {
+                            .font(FELDesign.Typography.statLarge)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: viewModel.healthKit.dailyTrend.icon)
-                                .font(.system(size: 8, weight: .bold))
+                                .font(FELDesign.Typography.statSmall)
                                 .foregroundStyle(trendColor)
-                            Text("NRS")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.tertiary)
-                                .tracking(2)
+                            FELMicroLabel(text: "NRS")
                         }
                     }
                 }
             }
 
             if viewModel.healthKit.isAuthorized {
-                HStack(spacing: 10) {
+                HStack(spacing: FELDesign.Space.sm) {
                     HRVStatPill(
                         label: "HRV",
                         value: viewModel.healthKit.hrvValue > 0 ? String(format: "%.0fms", viewModel.healthKit.hrvValue) : "--",
                         icon: "waveform.path.ecg",
-                        color: Theme.brandCyan
+                        color: FELDesign.Colors.cyan
                     )
                     HRVStatPill(
                         label: "RHR",
                         value: viewModel.healthKit.restingHeartRate > 0 ? String(format: "%.0f", viewModel.healthKit.restingHeartRate) : "--",
                         icon: "heart.fill",
-                        color: .red
+                        color: FELDesign.Colors.cyan
                     )
                     HRVStatPill(
                         label: "BUFF",
                         value: viewModel.healthKit.arcadePhysicsBuff.isRecoveryMode ? "REST" : String(format: "%.2fx", viewModel.healthKit.arcadePhysicsBuff.speedMultiplier),
                         icon: "bolt.fill",
-                        color: viewModel.healthKit.arcadePhysicsBuff.isRecoveryMode ? .orange : Theme.elitePurple
+                        color: viewModel.healthKit.arcadePhysicsBuff.isRecoveryMode ? FELDesign.Colors.danger : FELDesign.Colors.cyan
                     )
                 }
 
                 if viewModel.healthKit.weeklyHRVAverage > 0 {
-                    HStack(spacing: 12) {
-                        HStack(spacing: 4) {
-                            Text("7D AVG")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.tertiary)
+                    HStack(spacing: FELDesign.Space.sm) {
+                        HStack(spacing: FELDesign.Space.xxs) {
+                            FELMicroLabel(text: "7D Avg")
                             Text(String(format: "%.0fms", viewModel.healthKit.weeklyHRVAverage))
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white)
+                                .font(FELDesign.Typography.statSmall)
+                                .foregroundStyle(FELDesign.Colors.textPrimary)
                         }
 
-                        HStack(spacing: 3) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: viewModel.healthKit.dailyTrend.icon)
-                                .font(.system(size: 9, weight: .bold))
+                                .font(FELDesign.Typography.statSmall)
                             Text(viewModel.healthKit.dailyTrend.rawValue)
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .font(FELDesign.Typography.statSmall)
                         }
                         .foregroundStyle(trendColor)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
+                        .padding(.horizontal, FELDesign.Space.xs)
+                        .padding(.vertical, FELDesign.Space.xxs)
                         .background(trendColor.opacity(0.1))
                         .clipShape(Capsule())
                     }
                 }
 
                 if viewModel.healthKit.arcadePhysicsBuff.isRecoveryMode {
-                    HStack(spacing: 6) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         Image(systemName: "bed.double.fill")
-                            .font(.system(size: 10))
+                            .font(FELDesign.Typography.statSmall)
                         Text("RECOVERY MODE")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .font(FELDesign.Typography.statSmall)
                         if viewModel.healthKit.recoveryEstimateHours > 0 {
                             Text("~\(Int(viewModel.healthKit.recoveryEstimateHours))h")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .font(FELDesign.Typography.statSmall)
                         }
                     }
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.08))
+                    .foregroundStyle(FELDesign.Colors.danger)
+                    .padding(.horizontal, FELDesign.Space.sm)
+                    .padding(.vertical, FELDesign.Space.xxs)
+                    .background(FELDesign.Colors.danger.opacity(0.08))
                     .clipShape(Capsule())
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     if let syncDate = viewModel.healthKit.lastSyncDate {
-                        HStack(spacing: 4) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 8))
+                                .font(FELDesign.Typography.statSmall)
                             Text(syncDate, style: .relative)
-                                .font(.system(size: 9, design: .monospaced))
+                                .font(FELDesign.Typography.statSmall)
                         }
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                     }
 
                     Spacer()
 
                     if viewModel.healthKit.autoRefreshEnabled {
-                        HStack(spacing: 3) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Circle()
-                                .fill(.green)
+                                .fill(FELDesign.Colors.success)
                                 .frame(width: 4, height: 4)
-                            Text("AUTO")
-                                .font(.system(size: 7, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.green.opacity(0.6))
+                            FELMicroLabel(text: "Auto")
                         }
                     }
                 }
@@ -1627,145 +1374,122 @@ struct LabView: View {
                 Button {
                     Task { await viewModel.connectHealthKit() }
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         Image(systemName: "heart.text.clipboard")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(FELDesign.Typography.caption.weight(.semibold))
                         Text("CONNECT APPLE HEALTH")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .font(FELDesign.Typography.label)
                     }
-                    .foregroundStyle(.black)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.brandCyan)
-                    .clipShape(.rect(cornerRadius: 12))
+                    .padding(.vertical, FELDesign.Space.sm)
+                    .background(FELDesign.Colors.cyan)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
 
                 Text("Sync HRV & Heart Rate for automated Neural Drive")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.brandCyan.opacity(0.15), lineWidth: 1)
-                )
-        )
+        .felCard()
     }
 
     private var trendColor: Color {
         switch viewModel.healthKit.dailyTrend {
-        case .improving: .green
-        case .stable: Theme.brandCyan
-        case .declining: .orange
+        case .improving: FELDesign.Colors.success
+        case .stable: FELDesign.Colors.cyan
+        case .declining: FELDesign.Colors.danger
         }
     }
 
     private var hrvGradeColor: Color {
         switch viewModel.healthKit.neuralReadinessGrade {
-        case .elite: Theme.elitePurple
-        case .primed: Theme.brandBlue
-        case .ready: Theme.foundationGreen
-        case .recovering: .orange
+        case .elite: FELDesign.Colors.purple
+        case .primed: FELDesign.Colors.cyan
+        case .ready: FELDesign.Colors.success
+        case .recovering: FELDesign.Colors.danger
         }
     }
 
+    // MARK: - Coach & Blueprints
+
     private var coachAndBlueprintsRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: FELDesign.Space.sm) {
             Button {
                 showCoach = true
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: FELDesign.Space.sm) {
                     ZStack {
                         Circle()
-                            .fill(Theme.brandBlue.opacity(0.12))
+                            .fill(FELDesign.Colors.cyan.opacity(0.12))
                             .frame(width: 40, height: 40)
                         Image(systemName: "figure.strengthtraining.traditional")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(Theme.brandBlue)
+                            .font(FELDesign.Typography.label)
+                            .foregroundStyle(FELDesign.Colors.cyan)
                     }
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                         Text("COACH")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                         Text("Exercises & Critiques")
-                            .font(.system(size: 8, weight: .medium))
-                            .foregroundStyle(.secondary)
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.tertiary)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                 }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Theme.cardBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Theme.brandBlue.opacity(0.12), lineWidth: 0.5)
-                        )
-                )
+                .felCard(padding: FELDesign.Space.sm)
             }
             .buttonStyle(.plain)
 
             Button {
                 showBlueprints = true
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: FELDesign.Space.sm) {
                     ZStack {
                         Circle()
-                            .fill(Theme.elitePurple.opacity(0.12))
+                            .fill(FELDesign.Colors.cyan.opacity(0.12))
                             .frame(width: 40, height: 40)
                         Image(systemName: "map.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(Theme.elitePurple)
+                            .font(FELDesign.Typography.label)
+                            .foregroundStyle(FELDesign.Colors.cyan)
                     }
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                         Text("BLUEPRINTS")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                         Text("Plans & Guides")
-                            .font(.system(size: 8, weight: .medium))
-                            .foregroundStyle(.secondary)
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.tertiary)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                 }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Theme.cardBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Theme.elitePurple.opacity(0.12), lineWidth: 0.5)
-                        )
-                )
+                .felCard(padding: FELDesign.Space.sm)
             }
             .buttonStyle(.plain)
         }
     }
 
+    // MARK: - Metrics & Lists
+
     private var metricsGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            MetricCard(title: simpleMode ? SimpleModeLabels.prqScore(simpleMode) : "RANKED PRQ", value: String(format: "%.1f", viewModel.competitivePRQScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
-            MetricCard(title: SimpleModeLabels.efficiency(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.efficiencyScore), icon: "bolt.fill", color: .orange)
-            MetricCard(title: SimpleModeLabels.readiness(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.readinessScore), icon: "heart.fill", color: .red)
-            MetricCard(title: SimpleModeLabels.evolutionShards(simpleMode), value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: FELDesign.Space.sm), GridItem(.flexible(), spacing: FELDesign.Space.sm)], spacing: FELDesign.Space.sm) {
+            MetricCard(title: simpleMode ? SimpleModeLabels.prqScore(simpleMode) : "RANKED PRQ", value: String(format: "%.1f", viewModel.competitivePRQScore), icon: "brain.head.profile.fill", color: FELDesign.Colors.cyan)
+            MetricCard(title: SimpleModeLabels.efficiency(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.efficiencyScore), icon: "bolt.fill", color: FELDesign.Colors.cyan)
+            MetricCard(title: SimpleModeLabels.readiness(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.readinessScore), icon: "heart.fill", color: FELDesign.Colors.cyan)
+            MetricCard(title: SimpleModeLabels.evolutionShards(simpleMode), value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: FELDesign.Colors.cyan)
         }
     }
 
     private var quickStartSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("QUICK START")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                .foregroundStyle(.secondary)
-                .tracking(2)
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Quick Start")
 
             ForEach(viewModel.tracks) { track in
                 Button {
@@ -1787,26 +1511,23 @@ struct LabView: View {
     }
 
     private var recentActivitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("RECENT ACTIVITY")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                .foregroundStyle(.secondary)
-                .tracking(2)
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Recent Activity")
 
             if viewModel.sessions.isEmpty {
-                VStack(spacing: 12) {
+                VStack(spacing: FELDesign.Space.sm) {
                     Image(systemName: "figure.run.circle")
-                        .font(.system(size: 36))
-                        .foregroundStyle(Theme.brandBlue.opacity(0.4))
+                        .font(FELDesign.Typography.display)
+                        .foregroundStyle(FELDesign.Colors.cyan.opacity(0.4))
                     Text("No workouts yet")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(FELDesign.Typography.body)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                     Text("Start a track to begin your evolution")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 32)
+                .padding(.vertical, FELDesign.Space.xl)
             } else {
                 ForEach(viewModel.sessions.suffix(3).reversed()) { session in
                     SessionRow(session: session, tracks: viewModel.tracks)
@@ -1824,37 +1545,37 @@ struct AttributeImpactRow: View {
 
     private var statusColor: Color {
         switch status {
-        case .optimal: Theme.brandCyan
-        case .moderate: .orange
-        case .deficit: .red
+        case .optimal: FELDesign.Colors.success
+        case .moderate: FELDesign.Colors.textSecondary
+        case .deficit: FELDesign.Colors.danger
         }
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: FELDesign.Space.sm) {
             Circle()
                 .fill(statusColor)
                 .frame(width: 8, height: 8)
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                 Text(attribute.uppercased())
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
                 Text("\(joint) → \(status.label)")
-                    .font(.system(size: 8, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
 
             Spacer()
 
             Text(modifier)
-                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .font(FELDesign.Typography.stat)
                 .foregroundStyle(statusColor)
         }
-        .padding(10)
+        .padding(FELDesign.Space.sm)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(statusColor.opacity(0.04))
+            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                .fill(FELDesign.Colors.surfaceRaised)
         )
     }
 }
@@ -1863,43 +1584,35 @@ struct TrackQuickStartRow: View {
     let track: CurriculumTrack
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: FELDesign.Space.sm) {
             ZStack {
                 Circle()
-                    .fill(Theme.difficultyColor(track.difficulty).opacity(0.15))
-                    .frame(width: 44, height: 44)
+                    .fill(FELDesign.Colors.cyan.opacity(0.12))
+                    .frame(width: 40, height: 40)
 
                 Image(systemName: trackIcon)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Theme.difficultyColor(track.difficulty))
+                    .font(FELDesign.Typography.body.weight(.semibold))
+                    .foregroundStyle(FELDesign.Colors.cyan)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                 Text(track.name.uppercased())
-                    .font(.system(.subheadline, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
 
                 Text(track.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
                     .lineLimit(1)
             }
 
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Theme.cardBorder, lineWidth: 0.5)
-                )
-        )
+        .felCard(padding: FELDesign.Space.sm)
     }
 
     private var trackIcon: String {
@@ -1920,33 +1633,29 @@ struct SessionRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: FELDesign.Space.sm) {
+            VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                 Text(trackName.uppercased())
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
 
                 Text("\(session.exercisesCompleted)/\(session.totalExercises) exercises")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: FELDesign.Space.xxs) {
                 Text("+\(session.shardsEarned)")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
+                    .font(FELDesign.Typography.stat)
+                    .foregroundStyle(FELDesign.Colors.cyan)
 
                 Text(session.date, style: .relative)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
             }
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Theme.cardBackground)
-        )
+        .felCard(padding: FELDesign.Space.sm)
     }
 }

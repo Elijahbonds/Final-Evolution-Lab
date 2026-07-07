@@ -132,9 +132,9 @@ enum PremiumViewpointConfig {
             fovNormal: 54, fovAction: 44
         ),
         .dojo: ChaseCamera(
-            offsetX: 0, offsetY: 4.2, offsetZ: 7.8,
+            offsetX: 0, offsetY: 5.0, offsetZ: 9.0,
             lookAtY: 1.25, followSpeed: 7.5, targetSpeed: 9.5,
-            fovNormal: 52, fovAction: 42
+            fovNormal: 57, fovAction: 47
         ),
         .stadium: ChaseCamera(
             offsetX: 0.5, offsetY: 7.2, offsetZ: 11.0,

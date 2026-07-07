@@ -24,80 +24,54 @@ struct SettingsSheet: View {
 #if DEBUG
                 Section {
                     Toggle(isOn: emulatorToggleBinding) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Firebase emulators")
-                                    .font(.body.weight(.semibold))
-                                Text("Auth \(Config.authEmulatorHost):\(Config.authEmulatorPort) · Firestore \(Config.firestoreEmulatorHost) · Data Connect \(Config.dataConnectEmulatorHost):\(Config.dataConnectEmulatorPort). Restart after changing.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "laptopcomputer.and.iphone")
-                                .foregroundStyle(Theme.brandCyan)
-                        }
+                        SettingsRowLabel(
+                            title: "Firebase emulators",
+                            subtitle: "Auth \(Config.authEmulatorHost):\(Config.authEmulatorPort) · Firestore \(Config.firestoreEmulatorHost) · Data Connect \(Config.dataConnectEmulatorHost):\(Config.dataConnectEmulatorPort). Restart after changing.",
+                            icon: "laptopcomputer.and.iphone"
+                        )
                     }
-                    .tint(Theme.brandBlue)
+                    .tint(FELDesign.Colors.cyan)
                 } header: {
-                    Text("Integration (local)")
+                    FELMicroLabel(text: "Integration (local)")
                 }
+                .listRowBackground(FELDesign.Colors.surface)
 #endif
 
                 Section {
                     Toggle(isOn: $useEmulatorShell) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Emulator shell")
-                                    .font(.body.weight(.semibold))
-                                Text("Cartridge library, boot splash, and in-game quick-switch")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "gamecontroller.fill")
-                                .foregroundStyle(Theme.brandCyan)
-                        }
+                        SettingsRowLabel(
+                            title: "Emulator shell",
+                            subtitle: "Cartridge library, boot splash, and in-game quick-switch",
+                            icon: "gamecontroller.fill"
+                        )
                     }
-                    .tint(Theme.brandCyan)
+                    .tint(FELDesign.Colors.cyan)
 
                     Toggle(isOn: $crtScanlinesEnabled) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("CRT scanlines")
-                                    .font(.body.weight(.semibold))
-                                Text("Subtle retro overlay on library and gameplay")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "tv")
-                                .foregroundStyle(Theme.brandBlue)
-                        }
+                        SettingsRowLabel(
+                            title: "CRT scanlines",
+                            subtitle: "Subtle retro overlay on library and gameplay",
+                            icon: "tv"
+                        )
                     }
-                    .tint(Theme.brandBlue)
+                    .tint(FELDesign.Colors.cyan)
                     .disabled(!useEmulatorShell)
 
                     Toggle(isOn: $simpleMode) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Simple Mode")
-                                    .font(.body.weight(.semibold))
-                                Text("Family-friendly labels for all metrics")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "figure.and.child.holdinghands")
-                                .foregroundStyle(Theme.brandBlue)
-                        }
+                        SettingsRowLabel(
+                            title: "Simple Mode",
+                            subtitle: "Family-friendly labels for all metrics",
+                            icon: "figure.and.child.holdinghands"
+                        )
                     }
-                    .tint(Theme.brandBlue)
+                    .tint(FELDesign.Colors.cyan)
                     .onChange(of: simpleMode) { _, newValue in
                         UserDefaults.standard.set(newValue, forKey: "simpleMode")
                     }
                 } header: {
-                    Text("Display")
+                    FELMicroLabel(text: "Display")
                 }
+                .listRowBackground(FELDesign.Colors.surface)
 
                 if let vm = viewModel, let age = vm.profile.age, age < 18 {
                     Section {
@@ -108,23 +82,17 @@ struct SettingsSheet: View {
                                 SaveSystem.saveProfile(vm.profile)
                             }
                         )) {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Guardian consent")
-                                        .font(.body.weight(.semibold))
-                                    Text("Required for community posts, HealthKit, and paid coach critiques.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "figure.and.child.holdinghands")
-                                    .foregroundStyle(Theme.brandBlue)
-                            }
+                            SettingsRowLabel(
+                                title: "Guardian consent",
+                                subtitle: "Required for community posts, HealthKit, and paid coach critiques.",
+                                icon: "figure.and.child.holdinghands"
+                            )
                         }
-                        .tint(Theme.brandBlue)
+                        .tint(FELDesign.Colors.cyan)
                     } header: {
-                        Text("Safety (under 18)")
+                        FELMicroLabel(text: "Safety (under 18)")
                     }
+                    .listRowBackground(FELDesign.Colors.surface)
                 }
 
                 if let vm = viewModel {
@@ -139,71 +107,61 @@ struct SettingsSheet: View {
                             exportJSON = json ?? "Export failed"
                             showExportAlert = true
                         } label: {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Export Unity Manifest")
-                                        .font(.body.weight(.semibold))
-                                    Text("JSON export of PRQ, Neural Drive & game data")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "square.and.arrow.up")
-                                    .foregroundStyle(Theme.brandCyan)
-                            }
+                            SettingsRowLabel(
+                                title: "Export Unity Manifest",
+                                subtitle: "JSON export of PRQ, Neural Drive & game data",
+                                icon: "square.and.arrow.up"
+                            )
                         }
                     } header: {
-                        Text("Unity Bridge")
+                        FELMicroLabel(text: "Unity Bridge")
                     }
+                    .listRowBackground(FELDesign.Colors.surface)
                 }
 
                 Section {
                     Button {
                         showControllerTest = true
                     } label: {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Controller Test Scene")
-                                    .font(.body.weight(.semibold))
-                                Text("Shared gamepad + design tokens, landscape")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "gamecontroller")
-                                .foregroundStyle(Theme.brandCyan)
-                        }
+                        SettingsRowLabel(
+                            title: "Controller Test Scene",
+                            subtitle: "Shared gamepad + design tokens, landscape",
+                            icon: "gamecontroller"
+                        )
                     }
                 } header: {
-                    Text("Developer")
+                    FELMicroLabel(text: "Developer")
                 }
+                .listRowBackground(FELDesign.Colors.surface)
 
                 Section {
                     Label {
                         Text("Version 2.0")
+                            .font(FELDesign.Typography.body)
                     } icon: {
                         Image(systemName: "info.circle")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
                 } header: {
-                    Text("About")
+                    FELMicroLabel(text: "About")
                 }
+                .listRowBackground(FELDesign.Colors.surface)
             }
             .scrollContentBackground(.hidden)
-            .background(Theme.deepBlack)
+            .background(FELDesign.Colors.ink)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(Theme.brandBlue)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
             }
         }
         .presentationDetents([.medium])
-        .presentationBackground(Theme.deepBlack)
+        .presentationBackground(FELDesign.Colors.ink)
         .fullScreenCover(isPresented: $showControllerTest) {
             ControllerTestSceneView()
         }
@@ -214,6 +172,29 @@ struct SettingsSheet: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("JSON manifest generated (\(exportJSON.count) chars). Copy to clipboard for Unity import.")
+        }
+    }
+}
+
+/// Icon + title/subtitle row used across all Settings sections.
+private struct SettingsRowLabel: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
+                Text(subtitle)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
+            }
+        } icon: {
+            Image(systemName: icon)
+                .foregroundStyle(FELDesign.Colors.cyan)
         }
     }
 }

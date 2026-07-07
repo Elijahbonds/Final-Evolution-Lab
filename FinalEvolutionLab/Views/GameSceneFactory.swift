@@ -459,7 +459,7 @@ struct GameSceneFactory {
         addBall(to: scene, at: SCNVector3(0, 1.4, 4), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
 
         let judgeColor = UIColor(white: 0.45, alpha: 1)
-        let judgeCast: [FELBundledAsset] = [.npcEricNashIdle, .npcTallAthleticIdle, .npcFemaleStrongIdle]
+        let judgeCast: [FELBundledAsset] = [.npcEricNashIdle, .npcTallAthleticIdle, .npcEricNashIdle]
         for (i, x) in ([-2.5, 0.0, 2.5] as [Float]).enumerated() {
             let table = SCNBox(width: 1.2, height: 0.7, length: 0.4, chamferRadius: 0.02)
             let tMat = SCNMaterial()

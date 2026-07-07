@@ -21,8 +21,7 @@ struct MatchmakingView: View {
 
     var body: some View {
         ZStack {
-            Theme.deepBlack.ignoresSafeArea()
-            Theme.meshGradient.opacity(0.3).ignoresSafeArea()
+            FELDesign.Colors.ink.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 header
@@ -60,60 +59,64 @@ struct MatchmakingView: View {
         }
     }
 
+    private var connectionColor: Color {
+        viewModel.globalLeaderboard.connectionQuality == .good
+            ? FELDesign.Colors.success
+            : FELDesign.Colors.danger
+    }
+
     private var header: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: FELDesign.Space.xs) {
             FELPreviewLabel(text: FELPremiumCopy.Preview.matchmakingStub)
-            HStack(spacing: 8) {
+
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "globe")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.cyan)
                     .symbolEffect(.pulse, isActive: searchingPhase)
 
-                Text("GLOBAL MATCHMAKING")
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
-                    .tracking(3)
+                FELMicroLabel(text: "Global Matchmaking", color: FELDesign.Colors.cyan)
             }
 
             Text(gameMode.name.uppercased())
-                .font(.system(size: 16, weight: .black, design: .monospaced))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.heading)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
 
-            HStack(spacing: 16) {
-                HStack(spacing: 4) {
+            HStack(spacing: FELDesign.Space.md) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Circle()
-                        .fill(.green)
+                        .fill(FELDesign.Colors.success)
                         .frame(width: 6, height: 6)
                     Text("\(viewModel.globalLeaderboard.onlinePlayerCount) ONLINE")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green.opacity(0.8))
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
 
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: viewModel.globalLeaderboard.connectionQuality.icon)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(viewModel.globalLeaderboard.connectionQuality == .good ? Theme.brandCyan : .orange)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(connectionColor)
                     Text(viewModel.globalLeaderboard.connectionQuality.rawValue)
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(viewModel.globalLeaderboard.connectionQuality == .good ? Theme.brandCyan.opacity(0.7) : .orange.opacity(0.7))
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
 
                 if !viewModel.globalLeaderboard.recentMatches.isEmpty {
                     Button {
                         showRecentMatches = true
                     } label: {
-                        HStack(spacing: 3) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 9))
+                                .font(FELDesign.Typography.statSmall)
                             Text("HISTORY")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .font(FELDesign.Typography.statSmall)
                         }
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                     }
                 }
             }
         }
-        .padding(.top, 20)
+        .padding(.top, FELDesign.Space.lg)
     }
 
     private var centerContent: some View {
@@ -132,36 +135,25 @@ struct MatchmakingView: View {
     }
 
     private var idleState: some View {
-        VStack(spacing: 24) {
-            ZStack {
-                ForEach(0..<3, id: \.self) { ring in
-                    Circle()
-                        .stroke(Theme.brandCyan.opacity(0.08 + Double(ring) * 0.04), lineWidth: 1)
-                        .frame(width: CGFloat(100 + ring * 40), height: CGFloat(100 + ring * 40))
-                }
+        VStack(spacing: FELDesign.Space.lg) {
+            PRQTierBadge(tier: userTier, prq: viewModel.competitivePRQScore)
 
-                PRQTierBadge(tier: userTier, prq: viewModel.competitivePRQScore)
-            }
-
-            VStack(spacing: 8) {
+            VStack(spacing: FELDesign.Space.xs) {
                 Text("FIND OPPONENT")
-                    .font(.system(size: 24, weight: .black))
-                    .foregroundStyle(.white)
+                    .font(FELDesign.Typography.title)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
 
                 Text("Match by PRQ tier for balanced competition")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("TIER FILTER")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .tracking(2)
+            VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
+                FELMicroLabel(text: "Tier Filter")
 
                 ScrollView(.horizontal) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         TierChip(label: "ANY", isSelected: selectedTier == nil) {
                             selectedTier = nil
                         }
@@ -190,27 +182,23 @@ struct MatchmakingView: View {
                     )
                 }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "magnifyingglass")
                     Text("SEARCH")
                 }
-                .font(.system(.subheadline, design: .monospaced, weight: .black))
-                .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Theme.brandCyan)
-                .clipShape(.rect(cornerRadius: 14))
             }
-            .padding(.horizontal, 32)
+            .buttonStyle(FELPrimaryButtonStyle())
+            .padding(.horizontal, FELDesign.Space.xl)
         }
     }
 
     private func searchingState(tier: PRQTier) -> some View {
-        VStack(spacing: 24) {
+        VStack(spacing: FELDesign.Space.lg) {
             ZStack {
                 ForEach(0..<4, id: \.self) { ring in
                     Circle()
-                        .stroke(Theme.brandCyan.opacity(0.15), lineWidth: 1.5)
+                        .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                         .frame(width: CGFloat(60 + ring * 30), height: CGFloat(60 + ring * 30))
                         .scaleEffect(searchingPhase ? 1.2 : 0.9)
                         .opacity(searchingPhase ? 0.2 : 0.6)
@@ -222,30 +210,30 @@ struct MatchmakingView: View {
 
                 Image(systemName: "antenna.radiowaves.left.and.right")
                     .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
+                    .foregroundStyle(FELDesign.Colors.cyan)
                     .symbolEffect(.variableColor.iterative, isActive: true)
             }
 
-            VStack(spacing: 8) {
-                Text("SEARCHING...")
-                    .font(.system(size: 22, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
+            VStack(spacing: FELDesign.Space.xs) {
+                Text("SEARCHING…")
+                    .font(FELDesign.Typography.heading)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
 
                 Text("Looking for \(tier.rawValue) opponents")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan.opacity(0.7))
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
 
                 Text("Scanning \(viewModel.globalLeaderboard.onlinePlayerCount) active players")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
             }
 
             Button {
                 viewModel.globalLeaderboard.cancelMatchmaking()
             } label: {
                 Text("CANCEL")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
         }
         .onAppear {
@@ -254,58 +242,56 @@ struct MatchmakingView: View {
     }
 
     private func foundState(result: MatchmakingResult) -> some View {
-        VStack(spacing: 24) {
-            HStack(spacing: 20) {
-                VStack(spacing: 8) {
+        VStack(spacing: FELDesign.Space.lg) {
+            HStack(spacing: FELDesign.Space.lg) {
+                VStack(spacing: FELDesign.Space.xs) {
                     ZStack {
                         Circle()
-                            .fill(Theme.brandBlue.opacity(0.1))
+                            .fill(FELDesign.Colors.surfaceRaised)
                             .frame(width: 64, height: 64)
+                            .overlay(Circle().stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline))
 
                         Image(systemName: viewModel.profile.avatarSystemName)
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundStyle(Theme.brandBlue)
+                            .foregroundStyle(FELDesign.Colors.cyan)
                     }
 
-                    Text("YOU")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                    FELMicroLabel(text: "You")
 
                     Text(String(format: "%.0f", viewModel.competitivePRQScore))
-                        .font(.system(.headline, design: .monospaced, weight: .black))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
 
-                VStack(spacing: 4) {
+                VStack(spacing: FELDesign.Space.xxs) {
                     Text("VS")
-                        .font(.system(size: 24, weight: .black))
-                        .foregroundStyle(Theme.brandCyan)
+                        .font(FELDesign.Typography.heading)
+                        .foregroundStyle(FELDesign.Colors.cyan)
 
                     matchQualityBadge(result.matchQuality)
                 }
 
-                VStack(spacing: 8) {
+                VStack(spacing: FELDesign.Space.xs) {
                     ZStack {
                         Circle()
-                            .fill(Color.red.opacity(0.1))
+                            .fill(FELDesign.Colors.surfaceRaised)
                             .frame(width: 64, height: 64)
+                            .overlay(Circle().stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline))
 
                         Image(systemName: result.opponent.avatarSystemName)
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundStyle(.red)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     }
 
-                    Text(result.opponent.displayName.prefix(8).uppercased())
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                    FELMicroLabel(text: String(result.opponent.displayName.prefix(8)))
 
                     Text(String(format: "%.0f", result.opponent.prqScore))
-                        .font(.system(.headline, design: .monospaced, weight: .black))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: FELDesign.Space.sm) {
                 StatPill(label: "TIER", value: result.opponent.tier.rawValue)
                 StatPill(label: "WIN RATE", value: String(format: "%.0f%%", result.opponent.winRate * 100))
                 StatPill(label: "GAMES", value: "\(result.opponent.totalGames)")
@@ -315,55 +301,46 @@ struct MatchmakingView: View {
                 matchPendingReadiness = result
                 showNeuralScan = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "bolt.fill")
                     Text("ACCEPT & CALIBRATE")
                 }
-                .font(.system(.subheadline, design: .monospaced, weight: .black))
-                .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Theme.brandCyan)
-                .clipShape(.rect(cornerRadius: 14))
             }
-            .padding(.horizontal, 32)
+            .buttonStyle(FELPrimaryButtonStyle())
+            .padding(.horizontal, FELDesign.Space.xl)
 
             Button {
                 viewModel.globalLeaderboard.cancelMatchmaking()
             } label: {
                 Text("FIND ANOTHER")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
         }
         .sensoryFeedback(.success, trigger: true)
     }
 
     private var failedState: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: FELDesign.Space.lg) {
             Image(systemName: "wifi.exclamationmark")
                 .font(.system(size: 40))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(FELDesign.Colors.textSecondary)
 
             Text("NO OPPONENTS FOUND")
-                .font(.system(size: 18, weight: .black, design: .monospaced))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.heading)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
 
             Text("Try a different tier or check back later")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textSecondary)
 
             Button {
                 viewModel.globalLeaderboard.cancelMatchmaking()
             } label: {
                 Text("TRY AGAIN")
-                    .font(.system(.subheadline, design: .monospaced, weight: .black))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 14)
-                    .background(Theme.brandBlue)
-                    .clipShape(.rect(cornerRadius: 14))
             }
+            .buttonStyle(FELPrimaryButtonStyle())
         }
     }
 
@@ -372,95 +349,87 @@ struct MatchmakingView: View {
             dismiss()
         } label: {
             Text("BACK TO ARENA")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
         }
-        .padding(.bottom, 20)
+        .padding(.bottom, FELDesign.Space.lg)
     }
 
     private var recentMatchesSheet: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 10) {
+                VStack(spacing: FELDesign.Space.xs) {
                     ForEach(viewModel.globalLeaderboard.recentMatches) { record in
-                        HStack(spacing: 12) {
+                        HStack(spacing: FELDesign.Space.sm) {
                             Circle()
-                                .fill(record.didWin ? Theme.brandCyan.opacity(0.15) : Color.red.opacity(0.15))
+                                .fill(FELDesign.Colors.surfaceRaised)
                                 .frame(width: 36, height: 36)
                                 .overlay(
                                     Image(systemName: record.didWin ? "trophy.fill" : "flag.fill")
                                         .font(.system(size: 14, weight: .bold))
-                                        .foregroundStyle(record.didWin ? Theme.brandCyan : .red)
+                                        .foregroundStyle(record.didWin ? FELDesign.Colors.success : FELDesign.Colors.danger)
                                 )
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                                 Text("vs \(record.opponentName.uppercased())")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.white)
+                                    .font(FELDesign.Typography.caption)
+                                    .foregroundStyle(FELDesign.Colors.textPrimary)
 
                                 Text("\(record.userScore) — \(record.opponentScore)")
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .foregroundStyle(.secondary)
+                                    .font(FELDesign.Typography.statSmall)
+                                    .foregroundStyle(FELDesign.Colors.textSecondary)
                             }
 
                             Spacer()
 
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text(record.opponentTier.rawValue)
-                                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(tierColor(record.opponentTier))
+                            VStack(alignment: .trailing, spacing: FELDesign.Space.xxs) {
+                                FELMicroLabel(text: record.opponentTier.rawValue, color: tierColor(record.opponentTier))
 
                                 Text(record.date, style: .relative)
-                                    .font(.system(size: 8, design: .monospaced))
-                                    .foregroundStyle(.tertiary)
+                                    .font(FELDesign.Typography.statSmall)
+                                    .foregroundStyle(FELDesign.Colors.textTertiary)
                             }
                         }
-                        .padding(12)
-                        .background(Theme.cardBackground)
-                        .clipShape(.rect(cornerRadius: 12))
+                        .felCard(padding: FELDesign.Space.sm)
                     }
                 }
                 .padding()
             }
-            .background(Theme.deepBlack)
+            .background(FELDesign.Colors.ink)
             .navigationTitle("Match History")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { showRecentMatches = false }
-                        .foregroundStyle(Theme.brandCyan)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .presentationDetents([.medium, .large])
-        .presentationBackground(Theme.deepBlack)
+        .presentationBackground(FELDesign.Colors.ink)
     }
 
     private func matchQualityBadge(_ quality: MatchQuality) -> some View {
         let color: Color = switch quality {
-        case .perfect: Theme.brandCyan
-        case .good: Theme.brandBlue
-        case .fair: .orange
+        case .perfect: FELDesign.Colors.cyan
+        case .good: FELDesign.Colors.textSecondary
+        case .fair: FELDesign.Colors.textTertiary
         }
 
-        return Text(quality.rawValue)
-            .font(.system(size: 8, weight: .black, design: .monospaced))
-            .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(color.opacity(0.1))
+        return FELMicroLabel(text: quality.rawValue, color: color)
+            .padding(.horizontal, FELDesign.Space.xs)
+            .padding(.vertical, FELDesign.Space.xxs)
+            .background(FELDesign.Colors.surfaceRaised)
             .clipShape(Capsule())
     }
 
     private func tierColor(_ tier: PRQTier) -> Color {
         switch tier {
-        case .diamond: Theme.brandCyan
-        case .platinum: Color(white: 0.85)
-        case .gold: .yellow
-        case .silver: Color(white: 0.7)
-        case .bronze: Color(red: 0.8, green: 0.5, blue: 0.2)
-        case .unranked: .gray
+        case .diamond: FELDesign.Colors.purple
+        case .platinum, .gold: FELDesign.Colors.textPrimary
+        case .silver, .bronze: FELDesign.Colors.textSecondary
+        case .unranked: FELDesign.Colors.textTertiary
         }
     }
 }
@@ -470,18 +439,19 @@ struct StatPill: View {
     let value: String
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: FELDesign.Space.xxs) {
             Text(value)
-                .font(.system(.caption, design: .monospaced, weight: .black))
-                .foregroundStyle(.white)
-            Text(label)
-                .font(.system(size: 7, weight: .bold, design: .monospaced))
-                .foregroundStyle(.tertiary)
-                .tracking(1)
+                .font(FELDesign.Typography.stat)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
+            FELMicroLabel(text: label)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(Theme.cardBackground)
-        .clipShape(.rect(cornerRadius: 10))
+        .padding(.vertical, FELDesign.Space.sm)
+        .background(FELDesign.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
+        )
     }
 }

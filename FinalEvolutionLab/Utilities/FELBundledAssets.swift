@@ -18,12 +18,20 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     case elijahKarateCombo = "ElijahKarateCombo"
     case elijahDunk = "ElijahDunk"
 
+    // Karate strike one-shots — Meshy preset animations on the Elijah Bonds
+    // model, converted via blender_to_usdz.py (see PR context: strike playback).
+    case elijahStrikeJab = "ElijahStrikeJab"
+    case elijahStrikeHook = "ElijahStrikeHook"
+    case elijahStrikeUppercut = "ElijahStrikeUppercut"
+    case elijahStrikeRoundhouse = "ElijahStrikeRoundhouse"
+    case elijahStrikeHighKick = "ElijahStrikeHighKick"
+    case elijahGuard = "ElijahGuard"
+
     // NPCs — other Meshy models auto-rigged (autorig_npc.py) and driven by
     // retargeted Seeles clips.
     case npcEricNashIdle = "NPCEricNashIdle"
     case npcEricNashKarateCombo = "NPCEricNashKarateCombo"
     case npcTallAthleticIdle = "NPCTallAthleticIdle"
-    case npcFemaleStrongIdle = "NPCFemaleStrongIdle"
 
     var isVenue: Bool {
         switch self {
@@ -37,8 +45,10 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     var isPipelineClip: Bool {
         switch self {
         case .elijahKarateIdle, .elijahKarateCombo, .elijahDunk,
+             .elijahStrikeJab, .elijahStrikeHook, .elijahStrikeUppercut,
+             .elijahStrikeRoundhouse, .elijahStrikeHighKick, .elijahGuard,
              .npcEricNashIdle, .npcEricNashKarateCombo,
-             .npcTallAthleticIdle, .npcFemaleStrongIdle:
+             .npcTallAthleticIdle:
             return true
         default:
             return false
@@ -98,6 +108,10 @@ enum FELBundledAssets {
                 ?? node.childNode(withName: "RightFoot", recursively: true)
             if let head, let foot {
                 // Head joint sits ~8% below the crown; feet joints ~ankle height.
+                // NOTE: do NOT re-root here from rest-pose joints — animated
+                // hips differ from rest hips and clips exported through the
+                // mocap pipeline are already re-rooted. Source-side re-rooting
+                // (blender_to_usdz/mocap_pipeline) is the single owner of that.
                 let jointSpan = head.worldPosition.y - foot.worldPosition.y
                 if jointSpan > 0.0001 {
                     let scale = height / (jointSpan * 1.12)

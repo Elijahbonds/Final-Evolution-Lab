@@ -32,7 +32,7 @@ struct DashboardView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: FELDesign.Space.lg) {
                     headerSection
                     backendConnectionCard
                     quickRoutesCard
@@ -53,15 +53,15 @@ struct DashboardView: View {
                     shareToFeedButton
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 32)
+                .padding(.bottom, FELDesign.Space.xl)
             }
             .scrollIndicators(.hidden)
-            .background(Theme.slateBackground)
+            .background(FELDesign.Colors.ink)
 
             if bridgeToastVisible {
                 bridgeSyncToast
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 28)
+                    .padding(.horizontal, FELDesign.Space.lg)
+                    .padding(.bottom, FELDesign.Space.lg)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -132,20 +132,20 @@ struct DashboardView: View {
     }
 
     private var bridgeSyncToast: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: FELDesign.Space.sm) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Theme.neonGreen)
+                .font(FELDesign.Typography.body.weight(.semibold))
+                .foregroundStyle(FELDesign.Colors.success)
             Text("Scan synced · bridge sent")
-                .font(.system(size: 13, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.stat)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.horizontal, FELDesign.Space.md)
+        .padding(.vertical, FELDesign.Space.sm)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(
             Capsule()
-                .strokeBorder(Theme.neonGreen.opacity(0.35), lineWidth: 1)
+                .strokeBorder(FELDesign.Colors.glow(FELDesign.Colors.success), lineWidth: FELDesign.Stroke.hairline)
         )
     }
 
@@ -163,25 +163,22 @@ struct DashboardView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Your performance")
-                .font(FELTypography.caption())
-                .foregroundStyle(Theme.neonGreen)
-                .tracking(1)
+        VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+            FELMicroLabel(text: "Your performance", color: FELDesign.Colors.cyan)
 
             Text("Status")
-                .font(FELTypography.display(44))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.display)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 8)
+        .padding(.top, FELDesign.Space.xs)
     }
 
     private var backendConnectionCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             Text("Connections")
-                .font(FELTypography.headline(13))
-                .foregroundStyle(.secondary)
+                .font(FELDesign.Typography.label)
+                .foregroundStyle(FELDesign.Colors.textSecondary)
 
             backendLaneRow(
                 title: "AI Studio",
@@ -200,19 +197,11 @@ struct DashboardView: View {
             )
 
             Text("Core app boot requires AI Studio only. Firebase is optional for distribution and cloud sync.")
-                .font(FELTypography.caption(10))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.brandBlue.opacity(0.15), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private var aiStudioStatusPill: FELStatusPill {
@@ -236,17 +225,17 @@ struct DashboardView: View {
     }
 
     private var quickRoutesCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             Text("Quick access")
-                .font(FELTypography.headline(13))
-                .foregroundStyle(.secondary)
+                .font(FELDesign.Typography.label)
+                .foregroundStyle(FELDesign.Colors.textSecondary)
 
             Button { showTrainingHub = true } label: {
                 dashboardRouteRow(
                     title: "Train",
                     subtitle: "Workouts · drills · recovery",
                     icon: "figure.highintensity.intervaltraining",
-                    color: Theme.brandBlue,
+                    color: FELDesign.Colors.cyan,
                     previewText: nil
                 )
             }
@@ -257,7 +246,7 @@ struct DashboardView: View {
                     title: "Agent",
                     subtitle: "List modes · playtest · build gate",
                     icon: "sparkles",
-                    color: Theme.elitePurple,
+                    color: FELDesign.Colors.purple,
                     previewText: FELPremiumCopy.Preview.toolChips
                 )
             }
@@ -268,7 +257,7 @@ struct DashboardView: View {
                     title: "3D MoCap Studio",
                     subtitle: "Markerless 3D motion capture & playback",
                     icon: "figure.walk.motion",
-                    color: Theme.brandCyan,
+                    color: FELDesign.Colors.cyan,
                     previewText: "BETA"
                 )
             }
@@ -279,21 +268,13 @@ struct DashboardView: View {
                     title: "Face Scan Studio",
                     subtitle: "Markerless 3D face scan & Live Link",
                     icon: "faceid",
-                    color: Theme.brandCyan,
+                    color: FELDesign.Colors.cyan,
                     previewText: "LIVE LINK"
                 )
             }
             .buttonStyle(.plain)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private func backendLaneRow(
@@ -303,56 +284,53 @@ struct DashboardView: View {
         pill: FELStatusPill,
         detail: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
+            HStack(spacing: FELDesign.Space.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(FELDesign.Typography.label)
                     .foregroundStyle(pill.style.color)
                     .frame(width: 32, height: 32)
                     .background(Circle().fill(pill.style.color.opacity(0.12)))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         Text(title)
-                            .font(FELTypography.headline(13))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.label)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                         pill
                     }
                     Text(subtitle)
-                        .font(FELTypography.caption(10))
-                        .foregroundStyle(.tertiary)
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                 }
                 Spacer()
             }
 
             Text(detail)
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .font(FELDesign.Typography.statSmall)
+                .foregroundStyle(FELDesign.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var arenaLaunchCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
                 Image(systemName: "gamecontroller.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
-                Text("ARENA · NEXUS")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.cyan)
+                FELMicroLabel(text: "Arena · Nexus", color: FELDesign.Colors.textSecondary)
                 Spacer()
                 Text("\(GameModeRegistry.catalogModes.count) MODES")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.cyan)
             }
 
             Text("Dunk Contest → Metal when venue mesh bundled · else SceneKit · NEXUS_USE_METAL=1 forces Metal")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
 
-            HStack(spacing: 10) {
+            HStack(spacing: FELDesign.Space.sm) {
                 ForEach(GameModeRegistry.nexusSprintModes.prefix(3)) { mode in
                     Button {
                         pendingArenaMode = mode
@@ -360,11 +338,11 @@ struct DashboardView: View {
                         navigateToArenaGame = true
                     } label: {
                         Text(mode.name)
-                            .font(.system(size: 10, weight: .black))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.micro)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                             .lineLimit(1)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, FELDesign.Space.sm)
+                            .padding(.vertical, FELDesign.Space.xs)
                             .background(mode.accentColor.opacity(0.18))
                             .clipShape(Capsule())
                     }
@@ -377,38 +355,28 @@ struct DashboardView: View {
             } label: {
                 HStack {
                     Text("OPEN MODE PICKER")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .font(FELDesign.Typography.micro)
+                        .tracking(FELDesign.Typography.microTracking)
                     Spacer()
                     Image(systemName: "chevron.right")
                 }
-                .foregroundStyle(Theme.brandCyan)
-                .padding(.vertical, 10)
+                .foregroundStyle(FELDesign.Colors.cyan)
+                .padding(.vertical, FELDesign.Space.sm)
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.brandCyan.opacity(0.2), lineWidth: 1)
-                )
-        )
+        .felCard()
     }
 
     private var educationRoutesCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("EDUCATION")
-                .font(.system(size: 10, weight: .black, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .tracking(2)
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Education")
 
             Button { showBodyIQLab = true } label: {
                 dashboardRouteRow(
                     title: "Body IQ Lab",
                     subtitle: "Movement snacks · drawing-in · prescriptions",
                     icon: "figure.flexibility",
-                    color: Theme.elitePurple,
+                    color: FELDesign.Colors.purple,
                     previewText: FELPremiumCopy.Preview.nexusEducation
                 )
             }
@@ -419,21 +387,13 @@ struct DashboardView: View {
                     title: "Bio-Digital Anatomy",
                     subtitle: "SceneKit anatomy stub — not UE FELEducationEngine",
                     icon: "figure.stand",
-                    color: Theme.brandCyan,
+                    color: FELDesign.Colors.cyan,
                     previewText: FELPremiumCopy.Preview.sceneKitStub
                 )
             }
             .buttonStyle(.plain)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.elitePurple.opacity(0.15), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private func dashboardRouteRow(
@@ -443,44 +403,41 @@ struct DashboardView: View {
         color: Color,
         previewText: String?
     ) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: FELDesign.Space.sm) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .bold))
+                .font(FELDesign.Typography.body.weight(.bold))
                 .foregroundStyle(color)
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(color.opacity(0.12)))
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Text(title)
-                        .font(FELTypography.headline(13))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                     if let previewText {
                         FELFeaturePreviewIndicator(previewText: previewText)
                     }
                 }
                 Text(subtitle)
-                    .font(FELTypography.caption())
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
                     .multilineTextAlignment(.leading)
             }
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, FELDesign.Space.xxs)
     }
 
     private var sessionReceiptCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
                 Image(systemName: "doc.text.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.neonGreen)
-                Text("SESSION RECEIPTS")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.cyan)
+                FELMicroLabel(text: "Session Receipts", color: FELDesign.Colors.textSecondary)
                 Spacer()
                 FELStatusPill(
                     text: receiptQueueSnapshot.canPost ? "Live post" : "Local only",
@@ -494,20 +451,20 @@ struct DashboardView: View {
             }
 
             Text("\(receiptQueueSnapshot.pendingCount) pending · \(receiptQueueSnapshot.queueDirectory)")
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.statSmall)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .lineLimit(2)
 
             if let receiptStatusMessage {
                 Text(receiptStatusMessage)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(receiptQueueSnapshot.canPost ? Theme.neonGreen : .orange)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(receiptQueueSnapshot.canPost ? FELDesign.Colors.success : FELDesign.Colors.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             Text("Gameplay ends → flush to ~/.fel/pending_receipts → POST \(Config.gameplaySessionReceiptURL) when backend auth is available (FEL_BACKEND_AUTH_TOKEN or Firebase). Shards/PRQ apply only on HTTP 2xx (see NexusEconomyAuthority).")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
@@ -527,23 +484,15 @@ struct DashboardView: View {
                 }
             } label: {
                 Text(receiptQueueSnapshot.canPost ? FELPremiumCopy.Receipt.uploadPending : FELPremiumCopy.Receipt.refreshQueue)
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Theme.neonGreen)
-                    .clipShape(.rect(cornerRadius: 10))
+                    .padding(.vertical, FELDesign.Space.sm)
+                    .background(FELDesign.Colors.cyan)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.neonGreen.opacity(0.15), lineWidth: 0.5)
-                )
-        )
+        .felCard()
         .onAppear {
             receiptQueueSnapshot = SessionReceiptUploadService.queueSnapshot()
             receiptStatusMessage = SessionReceiptUploadService.lastDrainSummary?.lastErrorMessage
@@ -551,77 +500,64 @@ struct DashboardView: View {
     }
 
     private var prqGaugeCard: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: FELDesign.Space.md) {
             ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(0.06), lineWidth: 12)
+                    .stroke(FELDesign.Colors.hairline, lineWidth: 12)
                     .frame(width: 180, height: 180)
 
                 Circle()
                     .trim(from: 0, to: gaugeAnimationProgress)
                     .stroke(
-                        AngularGradient(
-                            colors: [Theme.neonGreen.opacity(0.4), Theme.neonGreen, Theme.neonGreen.opacity(0.8)],
-                            center: .center,
-                            startAngle: .degrees(0),
-                            endAngle: .degrees(360)
-                        ),
+                        FELDesign.Colors.cyan,
                         style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
                     .frame(width: 180, height: 180)
                     .rotationEffect(.degrees(-90))
 
                 Circle()
-                    .fill(Theme.neonGreen.opacity(0.05))
+                    .fill(FELDesign.Colors.glow(FELDesign.Colors.cyan, 0.05))
                     .frame(width: 156, height: 156)
 
-                VStack(spacing: 4) {
+                VStack(spacing: FELDesign.Space.xxs) {
                     Text("\(prqScore)")
                         .font(.system(size: 56, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                         .contentTransition(.numericText())
 
                     Text("PRQ")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(Theme.neonGreen)
-                        .tracking(4)
+                        .font(FELDesign.Typography.micro)
+                        .tracking(FELDesign.Typography.microTracking)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                 }
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: FELDesign.Space.sm) {
                 Text(viewModel.userPRQTier.rawValue)
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .font(FELDesign.Typography.micro)
                     .foregroundStyle(tierColor)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, FELDesign.Space.sm)
+                    .padding(.vertical, FELDesign.Space.xxs)
                     .background(tierColor.opacity(0.12))
                     .clipShape(Capsule())
 
                 Text("\(viewModel.profile.totalWorkouts) sessions")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.tertiary)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
             }
         }
-        .padding(24)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(Theme.neonGreen.opacity(0.15), lineWidth: 1)
-                )
-        )
+        .felCard(padding: FELDesign.Space.lg)
     }
 
     private var healthKitRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: FELDesign.Space.sm) {
             healthMetricTile(
                 icon: "flame.fill",
                 value: String(format: "%.0f", viewModel.healthKit.activeCalories),
                 unit: "kcal",
                 label: "ACTIVE",
-                color: .orange
+                color: FELDesign.Colors.cyan
             )
 
             healthMetricTile(
@@ -629,7 +565,7 @@ struct DashboardView: View {
                 value: "—",
                 unit: "steps",
                 label: "STEPS",
-                color: Theme.neonGreen
+                color: FELDesign.Colors.cyan
             )
 
             healthMetricTile(
@@ -637,73 +573,62 @@ struct DashboardView: View {
                 value: viewModel.healthKit.heartRate > 0 ? String(format: "%.0f", viewModel.healthKit.heartRate) : "—",
                 unit: "bpm",
                 label: "HR",
-                color: .red
+                color: FELDesign.Colors.cyan
             )
         }
     }
 
     private func healthMetricTile(icon: String, value: String, unit: String, label: String, color: Color) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: FELDesign.Space.xs) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+                .font(FELDesign.Typography.body.weight(.semibold))
                 .foregroundStyle(color)
 
-            VStack(spacing: 2) {
+            VStack(spacing: FELDesign.Space.xxs) {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
-                        .font(.system(size: 20, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.statLarge)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                     Text(unit)
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.tertiary)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                 }
 
                 Text(label)
-                    .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                    .font(FELDesign.Typography.micro)
+                    .tracking(FELDesign.Typography.microTracking)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(color.opacity(0.1), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private var motionStreamCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
                 Image(systemName: "gyroscope")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.neonGreen)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.cyan)
 
-                Text("BIOMETRIC STREAM")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                FELMicroLabel(text: "Biometric Stream", color: FELDesign.Colors.textSecondary)
 
                 Spacer()
 
                 Circle()
-                    .fill(motionHelper.isStreaming ? Theme.neonGreen : Color.gray)
+                    .fill(motionHelper.isStreaming ? FELDesign.Colors.success : FELDesign.Colors.textTertiary)
                     .frame(width: 8, height: 8)
 
                 Text(motionHelper.isStreaming ? "LIVE" : "OFF")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(motionHelper.isStreaming ? Theme.neonGreen : .secondary)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(motionHelper.isStreaming ? FELDesign.Colors.success : FELDesign.Colors.textSecondary)
             }
 
             if motionHelper.isStreaming {
-                HStack(spacing: 16) {
-                    motionAxis(label: "X", value: motionHelper.accelerationX, color: .red)
-                    motionAxis(label: "Y", value: motionHelper.accelerationY, color: Theme.neonGreen)
-                    motionAxis(label: "Z", value: motionHelper.accelerationZ, color: Theme.brandBlue)
+                HStack(spacing: FELDesign.Space.md) {
+                    motionAxis(label: "X", value: motionHelper.accelerationX, color: FELDesign.Colors.textSecondary)
+                    motionAxis(label: "Y", value: motionHelper.accelerationY, color: FELDesign.Colors.cyan)
+                    motionAxis(label: "Z", value: motionHelper.accelerationZ, color: FELDesign.Colors.textPrimary)
                 }
             }
 
@@ -715,51 +640,39 @@ struct DashboardView: View {
                 }
             } label: {
                 Text(motionHelper.isStreaming ? "STOP STREAM" : "START STREAM")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .tracking(1)
-                    .foregroundStyle(motionHelper.isStreaming ? .white : .black)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(motionHelper.isStreaming ? FELDesign.Colors.textPrimary : FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(motionHelper.isStreaming ? Color.white.opacity(0.08) : Theme.neonGreen)
-                    .clipShape(.rect(cornerRadius: 10))
+                    .padding(.vertical, FELDesign.Space.sm)
+                    .background(motionHelper.isStreaming ? FELDesign.Colors.surfaceRaised : FELDesign.Colors.cyan)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private func motionAxis(label: String, value: Double, color: Color) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: FELDesign.Space.xxs) {
             Text(label)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .font(FELDesign.Typography.statSmall)
                 .foregroundStyle(color)
 
             Text(String(format: "%.2f", value))
-                .font(.system(size: 16, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.stat)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
                 .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity)
     }
 
     private var scanToGenerateCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
                 Image(systemName: "viewfinder.circle.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.cyan)
 
-                Text("SCAN TO GENERATE")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                FELMicroLabel(text: "Scan to Generate", color: FELDesign.Colors.textSecondary)
 
                 Spacer()
 
@@ -767,54 +680,36 @@ struct DashboardView: View {
             }
 
             Text(FELPremiumCopy.Emulator.scanToArena)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
                 showScanToGenerate = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "sparkles")
                     Text("OPEN SCAN FLOW")
                 }
-                .font(.system(size: 11, weight: .black, design: .monospaced))
-                .tracking(1)
-                .foregroundStyle(.black)
+                .font(FELDesign.Typography.label)
+                .foregroundStyle(FELDesign.Colors.ink)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    LinearGradient(
-                        colors: [Theme.brandCyan, Theme.brandBlue.opacity(0.85)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .clipShape(.rect(cornerRadius: 12))
+                .padding(.vertical, FELDesign.Space.sm)
+                .background(FELDesign.Colors.cyan)
+                .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.brandCyan.opacity(0.15), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private var gameGeneratorCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
                 Image(systemName: "wand.and.stars")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.elitePurple)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.purple)
 
-                Text("GAME GENERATOR")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                FELMicroLabel(text: "Game Generator", color: FELDesign.Colors.textSecondary)
 
                 Spacer()
 
@@ -822,121 +717,92 @@ struct DashboardView: View {
             }
 
             Text(FELPremiumCopy.Emulator.describeToGame)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
                 showGameGenerator = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "gamecontroller.fill")
                     Text("OPEN GENERATOR")
                 }
-                .font(.system(size: 11, weight: .black, design: .monospaced))
-                .tracking(1)
-                .foregroundStyle(.black)
+                .font(FELDesign.Typography.label)
+                .foregroundStyle(FELDesign.Colors.ink)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    LinearGradient(
-                        colors: [Theme.elitePurple, Theme.brandCyan.opacity(0.85)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .clipShape(.rect(cornerRadius: 12))
+                .padding(.vertical, FELDesign.Space.sm)
+                .background(FELDesign.Colors.cyan)
+                .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.elitePurple.opacity(0.15), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private var neuralSyncCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
                 Image(systemName: "brain.head.profile.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.brandBlue)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.cyan)
 
-                Text("NEURAL SYNC")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                FELMicroLabel(text: "Neural Sync", color: FELDesign.Colors.textSecondary)
 
                 Spacer()
 
                 let isLinked = NexusGameplayBridge.isLinked
                 Circle()
-                    .fill(isLinked ? Theme.neonGreen : .orange)
+                    .fill(isLinked ? FELDesign.Colors.success : FELDesign.Colors.textTertiary)
                     .frame(width: 8, height: 8)
 
                 Text(isLinked ? "LINKED" : "STANDBY")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(isLinked ? Theme.neonGreen : .orange)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(isLinked ? FELDesign.Colors.success : FELDesign.Colors.textTertiary)
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: FELDesign.Space.sm) {
                 syncMetric(label: "Neural Drive", value: String(format: "%.0f", viewModel.effectiveMetrics.neuralDrive), icon: "bolt.fill")
                 syncMetric(label: "Readiness", value: String(format: "%.0f", viewModel.effectiveMetrics.readinessScore), icon: "waveform.path.ecg")
                 syncMetric(label: "Efficiency", value: String(format: "%.0f", viewModel.effectiveMetrics.efficiencyScore), icon: "gauge.with.dots.needle.33percent")
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.brandBlue.opacity(0.1), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private func syncMetric(label: String, value: String, icon: String) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: FELDesign.Space.xxs) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.brandBlue)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
 
             Text(value)
-                .font(.system(size: 18, weight: .black, design: .monospaced))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.stat)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
 
             Text(label.uppercased())
-                .font(.system(size: 7, weight: .bold, design: .monospaced))
-                .foregroundStyle(.tertiary)
-                .tracking(1)
+                .font(FELDesign.Typography.micro)
+                .tracking(FELDesign.Typography.microTracking)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
         }
         .frame(maxWidth: .infinity)
     }
 
 #if DEBUG
     private var simulateSystemScanDebugCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
                 Image(systemName: "ladybug.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.orange)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.danger)
 
-                Text("DEBUG · SYSTEM SCAN")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                FELMicroLabel(text: "Debug · System Scan", color: FELDesign.Colors.textSecondary)
 
                 Spacer()
             }
 
             Text("Writes a mock scan to Firestore and queues JSON for NEXUS gameplay bridge (if linked). Check Xcode console for bridge logs.")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
 
             Button {
                 Task {
@@ -951,135 +817,114 @@ struct DashboardView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     if simulateScanBusy {
                         ProgressView()
-                            .tint(.black)
+                            .tint(FELDesign.Colors.ink)
                     } else {
                         Image(systemName: "waveform.badge.magnifyingglass")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(FELDesign.Typography.label)
                     }
                     Text(simulateScanBusy ? "SYNCING…" : "SIMULATE SCAN")
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .tracking(1)
+                        .font(FELDesign.Typography.label)
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(FELDesign.Colors.ink)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.orange.opacity(0.9))
-                .clipShape(.rect(cornerRadius: 12))
+                .padding(.vertical, FELDesign.Space.sm)
+                .background(FELDesign.Colors.danger)
+                .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
             .disabled(simulateScanBusy)
 
             if let simulateScanMessage {
                 Text(simulateScanMessage)
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(simulateScanMessage.contains("synced") ? Theme.neonGreen : .orange)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(simulateScanMessage.contains("synced") ? FELDesign.Colors.success : FELDesign.Colors.danger)
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.orange.opacity(0.25), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 #endif
 
     private var nexusStudioCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
                 Image(systemName: "hammer.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.brandCyan)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.cyan)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("NEXUS STUDIO")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .tracking(2)
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: "Nexus Studio", color: FELDesign.Colors.textSecondary)
                     Text("Editor · Run · Cursor bridge")
-                        .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.tertiary)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.textTertiary)
                 }
 
                 Spacer()
 
-                FELFeaturePreviewIndicator(previewText: FELPremiumCopy.Preview.ideV03, dotColor: Theme.brandCyan)
+                FELFeaturePreviewIndicator(previewText: FELPremiumCopy.Preview.ideV03, dotColor: FELDesign.Colors.cyan)
             }
 
             Text("Embedded code browser for engine/, FinalEvolutionLab/, app/gameplay/, and assets/. Search, recent files, sandbox edits, and in-app playtest.")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
                 NexusStudioCoordinator.shared.open(panel: .editor)
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "chevron.left.forwardslash.chevron.right")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(FELDesign.Typography.label)
                     Text("OPEN NEXUS STUDIO")
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .tracking(1)
+                        .font(FELDesign.Typography.label)
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(FELDesign.Colors.ink)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Theme.brandCyan)
-                .clipShape(.rect(cornerRadius: 12))
+                .padding(.vertical, FELDesign.Space.sm)
+                .background(FELDesign.Colors.cyan)
+                .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
 
             Button {
                 NexusStudioCoordinator.shared.openRunPanel(modeId: nil)
             } label: {
                 Label("Open Studio Run panel", systemImage: "play.rectangle")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(FELDesign.Typography.caption)
             }
             .buttonStyle(.borderless)
-            .foregroundStyle(Theme.neonGreen)
+            .foregroundStyle(FELDesign.Colors.cyan)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Theme.slateCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.brandCyan.opacity(0.2), lineWidth: 0.5)
-                )
-        )
+        .felCard()
     }
 
     private var shareToFeedButton: some View {
         Button {
             showShareToFeed = true
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "square.and.arrow.up.fill")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(FELDesign.Typography.label)
                 Text("SHARE TO FEED")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .tracking(2)
+                    .font(FELDesign.Typography.label)
+                    .tracking(FELDesign.Typography.microTracking)
             }
-            .foregroundStyle(.black)
+            .foregroundStyle(FELDesign.Colors.ink)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Theme.neonGreen)
-            .clipShape(.rect(cornerRadius: 14))
+            .padding(.vertical, FELDesign.Space.md)
+            .background(FELDesign.Colors.cyan)
+            .clipShape(.rect(cornerRadius: FELDesign.Radius.lg))
         }
     }
 
     private var tierColor: Color {
         switch viewModel.userPRQTier {
-        case .diamond: .yellow
-        case .platinum: Theme.elitePurple
-        case .gold: .orange
-        case .silver: Theme.brandBlue
-        case .bronze: Theme.neonGreen
-        case .unranked: .gray
+        case .diamond: FELDesign.Colors.cyan
+        case .platinum: FELDesign.Colors.purple
+        case .gold: FELDesign.Colors.textPrimary
+        case .silver: FELDesign.Colors.textSecondary
+        case .bronze: FELDesign.Colors.textTertiary
+        case .unranked: FELDesign.Colors.textTertiary
         }
     }
 }

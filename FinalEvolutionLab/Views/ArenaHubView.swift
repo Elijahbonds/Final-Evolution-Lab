@@ -12,8 +12,8 @@ struct ArenaHubView: View {
     var body: some View {
         VStack(spacing: 0) {
             arenaSegmentPicker
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, FELDesign.Space.md)
+                .padding(.vertical, FELDesign.Space.sm)
 
             Group {
                 switch segment {
@@ -31,40 +31,40 @@ struct ArenaHubView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Theme.deepBlack)
+        .background(FELDesign.Colors.ink)
     }
 
     private var arenaSegmentPicker: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: FELDesign.Space.xxs) {
             ForEach(ArenaSegment.allCases) { tab in
                 Button {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
                         segment = tab
                     }
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(FELDesign.Typography.micro)
                         Text(tab.title)
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .font(FELDesign.Typography.caption)
                     }
-                    .foregroundStyle(segment == tab ? .black : .white.opacity(0.72))
+                    .foregroundStyle(segment == tab ? FELDesign.Colors.ink : FELDesign.Colors.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, FELDesign.Space.xs)
                     .background(
                         Capsule()
-                            .fill(segment == tab ? tab.accentColor : Color.white.opacity(0.05))
+                            .fill(segment == tab ? FELDesign.Colors.cyan : Color.clear)
                     )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("ArenaSegment_\(tab.rawValue)")
             }
         }
-        .padding(4)
+        .padding(FELDesign.Space.xxs)
         .background(
             Capsule()
-                .fill(Theme.slateCard)
-                .overlay(Capsule().strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5))
+                .fill(FELDesign.Colors.surface)
+                .overlay(Capsule().strokeBorder(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline))
         )
         .accessibilityIdentifier("ArenaSegmentedControl")
     }
@@ -90,14 +90,6 @@ private enum ArenaSegment: String, CaseIterable, Identifiable {
         case .feed: return "person.3.fill"
         case .modes: return "gamecontroller.fill"
         case .create: return "wand.and.stars"
-        }
-    }
-
-    var accentColor: Color {
-        switch self {
-        case .feed: return Theme.brandBlue
-        case .modes: return Theme.neonGreen
-        case .create: return Theme.elitePurple
         }
     }
 }
