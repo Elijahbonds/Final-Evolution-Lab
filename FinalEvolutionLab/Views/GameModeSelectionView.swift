@@ -39,10 +39,11 @@ struct GameModeSelectionView: View {
         .background(Theme.deepBlack)
         .navigationDestination(item: $gameplayRoute) { modeId in
             if modeId == .brainBrawl {
-                BrainBrawl2DView(
+                // Pure SwiftUI Kahoot-style quiz — no GamePlayView/SceneKit shell.
+                BrainBrawlView(
                     viewModel: viewModel,
                     gameMode: GameModeRegistry.mode(for: .brainBrawl),
-                    onDismiss: { gameplayRoute = nil }
+                    onExit: { gameplayRoute = nil }
                 )
                 .id(gameplayLaunchId)
             } else if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
