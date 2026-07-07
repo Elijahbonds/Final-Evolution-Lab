@@ -6,6 +6,7 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showExportAlert: Bool = false
     @State private var exportJSON: String = ""
+    @State private var showControllerTest: Bool = false
     @AppStorage(Config.useFirebaseEmulatorsDefaultsKey) private var useFirebaseEmulators: Bool = false
     @AppStorage(Config.emulatorShellDefaultsKey) private var useEmulatorShell: Bool = true
     @AppStorage(Config.crtScanlineDefaultsKey) private var crtScanlinesEnabled: Bool = true
@@ -157,6 +158,27 @@ struct SettingsSheet: View {
                 }
 
                 Section {
+                    Button {
+                        showControllerTest = true
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Controller Test Scene")
+                                    .font(.body.weight(.semibold))
+                                Text("Shared gamepad + design tokens, landscape")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "gamecontroller")
+                                .foregroundStyle(Theme.brandCyan)
+                        }
+                    }
+                } header: {
+                    Text("Developer")
+                }
+
+                Section {
                     Label {
                         Text("Version 2.0")
                     } icon: {
@@ -182,6 +204,9 @@ struct SettingsSheet: View {
         }
         .presentationDetents([.medium])
         .presentationBackground(Theme.deepBlack)
+        .fullScreenCover(isPresented: $showControllerTest) {
+            ControllerTestSceneView()
+        }
         .alert("Unity Manifest", isPresented: $showExportAlert) {
             Button("Copy to Clipboard") {
                 UIPasteboard.general.string = exportJSON
