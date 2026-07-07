@@ -8,6 +8,8 @@ babel.config.js
 metro.config.js
 package.json
 package-lock.json
+# CI reproducibility: frontend lockfile is committed (npm ci in .github/workflows/ci.yml)
+!frontend/package-lock.json
 tsconfig.json
 app.json
 

@@ -1,0 +1,43 @@
+# iOS archive DRY RUN — no signing, no export, no secrets.
+#
+# This workflow exists in place of an Android AAB build: the repo has no
+# Android project (see infra/ANDROID_AAB_STATUS.md). It validates that the
+# NEXUS static libraries cross-compile for the iOS SDK and that archive
+# preflight passes, using scripts/archive-ios-testflight.sh --dry-run.
+#
+# Manual trigger only: macOS runners are expensive and the full app archive
+# requires signing secrets that are deliberately not in CI.
+name: iOS archive dry-run (NEXUS libs preflight)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  ios-archive-dry-run:
+    name: NEXUS iOS libs + archive preflight
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app || true
+
+      - name: Archive dry run (NEXUS libs + preflight, placeholder plist)
+        env:
+          ALLOW_GOOGLE_SERVICE_PLACEHOLDER: '1'
+          SKIP_CRASHLYTICS_UPLOAD: '1'
+        run: |
+          mkdir -p artifacts/ios-dry-run
+          ./scripts/archive-ios-testflight.sh --dry-run 2>&1 | tee artifacts/ios-dry-run/preflight.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Upload dry-run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-archive-dry-run
+          path: |
+            artifacts/ios-dry-run/
+            NexusPrebuilt/
+          if-no-files-found: warn

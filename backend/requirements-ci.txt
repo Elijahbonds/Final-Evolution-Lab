@@ -1,0 +1,23 @@
+# CI-only dependency subset for offline backend unit tests + match simulation.
+#
+# The full backend/requirements.txt is a 130-pin production set (LLM SDKs,
+# PayPal, Google APIs, boto3, ...). The offline unit suites
+# (tests/test_matches.py, tests/test_system_scan.py) stub every external
+# integration before import, so CI only needs the packages below.
+# Versions match backend/requirements.txt pins.
+anyio==4.12.1
+fastapi==0.110.1
+starlette==0.37.2
+pydantic==2.12.5
+pydantic_core==2.41.5
+typing_extensions==4.15.0
+asyncpg==0.31.0
+PyJWT==2.12.1
+motor==3.3.1
+pymongo==4.5.0
+python-dotenv==1.2.2
+uvicorn==0.25.0
+httpx==0.28.1
+requests==2.33.1
+pillow==12.2.0
+pytest==9.0.3
