@@ -241,6 +241,14 @@ struct GameSceneFactory {
         }
         venue.name = "bundledVenueBackdrop"
         PremiumViewpointConfig.applyBackdropTuning(to: venue, for: mode)
+        // Matte response: stylized spots blow out on PBR venue textures.
+        venue.enumerateHierarchy { node, _ in
+            for material in node.geometry?.materials ?? [] {
+                material.metalness.contents = 0.0
+                material.roughness.contents = 1.0
+                material.specular.contents = UIColor.black
+            }
+        }
         scene.rootNode.addChildNode(venue)
 
         let fill = SCNNode()
@@ -248,9 +256,22 @@ struct GameSceneFactory {
         fill.light = SCNLight()
         fill.light?.type = .omni
         fill.light?.color = UIColor(white: 1.0, alpha: 1)
-        fill.light?.intensity = 650
-        fill.position = SCNVector3(0, 6, 0)
+        // Dojo interior needs restraint (close surfaces); open court needs lift.
+        let isDojo = (mode == .karate || mode == .karateEndless)
+        fill.light?.intensity = isDojo ? 320 : 900
+        fill.position = isDojo ? SCNVector3(0, 6, 0) : SCNVector3(0, 10, 2)
         scene.rootNode.addChildNode(fill)
+
+        if !isDojo {
+            // Judge/backcourt zone sits outside the stylized spots.
+            let backFill = SCNNode()
+            backFill.name = "venueFillLight"
+            backFill.light = SCNLight()
+            backFill.light?.type = .omni
+            backFill.light?.intensity = 500
+            backFill.position = SCNVector3(0, 4, -5)
+            scene.rootNode.addChildNode(backFill)
+        }
         return true
     }
 

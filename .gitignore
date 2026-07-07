@@ -162,3 +162,5 @@ dataconnect/.dataconnect/
 
 assets/motion/clips/
 assets/motion/external/cmu/
+scripts/asset_pipeline/.env
+assets/motion/external/meshy/
