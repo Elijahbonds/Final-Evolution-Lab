@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "sources": [
+    {
+      "mode_id": "*",
+      "asset_type": "character",
+      "asset_name": "Elijah Bonds hero rig",
+      "source_url": "local: assets/motion/external/meshy/rig_* (Meshy rig task 019f3b9e)",
+      "license": "Owner-generated via Meshy subscription (Meshy ToS: outputs licensed to subscriber)",
+      "fetch": "present",
+      "notes": "Primary playable character on all modes; already rigged + in Resources3D on feature branch.",
+      "fallback": {
+        "url": "https://quaternius.itch.io/universal-base-characters",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser (no login)"
+      }
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "character",
+      "asset_name": "Quaternius Universal Base Characters (NPC fallback)",
+      "source_url": "https://quaternius.com/packs/universalbasecharacters.html",
+      "license": "CC0 1.0",
+      "fetch": "manual-browser",
+      "notes": "glTF humanoids compatible with Universal Animation Library; no login.",
+      "fallback": {
+        "url": "https://kenney.nl/assets/blocky-characters",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "animation_pack",
+      "asset_name": "Quaternius Universal Animation Library (120+ clips)",
+      "source_url": "https://quaternius.itch.io/universal-animation-library",
+      "license": "CC0 (60-70% of pack; per-file list on page)",
+      "fetch": "manual-browser",
+      "notes": "Locomotion 8-dir, jog, sprint, jumps, sits, deaths; Mixamo-compatible rig; covers idle/run/celebrate gaps across modes.",
+      "fallback": {
+        "url": "https://rancidmilk.itch.io/free-character-animations",
+        "license": "CC0 (verify per page)",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "animation_pack",
+      "asset_name": "CMU mocap curated takes (19 downloaded)",
+      "source_url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/{subject}/{take}.bvh",
+      "license": "CMU free-for-all-uses (credit: 'Data obtained from mocap.cs.cmu.edu; database created with funding from NSF EIA-0196217')",
+      "fetch": "auto",
+      "notes": "Already fetched to assets/motion/external/cmu (basketball 06_xx, boxing 13/14_xx, kicks 10_xx, cartwheel 05_06, jumps); BVH ingests directly into scripts/asset_pipeline/mocap_pipeline.py."
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "animation_pack",
+      "asset_name": "Mixamo (dunk, jab, roundhouse, juke, spike, serve...)",
+      "source_url": "https://www.mixamo.com",
+      "license": "Free w/ Adobe account; royalty-free use in projects; NO redistribution as standalone files",
+      "fetch": "manual-login",
+      "notes": "MAINTAINER STEP: log into Mixamo, download FBX (Without Skin, 30fps), drop into assets/external/mixamo/<clip>.fbx; scripts/convert_assets.py retargets via mocap_pipeline. Do NOT commit raw FBX."
+    },
+    {
+      "mode_id": "basketball_dunk_3d",
+      "asset_type": "animation",
+      "asset_name": "Owner dunk mocap (6 crops, rim-normalized)",
+      "source_url": "local: assets/motion/clips/ElijahDunkMSDunks_custom_*.usdz",
+      "license": "Owner-generated DeepMotion mocap of owner's own performances",
+      "fetch": "present",
+      "notes": "Real dunks; more crops pending approval batch (proposals.json: 85 rim candidates)."
+    },
+    {
+      "mode_id": "tennis",
+      "asset_type": "animation",
+      "asset_name": "Tennis serve (Seeles)",
+      "source_url": "local: FinalEvolutionLab57/Content/FEL/External/Seeles/models/anim_tennis_serve.fbx",
+      "license": "Owner-licensed Seeles pack",
+      "fetch": "present",
+      "notes": "Forehand/backhand gap -> Mixamo 'Tennis Swing' (manual) or Quaternius sports pack.",
+      "fallback": {
+        "url": "https://www.mixamo.com (search: 'baseball swing'/'tennis')",
+        "license": "Mixamo",
+        "fetch": "manual-login"
+      }
+    },
+    {
+      "mode_id": "gymnastics",
+      "asset_type": "animation",
+      "asset_name": "Cartwheel (CMU 05_06)",
+      "source_url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/005/05_06.bvh",
+      "license": "CMU free-for-all-uses (credit: 'Data obtained from mocap.cs.cmu.edu; database created with funding from NSF EIA-0196217')",
+      "fetch": "auto",
+      "notes": "Downloaded; back-handspring gap -> Mixamo 'Backflip'/'Back Handspring' (manual)."
+    },
+    {
+      "mode_id": "skateboarding",
+      "asset_type": "animation",
+      "asset_name": "Ollie (Seeles)",
+      "source_url": "local: .../Seeles/models/anim_skateboard_ollie.fbx",
+      "license": "Owner-licensed Seeles pack",
+      "fetch": "present",
+      "notes": "Kickflip/grind gaps -> Sketchfab CC0 skate rigs or keyframe in Blender from ollie base."
+    },
+    {
+      "mode_id": "karate_h2h",
+      "asset_type": "animation",
+      "asset_name": "Strike set (Meshy presets 191/193/195/207/215/209)",
+      "source_url": "local: assets/motion/external/meshy/anim_*",
+      "license": "Owner-generated via Meshy subscription (Meshy ToS: outputs licensed to subscriber)",
+      "fetch": "present",
+      "notes": ""
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "hdri",
+      "asset_name": "Venice Sunset 2k (courts/beach modes)",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/venice_sunset_2k.hdr",
+      "license": "CC0 1.0",
+      "fetch": "auto",
+      "notes": "Verified 200. Swap slug per mode: kloppenheim_06 (overcast slope), studio_small_09 (dojo/gym interiors), qwantani (links golf).",
+      "fallback": {
+        "url": "https://polyhaven.com/hdris",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "texture",
+      "asset_name": "Asphalt025C 2K PBR (blacktop/skatepark)",
+      "source_url": "https://ambientcg.com/get?file=Asphalt025C_2K-JPG.zip",
+      "license": "CC0 1.0",
+      "fetch": "auto",
+      "notes": "Verified 200. Also: Snow010A (slope), Grass004 (links/pitch), WoodFloor051 (dojo/gym), Sand006 (volleyball).",
+      "fallback": {
+        "url": "https://ambientcg.com",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "props",
+      "asset_name": "Kenney Sports Pack (balls, cones, goals)",
+      "source_url": "https://kenney.nl/assets/sports-pack",
+      "license": "CC0 1.0",
+      "fetch": "manual-browser",
+      "notes": "CDN paths dynamic -> browser download, unzip to assets/external/kenney/. No login.",
+      "fallback": {
+        "url": "https://kenney.nl/assets/particle-pack",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "props",
+      "asset_name": "Meshy owner prop packs (7 sports + sedan)",
+      "source_url": "local: Resources3D/Props*.usdz",
+      "license": "Owner-generated via Meshy subscription (Meshy ToS: outputs licensed to subscriber)",
+      "fetch": "present",
+      "notes": ""
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "audio",
+      "asset_name": "Crowd loops / buzzer / swish / bounce",
+      "source_url": "https://freesound.org/search/?q=basketball+bounce&f=license:%22Creative+Commons+0%22",
+      "license": "CC0 (filter enforced in URL)",
+      "fetch": "manual-browser",
+      "notes": "Freesound previews are fetchable but full-quality downloads need a free account; maintainers pick CC0 hits, drop WAVs in assets/external/audio/, record IDs in ASSET_ATTRIBUTION.md.",
+      "fallback": {
+        "url": "https://opengameart.org/art-search-advanced?field_art_licenses_tid%5B%5D=4 (CC0 filter)",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "vfx",
+      "asset_name": "Kenney Particle Pack (sprites)",
+      "source_url": "https://kenney.nl/assets/particle-pack",
+      "license": "CC0 1.0",
+      "fetch": "manual-browser",
+      "notes": "",
+      "fallback": {
+        "url": "procedural: radial-gradient sprite via scripts/convert_assets.py --make-sprite",
+        "license": "n/a (generated)",
+        "fetch": "auto"
+      }
+    }
+  ]
+}
