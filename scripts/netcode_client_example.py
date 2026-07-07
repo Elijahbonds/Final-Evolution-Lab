@@ -48,6 +48,23 @@ def apply_input(state: Dict[str, Any], inp: Dict[str, Any]) -> None:
     state["predicted_charge"] = min(1.0, state["predicted_charge"] + inp.get("power", 0.1))
 
 
+def reconcile(pending: List[Dict[str, Any]], snapshot: Dict[str, Any],
+              player_id: str, apply_fn=apply_input):
+    """Contract step 3 (infra/netcode_contract.md): given a SNAPSHOT, drop
+    acked inputs (3a), reset to authoritative_state (3b), and replay the
+    remaining unacked inputs on top (3c).
+
+    Returns (local_state, remaining_pending). Pure function — also exercised
+    by backend/tests/test_netcode_convergence.py under simulated latency.
+    """
+    acked = snapshot["last_input_seq_ack"].get(player_id, 0)
+    remaining = [m for m in pending if m["seq"] > acked]        # 3a drop acked
+    state = dict(snapshot["authoritative_state"])                # 3b reset
+    for m in remaining:                                          # 3c replay
+        apply_fn(state, m["input"])
+    return state, remaining
+
+
 async def run(base: str, n_inputs: int) -> None:
     created = _rest(base, "POST", "/api/matches/create",
                     {"mode_id": "basketball_dunk_3d", "player_id": ME})
@@ -83,11 +100,7 @@ async def run(base: str, n_inputs: int) -> None:
                 snapshots_seen += 1
                 acked = data["last_input_seq_ack"].get(ME, 0)
                 before = len(pending)
-                pending = [m for m in pending if m["seq"] > acked]   # 3a drop acked
-                authoritative = dict(data["authoritative_state"])    # 3b reset
-                local_state = authoritative
-                for m in pending:                                    # 3c replay
-                    apply_input(local_state, m["input"])
+                local_state, pending = reconcile(pending, data, ME)  # 3a/3b/3c
                 print(f"  snapshot tick={data['tick']:>4} ack={acked:>3} "
                       f"dropped={before - len(pending)} pending={len(pending)} "
                       f"predicted_charge={local_state.get('predicted_charge', 0):.2f}")
