@@ -17,6 +17,11 @@ struct FELSceneSnapshotTests {
         // retrievable after ephemeral test clones are destroyed.
         let docs = URL(fileURLWithPath: "/tmp/fel_snapshots", isDirectory: true)
         try FileManager.default.createDirectory(at: docs, withIntermediateDirectories: true)
+        var diagnostics: [String] = []
+        defer {
+            try? diagnostics.joined(separator: "\n")
+                .write(to: docs.appendingPathComponent("diag.txt"), atomically: true, encoding: .utf8)
+        }
 
         for (mode, name) in modes {
             let scene = GameSceneFactory.buildScene(for: mode)
@@ -31,7 +36,20 @@ struct FELSceneSnapshotTests {
                     lights.append("\(node.name ?? "?")=\(light.type.rawValue)@\(Int(light.intensity))")
                 }
             }
-            print("[snapshot] \(mode.rawValue) camera=\(cameraNode?.name ?? "NONE") lights=\(lights)")
+            diagnostics.append("\(mode.rawValue) camera=\(cameraNode?.name ?? "NONE") pos=\(cameraNode.map { "\($0.worldPosition)" } ?? "-") lights=\(lights)")
+            for avatarName in ["fighter1", "fighter2", "dunker"] {
+                if let avatar = scene.rootNode.childNode(withName: avatarName, recursively: true) {
+                    var geo = 0, skin = 0, anim = 0
+                    avatar.enumerateHierarchy { n, _ in
+                        if n.geometry != nil { geo += 1 }
+                        if n.skinner != nil { skin += 1 }
+                        anim += n.animationKeys.count
+                    }
+                    diagnostics.append("\(mode.rawValue).\(avatarName) pos=\(avatar.worldPosition) scale=\(avatar.scale) geo=\(geo) skin=\(skin) anim=\(anim)")
+                } else {
+                    diagnostics.append("\(mode.rawValue).\(avatarName) MISSING")
+                }
+            }
 
             let renderer = SCNRenderer(device: MTLCreateSystemDefaultDevice(), options: nil)
             renderer.scene = scene

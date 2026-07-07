@@ -27,13 +27,38 @@ struct FELBundledAssetsTests {
         #expect(abs(minVec.y) < 0.5, "venue base should sit near y=0, got \(minVec.y)")
     }
 
-    @Test func characterNormalizationMatchesHeight() {
-        guard let fighter = FELBundledAssets.characterNode(.fighterKarateIdle, height: 1.75) else {
-            Issue.record("karate fighter failed to load")
-            return
+    /// Every character asset must ship with skinned geometry (a real skin,
+    /// not bare bones or static shells) AND at least one baked animation.
+    @Test func charactersAreSkinnedAndAnimated() {
+        let characters = FELBundledAsset.allCases.filter { !$0.isVenue }
+        for asset in characters {
+            guard let node = FELBundledAssets.node(for: asset) else {
+                Issue.record("\(asset.rawValue) failed to load")
+                continue
+            }
+            var hasSkinner = false
+            var hasAnimation = false
+            node.enumerateHierarchy { child, _ in
+                if child.skinner != nil { hasSkinner = true }
+                if !child.animationKeys.isEmpty { hasAnimation = true }
+            }
+            #expect(hasSkinner, "\(asset.rawValue): no skinned mesh")
+            #expect(hasAnimation, "\(asset.rawValue): no animation")
         }
-        let (minVec, maxVec) = fighter.boundingBox
-        let height = maxVec.y - minVec.y
-        #expect(abs(height - 1.75) < 0.2, "fighter height should be ~1.75, got \(height)")
+    }
+
+    /// Venues must contain visible geometry.
+    @Test func venuesHaveGeometry() {
+        for asset in FELBundledAsset.allCases.filter(\.isVenue) {
+            guard let node = FELBundledAssets.node(for: asset) else {
+                Issue.record("\(asset.rawValue) failed to load")
+                continue
+            }
+            var geometryCount = 0
+            node.enumerateHierarchy { child, _ in
+                if child.geometry != nil { geometryCount += 1 }
+            }
+            #expect(geometryCount > 0, "\(asset.rawValue): no geometry")
+        }
     }
 }

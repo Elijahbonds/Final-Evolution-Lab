@@ -438,6 +438,7 @@ struct GameSceneFactory {
         addBall(to: scene, at: SCNVector3(0, 1.4, 4), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
 
         let judgeColor = UIColor(white: 0.45, alpha: 1)
+        let judgeCast: [FELBundledAsset] = [.npcEricNashIdle, .npcTallAthleticIdle, .npcFemaleStrongIdle]
         for (i, x) in ([-2.5, 0.0, 2.5] as [Float]).enumerated() {
             let table = SCNBox(width: 1.2, height: 0.7, length: 0.4, chamferRadius: 0.02)
             let tMat = SCNMaterial()
@@ -446,7 +447,15 @@ struct GameSceneFactory {
             let tNode = SCNNode(geometry: table)
             tNode.position = SCNVector3(x, 0.35, -5.5)
             scene.rootNode.addChildNode(tNode)
-            addAvatar(to: scene, at: SCNVector3(x, 0, -5.0), color: judgeColor, name: "judge\(i)")
+            // Skinned NPC judges (auto-rigged Meshy models, idle loops);
+            // procedural avatars remain the fallback.
+            if let judge = FELBundledAssets.characterNode(judgeCast[i], height: 1.8) {
+                judge.name = "judge\(i)"
+                judge.position = SCNVector3(x, 0, -5.0)
+                scene.rootNode.addChildNode(judge)
+            } else {
+                addAvatar(to: scene, at: SCNVector3(x, 0, -5.0), color: judgeColor, name: "judge\(i)")
+            }
         }
 
         addStadiumStands(to: scene, depth: 12)
@@ -639,10 +648,11 @@ struct GameSceneFactory {
 
         let redTint = UIColor(red: 1.0, green: 0.15, blue: 0.1, alpha: 1)
 
-        // Skinned mocap fighters (Seeles karate clips, baked loops); procedural
+        // Elijah Bonds Meshy character with retargeted karate mocap (idle for
+        // the player, punch/kick combo loop for the opponent); procedural
         // stick avatars remain the fallback. Node names stay stable — combat
         // FX and per-limb actions nil-guard their child lookups.
-        if let player = FELBundledAssets.characterNode(.fighterKarateIdle, height: 1.75) {
+        if let player = FELBundledAssets.characterNode(.elijahKarateIdle, height: 1.75) {
             player.name = "fighter1"
             player.position = SCNVector3(-1.2, 0, 0)
             player.eulerAngles.y = .pi / 2
@@ -650,7 +660,7 @@ struct GameSceneFactory {
         } else {
             addPlayerAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
         }
-        if let opponent = FELBundledAssets.characterNode(.fighterKarateCombo, height: 1.75) {
+        if let opponent = FELBundledAssets.characterNode(.npcEricNashKarateCombo, height: 1.75) {
             opponent.name = "fighter2"
             opponent.position = SCNVector3(1.2, 0, 0)
             opponent.eulerAngles.y = -.pi / 2

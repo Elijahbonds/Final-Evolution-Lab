@@ -9,17 +9,39 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     case venueShimogamoDojo = "VenueShimogamoDojo"
     case venueVeniceBlacktop = "VenueVeniceBlacktop"
 
-    // Characters (skinned, baked animation loops)
+    // Characters (skinned, baked animation loops) — all use the Elijah Bonds
+    // Meshy model. Walking/Running are Meshy-native; the rest come out of the
+    // mocap retarget pipeline with absolute meter units baked in.
     case characterElijahWalking = "CharacterElijahWalking"
     case characterElijahRunning = "CharacterElijahRunning"
-    case fighterKarateIdle = "FighterKarateIdle"
-    case fighterKarateCombo = "FighterKarateCombo"
-    case playerDunk = "PlayerDunk"
+    case elijahKarateIdle = "ElijahKarateIdle"
+    case elijahKarateCombo = "ElijahKarateCombo"
+    case elijahDunk = "ElijahDunk"
+
+    // NPCs — other Meshy models auto-rigged (autorig_npc.py) and driven by
+    // retargeted Seeles clips.
+    case npcEricNashIdle = "NPCEricNashIdle"
+    case npcEricNashKarateCombo = "NPCEricNashKarateCombo"
+    case npcTallAthleticIdle = "NPCTallAthleticIdle"
+    case npcFemaleStrongIdle = "NPCFemaleStrongIdle"
 
     var isVenue: Bool {
         switch self {
         case .venueShimogamoDojo, .venueVeniceBlacktop: return true
         default: return false
+        }
+    }
+
+    /// Pipeline clips are exported at real-world scale (1.85m character) and
+    /// must NOT be bbox-normalized — skinned-mesh bounding boxes are unreliable.
+    var isPipelineClip: Bool {
+        switch self {
+        case .elijahKarateIdle, .elijahKarateCombo, .elijahDunk,
+             .npcEricNashIdle, .npcEricNashKarateCombo,
+             .npcTallAthleticIdle, .npcFemaleStrongIdle:
+            return true
+        default:
+            return false
         }
     }
 }
@@ -28,10 +50,12 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
 enum FELBundledAssets {
     private static var cache: [FELBundledAsset: SCNNode] = [:]
 
-    /// Loads the asset's root node (cached; clones per call so scenes can
-    /// mutate freely). Returns nil when the USDZ is missing or unreadable.
+    /// Loads the asset's root node. Static venues are cached and cloned;
+    /// skinned characters are ALWAYS loaded fresh — cloning a node tree with
+    /// an SCNSkinner leaves the skinner bound to the original skeleton, so
+    /// the cloned mesh renders at the original's location (i.e. nowhere).
     static func node(for asset: FELBundledAsset) -> SCNNode? {
-        if let cached = cache[asset] {
+        if asset.isVenue, let cached = cache[asset] {
             return cached.clone()
         }
         guard let url = Bundle.main.url(forResource: asset.rawValue, withExtension: "usdz"),
@@ -42,8 +66,11 @@ enum FELBundledAssets {
         for child in scene.rootNode.childNodes {
             root.addChildNode(child)
         }
-        cache[asset] = root
-        return root.clone()
+        if asset.isVenue {
+            cache[asset] = root
+            return root.clone()
+        }
+        return root
     }
 
     /// Venue mesh normalized into gameplay space: centered on origin,
@@ -55,8 +82,30 @@ enum FELBundledAssets {
     }
 
     /// Skinned character normalized to `height` world units, feet at y=0.
+    ///
+    /// Pipeline clips are measured from their SKELETON JOINTS (Hips/Head/
+    /// feet import as real nodes) — bounding boxes are unreliable for
+    /// skinned meshes, and exporter unit metadata has proven untrustworthy
+    /// across the Blender→USD→SceneKit chain.
     static func characterNode(_ asset: FELBundledAsset, height: Float) -> SCNNode? {
         guard let node = node(for: asset) else { return nil }
+        if asset.isPipelineClip {
+            let container = SCNNode()
+            container.addChildNode(node)
+            let head = node.childNode(withName: "head_end", recursively: true)
+                ?? node.childNode(withName: "Head", recursively: true)
+            let foot = node.childNode(withName: "LeftFoot", recursively: true)
+                ?? node.childNode(withName: "RightFoot", recursively: true)
+            if let head, let foot {
+                // Head joint sits ~8% below the crown; feet joints ~ankle height.
+                let jointSpan = head.worldPosition.y - foot.worldPosition.y
+                if jointSpan > 0.0001 {
+                    let scale = height / (jointSpan * 1.12)
+                    container.scale = SCNVector3(scale, scale, scale)
+                }
+            }
+            return container
+        }
         return normalized(node, longestSide: height, sizeAxis: .vertical)
     }
 
