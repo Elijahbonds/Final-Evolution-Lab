@@ -412,6 +412,9 @@ async def export_replay(match_id: str) -> Dict[str, Any]:
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     events = await _load_events(match_id, limit=10_000)
+    # Guarantee chronological order regardless of storage backend: `seq` is
+    # server-stamped at append time, so it is the authoritative replay order.
+    events = sorted(events, key=lambda e: e.get("seq", 0))
     metadata = {
         "match_id": match_id,
         "mode_id": match.get("mode_id"),
