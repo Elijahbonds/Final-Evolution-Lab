@@ -185,6 +185,47 @@ class TestReplayExport:
         resp = _client_as(_USER_A).get("/api/matches/nope/export-replay")
         assert resp.status_code == 404
 
+    def test_export_events_are_chronological(self):
+        """Exported events must come back in seq (append) order — the replay contract."""
+        mid = _make_active_match()
+        c = _client_as(_USER_A)
+        c.post(f"/api/matches/{mid}/events",
+               json={"type": "input", "payload": {"seq": 1, "input": {"action": "sprint"}, "ts": 0.1}})
+        c.post(f"/api/matches/{mid}/score_dunk",
+               json={"approach_quality": 0.8, "execution_quality": 0.9, "style_difficulty": 0.6})
+        c.post(f"/api/matches/{mid}/events",
+               json={"type": "score_event", "player_id": "replay_a", "payload": {"points": 2}})
+        c.post(f"/api/matches/{mid}/events",
+               json={"type": "input", "payload": {"seq": 2, "input": {"action": "jump"}, "ts": 0.9}})
+        c.post(f"/api/matches/{mid}/end", json={})
+        data = c.get(f"/api/matches/{mid}/export-replay").json()
+        events = data["events"]
+        seqs = [e["seq"] for e in events]
+        assert seqs == sorted(seqs), f"export events out of order: {seqs}"
+        assert len(set(seqs)) == len(seqs), "duplicate seq in export"
+        timestamps = [e["timestamp"] for e in events if e.get("timestamp") is not None]
+        assert timestamps == sorted(timestamps), "timestamps not non-decreasing"
+        assert events[0]["type"] == "match_start"
+        assert events[-1]["type"] == "match_end"
+
+    def test_export_echoes_original_inputs_for_scored_events(self):
+        """Every scored event in the export must carry the original inputs."""
+        mid = _make_active_match()
+        c = _client_as(_USER_A)
+        c.post(f"/api/matches/{mid}/score_dunk",
+               json={"approach_quality": 0.8, "execution_quality": 0.9, "style_difficulty": 0.6})
+        c.post(f"/api/matches/{mid}/events",
+               json={"type": "score_event", "player_id": "replay_a", "payload": {"points": 3}})
+        data = c.get(f"/api/matches/{mid}/export-replay").json()
+        dunk = next(e for e in data["events"] if e["type"] == "dunk_result")
+        assert dunk["scoring_model"] == "legacy_simple"
+        assert dunk["inputs"] == {"approach_quality": 0.8,
+                                  "execution_quality": 0.9,
+                                  "style_difficulty": 0.6}
+        score = next(e for e in data["events"] if e["type"] == "score_event")
+        assert score["payload"] == {"points": 3}
+        assert score["points"] == 3
+
     def test_dunk_result_event_echoes_inputs_for_revalidation(self):
         mid = _make_active_match()
         c = _client_as(_USER_A)

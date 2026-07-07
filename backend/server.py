@@ -4040,6 +4040,19 @@ app.include_router(system_scan_router.router)
 app.include_router(pass_image_router.router)
 app.include_router(biofuel_router.router)
 app.include_router(matches_router.router)
+
+# MOCK_DB=1 hermetic/dev mode: there is no live session store, so authenticate
+# as a stub user via FastAPI dependency override. MOCK_DB must never be set in
+# staging/production; without it this block is inert and real auth applies.
+if os.environ.get("MOCK_DB") == "1":
+    def _mock_db_user() -> User:
+        return User(
+            user_id="mock_player",
+            email="mock-player@fellab.io",
+            name="Mock Player (MOCK_DB)",
+        )
+
+    app.dependency_overrides[get_current_user] = _mock_db_user
 app.include_router(dunk_router.router)
 app.include_router(games_router)
 
