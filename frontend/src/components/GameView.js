@@ -17,6 +17,11 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
 const WS_BASE = API_BASE.replace(/^http/, 'ws');
 
+// QA debug panel visibility: always on in dev; in production builds it stays
+// hidden unless REACT_APP_FEL_DEBUG_PANEL=1 was set at build time.
+const DEBUG_PANEL_ENABLED =
+  process.env.NODE_ENV !== 'production' || process.env.REACT_APP_FEL_DEBUG_PANEL === '1';
+
 const styles = {
   container: {
     background: '#08090b',
@@ -163,6 +168,8 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
   const [error, setError] = useState(null);
   const [seed, setSeed] = useState(null);
   const [judgeOffsets, setJudgeOffsets] = useState([]);
+  const [dunkResults, setDunkResults] = useState([]);
+  const [snapshotInfo, setSnapshotInfo] = useState(null);
   const wsRef = useRef(null);
 
   const addEvent = useCallback((ev) => {
@@ -184,6 +191,14 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
       let msg;
       try { msg = JSON.parse(e.data); } catch { return; }
 
+      // High-frequency / bookkeeping messages stay out of the event log.
+      if (msg.type === 'snapshot') {
+        setSnapshotInfo({ tick: msg.tick, acks: msg.last_input_seq_ack });
+        if (msg.authoritative_state?.score) setScore(msg.authoritative_state.score);
+        return;
+      }
+      if (msg.type === 'ping' || msg.type === 'input_ack') return;
+
       addEvent(msg);
 
       switch (msg.type) {
@@ -191,6 +206,9 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
           setStatus(msg.match.status);
           setPlayers(msg.match.players || []);
           setScore(msg.match.score || {});
+          break;
+        case 'dunk_result':
+          setDunkResults((prev) => [...prev.slice(-9), msg]);
           break;
         case 'match_start':
           setStatus('active');
@@ -252,6 +270,37 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
       URL.revokeObjectURL(url);
     } catch (err) {
       setError(`Replay export failed: ${err.message}`);
+    }
+  };
+
+  const scoreDunkOnServer = async () => {
+    if (!matchId) return;
+    setError(null);
+    try {
+      const r = await fetch(`${API_BASE}/api/matches/${matchId}/score_dunk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          engine3d: {
+            jump_height: 0.85,
+            launch_quality: 0.8,
+            landing_quality: 0.75,
+            completed_rotation: 1.0,
+            trick: 'windmill',
+          },
+        }),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      // WS broadcast also delivers this; fall back to direct append when
+      // the socket is down so the result still shows inline.
+      if (wsStatus !== 'connected') {
+        setDunkResults((prev) => [...prev.slice(-9), { type: 'dunk_result', ...data }]);
+        addEvent({ type: 'dunk_result', ...data });
+      }
+    } catch (err) {
+      setError(`Server dunk scoring failed: ${err.message}`);
     }
   };
 
@@ -337,18 +386,51 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
         </div>
       )}
 
-      {matchId && seed != null && (
-        <div style={styles.debugPanel}>
+      {DEBUG_PANEL_ENABLED && matchId && seed != null && (
+        <div style={styles.debugPanel} data-testid="nexus-qa-panel">
           <div style={styles.debugTitle}>Nexus QA — Match Seed &amp; Judge Offsets</div>
           <div>seed: <strong>{String(seed)}</strong></div>
           <div>judge_offsets: <strong>[{judgeOffsets.join(', ')}]</strong></div>
-          <button
-            style={{ ...styles.btn, marginTop: '8px', padding: '6px 14px', fontSize: '0.75rem',
-              background: 'rgba(255,215,0,0.12)', color: '#ffd700', border: '1px solid rgba(255,215,0,0.3)' }}
-            onClick={downloadReplay}
-          >
-            Download Replay JSON
-          </button>
+          {snapshotInfo && (
+            <div>
+              snapshot tick: <strong>{snapshotInfo.tick}</strong>
+              {' '}· input acks: <strong>{JSON.stringify(snapshotInfo.acks)}</strong>
+            </div>
+          )}
+          <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              style={{ ...styles.btn, padding: '6px 14px', fontSize: '0.75rem',
+                background: 'rgba(255,215,0,0.12)', color: '#ffd700', border: '1px solid rgba(255,215,0,0.3)' }}
+              onClick={downloadReplay}
+            >
+              Download Replay JSON
+            </button>
+            <button
+              style={{ ...styles.btn, padding: '6px 14px', fontSize: '0.75rem',
+                background: 'rgba(0,229,255,0.12)', color: '#00e5ff', border: '1px solid rgba(0,229,255,0.3)' }}
+              onClick={scoreDunkOnServer}
+            >
+              Score Dunk (server)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {matchId && dunkResults.length > 0 && (
+        <div style={{ ...styles.card, marginBottom: '16px' }} data-testid="dunk-results-inline">
+          <div style={styles.cardTitle}>Server-Scored Dunks (WDA judges)</div>
+          {dunkResults.map((d, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '14px',
+              padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#00e5ff' }}>{d.total}</span>
+              <span style={{ fontFamily: 'monospace', color: '#9ca3af' }}>
+                J1 {d.j1} · J2 {d.j2} · J3 {d.j3}
+              </span>
+              <span style={{ color: d.is_perfect ? '#ffd700' : '#e8eaf0', fontWeight: 700 }}>
+                {d.message}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 
