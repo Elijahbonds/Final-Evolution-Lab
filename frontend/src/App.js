@@ -20,6 +20,7 @@ import { LandingPage as RedesignedLandingPage } from "@/components/LandingPage";
 import DownloadPage from "@/components/DownloadPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
+import GameView from "@/components/GameView";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
@@ -1729,6 +1730,14 @@ const Dashboard = () => {
 };
 
 // ===================== APP ROUTER =====================
+// Nexus QA entry point: /nexus/game renders GameView standalone.
+// Optional ?match=<id> joins an existing match instead of creating one.
+function GameViewRoute() {
+  const navigate = useNavigate();
+  const params = new URLSearchParams(useLocation().search);
+  return <GameView matchId={params.get('match') || undefined} onExit={() => navigate('/')} />;
+}
+
 function AppRouter() {
   const location = useLocation();
   if (location.hash?.includes('session_id=')) return <AuthCallback />;
@@ -1739,6 +1748,7 @@ function AppRouter() {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/hud" element={<Phase3HUD />} />
       <Route path="/download" element={<DownloadPage />} />
+      <Route path="/nexus/game" element={<GameViewRoute />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
