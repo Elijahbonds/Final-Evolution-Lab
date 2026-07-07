@@ -8,6 +8,25 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     // Venues (static meshes)
     case venueShimogamoDojo = "VenueShimogamoDojo"
     case venueVeniceBlacktop = "VenueVeniceBlacktop"
+    case venueTennisCourt = "VenueTennisCourt"
+    case venueSkatePark = "VenueSkatePark"
+    case venueMountainSlope = "VenueMountainSlope"
+    case venueSurfBreak = "VenueSurfBreak"
+    case venueLinksGolf = "VenueLinksGolf"
+    case venueSoccerStadium = "VenueSoccerStadium"
+    case venueBallpark = "VenueBallpark"
+    case venueGymnasticsGym = "VenueGymnasticsGym"
+    case venueMuscleBeachStage = "VenueMuscleBeachStage"
+    case venueMuscleBeachGym = "VenueMuscleBeachGym"
+
+    // Prop packs (per-sport equipment sets, staged for mode wiring)
+    case propsTennis = "PropsTennis"
+    case propsVolleyball = "PropsVolleyball"
+    case propsBaseball = "PropsBaseball"
+    case propsFootball = "PropsFootball"
+    case propsSoccer = "PropsSoccer"
+    case propsBoardSports = "PropsBoardSports"
+    case propsSedan = "PropsSedan"
 
     // Characters (skinned, baked animation loops) — all use the Elijah Bonds
     // Meshy model. Walking/Running are Meshy-native; the rest come out of the
@@ -35,8 +54,15 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
 
     var isVenue: Bool {
         switch self {
-        case .venueShimogamoDojo, .venueVeniceBlacktop: return true
-        default: return false
+        case .venueShimogamoDojo, .venueVeniceBlacktop, .venueTennisCourt,
+             .venueSkatePark, .venueMountainSlope, .venueSurfBreak,
+             .venueLinksGolf, .venueSoccerStadium, .venueBallpark,
+             .venueGymnasticsGym, .venueMuscleBeachStage, .venueMuscleBeachGym,
+             .propsTennis, .propsVolleyball, .propsBaseball,
+             .propsFootball, .propsSoccer, .propsBoardSports, .propsSedan:
+            return true
+        default:
+            return false
         }
     }
 
@@ -116,6 +142,17 @@ enum FELBundledAssets {
                 if jointSpan > 0.0001 {
                     let scale = height / (jointSpan * 1.12)
                     container.scale = SCNVector3(scale, scale, scale)
+                }
+            }
+            // Skinned meshes carry unreliable bounding boxes; SceneKit frustum-
+            // culls by bbox, which can cull a visibly-on-screen character.
+            // Give every skinned node a generous bbox so it is never culled.
+            node.enumerateHierarchy { child, _ in
+                if child.skinner != nil {
+                    child.boundingBox = (
+                        min: SCNVector3(-50, -50, -50),
+                        max: SCNVector3(50, 50, 50)
+                    )
                 }
             }
             return container

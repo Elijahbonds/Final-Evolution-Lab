@@ -214,8 +214,33 @@ struct GameSceneFactory {
         if hasBundled {
             cleanProceduralEnvironment(in: scene, hybridOverlay: false)
         }
+        // Meshy panorama backdrop fills the horizon (and feeds PBR ambience)
+        // instead of the black void.
+        if let backgroundName = backgroundImageName(for: mode),
+           let image = UIImage(named: backgroundName) {
+            scene.background.contents = image
+            scene.lightingEnvironment.contents = image
+            scene.lightingEnvironment.intensity = 0.6
+        }
         PremiumViewpointConfig.applyToScene(scene, for: mode)
         adjustSceneQuality(scene, for: FELPerformanceMonitor.shared.currentTier)
+    }
+
+    private static func backgroundImageName(for mode: GameModeId) -> String? {
+        switch mode {
+        case .basketballHeadToHead, .basketballDunkContest3D, .basketball3v3, .venicePickup, .courtCarnival:
+            return "BackgroundBasketball"
+        case .baseball: return "BackgroundBaseball"
+        case .volleyball: return "BackgroundVolleyball"
+        case .gymnastics: return "BackgroundGymnastics"
+        case .football: return "BackgroundFootball"
+        case .tennis: return "BackgroundTennis"
+        case .soccer: return "BackgroundSoccer"
+        case .golf: return "BackgroundGolf"
+        case .skateboarding: return "BackgroundSkateboarding"
+        case .karateEndless: return "BackgroundMuscleBeach"
+        default: return nil
+        }
     }
 
     /// Attaches the mode's textured USDZ venue if bundled. Node is named for
@@ -226,12 +251,42 @@ struct GameSceneFactory {
         let asset: FELBundledAsset?
         let footprint: Float
         switch mode {
-        case .karate, .karateEndless:
+        case .karate:
             asset = .venueShimogamoDojo
             footprint = 30 // interior must clear the dojo chase camera (z≈7.8)
+        case .karateEndless:
+            asset = .venueMuscleBeachStage
+            footprint = 30
         case .basketballDunkContest3D, .basketballHeadToHead, .venicePickup, .basketball3v3:
             asset = .venueVeniceBlacktop
             footprint = 26
+        case .tennis:
+            asset = .venueTennisCourt
+            footprint = 30
+        case .skateboarding:
+            asset = .venueSkatePark
+            footprint = 34
+        case .snowboarding:
+            asset = .venueMountainSlope
+            footprint = 60
+        case .surfing:
+            asset = .venueSurfBreak
+            footprint = 60
+        case .golf:
+            asset = .venueLinksGolf
+            footprint = 60
+        case .soccer:
+            asset = .venueSoccerStadium
+            footprint = 50
+        case .baseball:
+            asset = .venueBallpark
+            footprint = 50
+        case .gymnastics:
+            asset = .venueGymnasticsGym
+            footprint = 30
+        case .marketBrowse:
+            asset = .venueMuscleBeachGym
+            footprint = 30
         default:
             asset = nil
             footprint = 0
@@ -681,10 +736,17 @@ struct GameSceneFactory {
         } else {
             addPlayerAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
         }
-        if let opponent = FELBundledAssets.characterNode(.npcEricNashKarateCombo, height: 1.75) {
+        // Mirror-match opponent (Elijah combo clip, red-tinted) — Meshy NPC
+        // clips render in open venues but not the dojo; tracked follow-up.
+        if let opponent = FELBundledAssets.characterNode(.elijahKarateCombo, height: 1.75) {
             opponent.name = "fighter2"
             opponent.position = SCNVector3(1.2, 0, 0)
             opponent.eulerAngles.y = -.pi / 2
+            opponent.enumerateHierarchy { child, _ in
+                for material in child.geometry?.materials ?? [] {
+                    material.multiply.contents = UIColor(red: 1.0, green: 0.55, blue: 0.5, alpha: 1)
+                }
+            }
             scene.rootNode.addChildNode(opponent)
         } else {
             addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan, name: "fighter2")

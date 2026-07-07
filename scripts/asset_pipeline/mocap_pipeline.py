@@ -91,6 +91,10 @@ def import_take(path: Path):
         bpy.ops.import_anim.bvh(filepath=str(path), update_scene_duration=True)
     elif ext == ".fbx":
         bpy.ops.import_scene.fbx(filepath=str(path))
+    elif ext in (".glb", ".gltf"):
+        # Meshy preset animation exports — treated as mocap sources; the
+        # bake normalizes their mixed-unit root-motion curves.
+        bpy.ops.import_scene.gltf(filepath=str(path))
     else:
         raise SystemExit(f"unsupported mocap format: {ext}")
     new = [o for o in set(bpy.data.objects) - before if o.type == "ARMATURE"]
@@ -299,8 +303,16 @@ def retarget(source, target, start, end):
             return None
         return (obj.matrix_world @ bone.matrix_local).to_3x3().normalized()
 
+    # Meshy-convention sources (Spine02 marker) retarget by identical names;
+    # DeepMotion/Mixamo sources go through BONE_MAP.
+    if source.data.bones.get("Spine02") is not None:
+        bone_map = {b.name: b.name for b in target.data.bones
+                    if source.data.bones.get(b.name) is not None}
+    else:
+        bone_map = BONE_MAP
+
     offsets = {}
-    for src_name, tgt_name in BONE_MAP.items():
+    for src_name, tgt_name in bone_map.items():
         src_rest = rest_world_rot(source, src_name)
         tgt_rest = rest_world_rot(target, tgt_name)
         if src_rest and tgt_rest:

@@ -12,6 +12,14 @@ struct FELSceneSnapshotTests {
         let modes: [(GameModeId, String)] = [
             (.karate, "snapshot_karate"),
             (.basketballDunkContest3D, "snapshot_dunk"),
+            (.tennis, "snapshot_tennis"),
+            (.skateboarding, "snapshot_skate"),
+            (.gymnastics, "snapshot_gymnastics"),
+            (.soccer, "snapshot_soccer"),
+            (.baseball, "snapshot_baseball"),
+            (.golf, "snapshot_golf"),
+            (.snowboarding, "snapshot_snowboard"),
+            (.surfing, "snapshot_surf"),
         ]
         // Simulator processes share the host filesystem — write somewhere
         // retrievable after ephemeral test clones are destroyed.

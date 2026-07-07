@@ -135,6 +135,27 @@ def main():
         print(f"[nexus] decimate: {before} -> {after} faces (budget {args.max_faces})")
 
     apply_scale(args.scale)
+
+    # Animated characters: re-root so the FRAME-1 animated hips sit over the
+    # origin with feet on the floor (SceneKit placement contract — same as
+    # mocap_pipeline.py). Rest-pose joints are NOT reliable for this.
+    if bpy.data.actions and "--no-reroot" not in sys.argv:
+        armature = next((o for o in bpy.data.objects if o.type == "ARMATURE"), None)
+        if armature is not None:
+            bpy.context.scene.frame_set(int(bpy.context.scene.frame_start))
+            hips_bone = armature.pose.bones.get("Hips")
+            feet = [armature.pose.bones.get(n) for n in ("LeftFoot", "RightFoot")]
+            feet = [b for b in feet if b is not None]
+            if hips_bone is not None and feet:
+                hips_world = armature.matrix_world @ hips_bone.head
+                foot_floor = min((armature.matrix_world @ b.head).z for b in feet)
+                import mathutils as _mu
+                offset = _mu.Vector((-hips_world.x, -hips_world.y, -foot_floor))
+                for obj in bpy.data.objects:
+                    if obj.parent is None:
+                        obj.location = obj.location + offset
+                print(f"[nexus] re-rooted animated clip by {tuple(round(v, 3) for v in offset)}")
+
     convert_to_y_up()
 
     out = Path(args.output).expanduser() if args.output else src.with_suffix(".usdz")
