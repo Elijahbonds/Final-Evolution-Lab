@@ -1,80 +1,189 @@
 {
-  "id": "basketball_h2h_default",
-  "name": "Basketball H2H",
-  "gameModeId": "basketball_h2h",
-  "environment": {
-    "backgroundColor": "#0A0F1E",
-    "accentColor": "#FF6B00",
-    "ambientLight": 0.85,
-    "floorY": 0.86,
-    "fogDensity": 0.02
-  },
-  "physicsConfig": {
-    "gravity": 9.8,
-    "frictionCoefficient": 0.3,
-    "airResistance": 0.02,
-    "prqSpeedMultiplier": 1.0,
-    "prqJumpBonus": 0.0,
-    "prqReactionWindow": 0.3
-  },
-  "entities": [
+ "id": "basketball_h2h_default",
+ "name": "Basketball H2H",
+ "gameModeId": "basketball_h2h",
+ "environment": {
+  "backgroundColor": "#0A0F1E",
+  "accentColor": "#FF6B00",
+  "ambientLight": 0.85,
+  "floorY": 0.86,
+  "fogDensity": 0.02
+ },
+ "physicsConfig": {
+  "gravity": 9.8,
+  "frictionCoefficient": 0.3,
+  "airResistance": 0.02,
+  "prqSpeedMultiplier": 1.0,
+  "prqJumpBonus": 0.0,
+  "prqReactionWindow": 0.3
+ },
+ "entities": [
+  {
+   "id": "player_basketball_h2h",
+   "name": "Player",
+   "transform": {
+    "position": {
+     "x": 0.35,
+     "y": 0.72
+    },
+    "rotation": 0,
+    "scale": 1.0
+   },
+   "components": [
     {
-      "id": "player_basketball_h2h",
-      "name": "Player",
-      "transform": { "position": { "x": 0.35, "y": 0.72 }, "rotation": 0, "scale": 1.0 },
-      "components": [
-        { "type": "skeleton", "category": "plyometric", "amplitude": 1.0 },
-        { "type": "physics", "mass": 80, "restitution": 0.3 }
-      ],
-      "isEnabled": true
+     "type": "skeleton",
+     "category": "plyometric",
+     "amplitude": 1.0
     },
     {
-      "id": "opponent_basketball_h2h",
-      "name": "Opponent",
-      "transform": { "position": { "x": 0.65, "y": 0.72 }, "rotation": 0, "scale": 1.0 },
-      "components": [
-        { "type": "skeleton", "category": "plyometric", "amplitude": 0.85 },
-        { "type": "physics", "mass": 80, "restitution": 0.3 }
-      ],
-      "isEnabled": true
-    },
-    {
-      "id": "ball",
-      "name": "Basketball",
-      "transform": { "position": { "x": 0.5, "y": 0.55 }, "rotation": 0, "scale": 0.6 },
-      "components": [
-        { "type": "sprite", "systemImage": "basketball.fill", "hexColor": "#FF6B00" },
-        { "type": "physics", "mass": 0.6, "restitution": 0.8 }
-      ],
-      "isEnabled": true
-    },
-    {
-      "id": "score_trigger_left",
-      "name": "Score Zone Left",
-      "transform": { "position": { "x": 0.15, "y": 0.30 }, "rotation": 0, "scale": 1.0 },
-      "components": [{ "type": "trigger", "radius": 0.04, "eventName": "score_left" }],
-      "isEnabled": true
-    },
-    {
-      "id": "score_trigger_right",
-      "name": "Score Zone Right",
-      "transform": { "position": { "x": 0.85, "y": 0.30 }, "rotation": 0, "scale": 1.0 },
-      "components": [{ "type": "trigger", "radius": 0.04, "eventName": "score_right" }],
-      "isEnabled": true
-    },
-    {
-      "id": "floor_court",
-      "name": "Court Floor",
-      "transform": { "position": { "x": 0.5, "y": 0.88 }, "rotation": 0, "scale": 1.0 },
-      "components": [{ "type": "surface", "friction": 0.4 }],
-      "isEnabled": true
-    },
-    {
-      "id": "camera_main",
-      "name": "Main Camera",
-      "transform": { "position": { "x": 0.5, "y": 0.5 }, "rotation": 0, "scale": 1.0 },
-      "components": [{ "type": "camera", "zoom": 1.0, "fov": 60 }],
-      "isEnabled": true
+     "type": "physics",
+     "mass": 80,
+     "restitution": 0.3
     }
-  ]
+   ],
+   "isEnabled": true
+  },
+  {
+   "id": "opponent_basketball_h2h",
+   "name": "Opponent",
+   "transform": {
+    "position": {
+     "x": 0.65,
+     "y": 0.72
+    },
+    "rotation": 0,
+    "scale": 1.0
+   },
+   "components": [
+    {
+     "type": "skeleton",
+     "category": "plyometric",
+     "amplitude": 0.85
+    },
+    {
+     "type": "physics",
+     "mass": 80,
+     "restitution": 0.3
+    }
+   ],
+   "isEnabled": true
+  },
+  {
+   "id": "ball",
+   "name": "Basketball",
+   "transform": {
+    "position": {
+     "x": 0.5,
+     "y": 0.55
+    },
+    "rotation": 0,
+    "scale": 0.6
+   },
+   "components": [
+    {
+     "type": "sprite",
+     "systemImage": "basketball.fill",
+     "hexColor": "#FF6B00"
+    },
+    {
+     "type": "physics",
+     "mass": 0.6,
+     "restitution": 0.8
+    }
+   ],
+   "isEnabled": true
+  },
+  {
+   "id": "score_trigger_left",
+   "name": "Score Zone Left",
+   "transform": {
+    "position": {
+     "x": 0.15,
+     "y": 0.3
+    },
+    "rotation": 0,
+    "scale": 1.0
+   },
+   "components": [
+    {
+     "type": "trigger",
+     "radius": 0.04,
+     "eventName": "score_left"
+    }
+   ],
+   "isEnabled": true
+  },
+  {
+   "id": "score_trigger_right",
+   "name": "Score Zone Right",
+   "transform": {
+    "position": {
+     "x": 0.85,
+     "y": 0.3
+    },
+    "rotation": 0,
+    "scale": 1.0
+   },
+   "components": [
+    {
+     "type": "trigger",
+     "radius": 0.04,
+     "eventName": "score_right"
+    }
+   ],
+   "isEnabled": true
+  },
+  {
+   "id": "floor_court",
+   "name": "Court Floor",
+   "transform": {
+    "position": {
+     "x": 0.5,
+     "y": 0.88
+    },
+    "rotation": 0,
+    "scale": 1.0
+   },
+   "components": [
+    {
+     "type": "surface",
+     "friction": 0.4
+    }
+   ],
+   "isEnabled": true
+  },
+  {
+   "id": "camera_main",
+   "name": "Main Camera",
+   "transform": {
+    "position": {
+     "x": 0.5,
+     "y": 0.5
+    },
+    "rotation": 0,
+    "scale": 1.0
+   },
+   "components": [
+    {
+     "type": "camera",
+     "zoom": 1.0,
+     "fov": 60
+    }
+   ],
+   "isEnabled": true
+  }
+ ],
+ "assets": {
+  "venue_model": "assets/models/venues/venice_blacktop.glb",
+  "character_model": "assets/models/characters/elijah_bonds.glb",
+  "opponent_model": "assets/models/characters/npc_athletic_male.glb",
+  "animation_map": "infra/animation_map/basketball_h2h.json",
+  "hdri": "assets/external/hdri/venice_sunset_2k.hdr",
+  "ground_texture": "assets/external/texture/Asphalt025C_2K-JPG",
+  "fallback": {
+   "model": "assets/placeholder/placeholder_mesh.gltf",
+   "particle": "assets/placeholder/particle_soft.png",
+   "policy": "if any asset path is missing at load, substitute fallback.model / skip audio; dev builds must boot with zero downloads"
+  }
+ }
 }

@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "mode_id": "gymnastics",
+  "clips": {
+    "salute": {
+      "file": "assets/models/animations/salute.glb",
+      "in_place": true
+    },
+    "cartwheel": {
+      "file": "assets/models/animations/cartwheel.glb",
+      "root_motion": true,
+      "source_hint": "CMU 05_06 (fetched)"
+    },
+    "vault": {
+      "file": "assets/models/animations/vault.glb",
+      "root_motion": true,
+      "source_hint": "Mixamo manual / CMU jumps 13_11"
+    }
+  }
+}

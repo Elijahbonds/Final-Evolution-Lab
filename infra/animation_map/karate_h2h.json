@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "mode_id": "karate_h2h",
+  "clips": {
+    "fight_idle": {
+      "file": "assets/models/animations/fight_idle.glb",
+      "in_place": true,
+      "source_hint": "Meshy 209 guard"
+    },
+    "jab": {
+      "file": "assets/models/animations/jab.glb",
+      "in_place": true,
+      "source_hint": "Meshy 191"
+    },
+    "hook": {
+      "file": "assets/models/animations/hook.glb",
+      "in_place": true,
+      "source_hint": "Meshy 193"
+    },
+    "uppercut": {
+      "file": "assets/models/animations/uppercut.glb",
+      "in_place": true,
+      "source_hint": "Meshy 195"
+    },
+    "roundhouse_kick": {
+      "file": "assets/models/animations/roundhouse.glb",
+      "in_place": true,
+      "source_hint": "Meshy 207"
+    },
+    "high_kick": {
+      "file": "assets/models/animations/high_kick.glb",
+      "in_place": true,
+      "source_hint": "Meshy 215"
+    },
+    "hit_react": {
+      "file": "assets/models/animations/hit_react.glb",
+      "in_place": true,
+      "source_hint": "Mixamo manual / CMU 13_17 boxing segment"
+    },
+    "ko_fall": {
+      "file": "assets/models/animations/ko_fall.glb",
+      "root_motion": true,
+      "source_hint": "Quaternius UAL death clips (CC0)"
+    }
+  }
+}

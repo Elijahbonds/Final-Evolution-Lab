@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "mode_id": "skateboarding",
+  "clips": {
+    "push_ride": {
+      "file": "assets/models/animations/skate_push.glb",
+      "root_motion": true
+    },
+    "ollie": {
+      "file": "assets/models/animations/ollie.glb",
+      "root_motion": true,
+      "source_hint": "Seeles anim_skateboard_ollie.fbx"
+    },
+    "bail_fall": {
+      "file": "assets/models/animations/bail.glb",
+      "root_motion": true,
+      "source_hint": "Quaternius UAL falls (CC0)"
+    }
+  }
+}
