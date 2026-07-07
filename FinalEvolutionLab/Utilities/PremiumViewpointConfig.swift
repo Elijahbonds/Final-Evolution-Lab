@@ -41,13 +41,13 @@ enum PremiumViewpointConfig {
     static func cluster(for mode: GameModeId) -> Cluster {
         switch mode {
         case .basketballHeadToHead, .venicePickup, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
-             .courtCarnival, .surfing, .tennis:
+             .courtCarnival:
             return .basketball
         case .karate, .karateEndless:
             return .dojo
         case .baseball, .football, .soccer:
             return .stadium
-        case .golf, .volleyball, .skateboarding, .snowboarding:
+        case .golf, .volleyball, .skateboarding, .snowboarding, .tennis, .surfing:
             return .outdoor
         case .gymnastics, .brainBrawl, .whoSceneIt, .marketBrowse:
             return .indoor
@@ -117,9 +117,9 @@ enum PremiumViewpointConfig {
         case .dojo:
             return UIColor(red: 1.0, green: 0.55, blue: 0.35, alpha: 1)
         case .stadium:
-            return UIColor(red: 0.75, green: 0.95, blue: 0.65, alpha: 1)
+            return UIColor(red: 1.0, green: 0.95, blue: 0.9, alpha: 1)
         case .outdoor:
-            return UIColor(red: 0.95, green: 0.88, blue: 0.55, alpha: 1)
+            return UIColor(red: 1.0, green: 0.95, blue: 0.9, alpha: 1)
         case .indoor:
             return UIColor(red: 0.65, green: 0.72, blue: 1.0, alpha: 1)
         }
@@ -229,16 +229,16 @@ enum PremiumViewpointConfig {
             spotIntensity: 1350, exposureOffset: 0.5
         ),
         .stadium: Lighting(
-            ambientIntensity: 1120, venueFillIntensity: 900, avatarFillIntensity: 1150,
-            spotIntensity: 1600, exposureOffset: 0.6
+            ambientIntensity: 430, venueFillIntensity: 300, avatarFillIntensity: 460,
+            spotIntensity: 360, exposureOffset: 0.6
         ),
         .outdoor: Lighting(
-            ambientIntensity: 1000, venueFillIntensity: 780, avatarFillIntensity: 1080,
-            spotIntensity: 1450, exposureOffset: 0.52
+            ambientIntensity: 410, venueFillIntensity: 280, avatarFillIntensity: 440,
+            spotIntensity: 340, exposureOffset: 0.52
         ),
         .indoor: Lighting(
-            ambientIntensity: 940, venueFillIntensity: 720, avatarFillIntensity: 1000,
-            spotIntensity: 1280, exposureOffset: 0.48
+            ambientIntensity: 400, venueFillIntensity: 260, avatarFillIntensity: 440,
+            spotIntensity: 320, exposureOffset: 0.48
         ),
     ]
 
@@ -247,13 +247,13 @@ enum PremiumViewpointConfig {
             guard let light = node.light else { return }
             switch light.type {
             case .ambient:
-                light.intensity = max(light.intensity, lighting.ambientIntensity)
+                light.intensity = lighting.ambientIntensity
             case .omni where node.name == "venueFillLight" || node.name == "avatarFillLight":
                 light.intensity = node.name == "avatarFillLight"
                     ? lighting.avatarFillIntensity
                     : lighting.venueFillIntensity
             case .spot:
-                light.intensity = max(light.intensity, lighting.spotIntensity)
+                light.intensity = lighting.spotIntensity
             default:
                 break
             }

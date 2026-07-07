@@ -11,6 +11,7 @@ struct FELSceneSnapshotTests {
     @Test func snapshotHeroModeScenes() throws {
         let modes: [(GameModeId, String)] = [
             (.karate, "snapshot_karate"),
+            (.karateEndless, "snapshot_karate_endless"),
             (.basketballDunkContest3D, "snapshot_dunk"),
             (.basketballHeadToHead, "snapshot_bball_h2h"),
             (.basketball3v3, "snapshot_bball_3v3"),

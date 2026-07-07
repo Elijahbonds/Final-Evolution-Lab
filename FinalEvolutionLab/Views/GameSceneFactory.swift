@@ -249,7 +249,7 @@ struct GameSceneFactory {
            let image = UIImage(named: backgroundName) {
             scene.background.contents = image
             scene.lightingEnvironment.contents = image
-            scene.lightingEnvironment.intensity = 0.6
+            scene.lightingEnvironment.intensity = 0.12
         }
         PremiumViewpointConfig.applyToScene(scene, for: mode)
         adjustSceneQuality(scene, for: FELPerformanceMonitor.shared.currentTier)
@@ -267,7 +267,11 @@ struct GameSceneFactory {
         case .soccer: return "BackgroundSoccer"
         case .golf: return "BackgroundGolf"
         case .skateboarding: return "BackgroundSkateboarding"
-        case .karateEndless: return "BackgroundMuscleBeach"
+        case .karate: return "BackgroundKarate"
+        case .karateEndless: return "BackgroundKarate"
+        case .snowboarding: return "BackgroundSnowboarding"
+        case .surfing: return "BackgroundSurfing"
+        case .marketBrowse: return "BackgroundMuscleBeachGym"
         default: return nil
         }
     }
@@ -284,7 +288,7 @@ struct GameSceneFactory {
             asset = .venueShimogamoDojo
             footprint = 30 // interior must clear the dojo chase camera (z≈7.8)
         case .karateEndless:
-            asset = .venueMuscleBeachStage
+            asset = .venueShimogamoDojo
             footprint = 30
         case .tennis:
             asset = .venueTennisCourt
@@ -332,14 +336,13 @@ struct GameSceneFactory {
         }
         scene.rootNode.addChildNode(venue)
 
+        let isDojo = (mode == .karate || mode == .karateEndless)
         let fill = SCNNode()
         fill.name = "venueFillLight"
         fill.light = SCNLight()
         fill.light?.type = .omni
         fill.light?.color = UIColor(white: 1.0, alpha: 1)
-        // Dojo interior needs restraint (close surfaces); open court needs lift.
-        let isDojo = (mode == .karate || mode == .karateEndless)
-        fill.light?.intensity = isDojo ? 320 : 900
+        fill.light?.intensity = isDojo ? 150 : 420
         fill.position = isDojo ? SCNVector3(0, 6, 0) : SCNVector3(0, 10, 2)
         scene.rootNode.addChildNode(fill)
 
@@ -349,7 +352,7 @@ struct GameSceneFactory {
             backFill.name = "venueFillLight"
             backFill.light = SCNLight()
             backFill.light?.type = .omni
-            backFill.light?.intensity = 500
+            backFill.light?.intensity = 240
             backFill.position = SCNVector3(0, 4, -5)
             scene.rootNode.addChildNode(backFill)
         }
@@ -711,7 +714,6 @@ struct GameSceneFactory {
 
         addCamera(to: scene, position: SCNVector3(0, 3.5, 6.5), lookAt: SCNVector3(0, 1.2, 0))
         addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.2, blue: 0.1, alpha: 1))
-
         addFloor(to: scene, color: UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1), reflectivity: 0.1)
 
         let mat = SCNBox(width: 6, height: 0.05, length: 6, chamferRadius: 0)
@@ -852,7 +854,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.01, green: 0.02, blue: 0.05, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(-2, 4, 6), lookAt: SCNVector3(0, 1, 0))
-        addLighting(to: scene, tint: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.05, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
@@ -991,7 +993,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(0, 6, 10), lookAt: SCNVector3(0, 0.5, -2))
-        addLighting(to: scene, tint: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.04, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
@@ -1134,7 +1136,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.01, green: 0.03, blue: 0.02, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(0, 4, 8), lookAt: SCNVector3(0, 1.0, -1))
-        addLighting(to: scene, tint: UIColor(red: 0.2, green: 0.9, blue: 0.3, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.04, green: 0.1, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
@@ -1259,7 +1261,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.01, green: 0.02, blue: 0.03, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(3, 3, 5), lookAt: SCNVector3(0, 0.5, 0))
-        addLighting(to: scene, tint: UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.03, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
@@ -1386,7 +1388,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.02, green: 0.03, blue: 0.06, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(0, 5, 8), lookAt: SCNVector3(0, 0.8, 0))
-        addLighting(to: scene, tint: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.04, green: 0.06, blue: 0.03, alpha: 1), reflectivity: 0.1)
 
@@ -1525,7 +1527,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.03, green: 0.02, blue: 0.01, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(0, 4, 8), lookAt: SCNVector3(0, 1.5, 0))
-        addLighting(to: scene, tint: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1), reflectivity: 0.05)
 
