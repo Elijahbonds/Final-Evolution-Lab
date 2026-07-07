@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "comment": "Logical gameplay events -> audio cue + vfx sprite. Files under assets/external/audio/ are maintainer-fetched (see infra/asset_sources.json freesound/opengameart entries); missing files are skipped silently (fallback policy).",
+  "global": {
+    "match_start": {
+      "audio": "assets/external/audio/buzzer.wav",
+      "vfx": null
+    },
+    "score_event": {
+      "audio": "assets/external/audio/score_sting.wav",
+      "vfx": "assets/placeholder/particle_soft.png"
+    },
+    "countdown_tick": {
+      "audio": "assets/external/audio/timer_tick.wav",
+      "vfx": null
+    },
+    "match_end": {
+      "audio": "assets/external/audio/buzzer.wav",
+      "vfx": "assets/placeholder/particle_soft.png"
+    }
+  },
+  "basketball_dunk_3d": {
+    "dunk_result": {
+      "audio": "assets/external/audio/rim_clank.wav",
+      "vfx": "assets/placeholder/particle_soft.png",
+      "haptic": "heavy"
+    },
+    "net_swish": {
+      "audio": "assets/external/audio/net_swish.wav",
+      "vfx": null
+    },
+    "crowd_hype": {
+      "audio": "assets/external/audio/crowd_hype.wav",
+      "vfx": null
+    }
+  },
+  "karate_h2h": {
+    "strike_hit": {
+      "audio": "assets/external/audio/impact_thud.wav",
+      "vfx": "assets/placeholder/particle_soft.png",
+      "haptic": "medium"
+    },
+    "perfect_guard": {
+      "audio": "assets/external/audio/parry_ring.wav",
+      "vfx": "assets/placeholder/particle_soft.png"
+    },
+    "ko": {
+      "audio": "assets/external/audio/crowd_roar.wav",
+      "vfx": null,
+      "haptic": "heavy"
+    }
+  }
+}
