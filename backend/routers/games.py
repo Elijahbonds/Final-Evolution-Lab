@@ -18,6 +18,7 @@ Covers:
   - Video upload / coach critique
 """
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from pydantic import BaseModel
 import os, uuid, random, logging, aiofiles
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
