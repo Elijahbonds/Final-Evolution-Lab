@@ -1,0 +1,102 @@
+{
+  "clips": [
+    {
+      "crop_id": "ElijahDunkMSDunks_custom_01",
+      "take": "ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "raw_path": "/Users/elijahbonds/Downloads/ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "type": "dunk_or_jump_reach",
+      "rim_normalized": true,
+      "clip_path": "assets/motion/clips/ElijahDunkMSDunks_custom_01.usdz",
+      "status": "processed",
+      "modes": [
+        "basketball_dunk_3d"
+      ]
+    },
+    {
+      "crop_id": "ElijahDunkMSDunks_custom_02",
+      "take": "ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "raw_path": "/Users/elijahbonds/Downloads/ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "type": "dunk_or_jump_reach",
+      "rim_normalized": true,
+      "clip_path": "assets/motion/clips/ElijahDunkMSDunks_custom_02.usdz",
+      "status": "processed",
+      "modes": [
+        "basketball_dunk_3d"
+      ]
+    },
+    {
+      "crop_id": "ElijahDunkMSDunks_custom_05",
+      "take": "ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "raw_path": "/Users/elijahbonds/Downloads/ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "type": "dunk_or_jump_reach",
+      "rim_normalized": true,
+      "clip_path": "assets/motion/clips/ElijahDunkMSDunks_custom_05.usdz",
+      "status": "processed",
+      "modes": [
+        "basketball_dunk_3d"
+      ]
+    },
+    {
+      "crop_id": "ElijahDunkMSDunks_custom_07",
+      "take": "ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "raw_path": "/Users/elijahbonds/Downloads/ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "type": "dunk_or_jump_reach",
+      "rim_normalized": true,
+      "clip_path": "assets/motion/clips/ElijahDunkMSDunks_custom_07.usdz",
+      "status": "processed",
+      "modes": [
+        "basketball_dunk_3d"
+      ]
+    },
+    {
+      "crop_id": "ElijahDunkMSDunks_custom_12",
+      "take": "ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "raw_path": "/Users/elijahbonds/Downloads/ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "type": "dunk_or_jump_reach",
+      "rim_normalized": true,
+      "clip_path": "assets/motion/clips/ElijahDunkMSDunks_custom_12.usdz",
+      "status": "processed",
+      "modes": [
+        "basketball_dunk_3d"
+      ]
+    },
+    {
+      "crop_id": "ElijahDunkMSDunks_custom_13",
+      "take": "ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "raw_path": "/Users/elijahbonds/Downloads/ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "type": "dunk_or_jump_reach",
+      "rim_normalized": true,
+      "clip_path": "assets/motion/clips/ElijahDunkMSDunks_custom_13.usdz",
+      "status": "processed",
+      "modes": [
+        "basketball_dunk_3d"
+      ]
+    },
+    {
+      "crop_id": "ElijahDunkMSDunks_custom_03",
+      "take": "ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "raw_path": "/Users/elijahbonds/Downloads/ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "type": "kick",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips/ElijahDunkMSDunks_custom_03.usdz",
+      "status": "processed",
+      "modes": [
+        "karate_h2h",
+        "karate_endless"
+      ]
+    },
+    {
+      "crop_id": "ElijahDunkMSDunks_custom_04",
+      "take": "ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "raw_path": "/Users/elijahbonds/Downloads/ElijahDunkMSDunks_customModel_ucoj55mFKU8zNnT6izbssr.bvh",
+      "type": "kick",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips/ElijahDunkMSDunks_custom_04.usdz",
+      "status": "processed",
+      "modes": [
+        "karate_h2h",
+        "karate_endless"
+      ]
+    }
+  ]
+}

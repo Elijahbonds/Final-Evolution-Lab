@@ -116,6 +116,9 @@ struct GameSceneHostView: UIViewRepresentable {
         context.coordinator.neuralDrive = neuralDrive
         context.coordinator.leftStickInput = leftStickInput
         context.coordinator.rightStickInput = rightStickInput
+        if context.coordinator.isMidAir != isMidAir {
+            context.coordinator.setDunkClipActive(isMidAir)
+        }
         context.coordinator.isMidAir = isMidAir
         context.coordinator.isSpecialMove = isSpecialMove
         context.coordinator.isSlowMotion = isSlowMotion
@@ -160,6 +163,32 @@ struct GameSceneHostView: UIViewRepresentable {
         var isSpecialMove: Bool = false
         var isSlowMotion: Bool = false
         private var lastAvatarAppearance: GameplayAvatarAppearance = .default
+        private var dunkClipNode: SCNNode?
+
+        /// Dunk contest: while airborne the dunker swaps to the retargeted
+        /// mocap dunk clip (Elijah Bonds model, rim-normalized to the 3.05m
+        /// hoop); the running-loop character returns on landing.
+        func setDunkClipActive(_ active: Bool) {
+            guard gameMode == .basketballDunkContest3D,
+                  let scene = activeSceneKitView?.scene,
+                  let dunker = scene.rootNode.childNode(withName: "dunker", recursively: false) else {
+                return
+            }
+            if active {
+                guard dunkClipNode == nil,
+                      let clip = FELBundledAssets.characterNode(.elijahDunk, height: 1.85) else { return }
+                clip.name = "dunkerClip"
+                clip.position = dunker.position
+                clip.eulerAngles = dunker.eulerAngles
+                (dunker.parent ?? scene.rootNode).addChildNode(clip)
+                dunker.isHidden = true
+                dunkClipNode = clip
+            } else {
+                dunkClipNode?.removeFromParentNode()
+                dunkClipNode = nil
+                dunker.isHidden = false
+            }
+        }
 
         var currentScenicCameraAngle: ScenicCameraAngle = .chase
         private var temporaryCameraAngleOverride: ScenicCameraAngle? = nil
