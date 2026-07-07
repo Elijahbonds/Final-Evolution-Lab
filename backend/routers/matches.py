@@ -28,6 +28,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from pydantic import BaseModel
 
 from core import db, get_current_user, User
+from lib.av_cues import attach_av_cues
 
 router = APIRouter(tags=["matches"])
 
@@ -196,6 +197,7 @@ async def _simulate_scoring(
             "timestamp": _now(),
             "score_snapshot": dict(scores),
         }
+        attach_av_cues(event)
         await _persist_event(match_id, event)
         await _broadcast(match_id, event)
 
@@ -206,6 +208,7 @@ async def _simulate_scoring(
         "score": scores,
         "timestamp": _now(),
     }
+    attach_av_cues(end_event)
     await _persist_event(match_id, end_event)
     await _broadcast(match_id, end_event)
     _matches[match_id]["status"] = "finished"
@@ -272,6 +275,8 @@ async def join_match(
             ],
             "start_time": match["started_at"],
         }
+        attach_av_cues(start_event)
+        await _persist_event(body.match_id, start_event)
         await _broadcast(body.match_id, start_event)
         # Kick off simulated scoring in background
         asyncio.create_task(_simulate_scoring(body.match_id, match["players"], match["loadouts"]))
