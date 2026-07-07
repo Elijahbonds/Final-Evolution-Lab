@@ -12,6 +12,10 @@ struct FELSceneSnapshotTests {
         let modes: [(GameModeId, String)] = [
             (.karate, "snapshot_karate"),
             (.basketballDunkContest3D, "snapshot_dunk"),
+            (.basketballHeadToHead, "snapshot_bball_h2h"),
+            (.basketball3v3, "snapshot_bball_3v3"),
+            (.venicePickup, "snapshot_venice_pickup"),
+            (.courtCarnival, "snapshot_court_carnival"),
             (.tennis, "snapshot_tennis"),
             (.skateboarding, "snapshot_skate"),
             (.gymnastics, "snapshot_gymnastics"),
@@ -31,10 +35,18 @@ struct FELSceneSnapshotTests {
                 .write(to: docs.appendingPathComponent("diag.txt"), atomically: true, encoding: .utf8)
         }
 
+        // Basketball family intentionally uses panorama + procedural court
+        // (no USDZ venue) — the photoreal backdrop is the look.
+        let venueMapped: Set<GameModeId> = [
+            .karate, .karateEndless, .tennis, .skateboarding, .snowboarding,
+            .surfing, .golf, .soccer, .baseball, .gymnastics, .marketBrowse,
+        ]
         for (mode, name) in modes {
             let scene = GameSceneFactory.buildScene(for: mode)
-            #expect(scene.rootNode.childNode(withName: "bundledVenueBackdrop", recursively: true) != nil,
-                    "\(mode.rawValue): bundled USDZ venue missing — fallback in use")
+            if venueMapped.contains(mode) {
+                #expect(scene.rootNode.childNode(withName: "bundledVenueBackdrop", recursively: true) != nil,
+                        "\(mode.rawValue): bundled USDZ venue missing — fallback in use")
+            }
 
             var cameraNode: SCNNode?
             var lights: [String] = []

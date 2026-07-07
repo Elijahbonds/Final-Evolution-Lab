@@ -82,6 +82,35 @@ struct GameSceneFactory {
         return known.contains(name)
     }
 
+
+    /// Places a skinned bundled character (fail-soft: returns false so the
+    /// caller keeps its procedural fallback). Optional team tint multiplies
+    /// materials for side identity without needing distinct models.
+    @discardableResult
+    private static func addSkinnedCharacter(
+        _ asset: FELBundledAsset,
+        to scene: SCNScene,
+        name: String,
+        at position: SCNVector3,
+        facingY: Float = 0,
+        height: Float = 1.85,
+        tint: UIColor? = nil
+    ) -> Bool {
+        guard let node = FELBundledAssets.characterNode(asset, height: height) else { return false }
+        node.name = name
+        node.position = position
+        node.eulerAngles.y = facingY
+        if let tint {
+            node.enumerateHierarchy { child, _ in
+                for material in child.geometry?.materials ?? [] {
+                    material.multiply.contents = tint
+                }
+            }
+        }
+        scene.rootNode.addChildNode(node)
+        return true
+    }
+
     static func primaryGameplayAvatarName(for mode: GameModeId) -> String {
         switch mode {
         case .basketballHeadToHead, .venicePickup, .marketBrowse: return "player1"
@@ -257,9 +286,6 @@ struct GameSceneFactory {
         case .karateEndless:
             asset = .venueMuscleBeachStage
             footprint = 30
-        case .basketballDunkContest3D, .basketballHeadToHead, .venicePickup, .basketball3v3:
-            asset = .venueVeniceBlacktop
-            footprint = 26
         case .tennis:
             asset = .venueTennisCourt
             footprint = 30
@@ -384,7 +410,9 @@ struct GameSceneFactory {
 
         addCamera(to: scene, position: SCNVector3(0.4, 2.6, 5.2), lookAt: SCNVector3(0, 1.4, 0))
         addLighting(to: scene, tint: brandCyan)
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0.5), color: brandCyan, name: "player1")
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "player1", at: SCNVector3(0, 0, 0.5)) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0.5), color: brandCyan, name: "player1")
+        }
 
         let hasBundled = NexusBundledMeshLoader.attachBackdropFromManifest(for: .marketBrowse, to: scene)
             || NexusBundledMeshLoader.attachEnvironmentBackdrop(for: .marketBrowse, to: scene)
@@ -419,8 +447,12 @@ struct GameSceneFactory {
         addCourtLines(to: scene)
         addHoop(to: scene, x: 3.5)
         addHoop(to: scene, x: -3.5, flip: true)
-        addPlayerAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
-        addAvatar(to: scene, at: SCNVector3(1.5, 0, 0), color: UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1), name: "opponent")
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "player1", at: SCNVector3(-1.5, 0, 0), facingY: .pi / 2) {
+            addPlayerAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
+        }
+        if !addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(1.5, 0, 0), facingY: -.pi / 2) {
+            addAvatar(to: scene, at: SCNVector3(1.5, 0, 0), color: UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1), name: "opponent")
+        }
         addBall(to: scene, at: SCNVector3(-1.5, 1.4, 0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
         addVeniceBeachWalls(to: scene)
         addVeniceBeachCrowd(to: scene, depth: 5)
@@ -510,27 +542,27 @@ struct GameSceneFactory {
         } else {
             addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4), color: dunker, name: "dunker")
         }
-        addAvatar(to: scene, at: SCNVector3(2.8, 0, 2.5), color: opponentColor, name: "opponent")
+        _ = addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(2.8, 0, 2.5), facingY: -.pi / 3)
         addBall(to: scene, at: SCNVector3(0, 1.4, 4), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
 
         let judgeColor = UIColor(white: 0.45, alpha: 1)
         let judgeCast: [FELBundledAsset] = [.npcEricNashIdle, .npcTallAthleticIdle, .npcEricNashIdle]
-        for (i, x) in ([-2.5, 0.0, 2.5] as [Float]).enumerated() {
+        for (i, x) in ([-3.6, 0.0, 3.6] as [Float]).enumerated() {
             let table = SCNBox(width: 1.2, height: 0.7, length: 0.4, chamferRadius: 0.02)
             let tMat = SCNMaterial()
             tMat.diffuse.contents = UIColor(red: 0.08, green: 0.06, blue: 0.04, alpha: 1)
             table.materials = [tMat]
             let tNode = SCNNode(geometry: table)
-            tNode.position = SCNVector3(x, 0.35, -5.5)
+            tNode.position = SCNVector3(x, 0.35, -2.6)
             scene.rootNode.addChildNode(tNode)
             // Skinned NPC judges (auto-rigged Meshy models, idle loops);
             // procedural avatars remain the fallback.
             if let judge = FELBundledAssets.characterNode(judgeCast[i], height: 1.8) {
                 judge.name = "judge\(i)"
-                judge.position = SCNVector3(x, 0, -5.0)
+                judge.position = SCNVector3(x, 0, -2.0)
                 scene.rootNode.addChildNode(judge)
             } else {
-                addAvatar(to: scene, at: SCNVector3(x, 0, -5.0), color: judgeColor, name: "judge\(i)")
+                addAvatar(to: scene, at: SCNVector3(x, 0, -2.0), color: judgeColor, name: "judge\(i)")
             }
         }
 
@@ -597,13 +629,22 @@ struct GameSceneFactory {
             SCNVector3(2.5, 0, -1.0)
         ]
 
+        let blueCast: [FELBundledAsset] = [.characterElijahRunning, .npcTallAthleticIdle, .npcEricNashIdle]
+        let redCast: [FELBundledAsset] = [.npcEricNashIdle, .npcTallAthleticIdle, .characterElijahWalking]
+        let redTint = UIColor(red: 1.0, green: 0.45, blue: 0.4, alpha: 1)
         for index in 0..<threeVThreeTeamSize {
-            if index == 0 {
-                addPlayerAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue1")
-            } else {
-                addAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue\(index + 1)")
+            let blueName = "blue\(index + 1)"
+            if !addSkinnedCharacter(blueCast[index], to: scene, name: blueName, at: teamAStart[index], facingY: .pi / 2) {
+                if index == 0 {
+                    addPlayerAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue1")
+                } else {
+                    addAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: blueName)
+                }
             }
-            addAvatar(to: scene, at: teamBStart[index], color: teamRed, name: "red\(index + 1)")
+            let redName = "red\(index + 1)"
+            if !addSkinnedCharacter(redCast[index], to: scene, name: redName, at: teamBStart[index], facingY: -.pi / 2, tint: redTint) {
+                addAvatar(to: scene, at: teamBStart[index], color: teamRed, name: redName)
+            }
         }
 
         addBall(to: scene, at: SCNVector3(teamAStart[0].x, 1.4, teamAStart[0].z), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
@@ -1834,7 +1875,9 @@ struct GameSceneFactory {
             scene.rootNode.addChildNode(podiumNode)
         }
 
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: avatarName)
+        if !addSkinnedCharacter(.characterElijahWalking, to: scene, name: avatarName, at: SCNVector3(0, 0, 0)) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: avatarName)
+        }
         addExtremeRhythmIdleMotion(playerName: avatarName, to: scene)
 
         addStadiumStands(to: scene, depth: 14)
