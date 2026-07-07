@@ -18,6 +18,7 @@ a match becomes 'active'. This lets two WS clients or Nexus observe
 a full match lifecycle without a real physics engine.
 """
 import asyncio
+import json
 import os
 import sys
 import uuid
@@ -384,6 +385,12 @@ async def append_match_event(match_id: str, body: AppendEventRequest) -> Dict[st
         "payload": body.payload,
         "timestamp": _now(),
     }
+    if body.type == "input":
+        # Track last acked input seq for snapshot broadcasts (netcode contract).
+        seq = int(body.payload.get("seq", 0))
+        pid = body.player_id or "rest_player"
+        acks = _last_input_seq_ack.setdefault(match_id, {})
+        acks[pid] = max(acks.get(pid, 0), seq)
     if body.type == "score_event":
         points = int(body.payload.get("points", 0))
         pid = body.player_id or (match["players"][0] if match["players"] else "unknown")
@@ -465,9 +472,86 @@ async def export_replay(match_id: str) -> Dict[str, Any]:
 
 # ── WebSocket ──────────────────────────────────────────────────────────────
 
+# ── Snapshot netcode foundation (Agent 5) ─────────────────────────────────
+# Contract: infra/netcode_contract.md
+#   client -> server INPUT : {"type":"input","player_id",?,"seq":int,"input":{},"ts":float}
+#   server -> client SNAP  : {"type":"snapshot","tick":int,
+#                             "authoritative_state":{...},"last_input_seq_ack":{player:seq}}
+
+def _snapshot_hz() -> float:
+    """Broadcast rate, clamped to the 20-30 Hz contract window."""
+    try:
+        hz = float(os.environ.get("FEL_SNAPSHOT_HZ", "24"))
+    except ValueError:
+        hz = 24.0
+    return max(20.0, min(30.0, hz))
+
+
+_snapshot_tasks: Dict[str, "asyncio.Task"] = {}
+_last_input_seq_ack: Dict[str, Dict[str, int]] = {}  # match_id -> {player_id: seq}
+_snapshot_ticks: Dict[str, int] = {}
+
+
+def _build_snapshot(match: Dict[str, Any], match_id: str) -> Dict[str, Any]:
+    return {
+        "type": "snapshot",
+        "tick": _snapshot_ticks.get(match_id, 0),
+        "authoritative_state": {
+            "match_id": match_id,
+            "status": match["status"],
+            "score": dict(match.get("score", {})),
+            "players": list(match.get("players", [])),
+            "event_count": len(_events.get(match_id, [])),
+        },
+        "last_input_seq_ack": dict(_last_input_seq_ack.get(match_id, {})),
+    }
+
+
+async def _snapshot_loop(match_id: str) -> None:
+    """Broadcast authoritative snapshots at 20-30 Hz while the match is active
+    and at least one WS client is connected."""
+    interval = 1.0 / _snapshot_hz()
+    try:
+        while _ws_connections.get(match_id):
+            match = await _load_match(match_id)
+            if not match:
+                break
+            _snapshot_ticks[match_id] = _snapshot_ticks.get(match_id, 0) + 1
+            await _broadcast(match_id, _build_snapshot(match, match_id))
+            if match["status"] == "finished":
+                break
+            await asyncio.sleep(interval)
+    finally:
+        _snapshot_tasks.pop(match_id, None)
+
+
+def _ensure_snapshot_loop(match_id: str) -> None:
+    task = _snapshot_tasks.get(match_id)
+    if task is None or task.done():
+        _snapshot_tasks[match_id] = asyncio.get_event_loop().create_task(_snapshot_loop(match_id))
+
+
+async def _handle_input_message(match_id: str, msg: Dict[str, Any],
+                                default_player: str = "ws_player") -> Dict[str, Any]:
+    """Persist a client INPUT message as a match event and update the seq ack."""
+    seq = int(msg.get("seq", 0))
+    player_id = msg.get("player_id") or default_player
+    event = {
+        "type": "input",
+        "match_id": match_id,
+        "player_id": player_id,
+        "payload": {"seq": seq, "input": msg.get("input", {}), "ts": msg.get("ts")},
+        "timestamp": _now(),
+    }
+    await _persist_event(match_id, event)
+    acks = _last_input_seq_ack.setdefault(match_id, {})
+    acks[player_id] = max(acks.get(player_id, 0), seq)
+    return {"type": "input_ack", "player_id": player_id, "seq": acks[player_id]}
+
+
 @router.websocket("/ws/match/{match_id}")
 async def ws_match(websocket: WebSocket, match_id: str):
-    """Subscribe to live match events. Receives match_start and score_event messages."""
+    """Live match channel: match events, INPUT ingestion, and 20-30 Hz snapshots."""
     await websocket.accept()
     _ws_connections.setdefault(match_id, set()).add(websocket)
     # Send current match state on connect
@@ -479,6 +563,8 @@ async def ws_match(websocket: WebSocket, match_id: str):
             "players": match["players"],
             "score": match["score"],
         }})
+        if match["status"] == "active":
+            _ensure_snapshot_loop(match_id)
     try:
         while True:
             try:
@@ -486,6 +572,14 @@ async def ws_match(websocket: WebSocket, match_id: str):
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 if data == "ping":
                     await websocket.send_text("pong")
+                    continue
+                try:
+                    msg = json.loads(data)
+                except ValueError:
+                    continue
+                if isinstance(msg, dict) and msg.get("type") == "input":
+                    ack = await _handle_input_message(match_id, msg)
+                    await websocket.send_json(ack)
             except asyncio.TimeoutError:
                 # Send ping; if client is gone this will raise on next iteration
                 await websocket.send_json({"type": "ping"})
