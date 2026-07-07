@@ -419,9 +419,10 @@ class TestRouter:
         correct_idx = _si_sessions[sid]["current_correct_index"]
         # First correct
         self._buzz(sid, r["content_id"], correct_idx)
-        # Second wrong
+        # Second wrong — read the NEW correct index for round 2
         r2 = _si_sessions[sid].get("current_content")
-        wrong_idx = (correct_idx + 1) % 4
+        correct_idx_2 = _si_sessions[sid]["current_correct_index"]
+        wrong_idx = (correct_idx_2 + 1) % 4
         body = self._buzz(sid, r2.content_id, wrong_idx).json()
         assert body["buzz_streak"] == 0
 
@@ -489,7 +490,6 @@ class TestRouter:
         r = data["round"]
         correct_idx = _si_sessions[sid]["current_correct_index"]
         self._buzz(sid, r["content_id"], correct_idx)  # completes session
-        _si_sessions[sid]["current_content"] = _si_sessions[sid].get("current_content")
         resp = _client().post(
             f"/api/who-scene-it/session/{sid}/buzz",
             json={"content_id": "any", "buzz_time_ms": 500, "chosen_index": 0},
