@@ -40,9 +40,14 @@ _chat.LlmChat = MagicMock
 _chat.UserMessage = MagicMock
 _chat.ImageContent = MagicMock
 
-_motor_patcher = patch("motor.motor_asyncio.AsyncIOMotorClient")
-_mock_motor = _motor_patcher.start()
-_mock_motor.return_value.__getitem__ = lambda self, n: MagicMock()
+try:
+    _motor_patcher = patch("motor.motor_asyncio.AsyncIOMotorClient")
+    _mock_motor = _motor_patcher.start()
+    _mock_motor.return_value.__getitem__ = lambda self, n: MagicMock()
+except ModuleNotFoundError:
+    # motor not installed (e.g. slim CI env / HTTP mode) — backend lib imports
+    # below are pure-stdlib and do not need the Mongo client at all.
+    _motor_patcher = None
 
 # Now safe to import backend lib
 backend_dir = os.path.join(os.path.dirname(__file__), "..", "backend")
