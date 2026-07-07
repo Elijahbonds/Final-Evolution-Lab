@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // MARK: - Models
 
@@ -388,7 +389,7 @@ struct EducationHubView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(module.title)
                         .font(.system(.subheadline, weight: module.locked ? .regular : .semibold))
-                        .foregroundStyle(module.locked ? .secondary : .white)
+                        .foregroundStyle(module.locked ? Color.secondary : Color.white)
                     HStack(spacing: 6) {
                         Text("\(comp)/\(module.lessons) lessons")
                             .font(.system(size: 9, design: .monospaced))

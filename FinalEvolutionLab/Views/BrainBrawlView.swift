@@ -807,7 +807,9 @@ private struct NeuralBGCanvas: View {
                 let barSpacing = barAreaW / CGFloat(barCount)
                 for bi in 0..<barCount {
                     let barPhase = Double(bi) / Double(barCount) * .pi * 2 - t * 3.5
-                    let barH = barMaxH * CGFloat((sin(barPhase) * 0.4 + 0.6) * (0.5 + 0.5 * sin(barPhase * 2.3 + t)))
+                    let barWave1: Double = sin(barPhase) * 0.4 + 0.6
+                    let barWave2: Double = 0.5 + 0.5 * sin(barPhase * 2.3 + t)
+                    let barH = barMaxH * CGFloat(barWave1 * barWave2)
                     let barX = barAreaX + CGFloat(bi) * barSpacing + barSpacing * 0.15
                     let barW = barSpacing * 0.6
                     let barAlpha = 0.35 + 0.45 * (sin(barPhase) * 0.5 + 0.5)

@@ -1099,7 +1099,7 @@ private struct CarnivalGameCanvas: View {
     }
 
     private func drawRally(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H)), with: .color(Color(red: 0.08, green: 0.18, blue: 0.08)))
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)), with: .color(Color(red: 0.08, green: 0.18, blue: 0.08)))
         var net = Path(); net.move(to: CGPoint(x: W/2, y: 0)); net.addLine(to: CGPoint(x: W/2, y: H))
         ctx.stroke(net, with: .color(Color.white.opacity(0.28)), lineWidth: 1.5)
         let ballT = CGFloat(fmod(t * 1.2, 1.0))
@@ -1273,7 +1273,7 @@ private struct RallyTimingCanvas: View {
         Canvas { ctx, size in
             let W = size.width; let H = size.height
             // Court background
-            ctx.fill(Path(CGRect(width: W, height: H)), with: .color(Color(red: 0.08, green: 0.18, blue: 0.08)))
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)), with: .color(Color(red: 0.08, green: 0.18, blue: 0.08)))
             // Net
             var net = Path(); net.move(to: CGPoint(x: W/2, y: 0)); net.addLine(to: CGPoint(x: W/2, y: H))
             ctx.stroke(net, with: .color(Color.white.opacity(0.28)), lineWidth: 1.5)

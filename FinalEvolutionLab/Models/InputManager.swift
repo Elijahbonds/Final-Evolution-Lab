@@ -350,7 +350,7 @@ nonisolated struct DefensiveInputState: Sendable {
     }
 }
 
-nonisolated struct PS2MovementConfig: Sendable {
+nonisolated struct ArenaPadConfig: Sendable {
     let topSpeed: Float
     let acceleration: Float
     let deceleration: Float
@@ -360,7 +360,7 @@ nonisolated struct PS2MovementConfig: Sendable {
     let cameraLerpFactor: Float
     let cameraTargetLerpFactor: Float
 
-    static let standard = PS2MovementConfig(
+    static let standard = ArenaPadConfig(
         topSpeed: 10.5,
         acceleration: 35,
         deceleration: 70,
@@ -371,7 +371,7 @@ nonisolated struct PS2MovementConfig: Sendable {
         cameraTargetLerpFactor: 10
     )
 
-    static let dunkContest = PS2MovementConfig(
+    static let dunkContest = ArenaPadConfig(
         topSpeed: 12.5,
         acceleration: 80,
         deceleration: 120,
@@ -382,14 +382,14 @@ nonisolated struct PS2MovementConfig: Sendable {
         cameraTargetLerpFactor: 8
     )
 
-    static func forMode(_ mode: GameModeId) -> PS2MovementConfig {
+    static func forMode(_ mode: GameModeId) -> ArenaPadConfig {
         switch mode {
         case .basketballDunkContest3D:
             return .dunkContest
         case .basketballHeadToHead, .basketball3v3:
             return .standard
         case .karate, .karateEndless:
-            return PS2MovementConfig(
+            return ArenaPadConfig(
                 topSpeed: 9.0,
                 acceleration: 40,
                 deceleration: 80,
@@ -400,7 +400,7 @@ nonisolated struct PS2MovementConfig: Sendable {
                 cameraTargetLerpFactor: 12
             )
         case .volleyball:
-            return PS2MovementConfig(
+            return ArenaPadConfig(
                 topSpeed: 8.5,
                 acceleration: 35,
                 deceleration: 70,
@@ -411,7 +411,7 @@ nonisolated struct PS2MovementConfig: Sendable {
                 cameraTargetLerpFactor: 10
             )
         case .football:
-            return PS2MovementConfig(
+            return ArenaPadConfig(
                 topSpeed: 11.5,
                 acceleration: 30,
                 deceleration: 60,
@@ -422,7 +422,7 @@ nonisolated struct PS2MovementConfig: Sendable {
                 cameraTargetLerpFactor: 9
             )
         case .soccer:
-            return PS2MovementConfig(
+            return ArenaPadConfig(
                 topSpeed: 10.0,
                 acceleration: 35,
                 deceleration: 70,
@@ -433,7 +433,7 @@ nonisolated struct PS2MovementConfig: Sendable {
                 cameraTargetLerpFactor: 10
             )
         default:
-            return PS2MovementConfig(
+            return ArenaPadConfig(
                 topSpeed: 8.0,
                 acceleration: 20,
                 deceleration: 45,

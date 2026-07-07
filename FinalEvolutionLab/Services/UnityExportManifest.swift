@@ -181,7 +181,7 @@ struct UnityExportBuilder {
         let gameModes = GameModeId.allCases.map { modeId -> UnityExportManifest.GameModeExport in
             let mode = GameModeRegistry.mode(for: modeId)
             let physics = GamePhysicsConfig.forMode(modeId, prq: metrics.prqScore, audit: audit, metrics: metrics)
-            let movement = PS2MovementConfig.forMode(modeId)
+            let movement = ArenaPadConfig.forMode(modeId)
             return UnityExportManifest.GameModeExport(
                 id: modeId.rawValue,
                 name: mode.name,
@@ -223,9 +223,9 @@ struct UnityExportBuilder {
         }
 
         let comboSystem = UnityExportManifest.ComboSystemExport(
-            maxChainLength: GoldenEraComboEngine.maxChainLength,
-            chainWindowSeconds: GoldenEraComboEngine.chainWindowSeconds,
-            styleLandingWindowSeconds: GoldenEraComboEngine.styleLandingWindowSeconds,
+            maxChainLength: SignatureComboEngine.maxChainLength,
+            chainWindowSeconds: SignatureComboEngine.chainWindowSeconds,
+            styleLandingWindowSeconds: SignatureComboEngine.styleLandingWindowSeconds,
             qteApexWindowSeconds: QTEApexWindow.windowDuration,
             qteGrades: qteGrades,
             dunkTricks: dunkTricks,

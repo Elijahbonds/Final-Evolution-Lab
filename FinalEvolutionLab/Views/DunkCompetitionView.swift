@@ -1091,7 +1091,7 @@ private struct ResultCanvas: View {
 struct DunkCompetitionView: View {
     let viewModel: LabViewModel
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var healthKit = HealthKitService()
+    @State private var healthKit = HealthKitService()
 
     // Phase + matchmaking
     @State private var phase: CompPhase = .lobby
@@ -1505,7 +1505,7 @@ struct DunkCompetitionView: View {
                 .padding(.horizontal, 20)
 
                 if !healthKit.isAuthorized {
-                    Button { healthKit.requestAuthorization() } label: {
+                    Button { Task { await healthKit.requestAuthorization() } } label: {
                         Text("CONNECT HEALTHKIT")
                             .font(.system(.subheadline, weight: .black))
                             .foregroundStyle(.black)
@@ -1707,7 +1707,7 @@ struct DunkCompetitionView: View {
                             Image(systemName: "diamond.fill")
                                 .foregroundStyle(Theme.brandCyan)
                             Text("+\(r.payout) shards earned")
-                                .font(.system(.headline, weight: .black, design: .monospaced))
+                                .font(.system(.headline, design: .monospaced, weight: .black))
                                 .foregroundStyle(.white)
                         }
                         .padding(14)

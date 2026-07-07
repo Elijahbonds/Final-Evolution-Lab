@@ -16,7 +16,7 @@ FinalEvolutionLab/GoogleService-Info.plist
 FinalEvolutionLab/Bridge/prebuilt/
 build-ios/
 build-ios-*/
-NexusPrebuilt/_deps/
+NexusPrebuilt/
 build/
 DerivedData/
 *.xcuserstate

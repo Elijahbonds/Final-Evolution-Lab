@@ -1786,7 +1786,7 @@ struct BasketballH2HGameView: View {
         let playerWon = playerScore >= winTarget
         let didTie = !playerWon && opponentScore < winTarget
         let winner: ResultScreen.ResultWinner = playerWon ? .p1 : (didTie ? .draw : .p2)
-        let prqGain = playerWon ? selectedDifficulty.prqReward : PRQ.modeReward(
+        let prqGain = playerWon ? Double(selectedDifficulty.prqReward) : PRQ.modeReward(
             mode: .basketballHeadToHead, won: playerWon, tied: didTie,
             combo: comboCount, criticals: comboCount / 3,
             scoreDifferential: playerScore - opponentScore

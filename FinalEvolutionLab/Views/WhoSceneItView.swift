@@ -45,7 +45,7 @@ private struct WhoSceneCanvas: View {
     }
 
     private func drawBasketball(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H)),
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
                  with: .color(Color(red:0.9,green:0.35,blue:0.05).opacity(0.55)))
         var ground = Path()
         ground.addRect(CGRect(x: 0, y: H*0.55, width: W, height: H*0.45))
@@ -73,7 +73,7 @@ private struct WhoSceneCanvas: View {
     }
 
     private func drawHalfpipe(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H)),
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
                  with: .color(Color(red:0.22,green:0.48,blue:0.82).opacity(0.45)))
         var snow = Path()
         snow.addRect(CGRect(x: 0, y: H*0.58, width: W, height: H*0.42))
@@ -125,7 +125,7 @@ private struct WhoSceneCanvas: View {
     }
 
     private func drawGolf(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H*0.52)),
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H*0.52)),
                  with: .color(Color(red:0.60,green:0.85,blue:0.98).opacity(0.45)))
         var hill = Path()
         hill.move(to: CGPoint(x: 0, y: H*0.52))
@@ -146,7 +146,7 @@ private struct WhoSceneCanvas: View {
     }
 
     private func drawSurf(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H)),
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
                  with: .color(Color(red:0.05,green:0.25,blue:0.55).opacity(0.70)))
         for i in 0..<3 {
             let wY = H * CGFloat(0.28 + Double(i) * 0.22)
@@ -164,7 +164,7 @@ private struct WhoSceneCanvas: View {
     }
 
     private func drawVolleyball(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H*0.48)),
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H*0.48)),
                  with: .color(Color(red:0.55,green:0.80,blue:0.98).opacity(0.48)))
         var sand = Path()
         sand.addRect(CGRect(x: 0, y: H*0.48, width: W, height: H*0.52))
@@ -193,7 +193,7 @@ private struct WhoSceneCanvas: View {
     }
 
     private func drawSoccer(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H)),
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
                  with: .color(Color(red:0.05,green:0.22,blue:0.08)))
         for i in 0..<5 {
             ctx.fill(Path(CGRect(x: W * CGFloat(i) * 0.2, y: 0, width: W*0.10, height: H)),
@@ -212,7 +212,7 @@ private struct WhoSceneCanvas: View {
     }
 
     private func drawFootball(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H)),
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
                  with: .color(Color(red:0.08,green:0.26,blue:0.08)))
         for i in 0..<10 {
             let x = W * CGFloat(i) / 10.0
@@ -235,7 +235,7 @@ private struct WhoSceneCanvas: View {
     }
 
     private func drawSkate(_ ctx: inout GraphicsContext, _ W: CGFloat, _ H: CGFloat, _ t: Double) {
-        ctx.fill(Path(CGRect(width: W, height: H)),
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H)),
                  with: .color(Color(red:0.28,green:0.28,blue:0.30)))
         for i in 0..<9 {
             let y = H * CGFloat(i) / 9.0
