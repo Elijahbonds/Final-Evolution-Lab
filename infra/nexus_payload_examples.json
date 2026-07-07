@@ -3,7 +3,9 @@
   "ws_endpoint": "/ws/match/{match_id}",
   "http_probe_endpoints": {
     "match_payload": "GET /api/debug/match/{match_id}/payload",
-    "latest_system_scan": "GET /api/debug/latest-system-scan"
+    "latest_system_scan": "GET /api/debug/latest-system-scan",
+    "score_dunk": "POST /api/matches/{match_id}/score_dunk",
+    "export_replay": "GET /api/matches/{match_id}/export-replay"
   },
   "examples": {
     "match_state": {
@@ -36,7 +38,58 @@
           ]
         }
       ],
+      "seed": 12345678901234567,
+      "judge_offsets": [2, -1, 3],
       "start_time": "2026-07-01T01:00:00+00:00"
+    },
+    "score_dunk": {
+      "description": "POST /api/matches/{match_id}/score_dunk — compute server-authoritative dunk score using the match's seeded judge_offsets. Returns j1/j2/j3 panel scores, total, message, and is_perfect flag.",
+      "request_body": {
+        "approach_quality": 0.85,
+        "execution_quality": 0.90,
+        "style_difficulty": 0.75
+      },
+      "response": {
+        "j1": 9,
+        "j2": 8,
+        "j3": 9,
+        "total": 26,
+        "message": "OUTSTANDING",
+        "is_perfect": false
+      }
+    },
+    "dunk_result": {
+      "description": "Broadcast to WS clients and persisted as an event when score_dunk is called.",
+      "type": "dunk_result",
+      "match_id": "a1b2c3d4e5f6",
+      "j1": 9,
+      "j2": 8,
+      "j3": 9,
+      "total": 26,
+      "message": "OUTSTANDING",
+      "is_perfect": false,
+      "inputs": {
+        "approach_quality": 0.85,
+        "execution_quality": 0.90,
+        "style_difficulty": 0.75
+      },
+      "timestamp": "2026-07-01T01:00:10.000000+00:00"
+    },
+    "export_replay": {
+      "description": "GET /api/matches/{match_id}/export-replay — full match replay including metadata, seed, judge_offsets, all events (match_start, score_events, dunk_results, match_end).",
+      "match_id": "a1b2c3d4e5f6",
+      "mode_id": "basketball_dunk",
+      "seed": 12345678901234567,
+      "judge_offsets": [2, -1, 3],
+      "players": ["player_a", "player_b"],
+      "started_at": "2026-07-01T01:00:00+00:00",
+      "finished_at": "2026-07-01T01:00:22+00:00",
+      "status": "finished",
+      "events": ["<array of all persisted events in chronological order>"],
+      "metadata": {
+        "export_version": "1.0",
+        "event_count": 12
+      }
     },
     "score_event": {
       "description": "Emitted when a player scores. seq is a monotonic counter for ordering/reconciliation. Nexus should update its scoreboard on every score_event.",
@@ -60,12 +113,17 @@
     "system_scan_probe": "GET /api/debug/latest-system-scan returns the last /api/system-scan/unified response cached in memory. Nexus can poll this to seed player PRQ/stats before match start.",
     "creator_card_loadout": "loadout[] in match_start is the simplified card summary. Full card data is available via GET /api/user-cards?user_id=... for Nexus to apply modifiers.",
     "sequencing": "Use seq field on score_event for ordering. Nexus should track highest seq seen and ignore events with lower seq to avoid double-counting.",
-    "mock_db_mode": "Start backend with MOCK_DB=1 to use in-memory store — no MongoDB required for local Nexus dev."
+    "mock_db_mode": "Start backend with MOCK_DB=1 to use in-memory store — no MongoDB required for local Nexus dev.",
+    "seed_and_judge_offsets": "Every match is created with a server-generated 64-bit seed. derive_judge_offsets(seed) deterministically produces 3 judge offsets in [-5,+5]. Both seed and judge_offsets are included in match_start and GET /api/matches/{match_id} so clients can reproduce scoring locally.",
+    "server_dunk_scoring": "POST /api/matches/{match_id}/score_dunk is server-authoritative. Nexus submits approach_quality, execution_quality, style_difficulty (all 0.0-1.0). The server applies the match's seeded judge_offsets and returns j1/j2/j3/total/message/is_perfect. The result is persisted as a dunk_result event and broadcast over WS.",
+    "replay_export": "GET /api/matches/{match_id}/export-replay returns the complete match record including all persisted events (match_start, score_events, dunk_results, match_end). Use for replay playback, audit, or QA verification."
   },
   "curl_qa_commands": {
     "create_match": "curl -s -X POST $API_BASE/api/matches/create -H 'Content-Type: application/json' -d '{\"mode_id\":\"basketball_h2h\"}' | jq .",
     "join_match":   "curl -s -X POST $API_BASE/api/matches/join   -H 'Content-Type: application/json' -d '{\"match_id\":\"<MATCH_ID>\"}' | jq .",
-    "get_match":    "curl -s $API_BASE/api/matches/<MATCH_ID> | jq '{status:.status, players:.players, score:.score}'",
+    "get_match":    "curl -s $API_BASE/api/matches/<MATCH_ID> | jq '{status:.status, players:.players, score:.score, seed:.seed, judge_offsets:.judge_offsets}'",
+    "score_dunk":   "curl -s -X POST $API_BASE/api/matches/<MATCH_ID>/score_dunk -H 'Content-Type: application/json' -d '{\"approach_quality\":0.85,\"execution_quality\":0.90,\"style_difficulty\":0.75}' | jq .",
+    "export_replay":"curl -s $API_BASE/api/matches/<MATCH_ID>/export-replay | jq '{match_id:.match_id,seed:.seed,judge_offsets:.judge_offsets,event_count:.metadata.event_count}'",
     "debug_payload":"curl -s $API_BASE/api/debug/match/<MATCH_ID>/payload | jq .",
     "debug_scan":   "curl -s $API_BASE/api/debug/latest-system-scan | jq .scan.prq_score"
   }
