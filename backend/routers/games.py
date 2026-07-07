@@ -18,11 +18,13 @@ Covers:
   - Video upload / coach critique
 """
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from pydantic import BaseModel
 import os, uuid, random, logging, aiofiles
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 
 from core import db, User, get_current_user, ROOT_DIR
+from lib.av_cues import av_cues_for
 from .sovereign import sovereign_bridge, sovereign_state, VENUE_REGISTRY, MODE_MANAGER
 
 router = APIRouter(prefix="/api", tags=["games"])
@@ -1572,6 +1574,9 @@ class DunkScoreResponse(BaseModel):
     style_name: str
     grade: str
     breakdown: Dict[str, float]
+    # Audio/VFX/haptic hint for the dunk_result event. Logical cue names only;
+    # clients resolve them via infra/audio_event_map.json or ignore the field.
+    av_cues: Optional[Dict[str, Optional[str]]] = None
 
 @router.post("/arena/dunk/score", response_model=DunkScoreResponse)
 async def score_dunk(req: DunkScoreRequest):
@@ -1607,7 +1612,8 @@ async def score_dunk(req: DunkScoreRequest):
             "clean_bonus": clean_bonus,
             "crowd_bonus": round(crowd_bonus, 1),
             "style_multiplier": style["multiplier"],
-        }
+        },
+        av_cues=av_cues_for("dunk_result"),
     )
 
 
