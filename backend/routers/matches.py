@@ -24,7 +24,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from core import db, get_current_user, User
@@ -38,6 +38,23 @@ _MOCK_DB = os.environ.get("MOCK_DB", "0") == "1" or (
     len(sys.argv) > 0 and "pytest" in sys.argv[0]
 )
 
+
+async def get_match_user(request: Request) -> User:
+    """Auth for match endpoints.
+
+    Production (MOCK_DB unset): identical to get_current_user.
+    MOCK_DB=1: falls back to a guest identity so the local sim harness
+    (scripts/simulate_matches.py) can drive matches without a session.
+    Guest player id may be supplied via the X-FEL-Sim-Player header.
+    """
+    try:
+        return await get_current_user(request)
+    except Exception:
+        if not _MOCK_DB:
+            raise
+        pid = request.headers.get("X-FEL-Sim-Player", "sim_guest")
+        return User(user_id=pid, email=f"{pid}@sim.fellab.io", name=pid)
+
 # ── In-memory stores (used when _MOCK_DB=True) ─────────────────────────────
 _matches: Dict[str, Dict[str, Any]] = {}
 _events: Dict[str, List[Dict[str, Any]]] = {}
@@ -50,6 +67,7 @@ _ws_connections: Dict[str, Set[WebSocket]] = {}
 class CreateMatchRequest(BaseModel):
     mode_id: str = "basketball_h2h"
     player_id: Optional[str] = None  # override; defaults to authenticated user
+    auto_simulate: bool = False  # demo mode: emit random score_events in background
 
 
 class JoinMatchRequest(BaseModel):
@@ -224,7 +242,7 @@ async def _simulate_scoring(
 @router.post("/api/matches/create")
 async def create_match(
     body: CreateMatchRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_match_user),
 ) -> Dict[str, Any]:
     """Create a new match and return its match_id."""
     match_id = str(uuid.uuid4())[:12]
@@ -243,6 +261,7 @@ async def create_match(
         "score": {player_id: 0},
         "loadouts": {player_id: loadout},
         "events": [],
+        "auto_simulate": body.auto_simulate,
         "seed": seed,
         "judge_offsets": judge_offsets,
     }
@@ -260,7 +279,7 @@ async def create_match(
 @router.post("/api/matches/join")
 async def join_match(
     body: JoinMatchRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_match_user),
 ) -> Dict[str, Any]:
     """Join an existing match. When the second player joins, match becomes active."""
     match = await _load_match(body.match_id)
@@ -298,8 +317,10 @@ async def join_match(
         }
         await _persist_event(body.match_id, start_event)
         await _broadcast(body.match_id, start_event)
-        # Kick off simulated scoring in background
-        asyncio.create_task(_simulate_scoring(body.match_id, match["players"], match["loadouts"]))
+        # Demo-only random scoring loop. Opt-in: it emits non-deterministic
+        # events, which breaks replay validation (Agent 4) if always on.
+        if match.get("auto_simulate"):
+            asyncio.create_task(_simulate_scoring(body.match_id, match["players"], match["loadouts"]))
     else:
         await _persist_match(match)
 

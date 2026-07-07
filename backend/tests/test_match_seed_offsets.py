@@ -44,7 +44,7 @@ from fastapi.testclient import TestClient
 
 from core import User
 from lib.match_utils import generate_seed, derive_judge_offsets
-from routers.matches import router as match_router, get_current_user, _matches, _events
+from routers.matches import router as match_router, get_match_user, _matches, _events
 
 _app = FastAPI()
 _app.include_router(match_router)
@@ -53,7 +53,7 @@ _USER = User(user_id="seed_tester", email="seed@fellab.io", name="Seed Tester")
 
 
 def _client() -> TestClient:
-    _app.dependency_overrides[get_current_user] = lambda: _USER
+    _app.dependency_overrides[get_match_user] = lambda: _USER
     return TestClient(_app, raise_server_exceptions=True)
 
 
