@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "mode_id": "tennis",
+  "clips": {
+    "ready_stance": {
+      "file": "assets/models/animations/tennis_ready.glb",
+      "in_place": true
+    },
+    "serve": {
+      "file": "assets/models/animations/tennis_serve.glb",
+      "in_place": true,
+      "source_hint": "Seeles anim_tennis_serve.fbx (owner pack)"
+    },
+    "forehand": {
+      "file": "assets/models/animations/tennis_forehand.glb",
+      "in_place": true,
+      "source_hint": "Mixamo manual"
+    },
+    "backhand": {
+      "file": "assets/models/animations/tennis_backhand.glb",
+      "in_place": true,
+      "source_hint": "Mixamo manual"
+    }
+  }
+}

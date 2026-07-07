@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "mode_id": "basketball_h2h",
+  "clips": {
+    "idle": {
+      "file": "assets/models/animations/idle.glb",
+      "in_place": true
+    },
+    "dribble": {
+      "file": "assets/models/animations/dribble.glb",
+      "in_place": true,
+      "source_hint": "CMU 06_02..06_13"
+    },
+    "run": {
+      "file": "assets/models/animations/run.glb",
+      "root_motion": true
+    },
+    "jump_shot": {
+      "file": "assets/models/animations/jump_shot.glb",
+      "root_motion": false,
+      "source_hint": "CMU 06_14/06_15"
+    },
+    "dunk": {
+      "file": "assets/models/animations/dunk.glb",
+      "root_motion": true,
+      "rim_normalized_m": 3.05,
+      "source_hint": "owner DeepMotion ElijahDunkMSDunks crops (assets/motion/clips)"
+    },
+    "celebrate": {
+      "file": "assets/models/animations/celebrate.glb",
+      "in_place": true,
+      "source_hint": "Meshy preset 59 Victory_Cheer"
+    }
+  }
+}
