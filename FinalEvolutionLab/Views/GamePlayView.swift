@@ -230,6 +230,20 @@ struct GamePlayView: View {
     /// Shared controller state (Phase 2 input layer) — one instance per session.
     @State private var felPad = FELGamepadState()
 
+    /// Charge modes always show the pad; 3D avatar sports gain it too so the
+    /// stick drives movement (GameSceneHostView MovementBounds) alongside
+    /// their sport-specific bottom controls.
+    private var usesGamepadOverlay: Bool {
+        if inputScheme == .charge { return true }
+        switch gameMode.id {
+        case .tennis, .volleyball, .soccer, .football, .skateboarding,
+             .snowboarding, .surfing, .gymnastics, .courtCarnival:
+            return true
+        default:
+            return false
+        }
+    }
+
     /// One-shot karate strike playback signal (see GameSceneHostView).
     @State private var karateStrikeNonce = 0
     @State private var karateStrikeAsset: FELBundledAsset?
@@ -251,9 +265,11 @@ struct GamePlayView: View {
             .offset(x: screenShake)
 
             // Shared controller overlay (Phase 2 input layer): full-screen for
-            // all pad-driven ("charge") modes. Works in portrait and landscape —
-            // the pad is edge-anchored and reflows with orientation.
-            if inputScheme == .charge {
+            // charge modes AND every mode with a free-moving 3D avatar — the
+            // scene host honors per-mode MovementBounds, so the left stick /
+            // D-pad drive the player and face buttons fire mode actions.
+            // Works in portrait and landscape (edge-anchored, reflows).
+            if usesGamepadOverlay {
                 FELGamepadView(state: felPad, isActive: isActive)
                     .offset(x: screenShake)
                     .onAppear { configureFELPadBridge() }
