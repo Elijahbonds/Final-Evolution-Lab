@@ -1,0 +1,28 @@
+{
+  "comment": "DeepMotion/Mixamo/CMU-convention source bones -> FEL (Meshy-convention) skeleton. Identity-map when source already has Meshy names (marker bone: Spine02). Fingers intentionally dropped (FEL rig has none).",
+  "map": {
+    "Hips": "Hips",
+    "Spine": "Spine02",
+    "Spine1": "Spine01",
+    "Spine2": "Spine",
+    "Neck": "neck",
+    "Head": "Head",
+    "LeftShoulder": "LeftShoulder",
+    "LeftArm": "LeftArm",
+    "LeftForeArm": "LeftForeArm",
+    "LeftHand": "LeftHand",
+    "RightShoulder": "RightShoulder",
+    "RightArm": "RightArm",
+    "RightForeArm": "RightForeArm",
+    "RightHand": "RightHand",
+    "LeftUpLeg": "LeftUpLeg",
+    "LeftLeg": "LeftLeg",
+    "LeftFoot": "LeftFoot",
+    "LeftToeBase": "LeftToeBase",
+    "RightUpLeg": "RightUpLeg",
+    "RightLeg": "RightLeg",
+    "RightFoot": "RightFoot",
+    "RightToeBase": "RightToeBase"
+  },
+  "mixamo_prefix_note": "Mixamo exports prefix bones with 'mixamorig:' \u2014 strip the prefix before applying this map."
+}
