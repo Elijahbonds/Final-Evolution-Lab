@@ -17,7 +17,7 @@ credit line. Update this file in the SAME commit that adds an asset.
 - License: CC0 1.0 — attribution not required (credited here as courtesy)
 
 ## AmbientCG
-- Files: `assets/external/texture/Asphalt025C_2K-JPG.zip` (+ any texture fetched)
+- Files: `assets/external/texture/file_Asphalt025C_2K-JPG.zip` (+ any texture fetched)
 - Source: https://ambientcg.com/view?id=Asphalt025C — author: Lennart Demes / ambientCG
 - License: CC0 1.0 — attribution not required (credited here as courtesy)
 
