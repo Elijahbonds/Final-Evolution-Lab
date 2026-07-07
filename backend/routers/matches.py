@@ -5,17 +5,9 @@ Provides:
   POST /api/matches/create               — create a match record
   POST /api/matches/join                 — join a match; transitions to 'active' at 2+ players
   GET  /api/matches/{match_id}           — current match state + last N events
+  POST /api/matches/{match_id}/score_dunk — server-authoritative dunk scoring
+  GET  /api/matches/{match_id}/export-replay — full replay export
   WS   /ws/match/{match_id}             — subscribe to live match events
-  GET  /api/debug/latest-system-scan    — last system-scan JSON snapshot (Nexus HTTP probe)
-  GET  /api/debug/match/{match_id}/payload — full match payload for Nexus polling
-
-In-memory store is used automatically when:
-  - MOCK_DB=1 env var is set
-  - module is imported under pytest (sys.argv[0] ends in 'pytest')
-
-Simulated scoring events are emitted via asyncio background tasks when
-a match becomes 'active'. This lets two WS clients or Nexus observe
-a full match lifecycle without a real physics engine.
 """
 import asyncio
 import os
@@ -28,26 +20,25 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from pydantic import BaseModel
 
 from core import db, get_current_user, User
+from lib.match_utils import generate_seed, derive_judge_offsets
+from lib.card_effects import compute_loadout_modifiers
+from lib.dunk_scoring import score_dunk, score_dunk_from_player_inputs, DunkResult
 
 router = APIRouter(tags=["matches"])
 
-# ── Detect mock-DB mode ────────────────────────────────────────────────────
 _MOCK_DB = os.environ.get("MOCK_DB", "0") == "1" or (
     len(sys.argv) > 0 and "pytest" in sys.argv[0]
 )
 
-# ── In-memory stores (used when _MOCK_DB=True) ─────────────────────────────
 _matches: Dict[str, Dict[str, Any]] = {}
 _events: Dict[str, List[Dict[str, Any]]] = {}
 _system_scan_snapshot: Dict[str, Any] = {}
 _ws_connections: Dict[str, Set[WebSocket]] = {}
 
 
-# ── Pydantic schemas ───────────────────────────────────────────────────────
-
 class CreateMatchRequest(BaseModel):
     mode_id: str = "basketball_h2h"
-    player_id: Optional[str] = None  # override; defaults to authenticated user
+    player_id: Optional[str] = None
 
 
 class JoinMatchRequest(BaseModel):
@@ -58,7 +49,7 @@ class JoinMatchRequest(BaseModel):
 class MatchResponse(BaseModel):
     match_id: str
     mode_id: str
-    status: str  # waiting | active | finished
+    status: str
     players: List[Dict[str, Any]]
     created_at: str
     started_at: Optional[str] = None
@@ -66,18 +57,27 @@ class MatchResponse(BaseModel):
     score: Dict[str, int]
     loadouts: Dict[str, List[Dict[str, Any]]]
     events: List[Dict[str, Any]]
+    seed: Optional[int] = None
+    judge_offsets: List[int] = []
 
 
-# ── Internal helpers ───────────────────────────────────────────────────────
+class ScoreDunkRequest(BaseModel):
+    launch_angle: Optional[float] = None
+    landing_precision: Optional[float] = None
+    style_key: Optional[str] = None
+    trick_sequence_hash: Optional[str] = None
+    approach_quality: Optional[float] = None
+    execution_quality: Optional[float] = None
+    style_difficulty: float = 0.5
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
 async def _load_loadout(player_id: str) -> List[Dict[str, Any]]:
-    """Fetch a simplified Creator Card loadout for a player (top 3 cards)."""
     if _MOCK_DB:
-        return []  # empty in mock mode unless seeds provided
+        return []
     try:
         cards = await db.user_cards.find(
             {"user_id": player_id}, {"_id": 0, "card_id": 1, "name": 1, "rarity": 1, "modifier_summary": 1}
@@ -96,9 +96,7 @@ async def _persist_match(match: Dict[str, Any]) -> None:
         _matches[match["match_id"]] = match
         return
     try:
-        await db.game_sessions.replace_one(
-            {"match_id": match["match_id"]}, match, upsert=True
-        )
+        await db.game_sessions.replace_one({"match_id": match["match_id"]}, match, upsert=True)
     except Exception:
         _matches[match["match_id"]] = match
 
@@ -127,9 +125,7 @@ async def _load_events(match_id: str, limit: int = 50) -> List[Dict[str, Any]]:
     if _MOCK_DB:
         return _events.get(match_id, [])[-limit:]
     try:
-        cursor = db.match_events.find(
-            {"match_id": match_id}, {"_id": 0}
-        ).sort("seq", -1).limit(limit)
+        cursor = db.match_events.find({"match_id": match_id}, {"_id": 0}).sort("seq", -1).limit(limit)
         docs = await cursor.to_list(limit)
         return list(reversed(docs))
     except Exception:
@@ -148,34 +144,22 @@ async def _broadcast(match_id: str, payload: Dict[str, Any]) -> None:
 
 
 def _card_bonus(loadout: list) -> float:
-    """Returns total bonus multiplier from loadout modifiers (0.0 = no bonus)."""
     import re
     total = 0.0
     for card in loadout:
         summary = card.get("modifiers_summary", "")
         for pct in re.findall(r'\+(\d+(?:\.\d+)?)%', summary):
             total += float(pct) / 100.0
-    return min(total, 0.5)  # cap at 50% bonus
+    return min(total, 0.5)
 
 
-async def _simulate_scoring(
-    match_id: str,
-    players: List[str],
-    loadouts: Dict[str, List[Dict[str, Any]]],
-    n_events: int = 8,
-) -> None:
-    """Background task: emit simulated score_events for dev/testing."""
+async def _simulate_scoring(match_id: str, players: List[str], loadouts: Dict[str, List[Dict[str, Any]]], n_events: int = 8) -> None:
     import random
     scores: Dict[str, int] = {p: 0 for p in players}
     seq = 0
     for _ in range(n_events):
         await asyncio.sleep(1.5)
-        # Weight scoring by card bonuses
-        weights = []
-        for p in players:
-            base = 1.0
-            bonus = _card_bonus(loadouts.get(p, []))
-            weights.append(base + bonus)
+        weights = [1.0 + _card_bonus(loadouts.get(p, [])) for p in players]
         total_w = sum(weights)
         rand = random.random() * total_w
         scorer = players[0]
@@ -189,62 +173,37 @@ async def _simulate_scoring(
         scores[scorer] = scores.get(scorer, 0) + points
         seq += 1
         event: Dict[str, Any] = {
-            "type": "score_event",
-            "player_id": scorer,
-            "points": points,
-            "seq": seq,
-            "timestamp": _now(),
-            "score_snapshot": dict(scores),
+            "type": "score_event", "player_id": scorer, "points": points,
+            "seq": seq, "timestamp": _now(), "score_snapshot": dict(scores),
         }
         await _persist_event(match_id, event)
         await _broadcast(match_id, event)
-
-    # match_end
-    end_event: Dict[str, Any] = {
-        "type": "match_end",
-        "match_id": match_id,
-        "score": scores,
-        "timestamp": _now(),
-    }
+    end_event: Dict[str, Any] = {"type": "match_end", "match_id": match_id, "score": scores, "timestamp": _now()}
     await _persist_event(match_id, end_event)
     await _broadcast(match_id, end_event)
     _matches[match_id]["status"] = "finished"
     _matches[match_id]["score"] = scores
 
 
-# ── Endpoints ──────────────────────────────────────────────────────────────
-
 @router.post("/api/matches/create")
-async def create_match(
-    body: CreateMatchRequest,
-    user: User = Depends(get_current_user),
-) -> Dict[str, Any]:
-    """Create a new match and return its match_id."""
+async def create_match(body: CreateMatchRequest, user: User = Depends(get_current_user)) -> Dict[str, Any]:
     match_id = str(uuid.uuid4())[:12]
     player_id = body.player_id or user.user_id
     loadout = await _load_loadout(player_id)
+    seed = generate_seed()
+    judge_offsets = derive_judge_offsets(seed)
     match: Dict[str, Any] = {
-        "match_id": match_id,
-        "mode_id": body.mode_id,
-        "status": "waiting",
-        "players": [player_id],
-        "created_at": _now(),
-        "started_at": None,
-        "finished_at": None,
-        "score": {player_id: 0},
-        "loadouts": {player_id: loadout},
-        "events": [],
+        "match_id": match_id, "mode_id": body.mode_id, "status": "waiting",
+        "players": [player_id], "created_at": _now(), "started_at": None, "finished_at": None,
+        "score": {player_id: 0}, "loadouts": {player_id: loadout}, "events": [],
+        "seed": seed, "judge_offsets": judge_offsets,
     }
     await _persist_match(match)
     return {"match_id": match_id, "status": "waiting", "mode_id": body.mode_id}
 
 
 @router.post("/api/matches/join")
-async def join_match(
-    body: JoinMatchRequest,
-    user: User = Depends(get_current_user),
-) -> Dict[str, Any]:
-    """Join an existing match. When the second player joins, match becomes active."""
+async def join_match(body: JoinMatchRequest, user: User = Depends(get_current_user)) -> Dict[str, Any]:
     match = await _load_match(body.match_id)
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -263,17 +222,17 @@ async def join_match(
         match["started_at"] = _now()
         await _persist_match(match)
         start_event = {
-            "type": "match_start",
-            "match_id": body.match_id,
-            "mode_id": match["mode_id"],
+            "type": "match_start", "match_id": body.match_id, "mode_id": match["mode_id"],
+            "seed": match.get("seed"), "judge_offsets": match.get("judge_offsets", []),
             "players": [
-                {"user_id": p, "loadout": match["loadouts"].get(p, [])}
+                {"user_id": p, "loadout": match["loadouts"].get(p, []),
+                 "computed_modifiers": compute_loadout_modifiers(match["loadouts"].get(p, []))}
                 for p in match["players"]
             ],
             "start_time": match["started_at"],
         }
+        await _persist_event(body.match_id, start_event)
         await _broadcast(body.match_id, start_event)
-        # Kick off simulated scoring in background
         asyncio.create_task(_simulate_scoring(body.match_id, match["players"], match["loadouts"]))
     else:
         await _persist_match(match)
@@ -283,50 +242,96 @@ async def join_match(
 
 @router.get("/api/matches/{match_id}")
 async def get_match(match_id: str, limit: int = 20) -> MatchResponse:
-    """Return current match state and last N events."""
     match = await _load_match(match_id)
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     events = await _load_events(match_id, limit=limit)
     return MatchResponse(
-        match_id=match["match_id"],
-        mode_id=match["mode_id"],
-        status=match["status"],
+        match_id=match["match_id"], mode_id=match["mode_id"], status=match["status"],
         players=[{"user_id": p, "score": match["score"].get(p, 0)} for p in match["players"]],
-        created_at=match["created_at"],
-        started_at=match.get("started_at"),
-        finished_at=match.get("finished_at"),
-        score=match.get("score", {}),
-        loadouts=match.get("loadouts", {}),
-        events=events,
+        created_at=match["created_at"], started_at=match.get("started_at"),
+        finished_at=match.get("finished_at"), score=match.get("score", {}),
+        loadouts=match.get("loadouts", {}), events=events,
+        seed=match.get("seed"), judge_offsets=match.get("judge_offsets", []),
     )
 
 
-# ── WebSocket ──────────────────────────────────────────────────────────────
+@router.post("/api/matches/{match_id}/score_dunk")
+async def score_dunk_endpoint(match_id: str, body: ScoreDunkRequest) -> Dict[str, Any]:
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    judge_offsets = match.get("judge_offsets", [0, 0, 0])
+
+    if body.launch_angle is not None or body.landing_precision is not None:
+        try:
+            result = score_dunk_from_player_inputs(
+                launch_angle=max(0.0, min(1.0, body.launch_angle or 0.0)),
+                landing_precision=max(0.0, min(1.0, body.landing_precision or 0.0)),
+                judge_offsets=judge_offsets,
+                style_key=body.style_key,
+                trick_sequence_hash=body.trick_sequence_hash,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+    else:
+        result = score_dunk(
+            approach_quality=max(0.0, min(1.0, body.approach_quality or 0.0)),
+            execution_quality=max(0.0, min(1.0, body.execution_quality or 0.0)),
+            style_difficulty=max(0.0, min(1.0, body.style_difficulty)),
+            judge_offsets=judge_offsets,
+        )
+
+    event: Dict[str, Any] = {
+        "action_type": "judged_score", "match_id": match_id,
+        "j1": result.j1, "j2": result.j2, "j3": result.j3,
+        "total": result.total, "message": result.message, "is_perfect": result.is_perfect,
+        "inputs": {
+            "launch_angle": body.launch_angle, "landing_precision": body.landing_precision,
+            "style_key": body.style_key, "approach_quality": body.approach_quality,
+            "execution_quality": body.execution_quality,
+        },
+        "timestamp": _now(),
+    }
+    await _persist_event(match_id, event)
+    await _broadcast(match_id, event)
+    return {"j1": result.j1, "j2": result.j2, "j3": result.j3,
+            "total": result.total, "message": result.message, "is_perfect": result.is_perfect}
+
+
+@router.get("/api/matches/{match_id}/export-replay")
+async def export_replay(match_id: str) -> Dict[str, Any]:
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    events = await _load_events(match_id, limit=1000)
+    return {
+        "match_id": match_id, "mode_id": match.get("mode_id"),
+        "seed": match.get("seed"), "judge_offsets": match.get("judge_offsets", []),
+        "players": match.get("players", []), "started_at": match.get("started_at"),
+        "finished_at": match.get("finished_at"), "status": match.get("status"),
+        "events": events, "metadata": {"export_version": "1.0", "event_count": len(events)},
+    }
+
 
 @router.websocket("/ws/match/{match_id}")
 async def ws_match(websocket: WebSocket, match_id: str):
-    """Subscribe to live match events. Receives match_start and score_event messages."""
     await websocket.accept()
     _ws_connections.setdefault(match_id, set()).add(websocket)
-    # Send current match state on connect
     match = await _load_match(match_id)
     if match:
         await websocket.send_json({"type": "match_state", "match": {
-            "match_id": match["match_id"],
-            "status": match["status"],
-            "players": match["players"],
-            "score": match["score"],
+            "match_id": match["match_id"], "status": match["status"],
+            "players": match["players"], "score": match["score"],
         }})
     try:
         while True:
             try:
-                # 30-second receive timeout; client must send any message or ping
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 if data == "ping":
                     await websocket.send_text("pong")
             except asyncio.TimeoutError:
-                # Send ping; if client is gone this will raise on next iteration
                 await websocket.send_json({"type": "ping"})
     except Exception:
         pass
@@ -334,11 +339,8 @@ async def ws_match(websocket: WebSocket, match_id: str):
         _ws_connections[match_id].discard(websocket)
 
 
-# ── Debug / Nexus HTTP probes ─────────────────────────────────────────────
-
 @router.get("/api/debug/latest-system-scan")
 async def debug_latest_system_scan() -> Dict[str, Any]:
-    """Return the last cached system-scan snapshot. Updated on each /unified call."""
     if not _system_scan_snapshot:
         return {"detail": "No system-scan snapshot yet. Call /api/system-scan/unified first."}
     return _system_scan_snapshot
@@ -346,31 +348,18 @@ async def debug_latest_system_scan() -> Dict[str, Any]:
 
 @router.get("/api/debug/match/{match_id}/payload")
 async def debug_match_payload(match_id: str) -> Dict[str, Any]:
-    """Return full match payload for Nexus to poll (same data broadcast over WS)."""
     match = await _load_match(match_id)
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     events = await _load_events(match_id, limit=50)
     return {
-        "match_id": match_id,
-        "status": match["status"],
-        "mode_id": match["mode_id"],
-        "players": [
-            {
-                "user_id": p,
-                "score": match["score"].get(p, 0),
-                "loadout": match["loadouts"].get(p, []),
-            }
-            for p in match["players"]
-        ],
-        "score": match["score"],
-        "started_at": match.get("started_at"),
-        "finished_at": match.get("finished_at"),
-        "events": events,
+        "match_id": match_id, "status": match["status"], "mode_id": match["mode_id"],
+        "players": [{"user_id": p, "score": match["score"].get(p, 0), "loadout": match["loadouts"].get(p, [])} for p in match["players"]],
+        "score": match["score"], "started_at": match.get("started_at"),
+        "finished_at": match.get("finished_at"), "events": events,
     }
 
 
 def cache_system_scan_snapshot(data: Dict[str, Any]) -> None:
-    """Called from system_scan router to cache the latest scan for Nexus probe."""
     _system_scan_snapshot.clear()
     _system_scan_snapshot.update(data)
