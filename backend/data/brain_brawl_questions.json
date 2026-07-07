@@ -1,0 +1,321 @@
+{
+  "version": "1.0",
+  "license": "Original content created by FEL Studios — all rights reserved.",
+  "questions": [
+    {
+      "id": "cd_001",
+      "prompt": "What does 'API' stand for?",
+      "options": [
+        "Application Programming Interface",
+        "Automated Process Integration",
+        "Application Process Input",
+        "Advanced Protocol Interface"
+      ],
+      "correct_index": 0,
+      "category": "creators_devs",
+      "difficulty": 1,
+      "did_you_know": "APIs let software components communicate — your favorite apps use hundreds of them."
+    },
+    {
+      "id": "cd_002",
+      "prompt": "Which data structure processes elements in First-In, First-Out (FIFO) order?",
+      "options": ["Stack", "Queue", "Tree", "Heap"],
+      "correct_index": 1,
+      "category": "creators_devs",
+      "difficulty": 2,
+      "did_you_know": "Queues power everything from print spoolers to real-time message brokers."
+    },
+    {
+      "id": "cd_003",
+      "prompt": "What does 'HTTP' stand for?",
+      "options": [
+        "HyperText Transfer Protocol",
+        "High Traffic Transfer Process",
+        "HyperText Transmission Platform",
+        "Hyperlink Transfer Protocol"
+      ],
+      "correct_index": 0,
+      "category": "creators_devs",
+      "difficulty": 1,
+      "did_you_know": "HTTP was invented by Tim Berners-Lee in 1989 to share documents across the web."
+    },
+    {
+      "id": "cd_004",
+      "prompt": "Which sorting algorithm has an average-case time complexity of O(n log n)?",
+      "options": ["Bubble Sort", "Selection Sort", "Merge Sort", "Insertion Sort"],
+      "correct_index": 2,
+      "category": "creators_devs",
+      "difficulty": 4,
+      "did_you_know": "Merge Sort was invented by John von Neumann in 1945 and is still widely used today."
+    },
+    {
+      "id": "cd_005",
+      "prompt": "What is a 'version control system' primarily used for?",
+      "options": [
+        "Tracking code changes over time",
+        "Speeding up code execution",
+        "Converting code to machine language",
+        "Generating automated tests"
+      ],
+      "correct_index": 0,
+      "category": "creators_devs",
+      "difficulty": 2,
+      "did_you_know": "Git, the most popular VCS, was created by Linus Torvalds in just two weeks in 2005."
+    },
+    {
+      "id": "pc_001",
+      "prompt": "What term describes content that spreads rapidly and widely online?",
+      "options": ["Viral", "Trending", "Meme", "Streamed"],
+      "correct_index": 0,
+      "category": "pop_culture",
+      "difficulty": 1,
+      "did_you_know": "The word 'viral' in the internet sense dates back to the late 1990s."
+    },
+    {
+      "id": "pc_002",
+      "prompt": "What decade is widely regarded as the golden age of arcade video games?",
+      "options": ["1960s", "1970s", "1980s", "1990s"],
+      "correct_index": 2,
+      "category": "pop_culture",
+      "difficulty": 2,
+      "did_you_know": "Pac-Man, Donkey Kong, and Space Invaders all launched in the early 1980s."
+    },
+    {
+      "id": "pc_003",
+      "prompt": "In internet culture, what is a 'meme'?",
+      "options": [
+        "A shareable idea, image, or joke that spreads online",
+        "A live video broadcast",
+        "A type of computer virus",
+        "An encrypted private message"
+      ],
+      "correct_index": 0,
+      "category": "pop_culture",
+      "difficulty": 1,
+      "did_you_know": "Richard Dawkins coined 'meme' in 1976 — long before the internet gave it new life."
+    },
+    {
+      "id": "pc_004",
+      "prompt": "What music format succeeded the CD as the dominant way people listen to music?",
+      "options": ["Vinyl record", "8-track tape", "Digital streaming", "MiniDisc"],
+      "correct_index": 2,
+      "category": "pop_culture",
+      "difficulty": 2,
+      "did_you_know": "By 2015, music streaming surpassed album sales for the first time in the US."
+    },
+    {
+      "id": "pc_005",
+      "prompt": "What does 'cosplay' refer to?",
+      "options": [
+        "Dressing up as a fictional character",
+        "Playing competitive video games",
+        "Creating fan-made artwork",
+        "Watching animated series"
+      ],
+      "correct_index": 0,
+      "category": "pop_culture",
+      "difficulty": 1,
+      "did_you_know": "The word 'cosplay' was coined in 1984 by a journalist after attending a US fan convention."
+    },
+    {
+      "id": "sci_001",
+      "prompt": "What is the chemical symbol for gold?",
+      "options": ["Gd", "Go", "Au", "Ag"],
+      "correct_index": 2,
+      "category": "science",
+      "difficulty": 1,
+      "did_you_know": "Au comes from the Latin 'aurum' — gold has been prized by humans for over 6,000 years."
+    },
+    {
+      "id": "sci_002",
+      "prompt": "What force keeps planets in orbit around the sun?",
+      "options": ["Magnetism", "Gravity", "Electromagnetism", "Nuclear force"],
+      "correct_index": 1,
+      "category": "science",
+      "difficulty": 1,
+      "did_you_know": "Newton formulated the law of gravity after observing a falling apple — or so the popular story goes."
+    },
+    {
+      "id": "sci_003",
+      "prompt": "Which organelle is known as the 'powerhouse of the cell'?",
+      "options": ["Nucleus", "Ribosome", "Mitochondria", "Golgi apparatus"],
+      "correct_index": 2,
+      "category": "science",
+      "difficulty": 2,
+      "did_you_know": "Mitochondria have their own DNA, supporting the theory that they were once free-living bacteria."
+    },
+    {
+      "id": "sci_004",
+      "prompt": "What is the approximate speed of light in a vacuum?",
+      "options": ["300,000 km/s", "3,000 km/s", "30,000 km/s", "3,000,000 km/s"],
+      "correct_index": 0,
+      "category": "science",
+      "difficulty": 3,
+      "did_you_know": "Nothing with mass can reach light speed — doing so would require infinite energy."
+    },
+    {
+      "id": "sci_005",
+      "prompt": "Which subatomic particle carries a negative electric charge?",
+      "options": ["Proton", "Neutron", "Electron", "Quark"],
+      "correct_index": 2,
+      "category": "science",
+      "difficulty": 2,
+      "did_you_know": "Electrons were discovered by J.J. Thomson in 1897 — the first subatomic particle ever identified."
+    },
+    {
+      "id": "hist_001",
+      "prompt": "In what year did the first crewed moon landing occur?",
+      "options": ["1965", "1967", "1969", "1971"],
+      "correct_index": 2,
+      "category": "history",
+      "difficulty": 1,
+      "did_you_know": "Apollo 11 landed on July 20, 1969. Neil Armstrong's first steps were broadcast to 600 million viewers."
+    },
+    {
+      "id": "hist_002",
+      "prompt": "Which of the Seven Ancient Wonders is still standing today?",
+      "options": [
+        "The Colossus of Rhodes",
+        "The Great Pyramid of Giza",
+        "The Hanging Gardens of Babylon",
+        "The Lighthouse of Alexandria"
+      ],
+      "correct_index": 1,
+      "category": "history",
+      "difficulty": 1,
+      "did_you_know": "The Great Pyramid at Giza is the only Ancient Wonder that has survived to the present day."
+    },
+    {
+      "id": "hist_003",
+      "prompt": "What invention is Johannes Gutenberg famous for (around 1440)?",
+      "options": ["The steam engine", "The printing press", "The telescope", "The compass"],
+      "correct_index": 1,
+      "category": "history",
+      "difficulty": 2,
+      "did_you_know": "Gutenberg's press made books affordable, accelerating the spread of knowledge across Europe."
+    },
+    {
+      "id": "hist_004",
+      "prompt": "Julius Caesar was the leader of which empire?",
+      "options": ["Greek Empire", "Ottoman Empire", "Roman Empire", "Byzantine Empire"],
+      "correct_index": 2,
+      "category": "history",
+      "difficulty": 1,
+      "did_you_know": "Caesar was assassinated in 44 BC, yet his name lives on — 'Kaiser' and 'Czar' both derive from it."
+    },
+    {
+      "id": "hist_005",
+      "prompt": "What was the name of the first artificial satellite launched into Earth orbit?",
+      "options": ["Explorer 1", "Sputnik 1", "Vostok 1", "Luna 1"],
+      "correct_index": 1,
+      "category": "history",
+      "difficulty": 3,
+      "did_you_know": "Sputnik 1 was launched by the Soviet Union on October 4, 1957, marking the start of the Space Age."
+    },
+    {
+      "id": "art_001",
+      "prompt": "Who painted the Mona Lisa?",
+      "options": ["Michelangelo", "Raphael", "Leonardo da Vinci", "Caravaggio"],
+      "correct_index": 2,
+      "category": "art",
+      "difficulty": 1,
+      "did_you_know": "The Mona Lisa draws about 20,000 visitors per day at the Louvre — it's the world's most visited painting."
+    },
+    {
+      "id": "art_002",
+      "prompt": "What is the art of creating images from small pieces of colored glass or stone called?",
+      "options": ["Fresco", "Mosaic", "Etching", "Lithograph"],
+      "correct_index": 1,
+      "category": "art",
+      "difficulty": 2,
+      "did_you_know": "Roman mosaics created 2,000 years ago are so durable that many are still preserved today."
+    },
+    {
+      "id": "art_003",
+      "prompt": "Which art movement is most associated with Salvador Dalí?",
+      "options": ["Impressionism", "Cubism", "Surrealism", "Expressionism"],
+      "correct_index": 2,
+      "category": "art",
+      "difficulty": 3,
+      "did_you_know": "Surrealism drew on Freudian ideas to explore the unconscious mind through dreamlike imagery."
+    },
+    {
+      "id": "art_004",
+      "prompt": "What tool does an orchestra conductor typically use to direct the ensemble?",
+      "options": ["Baton", "Wand", "Dowel", "Rod"],
+      "correct_index": 0,
+      "category": "art",
+      "difficulty": 1,
+      "did_you_know": "The conductor's baton became standard in the 19th century, replacing earlier tools like rolled-up paper."
+    },
+    {
+      "id": "art_005",
+      "prompt": "What does 'a cappella' mean in music?",
+      "options": [
+        "With full orchestra",
+        "Without musical accompaniment",
+        "Very slowly",
+        "Very loudly"
+      ],
+      "correct_index": 1,
+      "category": "art",
+      "difficulty": 2,
+      "did_you_know": "A cappella means 'in the chapel style' in Italian — early church music was often unaccompanied."
+    },
+    {
+      "id": "sport_001",
+      "prompt": "How many players does each team field on a basketball court at one time?",
+      "options": ["4", "5", "6", "7"],
+      "correct_index": 1,
+      "category": "sport",
+      "difficulty": 1,
+      "did_you_know": "Basketball was invented by Dr. James Naismith in 1891 using a peach basket as the original goal."
+    },
+    {
+      "id": "sport_002",
+      "prompt": "What is the maximum score possible in a single frame of ten-pin bowling?",
+      "options": ["10", "20", "30", "300"],
+      "correct_index": 2,
+      "category": "sport",
+      "difficulty": 2,
+      "did_you_know": "A perfect 'turkey' (three strikes) can score 30 in one frame; 12 straight strikes = a perfect game of 300."
+    },
+    {
+      "id": "sport_003",
+      "prompt": "In soccer, what does it mean to score an 'own goal'?",
+      "options": [
+        "Score from the halfway line",
+        "Score the ball into your own net",
+        "Score with a header",
+        "Score in extra time"
+      ],
+      "correct_index": 1,
+      "category": "sport",
+      "difficulty": 1,
+      "did_you_know": "Own goals are surprisingly common — roughly 1 in 20 goals scored in top leagues are accidental own goals."
+    },
+    {
+      "id": "sport_004",
+      "prompt": "How long is a standard marathon race?",
+      "options": [
+        "21.097 km (half-marathon)",
+        "42.195 km (26.2 miles)",
+        "50 km",
+        "100 miles"
+      ],
+      "correct_index": 1,
+      "category": "sport",
+      "difficulty": 2,
+      "did_you_know": "The marathon distance was standardized at the 1908 London Olympics to suit the royal family's viewing position."
+    },
+    {
+      "id": "sport_005",
+      "prompt": "Which sport uses the scoring terms 'love', 'deuce', and 'advantage'?",
+      "options": ["Badminton", "Squash", "Tennis", "Table tennis"],
+      "correct_index": 2,
+      "category": "sport",
+      "difficulty": 1,
+      "did_you_know": "In tennis, 'love' means zero — possibly from the French 'l'œuf' (egg), which resembles the number 0."
+    }
+  ]
+}
