@@ -97,6 +97,4264 @@
         "karate_h2h",
         "karate_endless"
       ]
+    },
+    {
+      "crop_id": "05_06_03",
+      "take": "05_06.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/05_06.bvh",
+      "type": "dunk_or_jump_reach",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/05_06_03.usdz",
+      "status": "processed",
+      "modes": [
+        "basketball_dunk_3d"
+      ]
+    },
+    {
+      "crop_id": "02_04_00",
+      "take": "02_04.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_04.bvh",
+      "type": "jump",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_04_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_04_01",
+      "take": "02_04.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_04.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_04_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_00",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_01",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_02",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_03",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_04",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_05",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_06",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_06.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_07",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_07.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_08",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_08.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_09",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_09.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_10",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_10.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_11",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_11.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_12",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_12.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_13",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_13.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_14",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_14.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_15",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_15.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_16",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_16.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "02_05_17",
+      "take": "02_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/02_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/02_05_17.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "05_06_00",
+      "take": "05_06.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/05_06.bvh",
+      "type": "kick",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/05_06_00.usdz",
+      "status": "processed",
+      "modes": [
+        "karate_h2h",
+        "karate_endless"
+      ]
+    },
+    {
+      "crop_id": "05_06_01",
+      "take": "05_06.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/05_06.bvh",
+      "type": "kick",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/05_06_01.usdz",
+      "status": "processed",
+      "modes": [
+        "karate_h2h",
+        "karate_endless"
+      ]
+    },
+    {
+      "crop_id": "05_06_02",
+      "take": "05_06.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/05_06.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/05_06_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_02_00",
+      "take": "06_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_02_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_02_01",
+      "take": "06_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_02_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_02_02",
+      "take": "06_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_02_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_02_03",
+      "take": "06_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_02_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_02_04",
+      "take": "06_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_02_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_02_05",
+      "take": "06_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_02_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_05_00",
+      "take": "06_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_05_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_05_01",
+      "take": "06_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_05_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_05_02",
+      "take": "06_05.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_05.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_05_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_08_00",
+      "take": "06_08.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_08.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_08_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_08_01",
+      "take": "06_08.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_08.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_08_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_00",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_01",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_02",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_03",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_04",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_05",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_06",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_06.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_07",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_07.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_08",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_08.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_09",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_09.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_10",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_10.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_11",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_11.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_12",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_12.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_13",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_13.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_14",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_14.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_15",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_15.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_16",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_16.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_17",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_17.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_18",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_18.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_19",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_19.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_20",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_20.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_21",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_21.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_22",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_22.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_23",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_23.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_24",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_24.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_25",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_25.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_26",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_26.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_27",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_27.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_28",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_28.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_29",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_29.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_30",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_30.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_31",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_31.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_13_32",
+      "take": "06_13.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_13.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_13_32.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_14_00",
+      "take": "06_14.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_14.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_14_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_14_01",
+      "take": "06_14.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_14.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_14_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_14_02",
+      "take": "06_14.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_14.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_14_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_14_03",
+      "take": "06_14.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_14.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_14_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_15_00",
+      "take": "06_15.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_15.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_15_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_15_01",
+      "take": "06_15.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_15.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_15_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_15_02",
+      "take": "06_15.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_15.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_15_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_15_03",
+      "take": "06_15.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_15.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_15_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_15_04",
+      "take": "06_15.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_15.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_15_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "06_15_05",
+      "take": "06_15.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/06_15.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/06_15_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "10_01_00",
+      "take": "10_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/10_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/10_01_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "10_02_00",
+      "take": "10_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/10_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/10_02_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "10_02_01",
+      "take": "10_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/10_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/10_02_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_11_00",
+      "take": "13_11.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_11.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_11_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_11_01",
+      "take": "13_11.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_11.bvh",
+      "type": "jump",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_11_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_11_02",
+      "take": "13_11.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_11.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_11_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_00",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_01",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_02",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_03",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_04",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_05",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_06",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_06.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_07",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_07.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_08",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_08.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_09",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_09.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_10",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_10.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_11",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_11.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_12",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_12.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_13",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_13.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_14",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_14.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_15",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_15.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_16",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_16.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_17",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_17.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_18",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_18.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_19",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_19.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_20",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_20.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_21",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_21.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_22",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_22.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_23",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_23.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_24",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_24.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_25",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_25.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_26",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_26.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_27",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_27.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_28",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_28.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_29",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_29.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_30",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_30.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_31",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_31.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_32",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_32.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_33",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_33.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_34",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_34.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_35",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_35.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_36",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_36.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_37",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_37.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_38",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_38.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_39",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_39.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_40",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_40.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_41",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_41.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_42",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_42.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_43",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_43.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_44",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_44.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_45",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_45.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_46",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_46.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_47",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_47.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_48",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_48.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_49",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_49.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_50",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_50.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_51",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_51.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_52",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_52.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_53",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_53.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_54",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_54.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_55",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_55.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_56",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_56.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_57",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_57.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_17_58",
+      "take": "13_17.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_17.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_17_58.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_00",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_01",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_02",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_03",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_04",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_05",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_06",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_06.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_07",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_07.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_08",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_08.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_09",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_09.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_10",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_10.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_11",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_11.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_12",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_12.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_13",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_13.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_14",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_14.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_15",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_15.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_16",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_16.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_17",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_17.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_18",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_18.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_19",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_19.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_20",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_20.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_21",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_21.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_22",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_22.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_23",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_23.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_24",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_24.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_25",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_25.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_26",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_26.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_27",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_27.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_28",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_28.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_18_29",
+      "take": "13_18.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_18.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_18_29.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "13_32_00",
+      "take": "13_32.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/13_32.bvh",
+      "type": "jump",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/13_32_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_00",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_01",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_02",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_03",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_04",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_05",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_06",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_06.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_07",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_07.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_08",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_08.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_09",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_09.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_10",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_10.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_11",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_11.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_12",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_12.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_13",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_13.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_14",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_14.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_15",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_15.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_16",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_16.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_17",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_17.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_18",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_18.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_19",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_19.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_20",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_20.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_21",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_21.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_22",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_22.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_23",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_23.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_24",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_24.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_25",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_25.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_26",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_26.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_27",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_27.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_28",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_28.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_29",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_29.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_30",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_30.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_31",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_31.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_32",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_32.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_33",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_33.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_34",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_34.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_35",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_35.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_36",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_36.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_37",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_37.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_38",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_38.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_39",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_39.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_40",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_40.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_41",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_41.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_42",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_42.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_43",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_43.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_44",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_44.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_45",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_45.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_46",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_46.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_47",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_47.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_48",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_48.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_49",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_49.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_50",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_50.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_51",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_51.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_52",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_52.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_53",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_53.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_54",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_54.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_55",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_55.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_56",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_56.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_01_57",
+      "take": "14_01.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_01.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_01_57.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_00",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_01",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_02",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_03",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_04",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_05",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_06",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_06.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_07",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_07.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_08",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_08.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_09",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_09.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_10",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_10.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_11",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_11.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_12",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_12.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_13",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_13.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_14",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_14.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_15",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_15.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_16",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_16.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_17",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_17.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_18",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_18.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_19",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_19.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_20",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_20.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_21",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_21.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_22",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_22.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_23",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_23.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_24",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_24.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_25",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_25.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_26",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_26.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_27",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_27.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_28",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_28.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_29",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_29.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_30",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_30.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_31",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_31.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_32",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_32.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_33",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_33.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_34",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_34.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_35",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_35.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_36",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_36.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_37",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_37.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_38",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_38.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_39",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_39.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_40",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_40.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_41",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_41.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_42",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_42.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_43",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_43.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_44",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_44.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_45",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_45.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_46",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_46.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_47",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_47.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_48",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_48.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_49",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_49.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_50",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_50.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_02_51",
+      "take": "14_02.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_02.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_02_51.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_00",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_01",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_02",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_03",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_04",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_05",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_06",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_06.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_07",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_07.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_08",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_08.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_09",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_09.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_10",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_10.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_11",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_11.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_12",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_12.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_13",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_13.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_14",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_14.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_15",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_15.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_16",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_16.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_17",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_17.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_18",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_18.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_19",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_19.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_20",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_20.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_21",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_21.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_22",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_22.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_23",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_23.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_24",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_24.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_25",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_25.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_26",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_26.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_27",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_27.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_28",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_28.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_29",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_29.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_30",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_30.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_31",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_31.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_32",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_32.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_33",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_33.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_34",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_34.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_35",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_35.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_36",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_36.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_37",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_37.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_38",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_38.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_39",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_39.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_40",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_40.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_41",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_41.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_42",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_42.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_43",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_43.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_44",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_44.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_45",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_45.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_46",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_46.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_47",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_47.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_48",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_48.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_49",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_49.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_50",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_50.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_51",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_51.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_52",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_52.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "14_03_53",
+      "take": "14_03.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/14_03.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/14_03_53.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_00",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_00.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_01",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_01.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_02",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_02.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_03",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_03.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_04",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_04.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_05",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_05.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_06",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_06.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_07",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_07.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_08",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_08.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_09",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_09.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_10",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_10.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_11",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_11.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_12",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_12.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_13",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_13.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_14",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_14.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_15",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_15.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_16",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_16.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_17",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_17.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_18",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_18.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_19",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_19.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_20",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_20.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_21",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_21.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_22",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_22.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_23",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_23.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_24",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_24.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_25",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_25.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_26",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_26.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_27",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_27.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_28",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_28.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_29",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_29.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_30",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_30.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_31",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_31.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_32",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_32.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_33",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_33.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_34",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_34.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_35",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_35.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_36",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_36.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_37",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_37.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_38",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_38.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_39",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_39.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_40",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_40.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_41",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_41.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_42",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_42.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_43",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_43.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_44",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_44.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_45",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_45.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_46",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_46.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_47",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_47.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_48",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_48.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_49",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_49.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_50",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_50.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_51",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_51.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_52",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_52.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_53",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_53.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_54",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_54.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_55",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_55.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_56",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_56.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_57",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_57.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_58",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_58.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_59",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_59.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_60",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_60.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_61",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_61.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_62",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_62.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_63",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_63.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_64",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_64.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_65",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_65.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_66",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_66.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_67",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_67.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_68",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_68.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_69",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_69.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_70",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_70.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_71",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_71.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_72",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_72.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_73",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_73.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_74",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_74.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_75",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_75.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_76",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_76.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_77",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_77.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_78",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_78.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_79",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_79.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_80",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_80.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_81",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_81.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_82",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_82.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_83",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_83.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_84",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_84.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_85",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_85.usdz",
+      "status": "processed",
+      "modes": []
+    },
+    {
+      "crop_id": "15_12_86",
+      "take": "15_12.bvh",
+      "raw_path": "/Users/elijahbonds/Developer/FEL-app/assets/motion/external/cmu/15_12.bvh",
+      "type": "ground_move",
+      "rim_normalized": false,
+      "clip_path": "assets/motion/clips_cmu/15_12_86.usdz",
+      "status": "processed",
+      "modes": []
     }
   ]
 }

@@ -40,9 +40,11 @@ def main():
     parser.add_argument("--types", nargs="*", default=None)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--rim-auto", action="store_true")
+    parser.add_argument("--proposals", default=str(MOTION_DIR / "proposals.json"),
+                        help="proposals JSON to process (e.g. proposals_cmu.json)")
     args = parser.parse_args()
 
-    proposals = load_json(MOTION_DIR / "proposals.json", [])
+    proposals = load_json(Path(args.proposals).expanduser(), [])
     registry_path = MOTION_DIR / "registry.json"
     registry = load_json(registry_path, {"clips": []})
     done_ids = {c["crop_id"] for c in registry["clips"] if c.get("status") == "processed"}
