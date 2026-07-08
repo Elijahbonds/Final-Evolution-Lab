@@ -1,22 +1,30 @@
 """
-FEL OS — Dance Game Foundation Router
+FEL OS — Dance Game Router (foundation + Dance Mode)
 
-Provides:
+Foundation (creative-models):
   POST /api/dance/projects                      — create a dance project
   GET  /api/dance/projects/{project_id}         — fetch a dance project
   POST /api/dance/projects/{project_id}/export  — JSON project export
 
+Dance Mode (nexus/dance-mode-core) — rhythm performance + choreography:
+  GET  /api/dance/projects/{id}/beatmap         — deterministic beatmap (seed+bpm)
+  POST /api/dance/projects/{id}/score           — score submitted hits (deterministic)
+  POST /api/dance/projects/{id}/record          — persist a performance run as replay events
+  POST /api/dance/projects/{id}/choreography    — save/update choreography timeline
+
 Storage: lib/creative_store.py (MOCK_DB=1 -> in-memory, else db.dance_projects).
 Performance replay events reuse the existing match event store (routers.matches).
+Scoring/beatmap live in lib/dance_beatmap.py (pure, deterministic).
 """
 import uuid
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core import User
 from lib import creative_store
+from lib import dance_beatmap
 from lib.creative_store import get_creative_user, now
 from lib.match_utils import generate_seed
 from routers import matches as matches_router
@@ -119,3 +127,147 @@ async def export_dance_project(project_id: str) -> Dict[str, Any]:
             "event_count": len(events),
         },
     }
+
+
+# ── Dance Mode: rhythm performance + choreography ──────────────────────────
+
+class HitModel(BaseModel):
+    time_ms: float = Field(..., description="Client hit time from performance start (t=0)")
+    lane: int = Field(0, ge=0, le=7)
+
+
+class ScoreRequest(BaseModel):
+    hits: List[HitModel] = []
+    latency_ms: float = Field(0.0, ge=0.0, le=1000.0, description="Client latency, normalised out")
+    difficulty: str = Field(dance_beatmap.DEFAULT_DIFFICULTY)
+    beats: int = Field(32, ge=4, le=256)
+    subdivision: int = Field(2, ge=1, le=8)
+    contest_seed: Optional[int] = Field(None, ge=0, lt=1 << 64,
+                                        description="Seeded judge offsets for reproducible contests")
+
+
+class RecordRequest(ScoreRequest):
+    recording: bool = Field(False, description="RECORDING_LOCAL: locally-authoritative solo run")
+
+
+class ChoreographyRequest(BaseModel):
+    timeline: Dict[str, Any] = Field(..., description="{entries:[{animation,start_beat,speed?,transition?}]}")
+    save_as_pack: bool = Field(False, description="Creator Card tie-in: card_choreo_01 pack")
+
+
+def _beatmap_for(project: Dict[str, Any], *, difficulty: str, beats: int, subdivision: int) -> Dict[str, Any]:
+    return dance_beatmap.generate_beatmap(
+        project["seed"], project["bpm"],
+        beats=beats, subdivision=subdivision, difficulty=difficulty,
+    )
+
+
+@router.get("/api/dance/projects/{project_id}/beatmap")
+async def get_beatmap(
+    project_id: str,
+    difficulty: str = Query(dance_beatmap.DEFAULT_DIFFICULTY),
+    beats: int = Query(32, ge=4, le=256),
+    subdivision: int = Query(2, ge=1, le=8),
+) -> Dict[str, Any]:
+    """Deterministic beatmap from the project's persisted seed + bpm.
+
+    The frontend generates the identical beatmap so the scrolling notes match
+    exactly what the server scores against.
+    """
+    project = await creative_store.load_project("dance", project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Dance project not found")
+    return _beatmap_for(project, difficulty=difficulty, beats=beats, subdivision=subdivision)
+
+
+@router.post("/api/dance/projects/{project_id}/score")
+async def score_run(project_id: str, body: ScoreRequest) -> Dict[str, Any]:
+    """Score submitted hit timestamps against the deterministic beatmap.
+
+    Pure function of (seed, bpm, hits, latency, contest_seed) — same inputs
+    always produce the same score. Does not persist anything.
+    """
+    project = await creative_store.load_project("dance", project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Dance project not found")
+    beatmap = _beatmap_for(project, difficulty=body.difficulty, beats=body.beats,
+                           subdivision=body.subdivision)
+    result = dance_beatmap.score_performance(
+        beatmap,
+        [h.model_dump() for h in body.hits],
+        latency_ms=body.latency_ms,
+        contest_seed=body.contest_seed,
+    )
+    return {"project_id": project_id, "beatmap_seed": project["seed"], "result": result}
+
+
+@router.post("/api/dance/projects/{project_id}/record")
+async def record_run(
+    project_id: str,
+    body: RecordRequest,
+    user: User = Depends(get_creative_user),
+) -> Dict[str, Any]:
+    """Score a run AND persist it to the replay event store (reused match store).
+
+    Used by RECORDING_LOCAL / ?recording=1 solo runs: locally-authoritative,
+    seed visible, replayable via /api/replays/{id}/export.
+    """
+    project = await creative_store.load_project("dance", project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Dance project not found")
+    beatmap = _beatmap_for(project, difficulty=body.difficulty, beats=body.beats,
+                           subdivision=body.subdivision)
+    result = dance_beatmap.score_performance(
+        beatmap,
+        [h.model_dump() for h in body.hits],
+        latency_ms=body.latency_ms,
+        contest_seed=body.contest_seed,
+    )
+    await matches_router._persist_event(project_id, {
+        "type": "performance_recorded",
+        "project_type": "dance",
+        "project_id": project_id,
+        "player_id": user.user_id,
+        "seed": project["seed"],
+        "difficulty": body.difficulty,
+        "recording": body.recording,
+        "score": result["score"],
+        "max_combo": result["max_combo"],
+        "accuracy": result["accuracy"],
+        "grade": result["grade"],
+        "tallies": result["tallies"],
+        "hit_count": len(body.hits),
+        "contest_seed": body.contest_seed,
+        "timestamp": now(),
+    })
+    return {"project_id": project_id, "recorded": True, "result": result}
+
+
+@router.post("/api/dance/projects/{project_id}/choreography")
+async def save_choreography(
+    project_id: str,
+    body: ChoreographyRequest,
+    user: User = Depends(get_creative_user),
+) -> Dict[str, Any]:
+    """Persist the choreography timeline; optionally emit a Creator Card pack event.
+
+    Creator Card tie-in uses the foundation contract (card_choreo_01 ->
+    pack_choreography_101) — no parallel system; apply the card itself via
+    POST /api/creator-cards/apply.
+    """
+    project = await creative_store.load_project("dance", project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Dance project not found")
+    project["timeline"] = body.timeline
+    await creative_store.persist_project("dance", project)
+    await matches_router._persist_event(project_id, {
+        "type": "choreography_saved",
+        "project_type": "dance",
+        "project_id": project_id,
+        "player_id": user.user_id,
+        "entry_count": len(body.timeline.get("entries", [])),
+        "saved_as_pack": body.save_as_pack,
+        "pack_card_id": "card_choreo_01" if body.save_as_pack else None,
+        "timestamp": now(),
+    })
+    return {"project_id": project_id, "saved": True, "timeline": project["timeline"]}
