@@ -18,6 +18,12 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     case venueGymnasticsGym = "VenueGymnasticsGym"
     case venueMuscleBeachStage = "VenueMuscleBeachStage"
     case venueMuscleBeachGym = "VenueMuscleBeachGym"
+    // Venice Ball Shop backdrop — the creator-economy storefront's 3D hero prop.
+    // Source asset is a Venice-beach rainbow basketball (static Meshy mesh, a
+    // ~1.85m sphere, decimated to ~100k faces), presented as a spinning hero
+    // centerpiece rather than an interior. isVenue=true → cached+cloned static
+    // path (never a skinned clone).
+    case venueVeniceBallShop = "VenueVeniceBallShop"
     // Venice Beach basketball standard (pole + backboard + rim + net), a single
     // static Meshy mesh. Not a full court — it replaces the procedural
     // pole/backboard/rim in the basketball family. isVenue=true so it loads via
@@ -75,6 +81,7 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
              .venueSkatePark, .venueMountainSlope, .venueSurfBreak,
              .venueLinksGolf, .venueSoccerStadium, .venueBallpark,
              .venueGymnasticsGym, .venueMuscleBeachStage, .venueMuscleBeachGym,
+             .venueVeniceBallShop,
              .venueVeniceBasketballHoop,
              .propsTennis, .propsVolleyball, .propsBaseball,
              .propsFootball, .propsSoccer, .propsBoardSports, .propsSedan:

@@ -17,6 +17,8 @@ struct GameModeSelectionView: View {
     @State private var karateCoopPlayerCount = 1
     @State private var showDunkPlatform = false
     @State private var showTriumphLobby = false
+    /// Presents the Venice Ball Shop creator-economy storefront.
+    @State private var showCreatorShop = false
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -24,6 +26,7 @@ struct GameModeSelectionView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FELSpacing.xxl) {
                 headerSection
+                creatorShopBanner
                 nexusSprintBanner
                 globalMatchmakingBanner
                 triumphCashTournamentBanner
@@ -37,6 +40,9 @@ struct GameModeSelectionView: View {
         }
         .scrollIndicators(.hidden)
         .background(Theme.deepBlack)
+        .navigationDestination(isPresented: $showCreatorShop) {
+            ShopModeView(viewModel: viewModel)
+        }
         .navigationDestination(item: $gameplayRoute) { modeId in
             if modeId == .brainBrawl {
                 // Pure SwiftUI Kahoot-style quiz — no GamePlayView/SceneKit shell.
@@ -103,6 +109,73 @@ struct GameModeSelectionView: View {
         .fullScreenCover(isPresented: $showTriumphLobby) {
             TriumphTournamentLobbyView(viewModel: viewModel)
         }
+    }
+
+    /// Prominent entry into the Venice Ball Shop creator-economy storefront.
+    private var creatorShopBanner: some View {
+        Button {
+            FELHaptics.modeSelect()
+            showCreatorShop = true
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "bag.fill")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan, Theme.elitePurple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("SHOP")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(2)
+                    Text("Creator Store")
+                        .font(.system(size: 17, weight: .black))
+                        .foregroundStyle(.white)
+                    Text("Cards, critiques & the creator economy")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan.opacity(0.4), Theme.elitePurple.opacity(0.4)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("CreatorShopBanner")
+        .accessibilityLabel("Creator Store shop")
+        .accessibilityHint("Opens the Venice Ball Shop creator economy storefront")
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 12)
     }
 
     private var nexusSprintBanner: some View {
