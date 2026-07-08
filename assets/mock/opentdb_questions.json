@@ -1,0 +1,1163 @@
+{
+  "schema": 1,
+  "source": "Open Trivia Database — https://opentdb.com",
+  "license": "CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)",
+  "attribution": "Questions provided by Open Trivia Database (https://opentdb.com), licensed under CC BY-SA 4.0. This dump and any derivative question sets remain under CC BY-SA 4.0.",
+  "fetched_at": "2026-07-08T00:55:17+00:00",
+  "category": "General Knowledge (OpenTDB category 9)",
+  "count": 100,
+  "questions": [
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What was the name of Sqiudward's bad painting in the Spongebob episode \"Artist Unknown?\"",
+      "correct_answer": "Bold and Brash",
+      "incorrect_answers": [
+        "Squidward en Repose",
+        "Rippy Bits",
+        "Tilted Perspectives"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "In past times, what would a gentleman keep in his fob pocket?",
+      "correct_answer": "Watch",
+      "incorrect_answers": [
+        "Money",
+        "Keys",
+        "Notebook"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "When was Pong released?",
+      "correct_answer": "November 29, 1972",
+      "incorrect_answers": [
+        "March 29, 2017",
+        "November 29, 1970",
+        "December 14, 1974"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "In the English language, what is the name of the \"&\" character?",
+      "correct_answer": "Ampersand",
+      "incorrect_answers": [
+        "Eightslash",
+        "And Sign",
+        "Obelus "
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Which of the following is the IATA code for Manchester Airport?",
+      "correct_answer": "MAN",
+      "incorrect_answers": [
+        "EGLL",
+        "LHR",
+        "EGCC"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Who is the youngest person to receive a Nobel Prize?",
+      "correct_answer": "Malala Yousafzai",
+      "incorrect_answers": [
+        "Lawrence Bragg",
+        "Werner Heisenberg",
+        "Yasser Arafat"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Which canal connects the Mediterranean Sea with the Red Sea?",
+      "correct_answer": "Suez Canal",
+      "incorrect_answers": [
+        "Panama Canal",
+        "Sinai Canal",
+        "Qaraqum Canal"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What is the currency of Poland?",
+      "correct_answer": "Złoty",
+      "incorrect_answers": [
+        "Ruble",
+        "Euro",
+        "Krone"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "What is the most commonly used noun in the English language?",
+      "correct_answer": "Time",
+      "incorrect_answers": [
+        "Home",
+        "Water",
+        "Man"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "hard",
+      "question": "Spoon theory is a theory, utilizing \"Spoons\" as a metaphor for energy they can use in a day.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "The mitochondria is the powerhouse of the cell.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "When you cry in space, your tears stick to your face.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "What is the name of the currency used in Ethiopia?",
+      "correct_answer": "Birr",
+      "incorrect_answers": [
+        "Dirham",
+        "U.S. Dollar",
+        "Rand"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What is \"dabbing\"?",
+      "correct_answer": "A dance",
+      "incorrect_answers": [
+        "A medical procedure",
+        "A sport",
+        "A language"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "If you planted the seeds of Quercus robur, what would grow?",
+      "correct_answer": "Trees",
+      "incorrect_answers": [
+        "Grains",
+        "Vegetables",
+        "Flowers"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "hard",
+      "question": "Is Luxembourgish a real language?",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Which of the following carbonated soft drinks were introduced first?",
+      "correct_answer": "Dr. Pepper",
+      "incorrect_answers": [
+        "Coca-Cola",
+        "Sprite",
+        "Mountain Dew"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "How would one say goodbye in Spanish?",
+      "correct_answer": "Adiós",
+      "incorrect_answers": [
+        " Hola",
+        "Au Revoir",
+        "Salir"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What word represents the letter 'T' in the NATO phonetic alphabet?",
+      "correct_answer": "Tango",
+      "incorrect_answers": [
+        "Target",
+        "Taxi",
+        "Turkey"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Which of the following blood component forms a plug at the site of injuries?",
+      "correct_answer": "Platelets",
+      "incorrect_answers": [
+        "Red blood cells",
+        "White blood cells",
+        "Blood plasma"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What was the nickname given to the Hughes H-4 Hercules, a heavy transport flying boat which achieved flight in 1947?",
+      "correct_answer": "Spruce Goose",
+      "incorrect_answers": [
+        "Noah's Ark",
+        "Fat Man",
+        "Trojan Horse"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What is the largest organ of the human body?",
+      "correct_answer": "Skin",
+      "incorrect_answers": [
+        "Heart",
+        "large Intestine",
+        "Liver"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What alcoholic drink is mainly made from juniper berries?",
+      "correct_answer": "Gin",
+      "incorrect_answers": [
+        "Vodka",
+        "Rum",
+        "Tequila"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What character was once considered to be the 27th letter of the alphabet?",
+      "correct_answer": "Ampersand",
+      "incorrect_answers": [
+        "Interrobang",
+        "Tilde",
+        "Pilcrow"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "In what year did Halley's Comet, which will not appear again until the year 2061, previously approach Earth?",
+      "correct_answer": "1986",
+      "incorrect_answers": [
+        "2001",
+        "1942",
+        "1909"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What company developed the vocaloid Hatsune Miku?",
+      "correct_answer": "Crypton Future Media",
+      "incorrect_answers": [
+        "Sega",
+        "Sony",
+        "Yamaha Corporation"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "The Lego Group was founded in 1932.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "After how many years would you celebrate your crystal anniversary?",
+      "correct_answer": "15",
+      "incorrect_answers": [
+        "20",
+        "10",
+        "25"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "Bulls are attracted to the color red.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "According to Fair Works Australia, how long do you have to work to get Long Service Leave?",
+      "correct_answer": "7 years",
+      "incorrect_answers": [
+        "2 years",
+        "8 years",
+        "6 months"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "hard",
+      "question": "\"Number 16 Bus Shelter\" was a child's name that was approved by the New Zealand government.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "It is automatically considered entrapment in the United States if the police sell you illegal substances without revealing themselves.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What was the height of Kingda Ka, the tallest roller coaster in the world from 2005 to 2024?",
+      "correct_answer": "456 ft",
+      "incorrect_answers": [
+        "500 ft",
+        "429 ft",
+        "396 ft"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What is the name given to Indian food cooked over charcoal in a clay oven?",
+      "correct_answer": "Tandoori",
+      "incorrect_answers": [
+        "Biryani",
+        "Pani puri",
+        "Tiki masala"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Which of the following is not the host of a program on NPR?",
+      "correct_answer": "Ben Shapiro",
+      "incorrect_answers": [
+        "Terry Gross",
+        "Ira Glass",
+        "Peter Sagal"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Frank Lloyd Wright was the architect behind what famous building?",
+      "correct_answer": "The Guggenheim",
+      "incorrect_answers": [
+        "Villa Savoye",
+        "Sydney Opera House",
+        "The Space Needle"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "The Canadian $1 coin is colloquially known as a what?",
+      "correct_answer": "Loonie",
+      "incorrect_answers": [
+        "Boolie",
+        "Foolie",
+        "Moodie"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "\"Buffalo buffalo Buffalo buffalo buffalo buffalo Buffalo buffalo.\" is a grammatically correct sentence.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "All strawberries are red.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "The sum of all the numbers on a roulette wheel is 666.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What direction does the Statue of Liberty face?",
+      "correct_answer": "Southeast",
+      "incorrect_answers": [
+        "Southwest",
+        "Northwest",
+        "Northeast"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Who is the author of Jurassic Park?",
+      "correct_answer": "Michael Crichton",
+      "incorrect_answers": [
+        "Peter Benchley",
+        "Chuck Paluhniuk",
+        "Irvine Welsh"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "The tale of Robin Hood originates from which country?",
+      "correct_answer": "England",
+      "incorrect_answers": [
+        "France",
+        "Portugal",
+        "Scotland"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "What year was Queen Elizabeth II born?",
+      "correct_answer": "1926",
+      "incorrect_answers": [
+        "1923",
+        "1929",
+        "1930"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "How many letters are in the English alphabet?",
+      "correct_answer": "26",
+      "incorrect_answers": [
+        "30",
+        "17",
+        "5"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Which of the following landmarks is not located in New York City?",
+      "correct_answer": "Lincoln Memorial",
+      "incorrect_answers": [
+        "Empire State Building",
+        "Times Square",
+        "Central Park"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Where is the train station \"Llanfair­pwllgwyngyll­gogery­chwyrn­drobwll­llan­tysilio­gogo­goch\"?",
+      "correct_answer": "Wales",
+      "incorrect_answers": [
+        "Moldova",
+        "Czech Republic",
+        "Denmark"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "According to the Book of Genesis in the Old Testament, how many days did it take God to create the world?",
+      "correct_answer": "Six",
+      "incorrect_answers": [
+        "Seven",
+        "One",
+        "Twelve"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "The phrase \"accident waiting to happen\" is an example of what type of figure of speech?",
+      "correct_answer": "Idiom",
+      "incorrect_answers": [
+        "Simile",
+        "Metaphor",
+        "Analogy"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What is the name of the alcoholic beverage made from potatoes or grains that originates from Poland and Russia?",
+      "correct_answer": "Vodka",
+      "incorrect_answers": [
+        "Absinthe",
+        "Rum",
+        "Sake"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "Did Michael Jackson invent the moonwalk?",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Which is the most popular spoken language in the Southern Hemisphere?",
+      "correct_answer": "Portuguese",
+      "incorrect_answers": [
+        "English ",
+        "Spanish",
+        "French"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What was the soft drink Pepsi originally introduced as?",
+      "correct_answer": "Brad's Drink",
+      "incorrect_answers": [
+        "Pepsin Pop",
+        "Carolina Cola",
+        "Pepsin Syrup"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Foie gras is a French delicacy typically made from what part of a duck or goose?",
+      "correct_answer": "Liver",
+      "incorrect_answers": [
+        "Heart",
+        "Stomach",
+        "Intestines"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What is a \"dakimakura\"?",
+      "correct_answer": "A body pillow",
+      "incorrect_answers": [
+        "A Chinese meal, essentially composed of fish",
+        "A yoga posture",
+        "A word used to describe two people who truly love each other"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "To which language family does Kazakh belong?",
+      "correct_answer": "Turkic",
+      "incorrect_answers": [
+        "Mongolic",
+        "Indo-European",
+        "Uralic"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "What is the romanized Russian word for \"winter\"?",
+      "correct_answer": "Zima",
+      "incorrect_answers": [
+        "Leto",
+        "Vesna",
+        "Osen'"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Which sign of the zodiac comes between Virgo and Scorpio?",
+      "correct_answer": "Libra",
+      "incorrect_answers": [
+        "Gemini",
+        "Taurus",
+        "Capricorn"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "The average woman is 5 inches / 13 centimeters shorter than the average man.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "When did the website \"Facebook\" launch?",
+      "correct_answer": "2004",
+      "incorrect_answers": [
+        "2005",
+        "2003",
+        "2006"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Which mountain has the highest peak in North America?",
+      "correct_answer": "Denali, USA",
+      "incorrect_answers": [
+        "Mount Saint Elias, US/Canada border",
+        "Mount Logan, Canada",
+        "Pico de Orizaba, Mexico"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "The word \"astasia\" means which of the following?",
+      "correct_answer": "The inability to stand up",
+      "incorrect_answers": [
+        "The inability to make decisions",
+        "The inability to concentrate on anything",
+        "A feverish desire to rip one's clothes off"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "The CEO of tech company Apple following Steve Jobs is named Tim Apple.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Apple co-founder Steve Jobs died from complications of which form of cancer?",
+      "correct_answer": "Pancreatic",
+      "incorrect_answers": [
+        "Bone",
+        "Liver",
+        "Stomach"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "The color orange is named after the fruit.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "\"Typewriter\" is the longest word that can be typed using only the first row on a QWERTY keyboard.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "Don Cheto is the host of the radio station \"East Los FM\" in GTA V.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Which mountain has the highest peak in South America?",
+      "correct_answer": "Aconcagua, Argentina",
+      "incorrect_answers": [
+        "Ojos del Salado, Argentina/Chile border",
+        "Monte Pissis, Argentina",
+        "Huascarán, Peru"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "According to the 2014-2015 Australian Bureau of Statistics, what percentage of Australians were born overseas?",
+      "correct_answer": "28%",
+      "incorrect_answers": [
+        "13%",
+        "20%",
+        "7%"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Which of these colours is NOT featured in the logo for Google?",
+      "correct_answer": "Pink",
+      "incorrect_answers": [
+        "Yellow",
+        "Blue",
+        "Green"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "hard",
+      "question": "This is the correct spelling of \"Supercalifragilisticexpialidocious\".",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What is the closest planet to our solar system's sun?",
+      "correct_answer": "Mercury",
+      "incorrect_answers": [
+        "Mars",
+        "Jupiter",
+        "Earth"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "The Flag of the European Union has how many stars on it?",
+      "correct_answer": "12",
+      "incorrect_answers": [
+        "10",
+        "14",
+        "16"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "According to the nursery rhyme, what fruit did Little Jack Horner pull out of his Christmas pie?",
+      "correct_answer": "Plum",
+      "incorrect_answers": [
+        "Apple",
+        "Peach",
+        "Pear"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What was the name of the WWF professional wrestling tag team made up of the wrestlers Ax and Smash?",
+      "correct_answer": "Demolition",
+      "incorrect_answers": [
+        "The Dream Team",
+        "The Bushwhackers",
+        "The British Bulldogs"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "How many syllables make up a haiku?",
+      "correct_answer": "17",
+      "incorrect_answers": [
+        "15",
+        "10",
+        "21"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What is the official language of Brazil?",
+      "correct_answer": "Portuguese",
+      "incorrect_answers": [
+        "Brazilian",
+        "Spanish",
+        "English"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "In a standard Gregorian calendar, how many months begin with the letter 'J'?",
+      "correct_answer": "Three",
+      "incorrect_answers": [
+        "Four",
+        "Five",
+        "Two"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What does a funambulist walk on?",
+      "correct_answer": "A Tight Rope",
+      "incorrect_answers": [
+        "Broken Glass",
+        "Balls",
+        "The Moon"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What is the name of NASA’s most famous space telescope?",
+      "correct_answer": "Hubble Space Telescope",
+      "incorrect_answers": [
+        "Big Eye",
+        "Death Star",
+        "Millenium Falcon"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Which of the following buildings is example of a structure primarily built in the Art Deco architectural style?",
+      "correct_answer": "Niagara Mohawk Building",
+      "incorrect_answers": [
+        "Taipei 101",
+        "One Detroit Center",
+        "Westendstrasse 1"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What does VR stand for?",
+      "correct_answer": "Virtual Reality",
+      "incorrect_answers": [
+        "Very Real",
+        "Visual Recognition",
+        "Voice Recognition"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "Which church's interior in Vatican City was designed in 1503 by renaissance architects including Bramante, Michelangelo and Bernini?",
+      "correct_answer": "St. Peter's Basilica",
+      "incorrect_answers": [
+        "Catania Cathedral",
+        "St. Mark’s Basilica",
+        "The Duomo of Florence"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "In \"Resident Evil 3\", how many inventory slots does Jill have at the start of the game?",
+      "correct_answer": "8",
+      "incorrect_answers": [
+        "6",
+        "10",
+        "12"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "A pasodoble is a type of Italian pasta sauce.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "Coca-Cola's original colour was green.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What planet is not named after a Greek or Roman god?",
+      "correct_answer": "Earth",
+      "incorrect_answers": [
+        "Jupiter",
+        "Mars",
+        "Mercury"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Which essential condiment is also known as Japanese horseradish?",
+      "correct_answer": "Wasabi ",
+      "incorrect_answers": [
+        "Mentsuyu",
+        "Karashi",
+        "Ponzu"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "The architect known as Le Corbusier was an important figure in what style of architecture?",
+      "correct_answer": "Modernism",
+      "incorrect_answers": [
+        "Neoclassical",
+        "Baroque",
+        "Gothic Revival"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "Furby was released in 1998.",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "Romanian belongs to the Romance language family, shared with French, Spanish, Portuguese and Italian. ",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Only 9% of US Households owned a television in ",
+      "correct_answer": "1950",
+      "incorrect_answers": [
+        "1965",
+        "1913",
+        "1969"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "medium",
+      "question": "Out of these four buildings, which one is the tallest, with a height of 2,717 ft (828 m)?",
+      "correct_answer": "Burj Khalifa, United Arab Emirates",
+      "incorrect_answers": [
+        "Shanghai Tower, China",
+        "Lotte World Tower, South Korea",
+        "Ping An Finance Centre, China"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": " Which chemical element, number 11 in the Periodic table, has the symbol Na?",
+      "correct_answer": "Sodium",
+      "incorrect_answers": [
+        "Carbon",
+        "Lead",
+        "Nitrogen"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "What is the name of Poland in Polish?",
+      "correct_answer": "Polska",
+      "incorrect_answers": [
+        "Pupcia",
+        "Polszka",
+        "Póland"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "hard",
+      "question": "Roughly how many ingested apple seeds would it take to receive a fatal dose of cyanide?",
+      "correct_answer": "200",
+      "incorrect_answers": [
+        "20",
+        "2,000",
+        "20,000"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "easy",
+      "question": "The Great Wall of China is visible from the moon.",
+      "correct_answer": "False",
+      "incorrect_answers": [
+        "True"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "The Quran is the holy book of which Abrahamic religion?",
+      "correct_answer": "Islam",
+      "incorrect_answers": [
+        "Christianity",
+        "Judaism",
+        "Rastafarianism"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "multiple",
+      "difficulty": "easy",
+      "question": "Which one of the following rhythm games was made by Harmonix?",
+      "correct_answer": "Rock Band",
+      "incorrect_answers": [
+        "Meat Beat Mania",
+        "Guitar Hero Live",
+        "Dance Dance Revolution"
+      ]
+    },
+    {
+      "category": "General Knowledge",
+      "type": "boolean",
+      "difficulty": "medium",
+      "question": "The scientific name for the Southern Lights is Aurora Australis?",
+      "correct_answer": "True",
+      "incorrect_answers": [
+        "False"
+      ]
+    }
+  ]
+}

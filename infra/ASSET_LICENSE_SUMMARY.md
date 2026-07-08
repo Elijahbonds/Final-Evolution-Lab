@@ -13,6 +13,12 @@
 
 ## Not acceptable
 - CC-BY-NC / CC-BY-ND / CC-BY-SA (viral) — commercial game; drop these
+  - NARROW CARVE-OUT (owner-approved for web demos): OpenTDB question TEXT in
+    `assets/mock/opentdb_questions.json` is CC BY-SA 4.0. It is demo/mock DATA
+    (not engine/game art); ShareAlike only obliges us to keep the question set
+    itself under CC BY-SA with attribution (embedded in the dump + credits
+    line). It does NOT infect code or other assets. Before any commercial
+    ship, replace with owner-written questions or re-confirm scope with owner.
 - "Free for personal use" — drop
 - Unlabeled/unclear license — STOP, record URL + claimed license, escalate to owner
 

@@ -189,6 +189,148 @@
         "license": "n/a (generated)",
         "fetch": "auto"
       }
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "audio",
+      "asset_name": "Kenney Interface Sounds (correct/wrong stings, ticks, chimes)",
+      "source_url": "https://opengameart.org/sites/default/files/kenney_interfaceSounds.zip",
+      "license": "CC0 1.0",
+      "fetch": "auto",
+      "notes": "Official Kenney pack, self-published on OpenGameArt (stable direct URL; kenney.nl CDN paths are dynamic). Curated OGG clips committed to assets/demo/audio/ by scripts/build_demo_assets.sh.",
+      "fallback": {
+        "url": "https://kenney.nl/assets/interface-sounds",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "audio",
+      "asset_name": "Applause / crowd stinger (Yo Frankie!, Blender Foundation)",
+      "source_url": "https://opengameart.org/sites/default/files/applause.wav",
+      "license": "CC-BY 3.0 (credit: Blender Foundation, Yo Frankie! project)",
+      "fetch": "auto",
+      "notes": "Compressed to AAC .m4a (<1MB) at assets/demo/audio/crowd_cheer.m4a by scripts/build_demo_assets.sh; credit line in ASSET_ATTRIBUTION.md + app credits screen.",
+      "fallback": {
+        "url": "https://freesound.org/search/?q=crowd+cheer&f=license:%22Creative+Commons+0%22",
+        "license": "CC0 (filter enforced in URL)",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "*",
+      "asset_type": "vfx",
+      "asset_name": "Kenney Particle Pack (OpenGameArt mirror, celebration sprites)",
+      "source_url": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+      "license": "CC0 1.0",
+      "fetch": "auto",
+      "notes": "Stable direct URL for the pack already cataloged above as manual-browser on kenney.nl. Celebration sprite sheet assembled to assets/demo/vfx/celebration_particles.png by scripts/build_demo_assets.sh.",
+      "fallback": {
+        "url": "procedural: radial-gradient sprite via scripts/convert_assets.py make-sprite",
+        "license": "n/a (generated)",
+        "fetch": "auto"
+      }
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "ui_icon",
+      "asset_name": "UI icon: timer (stopwatch)",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/stopwatch.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Lorc)",
+      "fetch": "auto",
+      "notes": "White-on-transparent SVG; committed as assets/demo/icons/timer.svg by scripts/build_demo_assets.sh. Credit in ASSET_ATTRIBUTION.md + app credits screen."
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "ui_icon",
+      "asset_name": "UI icon: buzzer (ringing-bell)",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/ringing-bell.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Lorc)",
+      "fetch": "auto",
+      "notes": "White-on-transparent SVG; committed as assets/demo/icons/buzzer.svg by scripts/build_demo_assets.sh. Credit in ASSET_ATTRIBUTION.md + app credits screen."
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "ui_icon",
+      "asset_name": "UI icon: correct (check-mark)",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/delapouite/check-mark.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Delapouite)",
+      "fetch": "auto",
+      "notes": "White-on-transparent SVG; committed as assets/demo/icons/correct.svg by scripts/build_demo_assets.sh. Credit in ASSET_ATTRIBUTION.md + app credits screen."
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "ui_icon",
+      "asset_name": "UI icon: wrong (cross-mark)",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/cross-mark.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Lorc)",
+      "fetch": "auto",
+      "notes": "White-on-transparent SVG; committed as assets/demo/icons/wrong.svg by scripts/build_demo_assets.sh. Credit in ASSET_ATTRIBUTION.md + app credits screen."
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "ui_icon",
+      "asset_name": "UI icon: streak (flame)",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/carl-olsen/flame.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Carl Olsen)",
+      "fetch": "auto",
+      "notes": "White-on-transparent SVG; committed as assets/demo/icons/streak.svg by scripts/build_demo_assets.sh. Credit in ASSET_ATTRIBUTION.md + app credits screen."
+    },
+    {
+      "mode_id": "who_scene_it",
+      "asset_type": "ui_icon",
+      "asset_name": "UI icon: podium (podium)",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/delapouite/podium.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Delapouite)",
+      "fetch": "auto",
+      "notes": "White-on-transparent SVG; committed as assets/demo/icons/podium.svg by scripts/build_demo_assets.sh. Credit in ASSET_ATTRIBUTION.md + app credits screen."
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "ui_icon",
+      "asset_name": "UI icon: trophy (trophy-cup)",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/delapouite/trophy-cup.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Delapouite)",
+      "fetch": "auto",
+      "notes": "White-on-transparent SVG; committed as assets/demo/icons/trophy.svg by scripts/build_demo_assets.sh. Credit in ASSET_ATTRIBUTION.md + app credits screen."
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "backdrop",
+      "asset_name": "Stage backdrop: music_hall_01 (Poly Haven tonemapped render)",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/music_hall_01.jpg",
+      "license": "CC0 1.0",
+      "fetch": "auto",
+      "notes": "warm game-show stage / music hall; downscaled to <1MB JPG at assets/demo/backdrops/ by scripts/build_demo_assets.sh.",
+      "fallback": {
+        "url": "https://polyhaven.com/a/music_hall_01",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "backdrop",
+      "asset_name": "Stage backdrop: theater_01 (Poly Haven tonemapped render)",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/theater_01.jpg",
+      "license": "CC0 1.0",
+      "fetch": "auto",
+      "notes": "dark theater stage; downscaled to <1MB JPG at assets/demo/backdrops/ by scripts/build_demo_assets.sh.",
+      "fallback": {
+        "url": "https://polyhaven.com/a/theater_01",
+        "license": "CC0 1.0",
+        "fetch": "manual-browser"
+      }
+    },
+    {
+      "mode_id": "brain_brawl",
+      "asset_type": "data",
+      "asset_name": "OpenTDB starter question dump (~100 general knowledge)",
+      "source_url": "https://opentdb.com/api.php?amount=50&category=9&encode=base64",
+      "license": "CC BY-SA 4.0 (Open Trivia Database — question text stays under CC BY-SA; attribution embedded in dump)",
+      "fetch": "script",
+      "notes": "Fetched by `scripts/fetch_assets.sh --opentdb` (session token + 2x50 requests, base64-decoded) into assets/mock/opentdb_questions.json. Demo/mock data only, not shipped game content; see ASSET_LICENSE_SUMMARY.md for the ShareAlike carve-out."
     }
   ]
 }

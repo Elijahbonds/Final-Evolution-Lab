@@ -180,3 +180,20 @@ Mocap playback lab
 - **cmu_mocap**: http://mocap.cs.cmu.edu via github.com/una-dinosauria/cmu-mocap (free incl. commercial, credit required)
 - **meshy_owned**: Owner's Meshy subscription output (licensed to owner; already in pipeline)
 - **deepmotion_owned**: Owner's DeepMotion mocap of own performances (owner-generated)
+## Web demo starter kit (Brain Brawl / Who Scene It) — committed assets
+Small (<1MB each), fully-attributed assets consumed by the web demos on
+`nexus/brainbrawl-demo` / `nexus/sceneit-demo`. Rebuild from sources with
+`scripts/fetch_assets.sh --opentdb && scripts/build_demo_assets.sh`.
+- Audio (`assets/demo/audio/`): correct_ding, celebrate_chime, wrong_buzz, buzzer,
+  countdown_tick, question_sting, reveal_sting, ui_confirm (Kenney Interface Sounds, CC0, OGG)
+  + crowd_cheer.m4a (Blender Foundation Yo Frankie! applause, CC-BY 3.0, AAC)
+- Icons (`assets/demo/icons/`): timer, buzzer, correct, wrong, streak, podium, trophy
+  (game-icons.net SVGs, CC-BY 3.0 — Lorc / Delapouite / Carl Olsen)
+- Backdrops (`assets/demo/backdrops/`): stage_music_hall.jpg, stage_theater.jpg
+  (Poly Haven tonemapped HDRI renders, CC0, 1920px JPG)
+- VFX (`assets/demo/vfx/`): celebration_particles.png 4x2 sprite sheet + frame-map
+  JSON (Kenney Particle Pack, CC0)
+- Data (`assets/mock/opentdb_questions.json`): ~100 OpenTDB general-knowledge
+  questions, CC BY-SA 4.0 (attribution embedded; see ASSET_LICENSE_SUMMARY.md carve-out)
+- IP note: Who Scene It uses ORIGINAL in-universe scene content only — no film
+  stills, posters, or celebrity imagery. TMDB/Mixamo (login-gated) intentionally excluded.

@@ -1341,7 +1341,7 @@
     },
     {
       "mode_id": "tennis",
-      "description": "Ace Rally \u2014 serve/rally timing",
+      "description": "Ace Rally — serve/rally timing",
       "priority": "High",
       "characters": [
         {
@@ -1932,7 +1932,7 @@
         "meshy_owned",
         "deepmotion_owned"
       ],
-      "notes": ""
+      "notes": "Web demo starter kit committed: assets/demo/audio (correct_ding, wrong_buzz, buzzer, countdown_tick, question_sting, celebrate_chime, ui_confirm, crowd_cheer), assets/demo/icons (timer, buzzer, correct, wrong, streak, trophy), assets/demo/backdrops (stage_music_hall, stage_theater), assets/demo/vfx/celebration_particles.*, assets/mock/opentdb_questions.json (~100 OpenTDB general-knowledge questions, CC BY-SA 4.0). Rebuild: scripts/fetch_assets.sh --opentdb && scripts/build_demo_assets.sh."
     },
     {
       "mode_id": "who_scene_it",
@@ -2017,7 +2017,7 @@
         "meshy_owned",
         "deepmotion_owned"
       ],
-      "notes": ""
+      "notes": "Shares the web demo starter kit under assets/demo/ (see brain_brawl notes); reveal_sting.ogg + icons/podium.svg added for this mode. IP constraint: demo uses ORIGINAL in-universe scenes only — no film stills, posters, or celebrity images."
     },
     {
       "mode_id": "court_carnival",
