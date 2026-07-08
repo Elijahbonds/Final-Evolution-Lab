@@ -1,0 +1,2893 @@
+{
+ "content_id": "brainbrawl_mock_content",
+ "version": 1,
+ "generated_by": "scripts/seed_mock_content.py",
+ "question_count": 114,
+ "content_hash": "9b14cee7352994bc",
+ "sources": {
+  "Open Trivia Database (opentdb.com)": {
+   "license": "CC BY-SA 4.0",
+   "url": "https://opentdb.com",
+   "count": 80
+  },
+  "Final Evolution Lab original": {
+   "license": "CC0-1.0",
+   "count": 34
+  }
+ },
+ "questions": [
+  {
+   "id": "fel_dd_001",
+   "type": "single",
+   "prompt": "Why does lactic acid build-up occur during sprinting?",
+   "options": [
+    "Muscles switch to anaerobic glycolysis when oxygen delivery lags demand",
+    "Sweat glands release acid into the bloodstream",
+    "The heart pumps blood away from muscles during effort",
+    "Lungs stop absorbing oxygen at high speeds"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "sport_science",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Sprinting demands ATP faster than aerobic metabolism can supply it, so muscles use anaerobic glycolysis, whose by-product (lactate + H+) accumulates and produces the classic burning sensation.",
+   "micro_lesson": {
+    "title": "Energy Systems 101",
+    "body": "Your body has three fuel pathways: ATP-PC (0-10s bursts), anaerobic glycolysis (10s-2min, produces lactate), and aerobic metabolism (sustained efforts). Sprints outrun the aerobic system's delivery rate.",
+    "takeaway": "The burn is a fuel-supply gap, not damage — pacing and conditioning widen the gap you can tolerate."
+   }
+  },
+  {
+   "id": "fel_dd_002",
+   "type": "single",
+   "prompt": "Why do basketball players jump higher after a running approach than from standing?",
+   "options": [
+    "The approach stores elastic energy and pre-loads the stretch-shortening cycle",
+    "Air resistance is lower when moving",
+    "Gravity briefly weakens for moving bodies",
+    "Shoes grip better at speed"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "sport_science",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "A running approach lets tendons and muscles pre-stretch (eccentric load); the stretch-shortening cycle then releases stored elastic energy on top of concentric muscle force, adding centimeters to the jump.",
+   "micro_lesson": {
+    "title": "The Stretch-Shortening Cycle",
+    "body": "Muscles and tendons behave like springs: a rapid pre-stretch followed by immediate contraction produces more force than contraction alone. Plyometric training targets exactly this cycle.",
+    "takeaway": "Train the spring, not just the motor — plyometrics convert speed into height."
+   }
+  },
+  {
+   "id": "fel_dd_003",
+   "type": "single",
+   "prompt": "Why is the sky blue during the day but red at sunset?",
+   "options": [
+    "Shorter blue wavelengths scatter more; at sunset light crosses more atmosphere, leaving red",
+    "The sun changes color through the day",
+    "Ocean reflections color the sky",
+    "Clouds filter out blue at dusk"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Rayleigh scattering disperses short (blue) wavelengths most. At sunset, light travels a longer path through the atmosphere, scattering blue away entirely and leaving the longer red wavelengths.",
+   "micro_lesson": {
+    "title": "Rayleigh Scattering",
+    "body": "Scattering intensity scales with 1/wavelength^4, so blue light scatters roughly 5x more than red. Path length through the atmosphere decides which wavelengths survive to your eye.",
+    "takeaway": "Same sunlight, different path length — geometry paints the sky."
+   }
+  },
+  {
+   "id": "fel_dd_004",
+   "type": "single",
+   "prompt": "Why does compound interest grow savings faster than simple interest?",
+   "options": [
+    "Each period's interest is added to the principal and itself earns interest",
+    "Banks pay higher base rates for compound accounts",
+    "Compound interest is tax-free",
+    "Simple interest stops after ten years"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "financial_literacy",
+    "skill": "explanation"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Compound interest is exponential: interest earned is reinvested, so the base grows every period. Simple interest stays linear on the original principal.",
+   "micro_lesson": {
+    "title": "Exponential vs Linear Growth",
+    "body": "At 7% compounded annually, money doubles in about 10 years (Rule of 72: 72 / rate = doubling time). Time in the market beats timing the market because the exponent is time.",
+    "takeaway": "Start early: the exponent — time — is the most powerful variable you control."
+   }
+  },
+  {
+   "id": "fel_dd_005",
+   "type": "single",
+   "prompt": "Why can you feel sore two days AFTER a hard workout rather than immediately?",
+   "options": [
+    "Micro-tears trigger an inflammatory repair response that peaks 24-72h later",
+    "Lactic acid stays trapped in the muscle for two days",
+    "The nervous system delays all pain by 48 hours",
+    "Muscles only tear during sleep"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "sport_science",
+    "skill": "explanation"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Delayed-onset muscle soreness (DOMS) comes from the inflammatory phase of repairing exercise-induced micro-damage — not lactate, which clears within an hour. The repair cascade peaks one to three days post-exercise.",
+   "micro_lesson": {
+    "title": "DOMS and Adaptation",
+    "body": "Eccentric (lengthening) contractions cause the most micro-damage and the most soreness — but also drive adaptation. Repeated-bout effect: the same workout hurts less the second time.",
+    "takeaway": "Soreness is the repair bill, not the receipt for progress — track load, not pain."
+   }
+  },
+  {
+   "id": "fel_dd_006",
+   "type": "single",
+   "prompt": "Why do international flights heading east often arrive faster than the return leg?",
+   "options": [
+    "Jet streams — high-altitude westerly winds — boost eastbound groundspeed",
+    "Earth's rotation pushes planes eastward",
+    "Airlines use faster planes going east",
+    "Eastbound routes are always shorter"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "geography",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Jet streams are narrow bands of strong westerly wind at cruise altitude. Flying east rides the tailwind; flying west fights a headwind, so the same route differs by an hour or more.",
+   "micro_lesson": {
+    "title": "Jet Streams",
+    "body": "Jet streams form where cold and warm air masses meet, flowing west-to-east at 100-200 km/h. Pilots route into them eastbound and around them westbound.",
+    "takeaway": "The atmosphere has highways — riding them beats fighting them."
+   }
+  },
+  {
+   "id": "fel_dd_007",
+   "type": "single",
+   "prompt": "Why does a curveball actually curve?",
+   "options": [
+    "Spin creates a pressure differential across the ball (Magnus effect)",
+    "The seams make the ball heavier on one side",
+    "Gravity pulls spinning objects sideways",
+    "Air humidity bends its path"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "sport_science",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "A spinning ball drags air around itself; air moves faster on one side and slower on the other, creating a pressure difference that pushes the ball sideways — the Magnus effect.",
+   "micro_lesson": {
+    "title": "The Magnus Effect",
+    "body": "Topspin dives, backspin floats, sidespin curves. The same physics powers soccer free kicks, tennis topspin, and golf slices.",
+    "takeaway": "Spin is steering — control the axis and you control the flight."
+   }
+  },
+  {
+   "id": "fel_dd_008",
+   "type": "single",
+   "prompt": "Why is sleep considered a performance enhancer for athletes?",
+   "options": [
+    "Growth hormone release, memory consolidation, and tissue repair concentrate during sleep",
+    "Sleep burns more calories than training",
+    "Muscles only grow when the brain is off",
+    "Dreams rehearse game strategy automatically"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "sport_science",
+    "skill": "explanation"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Deep sleep drives the largest natural growth-hormone pulse of the day, motor learning consolidates during REM, and reaction time degrades measurably with sleep debt — sleep is when training becomes adaptation.",
+   "micro_lesson": {
+    "title": "Sleep as Training",
+    "body": "Studies on basketball players extending sleep to 10h showed faster sprints and +9% free-throw accuracy. Reaction time after 20h awake resembles legal intoxication.",
+    "takeaway": "You don't get stronger in the gym — you get stronger in bed. Protect the hours."
+   }
+  },
+  {
+   "id": "fel_dd_009",
+   "type": "single",
+   "prompt": "Why does the moon show phases?",
+   "options": [
+    "We see varying fractions of its sunlit half as it orbits Earth",
+    "Earth's shadow covers part of the moon each night",
+    "Clouds on the moon block reflected light",
+    "The moon emits light that fades monthly"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "explanation"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Half the moon is always sunlit. As the moon orbits Earth over ~29.5 days, we view that lit half from changing angles — from none (new) to all (full). Earth's shadow is only involved in eclipses, not phases.",
+   "micro_lesson": {
+    "title": "Phases vs Eclipses",
+    "body": "Phases are geometry: sun-moon-Earth angles. A lunar eclipse (Earth's shadow on the moon) needs perfect alignment and is rare; phases repeat monthly.",
+    "takeaway": "The moon never changes — your viewing angle does."
+   }
+  },
+  {
+   "id": "fel_dd_010",
+   "type": "single",
+   "prompt": "Why do muscles shake during a maximal-effort lift?",
+   "options": [
+    "Motor units fire asynchronously as the nervous system recruits near its limit",
+    "Blood sugar crashes instantly under load",
+    "Muscle fibers snap and reconnect",
+    "Oxygen is cut off to the arms"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "sport_science",
+    "skill": "explanation"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Near maximal effort, the nervous system recruits nearly all motor units at high firing rates. Their activation is imperfectly synchronized, and fatigue makes firing irregular — visible as shaking.",
+   "micro_lesson": {
+    "title": "Motor Unit Recruitment",
+    "body": "Strength gains in the first weeks of training are mostly neural: the brain learns to recruit more units, faster and more synchronously, before muscles grow at all.",
+    "takeaway": "Early strength is software updates; muscle growth is the hardware upgrade."
+   }
+  },
+  {
+   "id": "fel_dd_011",
+   "type": "single",
+   "prompt": "Why does ice float on water when most solids sink in their liquids?",
+   "options": [
+    "Hydrogen bonding forms an open crystal lattice less dense than liquid water",
+    "Ice contains trapped air bubbles",
+    "Cold objects always rise",
+    "Water pushes ice up magnetically"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "As water freezes, hydrogen bonds lock molecules into a hexagonal lattice with more empty space than the liquid — about 9% less dense, so it floats. This anomaly lets lakes freeze top-down and aquatic life survive winter.",
+   "micro_lesson": {
+    "title": "Water's Anomaly",
+    "body": "Water is densest at 4°C, not at freezing. Lakes stratify: 4°C water sinks to the bottom while ice caps the surface and insulates below.",
+    "takeaway": "One weird molecule property underwrites every frozen lake ecosystem on Earth."
+   }
+  },
+  {
+   "id": "fel_dd_013",
+   "type": "single",
+   "prompt": "Why do DJs beatmatch two tracks before blending them?",
+   "options": [
+    "Aligning tempo and phase keeps one continuous pulse through the transition",
+    "It doubles the playback volume",
+    "It is required by venue licensing",
+    "It prevents the speakers from overheating"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Beatmatching sets both tracks to the same tempo (BPM) and aligns their downbeats. When the phase lines up, the crossfade reads as one groove instead of two clashing pulses.",
+   "micro_lesson": {
+    "title": "Beatmatching Basics",
+    "body": "Tempo is the speed (BPM); phase is where the beats land in time. Match tempo first, then nudge until downbeats lock. Modern software can sync tempo automatically, but phrasing choices stay human.",
+    "takeaway": "A great transition is math plus taste — sync the grid, then mix the energy."
+   }
+  },
+  {
+   "id": "fel_dd_014",
+   "type": "single",
+   "prompt": "Why do dancers 'spot' by fixing their gaze on one point during turns?",
+   "options": [
+    "Snapping the head keeps visual input stable, reducing dizziness and drift",
+    "It signals the next move to the audience",
+    "It strengthens the neck muscles",
+    "Judges award points for eye contact"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "dance",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Spinning confuses the inner ear's balance organs. Spotting — holding the eyes on one point and whipping the head around last — gives the brain a stable visual reference, so dancers stay oriented across many rotations.",
+   "micro_lesson": {
+    "title": "Spotting",
+    "body": "The vestibular system tolerates brief head rotation better than continuous spin. By minimizing the time the head is actually turning, spotting keeps balance signals clean and turns on axis.",
+    "takeaway": "Control the head and the body follows — orientation is a skill you drill."
+   }
+  },
+  {
+   "id": "fel_dd_015",
+   "type": "single",
+   "prompt": "Why does a minor chord sound darker than a major chord?",
+   "options": [
+    "Its third is a semitone lower, changing the interval ratios the ear hears",
+    "It is always played more quietly",
+    "It uses more notes than a major chord",
+    "It can only be played in low octaves"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "explanation"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Major and minor triads share the root and fifth; only the third differs. Lowering the third by one semitone changes the frequency ratios, and listeners acoustically and culturally read that color as darker or sadder.",
+   "micro_lesson": {
+    "title": "Thirds Decide the Mood",
+    "body": "A major third spans four semitones, a minor third three. That one semitone shifts the harmonic blend enough to flip the emotional reading of the whole chord.",
+    "takeaway": "Tiny interval changes carry huge emotional weight — mood lives in the third."
+   }
+  },
+  {
+   "id": "fel_dd_012",
+   "type": "single",
+   "prompt": "Why is a diversified portfolio considered lower-risk than a single stock?",
+   "options": [
+    "Uncorrelated losses offset: no single failure can sink the whole portfolio",
+    "Diversified portfolios are government-insured",
+    "More stocks always means more profit",
+    "Brokers charge less for many holdings"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "financial_literacy",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Diversification spreads exposure across assets whose prices don't move together. One company can go to zero; a broad basket effectively cannot, so the portfolio's variance falls without proportionally lowering expected return.",
+   "micro_lesson": {
+    "title": "Diversification",
+    "body": "Risk has two parts: market risk (undiversifiable) and idiosyncratic risk (company-specific). Diversification erases the second nearly for free — the only free lunch in finance.",
+    "takeaway": "Never bet the season on one player — build a roster."
+   }
+  },
+  {
+   "id": "fel_ms_001",
+   "type": "multi",
+   "prompt": "Select ALL macronutrients.",
+   "options": [
+    "Protein",
+    "Vitamin C",
+    "Carbohydrates",
+    "Fats",
+    "Iron"
+   ],
+   "answer": [
+    0,
+    2,
+    3
+   ],
+   "taxonomy": {
+    "category": "sport_science",
+    "skill": "analysis"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Protein, carbohydrates, and fats are macronutrients (needed in large amounts); vitamins and minerals are micronutrients."
+  },
+  {
+   "id": "fel_ms_002",
+   "type": "multi",
+   "prompt": "Select ALL planets with rings.",
+   "options": [
+    "Jupiter",
+    "Mars",
+    "Saturn",
+    "Uranus",
+    "Neptune"
+   ],
+   "answer": [
+    0,
+    2,
+    3,
+    4
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "analysis"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "All four gas/ice giants have ring systems — Saturn's is simply the most visible."
+  },
+  {
+   "id": "fel_ms_003",
+   "type": "multi",
+   "prompt": "Select ALL sports played in the Summer Olympics (2024 program).",
+   "options": [
+    "Skateboarding",
+    "Ice hockey",
+    "Surfing",
+    "Curling",
+    "Sport climbing"
+   ],
+   "answer": [
+    0,
+    2,
+    4
+   ],
+   "taxonomy": {
+    "category": "sport_history",
+    "skill": "analysis"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Skateboarding, surfing, and sport climbing joined the Summer program in Tokyo 2020; ice hockey and curling are Winter sports."
+  },
+  {
+   "id": "fel_ms_004",
+   "type": "multi",
+   "prompt": "Select ALL prime numbers.",
+   "options": [
+    "21",
+    "13",
+    "27",
+    "29",
+    "33"
+   ],
+   "answer": [
+    1,
+    3
+   ],
+   "taxonomy": {
+    "category": "mathematics",
+    "skill": "analysis"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "13 and 29 are prime. 21=3x7, 27=3^3, 33=3x11."
+  },
+  {
+   "id": "fel_ms_005",
+   "type": "multi",
+   "prompt": "Select ALL fast-twitch dominant activities.",
+   "options": [
+    "100m sprint",
+    "Marathon",
+    "Olympic weightlifting",
+    "Channel swimming",
+    "High jump"
+   ],
+   "answer": [
+    0,
+    2,
+    4
+   ],
+   "taxonomy": {
+    "category": "sport_science",
+    "skill": "analysis"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Explosive, short-duration efforts rely on fast-twitch (Type II) fibers; endurance events rely on slow-twitch (Type I)."
+  },
+  {
+   "id": "fel_ms_006",
+   "type": "multi",
+   "prompt": "Select ALL renewable energy sources.",
+   "options": [
+    "Solar",
+    "Coal",
+    "Wind",
+    "Natural gas",
+    "Hydroelectric"
+   ],
+   "answer": [
+    0,
+    2,
+    4
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "analysis"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Solar, wind, and hydro replenish naturally; coal and natural gas are finite fossil fuels."
+  },
+  {
+   "id": "fel_ms_007",
+   "type": "multi",
+   "prompt": "Select ALL percussion instruments.",
+   "options": [
+    "Snare drum",
+    "Violin",
+    "Timpani",
+    "Flute",
+    "Cymbals"
+   ],
+   "answer": [
+    0,
+    2,
+    4
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "analysis"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Percussion instruments produce sound by being struck or shaken: snare, timpani, and cymbals qualify; violin is a string and flute a woodwind."
+  },
+  {
+   "id": "fel_ms_008",
+   "type": "multi",
+   "prompt": "Select ALL street dance styles.",
+   "options": [
+    "Breaking",
+    "Ballet",
+    "Popping",
+    "Waltz",
+    "Locking"
+   ],
+   "answer": [
+    0,
+    2,
+    4
+   ],
+   "taxonomy": {
+    "category": "dance",
+    "skill": "analysis"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Breaking, popping, and locking grew out of street and club culture; ballet and waltz come from classical and ballroom traditions."
+  },
+  {
+   "id": "fel_sg_001",
+   "type": "single",
+   "prompt": "How many players from one team are on a volleyball court?",
+   "options": [
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "sport_history",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_002",
+   "type": "single",
+   "prompt": "Which unit measures electrical resistance?",
+   "options": [
+    "Volt",
+    "Ohm",
+    "Watt",
+    "Ampere"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_003",
+   "type": "single",
+   "prompt": "What percentage of the human body is roughly water?",
+   "options": [
+    "40%",
+    "60%",
+    "80%",
+    "25%"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_004",
+   "type": "single",
+   "prompt": "In golf, what is one stroke under par on a hole called?",
+   "options": [
+    "Eagle",
+    "Bogey",
+    "Birdie",
+    "Albatross"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "sport_history",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_005",
+   "type": "single",
+   "prompt": "Which continent has the most countries?",
+   "options": [
+    "Asia",
+    "Europe",
+    "Africa",
+    "South America"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "geography",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_006",
+   "type": "single",
+   "prompt": "What does APR stand for on a loan?",
+   "options": [
+    "Annual Percentage Rate",
+    "Average Payment Ratio",
+    "Applied Principal Return",
+    "Annual Payment Requirement"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "financial_literacy",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_007",
+   "type": "single",
+   "prompt": "How many beats does a whole note last in 4/4 time?",
+   "options": [
+    "2",
+    "3",
+    "4",
+    "8"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_008",
+   "type": "single",
+   "prompt": "What does BPM stand for in music production?",
+   "options": [
+    "Bass Per Measure",
+    "Beats Per Minute",
+    "Bars Per Movement",
+    "Balanced Pitch Mode"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_009",
+   "type": "single",
+   "prompt": "In ballet, what is a plié?",
+   "options": [
+    "A jump with crossed feet",
+    "A bending of the knees",
+    "A full turn on one leg",
+    "A backward arch"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "dance",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_010",
+   "type": "single",
+   "prompt": "Which clef is commonly called the treble clef?",
+   "options": [
+    "G clef",
+    "F clef",
+    "C clef",
+    "Percussion clef"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_011",
+   "type": "single",
+   "prompt": "What time signature defines a classic waltz rhythm?",
+   "options": [
+    "4/4",
+    "2/4",
+    "3/4",
+    "6/8"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "dance",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "otdb_004cff24ba",
+   "type": "single",
+   "prompt": "What is the powerhouse of the cell?",
+   "options": [
+    "Ribosome",
+    "Redbull",
+    "Mitochondria",
+    "Nucleus"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_030dc16433",
+   "type": "single",
+   "prompt": "What is the least number of sides a polygon can have?",
+   "options": [
+    "7",
+    "1",
+    "2",
+    "3"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "mathematics",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_0316c4d4c7",
+   "type": "single",
+   "prompt": "The teapot often seen in many 3D modeling applications is called what?",
+   "options": [
+    "Tennessee Teapot",
+    "Pixar Teapot",
+    "3D Teapot",
+    "Utah Teapot"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "technology",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_08c4abf3ed",
+   "type": "single",
+   "prompt": "What is the romanized Korean word for \"heart\"?",
+   "options": [
+    "Jeongsin",
+    "Aejeong",
+    "Segseu",
+    "Simjang"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "general",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_0a07be81c1",
+   "type": "single",
+   "prompt": "Who made the discovery of X-rays?",
+   "options": [
+    "Thomas Alva Edison",
+    "Albert Einstein",
+    "Wilhelm Conrad Röntgen",
+    "James Watt"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_0b67f1172d",
+   "type": "single",
+   "prompt": "What is the atomic number of the element Strontium?",
+   "options": [
+    "47",
+    "38",
+    "11",
+    "73"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_17659c2dec",
+   "type": "single",
+   "prompt": "The AHL affiliate team of the Boston Bruins is named what?",
+   "options": [
+    "Providence Bruins",
+    "Cambridge Bruins",
+    "Hartford Bruins",
+    "New Haven Bruins"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "sport_history",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_1d38ee2693",
+   "type": "single",
+   "prompt": "Which of the following is not another name for the eggplant?",
+   "options": [
+    "Guinea Squash",
+    "Melongene",
+    "Potimarron",
+    "Brinjal"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "general",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_1ee710e9ad",
+   "type": "single",
+   "prompt": "What is the last song on the first Panic! At the Disco album?",
+   "options": [
+    "Nails for Breakfast, Tacks for Snacks",
+    "I Write Sins Not Tragedies",
+    "Lying Is The Most Fun A Girl Can Have Without Taking Her Clothes Off",
+    "Build God, Then We'll Talk"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_28bb1a1fde",
+   "type": "single",
+   "prompt": "Which of these online games was originally named LindenWorld in it's early development?",
+   "options": [
+    "HabboHotel",
+    "IMVU",
+    "SecondLife",
+    "ActiveWorlds"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_2af4709e04",
+   "type": "single",
+   "prompt": "What is the name of the virus that infected New York in Tom Clancy's The Division?",
+   "options": [
+    "Smallpox",
+    "Red Poison",
+    "Dollar Flu",
+    "Ebola"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_2c14bdc691",
+   "type": "single",
+   "prompt": "Which of these fast-food chains is NOT mainly known to sell pizza?",
+   "options": [
+    "Domino's",
+    "Papa John's",
+    "Little Caesars",
+    "Wendy's"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "general",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_2c9c5aa06c",
+   "type": "single",
+   "prompt": "Who wrote the song \"You Know You Like It\"?",
+   "options": [
+    "AlunaGeorge",
+    "Steve Aoki",
+    "DJ Snake",
+    "Major Lazer"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_3257b94315",
+   "type": "single",
+   "prompt": "In what year was the last natural case of smallpox documented?",
+   "options": [
+    "1982",
+    "1990",
+    "1980",
+    "1977"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "history",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_3754c6a884",
+   "type": "single",
+   "prompt": "In Calvin and Hobbes, what is the name of Susie's stuffed rabbit?",
+   "options": [
+    "Mr. Bun",
+    "Mr. Hoppy",
+    "Mr. Bunbun",
+    "Mr. Rabbit"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_3c8efbae76",
+   "type": "single",
+   "prompt": "In the ADV (English) Dub of the anime \"Ghost Stories\", which character is portrayed as a Pentacostal Christian?",
+   "options": [
+    "Momoko Koigakubo",
+    "Hajime Aoyama",
+    "Satsuki Miyanoshita",
+    "Mio Itai"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_4164c18a11",
+   "type": "single",
+   "prompt": "Which of these characters was NOT planned to be playable for Super Smash Bros. 64?",
+   "options": [
+    "Mewtwo",
+    "King Dedede",
+    "Bowser",
+    "Peach"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_46580c2895",
+   "type": "single",
+   "prompt": "Which Crypt of the NecroDancer (2015) character has a soundtrack by Jake \"Virt\" Kaufman?",
+   "options": [
+    "Cadence",
+    "Uncle Eli",
+    "Nocturna",
+    "Octavian (Bard)"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_509ee1ebed",
+   "type": "single",
+   "prompt": "Paul McCartney has always used his middle name. What is his real first name?",
+   "options": [
+    "James",
+    "Jack",
+    "John",
+    "Justin"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_5989dce313",
+   "type": "single",
+   "prompt": "Linus Torvalds created which of these?",
+   "options": [
+    "Linux",
+    "Python",
+    "Wikipedia",
+    "Microsoft Windows"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "technology",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_5efec1dc40",
+   "type": "single",
+   "prompt": "What Greek letter is used to signify summation?",
+   "options": [
+    "Alpha",
+    "Delta",
+    "Omega",
+    "Sigma"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "mathematics",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_61330c7aee",
+   "type": "single",
+   "prompt": "In \"JoJo's Bizarre Adventure: Stardust Crusaders\", what is the last name of the protagonist Jotaro?",
+   "options": [
+    "Higashikata",
+    "Cujoh",
+    "Kujo",
+    "Joestar"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_61354471f6",
+   "type": "single",
+   "prompt": "In the anime Black Butler, who is betrothed to be married to Ciel Phantomhive?",
+   "options": [
+    "Alexis Leon Midford",
+    "Elizabeth Midford",
+    "Angelina Dalles",
+    "Rachel Phantomhive"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_61a5048e48",
+   "type": "single",
+   "prompt": "Cryoshell, known for \"Creeping in My Soul\" did the advertising music for what Lego Theme?",
+   "options": [
+    "Star Wars",
+    "Ben 10 Alien Force",
+    "Hero Factory",
+    "Bionicle"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_638bf4fd39",
+   "type": "single",
+   "prompt": "In Margaret Atwood's \"The Handmaid's Tale\", what is Offred's real name is implied to be?",
+   "options": [
+    "June",
+    "May",
+    "April",
+    "August"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_6c08e35294",
+   "type": "single",
+   "prompt": "What is the name of the town in which Lily and James Potter are buried?",
+   "options": [
+    "Little Hangleton",
+    "Godric's Hollow",
+    "Hogsmeade",
+    "Ottery St. Catchpole"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_73e7f9f1ec",
+   "type": "single",
+   "prompt": "What is the name of the ocean that Hawaii is located in?",
+   "options": [
+    "Pacific",
+    "Arctic",
+    "Atlantic",
+    "Indian"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "geography",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_77f53a3148",
+   "type": "single",
+   "prompt": "How many books are in Euclid's Elements of Geometry?",
+   "options": [
+    "8",
+    "17",
+    "13",
+    "10"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "mathematics",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_7a38fe8818",
+   "type": "single",
+   "prompt": "May 16th of every year is known as __________ Day, named after a punk band prominent in the 1990s.",
+   "options": [
+    "Less Than Jake",
+    "Lit",
+    "Lagwagon",
+    "Goldfinger"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_7ce7b9938b",
+   "type": "single",
+   "prompt": "Who is the only US president to serve two non-consecutive terms in office?",
+   "options": [
+    "Franklin D. Roosevelt",
+    "Grover Cleveland",
+    "James K. Polk",
+    "Thomas Jefferson"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "civics",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_803a6befa8",
+   "type": "single",
+   "prompt": "Which of these is NOT a game under the Worms series?",
+   "options": [
+    "Clan Wars",
+    "Major Malfunction",
+    "Crazy Golf",
+    "Ultimate Mayhem"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_80c9627dde",
+   "type": "single",
+   "prompt": "What was the bloodiest single-day battle during the American Civil War?",
+   "options": [
+    "The Siege of Vicksburg",
+    "The Battle of Antietam",
+    "The Battles of Chancellorsville",
+    "The Battle of Gettysburg"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "history",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_8119e6fb38",
+   "type": "single",
+   "prompt": "In what city in the dystopia alternate future of Half-Life 2 do you first start in?",
+   "options": [
+    "City 6",
+    "City 18",
+    "City 17",
+    "City 45"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_81c3937b6f",
+   "type": "single",
+   "prompt": "Which of these is the name of a cut enemy from \"Half-Life 2\"?",
+   "options": [
+    "Cthulu",
+    "Hydra",
+    "Tremor",
+    "Spike"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_82c9084a82",
+   "type": "single",
+   "prompt": "How many years did the Hundred Years' War last?",
+   "options": [
+    "116",
+    "100",
+    "90",
+    "101"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "history",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_83f05375c4",
+   "type": "single",
+   "prompt": "In the PAYDAY series, who betrayed the PAYDAY gang that got Hoxton arrested?",
+   "options": [
+    "Vlad",
+    "The Dentist",
+    "Hector",
+    "The Elephant"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_85da4354ab",
+   "type": "single",
+   "prompt": "Which former boy-band star released hit solo single \"Angels\" in 1997?",
+   "options": [
+    "Justin Timberlake",
+    "Robbie Williams",
+    "Gary Barlow",
+    "Harry Styles"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_85e01e41bf",
+   "type": "single",
+   "prompt": "Donald J. Trump's Middle Name is...",
+   "options": [
+    "Jerald",
+    "John",
+    "Jeff",
+    "Jason"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_8b2fe209cd",
+   "type": "single",
+   "prompt": "Who had a 1973 hit with the song 'Hocus Pocus'?",
+   "options": [
+    "Rush",
+    "Pilot",
+    "Focus",
+    "AC/DC"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_8b847fb87f",
+   "type": "single",
+   "prompt": "What was the name of the planned invasion of Japan towards the end of World War II?",
+   "options": [
+    "Operation Boarding Party",
+    "Operation Ironclad",
+    "Operation Downfall",
+    "Operation Aflame"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "history",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_8fbff9d2af",
+   "type": "single",
+   "prompt": "What is the highest belt you can get in Taekwondo?",
+   "options": [
+    "White",
+    "Green",
+    "Red",
+    "Black"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "sport_history",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_90e68fd5e9",
+   "type": "single",
+   "prompt": "The \"K\" in \"K-Pop\" stands for which word?",
+   "options": [
+    "Kenyan",
+    "Kuwaiti",
+    "Korean",
+    "Kazakhstan"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_97c931d2f2",
+   "type": "single",
+   "prompt": "In \"The Legend of Zelda: Ocarina of Time,\" what is the maximum amount of rupees that Link can carry?",
+   "options": [
+    "999",
+    "500",
+    "5000",
+    "1000"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_9878e2fbaa",
+   "type": "single",
+   "prompt": "Which famous military commander marched an army, which included war elephants, over the Alps during the Second Punic War?",
+   "options": [
+    "Garmanicus",
+    "Hannibal",
+    "Alexander the Great",
+    "Tiberius"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "history",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_9e194e1fe9",
+   "type": "single",
+   "prompt": "How many types of quarks are there in the standard model of physics?",
+   "options": [
+    "3",
+    "6",
+    "2",
+    "4"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_a1773175dd",
+   "type": "single",
+   "prompt": "Which of the following is NOT a quote from the 1942 film Casablanca?",
+   "options": [
+    "\"Frankly, my dear, I don't give a damn.\"",
+    "\"Here's lookin' at you, kid.\"",
+    "“Of all the gin joints, in all the towns, in all the world, she walks into mine…”",
+    "\"Round up the usual suspects.\""
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_a628553258",
+   "type": "single",
+   "prompt": "The character Wario was first introduced in which game of the Mario video game franchise?",
+   "options": [
+    "Super Mario Bros. 3 (1988)",
+    "Mario Party (1998)",
+    "Super Mario Land 2: 6 Golden Coins (1992)",
+    "Wario Land: Super Mario Land 3 (1994)"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_a9cf5e61fe",
+   "type": "single",
+   "prompt": "What was the name of the first Bulgarian personal computer?",
+   "options": [
+    "Pravetz 82",
+    "IMKO-1",
+    "Pravetz 8D",
+    "IZOT 1030"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "technology",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_aa9b1769a8",
+   "type": "single",
+   "prompt": "Who co-founded the YouTube Let's Play channel \"Game Grumps\" alongside Newgrounds animator Egoraptor?",
+   "options": [
+    "JonTron",
+    "Pewdiepie",
+    "Markiplier",
+    "Tobuscus"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_ab7e0ad651",
+   "type": "single",
+   "prompt": "What is the make and model of the tour vehicles in \"Jurassic Park\" (1993)?",
+   "options": [
+    "Mercedes M-Class",
+    "1992 Ford Explorer XLT",
+    "1992 Toyota Land Cruiser",
+    "1992 Jeep Wrangler YJ Sahar"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_ac7ca888c7",
+   "type": "single",
+   "prompt": "What was the name of the teenage witch played by Melisa Joan Hart who lives with her witch aunts Hilda and Zelda?",
+   "options": [
+    "Dorothy",
+    "Hermione",
+    "Sabrina",
+    "Dahlia"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_af43095ef1",
+   "type": "single",
+   "prompt": "Which South American country fought Great Britain over the Falkland Islands in 1982?",
+   "options": [
+    "Argentina",
+    "Venezuela",
+    "Chile",
+    "Brazil"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "history",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_b2f8e82a3c",
+   "type": "single",
+   "prompt": "Who is the star of the AMC series Breaking Bad?",
+   "options": [
+    "Skyler White",
+    "Saul Goodman",
+    "Jesse Pinkman",
+    "Walter White"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_b2fb9e73ef",
+   "type": "single",
+   "prompt": "Which of these Indian languages is not part of the Indo-European language family?",
+   "options": [
+    "Tamil",
+    "Urdu",
+    "Hindi",
+    "Punjabi"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "general",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_b456c6bb4d",
+   "type": "single",
+   "prompt": "What does the term USB stand for?",
+   "options": [
+    "Universal Serial Bus",
+    "Unified Signal Bus",
+    "Universal Simtex Blot",
+    "Unityped Semtex Backer"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "technology",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_b94be3a4fe",
+   "type": "single",
+   "prompt": "What is the name of the creatures that the protagonists of the webshow RWBY fight against?",
+   "options": [
+    "Dark Ones",
+    "Grimm",
+    "Heartless",
+    "Reavers"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_bf675b7e9d",
+   "type": "single",
+   "prompt": "In the SHMUP series, \"Darius\", what is the name of the antagonist faction you fight against?",
+   "options": [
+    "Bydo",
+    "Belsar",
+    "Orn Empire",
+    "Bacterion"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_c5d81a37fb",
+   "type": "single",
+   "prompt": "In 2013, virtual pop-star Hatsune Miku had a sponsorship with which pizza chain?",
+   "options": [
+    "Papa John's",
+    "Pizza Hut",
+    "Sabarro's",
+    "Domino's"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_ce9b05e811",
+   "type": "single",
+   "prompt": "Which of the following is not a character in the Street Fighter series?",
+   "options": [
+    "Ibuki",
+    "Mai Shiranui",
+    "Sakura Kasugano",
+    "Laura Matsuda"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_cf5712a431",
+   "type": "single",
+   "prompt": "Which city hosted the CS:GO Dreamhack Open 2015?",
+   "options": [
+    "Cologne",
+    "Cluj-Napoca",
+    "Atlanta",
+    "London"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_d6c2fad7e3",
+   "type": "single",
+   "prompt": "How many known living species of hyenas are there?",
+   "options": [
+    "6",
+    "4",
+    "8",
+    "2"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_d6c43a6bce",
+   "type": "single",
+   "prompt": "If a person's hair is described as 'Titian', what colour is it?",
+   "options": [
+    "Red",
+    "Black",
+    "Brunette",
+    "Blonde"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "general",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_d8c994a527",
+   "type": "single",
+   "prompt": "Who played the sun baby in the original run of Teletubbies?",
+   "options": [
+    "Jessica Smith",
+    "Sue Monroe",
+    "Lisa Brockwell",
+    "Pui Fan Lee"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_d8deee22ac",
+   "type": "single",
+   "prompt": "Which is the capital of Spain?",
+   "options": [
+    "Lisboa",
+    "Paris",
+    "Madrid",
+    "Barcelona"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "general",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_d931b84bd2",
+   "type": "single",
+   "prompt": "Which of these is NOT a faction included in the game Counter-Strike: Global Offensive?",
+   "options": [
+    "Phoenix Connexion",
+    "GSG-9",
+    "Elite Crew",
+    "BOPE"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_e211f57f0d",
+   "type": "single",
+   "prompt": "In order to cut costs, what were most of the extras of Mad Max (1979) paid with?",
+   "options": [
+    "Beer",
+    "Fast food",
+    "Food stamps",
+    "They weren't paid"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_e2b79afa56",
+   "type": "single",
+   "prompt": "What is the tallest mountain in Canada?",
+   "options": [
+    "Mont Tremblant",
+    "Whistler Mountain",
+    "Mount Logan",
+    "Blue Mountain"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "geography",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_e3538a3fea",
+   "type": "single",
+   "prompt": "Which Super Mario video game when they introduce Bowser Jr. for the first time?",
+   "options": [
+    "Super Mario Sunshine",
+    "Mario Party series",
+    "Mario & Luigi: Bowser's Inside Story + Bowser Jr.'s Journey",
+    "Super Mario Galaxy"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_e6f2aac93e",
+   "type": "single",
+   "prompt": "Who created the indie adventure game \"Night in the Woods\"?",
+   "options": [
+    "Tommy Refenes",
+    "Alec Holowka",
+    "Tim Schafer",
+    "Ron Gilbert"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_e8288bbd40",
+   "type": "single",
+   "prompt": "The Mexican Beer \"Corona\" is what type of beer?",
+   "options": [
+    "Pale Lager",
+    "Pilfsner",
+    "Baltic Porter",
+    "India Pale Ale"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "general",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_ecc932a67c",
+   "type": "single",
+   "prompt": "What town was \"Springfield\" from \"The Simpsons\" originally named after?",
+   "options": [
+    "Springfield, Illinois",
+    "Springfield, Oregon",
+    "Springfield, Missouri",
+    "Springfield, Massachusetts"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_f50b1caa17",
+   "type": "single",
+   "prompt": "Which NFL team plays for New England?",
+   "options": [
+    "49ers",
+    "Chiefs",
+    "Dolphins",
+    "Patriots"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "sport_history",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_f79515e07f",
+   "type": "single",
+   "prompt": "In the 1995 film \"Balto\", who are Steele's accomplices?",
+   "options": [
+    "Nuk, Yak, and Sumac",
+    "Kaltag, Nikki, and Star",
+    "Dusty, Kirby, and Ralph",
+    "Jenna, Sylvie, and Dixie"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_f99a968f17",
+   "type": "single",
+   "prompt": "In \"Homestuck\" what is Dave Strider's guardian?",
+   "options": [
+    "Bro",
+    "Halley",
+    "Becquerel",
+    "Doc Scratch"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_fa48bd025f",
+   "type": "single",
+   "prompt": "What element does the Zinogre use in Monster Hunter?",
+   "options": [
+    "Water",
+    "Thunder",
+    "Fire",
+    "Ice"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_fa8a0780bf",
+   "type": "single",
+   "prompt": "Which of these voices wasn't a choice for the House AI in \"The Simpsons Treehouse of Horror\" short, House of Whacks?",
+   "options": [
+    "Matthew Perry",
+    "Dennis Miller",
+    "George Clooney",
+    "Pierce Brosnan"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_fc81ae43ef",
+   "type": "single",
+   "prompt": "What is the chemical makeup of water?",
+   "options": [
+    "C12H6O2",
+    "H",
+    "CO2",
+    "H20"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "science",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_fcf70f2700",
+   "type": "single",
+   "prompt": "Which soccer team won the Copa América 2015 Championship ?",
+   "options": [
+    "Paraguay",
+    "Argentina",
+    "Chile",
+    "Brazil"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "sport_history",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_fe1dad7797",
+   "type": "single",
+   "prompt": "Which one of these is NOT an official map in Counter-Strike: Global Offensive?",
+   "options": [
+    "de_canals",
+    "de_sugarcane",
+    "de_militia",
+    "de_season"
+   ],
+   "answer": [
+    3
+   ],
+   "taxonomy": {
+    "category": "pop_culture",
+    "skill": "recall"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "otdb_ffc1640099",
+   "type": "single",
+   "prompt": "Which of the following collision avoidance systems helps airplanes avoid colliding with each other?",
+   "options": [
+    "TCAS",
+    "TAWS",
+    "GPWS",
+    "OCAS"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "technology",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Open Trivia Database (opentdb.com)",
+   "license": "CC BY-SA 4.0"
+  }
+ ]
+}
