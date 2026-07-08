@@ -47,6 +47,7 @@ struct GamePlayView: View {
 
     @State private var dunkRound: Int = 1
     @State private var lastJudgeScores: (Int, Int, Int)?
+    @State private var judgeRollUpReveal: Bool = false
     @State private var crowdMessage: String = ""
     @State private var chakraBar: Double = 0
     @State private var karateHitFlash: Bool = false
@@ -789,7 +790,20 @@ struct GamePlayView: View {
             }
 
             if let judges = lastJudgeScores {
-                dunkJudgeOverlay(j1: judges.0, j2: judges.1, j3: judges.2)
+                VStack {
+                    Spacer()
+                    JudgeScoreRollUp(
+                        judges: [judges.0, judges.1, judges.2],
+                        maxPerJudge: 17,
+                        accent: FELDesign.Colors.cyan,
+                        eliteTotalThreshold: 42,
+                        message: crowdMessage,
+                        reveal: $judgeRollUpReveal
+                    )
+                    .padding(.bottom, 80)
+                }
+                .allowsHitTesting(false)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
             if isDunkContest && isActive && dunkEngine.phase != .idle && dunkEngine.phase != .scored {
@@ -909,66 +923,8 @@ struct GamePlayView: View {
     }
 
     // MARK: - Dunk Judge Overlay
-
-    private func dunkJudgeOverlay(j1: Int, j2: Int, j3: Int) -> some View {
-        let total = j1 + j2 + j3
-        let isElite = total >= 42
-        return VStack(spacing: 8) {
-            Spacer()
-
-            VStack(spacing: 12) {
-                HStack(spacing: 16) {
-                    judgeScoreView(label: "Judge 1", score: j1, isElite: isElite)
-                    judgeScoreView(label: "Judge 2", score: j2, isElite: isElite)
-                    judgeScoreView(label: "Judge 3", score: j3, isElite: isElite)
-                }
-                .padding(.horizontal, FELDesign.Space.lg)
-                .padding(.vertical, FELDesign.Space.md)
-                .background(
-                    RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
-                                .stroke(
-                                    isElite ? FELDesign.Colors.glow(FELDesign.Colors.purple, 0.5) : FELDesign.Colors.hairlineStrong,
-                                    lineWidth: FELDesign.Stroke.hairline
-                                )
-                        )
-                )
-
-                Text("\(total)")
-                    .font(.system(size: 42, weight: .bold, design: .monospaced))
-                    .foregroundStyle(isElite ? FELDesign.Colors.purple : FELDesign.Colors.textPrimary)
-                    .shadow(color: isElite ? FELDesign.Colors.glow(FELDesign.Colors.purple) : .clear, radius: 12)
-
-                if !crowdMessage.isEmpty {
-                    Text(crowdMessage)
-                        .font(FELDesign.Typography.heading)
-                        .foregroundStyle(FELDesign.Colors.textPrimary)
-                        .shadow(color: .black.opacity(0.6), radius: 4)
-                }
-            }
-            .padding(.bottom, 80)
-        }
-        .allowsHitTesting(false)
-        .transition(.opacity.combined(with: .move(edge: .bottom)))
-    }
-
-    private func judgeScoreView(label: String, score: Int, isElite: Bool) -> some View {
-        VStack(spacing: 6) {
-            FELMicroLabel(text: label)
-            Text("\(score)")
-                .font(.system(size: 32, weight: .bold, design: .monospaced))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: score >= 47 ? [FELDesign.Colors.cyan, FELDesign.Colors.purple] : [FELDesign.Colors.textPrimary, FELDesign.Colors.textSecondary],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .shadow(color: score >= 47 ? FELDesign.Colors.glow(FELDesign.Colors.cyan) : .clear, radius: 8)
-        }
-    }
+    // Judge reveal is rendered by the reusable JudgeScoreRollUp component
+    // (FELJudgeScoreRollUp.swift), driven by `judgeRollUpReveal`.
 
     // MARK: - Control Panel
 
@@ -3779,12 +3735,16 @@ struct GamePlayView: View {
             judgeRNG: &judgeRNG
         )
 
+        judgeRollUpReveal = false
         withAnimation(.spring(response: 0.3)) {
             lastJudgeScores = (result.j1, result.j2, result.j3)
             crowdMessage = result.message
             score += result.total
             dunkEngine.roundScores.append((round: dunkEngine.round, score: result.total, message: result.message))
         }
+        // Kick off the staggered count-up reveal on the next runloop tick so
+        // the component sees reveal flip false -> true.
+        DispatchQueue.main.async { judgeRollUpReveal = true }
 
         let impactLevel = dunkEngine.impactIntensity
         triggerScreenShake(intensity: 0.5 + impactLevel * 0.5)
@@ -3868,6 +3828,8 @@ struct GamePlayView: View {
             crowdMessage = "AI: \(wda.wdaCrowdMessage)"
             lastAction = "OPPONENT: +\(total)"
         }
+        judgeRollUpReveal = false
+        DispatchQueue.main.async { judgeRollUpReveal = true }
         triggerScreenShake(intensity: 0.3)
         FELGameplayEventBus.postOpponentScored()
     }
