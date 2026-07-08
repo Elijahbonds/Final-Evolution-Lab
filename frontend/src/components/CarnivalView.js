@@ -324,7 +324,192 @@ function RhythmTapGame({ inst, onFinish }) {
   );
 }
 
-const MINIGAME_COMPONENTS = { maze_chase: MazeChaseGame, target_burst: TargetBurstGame, rhythm_tap: RhythmTapGame };
+// ════════════════════════════════════════════════════════════════════════════
+//  MINI-GAME: Hold the Flag (area control — hold the hill, dodge hazards)
+// ════════════════════════════════════════════════════════════════════════════
+function HoldTheFlagGame({ inst, onFinish }) {
+  const [tick, setTick] = useState(0);
+  const [pos, setPos] = useState(inst.spawn);
+  const [held, setHeld] = useState(0);
+  const nextMove = useRef('stay');
+  const movesRef = useRef([]);
+  const finished = useRef(false);
+  const cell = 40;
+  const [cx, cy] = inst.hill_center;
+  const rad = inst.hill_radius;
+
+  const hazardActive = (hz, t) => ((t + hz.offset) % inst.hazard_period) < Math.floor(inst.hazard_period / 2);
+  const activeHazards = inst.hazards.filter((hz) => hazardActive(hz, tick));
+
+  useEffect(() => {
+    const onKey = (e) => {
+      const k = e.key.toLowerCase();
+      if (['arrowup', 'w'].includes(k)) nextMove.current = 'up';
+      else if (['arrowdown', 's'].includes(k)) nextMove.current = 'down';
+      else if (['arrowleft', 'a'].includes(k)) nextMove.current = 'left';
+      else if (['arrowright', 'd'].includes(k)) nextMove.current = 'right';
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const touchStart = useRef(null);
+  const onTouchStart = (e) => { const t = e.touches[0]; touchStart.current = [t.clientX, t.clientY]; };
+  const onTouchEnd = (e) => {
+    if (!touchStart.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.current[0], dy = t.clientY - touchStart.current[1];
+    if (Math.abs(dx) > Math.abs(dy)) nextMove.current = dx > 0 ? 'right' : 'left';
+    else nextMove.current = dy > 0 ? 'down' : 'up';
+  };
+
+  useEffect(() => {
+    if (finished.current) return;
+    if (tick >= inst.ticks) { finished.current = true; onFinish({ moves: movesRef.current }); return; }
+    const id = setTimeout(() => {
+      const mv = nextMove.current; nextMove.current = 'stay';
+      movesRef.current.push({ tick, move: mv });
+      const MOVES = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0], stay: [0, 0] };
+      let [px, py] = pos; const [dx, dy] = MOVES[mv];
+      let nx = px + dx, ny = py + dy;
+      if (!(nx >= 0 && nx < inst.w && ny >= 0 && ny < inst.h)) { nx = px; ny = py; }
+      const onHazard = inst.hazards.some((hz) => hz.x === nx && hz.y === ny && hazardActive(hz, tick));
+      if (!onHazard) {
+        px = nx; py = ny;
+        if (Math.abs(px - cx) <= rad && Math.abs(py - cy) <= rad) { setHeld((h) => h + 1); playSfx('reward'); }
+      }
+      setPos([px, py]);
+      setTick(tick + 1);
+    }, 220);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
+
+  const inHillNow = Math.abs(pos[0] - cx) <= rad && Math.abs(pos[1] - cy) <= rad;
+  return (
+    <div style={{ textAlign: 'center' }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div style={{ color: CYAN, fontWeight: 700, marginBottom: 6 }} aria-live="polite">
+        HOLD THE FLAG · Tick {tick}/{inst.ticks} · Held {held} · {inHillNow ? 'ON THE HILL 🚩' : 'OFF THE HILL'}
+      </div>
+      <svg width={inst.w * cell} height={inst.h * cell} viewBox={`0 0 ${inst.w * cell} ${inst.h * cell}`}
+        style={{ background: '#0b0f1a', borderRadius: 10, border: `2px solid ${PURPLE}`, maxWidth: '100%' }} role="img" aria-label="Hold the Flag board">
+        {/* hill zone */}
+        {Array.from({ length: rad * 2 + 1 }).map((_, iy) => Array.from({ length: rad * 2 + 1 }).map((__, ix) => {
+          const hx = cx - rad + ix, hy = cy - rad + iy;
+          return <rect key={`hill${hx},${hy}`} x={hx * cell} y={hy * cell} width={cell} height={cell} fill={GREEN} opacity={0.16} stroke={GREEN} strokeOpacity={0.4} />;
+        }))}
+        <text x={cx * cell + cell / 2} y={cy * cell + cell / 2 + 6} textAnchor="middle" fontSize={20}>🚩</text>
+        {/* active hazards */}
+        {activeHazards.map((hz) => (
+          <g key={`hz${hz.x},${hz.y}`}>
+            <rect x={hz.x * cell + 2} y={hz.y * cell + 2} width={cell - 4} height={cell - 4} rx={6} fill="#FF5252" opacity={0.85} />
+            <text x={hz.x * cell + cell / 2} y={hz.y * cell + cell / 2 + 6} textAnchor="middle" fontSize={16}>⚡</text>
+          </g>
+        ))}
+        <g transform={`translate(${pos[0] * cell + cell / 2},${pos[1] * cell + cell / 2})`}><ShapeMarker shape="circle" color={CYAN} size={22} /></g>
+      </svg>
+      <div style={{ color: '#8ea0c4', marginTop: 8, fontSize: 13 }}>Arrows / WASD / swipe — stay on the 🚩 hill, dodge the ⚡ hazards</div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  MINI-GAME: Short Race (3-lane obstacle dodge)
+// ════════════════════════════════════════════════════════════════════════════
+function ShortRaceGame({ inst, onFinish }) {
+  const [step, setStep] = useState(0);
+  const [lane, setLane] = useState(inst.spawn_lane);
+  const [coins, setCoins] = useState(0);
+  const [hits, setHits] = useState(0);
+  const laneRef = useRef(inst.spawn_lane);
+  const movesRef = useRef([]);
+  const finished = useRef(false);
+  const obstacleSet = useRef(new Set(inst.obstacles.map((o) => `${o.step},${o.lane}`)));
+  const coinSet = useRef(new Set(inst.coins.map((c) => `${c.step},${c.lane}`)));
+  const LANE_W = 80, VIEW_H = 300, ROW = 46;
+
+  const shift = (dir) => { laneRef.current = Math.max(0, Math.min(inst.lanes - 1, laneRef.current + dir)); setLane(laneRef.current); };
+  useEffect(() => {
+    const onKey = (e) => {
+      const k = e.key.toLowerCase();
+      if (['arrowleft', 'a'].includes(k)) shift(-1);
+      else if (['arrowright', 'd'].includes(k)) shift(1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const touchStart = useRef(null);
+  const onTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStart.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current;
+    if (Math.abs(dx) > 20) shift(dx > 0 ? 1 : -1);
+  };
+
+  useEffect(() => {
+    if (finished.current) return;
+    if (step >= inst.steps) { finished.current = true; onFinish({ moves: movesRef.current }); return; }
+    const id = setTimeout(() => {
+      const prev = movesRef.current.length ? laneRef.current : inst.spawn_lane;
+      if (step > 0) {
+        // record the lane change chosen for this step (already applied to laneRef)
+        const before = movesRef.current.reduce((l, m) => Math.max(0, Math.min(inst.lanes - 1, l + ({ left: -1, right: 1, stay: 0 })[m.move])), inst.spawn_lane);
+        const delta = laneRef.current - before;
+        const move = delta < 0 ? 'left' : (delta > 0 ? 'right' : 'stay');
+        movesRef.current.push({ tick: step, move });
+      }
+      const cell = `${step},${laneRef.current}`;
+      if (obstacleSet.current.has(cell)) { setHits((h) => h + 1); }
+      else if (coinSet.current.has(cell)) { setCoins((c) => c + 1); playSfx('reward'); }
+      void prev;
+      setStep(step + 1);
+    }, 130);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  // upcoming rows to render (next ~6 steps ahead of the player)
+  const rows = [];
+  for (let s = step; s < Math.min(step + 6, inst.steps); s++) rows.push(s);
+  return (
+    <div style={{ textAlign: 'center' }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div style={{ color: CYAN, fontWeight: 700, marginBottom: 6 }} aria-live="polite">
+        SHORT RACE · Step {Math.min(step, inst.steps)}/{inst.steps} · 🪙 {coins} · 💥 {hits}
+      </div>
+      <div style={{ position: 'relative', width: inst.lanes * LANE_W, height: VIEW_H, margin: '0 auto', background: '#0b0f1a', borderRadius: 12, border: `2px solid ${PURPLE}`, overflow: 'hidden' }} role="img" aria-label="Short Race track">
+        {/* lane dividers */}
+        {Array.from({ length: inst.lanes - 1 }).map((_, i) => (
+          <div key={`div${i}`} style={{ position: 'absolute', left: (i + 1) * LANE_W, top: 0, bottom: 0, width: 2, background: 'rgba(153,51,255,0.35)' }} />
+        ))}
+        {rows.map((s) => {
+          const y = VIEW_H - 60 - (s - step) * ROW;
+          return (
+            <React.Fragment key={`row${s}`}>
+              {Array.from({ length: inst.lanes }).map((_, l) => {
+                const isObs = obstacleSet.current.has(`${s},${l}`);
+                const isCoin = coinSet.current.has(`${s},${l}`);
+                if (!isObs && !isCoin) return null;
+                return (
+                  <div key={`c${s},${l}`} style={{ position: 'absolute', left: l * LANE_W + LANE_W / 2 - 16, top: y - 16, width: 32, height: 32, borderRadius: isObs ? 6 : '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, background: isObs ? '#FF5252' : AMBER }}>
+                    {isObs ? '🧱' : '🪙'}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          );
+        })}
+        {/* player */}
+        <div style={{ position: 'absolute', left: lane * LANE_W + LANE_W / 2 - 14, top: VIEW_H - 74, transition: 'left 0.1s' }}>
+          <svg width={28} height={28} viewBox="-14 -14 28 28"><ShapeMarker shape="circle" color={CYAN} size={22} /></svg>
+        </div>
+      </div>
+      <div style={{ color: '#8ea0c4', marginTop: 8, fontSize: 13 }}>← / → · A / D · swipe — dodge 🧱 obstacles, grab 🪙 coins</div>
+    </div>
+  );
+}
+
+const MINIGAME_COMPONENTS = { maze_chase: MazeChaseGame, target_burst: TargetBurstGame, rhythm_tap: RhythmTapGame, hold_the_flag: HoldTheFlagGame, short_race: ShortRaceGame };
 
 // ════════════════════════════════════════════════════════════════════════════
 //  Root CarnivalView — drives the whole local match
@@ -402,9 +587,11 @@ export default function CarnivalView({ recording: recordingProp }) {
 
   const onMinigameFinish = useCallback(async (humanInput) => {
     const { game, inst } = pending;
-    // Normalize the human payload to the per-game input contract: maze wants a
-    // bare move array (unwrap {moves}); tap games want {latency_ms, taps}.
-    const you = game === 'maze_chase' ? (humanInput.moves || []) : humanInput;
+    // Normalize the human payload to the per-game input contract: the
+    // tick-move games (maze_chase, hold_the_flag, short_race) want a bare move
+    // array (unwrap {moves}); the tap games want {latency_ms, taps}.
+    const BARE_MOVE_GAMES = ['maze_chase', 'hold_the_flag', 'short_race'];
+    const you = BARE_MOVE_GAMES.includes(game) ? (humanInput.moves || []) : humanInput;
     const inputs = { you };
     for (const p of players) if (p.is_ai) inputs[p.player_id] = await E.aiMinigameInputs(game, inst, p.player_id, seed);
     const result = await E.resolveMinigame(game, inst, inputs);

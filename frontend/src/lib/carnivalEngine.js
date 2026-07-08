@@ -67,7 +67,7 @@ async function rng(seed, ...tags) {
 // ── Constants (mirror carnival.py) ───────────────────────────────────────────
 export const BOARD_SIZE = 24;
 export const SPACE_TYPES = ['PRIZE', 'MINIGAME', 'TRAP', 'SHOP', 'CREATOR_STAND'];
-export const MINIGAMES = ['maze_chase', 'target_burst', 'rhythm_tap'];
+export const MINIGAMES = ['maze_chase', 'target_burst', 'rhythm_tap', 'hold_the_flag', 'short_race'];
 export const PLAYER_SKINS = [
   { shape: 'circle', color: '#00D4FF' },
   { shape: 'square', color: '#9933FF' },
@@ -89,6 +89,16 @@ const MOVES = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0], stay: [
 const TB_TARGETS = 12, TB_DURATION_MS = 20000, TB_WINDOW_MS = 900, TB_HIT_PTS = 100, TB_ACCURACY_BONUS = 50;
 const RT_BEATS = 24, RT_PERFECT_MS = 45, RT_GOOD_MS = 110, RT_PERFECT_PTS = 100, RT_GOOD_PTS = 50;
 const NORMALIZED_MAX = 100;
+
+// Hold the Flag (mirror lib/minigames/hold_the_flag.py, structurally)
+export const HTF_W = 7, HTF_H = 7, HTF_TICKS = 40, HTF_HILL_RADIUS = 1;
+const HTF_HOLD_PTS = 10, HTF_STREAK_STEP = 5, HTF_STREAK_CAP = 6, HTF_N_HAZARDS = 5, HTF_HAZARD_PERIOD = 6;
+
+// Short Race (mirror lib/minigames/short_race.py, structurally)
+export const SR_LANES = 3, SR_STEPS = 60, SR_SPAWN_LANE = 1;
+const SR_STEP_PTS = 10, SR_COIN_PTS = 25, SR_CLEAR_BONUS = 200, SR_HIT_PENALTY = 5, SR_MAX_HITS = 8;
+const SR_OBSTACLE_CHANCE = 0.55, SR_COIN_CHANCE = 0.30;
+const SR_MOVE_DELTA = { left: -1, right: 1, stay: 0 };
 
 // ── spinner ──────────────────────────────────────────────────────────────────
 export async function spinnerRoll(seed, turnIndex, faces = 10) {
@@ -288,8 +298,132 @@ export function rhythmTapResolve(inst, inputs) {
   return { raw, raw_max: rawMax, detail };
 }
 
-const BUILDERS = { maze_chase: mazeChaseBuild, target_burst: targetBurstBuild, rhythm_tap: rhythmTapBuild };
-const RESOLVERS = { maze_chase: mazeChaseResolve, target_burst: targetBurstResolve, rhythm_tap: rhythmTapResolve };
+// ── Hold the Flag (area control) ─────────────────────────────────────────────
+// Structural JS mirror of lib/minigames/hold_the_flag.py. The client PRNG is
+// not byte-identical to Python (documented, accepted for local recording), but
+// it IS internally deterministic: same seed -> same instance every run.
+const HTF_MOVES = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0], stay: [0, 0] };
+const inHill = (x, y, cx, cy, rad) => Math.abs(x - cx) <= rad && Math.abs(y - cy) <= rad;
+function htfStreakPoints(streak) {
+  const bonus = Math.min(Math.max(streak - 1, 0), HTF_STREAK_CAP);
+  return HTF_HOLD_PTS + HTF_STREAK_STEP * bonus;
+}
+function htfHazardActive(offset, tick) {
+  return ((tick + offset) % HTF_HAZARD_PERIOD) < Math.floor(HTF_HAZARD_PERIOD / 2);
+}
+function htfRawMax(ticks) {
+  let s = 0;
+  for (let t = 0; t < ticks; t++) s += htfStreakPoints(t + 1);
+  return s;
+}
+export async function holdTheFlagBuild(seed) {
+  const cx = Math.floor(HTF_W / 2), cy = Math.floor(HTF_H / 2);
+  const spawn = [cx - HTF_HILL_RADIUS, cy - HTF_HILL_RADIUS];
+  const candidates = [];
+  for (let y = 0; y < HTF_H; y++) for (let x = 0; x < HTF_W; x++) {
+    if (!inHill(x, y, cx, cy, HTF_HILL_RADIUS) && !(x === spawn[0] && y === spawn[1])) candidates.push([x, y]);
+  }
+  const r = await rng(seed, 'hold_the_flag', 'hazards');
+  const cells = r.sample(candidates, Math.min(HTF_N_HAZARDS, candidates.length))
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const hazards = cells.map(([x, y]) => ({ x, y, offset: r.randrange(HTF_HAZARD_PERIOD) }));
+  return {
+    game: 'hold_the_flag', seed, w: HTF_W, h: HTF_H, ticks: HTF_TICKS,
+    hill_center: [cx, cy], hill_radius: HTF_HILL_RADIUS, spawn, hazards,
+    hazard_period: HTF_HAZARD_PERIOD, hold_pts: HTF_HOLD_PTS, streak_step: HTF_STREAK_STEP, streak_cap: HTF_STREAK_CAP,
+  };
+}
+export function holdTheFlagResolve(inst, inputs) {
+  const ticks = inst.ticks, [cx, cy] = inst.hill_center, rad = inst.hill_radius;
+  const [w, h] = [inst.w, inst.h];
+  const activeByTick = [];
+  for (let t = 0; t < ticks; t++) {
+    const set = new Set();
+    inst.hazards.forEach((hz) => { if (htfHazardActive(hz.offset, t)) set.add(`${hz.x},${hz.y}`); });
+    activeByTick.push(set);
+  }
+  const rawMax = htfRawMax(ticks);
+  const raw = {}, detail = {};
+  Object.entries(inputs).forEach(([pid, moves]) => {
+    const byTick = {};
+    (moves || []).forEach((m) => { const t = Number(m.tick); if (t >= 0 && t < ticks) byTick[t] = m.move; });
+    let [px, py] = inst.spawn;
+    let score = 0, held = 0, hits = 0, streak = 0, best = 0;
+    for (let t = 0; t < ticks; t++) {
+      const [dx, dy] = HTF_MOVES[byTick[t]] || [0, 0];
+      let nx = px + dx, ny = py + dy;
+      if (!(nx >= 0 && nx < w && ny >= 0 && ny < h)) { nx = px; ny = py; }
+      if (activeByTick[t].has(`${nx},${ny}`)) { hits++; streak = 0; }
+      else {
+        px = nx; py = ny;
+        if (inHill(px, py, cx, cy, rad)) { streak++; held++; score += htfStreakPoints(streak); best = Math.max(best, streak); }
+        else streak = 0;
+      }
+    }
+    raw[pid] = score;
+    detail[pid] = { held_ticks: held, hazard_hits: hits, best_streak: best, ticks };
+  });
+  return { raw, raw_max: rawMax, detail };
+}
+
+// ── Short Race (3-lane obstacle dodge) ───────────────────────────────────────
+// Structural JS mirror of lib/minigames/short_race.py.
+function srReferencePath(r) {
+  let lane = SR_SPAWN_LANE;
+  const path = [lane];
+  for (let s = 1; s < SR_STEPS; s++) { lane = Math.max(0, Math.min(SR_LANES - 1, lane + r.choice([-1, 0, 1]))); path.push(lane); }
+  return path;
+}
+export async function shortRaceBuild(seed) {
+  const rp = await rng(seed, 'short_race', 'path');
+  const path = srReferencePath(rp);
+  const ro = await rng(seed, 'short_race', 'obstacles');
+  const byStep = {};
+  for (let s = 1; s < SR_STEPS; s++) {
+    if (ro.random() >= SR_OBSTACLE_CHANCE) continue;
+    const others = [0, 1, 2].filter((l) => l !== path[s]);
+    const count = ro.randint(1, others.length);
+    byStep[s] = new Set(ro.sample(others, count));
+  }
+  const rc = await rng(seed, 'short_race', 'coins');
+  const coins = [];
+  for (let s = 1; s < SR_STEPS; s++) if (rc.random() < SR_COIN_CHANCE) coins.push({ step: s, lane: path[s] });
+  const obstacles = [];
+  Object.keys(byStep).map(Number).sort((a, b) => a - b).forEach((s) => {
+    [...byStep[s]].sort((a, b) => a - b).forEach((lane) => obstacles.push({ step: s, lane }));
+  });
+  return {
+    game: 'short_race', seed, lanes: SR_LANES, steps: SR_STEPS, spawn_lane: SR_SPAWN_LANE,
+    obstacles, coins, step_pts: SR_STEP_PTS, coin_pts: SR_COIN_PTS, clear_bonus: SR_CLEAR_BONUS,
+    hit_penalty: SR_HIT_PENALTY, max_hits: SR_MAX_HITS,
+  };
+}
+export function shortRaceResolve(inst, inputs) {
+  const { steps, lanes, spawn_lane: spawn, step_pts, coin_pts, clear_bonus, hit_penalty, max_hits } = inst;
+  const obstacleSet = new Set(inst.obstacles.map((o) => `${o.step},${o.lane}`));
+  const coinSet = new Set(inst.coins.map((c) => `${c.step},${c.lane}`));
+  const rawMax = steps * step_pts + inst.coins.length * coin_pts + clear_bonus;
+  const raw = {}, detail = {};
+  Object.entries(inputs).forEach(([pid, moves]) => {
+    const byTick = {};
+    (moves || []).forEach((m) => { if (m && m.tick != null) byTick[Number(m.tick)] = m.move; });
+    let lane = spawn, score = 0, hits = 0, coinsGot = 0, cleared = 0, finished = false;
+    for (let step = 0; step < steps; step++) {
+      if (step > 0) { const mv = byTick[step] || 'stay'; lane = Math.max(0, Math.min(lanes - 1, lane + (SR_MOVE_DELTA[mv] || 0))); }
+      const cell = `${step},${lane}`;
+      if (obstacleSet.has(cell)) { hits++; score -= hit_penalty; if (hits >= max_hits) break; }
+      else { score += step_pts; cleared++; if (coinSet.has(cell)) { coinsGot++; score += coin_pts; } }
+      if (step === steps - 1) finished = true;
+    }
+    if (finished && hits === 0) score += clear_bonus;
+    raw[pid] = score;
+    detail[pid] = { steps_cleared: cleared, coins_collected: coinsGot, hits, finished, clean_run: finished && hits === 0 };
+  });
+  return { raw, raw_max: rawMax, detail };
+}
+
+const BUILDERS = { maze_chase: mazeChaseBuild, target_burst: targetBurstBuild, rhythm_tap: rhythmTapBuild, hold_the_flag: holdTheFlagBuild, short_race: shortRaceBuild };
+const RESOLVERS = { maze_chase: mazeChaseResolve, target_burst: targetBurstResolve, rhythm_tap: rhythmTapResolve, hold_the_flag: holdTheFlagResolve, short_race: shortRaceResolve };
 
 export async function buildMinigame(game, seed, roundIndex) {
   const sub = await subSeed(seed, 'round', roundIndex, game);
@@ -320,6 +454,46 @@ export async function aiMinigameInputs(game, inst, pid, seed) {
     const taps = [];
     inst.beats.forEach((b) => { if (r.random() < 0.75) taps.push(b + (r.random() * 2 - 1) * RT_GOOD_MS); });
     return { latency_ms: 0, taps };
+  }
+  if (game === 'hold_the_flag') {
+    // greedily home to the hill centre, hold, with seeded wandering
+    const [cx, cy] = inst.hill_center; const [w, h] = [inst.w, inst.h];
+    let [px, py] = inst.spawn; const moves = [];
+    for (let t = 0; t < inst.ticks; t++) {
+      let move;
+      if (r.random() < 0.15) move = r.choice(['up', 'down', 'left', 'right', 'stay']);
+      else {
+        const ddx = cx - px, ddy = cy - py;
+        if (ddx === 0 && ddy === 0) move = 'stay';
+        else if (Math.abs(ddx) >= Math.abs(ddy)) move = ddx > 0 ? 'right' : 'left';
+        else move = ddy > 0 ? 'down' : 'up';
+      }
+      const [dx, dy] = HTF_MOVES[move];
+      const nx = px + dx, ny = py + dy;
+      if (nx >= 0 && nx < w && ny >= 0 && ny < h) { px = nx; py = ny; }
+      moves.push({ tick: t, move });
+    }
+    return moves;
+  }
+  if (game === 'short_race') {
+    const obs = {}; inst.obstacles.forEach((o) => { (obs[o.step] = obs[o.step] || new Set()).add(o.lane); });
+    const coins = {}; inst.coins.forEach((c) => { coins[c.step] = c.lane; });
+    let lane = inst.spawn_lane; const moves = [];
+    for (let step = 1; step < inst.steps; step++) {
+      const reach = [...new Set([-1, 0, 1].map((d) => Math.max(0, Math.min(inst.lanes - 1, lane + d))))].sort((a, b) => a - b);
+      const blocked = obs[step] || new Set();
+      const safe = reach.filter((c) => !blocked.has(c));
+      const pool = safe.length ? safe : reach;
+      const want = coins[step];
+      let target;
+      if (want != null && pool.includes(want)) target = want;
+      else if (r.random() < 0.15) target = reach[r.randrange(reach.length)];
+      else target = pool[r.randrange(pool.length)];
+      const move = target < lane ? 'left' : (target > lane ? 'right' : 'stay');
+      lane = Math.max(0, Math.min(inst.lanes - 1, lane + SR_MOVE_DELTA[move]));
+      moves.push({ tick: step, move });
+    }
+    return moves;
   }
   return {};
 }
