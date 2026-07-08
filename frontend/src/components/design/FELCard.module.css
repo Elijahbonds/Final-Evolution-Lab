@@ -1,0 +1,39 @@
+.card {
+  background: var(--fel-color-surface-2);
+  border: 1px solid var(--fel-color-border);
+  border-radius: var(--fel-radius-md);
+  box-shadow: var(--fel-elevation-1);
+  color: var(--fel-color-text-primary);
+  padding: var(--fel-space-5);
+}
+
+.interactive {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--fel-motion-fast) var(--fel-motion-ease),
+    box-shadow var(--fel-motion-fast) var(--fel-motion-ease),
+    border-color var(--fel-motion-fast) var(--fel-motion-ease);
+}
+
+.interactive:hover,
+.interactive:active {
+  transform: scale(1.02);
+  box-shadow: var(--fel-elevation-2);
+  border-color: var(--fel-color-border-strong);
+}
+
+.interactive:focus-visible {
+  outline: 2px solid var(--fel-color-border-focus);
+  outline-offset: 2px;
+}
+
+.glowCyan:hover,
+.glowCyan:active {
+  box-shadow: var(--fel-elevation-glow-cyan);
+}
+
+.glowPurple:hover,
+.glowPurple:active {
+  box-shadow: var(--fel-elevation-glow-purple);
+}

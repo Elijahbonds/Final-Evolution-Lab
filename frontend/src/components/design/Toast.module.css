@@ -1,0 +1,94 @@
+.stack {
+  position: fixed;
+  bottom: var(--fel-space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--fel-space-2);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--fel-space-3);
+  min-width: 240px;
+  max-width: min(420px, calc(100vw - 2 * var(--fel-space-4)));
+  padding: var(--fel-space-3) var(--fel-space-4);
+  background: var(--fel-color-surface-3);
+  border: 1px solid var(--fel-color-border-strong);
+  border-left: 3px solid var(--fel-color-accent-primary);
+  border-radius: var(--fel-radius-md);
+  box-shadow: var(--fel-elevation-2);
+  color: var(--fel-color-text-primary);
+  font-family: var(--fel-font-ui);
+  font-size: var(--fel-text-sm-size);
+  line-height: var(--fel-text-sm-line);
+  animation: fel-toast-in var(--fel-motion-normal) var(--fel-motion-ease-out) both;
+}
+
+.leaving {
+  animation: fel-toast-out var(--fel-motion-normal) var(--fel-motion-ease-in) both;
+}
+
+.success {
+  border-left-color: var(--fel-color-success);
+}
+
+.danger {
+  border-left-color: var(--fel-color-danger);
+}
+
+.warning {
+  border-left-color: var(--fel-color-warning);
+}
+
+.message {
+  flex: 1;
+}
+
+.dismiss {
+  background: none;
+  border: none;
+  color: var(--fel-color-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: var(--fel-space-1);
+  border-radius: var(--fel-radius-sm);
+  transition: color var(--fel-motion-fast) var(--fel-motion-ease);
+}
+
+.dismiss:hover {
+  color: var(--fel-color-text-primary);
+}
+
+.dismiss:focus-visible {
+  outline: 2px solid var(--fel-color-border-focus);
+}
+
+@keyframes fel-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fel-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

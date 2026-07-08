@@ -1,0 +1,68 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg {
+  transform: rotate(-90deg);
+  display: block;
+}
+
+.track {
+  fill: none;
+  stroke: var(--fel-color-surface-3);
+}
+
+.progress {
+  fill: none;
+  stroke: var(--fel-color-accent-primary);
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset var(--fel-motion-slow) var(--fel-motion-ease-out),
+    stroke var(--fel-motion-normal) var(--fel-motion-ease);
+}
+
+.warning .progress {
+  stroke: var(--fel-color-warning);
+}
+
+.danger .progress {
+  stroke: var(--fel-color-danger);
+  filter: drop-shadow(0 0 6px rgba(255, 92, 92, 0.6));
+}
+
+.danger .label {
+  color: var(--fel-color-danger);
+  animation: fel-timer-pulse calc(var(--fel-motion-slow) * 2) var(--fel-motion-ease) infinite;
+}
+
+.label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fel-font-mono);
+  font-weight: 700;
+  color: var(--fel-color-text-primary);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--fel-motion-normal) var(--fel-motion-ease);
+}
+
+@keyframes fel-timer-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .danger .label {
+    animation: none;
+  }
+}

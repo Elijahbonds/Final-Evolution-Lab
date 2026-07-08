@@ -1,0 +1,63 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fel-space-1);
+  font-family: var(--fel-font-ui);
+  min-width: 120px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--fel-text-sm-size);
+  line-height: var(--fel-text-sm-line);
+}
+
+.label {
+  color: var(--fel-color-text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.value {
+  color: var(--fel-color-text-primary);
+  font-family: var(--fel-font-mono);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--fel-motion-normal) var(--fel-motion-ease);
+}
+
+.track {
+  height: 8px;
+  border-radius: var(--fel-radius-pill);
+  background: var(--fel-color-surface-3);
+  border: 1px solid var(--fel-color-border);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--fel-color-success);
+  transition:
+    width var(--fel-motion-slow) var(--fel-motion-ease-out),
+    background-color var(--fel-motion-normal) var(--fel-motion-ease);
+}
+
+.warning .fill {
+  background: var(--fel-color-warning);
+}
+
+.warning .value {
+  color: var(--fel-color-warning);
+}
+
+.danger .fill {
+  background: var(--fel-color-danger);
+}
+
+.danger .value {
+  color: var(--fel-color-danger);
+}

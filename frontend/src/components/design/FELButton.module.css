@@ -1,0 +1,92 @@
+.button {
+  --btn-scale: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--fel-space-2);
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--fel-space-5);
+  border-radius: var(--fel-radius-sm);
+  border: 1px solid transparent;
+  font-family: var(--fel-font-ui);
+  font-size: var(--fel-text-base-size);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: scale(var(--btn-scale));
+  transition:
+    transform var(--fel-motion-fast) var(--fel-motion-ease),
+    background-color var(--fel-motion-fast) var(--fel-motion-ease),
+    border-color var(--fel-motion-fast) var(--fel-motion-ease),
+    color var(--fel-motion-fast) var(--fel-motion-ease),
+    box-shadow var(--fel-motion-fast) var(--fel-motion-ease);
+}
+
+.button:active:not(:disabled) {
+  --btn-scale: 0.96;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--fel-color-border-focus);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.primary {
+  background: var(--fel-color-accent-primary);
+  color: var(--fel-color-text-inverse);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--fel-color-accent-primary-hover);
+  box-shadow: var(--fel-elevation-glow-cyan);
+}
+
+.primary:active:not(:disabled) {
+  background: var(--fel-color-accent-primary-active);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--fel-color-accent-primary);
+  border-color: var(--fel-color-border-strong);
+}
+
+.ghost:hover:not(:disabled) {
+  border-color: var(--fel-color-accent-primary);
+  background: var(--fel-color-accent-primary-muted);
+}
+
+.danger {
+  background: var(--fel-color-danger);
+  color: var(--fel-color-text-inverse);
+}
+
+.danger:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.sm {
+  min-height: 44px;
+  padding: 0 var(--fel-space-4);
+  font-size: var(--fel-text-sm-size);
+}
+
+.lg {
+  min-height: 52px;
+  padding: 0 var(--fel-space-6);
+  font-size: var(--fel-text-lg-size);
+}
+
+.block {
+  display: flex;
+  width: 100%;
+}

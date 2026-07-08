@@ -1738,6 +1738,10 @@ function GameViewRoute() {
   return <GameView matchId={params.get('match') || undefined} onExit={() => navigate('/')} />;
 }
 
+// FELDesign living reference (substitutes for Storybook). Dev builds only —
+// the lazy chunk is never requested in production.
+const DesignPlayground = React.lazy(() => import("@/components/design/DesignPlayground"));
+
 function AppRouter() {
   const location = useLocation();
   if (location.hash?.includes('session_id=')) return <AuthCallback />;
@@ -1749,6 +1753,16 @@ function AppRouter() {
       <Route path="/hud" element={<Phase3HUD />} />
       <Route path="/download" element={<DownloadPage />} />
       <Route path="/nexus/game" element={<GameViewRoute />} />
+      {process.env.NODE_ENV !== "production" && (
+        <Route
+          path="/design-playground"
+          element={
+            <React.Suspense fallback={null}>
+              <DesignPlayground />
+            </React.Suspense>
+          }
+        />
+      )}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

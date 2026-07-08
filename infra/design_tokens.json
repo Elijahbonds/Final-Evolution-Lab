@@ -1,0 +1,87 @@
+{
+  "$schema_note": "FELDesign tokens — SINGLE SOURCE OF TRUTH for the Final Evolution Lab web frontend. frontend/src/design/tokens.css and frontend/src/design/tokens.js are GENERATED from this file via `npm run tokens` (frontend/scripts/generate-design-tokens.js). Never hand-edit the generated files.",
+  "version": "1.0.0",
+  "prefix": "fel",
+  "color": {
+    "ink": "#050505",
+    "surface-1": "#0B0B0E",
+    "surface-2": "#121218",
+    "surface-3": "#1A1A22",
+    "text-primary": "#FFFFFF",
+    "text-secondary": "rgba(255, 255, 255, 0.72)",
+    "text-muted": "rgba(255, 255, 255, 0.48)",
+    "text-inverse": "#050505",
+    "accent-primary": "#00D4FF",
+    "accent-primary-hover": "#33DDFF",
+    "accent-primary-active": "#00A8CC",
+    "accent-primary-muted": "rgba(0, 212, 255, 0.14)",
+    "accent-secondary": "#9933FF",
+    "accent-secondary-hover": "#AD5CFF",
+    "accent-secondary-muted": "rgba(153, 51, 255, 0.14)",
+    "success": "#38D39F",
+    "success-muted": "rgba(56, 211, 159, 0.14)",
+    "danger": "#FF5C5C",
+    "danger-muted": "rgba(255, 92, 92, 0.14)",
+    "warning": "#FFB86C",
+    "warning-muted": "rgba(255, 184, 108, 0.14)",
+    "border": "rgba(255, 255, 255, 0.08)",
+    "border-strong": "rgba(255, 255, 255, 0.16)",
+    "border-focus": "#00D4FF",
+    "backdrop": "rgba(5, 5, 5, 0.72)"
+  },
+  "font": {
+    "display": "'Barlow Condensed', 'Avenir Next Condensed', 'Arial Narrow', system-ui, sans-serif",
+    "ui": "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "mono": "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
+  },
+  "text": {
+    "sm": { "size": "14px", "line": "20px", "weight": "400", "tracking": "0" },
+    "base": { "size": "16px", "line": "24px", "weight": "400", "tracking": "0" },
+    "lg": { "size": "20px", "line": "28px", "weight": "600", "tracking": "0" },
+    "xl": { "size": "28px", "line": "34px", "weight": "700", "tracking": "-0.01em" },
+    "2xl": { "size": "36px", "line": "42px", "weight": "700", "tracking": "-0.015em" },
+    "3xl": { "size": "56px", "line": "60px", "weight": "800", "tracking": "-0.02em" }
+  },
+  "space": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "24px",
+    "6": "32px",
+    "7": "48px",
+    "8": "64px"
+  },
+  "radius": {
+    "sm": "6px",
+    "md": "12px",
+    "lg": "16px",
+    "pill": "999px",
+    "round": "50%"
+  },
+  "elevation": {
+    "1": "0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.35)",
+    "2": "0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45)",
+    "3": "0 4px 8px rgba(0, 0, 0, 0.45), 0 16px 48px rgba(0, 0, 0, 0.55)",
+    "glow-cyan": "0 0 0 1px rgba(0, 212, 255, 0.25), 0 0 20px rgba(0, 212, 255, 0.3)",
+    "glow-purple": "0 0 0 1px rgba(153, 51, 255, 0.25), 0 0 20px rgba(153, 51, 255, 0.3)"
+  },
+  "motion": {
+    "fast": "120ms",
+    "normal": "240ms",
+    "slow": "480ms",
+    "stagger": "40ms",
+    "ease": "cubic-bezier(0.2, 0.9, 0.3, 1)",
+    "ease-out": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "ease-in": "cubic-bezier(0.6, 0, 0.8, 0.4)"
+  },
+  "audio": {
+    "_unit": "dBFS relative to master; consumed by the web audio layer, not CSS",
+    "ui-sfx-db": -6,
+    "ui-sfx-prominent-db": -3,
+    "music-bed-db": -18,
+    "music-bed-min-db": -20,
+    "music-bed-max-db": -15,
+    "ducking-db": -8
+  }
+}

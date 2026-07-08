@@ -1,0 +1,183 @@
+.page {
+  min-height: 100vh;
+  background: var(--fel-color-ink);
+  color: var(--fel-color-text-primary);
+  font-family: var(--fel-font-ui);
+  padding: var(--fel-space-6) var(--fel-space-5) var(--fel-space-8);
+}
+
+.inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--fel-space-6);
+}
+
+.pageTitle {
+  font-family: var(--fel-font-display);
+  font-size: var(--fel-text-2xl-size);
+  line-height: var(--fel-text-2xl-line);
+  font-weight: var(--fel-text-2xl-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+.pageTitle span {
+  color: var(--fel-color-accent-primary);
+}
+
+.subtitle {
+  color: var(--fel-color-text-secondary);
+  font-size: var(--fel-text-sm-size);
+  margin: var(--fel-space-1) 0 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fel-space-4);
+}
+
+.sectionTitle {
+  font-family: var(--fel-font-display);
+  font-size: var(--fel-text-lg-size);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fel-color-accent-primary);
+  margin: 0;
+  padding-bottom: var(--fel-space-2);
+  border-bottom: 1px solid var(--fel-color-border);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--fel-space-4);
+}
+
+.rowStart {
+  align-items: flex-start;
+}
+
+.swatchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--fel-space-3);
+}
+
+.swatch {
+  border-radius: var(--fel-radius-sm);
+  border: 1px solid var(--fel-color-border);
+  overflow: hidden;
+}
+
+.swatchChip {
+  height: 56px;
+}
+
+.swatchMeta {
+  padding: var(--fel-space-2) var(--fel-space-3);
+  background: var(--fel-color-surface-2);
+  font-family: var(--fel-font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.swatchName {
+  color: var(--fel-color-text-primary);
+  display: block;
+}
+
+.swatchValue {
+  color: var(--fel-color-text-muted);
+}
+
+.typeRow {
+  margin: 0;
+  font-family: var(--fel-font-ui);
+}
+
+.spacingBlock {
+  background: var(--fel-color-accent-secondary);
+  border-radius: 2px;
+  height: 16px;
+}
+
+.spacingLabel {
+  font-family: var(--fel-font-mono);
+  font-size: 11px;
+  color: var(--fel-color-text-muted);
+  width: 90px;
+}
+
+.spacingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--fel-space-3);
+}
+
+.motionTable {
+  font-family: var(--fel-font-mono);
+  font-size: var(--fel-text-sm-size);
+  border-collapse: collapse;
+}
+
+.motionTable td,
+.motionTable th {
+  text-align: left;
+  padding: var(--fel-space-1) var(--fel-space-4) var(--fel-space-1) 0;
+  color: var(--fel-color-text-secondary);
+}
+
+.motionTable th {
+  color: var(--fel-color-text-muted);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.motionTable td:first-child {
+  color: var(--fel-color-accent-primary);
+}
+
+.caption {
+  color: var(--fel-color-text-muted);
+  font-size: var(--fel-text-sm-size);
+  margin: 0;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--fel-space-4);
+}
+
+.cardTitle {
+  font-weight: 700;
+  margin: 0 0 var(--fel-space-2);
+}
+
+.cardBody {
+  color: var(--fel-color-text-secondary);
+  font-size: var(--fel-text-sm-size);
+  margin: 0;
+}
+
+.statCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fel-space-4);
+  min-width: 240px;
+  flex: 1;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fel-space-2);
+}

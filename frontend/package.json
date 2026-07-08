@@ -63,6 +63,7 @@
   },
   "scripts": {
     "start": "craco start",
+    "tokens": "node scripts/generate-design-tokens.js",
     "build": "craco build",
     "test": "craco test",
     "deploy:hosting": "npm run build && firebase deploy --only hosting:fel-dashboard"
