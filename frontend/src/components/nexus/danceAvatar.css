@@ -1,0 +1,97 @@
+/* DanceAvatar — richer 2D dancer + beat-reactive backdrop.
+   Inherits --dm-cyan / --dm-purple from the surrounding .dm-root theme.
+   Falls back to sane defaults so the component also renders in isolation. */
+
+.da-wrap {
+  --dm-cyan: var(--dm-cyan, #00D4FF);
+  --dm-purple: var(--dm-purple, #9933FF);
+  --da-pulse: 0.2;              /* 0..~1.4, set inline per frame from the beat */
+  position: relative;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Beat-reactive glow backdrop ──────────────────────────────────────────── */
+.da-backdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 0;
+}
+.da-ring {
+  position: absolute;
+  border-radius: 50%;
+  /* Scale + opacity are driven by the per-frame --da-pulse variable so the ring
+     "breathes" exactly on the beat — no keyframe timing to drift out of sync. */
+  transform: scale(calc(0.6 + var(--da-pulse) * 0.7));
+  transition: transform 0.06s linear, opacity 0.12s linear;
+}
+.da-ring-1 {
+  width: 72%;
+  height: 72%;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.28), transparent 68%);
+  opacity: calc(0.25 + var(--da-pulse) * 0.55);
+}
+.da-ring-2 {
+  width: 108%;
+  height: 108%;
+  background: radial-gradient(circle, rgba(153, 51, 255, 0.22), transparent 72%);
+  opacity: calc(0.15 + var(--da-pulse) * 0.4);
+}
+
+/* ── Figure ───────────────────────────────────────────────────────────────── */
+.da-svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 92%;      /* pivot near the hips for lift/squash */
+  transition: transform 0.05s linear;
+  filter: drop-shadow(0 0 calc(4px + var(--da-pulse) * 10px) rgba(0, 212, 255, 0.35));
+  overflow: visible;
+}
+.da-figure { transition: none; }  /* limb points are recomputed per frame in JS */
+
+/* Spin: add a subtle CSS blur streak on top of the JS horizontal squash. */
+.da-wrap.is-spin .da-svg {
+  filter: drop-shadow(0 0 calc(6px + var(--da-pulse) * 12px) rgba(153, 51, 255, 0.5));
+}
+
+/* ── Reactive lane sparks (Performance) ───────────────────────────────────── */
+.da-sparks {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.da-spark {
+  position: absolute;
+  bottom: 8%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--dm-cyan);
+  box-shadow: 0 0 12px var(--dm-cyan), 0 0 24px var(--dm-purple);
+  animation: da-spark-rise 0.4s ease-out forwards;
+}
+@keyframes da-spark-rise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(-38px) scale(1.2); opacity: 0; }
+}
+
+/* ── Accessibility: respect reduced-motion. Hold a clean neutral frame, drop
+      the breathing backdrop + spark animation. The figure itself is still
+      re-drawn from `beat` in JS, but callers should freeze `playing`/pass a
+      static beat under reduced motion (see spec). This kills the CSS motion. */
+@media (prefers-reduced-motion: reduce) {
+  .da-svg,
+  .da-ring { transition: none; }
+  .da-spark { animation: none; opacity: 0; }
+  .da-ring { transform: scale(1); }
+}

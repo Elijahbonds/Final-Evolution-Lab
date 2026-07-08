@@ -20,6 +20,14 @@
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './danceMode.css';
+import DanceAvatar from './DanceAvatar';
+
+// Honour the user's reduced-motion preference for decorative effects (slow-mo,
+// avatar breathing). Guarded for SSR / older browsers.
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${API_BASE}/api`;
@@ -133,6 +141,8 @@ function PerformanceView({ project, bpm, setBpm, difficulty, setDifficulty, seed
   const [slowmo, setSlowmo] = useState(false);
   const [keysDown, setKeysDown] = useState([false, false, false, false]);
   const [comboPulse, setComboPulse] = useState(0);
+  const [perfBeat, setPerfBeat] = useState(0);   // beat clock for the reactive avatar
+  const [progress, setProgress] = useState(0);    // 0..1 run progress for the bar
 
   const stageRef = useRef(null);
   const rafRef = useRef(null);
@@ -169,7 +179,10 @@ function PerformanceView({ project, bpm, setBpm, difficulty, setDifficulty, seed
       setScore((s) => s + (name === 'perfect' ? 100 : 50));
       setCombo((c) => {
         const nc = c + 1;
-        if (nc > 0 && nc % 10 === 0) { setSlowmo(true); setTimeout(() => setSlowmo(false), 1100); }
+        // Cinematic slow-mo on every 10th combo — suppressed under reduced-motion.
+        if (!prefersReducedMotion() && nc > 0 && nc % 10 === 0) {
+          setSlowmo(true); setTimeout(() => setSlowmo(false), 1100);
+        }
         return nc;
       });
       setComboPulse((p) => p + 1);
@@ -182,6 +195,7 @@ function PerformanceView({ project, bpm, setBpm, difficulty, setDifficulty, seed
   // Keyboard input
   useEffect(() => {
     const down = (e) => {
+      if (e.repeat) return;                    // ignore OS key auto-repeat
       const lane = LANE_KEYS.indexOf(e.key.toLowerCase());
       if (lane < 0) return;
       e.preventDefault();
@@ -225,6 +239,10 @@ function PerformanceView({ project, bpm, setBpm, difficulty, setDifficulty, seed
     if (!bm || !notesLayerRef.current) { rafRef.current = requestAnimationFrame(tick); return; }
     const elapsed = performance.now() - startRef.current;
     const layer = notesLayerRef.current;
+    // Beat clock + run progress for the reactive avatar and the progress bar.
+    const beatMs = 60000 / (bm.bpm || 128);
+    setPerfBeat(elapsed > 0 ? elapsed / beatMs : 0);
+    setProgress(Math.max(0, Math.min(1, elapsed / (bm.duration_ms || 1))));
     // Position notes that are on-screen.
     const travel = STAGE_H - HITLINE_BOTTOM; // px from top to hit line
     bm.events.forEach((ev, i) => {
@@ -237,6 +255,7 @@ function PerformanceView({ project, bpm, setBpm, difficulty, setDifficulty, seed
           el = document.createElement('div');
           el.className = `dm-note ${ev.lane % 2 ? 'l1' : ''} ${ev.kind === 'hold' ? 'hold' : ''}`;
           el.setAttribute('data-note', i);
+          el.setAttribute('data-lane', ev.lane);   // colorblind-safe glyph hook
           const laneEl = layer.children[ev.lane];
           if (laneEl) laneEl.appendChild(el);
         }
@@ -270,6 +289,7 @@ function PerformanceView({ project, bpm, setBpm, difficulty, setDifficulty, seed
     hitsRef.current = [];
     noteStateRef.current = bm.events.map(() => ({ judged: false }));
     setResult(null); setCombo(0); setScore(0); setJudge(null); setSlowmo(false);
+    setPerfBeat(0); setProgress(0);
     setRunning(true);
     startRef.current = performance.now() + 1500; // 1.5s lead-in
     cancelAnimationFrame(rafRef.current);
@@ -316,9 +336,19 @@ function PerformanceView({ project, bpm, setBpm, difficulty, setDifficulty, seed
       </div>
 
       <div ref={stageRef} className={`dm-stage ${slowmo ? 'slowmo' : ''}`}>
-        <div className="dm-scorebar"><div className="s">{score.toLocaleString()}</div><div className="l">SCORE</div></div>
-        <div className={`dm-combo ${comboPulse ? 'pulse' : ''}`} key={comboPulse}>
+        <div className="dm-scorebar" aria-live="polite" aria-atomic="true">
+          <div className="s">{score.toLocaleString()}</div><div className="l">SCORE</div>
+        </div>
+        <div className={`dm-combo ${comboPulse ? 'pulse' : ''}`} key={comboPulse}
+          aria-live="polite" aria-atomic="true">
           <div className="n">{combo}</div><div className="l">COMBO</div>
+        </div>
+
+        {/* Beat-reactive silhouette — brightens with combo, sparks on lane hits. */}
+        <div className="dm-stage-avatar" aria-hidden="true">
+          <DanceAvatar clip={combo > 20 ? 'Two-Step' : 'Idle Sway'}
+            beat={perfBeat} playing={running && !prefersReducedMotion()}
+            reactive={{ lanes: keysDown, combo }} size={132} />
         </div>
 
         <div ref={notesLayerRef} className="dm-lanes">
@@ -328,11 +358,17 @@ function PerformanceView({ project, bpm, setBpm, difficulty, setDifficulty, seed
         </div>
         <div className="dm-hitline" />
 
-        {judge && <div key={judge.key} className={`dm-judge ${judge.name}`}>{judge.name.toUpperCase()}</div>}
+        {/* Run progress bar. */}
+        <div className="dm-progress" aria-hidden="true"><div className="fill" style={{ width: `${(progress * 100).toFixed(1)}%` }} /></div>
+
+        {/* Decorative animated judgment (assertive text mirror below for SR users). */}
+        {judge && <div key={judge.key} className={`dm-judge ${judge.name}`} aria-hidden="true">{judge.name.toUpperCase()}</div>}
+        <div className="dm-sr-only" role="status" aria-live="assertive">{judge ? judge.name : ''}</div>
 
         <div className="dm-keys">
           {LANE_LABELS.map((lbl, i) => (
             <div key={i} className={`dm-key ${keysDown[i] ? 'down' : ''}`}
+              role="button" tabIndex={0} aria-label={`Lane ${i + 1}, key ${lbl}`} data-lane={i}
               onPointerDown={(e) => { e.preventDefault(); setKeysDown((k) => { const n = [...k]; n[i] = true; return n; }); registerHit(i); }}
               onPointerUp={() => setKeysDown((k) => { const n = [...k]; n[i] = false; return n; })}
               onPointerLeave={() => setKeysDown((k) => { const n = [...k]; n[i] = false; return n; })}
@@ -517,21 +553,16 @@ function PlaybackView({ project }) {
   };
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
-  const pulse = Math.abs(Math.sin(beat * Math.PI));
+  const rm = prefersReducedMotion();
 
   return (
     <div>
       <div className="dm-flag">
-        Playback is a <b>stylized 2D visualization</b> (avatar + clip highlight), not a full 3D rig — that's an
-        intentional web-demo scope limit. The timeline + beat sync are real; a 3D rig reads the same timeline entries.
+        Playback is a <b>stylized 2D visualization</b> (a beat-driven 2D dancer + clip highlight), not a full 3D rig —
+        that's an intentional web-demo scope limit. The timeline + beat sync are real; a 3D rig reads the same timeline entries.
       </div>
       <div className="dm-panel" style={{ textAlign: 'center', padding: 30 }}>
-        <div className="dm-avatar">
-          <div className="body" style={{
-            transform: `translateY(${-pulse * (activeClip ? 18 : 6)}px) rotate(${playing ? Math.sin(beat * 2) * 6 : 0}deg)`,
-            transition: 'transform 0.05s linear',
-          }} />
-        </div>
+        <DanceAvatar clip={activeClip} beat={beat} playing={playing && !rm} size={200} />
         <div style={{ marginTop: 16, fontWeight: 800, fontSize: '1.2rem' }}>
           {activeClip || (playing ? '…' : 'Ready')}
         </div>
