@@ -27,6 +27,13 @@ struct SystemScanView: View {
     @State private var analysisSessionID = UUID()
     @State private var analysisTask: Task<Void, Never>?
 
+    /// Lift-App-parity surfaces (3D replay / form overlay / measurements) presented over the results screen.
+    private enum LiftParitySheet: String, Identifiable {
+        case replay, measurements
+        var id: String { rawValue }
+    }
+    @State private var activeParitySheet: LiftParitySheet?
+
     private enum CommunityPostState: Equatable {
         case idle
         case posting
@@ -276,6 +283,8 @@ struct SystemScanView: View {
 
                 avatarPreviewSection(result.avatarConfig)
 
+                liftParitySection(result)
+
                 if !result.notes.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("MOVEMENT NOTES")
@@ -379,6 +388,69 @@ struct SystemScanView: View {
             .padding(.top, 16)
         }
         .scrollIndicators(.hidden)
+        .sheet(item: $activeParitySheet) { sheet in
+            let audit = BiomechanicsAudit.fromScanResult(result)
+            let analysis = ScanFormAnalysis.make(result: result, audit: audit)
+            switch sheet {
+            case .replay:
+                ScanFormReplayView(result: result, audit: audit, analysis: analysis)
+            case .measurements:
+                ScanMeasurementsView(analysis: analysis)
+            }
+        }
+    }
+
+    /// Lift-App-parity entry points: 3D form replay (with the optimal-form ghost
+    /// overlay) and the body-segment measurement HUD. Reachable after any scan.
+    private func liftParitySection(_ result: SystemScanResult) -> some View {
+        VStack(spacing: 10) {
+            Text("FORM LAB")
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            HStack(spacing: 12) {
+                parityCard(
+                    title: "3D REPLAY",
+                    subtitle: "Orbit + ideal ghost",
+                    icon: "rotate.3d",
+                    tint: Theme.brandCyan
+                ) { activeParitySheet = .replay }
+
+                parityCard(
+                    title: "MEASUREMENTS",
+                    subtitle: "Segments + joints",
+                    icon: "ruler.fill",
+                    tint: Theme.elitePurple
+                ) { activeParitySheet = .measurements }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func parityCard(title: String, subtitle: String, icon: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(tint)
+                Text(title)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .tracking(1)
+                Text(subtitle)
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(tint.opacity(0.08))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(tint.opacity(0.2), lineWidth: 0.5))
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func avatarPreviewSection(_ config: AvatarSkinConfig) -> some View {
