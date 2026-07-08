@@ -1,0 +1,19 @@
+{
+  "files": {
+    "assets/external/animation/05_06.bvh": {
+      "sha256": "75efb43842bd4c847a411749b00516a1aec69483f4b14a6cf2d1298670d78a7d",
+      "source_url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/005/05_06.bvh",
+      "license": "CMU free-for-all-uses (credit: 'Data obtained from mocap.cs.cmu.edu; database created with funding from NSF EIA-0196217')"
+    },
+    "assets/external/hdri/venice_sunset_2k.hdr": {
+      "sha256": "cbfac020ee17ab36016ccc7fbe9020b828587b9864af6ecda0a93089914889a6",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/venice_sunset_2k.hdr",
+      "license": "CC0 1.0"
+    },
+    "assets/external/texture/file_Asphalt025C_2K-JPG.zip": {
+      "sha256": "55674756668d69657b9b4d13d8aeea02a1519161671304cb41d73d077067c980",
+      "source_url": "https://ambientcg.com/get?file=Asphalt025C_2K-JPG.zip",
+      "license": "CC0 1.0"
+    }
+  }
+}
