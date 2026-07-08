@@ -52,6 +52,18 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     case npcEricNashKarateCombo = "NPCEricNashKarateCombo"
     case npcTallAthleticIdle = "NPCTallAthleticIdle"
 
+    // Animated locomotion clips (Meshy "basic_animations" walk/run, converted
+    // via blender_anim_glb_to_usdz.py with the root LOCKED IN PLACE so the
+    // cycle loops on the spot). These carry an embedded SkelAnimation that is
+    // auto-played on load — used to keep moving players/AI and standing NPCs
+    // visibly alive instead of frozen posed statues.
+    case npcEricNashWalk = "NPCEricNashWalk"
+    case npcEricNashRun = "NPCEricNashRun"
+    case npcTallAthleticWalk = "NPCTallAthleticWalk"
+    case npcTallAthleticRun = "NPCTallAthleticRun"
+    case characterElijahWalkAnim = "CharacterElijahWalkAnim"
+    case characterElijahRunAnim = "CharacterElijahRunAnim"
+
     var isVenue: Bool {
         switch self {
         case .venueShimogamoDojo, .venueVeniceBlacktop, .venueTennisCourt,
@@ -74,7 +86,10 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
              .elijahStrikeJab, .elijahStrikeHook, .elijahStrikeUppercut,
              .elijahStrikeRoundhouse, .elijahStrikeHighKick, .elijahGuard,
              .npcEricNashIdle, .npcEricNashKarateCombo,
-             .npcTallAthleticIdle:
+             .npcTallAthleticIdle,
+             .npcEricNashWalk, .npcEricNashRun,
+             .npcTallAthleticWalk, .npcTallAthleticRun,
+             .characterElijahWalkAnim, .characterElijahRunAnim:
             return true
         default:
             return false
@@ -163,10 +178,94 @@ enum FELBundledAssets {
                     )
                 }
             }
+            // #1 on-device bug fix: USDZ skeletal animations do NOT auto-play
+            // in SceneKit. Kick every embedded SCNAnimationPlayer so the
+            // character is alive the instant it is placed (every mode, every
+            // code path loads through here). Clip-less skinned meshes get a
+            // gentle procedural "alive" idle so nothing is ever a frozen statue.
+            playAllAnimations(on: container, loop: true)
+            ensureAlive(container)
             return container
         }
-        return normalized(node, longestSide: height, sizeAxis: .vertical)
+        let container = normalized(node, longestSide: height, sizeAxis: .vertical)
+        playAllAnimations(on: container, loop: true)
+        ensureAlive(container)
+        return container
     }
+
+    // MARK: - Animation liveness
+
+    /// Finds every `SCNAnimationPlayer` in `node`'s hierarchy, starts it, and
+    /// makes it loop. USDZ-imported skeletal clips arrive paused/one-shot in
+    /// SceneKit; without this every skinned character renders frozen on its
+    /// first posed frame. Returns the number of players started (0 ⇒ the mesh
+    /// carries no embedded animation).
+    @discardableResult
+    static func playAllAnimations(on node: SCNNode, loop: Bool) -> Int {
+        var started = 0
+        node.enumerateHierarchy { child, _ in
+            for key in child.animationKeys {
+                guard let player = child.animationPlayer(forKey: key) else { continue }
+                if loop {
+                    player.animation.repeatCount = .greatestFiniteMagnitude
+                    player.animation.autoreverses = false
+                }
+                player.play()
+                started += 1
+            }
+        }
+        return started
+    }
+
+    /// Guarantees `node` is never a frozen statue. If it already has embedded
+    /// animation playing, this is a no-op. Otherwise it applies a subtle
+    /// whole-node "breathing" idle — a small vertical bob plus a micro yaw
+    /// sway — so procedural avatars and any clip-less skinned mesh still read
+    /// as alive. Applied under a stable key so it is idempotent.
+    static func ensureAlive(_ node: SCNNode) {
+        var hasEmbedded = false
+        node.enumerateHierarchy { child, _ in
+            if !child.animationKeys.isEmpty { hasEmbedded = true }
+        }
+        applyAliveIdle(to: node, force: false, alreadyAnimated: hasEmbedded)
+    }
+
+    /// Whole-node procedural idle. `force` re-applies even if embedded
+    /// animation exists (unused today; kept for callers that want belt-and-
+    /// suspenders liveness). No-op if the node is already carrying our idle.
+    static func applyAliveIdle(to node: SCNNode, force: Bool, alreadyAnimated: Bool) {
+        guard force || !alreadyAnimated else { return }
+        guard node.action(forKey: aliveIdleKey) == nil else { return }
+        // Deterministic-but-varied phase so a crowd of NPCs does not breathe in
+        // lockstep (hash the node's identity into a 0…1 phase).
+        let phase = Double(abs((node.name ?? "\(ObjectIdentifier(node).hashValue)").hashValue % 1000)) / 1000.0
+        let bobAmount: CGFloat = 0.018
+        let bobDur = 1.6 + phase * 0.8
+        let bob = SCNAction.sequence([
+            SCNAction.moveBy(x: 0, y: bobAmount, z: 0, duration: bobDur),
+            SCNAction.moveBy(x: 0, y: -bobAmount, z: 0, duration: bobDur)
+        ])
+        bob.timingMode = .easeInEaseOut
+        // Micro yaw sway around the node's current heading.
+        let baseYaw = CGFloat(node.eulerAngles.y)
+        let swayDur = 2.1 + phase * 0.9
+        let sway = SCNAction.sequence([
+            SCNAction.rotateTo(x: 0, y: baseYaw + 0.05, z: 0, duration: swayDur, usesShortestUnitArc: true),
+            SCNAction.rotateTo(x: 0, y: baseYaw - 0.05, z: 0, duration: swayDur, usesShortestUnitArc: true)
+        ])
+        sway.timingMode = .easeInEaseOut
+        node.runAction(SCNAction.repeatForever(bob), forKey: aliveIdleKey)
+        node.runAction(SCNAction.repeatForever(sway), forKey: aliveSwayKey)
+    }
+
+    /// Removes the procedural idle (e.g. when a node starts real locomotion).
+    static func stopAliveIdle(_ node: SCNNode) {
+        node.removeAction(forKey: aliveIdleKey)
+        node.removeAction(forKey: aliveSwayKey)
+    }
+
+    static let aliveIdleKey = "felAliveIdle"
+    static let aliveSwayKey = "felAliveSway"
 
     // MARK: - Normalization
 

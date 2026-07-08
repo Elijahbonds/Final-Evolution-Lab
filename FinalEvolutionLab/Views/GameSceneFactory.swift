@@ -256,6 +256,36 @@ struct GameSceneFactory {
         }
         PremiumViewpointConfig.applyToScene(scene, for: mode)
         adjustSceneQuality(scene, for: FELPerformanceMonitor.shared.currentTier)
+        animateAllCharacters(in: scene)
+    }
+
+    /// Universal liveness pass — runs for EVERY mode at scene finalize (and via
+    /// `buildGameplayOverlay`, so both the SceneKit and Metal/hybrid paths get
+    /// it). Belt-and-suspenders on top of the per-character auto-play in
+    /// `FELBundledAssets.characterNode`:
+    ///   1. Start + loop every embedded `SCNAnimationPlayer` on any skinned
+    ///      node, so no baked walk/run/idle clip is ever left frozen.
+    ///   2. Give every gameplay CHARACTER node (skinned OR procedural avatar)
+    ///      a gentle "alive" breathing idle when it carries no embedded clip,
+    ///      so procedural-fallback modes (gymnastics/surf/skate/snow and every
+    ///      fail-soft avatar) are never frozen statues either.
+    /// Non-character geometry (venue, props, crowd) is untouched.
+    static func animateAllCharacters(in scene: SCNScene) {
+        // 1. Global embedded-animation kick (covers any skinned node whose
+        //    clip somehow wasn't started at load, and clips added post-load).
+        FELBundledAssets.playAllAnimations(on: scene.rootNode, loop: true)
+
+        // 2. Per-character alive fallback, scoped to named gameplay avatars so
+        //    we never bob the venue or props. Skip nodes already driven by a
+        //    movement/AI action (shuffle/homing) — their transform is owned by
+        //    that controller and a concurrent bob would fight it. Skinned
+        //    characters with an embedded clip are skipped inside ensureAlive.
+        let motionKeys = ["shuffle", "homingDefense", "circle"]
+        for child in scene.rootNode.childNodes {
+            guard let name = child.name, isGameplayAvatarNodeName(name) else { continue }
+            if motionKeys.contains(where: { child.action(forKey: $0) != nil }) { continue }
+            FELBundledAssets.ensureAlive(child)
+        }
     }
 
     private static func backgroundImageName(for mode: GameModeId) -> String? {

@@ -1299,6 +1299,17 @@ struct GameSceneHostView: UIViewRepresentable {
             return .normal
         }
 
+        /// True if any node in `node`'s hierarchy carries an embedded animation
+        /// clip (a skinned Meshy character) — such nodes are alive on their own
+        /// and must NOT get the procedural bob idle.
+        private func playerHasEmbeddedAnimation(_ node: SCNNode) -> Bool {
+            var found = false
+            node.enumerateHierarchy { child, stop in
+                if !child.animationKeys.isEmpty { found = true; stop.pointee = true }
+            }
+            return found
+        }
+
         private func updatePlayerMovement() {
             guard let scene = activeSceneKitView?.scene,
                   let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true) else { return }
@@ -1307,9 +1318,17 @@ struct GameSceneHostView: UIViewRepresentable {
             let stickY = Float(leftStickInput.y)
             let magnitude = hypot(stickX, stickY)
             guard magnitude > 0.08 else {
+                // Standing still: restore the gentle procedural "alive" idle so
+                // the player node breathes instead of freezing (skinned chars
+                // keep their embedded loop; this is the no-embedded fallback).
+                FELBundledAssets.applyAliveIdle(to: playerNode, force: false,
+                                                alreadyAnimated: playerHasEmbeddedAnimation(playerNode))
                 animateIdleState(playerNode)
                 return
             }
+            // Moving: the movement loop owns this node's transform this frame —
+            // drop the procedural idle so the bob/sway doesn't fight position writes.
+            FELBundledAssets.stopAliveIdle(playerNode)
 
             let bounds = movementBounds
             let speed = bounds.speed * Float(1.0 + neuralDrive / 200.0)
