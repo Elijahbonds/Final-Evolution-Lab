@@ -36,7 +36,7 @@ DEFAULT_ROUNDS = 8                  # mini-game rounds per match (brief: 6-8)
 MINIGAME_EVERY_NTH = 3             # trigger a mini-game every Nth advance too
 SPACE_TYPES = ("PRIZE", "MINIGAME", "TRAP", "SHOP", "CREATOR_STAND")
 
-MINIGAMES = ("maze_chase", "target_burst", "rhythm_tap")
+MINIGAMES = ("maze_chase", "target_burst", "rhythm_tap", "hold_the_flag", "short_race")
 
 # Space-type token/coin effects on landing (deterministic, board-meta only).
 SPACE_EFFECTS: Dict[str, Dict[str, int]] = {
@@ -576,16 +576,36 @@ def rhythm_tap_resolve(
 
 
 # ── Mini-game dispatch table ─────────────────────────────────────────────────
+#
+# The two second-pass mini-games (hold_the_flag, short_race) live in their own
+# self-contained modules under ``lib/minigames/``. They import ``_rng`` /
+# ``_sub_seed`` from THIS module, so they are imported here — after those
+# helpers are defined — to avoid a circular import at module top. Each exposes
+# the stable ``build`` / ``resolve`` / ``ai_inputs`` contract, so they slot into
+# the same dispatch/registry the core three use.
+from lib.minigames import hold_the_flag as _hold_the_flag  # noqa: E402
+from lib.minigames import short_race as _short_race        # noqa: E402
 
 _BUILDERS = {
     "maze_chase": maze_chase_build,
     "target_burst": target_burst_build,
     "rhythm_tap": rhythm_tap_build,
+    "hold_the_flag": _hold_the_flag.build,
+    "short_race": _short_race.build,
 }
 _RESOLVERS = {
     "maze_chase": maze_chase_resolve,
     "target_burst": target_burst_resolve,
     "rhythm_tap": rhythm_tap_resolve,
+    "hold_the_flag": _hold_the_flag.resolve,
+    "short_race": _short_race.resolve,
+}
+
+# AI/synthetic-input dispatch for the module-based mini-games (the core three
+# are handled inline in :func:`ai_minigame_inputs`).
+_AI_INPUTS = {
+    "hold_the_flag": _hold_the_flag.ai_inputs,
+    "short_race": _short_race.ai_inputs,
 }
 
 
@@ -830,6 +850,9 @@ def ai_minigame_inputs(
     identically. Skill is tuned per game to be respectable but beatable so a
     human recorder can win an exciting match.
     """
+    if game in _AI_INPUTS:
+        # module-based mini-games own their deterministic AI generation
+        return _AI_INPUTS[game](instance, player_id, seed)
     r = _rng(seed, "ai", game, player_id)
     if game == "maze_chase":
         # greedy-ish walk toward nearest pellet with seeded exploration

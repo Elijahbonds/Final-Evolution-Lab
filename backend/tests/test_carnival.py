@@ -137,27 +137,153 @@ class TestRhythmTapDeterminism:
         assert C.RT_BPM_MIN <= inst["bpm"] <= C.RT_BPM_MAX
 
 
+# ── Second-pass mini-games (registered from lib/minigames/*) ─────────────────
+
+class TestHoldTheFlagDeterminism:
+    """Hold the Flag (area control) — bare-list tick-move input, like maze."""
+
+    @pytest.mark.parametrize("seed", _SEEDS)
+    def test_instance_is_deterministic(self, seed):
+        i1 = C.build_minigame("hold_the_flag", seed, 0)
+        i2 = C.build_minigame("hold_the_flag", seed, 0)
+        assert i1 == i2
+        assert i1["w"] == 7 and i1["h"] == 7
+        assert len(i1["hazards"]) >= 1
+
+    @pytest.mark.parametrize("seed", _SEEDS)
+    def test_same_seed_inputs_identical_result(self, seed):
+        inst = C.build_minigame("hold_the_flag", seed, 0)
+        inp = {
+            "p1": C.ai_minigame_inputs("hold_the_flag", inst, "p1", seed),
+            "p2": C.ai_minigame_inputs("hold_the_flag", inst, "p2", seed),
+        }
+        r1 = C.resolve_minigame("hold_the_flag", inst, inp)
+        r2 = C.resolve_minigame("hold_the_flag", inst, inp)
+        assert r1 == r2
+
+    @pytest.mark.parametrize("seed", _SEEDS)
+    def test_perfect_hold_reaches_raw_max(self, seed):
+        # Walk from the spawn corner onto the hill centre, then hold — the hill
+        # zone is guaranteed hazard-free by design, so full control == raw_max.
+        inst = C.build_minigame("hold_the_flag", seed, 0)
+        cx, cy = inst["hill_center"]
+        px, py = inst["spawn"]
+        moves = []
+        for t in range(inst["ticks"]):
+            if px < cx:
+                mv = "right"; px += 1
+            elif py < cy:
+                mv = "down"; py += 1
+            else:
+                mv = "stay"
+            moves.append({"tick": t, "move": mv})
+        res = C.resolve_minigame("hold_the_flag", inst, {"perfect": moves})
+        assert res["raw"]["perfect"] == res["raw_max"]
+        assert C.normalize_scores(res["raw"], res["raw_max"])["perfect"] == 100
+
+    def test_tolerates_empty_and_unknown_moves(self):
+        inst = C.build_minigame("hold_the_flag", 5, 0)
+        res = C.resolve_minigame("hold_the_flag", inst, {
+            "empty": [],
+            "junk": [{"tick": 0, "move": "teleport"}, {"tick": 999, "move": "up"}],
+        })
+        assert set(res["raw"]) == {"empty", "junk"}
+        assert all(v >= 0 for v in res["raw"].values())
+
+
+class TestShortRaceDeterminism:
+    """Short Race (3-lane obstacle dodge) — bare-list tick-move input."""
+
+    @pytest.mark.parametrize("seed", _SEEDS)
+    def test_instance_is_deterministic(self, seed):
+        i1 = C.build_minigame("short_race", seed, 0)
+        i2 = C.build_minigame("short_race", seed, 0)
+        assert i1 == i2
+        assert i1["lanes"] == 3
+
+    @pytest.mark.parametrize("seed", _SEEDS)
+    def test_never_all_lanes_blocked(self, seed):
+        # A perfect run must always be possible: no step blocks all 3 lanes.
+        inst = C.build_minigame("short_race", seed, 0)
+        by_step = {}
+        for o in inst["obstacles"]:
+            by_step.setdefault(o["step"], set()).add(o["lane"])
+        assert all(len(lanes) < inst["lanes"] for lanes in by_step.values())
+
+    @pytest.mark.parametrize("seed", _SEEDS)
+    def test_same_seed_inputs_identical_result(self, seed):
+        inst = C.build_minigame("short_race", seed, 0)
+        inp = {
+            "p1": C.ai_minigame_inputs("short_race", inst, "p1", seed),
+            "p2": C.ai_minigame_inputs("short_race", inst, "p2", seed),
+        }
+        r1 = C.resolve_minigame("short_race", inst, inp)
+        r2 = C.resolve_minigame("short_race", inst, inp)
+        assert r1 == r2
+
+    @pytest.mark.parametrize("seed", _SEEDS)
+    def test_perfect_dodge_reaches_raw_max(self, seed):
+        # The module guarantees a perfect run exists: obstacles and coins are
+        # laid out around a seeded obstacle-free reference path. Following that
+        # exact reference path dodges everything and grabs every coin -> raw_max.
+        from lib.minigames import short_race as SR
+        inst = C.build_minigame("short_race", seed, 0)
+        path = SR._reference_path(inst["seed"])  # instance sub-seed drives layout
+        lane = inst["spawn_lane"]
+        moves = []
+        for step in range(1, inst["steps"]):
+            target = path[step]
+            mv = "left" if target < lane else ("right" if target > lane else "stay")
+            lane = max(0, min(2, lane + {"left": -1, "right": 1, "stay": 0}[mv]))
+            moves.append({"tick": step, "move": mv})
+        res = C.resolve_minigame("short_race", inst, {"perfect": moves})
+        assert res["raw"]["perfect"] == res["raw_max"]
+        assert C.normalize_scores(res["raw"], res["raw_max"])["perfect"] == 100
+        assert res["detail"]["perfect"]["clean_run"] is True
+
+    def test_tolerates_empty_and_unknown_moves(self):
+        inst = C.build_minigame("short_race", 5, 0)
+        res = C.resolve_minigame("short_race", inst, {
+            "empty": [],
+            "junk": [{"tick": 1, "move": "jump"}, {"bad": "shape"}],
+        })
+        assert set(res["raw"]) == {"empty", "junk"}
+
+
+class TestNewGamesInRotationAndReplay:
+    """The two new games must appear in the seeded rotation and replay-validate."""
+
+    def test_both_new_games_are_registered(self):
+        assert "hold_the_flag" in C.MINIGAMES
+        assert "short_race" in C.MINIGAMES
+        assert "hold_the_flag" in C._BUILDERS and "hold_the_flag" in C._RESOLVERS
+        assert "short_race" in C._BUILDERS and "short_race" in C._RESOLVERS
+
+    def test_pick_minigame_can_select_new_games(self):
+        picks = {C.pick_minigame(s, r) for s in range(200) for r in range(8)}
+        assert "hold_the_flag" in picks
+        assert "short_race" in picks
+
+
 # ══════════════════════════════════════════════════════════════════════════
 #  Normalization comparability
 # ══════════════════════════════════════════════════════════════════════════
 
 class TestNormalization:
     def test_full_score_maps_to_100_across_games(self):
+        # Game-agnostic: every registered mini-game's resolver reports the
+        # theoretical raw_max for its seeded instance, so a full raw score must
+        # normalize to 100 and a zero to 0 — regardless of how many games are
+        # registered. (Adding a game must not require touching this test.)
         for game in C.MINIGAMES:
             inst = C.build_minigame(game, 42, 0)
-            if game == "maze_chase":
-                raw_max = (
-                    len(inst["pellets"]) * C.MAZE_PELLET_PTS
-                    + len(inst["power_pellets"]) * C.MAZE_POWER_PTS
-                    + inst["ticks"] * C.MAZE_SURVIVE_PTS
-                )
-            elif game == "target_burst":
-                raw_max = len(inst["targets"]) * (C.TB_HIT_PTS + C.TB_ACCURACY_BONUS)
-            else:
-                raw_max = len(inst["beats"]) * C.RT_PERFECT_PTS
+            # any resolve on this instance exposes the instance's raw_max
+            probe = C.resolve_minigame(game, inst, {})
+            raw_max = probe["raw_max"]
+            assert raw_max > 0, f"{game} raw_max should be positive"
             norm = C.normalize_scores({"a": raw_max, "b": 0.0}, raw_max)
-            assert norm["a"] == 100
-            assert norm["b"] == 0
+            assert norm["a"] == 100, f"{game} full score should map to 100"
+            assert norm["b"] == 0, f"{game} zero should map to 0"
 
     def test_normalization_is_monotonic(self):
         norm = C.normalize_scores({"a": 25, "b": 50, "c": 75}, 100)
