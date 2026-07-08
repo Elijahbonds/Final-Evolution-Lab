@@ -1,0 +1,2501 @@
+{
+  "schema": 1,
+  "generated_for": "Elijahbonds/Final-Evolution-Lab",
+  "modes": [
+    {
+      "mode_id": "basketball_h2h",
+      "description": "1v1 street basketball to 21",
+      "priority": "High",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "dribble",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "dribble_cross",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "run",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "sprint",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "jump_shot",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "layup",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "dunk",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "block",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "steal",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "defeat",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "basketball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "hoop_with_net",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "court_markings",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Venice blacktop court",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueVeniceBlacktop.usdz + BackgroundBasketball.png (feature branch)"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ball_bounce",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "net_swish",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "rim_clank",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "sneaker_squeak",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "Owner DeepMotion dunk/dribble mocap staged (assets/motion); CMU 06_xx dribble/shoot BVH downloaded."
+    },
+    {
+      "mode_id": "basketball_dunk",
+      "description": "2D dunk contest (canvas)",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "dunk",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "approach_run",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "basketball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "2D court backdrop",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": []
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "rim_clank",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "crowd_hype",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "basketball_dunk_3d",
+      "description": "3D judged dunk contest",
+      "priority": "High",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "approach_run",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "launch",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "dunk",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "windmill",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "tomahawk",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "between_legs",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "land",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "basketball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "hoop_with_net",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "judge_table",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Venice blacktop court",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueVeniceBlacktop.usdz; ElijahDunk.usdz rim-normalized 3.05m; NPC judges"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "rim_clank",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "net_swish",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "crowd_hype",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "announcer_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "6 real ElijahDunkMSDunks crops processed in assets/motion/clips (feature branch)."
+    },
+    {
+      "mode_id": "basketball_dunk_irl",
+      "description": "IRL camera-judged dunk",
+      "priority": "Low",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [],
+      "props": [],
+      "environment": {
+        "venue": "camera passthrough",
+        "skybox": "n/a",
+        "ground_material": "n/a",
+        "crowd": "n/a",
+        "extras": []
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "announcer_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "basketball_3v3",
+      "description": "3v3 streetball",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "dribble",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "dribble_cross",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "run",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "sprint",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "jump_shot",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "layup",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "dunk",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "block",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "steal",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "defeat",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "pass",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "receive",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "basketball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "hoop_with_net",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Venice blacktop court",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueVeniceBlacktop.usdz"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ball_bounce",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "net_swish",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "karate_h2h",
+      "description": "1v1 sparring with strikes/blocks",
+      "priority": "High",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "fight_idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "jab",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "hook",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "uppercut",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "roundhouse_kick",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "high_kick",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "block",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "perfect_guard",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "hit_react",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "ko_fall",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "dojo_mat",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Shimogamo dojo interior",
+        "skybox": "indoor dojo HDRI",
+        "ground_material": "tatami/wood PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueShimogamoDojo.usdz; ElijahStrike*.usdz clips wired to face buttons"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "strike_whoosh",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "impact_thud",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "gi_rustle",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "kiai_shout",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "Strike set acquired via Meshy presets (actions 191/193/195/207/215/209)."
+    },
+    {
+      "mode_id": "karate_endless",
+      "description": "Wave survival karate",
+      "priority": "High",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "fight_idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "jab",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "roundhouse_kick",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "block",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "hit_react",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "ko_fall",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "wave_taunt",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "stage_platform",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Muscle Beach stage",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueMuscleBeachStage.usdz + BackgroundMuscleBeach.png"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "strike_whoosh",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "impact_thud",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "wave_horn",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "baseball",
+      "description": "Home-run derby swing timing",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "bat_idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "bat_swing",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "watch_flight",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "baseball_bat",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "baseball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "backstop",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Catalina beach ballpark",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueBallpark.usdz + PropsBaseball.usdz + BackgroundBaseball.png"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "bat_crack",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "mitt_catch",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "organ_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "CMU has pitching-adjacent 'throw' takes; Meshy preset 393 baseball_pitching available via owner account."
+    },
+    {
+      "mode_id": "football",
+      "description": "Kick-return rhythm runner",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "run",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "sprint",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "juke_left",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "juke_right",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "catch",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "touchdown_celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "tackled_fall",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "football",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "goal_posts",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "yard_markers",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Gridiron field",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "PropsFootball.usdz + BackgroundFootball.png"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "whistle",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "pad_hit",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "crowd_roar",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "soccer",
+      "description": "Penalty shootout",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "penalty_run_up",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "kick_low",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "kick_high",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "gk_dive_left",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "gk_dive_right",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "miss_react",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "soccer_ball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "goal_with_net",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Coastal FC stadium",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueSoccerStadium.usdz + PropsSoccer.usdz + BackgroundSoccer.png"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ball_kick_thump",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "net_ripple",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "crowd_chant",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "CMU 10_01..11_01 kick takes downloaded."
+    },
+    {
+      "mode_id": "golf",
+      "description": "Wii-style swing cadence",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "golf_idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "golf_drive",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "golf_putt",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "watch_flight",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "golf_club",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "golf_ball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "flag_pin",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Coastal links course",
+        "skybox": "sunny coastal HDRI",
+        "ground_material": "grass PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueLinksGolf.usdz + BackgroundGolf.png"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "club_swish",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ball_click",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "polite_applause",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "Meshy preset 323 golf_drive already acquired on Elijah rig."
+    },
+    {
+      "mode_id": "tennis",
+      "description": "Ace Rally — serve/rally timing",
+      "priority": "High",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "ready_stance",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "serve",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "forehand",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "backhand",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "volley",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "miss_react",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "tennis_racket",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "tennis_ball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "net",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Venice tennis court",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueTennisCourt.usdz + PropsTennis.usdz + BackgroundTennis.png; racket also in Seeles pack"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "racket_pop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ball_bounce_court",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "line_call",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "Seeles anim_tennis_serve.fbx staged; racket attach = right-hand socket."
+    },
+    {
+      "mode_id": "volleyball",
+      "description": "Beach rally ace timing",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "ready_stance",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "serve_overhand",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "bump",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "set",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "spike",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "block",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "volleyball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "net_posts",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Sand court",
+        "skybox": "beach sunset HDRI",
+        "ground_material": "sand PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "PropsVolleyball.usdz + BackgroundVolleyball.png"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ball_pop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "sand_step",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "whistle",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "surfing",
+      "description": "Balance/line wave riding",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "paddle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "pop_up",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "ride_loop",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "carve",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "wipeout",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "surfboard",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Surf break",
+        "skybox": "ocean HDRI",
+        "ground_material": "water shader",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueSurfBreak.usdz + PropsBoardSports.usdz"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "wave_wash",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "spray",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "seagulls",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "gymnastics",
+      "description": "Rhythm-timed routine",
+      "priority": "High",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "salute",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "run",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "cartwheel",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "back_handspring",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "vault",
+          "root_motion": true,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "dismount_stick",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "wobble",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "vault_table",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "balance_beam",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "mat",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Pacifica gymnastics gym",
+        "skybox": "indoor gym HDRI",
+        "ground_material": "spring floor PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueGymnasticsGym.usdz + BackgroundGymnastics.png"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "springboard_thunk",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "chalk_clap",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "judge_beep",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "CMU 05_06 cartwheel take downloaded."
+    },
+    {
+      "mode_id": "brain_brawl",
+      "description": "Kahoot-style timed quiz",
+      "priority": "High",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "thinking_idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "buzz_in",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "correct_celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "wrong_slump",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "podium",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "buzzer_prop",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Neuro arena",
+        "skybox": "dark stage HDRI",
+        "ground_material": "stage floor",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "Seeles neuro_arena FBX in FEL57 staging"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "question_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "correct_ding",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "wrong_buzz",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "timer_tick",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "Web demo starter kit committed: assets/demo/audio (correct_ding, wrong_buzz, buzzer, countdown_tick, question_sting, celebrate_chime, ui_confirm, crowd_cheer), assets/demo/icons (timer, buzzer, correct, wrong, streak, trophy), assets/demo/backdrops (stage_music_hall, stage_theater), assets/demo/vfx/celebration_particles.*, assets/mock/opentdb_questions.json (~100 OpenTDB general-knowledge questions, CC BY-SA 4.0). Rebuild: scripts/fetch_assets.sh --opentdb && scripts/build_demo_assets.sh."
+    },
+    {
+      "mode_id": "who_scene_it",
+      "description": "Media recognition quiz",
+      "priority": "Low",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "thinking_idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "buzz_in",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "podium",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Neuro arena",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": []
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "question_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "reveal_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "Shares the web demo starter kit under assets/demo/ (see brain_brawl notes); reveal_sting.ogg + icons/podium.svg added for this mode. IP constraint: demo uses ORIGINAL in-universe scenes only — no film stills, posters, or celebrity images."
+    },
+    {
+      "mode_id": "court_carnival",
+      "description": "Around-the-world shot stations",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "dribble",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "jump_shot",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "basketball",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "hoop_with_net",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "station_markers",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        },
+        {
+          "name": "hoopbus",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Venice blacktop + HoopBus",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "Meshy HoopBus GLBs in FEL57 External; PropsSedan.usdz street dressing"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "net_swish",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "carnival_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "skateboarding",
+      "description": "Line/trick/combo skate",
+      "priority": "High",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "push_ride",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "ollie",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "kickflip",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "grind",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "manual",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "bail_fall",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "celebrate",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "skateboard",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Venice skatepark",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueSkatePark.usdz + PropsBoardSports.usdz + BackgroundSkateboarding.png"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "deck_pop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "wheel_roll",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "grind_scrape",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "bail_clatter",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": "Seeles anim_skateboard_ollie.fbx staged."
+    },
+    {
+      "mode_id": "snowboarding",
+      "description": "Slope run with gates/tricks",
+      "priority": "Medium",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "carve_loop",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "gate_turn",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "air_grab",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "land",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "wipeout",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "snowboard",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Mountain slope",
+        "skybox": "alpine HDRI",
+        "ground_material": "snow PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueMountainSlope.usdz"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "snow_carve",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "wind_rush",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "gate_slap",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "market_browse",
+      "description": "Shop/market non-game module",
+      "priority": "Low",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "walk",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        },
+        {
+          "name": "browse_idle",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [
+        {
+          "name": "shelf_props",
+          "format": "glTF 2.0",
+          "poly_budget": 20000
+        }
+      ],
+      "environment": {
+        "venue": "Muscle Beach gym interior",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": [],
+        "present_in_repo": "VenueMuscleBeachGym.usdz"
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ambient_market",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    },
+    {
+      "mode_id": "movement_lab",
+      "description": "Mocap playback lab",
+      "priority": "Low",
+      "characters": [
+        {
+          "type": "humanoid",
+          "height_m": 1.85,
+          "poly_budget": 60000,
+          "format": "glTF 2.0",
+          "present_in_repo": "Elijah Bonds Meshy rig (feature branch Resources3D/, meters, Meshy-convention skeleton)"
+        }
+      ],
+      "animations": [
+        {
+          "name": "any_registered_clip",
+          "root_motion": false,
+          "format": "glTF 2.0 (FBX/BVH accepted by pipeline)"
+        }
+      ],
+      "props": [],
+      "environment": {
+        "venue": "Training floor",
+        "skybox": "beach/outdoor 2k HDRI",
+        "ground_material": "asphalt/PBR",
+        "crowd": "billboard/skinned spectators",
+        "extras": []
+      },
+      "audio": [
+        {
+          "name": "crowd_loop",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "buzzer",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "score_sting",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        },
+        {
+          "name": "ui_confirm",
+          "format": "WAV/CAF",
+          "license_min": "CC0 or CC-BY w/ attribution"
+        }
+      ],
+      "suggested_sources": [
+        "quaternius",
+        "kenney",
+        "mixamo",
+        "sketchfab_cc0",
+        "polyhaven",
+        "ambientcg",
+        "freesound",
+        "cmu_mocap",
+        "meshy_owned",
+        "deepmotion_owned"
+      ],
+      "notes": ""
+    }
+  ]
+}

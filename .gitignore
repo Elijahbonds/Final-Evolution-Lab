@@ -160,3 +160,11 @@ scratch/
 dataconnect/.dataconnect/
 
 
+
+# assets/external: raw downloads pulled by scripts/fetch_assets.sh — never
+# committed (checksums pinned in infra/ASSET_CHECKSUMS.json). READMEs only.
+assets/external/*
+!assets/external/README.md
+!assets/external/mixamo/
+assets/external/mixamo/*
+!assets/external/mixamo/README.txt

@@ -1,0 +1,184 @@
+{
+  "files": {
+    "assets/external/animation/05_06.bvh": {
+      "sha256": "75efb43842bd4c847a411749b00516a1aec69483f4b14a6cf2d1298670d78a7d",
+      "source_url": "https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/005/05_06.bvh",
+      "license": "CMU free-for-all-uses (credit: 'Data obtained from mocap.cs.cmu.edu; database created with funding from NSF EIA-0196217')"
+    },
+    "assets/external/hdri/venice_sunset_2k.hdr": {
+      "sha256": "cbfac020ee17ab36016ccc7fbe9020b828587b9864af6ecda0a93089914889a6",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/venice_sunset_2k.hdr",
+      "license": "CC0 1.0"
+    },
+    "assets/external/texture/file_Asphalt025C_2K-JPG.zip": {
+      "sha256": "55674756668d69657b9b4d13d8aeea02a1519161671304cb41d73d077067c980",
+      "source_url": "https://ambientcg.com/get?file=Asphalt025C_2K-JPG.zip",
+      "license": "CC0 1.0"
+    },
+    "assets/external/audio/kenney_interfaceSounds.zip": {
+      "sha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+      "source_url": "https://opengameart.org/sites/default/files/kenney_interfaceSounds.zip",
+      "license": "CC0 1.0"
+    },
+    "assets/external/audio/applause.wav": {
+      "sha256": "d8d44ae50a16ba4218c1861c8fa236c481c2caf56195883edc81f89919fb6958",
+      "source_url": "https://opengameart.org/sites/default/files/applause.wav",
+      "license": "CC-BY 3.0 (credit: Blender Foundation, Yo Frankie! project)"
+    },
+    "assets/external/vfx/kenney_particlePack.zip": {
+      "sha256": "163b839ba7f62f8a420da93a62beaa80013588d5d6b1eb30841e1a553635ad70",
+      "source_url": "https://opengameart.org/sites/default/files/kenney_particlePack.zip",
+      "license": "CC0 1.0"
+    },
+    "assets/external/ui_icon/stopwatch.svg": {
+      "sha256": "ddb652cb896e1f393b2ffe75e5ac4c6daefddf7924b8503d0ba394f567b3cab1",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/stopwatch.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Lorc)"
+    },
+    "assets/external/ui_icon/ringing-bell.svg": {
+      "sha256": "34a6be8a17e6449a2822ac7c6adea7cf38676d70b05692a0942cb905a31a5a5e",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/ringing-bell.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Lorc)"
+    },
+    "assets/external/ui_icon/check-mark.svg": {
+      "sha256": "3d304f4a747b12d7c59f6173dfad0bee279db2386cb9d32b242a5895f91297f6",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/delapouite/check-mark.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Delapouite)"
+    },
+    "assets/external/ui_icon/cross-mark.svg": {
+      "sha256": "c9701a6c3fa472dc0b47a2e6da1635251a794551eb109c0ffe77bb75d58393df",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/cross-mark.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Lorc)"
+    },
+    "assets/external/ui_icon/flame.svg": {
+      "sha256": "7424d535c14cc35e1dbcc6ec04d0bf9716cfc04aef32a5281e97b6b5d0c42d2d",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/carl-olsen/flame.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Carl Olsen)"
+    },
+    "assets/external/ui_icon/podium.svg": {
+      "sha256": "6538dd8cdd81368f167b410e97362c637b12e576363a81b08a82ab6f74f5afed",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/delapouite/podium.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Delapouite)"
+    },
+    "assets/external/ui_icon/trophy-cup.svg": {
+      "sha256": "8d96d2b59235ae8e7ab0d6377b7d206b2039bec00b25b7e6ef4225a00457d1ac",
+      "source_url": "https://game-icons.net/icons/ffffff/transparent/1x1/delapouite/trophy-cup.svg",
+      "license": "CC-BY 3.0 (game-icons.net, author: Delapouite)"
+    },
+    "assets/external/backdrop/music_hall_01.jpg": {
+      "sha256": "47ffa0e4e97bbd11f63c562c39b101b985457ea40fbfbeb64a18bf838ce0ff8b",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/music_hall_01.jpg",
+      "license": "CC0 1.0"
+    },
+    "assets/external/backdrop/theater_01.jpg": {
+      "sha256": "448bfb8fe84ffa0ff9453409d2ca6213feeb56d0a9f6345e17f1170d8c174c4d",
+      "source_url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/theater_01.jpg",
+      "license": "CC0 1.0"
+    },
+    "assets/mock/opentdb_questions.json": {
+      "sha256": "5c0fad366029d4d987f3f27c41036c3d55639cb0a06498ce3e205ed977d8c045",
+      "source_url": "https://opentdb.com/api.php?amount=50&category=9&encode=base64",
+      "license": "CC BY-SA 4.0"
+    },
+    "assets/demo/audio/buzzer.ogg": {
+      "sha256": "a97513d7fd2b12b1210c423be943b4c1ab0e899b11db95855e9b74836e646ae0",
+      "source_url": "https://opengameart.org/content/interface-sounds",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/audio/celebrate_chime.ogg": {
+      "sha256": "33b17a9a9a2397c62b285c52c33a907fdffb476909c99e42dde603f6a7a8b12c",
+      "source_url": "https://opengameart.org/content/interface-sounds",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/audio/correct_ding.ogg": {
+      "sha256": "063564703b6094d70718a3e787a55cc9141611e4ecd6b6637f8828f79b4a8c3a",
+      "source_url": "https://opengameart.org/content/interface-sounds",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/audio/countdown_tick.ogg": {
+      "sha256": "9d057b918024c787bbe6c00beed13a7ef72a3fa0c259add3cef36582792f4230",
+      "source_url": "https://opengameart.org/content/interface-sounds",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/audio/crowd_cheer.m4a": {
+      "sha256": "c3509b23dcec29660075f6dd194e9a94221768b721128fbb9f46e6aaa95e9b54",
+      "source_url": "https://opengameart.org/content/applause",
+      "license": "CC-BY 3.0 (Blender Foundation, Yo Frankie! project)"
+    },
+    "assets/demo/audio/question_sting.ogg": {
+      "sha256": "abb8f9e4eb2071491b0b15f84ee302386b1847609310c1b000ae174639a6cc5a",
+      "source_url": "https://opengameart.org/content/interface-sounds",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/audio/reveal_sting.ogg": {
+      "sha256": "1f6c88008d0d9fe449197512811785e1d4638daf408a96a4a02756530e019172",
+      "source_url": "https://opengameart.org/content/interface-sounds",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/audio/ui_confirm.ogg": {
+      "sha256": "ccfb7fa0cccdd9faec0eb16033c732b1e308d139d80f799161495d58f7adcdb9",
+      "source_url": "https://opengameart.org/content/interface-sounds",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/audio/wrong_buzz.ogg": {
+      "sha256": "0b574cea597d96507e782ae9764f88482ce49f46e931e57054bf7150047f2d69",
+      "source_url": "https://opengameart.org/content/interface-sounds",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/backdrops/stage_music_hall.jpg": {
+      "sha256": "8b9b0392bfe5a564196df922c3a7fb46bdc5b5f773008dddf602ad5ec220924d",
+      "source_url": "https://polyhaven.com/a/music_hall_01",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/backdrops/stage_theater.jpg": {
+      "sha256": "fbe74ae5bc76f3eac4624047cb675ab2e8448a46042e912b9cc709e641cfdf32",
+      "source_url": "https://polyhaven.com/a/theater_01",
+      "license": "CC0 1.0"
+    },
+    "assets/demo/icons/buzzer.svg": {
+      "sha256": "34a6be8a17e6449a2822ac7c6adea7cf38676d70b05692a0942cb905a31a5a5e",
+      "source_url": "https://game-icons.net/1x1/lorc/ringing-bell.html",
+      "license": "CC-BY 3.0 (Lorc, game-icons.net)"
+    },
+    "assets/demo/icons/correct.svg": {
+      "sha256": "3d304f4a747b12d7c59f6173dfad0bee279db2386cb9d32b242a5895f91297f6",
+      "source_url": "https://game-icons.net/1x1/delapouite/check-mark.html",
+      "license": "CC-BY 3.0 (Delapouite, game-icons.net)"
+    },
+    "assets/demo/icons/podium.svg": {
+      "sha256": "6538dd8cdd81368f167b410e97362c637b12e576363a81b08a82ab6f74f5afed",
+      "source_url": "https://game-icons.net/1x1/delapouite/podium.html",
+      "license": "CC-BY 3.0 (Delapouite, game-icons.net)"
+    },
+    "assets/demo/icons/streak.svg": {
+      "sha256": "7424d535c14cc35e1dbcc6ec04d0bf9716cfc04aef32a5281e97b6b5d0c42d2d",
+      "source_url": "https://game-icons.net/1x1/carl-olsen/flame.html",
+      "license": "CC-BY 3.0 (Carl Olsen, game-icons.net)"
+    },
+    "assets/demo/icons/timer.svg": {
+      "sha256": "ddb652cb896e1f393b2ffe75e5ac4c6daefddf7924b8503d0ba394f567b3cab1",
+      "source_url": "https://game-icons.net/1x1/lorc/stopwatch.html",
+      "license": "CC-BY 3.0 (Lorc, game-icons.net)"
+    },
+    "assets/demo/icons/trophy.svg": {
+      "sha256": "8d96d2b59235ae8e7ab0d6377b7d206b2039bec00b25b7e6ef4225a00457d1ac",
+      "source_url": "https://game-icons.net/1x1/delapouite/trophy-cup.html",
+      "license": "CC-BY 3.0 (Delapouite, game-icons.net)"
+    },
+    "assets/demo/icons/wrong.svg": {
+      "sha256": "c9701a6c3fa472dc0b47a2e6da1635251a794551eb109c0ffe77bb75d58393df",
+      "source_url": "https://game-icons.net/1x1/lorc/cross-mark.html",
+      "license": "CC-BY 3.0 (Lorc, game-icons.net)"
+    },
+    "assets/demo/vfx/celebration_particles.json": {
+      "sha256": "03db4c48d7394f030a6533a629ae134968141f86df95dd99787da59828c466a7",
+      "source_url": "generated by scripts/build_demo_assets.sh",
+      "license": "n/a (frame metadata)"
+    },
+    "assets/demo/vfx/celebration_particles.png": {
+      "sha256": "36bec1aa8442825259df647346eaec1d0c525ede8b4e987570bdb26e7d64c9ea",
+      "source_url": "https://opengameart.org/content/particle-pack-80-sprites",
+      "license": "CC0 1.0"
+    }
+  }
+}
