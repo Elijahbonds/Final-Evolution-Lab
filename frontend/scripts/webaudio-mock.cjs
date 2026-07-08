@@ -153,10 +153,12 @@ class OfflineAudioContextMock {
 
     for (const src of this._sources) {
       if (src._start == null) continue;
-      // Walk the chain from src to destination, collecting gain params, pan,
-      // filters and convolvers in order.
-      const chain = this._resolveChain(src);
-      this._renderSource(src, chain, out, dt);
+      // A source may fan out to BOTH the dry master and a wet reverb send, so
+      // enumerate every simple path to destination and render each — this way
+      // the convolver (wet) branch is exercised, giving a real determinism
+      // check on the reverb tail, not just the dry signal.
+      const paths = this._resolveChains(src);
+      for (const chain of paths) this._renderSource(src, chain, out, dt);
     }
 
     const buf = new AudioBuffer(this.numberOfChannels, N, this.sampleRate);
@@ -166,31 +168,40 @@ class OfflineAudioContextMock {
     return buf;
   }
 
-  _resolveChain(src) {
-    // BFS to destination; collect the (single) path's processing nodes.
-    // Graph here is effectively a tree of gains/filters/panners to destination.
-    const path = [];
-    let node = src;
-    const seen = new Set();
-    while (node && !node._isDestination) {
-      if (seen.has(node)) break;
-      seen.add(node);
-      if (node !== src) path.push(node);
-      node = node._outs[0];
-    }
-    return path;
+  _resolveChains(src) {
+    // Enumerate every simple path from src to destination; each path is the
+    // ordered list of processing nodes between src and destination (exclusive).
+    const paths = [];
+    const walk = (node, acc) => {
+      if (!node || node._isDestination) { paths.push(acc); return; }
+      const outs = node._outs || [];
+      if (!outs.length) return; // dangling branch contributes nothing
+      for (const nxt of outs) {
+        if (acc.includes(node)) continue; // cycle guard (feedback delay)
+        walk(nxt, node === src ? acc : acc.concat(node));
+      }
+    };
+    walk(src, []);
+    return paths;
   }
 
   _renderSource(src, chain, out, dt) {
     const N = this.length;
-    // Determine per-sample source waveform.
     const start = src._start, stop = src._stop == null ? Infinity : src._stop;
     const startI = Math.max(0, Math.floor(start * this.sampleRate));
     const stopI = Math.min(N, Math.ceil(stop * this.sampleRate));
 
-    // Precompute biquad states fresh.
-    for (const n of chain) if (n instanceof BiquadFilterNode) { n._z1 = 0; n._z2 = 0; }
+    const convIdx = chain.findIndex((n) => n instanceof ConvolverNode);
+    if (convIdx >= 0) {
+      // Split the chain at the convolver: pre-nodes shape the dry signal, the
+      // convolver applies a (deterministic, truncated) FIR from its IR, and the
+      // post-nodes apply wet gain/pan. Exercised so the reverb tail is part of
+      // the determinism checksum.
+      this._renderConvolved(src, chain, convIdx, out, startI, stopI, dt);
+      return;
+    }
 
+    for (const n of chain) if (n instanceof BiquadFilterNode) { n._z1 = 0; n._z2 = 0; }
     let phase = 0;
     for (let i = startI; i < stopI; i++) {
       const t = i * dt;
@@ -203,10 +214,7 @@ class OfflineAudioContextMock {
         const data = src.buffer ? src.buffer.getChannelData(0) : null;
         const idx = i - startI;
         s = data && idx < data.length ? data[idx] : 0;
-      } else {
-        s = 0;
-      }
-      // Apply chain: gains multiply, filters filter, panner splits L/R.
+      } else { s = 0; }
       let panL = 1, panR = 1;
       for (const n of chain) {
         if (n instanceof GainNode) s *= n.gain.at(t);
@@ -217,11 +225,70 @@ class OfflineAudioContextMock {
         } else if (n instanceof BiquadFilterNode) {
           s = biquad(n, s, t);
         }
-        // ConvolverNode/DelayNode: approximated as pass-through for determinism
-        // check purposes (their coefficients are deterministic anyway).
       }
       out[0][i] += s * panL;
       out[1][i] += s * panR;
+    }
+  }
+
+  // Render a source whose path includes a ConvolverNode. Builds the dry signal
+  // through the pre-convolver nodes, convolves with a TRUNCATED IR (first
+  // `maxTaps` samples — enough to prove the wet branch is deterministic without
+  // an O(N*M) full convolution), then applies the post-convolver gain/pan.
+  _renderConvolved(src, chain, convIdx, out, startI, stopI, dt) {
+    const pre = chain.slice(0, convIdx);
+    const conv = chain[convIdx];
+    const post = chain.slice(convIdx + 1);
+    for (const n of pre) if (n instanceof BiquadFilterNode) { n._z1 = 0; n._z2 = 0; }
+
+    // Dry signal after pre-nodes.
+    const len = stopI - startI;
+    if (len <= 0) return;
+    const dry = new Float32Array(len);
+    let phase = 0;
+    for (let i = startI; i < stopI; i++) {
+      const t = i * dt;
+      let s;
+      if (src instanceof OscillatorNode) {
+        const freq = Math.max(0, src.frequency.at(t)) * Math.pow(2, src.detune.at(t) / 1200);
+        phase += 2 * Math.PI * freq * dt; s = oscSample(src.type, phase);
+      } else if (src instanceof AudioBufferSourceNode) {
+        const data = src.buffer ? src.buffer.getChannelData(0) : null;
+        const idx = i - startI; s = data && idx < data.length ? data[idx] : 0;
+      } else { s = 0; }
+      for (const n of pre) if (n instanceof GainNode) s *= n.gain.at(t);
+      dry[i - startI] = s;
+    }
+
+    // Truncated IR taps (deterministic, from the convolver's fixed-seed buffer).
+    const ir = conv.buffer ? conv.buffer.getChannelData(0) : new Float32Array([1]);
+    // 256 taps is ample to prove the wet branch is deterministic while keeping
+    // the harness fast (full-length convolution is O(N*IRlen) and unnecessary
+    // for a determinism check — the IR is fixed, so any fixed truncation works).
+    const maxTaps = Math.min(ir.length, 256);
+
+    // Post gain/pan are (near-)constant here; sample at the source start.
+    const t0 = startI * dt;
+    let postGain = 1, panL = 1, panR = 1;
+    for (const n of post) {
+      if (n instanceof GainNode) postGain *= n.gain.at(t0);
+      else if (n instanceof StereoPannerNode) {
+        const p = n.pan.at(t0);
+        panL = Math.cos((p + 1) * Math.PI / 4);
+        panR = Math.sin((p + 1) * Math.PI / 4);
+      }
+    }
+
+    for (let i = 0; i < len; i++) {
+      const x = dry[i];
+      if (x === 0) continue;
+      for (let k = 0; k < maxTaps; k++) {
+        const j = startI + i + k;
+        if (j >= out[0].length) break;
+        const wet = x * ir[k] * postGain;
+        out[0][j] += wet * panL;
+        out[1][j] += wet * panR;
+      }
     }
   }
 }

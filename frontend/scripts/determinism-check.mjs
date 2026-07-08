@@ -11,9 +11,13 @@
  * Exit 0 + prints the stable checksum on success; exit 1 on any mismatch.
  */
 import { createHash } from "node:crypto";
-import { createRequire } from "node:module";
+import { createRequire, register } from "node:module";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+
+// Register the extensionless-import resolve hook so audioEngine.js's
+// `./synthVoices` (webpack-style) resolves in Node ESM.
+register("./js-ext-loader.mjs", import.meta.url);
 
 const require = createRequire(import.meta.url);
 const { OfflineAudioContextMock } = require("./webaudio-mock.cjs");
