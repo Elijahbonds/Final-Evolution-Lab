@@ -21,6 +21,9 @@ import DownloadPage from "@/components/DownloadPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
 import GameView from "@/components/GameView";
+// New Nexus Brain Brawl demo (Blitz/Deep Dive) — aliased because App.js still
+// hosts a legacy inline BrainBrawlView for the dashboard quiz tab.
+import BrainBrawlArena from "@/components/BrainBrawlView";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
@@ -1738,6 +1741,13 @@ function GameViewRoute() {
   return <GameView matchId={params.get('match') || undefined} onExit={() => navigate('/')} />;
 }
 
+// Brain Brawl demo entry point: /nexus/brainbrawl
+// ?recording=1 runs locally-authoritative (screen recording); ?seed=<n> pins the seed.
+function BrainBrawlRoute() {
+  const navigate = useNavigate();
+  return <BrainBrawlArena onExit={() => navigate('/')} />;
+}
+
 function AppRouter() {
   const location = useLocation();
   if (location.hash?.includes('session_id=')) return <AuthCallback />;
@@ -1749,6 +1759,7 @@ function AppRouter() {
       <Route path="/hud" element={<Phase3HUD />} />
       <Route path="/download" element={<DownloadPage />} />
       <Route path="/nexus/game" element={<GameViewRoute />} />
+      <Route path="/nexus/brainbrawl" element={<BrainBrawlRoute />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
