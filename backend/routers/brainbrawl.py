@@ -11,6 +11,18 @@ Server-authoritative trivia rounds on top of the Nexus match contract:
   GET  /api/brainbrawl/recording-pack              — RECORDING_LOCAL=1 only: full pack
                                                      for locally-authoritative recording
 
+Adaptive ELO ladder (nexus/brainbrawl-ladder, stacks on #126):
+  POST /api/brainbrawl/ladder/start                — start an adaptive ladder run
+  POST /api/brainbrawl/ladder/{round_id}/answer    — grade + Elo-update + adapt next
+  GET  /api/brainbrawl/ladder/rating               — a player's current ladder rating
+  GET  /api/brainbrawl/practice-suggestions        — weakest-skill drill recommendations
+
+  The ladder reuses the server-authoritative scoring engine, then folds each
+  graded answer into a standard Elo rating (lib/brainbrawl_ladder.py). The next
+  question's difficulty is derived from the running rating, so a winning player
+  is fed progressively harder questions. Rating + per-skill accuracy are held in
+  an in-memory per-player store (demo scope, same as rounds).
+
 Security model (EDU-06/07 style):
   * Question text/options are fetched server-side from backend/content/*.json.
   * Correct answers, explanations, and micro-lessons are NEVER shipped to the
@@ -33,11 +45,34 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from lib import brainbrawl as bb
+from lib import brainbrawl_ladder as ladder
 from lib.match_utils import generate_seed
 
 router = APIRouter(tags=["brainbrawl"])
 
 _rounds: Dict[str, Dict[str, Any]] = {}
+
+# Per-player ladder state (demo scope, in-memory like _rounds):
+#   rating: int Elo rating
+#   skills: {skill: {"attempts": int, "correct": int}} accuracy history
+_ladder_players: Dict[str, Dict[str, Any]] = {}
+
+
+def _player_state(player_id: str) -> Dict[str, Any]:
+    st = _ladder_players.get(player_id)
+    if st is None:
+        st = {"rating": ladder.DEFAULT_RATING, "skills": {}}
+        _ladder_players[player_id] = st
+    return st
+
+
+def _record_skill(state: Dict[str, Any], question: Dict[str, Any],
+                  full_correct: bool) -> None:
+    skill = question["taxonomy"].get("skill", "unknown")
+    bucket = state["skills"].setdefault(skill, {"attempts": 0, "correct": 0})
+    bucket["attempts"] += 1
+    if full_correct:
+        bucket["correct"] += 1
 
 _RECORDING_LOCAL = lambda: os.environ.get("RECORDING_LOCAL", "0") == "1"  # noqa: E731
 
@@ -385,4 +420,286 @@ async def recording_pack(mode: str = "blitz", seed: Optional[int] = None,
             "max_latency_credit_ms": bb.MAX_LATENCY_CREDIT_MS,
         },
         "questions": questions,   # full payloads incl. answers — recording mode only
+    }
+
+
+# ── Adaptive ELO ladder ─────────────────────────────────────────────────────
+
+class LadderStartRequest(BaseModel):
+    player_id: Optional[str] = None
+    category: Optional[str] = None                       # taxonomy category or "all"
+    question_count: int = Field(default=10, ge=1, le=25)
+    seed: Optional[int] = None                           # fixed seed for QA/recording
+    time_limit_ms: Optional[int] = Field(default=None, ge=5_000, le=60_000)
+
+
+class LadderAnswerRequest(BaseModel):
+    question_index: int = Field(ge=0)
+    selected: List[int] = Field(default_factory=list)
+    client_ts: Optional[float] = None
+    response_ms: int = Field(default=0, ge=0)
+    latency_ms: int = Field(default=0, ge=0)
+
+
+def _issue_ladder_question(rnd: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Adaptively pick + issue the next ladder question from the running rating.
+
+    Returns the client-safe question payload, or None when the run is complete
+    (target count reached or the bank is exhausted).
+    """
+    if len(rnd["served"]) >= rnd["question_count"]:
+        return None
+    qid = ladder.select_adaptive_question(
+        rating=rnd["rating"],
+        seed=rnd["seed"],
+        mode="blitz",
+        category=rnd["category"],
+        exclude=rnd["served"],
+        doc=bb.load_content(),
+    )
+    if qid is None:
+        return None
+    q = bb.question_by_id(qid)
+    idx = len(rnd["served"])
+    rnd["served"].append(qid)
+    rnd["current_question"] = q
+    rnd["current_index"] = idx
+    rnd["issued_at_monotonic"] = time.monotonic()
+    _append_event(rnd, {
+        "type": "question_presented",
+        "index": idx,
+        "question_id": qid,
+        "player_id": rnd["player_id"],
+        "target_difficulty": ladder.target_difficulty(rnd["rating"]),
+        "rating_at_issue": rnd["rating"],
+    })
+    return {**bb.public_question(q, idx, rnd["time_limit_ms"]),
+            "rating_at_issue": rnd["rating"],
+            "target_difficulty": ladder.target_difficulty(rnd["rating"])}
+
+
+@router.post("/api/brainbrawl/ladder/start")
+async def ladder_start(body: LadderStartRequest, request: Request) -> Dict[str, Any]:
+    """Start an adaptive ladder run. The player's persisted rating seeds the
+    first question's difficulty; each answer re-adapts the next (see answer)."""
+    doc = bb.load_content()
+    player_id = body.player_id or request.headers.get("X-FEL-Sim-Player", "quickplay_guest")
+    state = _player_state(player_id)
+
+    seed = body.seed if body.seed is not None else generate_seed()
+    time_limit_ms = body.time_limit_ms or bb.MODES["blitz"]["time_limit_ms"]
+    round_id = f"bbl_{uuid.uuid4().hex[:12]}"
+    rnd: Dict[str, Any] = {
+        "round_id": round_id,
+        "mode": "ladder",
+        "mode_id": "brainbrawl_ladder",
+        "seed": seed,
+        "category": body.category,
+        "content_hash": bb.content_hash(doc),
+        "time_limit_ms": time_limit_ms,
+        "player_id": player_id,
+        "question_count": body.question_count,
+        "served": [],                     # question ids served so far (exclude set)
+        "current_question": None,
+        "current_index": 0,
+        "score": 0,
+        "streak": 0,
+        "total_normalized_ms": 0,
+        "rating": state["rating"],        # snapshot at start; updated per answer
+        "start_rating": state["rating"],
+        "rating_trace": [],
+        "status": "active",
+        "created_at": _now_iso(),
+        "finished_at": None,
+        "events": [],
+        "issued_at_monotonic": None,
+    }
+    _rounds[round_id] = rnd
+    _append_event(rnd, {
+        "type": "round_start",
+        "round_id": round_id,
+        "mode": "ladder",
+        "mode_id": "brainbrawl_ladder",
+        "seed": seed,
+        "category": body.category,
+        "content_hash": rnd["content_hash"],
+        "time_limit_ms": time_limit_ms,
+        "question_count": body.question_count,
+        "start_rating": state["rating"],
+        "player_id": player_id,
+    })
+    first_question = _issue_ladder_question(rnd)
+    if first_question is None:
+        raise HTTPException(status_code=422, detail="No questions for that category")
+
+    return {
+        "round_id": round_id,
+        "mode": "ladder",
+        "mode_id": "brainbrawl_ladder",
+        "seed": seed,
+        "status": "active",
+        "player_id": player_id,
+        "time_limit_ms": time_limit_ms,
+        "question_count": body.question_count,
+        "ladder": ladder.band_summary(rnd["rating"]),
+        "question": first_question,     # answer/explanation stripped
+        "scoring": {
+            "base_points": bb.BASE_POINTS,
+            "streak_step_pct": bb.STREAK_STEP_PCT,
+            "streak_cap": bb.STREAK_CAP,
+        },
+    }
+
+
+@router.post("/api/brainbrawl/ladder/{round_id}/answer")
+async def ladder_answer(round_id: str, body: LadderAnswerRequest) -> Dict[str, Any]:
+    rnd = _get_round(round_id)
+    if rnd.get("mode") != "ladder":
+        raise HTTPException(status_code=409, detail="Not a ladder round")
+    if rnd["status"] != "active":
+        raise HTTPException(status_code=409, detail=f"Round already {rnd['status']}")
+    if body.question_index != rnd["current_index"]:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Expected answer for question {rnd['current_index']}, got {body.question_index}",
+        )
+
+    q = rnd["current_question"]
+    time_limit_ms = rnd["time_limit_ms"]
+    server_elapsed_ms = int((time.monotonic() - rnd["issued_at_monotonic"]) * 1000) + 1500
+    response_ms = min(int(body.response_ms), server_elapsed_ms, time_limit_ms)
+
+    result = bb.score_answer(q, body.selected, response_ms, body.latency_ms,
+                             time_limit_ms, rnd["streak"])
+    rnd["streak"] = result["streak_after"]
+    rnd["score"] += result["points"]
+    rnd["total_normalized_ms"] += result["normalized_ms"]
+
+    # Elo update from this answer's credit fraction, then persist to the player.
+    prior_rating = rnd["rating"]
+    delta = ladder.apply_answer(prior_rating, q, result)
+    rnd["rating"] = delta["new_rating"]
+    rnd["rating_trace"].append(delta)
+    state = _player_state(rnd["player_id"])
+    state["rating"] = delta["new_rating"]
+    _record_skill(state, q, result["full_correct"])
+
+    inputs = {
+        "selected": result["selected"],
+        "client_ts": body.client_ts,
+        "response_ms": response_ms,
+        "claimed_response_ms": int(body.response_ms),
+        "latency_ms": int(body.latency_ms),
+    }
+    _append_event(rnd, {
+        "type": "answer_submitted",
+        "index": rnd["current_index"],
+        "question_id": q["id"],
+        "player_id": rnd["player_id"],
+        "inputs": inputs,
+    })
+    _append_event(rnd, {
+        "type": "answer_result",
+        "index": rnd["current_index"],
+        "question_id": q["id"],
+        "player_id": rnd["player_id"],
+        "inputs": inputs,
+        "points": result["points"],
+        "raw_points": result["raw_points"],
+        "streak_bonus": result["streak_bonus"],
+        "full_correct": result["full_correct"],
+        "credit": [result["credit_numerator"], result["credit_denominator"]],
+        "streak_after": result["streak_after"],
+        "score_snapshot": {rnd["player_id"]: rnd["score"]},
+        "rating_before": prior_rating,
+        "rating_after": delta["new_rating"],
+        "rating_delta": delta["delta"],
+    })
+
+    reveal = {
+        "correct_answer": result["correct_answer"],
+        "explanation": q.get("explanation"),
+        "micro_lesson": q.get("micro_lesson"),
+    }
+
+    # Adapt: next question difficulty is derived from the UPDATED rating.
+    next_question = _issue_ladder_question(rnd)
+    if next_question is None:
+        rnd["status"] = "finished"
+        rnd["finished_at"] = _now_iso()
+        rnd["current_question"] = None
+        _append_event(rnd, {
+            "type": "round_end",
+            "round_id": round_id,
+            "score": {rnd["player_id"]: rnd["score"]},
+            "total_normalized_ms": {rnd["player_id"]: rnd["total_normalized_ms"]},
+            "start_rating": rnd["start_rating"],
+            "final_rating": rnd["rating"],
+            "tie_break_rule": "latency_normalized_time",
+        })
+
+    return {
+        "round_id": round_id,
+        "status": rnd["status"],
+        "result": {
+            "full_correct": result["full_correct"],
+            "points": result["points"],
+            "raw_points": result["raw_points"],
+            "streak_bonus": result["streak_bonus"],
+            "streak": result["streak_after"],
+            "credit": [result["credit_numerator"], result["credit_denominator"]],
+            "normalized_ms": result["normalized_ms"],
+            "rating_before": prior_rating,
+            "rating_after": delta["new_rating"],
+            "rating_delta": delta["delta"],
+            "expected_score": delta["expected_score"],
+            "actual_score": delta["actual_score"],
+            **reveal,
+        },
+        "score": rnd["score"],
+        "ladder": ladder.band_summary(rnd["rating"]),
+        "next_question": next_question,
+    }
+
+
+@router.get("/api/brainbrawl/ladder/rating")
+async def ladder_rating(player_id: str) -> Dict[str, Any]:
+    """A player's current ladder rating + band (client-safe; no answers)."""
+    state = _player_state(player_id)
+    summary = ladder.band_summary(state["rating"])
+    total_attempts = sum(s["attempts"] for s in state["skills"].values())
+    total_correct = sum(s["correct"] for s in state["skills"].values())
+    return {
+        "player_id": player_id,
+        **summary,
+        "attempts": total_attempts,
+        "correct": total_correct,
+        "skills_tracked": len(state["skills"]),
+    }
+
+
+@router.get("/api/brainbrawl/practice-suggestions")
+async def practice_suggestions(player_id: str, seed: int = 0,
+                               top_skills: int = 3, drill_size: int = 5,
+                               mode: str = "blitz") -> Dict[str, Any]:
+    """Weakest-skill drill recommendations for a player (deterministic).
+
+    Ranks the player's tracked skills weakest-first from their accuracy history
+    and returns drill sets of client-safe questions targeting them. Questions
+    go through bb.public_question, so answers/explanations are never shipped.
+    """
+    if mode not in bb.MODES:
+        raise HTTPException(status_code=422, detail=f"mode must be one of {sorted(bb.MODES)}")
+    state = _player_state(player_id)
+    suggestions = ladder.practice_suggestions(
+        history=state["skills"],
+        seed=seed,
+        top_skills=top_skills,
+        drill_size=drill_size,
+        mode=mode,
+    )
+    return {
+        "player_id": player_id,
+        "rating": state["rating"],
+        **suggestions,
     }

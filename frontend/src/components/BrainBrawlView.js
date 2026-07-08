@@ -240,6 +240,92 @@ function LessonOverlay({ result, question, onContinue, finished }) {
   );
 }
 
+// ── Ladder rating badge + adaptive indicator ─────────────────────────────────
+
+function RatingBadge({ ladder, ratingDelta }) {
+  const delta = ratingDelta ? ratingDelta.delta : null;
+  const deltaColor = delta == null ? T.dim : delta > 0 ? T.green : delta < 0 ? T.red : T.dim;
+  return (
+    <span
+      data-testid="bb-rating-badge"
+      style={{
+        ...styles.chip(T.gold), display: 'inline-flex', alignItems: 'center', gap: 6,
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      ★ {ladder.rating}
+      {delta != null && (
+        <span style={{ color: deltaColor, fontWeight: 800 }} data-testid="bb-rating-delta">
+          {delta > 0 ? `+${delta}` : delta}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ── Smart-practice "weak spots" panel ────────────────────────────────────────
+
+function PracticePanel({ practice, open, onLoad, onToggle, onDrill }) {
+  const weak = practice?.weak_skills || [];
+  const drills = practice?.drills || [];
+  return (
+    <div style={{ marginTop: 24 }} data-testid="bb-practice-panel">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <div style={{ ...styles.label, color: T.purple }}>Practice weak spots</div>
+        <button
+          style={{
+            ...styles.btn, padding: '8px 16px', fontSize: '0.85rem',
+            background: 'rgba(153,51,255,0.14)', color: T.purple, border: '1px solid rgba(153,51,255,0.35)',
+          }}
+          onClick={practice && open ? onToggle : onLoad}
+          data-testid="bb-practice-load"
+        >
+          {practice ? (open ? 'Hide suggestions' : 'Show suggestions') : 'Find my weak spots'}
+        </button>
+      </div>
+      {open && practice && (
+        <div style={{ ...styles.card, animation: 'bbFadeIn 0.2s ease-out' }}>
+          {weak.length === 0 && drills.length === 0 && (
+            <p style={{ color: T.soft, margin: 0 }} data-testid="bb-practice-empty">
+              No skill history yet — play a Ladder or Blitz round, then come back for tailored drills.
+            </p>
+          )}
+          {drills.map((d) => (
+            <div key={d.skill} style={{
+              borderTop: `1px solid ${T.panelBorder}`, paddingTop: 14, marginTop: 14,
+            }} data-testid={`bb-drill-${d.skill}`}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, color: T.purple, fontSize: '1.05rem' }}>
+                  {d.skill.replace(/_/g, ' ')}
+                </span>
+                <span style={styles.chip(T.gold)}>{Math.round(d.accuracy * 100)}% accuracy</span>
+                <span style={{ color: T.dim, fontSize: '0.85rem' }}>{d.correct}/{d.attempts} correct</span>
+                <span style={{ color: T.dim, fontSize: '0.85rem', marginLeft: 'auto' }}>
+                  {d.question_count} drill question{d.question_count === 1 ? '' : 's'}
+                </span>
+              </div>
+              <ul style={{ margin: '10px 0 0', paddingLeft: 20, color: T.soft, fontSize: '0.9rem', lineHeight: 1.5 }}>
+                {d.questions.slice(0, 3).map((q) => (
+                  <li key={q.id}>{q.prompt}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          {drills.length > 0 && (
+            <button
+              style={{ ...styles.btn, marginTop: 16, background: T.gold, color: T.bg }}
+              onClick={() => onDrill(drills[0].skill)}
+              data-testid="bb-practice-drill"
+            >
+              Start a Ladder run to practice
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main view ───────────────────────────────────────────────────────────────
 
 const PHASE = { QUICKPLAY: 'quickplay', QUESTION: 'question', RESOLVED: 'resolved', RESULTS: 'results' };
@@ -267,6 +353,12 @@ export default function BrainBrawlView({ onExit }) {
   const [correctCount, setCorrectCount] = useState(0);
   const [remainingMs, setRemainingMs] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
+
+  // Ladder state (adaptive ELO mode)
+  const [ladder, setLadder] = useState(null);          // {rating, target_difficulty, band_floor, band_ceiling}
+  const [ratingDelta, setRatingDelta] = useState(null); // last answer's rating change
+  const [practice, setPractice] = useState(null);      // {weak_skills, drills} | null
+  const [practiceOpen, setPracticeOpen] = useState(false);
 
   // Recording-mode local state
   const packRef = useRef(null);          // full question pack (answers included)
@@ -313,11 +405,33 @@ export default function BrainBrawlView({ onExit }) {
   const startRound = useCallback(async (chosenMode) => {
     setError(null);
     setScore(0); setStreak(0); setBestStreak(0); setCorrectCount(0); setAnsweredCount(0);
+    setRatingDelta(null);
     localEventsRef.current = []; localStreakRef.current = 0; localNormMsRef.current = 0;
     setMode(chosenMode);
     const t0 = performance.now();
     try {
-      if (recordingMode) {
+      if (chosenMode === 'ladder') {
+        // Adaptive ELO ladder: the server picks each question's difficulty from
+        // the running rating, so questions arrive one at a time via next_question.
+        const r = await fetch(`${API_URL}/brainbrawl/ladder/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            player_id: playerId,
+            ...(urlSeed != null ? { seed: urlSeed } : {}),
+          }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+        latencyRef.current = Math.round((performance.now() - t0) / 2);
+        setLadder(data.ladder);
+        setRound({
+          round_id: data.round_id, seed: data.seed, time_limit_ms: data.time_limit_ms,
+          question_count: data.question_count, mode_id: data.mode_id, local: false, ladder: true,
+        });
+        beginQuestion(data.question, data.time_limit_ms);
+      } else if (recordingMode) {
         const qp = new URLSearchParams({ mode: chosenMode });
         if (urlSeed != null) qp.set('seed', String(urlSeed));
         const r = await fetch(`${API_URL}/brainbrawl/recording-pack?${qp}`, { credentials: 'include' });
@@ -439,7 +553,10 @@ export default function BrainBrawlView({ onExit }) {
           });
         }
       } else {
-        const r = await fetch(`${API_URL}/brainbrawl/rounds/${round.round_id}/answer`, {
+        const answerUrl = round.ladder
+          ? `${API_URL}/brainbrawl/ladder/${round.round_id}/answer`
+          : `${API_URL}/brainbrawl/rounds/${round.round_id}/answer`;
+        const r = await fetch(answerUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -453,6 +570,14 @@ export default function BrainBrawlView({ onExit }) {
         });
         if (!r.ok) throw new Error(await r.text());
         payload = await r.json();
+        if (payload.ladder) setLadder(payload.ladder);
+        if (payload.result && payload.result.rating_delta !== undefined) {
+          setRatingDelta({
+            before: payload.result.rating_before,
+            after: payload.result.rating_after,
+            delta: payload.result.rating_delta,
+          });
+        }
       }
 
       setSelected(sel);
@@ -520,6 +645,21 @@ export default function BrainBrawlView({ onExit }) {
     }
   };
 
+  // ── Smart-practice: fetch weakest-skill drill suggestions ────────────────
+  const loadPractice = useCallback(async () => {
+    setError(null);
+    try {
+      const qp = new URLSearchParams({ player_id: playerId, top_skills: '3', drill_size: '5' });
+      const r = await fetch(`${API_URL}/brainbrawl/practice-suggestions?${qp}`, { credentials: 'include' });
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      setPractice(data);
+      setPracticeOpen(true);
+    } catch (err) {
+      setError(`Practice suggestions failed: ${String(err.message || err)}`);
+    }
+  }, [playerId]);
+
   // ── Unified input seam: keyboard (1-9 answers, Space/Enter buzz) ─────────
   useEffect(() => {
     const onKey = (e) => {
@@ -528,6 +668,7 @@ export default function BrainBrawlView({ onExit }) {
       if (phase === PHASE.QUICKPLAY) {
         if (e.key === '1') setMode('blitz');
         else if (e.key === '2') setMode('deep_dive');
+        else if (e.key === '3') setMode('ladder');
         else if (buzz) { e.preventDefault(); startRound(mode); }
       } else if (phase === PHASE.QUESTION && question) {
         const n = parseInt(e.key, 10);
@@ -623,6 +764,10 @@ export default function BrainBrawlView({ onExit }) {
                 id: 'deep_dive', title: 'Deep Dive', tag: '45s · one question',
                 desc: 'One explainable question. Take your time — then collect the micro-lesson.',
                 accent: T.purple,
+              }, {
+                id: 'ladder', title: 'Ladder', tag: 'adaptive ELO',
+                desc: 'Ranked climb. Your rating picks each question — win to face harder ones, and the ladder finds your level.',
+                accent: T.gold,
               }].map((m, i) => (
                 <button
                   key={m.id}
@@ -643,6 +788,14 @@ export default function BrainBrawlView({ onExit }) {
                 </button>
               ))}
             </div>
+
+            <PracticePanel
+              practice={practice}
+              open={practiceOpen}
+              onLoad={loadPractice}
+              onToggle={() => setPracticeOpen((o) => !o)}
+              onDrill={(skill) => { setMode('ladder'); startRound('ladder'); }}
+            />
           </div>
         )}
 
@@ -651,10 +804,16 @@ export default function BrainBrawlView({ onExit }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 16 }}>
               <div>
                 <div style={styles.label}>Question {question.index + 1} / {round.question_count}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
                   <RollUpScore value={score} />
                   {streak > 1 && <span style={styles.chip(T.gold)} data-testid="bb-streak">🔥 x{streak}</span>}
+                  {round.ladder && ladder && <RatingBadge ladder={ladder} ratingDelta={ratingDelta} />}
                 </div>
+                {round.ladder && ladder && (
+                  <div style={{ ...styles.label, marginTop: 8, color: T.gold }} data-testid="bb-adaptive-indicator">
+                    Adaptive · serving {ladder.target_difficulty} questions at rating {ladder.rating}
+                  </div>
+                )}
               </div>
               <TimerRing remainingMs={phase === PHASE.QUESTION ? remainingMs : 0} timeLimitMs={round.time_limit_ms} />
             </div>
@@ -720,16 +879,28 @@ export default function BrainBrawlView({ onExit }) {
 
         {phase === PHASE.RESULTS && round && (
           <div style={{ ...styles.card, textAlign: 'center', animation: 'bbFadeIn 0.3s ease-out' }} data-testid="bb-results">
-            <div style={styles.label}>Round complete · {mode === 'blitz' ? 'Blitz' : 'Deep Dive'}</div>
+            <div style={styles.label}>Round complete · {mode === 'blitz' ? 'Blitz' : mode === 'ladder' ? 'Ladder' : 'Deep Dive'}</div>
             <div style={{ fontSize: '3.4rem', fontWeight: 800, color: T.accent, margin: '10px 0' }}>{score}</div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 20, color: T.soft }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 20, color: T.soft, flexWrap: 'wrap' }}>
               <span>{correctCount}/{answeredCount} correct</span>
               <span style={{ color: T.gold }}>best streak x{Math.max(bestStreak, 1)}</span>
+              {round.ladder && ladder && (
+                <span style={{ color: T.gold }} data-testid="bb-final-rating">
+                  ladder rating {ladder.rating} ({ladder.target_difficulty})
+                </span>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button style={{ ...styles.btn, background: T.accent, color: T.bg }}
                 onClick={() => setPhase(PHASE.QUICKPLAY)} data-testid="bb-play-again">
                 Play again (Space)
+              </button>
+              <button
+                style={{ ...styles.btn, background: 'rgba(153,51,255,0.14)', color: T.purple, border: '1px solid rgba(153,51,255,0.35)' }}
+                onClick={() => { setPhase(PHASE.QUICKPLAY); loadPractice(); }}
+                data-testid="bb-results-practice"
+              >
+                Practice weak spots
               </button>
               <button
                 style={{ ...styles.btn, background: 'rgba(255,215,0,0.12)', color: T.gold, border: '1px solid rgba(255,215,0,0.3)' }}
