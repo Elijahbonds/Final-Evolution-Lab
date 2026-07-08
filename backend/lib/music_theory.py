@@ -68,6 +68,26 @@ _DRUM_PATTERNS: Dict[str, Dict[str, List[int]]] = {
         "snare": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
         "hat":   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
     },
+    "funk": {
+        "kick":  [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0],
+        "snare": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        "hat":   [1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    },
+    "dnb": {
+        "kick":  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+        "snare": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        "hat":   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+    },
+    "reggaeton": {
+        "kick":  [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        "snare": [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+        "hat":   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+    },
+    "disco": {
+        "kick":  [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+        "snare": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        "hat":   [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+    },
 }
 DRUM_GENRES = tuple(_DRUM_PATTERNS.keys())
 
@@ -236,6 +256,18 @@ def score_submission(
     # addressable and reproducible.
     challenge_id = "chal_%012x" % (_seeded_rng_int(seed, "challenge", bpm, total_beats) & ((1 << 48) - 1))
 
+    # ── extended musicality metrics (additive, non-canonical) ──
+    # Richer deterministic musicality analysis lives in lib/music_scoring.py.
+    # It is purely informational here: the canonical `score` and the three
+    # `breakdown` keys (variety/rhythm/adherence) and their weights are
+    # UNCHANGED, so existing monotonic contracts + tests keep holding. Imported
+    # lazily to keep music_theory import-safe and avoid any import cycle.
+    try:
+        from lib import music_scoring
+        extended = music_scoring.compute_extended_breakdown(seed, constraints, loop)
+    except Exception:  # pragma: no cover - defensive; extended is optional
+        extended = None
+
     return {
         "challenge_id": challenge_id,
         "seed": int(seed) & _SEED_MASK,
@@ -255,5 +287,8 @@ def score_submission(
             "span_beats": r(span),
             "bpm": bpm,
         },
+        # Extended musicality breakdown (harmony/groove/structure/balance).
+        # None only if the optional module is unavailable.
+        "extended": extended,
         "constraints": constraints,
     }
