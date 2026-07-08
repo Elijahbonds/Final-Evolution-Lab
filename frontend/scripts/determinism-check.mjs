@@ -88,10 +88,26 @@ async function renderOnce() {
   delete globalThis.window;
   const h3 = await renderOnce();
 
-  const ok = h1 === h2 && h2 === h3;
+  // Round-trip: serialize -> parse (as export/import does) -> render. The WAV
+  // from the re-imported project must be byte-identical to the original.
+  globalThis.window = {
+    OfflineAudioContext: OfflineAudioContextMock,
+    webkitOfflineAudioContext: OfflineAudioContextMock,
+    AudioContext: OfflineAudioContextMock,
+  };
+  const { renderProjectToWav } = await loadEngine();
+  const roundTripped = JSON.parse(JSON.stringify({ export_version: "1.0-local", project: PROJECT })).project;
+  const rtBlob = await renderProjectToWav(roundTripped, { sampleRate: 44100, tailSeconds: 0.6 });
+  const hRT = createHash("sha256").update(Buffer.from(await rtBlob.arrayBuffer())).digest("hex");
+
+  const stable = h1 === h2 && h2 === h3;
+  const roundtripOk = hRT === h1;
+  const ok = stable && roundtripOk;
   console.log("wav-sha256 run1:", h1);
   console.log("wav-sha256 run2:", h2);
   console.log("wav-sha256 run3:", h3);
-  console.log(ok ? "DETERMINISTIC: PASS (checksum stable across 3 renders)" : "DETERMINISTIC: FAIL");
+  console.log("wav-sha256 round-trip (export->import):", hRT);
+  console.log(stable ? "DETERMINISTIC: PASS (checksum stable across 3 renders)" : "DETERMINISTIC: FAIL");
+  console.log(roundtripOk ? "ROUND-TRIP: PASS (import renders byte-identical WAV)" : "ROUND-TRIP: FAIL");
   process.exit(ok ? 0 : 1);
 })();
