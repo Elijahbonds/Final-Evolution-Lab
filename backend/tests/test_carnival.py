@@ -446,6 +446,24 @@ class TestRouter:
         assert "highlights" in hl and "final_standings" in hl
         assert len(hl["final_standings"]) == 4
 
+    def test_local_client_replay_is_not_re_resolved(self):
+        # A client-local capture (JS-engine scores, not byte-identical to the
+        # Python engine) is tagged carnival_local / authoritative:false, so the
+        # validator passes it through instead of reporting a false mismatch.
+        from tools.replay_validator import validate_replay
+        c = _client()
+        mid = c.post("/api/carnival/create", json={"recording": True, "seed": 3}).json()["match_id"]
+        _drive_full_match(c, mid)
+        replay = c.get(f"/api/carnival/{mid}/export-replay").json()
+        # simulate a client-local export: relabel + corrupt a score
+        replay["metadata"]["replay_kind"] = "carnival_local"
+        replay["metadata"]["authoritative"] = False
+        for ev in replay["events"]:
+            if ev["type"] == "carnival_minigame_result":
+                ev["raw"] = {k: -1 for k in ev["raw"]}
+                break
+        assert validate_replay(replay) == []  # not re-resolved, so no error
+
     def test_replay_tamper_is_detected(self):
         c = _client()
         mid = c.post("/api/carnival/create", json={"recording": True, "seed": 12}).json()["match_id"]

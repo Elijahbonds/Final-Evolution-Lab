@@ -626,8 +626,17 @@ export default function CarnivalView({ recording: recordingProp }) {
   }, [recording, phase, spinning, doSpin]);
 
   const exportReplay = () => {
+    // NOTE: this is a CLIENT-LOCAL replay. The mini-game scores in it were
+    // resolved by lib/carnivalEngine.js, whose PRNG is only internally
+    // deterministic — it is NOT byte-identical to the Python engine (documented
+    // in carnivalEngine.js). So we tag it `carnival_local` (not `carnival`) so
+    // the Python replay_validator does NOT try to re-resolve it against the
+    // backend engine and report a false mismatch. The authoritative,
+    // Python-validatable replay is the backend's /export-replay stream. This
+    // local file is a self-consistent capture of the recorded session for the
+    // investor demo. (Unifying the two engines is intentionally left for Elijah.)
     const replay = {
-      metadata: { match_id: `local_${seed}`, mode_id: 'carnival_board', seed, replay_kind: 'carnival', players: players.map((p) => p.player_id), rounds: ROUNDS, status: 'finished', event_count: events.length },
+      metadata: { match_id: `local_${seed}`, mode_id: 'carnival_board', seed, replay_kind: 'carnival_local', authoritative: false, players: players.map((p) => p.player_id), rounds: ROUNDS, status: 'finished', event_count: events.length },
       events,
     };
     const blob = new Blob([JSON.stringify(replay, null, 2)], { type: 'application/json' });

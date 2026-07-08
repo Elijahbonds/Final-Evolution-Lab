@@ -105,11 +105,21 @@ def validate_carnival_replay(replay: Dict[str, Any]) -> List[str]:
 def validate_replay(replay: Dict[str, Any]) -> List[str]:
     """Returns a list of human-readable mismatch descriptions (empty = OK).
 
-    Dispatches by ``metadata.replay_kind``: carnival replays are validated by
-    :func:`validate_carnival_replay`; everything else uses the dunk/match path.
+    Dispatches by ``metadata.replay_kind``: authoritative carnival replays are
+    validated by :func:`validate_carnival_replay`; everything else uses the
+    dunk/match path.
+
+    Client-local carnival captures are tagged ``replay_kind == "carnival_local"``
+    (``authoritative: false``) — their mini-game scores come from the browser
+    engine whose PRNG is not byte-identical to the Python engine, so they are
+    intentionally NOT re-resolved here (doing so would report a false mismatch).
+    They pass through as OK; the authoritative record is the backend export.
     """
-    meta_kind = _meta(replay).get("replay_kind")
-    if meta_kind == "carnival" or _meta(replay).get("mode_id") == "carnival_board":
+    meta = _meta(replay)
+    meta_kind = meta.get("replay_kind")
+    if meta_kind == "carnival_local" or meta.get("authoritative") is False:
+        return []  # self-consistent client capture; not server-re-resolvable
+    if meta_kind == "carnival" or meta.get("mode_id") == "carnival_board":
         return validate_carnival_replay(replay)
     errors: List[str] = []
     meta = _meta(replay)
