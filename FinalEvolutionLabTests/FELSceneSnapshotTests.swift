@@ -36,6 +36,24 @@ struct FELSceneSnapshotTests {
                 .write(to: docs.appendingPathComponent("diag.txt"), atomically: true, encoding: .utf8)
         }
 
+        // Regression guard: H2H and venicePickup must NOT alias. They share a
+        // builder but differ by roster — H2H is a 1v1, venicePickup a 2v2 run.
+        // Count named gameplay avatars in each scene; pickup must have more.
+        func avatarCount(_ mode: GameModeId) -> Int {
+            let scene = GameSceneFactory.buildScene(for: mode)
+            var n = 0
+            for name in ["player1", "opponent", "teammate1", "opponent2"] where
+                scene.rootNode.childNode(withName: name, recursively: true) != nil {
+                n += 1
+            }
+            return n
+        }
+        let h2hCount = avatarCount(.basketballHeadToHead)
+        let pickupCount = avatarCount(.venicePickup)
+        #expect(h2hCount == 2, "H2H should be a 1v1 (2 avatars), got \(h2hCount)")
+        #expect(pickupCount > h2hCount,
+                "venicePickup (\(pickupCount)) must differ from H2H (\(h2hCount)) — modes are aliasing")
+
         // Basketball family intentionally uses panorama + procedural court
         // (no USDZ venue) — the photoreal backdrop is the look.
         let venueMapped: Set<GameModeId> = [

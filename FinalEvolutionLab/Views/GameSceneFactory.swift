@@ -74,6 +74,9 @@ struct GameSceneFactory {
         if name.hasPrefix("fighter") || name.hasPrefix("def") || name.hasPrefix("vPlayer") || name.hasPrefix("judge") {
             return true
         }
+        // Pickup 2v2 extras (teammate1, opponent2) — keep alongside the
+        // primary "opponent"/"player1" so scene cleaning never prunes them.
+        if name.hasPrefix("teammate") || name.hasPrefix("opponent") { return true }
         let known: Set<String> = [
             "player", "player1", "opponent", "dunker", "batter", "pitcher", "catcher",
             "returner", "kicker", "goalkeeper", "golfer", "surfer", "skater", "rider",
@@ -445,17 +448,33 @@ struct GameSceneFactory {
     // MARK: - Basketball (Venice Beach Court)
 
     private static func buildBasketballScene(mode: GameModeId) -> SCNScene {
+        // Two distinct products share this builder but must NOT alias:
+        //  .basketballHeadToHead — a focused, competitive 1v1 (2 players,
+        //     cooler blacktop, tighter head-on camera).
+        //  .venicePickup — a Venice Beach pickup RUN (2v2: teammate + two
+        //     opponents, warmer sun-worn court, wider run-of-play camera).
+        // The differing roster COUNT is the load-bearing differentiator.
+        let isPickup = (mode == .venicePickup)
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.04, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(3, 4.5, 7), lookAt: SCNVector3(0, 1.2, 0))
-        addLighting(to: scene, tint: brandBlue)
+        // Pickup frames the wider run of play; H2H sits tighter and more head-on.
+        if isPickup {
+            addCamera(to: scene, position: SCNVector3(2.2, 5.0, 8.0), lookAt: SCNVector3(0, 1.1, 0.4))
+            addLighting(to: scene, tint: brandCyan)
+        } else {
+            addCamera(to: scene, position: SCNVector3(3.4, 4.2, 6.4), lookAt: SCNVector3(0, 1.2, 0))
+            addLighting(to: scene, tint: brandBlue)
+        }
 
         addFloor(to: scene, color: UIColor(red: 0.08, green: 0.06, blue: 0.04, alpha: 1), reflectivity: 0.15)
 
         let court = SCNBox(width: 8, height: 0.02, length: 5, chamferRadius: 0)
         let courtMat = SCNMaterial()
-        courtMat.diffuse.contents = UIColor(red: 0.12, green: 0.08, blue: 0.04, alpha: 1)
+        // Pickup court is a warmer, sun-worn asphalt; H2H is cool blacktop.
+        courtMat.diffuse.contents = isPickup
+            ? UIColor(red: 0.17, green: 0.11, blue: 0.05, alpha: 1)
+            : UIColor(red: 0.10, green: 0.09, blue: 0.11, alpha: 1)
         courtMat.roughness.contents = 0.9
         court.materials = [courtMat]
         let courtNode = SCNNode(geometry: court)
@@ -465,15 +484,32 @@ struct GameSceneFactory {
         addCourtLines(to: scene)
         addHoop(to: scene, x: 3.5)
         addHoop(to: scene, x: -3.5, flip: true)
+
+        let opponentRed = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
+        // Load-bearing names: GameSceneHostView movement/camera loops find
+        // "player1" (primary) and "opponent" by name — preserved in both modes.
         if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "player1", at: SCNVector3(-1.5, 0, 0), facingY: .pi / 2) {
             addPlayerAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
         }
         if !addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(1.5, 0, 0), facingY: -.pi / 2) {
-            addAvatar(to: scene, at: SCNVector3(1.5, 0, 0), color: UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1), name: "opponent")
+            addAvatar(to: scene, at: SCNVector3(1.5, 0, 0), color: opponentRed, name: "opponent")
         }
+
+        if isPickup {
+            // 2v2 run: a teammate on the wing + a second defender. Unique
+            // non-load-bearing names; fail-soft procedural fallbacks.
+            let teammateTint = brandCyan.withAlphaComponent(0.85)
+            if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "teammate1", at: SCNVector3(-2.4, 0, 1.8), facingY: .pi / 3, tint: teammateTint) {
+                addAvatar(to: scene, at: SCNVector3(-2.4, 0, 1.8), color: brandCyan, name: "teammate1")
+            }
+            if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "opponent2", at: SCNVector3(2.4, 0, 1.6), facingY: -.pi / 3, tint: opponentRed.withAlphaComponent(0.7)) {
+                addAvatar(to: scene, at: SCNVector3(2.4, 0, 1.6), color: opponentRed, name: "opponent2")
+            }
+        }
+
         addBall(to: scene, at: SCNVector3(-1.5, 1.4, 0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
         addVeniceBeachWalls(to: scene)
-        addVeniceBeachCrowd(to: scene, depth: 5)
+        addVeniceBeachCrowd(to: scene, depth: isPickup ? 6 : 5)
         addParticles(to: scene, color: brandCyan.withAlphaComponent(0.2), area: SCNVector3(8, 0.1, 5))
 
         return scene
@@ -546,7 +582,7 @@ struct GameSceneFactory {
         }
 
         addCourtLines(to: scene)
-        addHoop(to: scene, x: -4.5, flip: true)
+        addHoop(to: scene, x: -4.5, flip: true, rimName: "hoop")
 
         let dunker = brandBlue
         let opponentColor = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
@@ -587,22 +623,26 @@ struct GameSceneFactory {
         addStadiumStands(to: scene, depth: 12)
         addStadiumLights(to: scene, width: 12, depth: 12)
 
+        // Arena atmosphere: warm sparks drifting through the light haze above
+        // the court. Wide spread + slow drift so it reads as ambience, not a
+        // thin vertical streak.
         let crowdEmitter = SCNNode()
         let crowdParticles = SCNParticleSystem()
-        crowdParticles.birthRate = 3
-        crowdParticles.particleLifeSpan = 5
-        crowdParticles.particleSize = 0.015
+        crowdParticles.birthRate = 5
+        crowdParticles.particleLifeSpan = 7
+        crowdParticles.particleLifeSpanVariation = 2
+        crowdParticles.particleSize = 0.014
         crowdParticles.particleSizeVariation = 0.01
-        crowdParticles.particleColor = UIColor.orange.withAlphaComponent(0.15)
-        crowdParticles.emitterShape = SCNBox(width: 12, height: 0.1, length: 8, chamferRadius: 0)
-        crowdParticles.spreadingAngle = 15
-        crowdParticles.particleVelocity = 0.2
-        crowdParticles.particleVelocityVariation = 0.08
-        crowdParticles.birthDirection = .constant
-        crowdParticles.emittingDirection = SCNVector3(0, 1, 0)
+        crowdParticles.particleColor = UIColor.orange.withAlphaComponent(0.18)
+        crowdParticles.emitterShape = SCNBox(width: 12, height: 3.0, length: 8, chamferRadius: 0)
+        crowdParticles.spreadingAngle = 180
+        crowdParticles.particleVelocity = 0.06
+        crowdParticles.particleVelocityVariation = 0.05
+        crowdParticles.birthDirection = .random
         crowdParticles.blendMode = .additive
+        crowdParticles.isAffectedByGravity = false
         crowdEmitter.addParticleSystem(crowdParticles)
-        crowdEmitter.position = SCNVector3(0, 0.1, 0)
+        crowdEmitter.position = SCNVector3(0, 1.6, 0)
         scene.rootNode.addChildNode(crowdEmitter)
 
         addVeniceBeachWalls(to: scene)
@@ -678,11 +718,14 @@ struct GameSceneFactory {
     }
 
     private static func add3v3Animations(to scene: SCNScene, teamSize: Int) {
+        // Idle drift is applied ONLY to off-ball blue teammates. Red defenders
+        // are driven every frame by addHomingDefense (position=...), so running
+        // a shuffle moveBy on them too makes the two controllers fight and the
+        // defenders jitter/teleport. Blue1 is the player-controlled node — no drift.
         var avatarNames: [String] = []
         if teamSize >= 2 {
             avatarNames.append(contentsOf: (2...teamSize).map { "blue\($0)" })
         }
-        avatarNames.append(contentsOf: (1...teamSize).map { "red\($0)" })
         for name in avatarNames {
             guard let node = scene.rootNode.childNode(withName: name, recursively: true) else { continue }
             let dx = Float.random(in: -1.0...1.0)
@@ -2488,19 +2531,24 @@ struct GameSceneFactory {
             particles.birthRate = 0
         }
         
-        particles.particleLifeSpan = 4
-        particles.particleSize = 0.012
-        particles.particleSizeVariation = 0.008
+        particles.particleLifeSpan = 6
+        particles.particleLifeSpanVariation = 2
+        particles.particleSize = 0.010
+        particles.particleSizeVariation = 0.006
         particles.particleColor = color
-        particles.emitterShape = SCNBox(width: CGFloat(area.x), height: CGFloat(area.y), length: CGFloat(area.z), chamferRadius: 0)
-        particles.spreadingAngle = 12
-        particles.particleVelocity = 0.15
-        particles.particleVelocityVariation = 0.06
-        particles.birthDirection = .constant
-        particles.emittingDirection = SCNVector3(0, 1, 0)
+        // Ambient motes drifting across the whole court volume — NOT a thin
+        // upward column. A tight spreadingAngle + a single emit direction
+        // produced a laser-like vertical streak on camera; widen the spread,
+        // raise the emit volume, and slow the drift so it reads as atmosphere.
+        particles.emitterShape = SCNBox(width: CGFloat(area.x), height: 2.4, length: CGFloat(area.z), chamferRadius: 0)
+        particles.spreadingAngle = 180
+        particles.particleVelocity = 0.05
+        particles.particleVelocityVariation = 0.04
+        particles.birthDirection = .random
         particles.blendMode = .additive
+        particles.isAffectedByGravity = false
         emitter.addParticleSystem(particles)
-        emitter.position = SCNVector3(0, 0.1, 0)
+        emitter.position = SCNVector3(0, 1.3, 0)
         scene.rootNode.addChildNode(emitter)
     }
 
@@ -2539,7 +2587,7 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(cNode)
     }
 
-    private static func addHoop(to scene: SCNScene, x: Float, flip: Bool = false) {
+    private static func addHoop(to scene: SCNScene, x: Float, flip: Bool = false, rimName: String? = nil) {
         let dir: Float = flip ? -1 : 1
 
         let pole = SCNCylinder(radius: 0.06, height: 3.05)
@@ -2568,6 +2616,10 @@ struct GameSceneFactory {
         rim.materials = [rimMat]
         let rimNode = SCNNode(geometry: rim)
         rimNode.position = SCNVector3(x - dir * 0.65, 3.05, 0)
+        // Named only where a caller needs to look the rim up (dunk cinematic
+        // camera targets it). Multi-hoop scenes leave rims unnamed to avoid
+        // duplicate "hoop" nodes.
+        rimNode.name = rimName
         scene.rootNode.addChildNode(rimNode)
     }
 
@@ -2993,21 +3045,26 @@ struct GameSceneFactory {
         }
 
         if useDetailedCrowdEffects {
+            // Wide, slow atmospheric dust over the stands — NOT a thin upward
+            // column (the constant up-direction + narrow spread read as a
+            // vertical streak on camera).
             let crowdNoise = SCNNode()
             let noiseParticles = SCNParticleSystem()
-            noiseParticles.birthRate = 5
-            noiseParticles.particleLifeSpan = 3
-            noiseParticles.particleSize = 0.01
+            noiseParticles.birthRate = 6
+            noiseParticles.particleLifeSpan = 6
+            noiseParticles.particleLifeSpanVariation = 2
+            noiseParticles.particleSize = 0.009
             noiseParticles.particleSizeVariation = 0.005
-            noiseParticles.particleColor = color.withAlphaComponent(0.1)
-            noiseParticles.emitterShape = SCNBox(width: CGFloat(width), height: 0.5, length: CGFloat(depth), chamferRadius: 0)
-            noiseParticles.spreadingAngle = 20
-            noiseParticles.particleVelocity = 0.1
-            noiseParticles.birthDirection = .constant
-            noiseParticles.emittingDirection = SCNVector3(0, 1, 0)
+            noiseParticles.particleColor = color.withAlphaComponent(0.08)
+            noiseParticles.emitterShape = SCNBox(width: CGFloat(width), height: 3.0, length: CGFloat(depth), chamferRadius: 0)
+            noiseParticles.spreadingAngle = 180
+            noiseParticles.particleVelocity = 0.04
+            noiseParticles.particleVelocityVariation = 0.03
+            noiseParticles.birthDirection = .random
             noiseParticles.blendMode = .additive
+            noiseParticles.isAffectedByGravity = false
             crowdNoise.addParticleSystem(noiseParticles)
-            crowdNoise.position = SCNVector3(0, 2, 0)
+            crowdNoise.position = SCNVector3(0, 1.6, 0)
             scene.rootNode.addChildNode(crowdNoise)
         }
     }
