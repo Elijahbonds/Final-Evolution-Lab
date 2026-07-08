@@ -25,6 +25,7 @@ _BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _BACKEND_DIR not in sys.path:
     sys.path.insert(0, _BACKEND_DIR)
 
+from lib.brainbrawl import is_brainbrawl_replay, validate_brainbrawl_replay  # noqa: E402
 from lib.dunk_scoring import DunkEngine3DInput, score_dunk, score_engine3d_dunk  # noqa: E402
 from lib.match_utils import derive_judge_offsets  # noqa: E402
 
@@ -37,6 +38,11 @@ def validate_replay(replay: Dict[str, Any]) -> List[str]:
     """Returns a list of human-readable mismatch descriptions (empty = OK)."""
     errors: List[str] = []
     meta = _meta(replay)
+
+    # Brain Brawl rounds (nexus/brainbrawl-demo): re-derive question order from
+    # the seed and re-score every answer from its echoed original inputs.
+    if is_brainbrawl_replay(meta):
+        return validate_brainbrawl_replay(replay)
     match_id = meta.get("match_id", "<unknown>")
     seed = meta.get("seed")
     judge_offsets = meta.get("judge_offsets") or []
