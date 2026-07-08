@@ -35,8 +35,11 @@ client = TestClient(app)
 
 SEED = 1234567890123456789  # fixed 64-bit seed for deterministic assertions
 FIXED_INPUTS = [
-    # (response_ms, latency_ms) per question; answers chosen below
-    (1200, 40), (3400, 40), (900, 40), (7000, 40), (2500, 40),
+    # (response_ms, latency_ms) per question; answers chosen below.
+    # All response_ms stay under the server's 1500 ms transport-grace window so
+    # the server-elapsed clamp never binds and scores are exactly reproducible
+    # regardless of test-machine speed (see routers/brainbrawl.py submit_answer).
+    (1200, 40), (1400, 40), (900, 40), (1300, 40), (700, 40),
 ]
 
 

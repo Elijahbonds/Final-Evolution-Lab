@@ -1,0 +1,382 @@
+{
+ "metadata": {
+  "match_id": "bbr_73f87eb9e687",
+  "mode_id": "brainbrawl_blitz",
+  "brainbrawl_mode": "blitz",
+  "seed": 424242424242,
+  "judge_offsets": [],
+  "category": null,
+  "content_hash": "db030e3fa59063e8",
+  "time_limit_ms": 10000,
+  "question_count": 6,
+  "players": [
+   "demo_player"
+  ],
+  "start_time": "2026-07-08T01:01:48.352851+00:00",
+  "finished_at": "2026-07-08T01:01:48.360538+00:00",
+  "status": "finished",
+  "export_version": "1.1",
+  "event_count": 20
+ },
+ "events": [
+  {
+   "type": "round_start",
+   "round_id": "bbr_73f87eb9e687",
+   "mode": "blitz",
+   "mode_id": "brainbrawl_blitz",
+   "seed": 424242424242,
+   "category": null,
+   "content_hash": "db030e3fa59063e8",
+   "time_limit_ms": 10000,
+   "question_count": 6,
+   "player_id": "demo_player",
+   "seq": 0,
+   "timestamp": "2026-07-08T01:01:48.352863+00:00"
+  },
+  {
+   "type": "question_presented",
+   "index": 0,
+   "question_id": "otdb_46580c2895",
+   "player_id": "demo_player",
+   "seq": 1,
+   "timestamp": "2026-07-08T01:01:48.352866+00:00"
+  },
+  {
+   "type": "answer_submitted",
+   "index": 0,
+   "question_id": "otdb_46580c2895",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     1
+    ],
+    "client_ts": 1783472508.354177,
+    "response_ms": 1500,
+    "claimed_response_ms": 1500,
+    "latency_ms": 60
+   },
+   "seq": 2,
+   "timestamp": "2026-07-08T01:01:48.356653+00:00"
+  },
+  {
+   "type": "answer_result",
+   "index": 0,
+   "question_id": "otdb_46580c2895",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     1
+    ],
+    "client_ts": 1783472508.354177,
+    "response_ms": 1500,
+    "claimed_response_ms": 1500,
+    "latency_ms": 60
+   },
+   "points": 139,
+   "raw_points": 139,
+   "streak_bonus": 0,
+   "full_correct": true,
+   "credit": [
+    1,
+    1
+   ],
+   "streak_after": 1,
+   "score_snapshot": {
+    "demo_player": 139
+   },
+   "seq": 3,
+   "timestamp": "2026-07-08T01:01:48.356666+00:00"
+  },
+  {
+   "type": "question_presented",
+   "index": 1,
+   "question_id": "otdb_ffc1640099",
+   "player_id": "demo_player",
+   "seq": 4,
+   "timestamp": "2026-07-08T01:01:48.356669+00:00"
+  },
+  {
+   "type": "answer_submitted",
+   "index": 1,
+   "question_id": "otdb_ffc1640099",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     1
+    ],
+    "client_ts": 1783472508.356993,
+    "response_ms": 1500,
+    "claimed_response_ms": 2200,
+    "latency_ms": 60
+   },
+   "seq": 5,
+   "timestamp": "2026-07-08T01:01:48.357552+00:00"
+  },
+  {
+   "type": "answer_result",
+   "index": 1,
+   "question_id": "otdb_ffc1640099",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     1
+    ],
+    "client_ts": 1783472508.356993,
+    "response_ms": 1500,
+    "claimed_response_ms": 2200,
+    "latency_ms": 60
+   },
+   "points": 0,
+   "raw_points": 0,
+   "streak_bonus": 0,
+   "full_correct": false,
+   "credit": [
+    0,
+    1
+   ],
+   "streak_after": 0,
+   "score_snapshot": {
+    "demo_player": 139
+   },
+   "seq": 6,
+   "timestamp": "2026-07-08T01:01:48.357555+00:00"
+  },
+  {
+   "type": "question_presented",
+   "index": 2,
+   "question_id": "otdb_d931b84bd2",
+   "player_id": "demo_player",
+   "seq": 7,
+   "timestamp": "2026-07-08T01:01:48.357557+00:00"
+  },
+  {
+   "type": "answer_submitted",
+   "index": 2,
+   "question_id": "otdb_d931b84bd2",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     3
+    ],
+    "client_ts": 1783472508.357763,
+    "response_ms": 1500,
+    "claimed_response_ms": 2900,
+    "latency_ms": 60
+   },
+   "seq": 8,
+   "timestamp": "2026-07-08T01:01:48.358245+00:00"
+  },
+  {
+   "type": "answer_result",
+   "index": 2,
+   "question_id": "otdb_d931b84bd2",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     3
+    ],
+    "client_ts": 1783472508.357763,
+    "response_ms": 1500,
+    "claimed_response_ms": 2900,
+    "latency_ms": 60
+   },
+   "points": 139,
+   "raw_points": 139,
+   "streak_bonus": 0,
+   "full_correct": true,
+   "credit": [
+    1,
+    1
+   ],
+   "streak_after": 1,
+   "score_snapshot": {
+    "demo_player": 278
+   },
+   "seq": 9,
+   "timestamp": "2026-07-08T01:01:48.358248+00:00"
+  },
+  {
+   "type": "question_presented",
+   "index": 3,
+   "question_id": "otdb_d6c2fad7e3",
+   "player_id": "demo_player",
+   "seq": 10,
+   "timestamp": "2026-07-08T01:01:48.358249+00:00"
+  },
+  {
+   "type": "answer_submitted",
+   "index": 3,
+   "question_id": "otdb_d6c2fad7e3",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     0
+    ],
+    "client_ts": 1783472508.3584268,
+    "response_ms": 1500,
+    "claimed_response_ms": 3600,
+    "latency_ms": 60
+   },
+   "seq": 11,
+   "timestamp": "2026-07-08T01:01:48.358878+00:00"
+  },
+  {
+   "type": "answer_result",
+   "index": 3,
+   "question_id": "otdb_d6c2fad7e3",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     0
+    ],
+    "client_ts": 1783472508.3584268,
+    "response_ms": 1500,
+    "claimed_response_ms": 3600,
+    "latency_ms": 60
+   },
+   "points": 0,
+   "raw_points": 0,
+   "streak_bonus": 0,
+   "full_correct": false,
+   "credit": [
+    0,
+    1
+   ],
+   "streak_after": 0,
+   "score_snapshot": {
+    "demo_player": 278
+   },
+   "seq": 12,
+   "timestamp": "2026-07-08T01:01:48.358881+00:00"
+  },
+  {
+   "type": "question_presented",
+   "index": 4,
+   "question_id": "fel_dd_007",
+   "player_id": "demo_player",
+   "seq": 13,
+   "timestamp": "2026-07-08T01:01:48.358882+00:00"
+  },
+  {
+   "type": "answer_submitted",
+   "index": 4,
+   "question_id": "fel_dd_007",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     0
+    ],
+    "client_ts": 1783472508.35907,
+    "response_ms": 1500,
+    "claimed_response_ms": 4300,
+    "latency_ms": 60
+   },
+   "seq": 14,
+   "timestamp": "2026-07-08T01:01:48.359668+00:00"
+  },
+  {
+   "type": "answer_result",
+   "index": 4,
+   "question_id": "fel_dd_007",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     0
+    ],
+    "client_ts": 1783472508.35907,
+    "response_ms": 1500,
+    "claimed_response_ms": 4300,
+    "latency_ms": 60
+   },
+   "points": 139,
+   "raw_points": 139,
+   "streak_bonus": 0,
+   "full_correct": true,
+   "credit": [
+    1,
+    1
+   ],
+   "streak_after": 1,
+   "score_snapshot": {
+    "demo_player": 417
+   },
+   "seq": 15,
+   "timestamp": "2026-07-08T01:01:48.359673+00:00"
+  },
+  {
+   "type": "question_presented",
+   "index": 5,
+   "question_id": "otdb_82c9084a82",
+   "player_id": "demo_player",
+   "seq": 16,
+   "timestamp": "2026-07-08T01:01:48.359676+00:00"
+  },
+  {
+   "type": "answer_submitted",
+   "index": 5,
+   "question_id": "otdb_82c9084a82",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     1
+    ],
+    "client_ts": 1783472508.3599901,
+    "response_ms": 1500,
+    "claimed_response_ms": 5000,
+    "latency_ms": 60
+   },
+   "seq": 17,
+   "timestamp": "2026-07-08T01:01:48.360534+00:00"
+  },
+  {
+   "type": "answer_result",
+   "index": 5,
+   "question_id": "otdb_82c9084a82",
+   "player_id": "demo_player",
+   "inputs": {
+    "selected": [
+     1
+    ],
+    "client_ts": 1783472508.3599901,
+    "response_ms": 1500,
+    "claimed_response_ms": 5000,
+    "latency_ms": 60
+   },
+   "points": 0,
+   "raw_points": 0,
+   "streak_bonus": 0,
+   "full_correct": false,
+   "credit": [
+    0,
+    1
+   ],
+   "streak_after": 0,
+   "score_snapshot": {
+    "demo_player": 417
+   },
+   "seq": 18,
+   "timestamp": "2026-07-08T01:01:48.360537+00:00"
+  },
+  {
+   "type": "round_end",
+   "round_id": "bbr_73f87eb9e687",
+   "score": {
+    "demo_player": 417
+   },
+   "total_normalized_ms": {
+    "demo_player": 8640
+   },
+   "standings": [
+    {
+     "player_id": "demo_player",
+     "score": 417,
+     "total_normalized_ms": 8640,
+     "rank": 1
+    }
+   ],
+   "tie_break_rule": "latency_normalized_time",
+   "seq": 19,
+   "timestamp": "2026-07-08T01:01:48.360543+00:00"
+  }
+ ]
+}
