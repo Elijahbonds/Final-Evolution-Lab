@@ -94,6 +94,18 @@ def _mk_question(qid, prompt, options, answer_indices, qtype, category, skill,
 
 # ── OpenTDB fetch ───────────────────────────────────────────────────────────
 
+def cached_opentdb() -> list:
+    """Reuse otdb_* questions already committed in the output JSON (keeps the
+    bank — and every seed->order derivation — stable across re-runs)."""
+    if not OUTPUT_PATH.exists():
+        return []
+    try:
+        doc = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+    except ValueError:
+        return []
+    return [q for q in doc.get("questions", []) if q["id"].startswith("otdb_")]
+
+
 def fetch_opentdb() -> list:
     """Fetch a starter set from OpenTDB. Returns [] on any network failure."""
     out, seen_prompts = [], set()
@@ -378,10 +390,19 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Seed Brain Brawl MOCK_CONTENT JSON")
     parser.add_argument("--offline", action="store_true",
                         help="Skip OpenTDB fetch; write original questions only")
+    parser.add_argument("--refresh-opentdb", action="store_true",
+                        help="Refetch from OpenTDB even when the output JSON "
+                             "already holds a fetched set (changes content_hash "
+                             "and invalidates recorded replays)")
     args = parser.parse_args()
 
     originals = original_questions()
-    fetched = [] if args.offline else fetch_opentdb()
+    if args.offline:
+        fetched = []
+    else:
+        fetched = [] if args.refresh_opentdb else cached_opentdb()
+        if not fetched:
+            fetched = fetch_opentdb()
     questions = originals + fetched
     # Stable order: originals first (they carry the deep-dive pool), then
     # fetched sorted by id so re-runs with identical content produce
