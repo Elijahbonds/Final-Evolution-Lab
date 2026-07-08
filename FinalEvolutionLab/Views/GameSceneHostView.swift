@@ -123,6 +123,11 @@ struct GameSceneHostView: UIViewRepresentable {
     var karateHitstopNonce: Int = 0
     var karateHitstopCritical: Bool = false
 
+    /// Fired the instant a player strike clip starts, reporting whether the two
+    /// fighters are close enough for the strike to connect (range gate). Lets
+    /// GamePlayView apply damage only when the strike would actually land.
+    var onKarateStrike: (_ inRange: Bool) -> Void = { _ in }
+
     func makeUIView(context: Context) -> UIView {
         if Nexus3DGameplayCoordinator.shouldUseHybridMetal(for: gameMode, explicit3D: useNexus3DEngine) {
             return context.coordinator.makeHybridView()
@@ -143,6 +148,7 @@ struct GameSceneHostView: UIViewRepresentable {
             context.coordinator.setDunkClipActive(isMidAir)
         }
         context.coordinator.isMidAir = isMidAir
+        context.coordinator.onKarateStrike = onKarateStrike
         if context.coordinator.lastKarateStrikeNonce != karateStrikeNonce {
             context.coordinator.lastKarateStrikeNonce = karateStrikeNonce
             if let asset = karateStrikeAsset {
@@ -209,6 +215,11 @@ struct GameSceneHostView: UIViewRepresentable {
         private var dunkClipNode: SCNNode?
         private var ai3v3: Basketball3v3AIController?
         var lastKarateStrikeNonce: Int = 0
+        var onKarateStrike: (_ inRange: Bool) -> Void = { _ in }
+        /// Max horizontal separation (meters) at which a player strike connects.
+        /// Spawn spacing is ~2.4m; this reach lets a strike land at spacing and
+        /// while closing, but a retreating player (>reach) whiffs.
+        private let karateStrikeReach: Float = 2.95
         private var strikeClipNode: SCNNode?
         private var strikeRestoreTask: Task<Void, Never>?
 
@@ -380,8 +391,14 @@ struct GameSceneHostView: UIViewRepresentable {
             guard gameMode == .karate || gameMode == .karateEndless,
                   let scene = activeSceneKitView?.scene,
                   let fighter = scene.rootNode.childNode(withName: "fighter1", recursively: true) else {
+                // Fail-soft: no scene yet — treat as in-range so combat still
+                // resolves (e.g. screenshot harness / early frames).
+                onKarateStrike(true)
                 return
             }
+            // Range gate: report whether the opponent is within reach the moment
+            // the strike fires, so GamePlayView applies damage only on connect.
+            onKarateStrike(karateFighterSeparation() <= karateStrikeReach)
             // Overlapping strike — tear down the active clip before starting.
             if let existing = strikeClipNode {
                 strikeRestoreTask?.cancel()
@@ -575,6 +592,17 @@ struct GameSceneHostView: UIViewRepresentable {
                 for clip in clips { self.setAnimationSpeed(1.0, on: clip) }
                 self.hitstopTask = nil
             }
+        }
+
+        /// Horizontal separation between the two fighters (meters). Used to gate
+        /// whether a player strike is close enough to connect. Falls back to the
+        /// spawn spacing (~2.4m apart) when a node is missing so combat still
+        /// resolves fail-soft.
+        func karateFighterSeparation() -> Float {
+            guard let scene = activeSceneKitView?.scene else { return 2.4 }
+            let f1 = scene.rootNode.childNode(withName: "fighter1", recursively: true)?.position ?? SCNVector3(-1.2, 0, 0)
+            let f2 = scene.rootNode.childNode(withName: "fighter2", recursively: true)?.position ?? SCNVector3(1.2, 0, 0)
+            return hypot(f1.x - f2.x, f1.z - f2.z)
         }
 
         private func setAnimationSpeed(_ speed: CGFloat, on node: SCNNode) {

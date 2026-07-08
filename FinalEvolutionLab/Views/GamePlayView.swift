@@ -270,6 +270,16 @@ struct GamePlayView: View {
     @State private var waveTickTask: Task<Void, Never>?
     @State private var showWaveClear = false
     @State private var karateVictory = false
+    /// 1v1 player HP (endless uses `waveEngine.playerHP`). KO drives match end.
+    static let karatePlayerMaxHP = 100
+    @State private var karatePlayerHP: Int = karatePlayerMaxHP
+    /// Set true when the player is defeated (1v1 loss / endless defeat) so the
+    /// results screen shows the KO outcome instead of the score winner.
+    @State private var karateDefeat = false
+    /// Range gate: updated by the scene host when a strike fires — true only if
+    /// the opponent is within reach, so a whiffed (out-of-range) strike deals
+    /// no damage. Defaults true so early frames / harness resolve fail-soft.
+    @State private var karateInStrikeRange = true
 
     var body: some View {
         ZStack {
@@ -400,6 +410,22 @@ struct GamePlayView: View {
             if showResults {
                 ResultScreen(
                     winner: {
+                        // Karate is decided by KO, not score. Endless is always a
+                        // "defeat" run (you play until you fall) — the score is
+                        // the achievement; a wave-survival finish still reads as
+                        // p1 unless the player was KO'd.
+                        if isKarate {
+                            if karateDefeat { return .p2 }
+                            if karateVictory { return .p1 }
+                            // Timer/exit with no KO: fall back to remaining HP.
+                            let oppFrac = opponentAI?.hpFraction ?? 0
+                            let playerFrac = gameMode.id == .karateEndless
+                                ? (waveEngine?.playerHPFraction ?? 1)
+                                : Double(karatePlayerHP) / Double(Self.karatePlayerMaxHP)
+                            if playerFrac > oppFrac { return .p1 }
+                            if oppFrac > playerFrac { return .p2 }
+                            return .draw
+                        }
                         switch VersusMatchOutcome.winnerSide(playerScore: score, opponentScore: opponentScore) {
                         case .playerWins: return .p1
                         case .opponentWins: return .p2
@@ -753,7 +779,8 @@ struct GamePlayView: View {
                 karateOpponentEventNonce: karateOpponentEventNonce,
                 karateOpponentEvent: karateOpponentEvent,
                 karateHitstopNonce: karateHitstopNonce,
-                karateHitstopCritical: karateHitstopCritical
+                karateHitstopCritical: karateHitstopCritical,
+                onKarateStrike: { inRange in karateInStrikeRange = inRange }
             )
             .clipShape(.rect(cornerRadius: 0))
 
@@ -3447,6 +3474,9 @@ struct GamePlayView: View {
         waveTickTask?.cancel(); waveTickTask = nil
         showWaveClear = false
         karateVictory = false
+        karateDefeat = false
+        karatePlayerHP = Self.karatePlayerMaxHP
+        karateInStrikeRange = true
         opponentAI = nil
         opponentHP = 0
         opponentMaxHP = 0
@@ -3473,7 +3503,7 @@ struct GamePlayView: View {
                 guard !Task.isCancelled, isActive else { return }
                 waveEngine?.tickSecond()
                 if let w = waveEngine {
-                    if w.isOver { endGame(); return }
+                    if w.isOver { handlePlayerDefeated(); return }
                     // Intermission just ended → new wave began → spawn its first
                     // opponent.
                     if w.wave != lastWave {
@@ -3511,6 +3541,16 @@ struct GamePlayView: View {
 
     private func performAction(_ action: String) {
         guard isActive else { return }
+
+        // Karate never uses the generic score/DDA path — it's a KO fight loop.
+        // A tap-anywhere on the scene throws a quick jab; face buttons route
+        // through performKarateStrike directly. Guarding this here also stops
+        // the DDA opponent-score generation below from firing for karate.
+        if isKarate {
+            performKarateStrike(.square)
+            return
+        }
+
         playerActionCount += 1
 
         let physics = leakageAdjustedPhysics
@@ -3545,9 +3585,9 @@ struct GamePlayView: View {
                 lastActionIsCritical = isCritical
                 lastActionIsBurst = arcadePhysics.neuralBurstActive
 
-                if isKarate {
-                    lastAction = karateSuccessFeedback(action: action, isCritical: isCritical, points: finalPoints)
-                } else if isCritical {
+                // Karate never reaches here (it returns early above and runs
+                // its own KO fight loop in resolveKarateStrike).
+                if isCritical {
                     criticalHits += 1
                     lastAction = "CRITICAL \(action.uppercased()) +\(finalPoints)"
                 } else if arcadePhysics.neuralBurstActive {
@@ -3561,20 +3601,7 @@ struct GamePlayView: View {
                 specialMeter = min(100, specialMeter + arcadePhysics.specialMeterGainRate * (isCritical ? 1.5 : 1.0))
             }
 
-            if isKarate {
-                withAnimation(.spring(response: 0.15)) {
-                    chakraBar = min(100, chakraBar + 22)
-                }
-                triggerKarateHitFlash()
-                // Punchier, tuned shake (audit flagged the old 0.5/0.8 as too
-                // subtle to read on-device).
-                triggerScreenShake(intensity: isCritical ? 1.6 : 1.15)
-                if isCritical {
-                    criticalHits += 1
-                    triggerCriticalFlash()
-                }
-                resolveKarateHit(isCritical: isCritical, basePoints: basePoints)
-            } else if isCritical {
+            if isCritical {
                 triggerCriticalFlash()
                 triggerScreenShake(intensity: 0.6)
             } else {
@@ -3592,13 +3619,7 @@ struct GamePlayView: View {
         } else {
             withAnimation(.spring(response: 0.3)) {
                 combo = 0
-                if isKarate {
-                    karateCombo.reset()
-                    lastAction = karateFailFeedback()
-                    chakraBar = max(0, chakraBar - 10)
-                } else {
-                    lastAction = "MISSED"
-                }
+                lastAction = "MISSED"
                 lastActionIsCritical = false
                 lastActionIsBurst = false
             }
@@ -3683,6 +3704,11 @@ struct GamePlayView: View {
                     Spacer()
                 }
                 karateHPBar(label: "YOU", fraction: wave.playerHPFraction,
+                            color: FELDesign.Colors.cyan)
+            } else {
+                // 1v1: player HP bar (KO ends the match).
+                karateHPBar(label: "YOU",
+                            fraction: Double(karatePlayerHP) / Double(Self.karatePlayerMaxHP),
                             color: FELDesign.Colors.cyan)
             }
             if let ai = opponentAI, opponentMaxHP > 0, !ai.isDefeated || gameMode.id == .karate {
@@ -3775,11 +3801,22 @@ struct GamePlayView: View {
 
     // MARK: - Karate combat resolution
 
-    /// Called on every landed player strike: advances the combo tracker,
-    /// fires the impact hitstop + contact burst, applies damage to the local
-    /// opponent AI (staggering it / spawning the next wave opponent), scores
-    /// the endless wave, and awards named-combo bonuses.
-    private func resolveKarateHit(isCritical: Bool, basePoints: Int) {
+    /// Base contact damage per strike button before combo/critical scaling.
+    private func karateStrikeDamage(for button: ArenaPadFaceButton) -> Int {
+        switch button {
+        case .square: return 7    // jab — fast, light
+        case .circle: return 10   // hook
+        case .cross: return 13    // uppercut
+        case .triangle: return 15 // roundhouse — heavy, slow
+        }
+    }
+
+    /// Resolve a player strike. Always plays feedback/combo; applies damage to
+    /// the opponent HP only when the strike CONNECTS — the opponent is within
+    /// reach (range gate) and is not guarding. A whiffed or guarded strike
+    /// keeps the combo alive visually but deals no HP damage. On a killing hit
+    /// it routes to KO / wave-clear via handleOpponentDefeated.
+    private func resolveKarateStrike(button: ArenaPadFaceButton, isCritical: Bool, basePoints: Int) {
         let now = CACurrentMediaTime()
         let count = karateCombo.register(at: now)
         withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
@@ -3788,11 +3825,56 @@ struct GamePlayView: View {
         }
         scheduleComboExpiry()
 
-        // Impact hitstop + contact burst.
+        // Impact hitstop + contact burst + hit flash + shake.
         karateHitstopCritical = isCritical
         karateHitstopNonce += 1
+        triggerKarateHitFlash()
+        triggerScreenShake(intensity: isCritical ? 1.6 : 1.15)
+        if isCritical {
+            criticalHits += 1
+            triggerCriticalFlash()
+        }
+        hapticSuccess(isCritical: isCritical)
+        FELSoundscapeEngine.shared.triggerCheer(intensity: isCritical ? 1.0 : 0.65)
+        FELSoundscapeEngine.shared.combo = combo
 
-        // Named-combo flourish.
+        // Chakra / special meter gains (secondary meter).
+        withAnimation(.spring(response: 0.15)) {
+            chakraBar = min(100, chakraBar + 22)
+        }
+        withAnimation(.spring(response: 0.2)) {
+            specialMeter = min(100, specialMeter + arcadePhysics.specialMeterGainRate * (isCritical ? 1.5 : 1.0))
+        }
+
+        // Connection check: out of range → whiff (no damage, no score).
+        guard karateInStrikeRange, var ai = opponentAI, !ai.isDefeated else {
+            withAnimation { lastAction = "WHIFF!" }
+            return
+        }
+        // Opponent guarding → chip nothing, show GUARDED.
+        if ai.isBlocking {
+            withAnimation { lastAction = "GUARDED!" }
+            return
+        }
+
+        // Landed hit — score + damage.
+        let scored = Int((Double(basePoints + (isCritical ? 3 : 1)) * karateCombo.multiplier).rounded())
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+            score += max(1, scored)
+            lastAction = karateSuccessFeedback(action: "STRIKE", isCritical: isCritical, points: max(1, scored))
+        }
+
+        let dmgBase = karateStrikeDamage(for: button) + (isCritical ? 8 : 0)
+        let dmg = Int((Double(dmgBase) * karateCombo.multiplier).rounded())
+        ai.takeDamage(dmg, now: now)
+        opponentAI = ai
+        opponentHP = ai.hp
+        // Opponent visual stagger.
+        karateOpponentEvent = .stagger
+        karateOpponentEventNonce += 1
+        FELGameplayEventBus.postScored()
+
+        // Named-combo flourish (only on landed hits).
         if let named = KarateNamedCombo.detect(in: recentStrikeButtons) {
             score += named.bonusPoints
             withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
@@ -3805,21 +3887,6 @@ struct GamePlayView: View {
                 withAnimation { showComboChain = false }
             }
         }
-
-        // Damage the opponent (respecting its guard).
-        guard var ai = opponentAI else { return }
-        if ai.isBlocking {
-            withAnimation { lastAction = "GUARDED!" }
-            return
-        }
-        let dmgBase = isCritical ? basePoints + 8 : basePoints + 4
-        let dmg = Int((Double(dmgBase) * karateCombo.multiplier).rounded())
-        ai.takeDamage(dmg, now: now)
-        opponentAI = ai
-        opponentHP = ai.hp
-        // Opponent visual stagger.
-        karateOpponentEvent = .stagger
-        karateOpponentEventNonce += 1
 
         if gameMode.id == .karateEndless {
             waveEngine?.registerPlayerHit(basePoints: basePoints, comboMultiplier: karateCombo.multiplier)
@@ -3957,12 +4024,38 @@ struct GamePlayView: View {
         triggerScreenShake(intensity: 0.5)
         combo = 0
         karateCombo.reset()
+        hapticFail()
         withAnimation(.spring(response: 0.25)) { lastAction = "HIT! -\(attack.damage)" }
         if gameMode.id == .karateEndless {
             waveEngine?.registerPlayerDamage(attack.damage)
             if let w = waveEngine, w.isOver {
-                endGame()
+                handlePlayerDefeated()
             }
+        } else {
+            // 1v1: deplete the player HP bar; KO ends the match as a loss.
+            withAnimation(.spring(response: 0.35)) {
+                karatePlayerHP = max(0, karatePlayerHP - attack.damage)
+            }
+            if karatePlayerHP <= 0 {
+                handlePlayerDefeated()
+            }
+        }
+    }
+
+    /// Player KO'd (1v1 loss or endless defeat): stop the fight and route to the
+    /// results overlay with the defeat outcome.
+    private func handlePlayerDefeated() {
+        guard isActive else { return }
+        karateDefeat = true
+        karateVictory = false
+        opponentAITask?.cancel(); opponentAITask = nil
+        waveTickTask?.cancel(); waveTickTask = nil
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) {
+            lastAction = "K.O."
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(1.4))
+            endGame()
         }
     }
 
@@ -5169,20 +5262,12 @@ struct GamePlayView: View {
         }
 
         if isKarate {
-            // Visual strike clip (retargeted Meshy presets on the Elijah rig)
-            // fires alongside the existing action/scoring path.
-            let strike: FELBundledAsset
-            switch button {
-            case .square: strike = .elijahStrikeJab
-            case .circle: strike = .elijahStrikeHook
-            case .triangle: strike = .elijahStrikeRoundhouse
-            case .cross: strike = .elijahStrikeUppercut
-            }
-            karateStrikeAsset = strike
-            karateStrikeNonce += 1
-            // Record the input for named-combo detection (tail of last 6).
-            recentStrikeButtons.append(button)
-            if recentStrikeButtons.count > 6 { recentStrikeButtons.removeFirst() }
+            // Karate is a real fight loop — the face buttons ONLY fire strikes,
+            // never the basketball performAction("Dunk"/"Shoot"/…) fall-through
+            // below. Damage is applied on connect (range + opponent not
+            // guarding) inside performKarateStrike.
+            performKarateStrike(button)
+            return
         }
 
         switch button {
@@ -5195,6 +5280,35 @@ struct GamePlayView: View {
         case .cross:
             performAction("Style")
         }
+    }
+
+    /// Maps a face button to a karate strike: plays the clip, records the input
+    /// for named-combo detection, then resolves the hit (damage on connect).
+    /// This replaces the basketball performAction fall-through for karate so a
+    /// strike is deterministic (it lands if in range and the opponent isn't
+    /// guarding) rather than a random shot-success roll.
+    private func performKarateStrike(_ button: ArenaPadFaceButton) {
+        guard isActive, isKarate else { return }
+        let strike: FELBundledAsset
+        switch button {
+        case .square: strike = .elijahStrikeJab
+        case .circle: strike = .elijahStrikeHook
+        case .triangle: strike = .elijahStrikeRoundhouse
+        case .cross: strike = .elijahStrikeUppercut
+        }
+        // Fire the visual clip; the scene host reports connect range back via
+        // onKarateStrike (updates karateInStrikeRange before we resolve).
+        karateStrikeAsset = strike
+        karateStrikeNonce += 1
+        // Record the input for named-combo detection (tail of last 6).
+        recentStrikeButtons.append(button)
+        if recentStrikeButtons.count > 6 { recentStrikeButtons.removeFirst() }
+
+        playerActionCount += 1
+        let physics = leakageAdjustedPhysics
+        let isCritical = Double.random(in: 0...1) < physics.criticalHitChance
+        let basePoints = pointsForAction("Strike", success: true)
+        resolveKarateStrike(button: button, isCritical: isCritical, basePoints: basePoints)
     }
 
     private func handlePS2DPad(_ direction: ArenaPadDPadDirection) {
@@ -5253,6 +5367,14 @@ struct GamePlayView: View {
         if isDunkContest {
             styleTriggerHeld.toggle()
             dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
+            return
+        }
+        // Karate: the left shoulder is GUARD. Arms the perfect-guard window so an
+        // incoming opponent strike is blocked/countered (see resolveOpponentAttack
+        // → resolveCombatOnHit). The window auto-expires in CombatInputResolver.
+        if isKarate {
+            handleBlock()
+            withAnimation(.spring(response: 0.15)) { lastAction = "GUARD" }
             return
         }
         withAnimation(.spring(response: 0.2)) {
