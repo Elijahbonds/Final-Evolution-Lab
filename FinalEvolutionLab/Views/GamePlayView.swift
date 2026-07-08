@@ -248,6 +248,28 @@ struct GamePlayView: View {
     @State private var karateStrikeNonce = 0
     @State private var karateStrikeAsset: FELBundledAsset?
 
+    // MARK: - Karate Excellence: combo / opponent AI / waves
+    @State private var karateCombo = KarateComboTracker()
+    @State private var recentStrikeButtons: [ArenaPadFaceButton] = []
+    @State private var comboExpiryTask: Task<Void, Never>?
+    /// Opponent (fighter2) animation event bridge.
+    @State private var karateOpponentEventNonce = 0
+    @State private var karateOpponentEvent: KarateOpponentEvent?
+    /// Impact hitstop + contact-burst bridge.
+    @State private var karateHitstopNonce = 0
+    @State private var karateHitstopCritical = false
+    /// Local deterministic opponent AI (1v1 + each endless opponent).
+    @State private var opponentAI: KarateOpponentAI?
+    @State private var opponentHP: Int = 0
+    @State private var opponentMaxHP: Int = 0
+    @State private var opponentAITask: Task<Void, Never>?
+    @State private var pendingOpponentAttack: KarateOpponentAI.Attack?
+    /// Local survival-wave engine (karateEndless).
+    @State private var waveEngine: KarateEndlessWaveEngine?
+    @State private var waveTickTask: Task<Void, Never>?
+    @State private var showWaveClear = false
+    @State private var karateVictory = false
+
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
@@ -726,12 +748,20 @@ struct GamePlayView: View {
                 isSlowMotion: isSlowMo,
                 avatarAppearance: GameplayAvatarAppearance.fromProfile(viewModel.profile),
                 karateStrikeNonce: karateStrikeNonce,
-                karateStrikeAsset: karateStrikeAsset
+                karateStrikeAsset: karateStrikeAsset,
+                karateOpponentEventNonce: karateOpponentEventNonce,
+                karateOpponentEvent: karateOpponentEvent,
+                karateHitstopNonce: karateHitstopNonce,
+                karateHitstopCritical: karateHitstopCritical
             )
             .clipShape(.rect(cornerRadius: 0))
 
             if !sceneViewportReady {
                 sceneViewportLoadingOverlay
+            }
+
+            if isKarate {
+                karateCombatOverlay
             }
 
             if combo > 1 {
@@ -742,12 +772,16 @@ struct GamePlayView: View {
                         VStack(spacing: FELDesign.Space.xxs) {
                             Text(isKarate ? "\(combo) HIT COMBO!" : "\(combo)x COMBO")
                                 .font(FELDesign.Typography.stat)
-                                .foregroundStyle(combo >= 5 ? FELDesign.Colors.cyan : FELDesign.Colors.textPrimary)
-                            if !isKarate {
-                                Text(String(format: "%.1fx", arcadePhysics.comboMultiplier(for: combo)))
-                                    .font(FELDesign.Typography.statSmall)
-                                    .foregroundStyle(FELDesign.Colors.textSecondary)
+                                .foregroundStyle(comboColor)
+                            Group {
+                                if isKarate {
+                                    Text(karateComboSubtitle)
+                                } else {
+                                    Text(String(format: "%.1fx", arcadePhysics.comboMultiplier(for: combo)))
+                                }
                             }
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(combo >= 8 ? FELDesign.Colors.purple : FELDesign.Colors.textSecondary)
                         }
                         .padding(.horizontal, FELDesign.Space.md)
                         .padding(.vertical, FELDesign.Space.xs)
@@ -755,9 +789,12 @@ struct GamePlayView: View {
                         .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                         .overlay(
                             RoundedRectangle(cornerRadius: FELDesign.Radius.md)
-                                .stroke(combo >= 5 ? FELDesign.Colors.glow(FELDesign.Colors.cyan) : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
+                                .stroke(combo >= 5 ? FELDesign.Colors.glow(comboColor, 0.55) : FELDesign.Colors.hairline,
+                                        lineWidth: combo >= 5 ? FELDesign.Stroke.accent : FELDesign.Stroke.hairline)
                         )
-                        .scaleEffect(combo >= 5 ? 1.1 : 1.0)
+                        .shadow(color: combo >= 5 ? FELDesign.Colors.glow(comboColor, 0.6) : .clear,
+                                radius: combo >= 8 ? 12 : 6)
+                        .scaleEffect(1.0 + min(CGFloat(combo), 12) * 0.02)
                         .animation(.spring(response: 0.2, dampingFraction: 0.5), value: combo)
                         .padding(FELDesign.Space.md)
                     }
@@ -3444,6 +3481,52 @@ struct GamePlayView: View {
             timeRemaining = max(1, gameRules.matchDurationSeconds)
             startTimer()
         }
+
+        // Karate Excellence: reset combo/opponent/wave state and spin up the
+        // deterministic opponent AI (+ local wave engine for endless).
+        karateCombo.reset()
+        recentStrikeButtons.removeAll()
+        comboExpiryTask?.cancel(); comboExpiryTask = nil
+        opponentAITask?.cancel(); opponentAITask = nil
+        waveTickTask?.cancel(); waveTickTask = nil
+        showWaveClear = false
+        karateVictory = false
+        opponentAI = nil
+        opponentHP = 0
+        opponentMaxHP = 0
+        pendingOpponentAttack = nil
+        if isKarate {
+            if gameMode.id == .karateEndless {
+                waveEngine = KarateEndlessWaveEngine()
+                startKarateWaveTick()
+            } else {
+                waveEngine = nil
+            }
+            spawnKarateOpponent()
+        } else {
+            waveEngine = nil
+        }
+    }
+
+    private func startKarateWaveTick() {
+        waveTickTask?.cancel()
+        waveTickTask = Task { @MainActor in
+            var lastWave = waveEngine?.wave ?? 1
+            while !Task.isCancelled, isActive {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled, isActive else { return }
+                waveEngine?.tickSecond()
+                if let w = waveEngine {
+                    if w.isOver { endGame(); return }
+                    // Intermission just ended → new wave began → spawn its first
+                    // opponent.
+                    if w.wave != lastWave {
+                        lastWave = w.wave
+                        if opponentAI == nil { spawnKarateOpponent() }
+                    }
+                }
+            }
+        }
     }
 
     private func resetGame() {
@@ -3523,15 +3606,18 @@ struct GamePlayView: View {
             }
 
             if isKarate {
-                withAnimation(.spring(response: 0.2)) {
-                    chakraBar = min(100, chakraBar + 25)
+                withAnimation(.spring(response: 0.15)) {
+                    chakraBar = min(100, chakraBar + 22)
                 }
                 triggerKarateHitFlash()
-                triggerScreenShake(intensity: isCritical ? 0.8 : 0.5)
+                // Punchier, tuned shake (audit flagged the old 0.5/0.8 as too
+                // subtle to read on-device).
+                triggerScreenShake(intensity: isCritical ? 1.6 : 1.15)
                 if isCritical {
                     criticalHits += 1
                     triggerCriticalFlash()
                 }
+                resolveKarateHit(isCritical: isCritical, basePoints: basePoints)
             } else if isCritical {
                 triggerCriticalFlash()
                 triggerScreenShake(intensity: 0.6)
@@ -3551,6 +3637,7 @@ struct GamePlayView: View {
             withAnimation(.spring(response: 0.3)) {
                 combo = 0
                 if isKarate {
+                    karateCombo.reset()
                     lastAction = karateFailFeedback()
                     chakraBar = max(0, chakraBar - 10)
                 } else {
@@ -3612,6 +3699,100 @@ struct GamePlayView: View {
         }
     }
 
+    // MARK: - Karate Excellence HUD
+
+    /// White → cyan → gold color ramp by combo depth.
+    private var comboColor: Color {
+        if combo >= 8 { return Color(red: 1.0, green: 0.82, blue: 0.25) }   // gold
+        if combo >= 5 { return FELDesign.Colors.cyan }
+        return FELDesign.Colors.textPrimary
+    }
+
+    private var karateComboSubtitle: String {
+        let label = karateCombo.tierLabel
+        let mult = String(format: "%.2fx", karateCombo.multiplier)
+        return label.isEmpty ? mult : "\(label)  \(mult)"
+    }
+
+    /// Opponent HP bar (1v1) or wave/score/HP survival HUD (endless), plus the
+    /// between-round "WAVE CLEARED" beat and victory/defeat banner.
+    @ViewBuilder
+    private var karateCombatOverlay: some View {
+        VStack(spacing: 6) {
+            if gameMode.id == .karateEndless, let wave = waveEngine {
+                HStack(spacing: 10) {
+                    karateChip("WAVE", "\(wave.wave)")
+                    karateChip("SCORE", "\(wave.score)")
+                    karateChip("TIME", timeString(wave.elapsedSeconds))
+                    Spacer()
+                }
+                karateHPBar(label: "YOU", fraction: wave.playerHPFraction,
+                            color: FELDesign.Colors.cyan)
+            }
+            if let ai = opponentAI, opponentMaxHP > 0, !ai.isDefeated || gameMode.id == .karate {
+                karateHPBar(label: gameMode.id == .karateEndless ? "ENEMY" : "OPPONENT",
+                            fraction: ai.hpFraction,
+                            color: Color(red: 1.0, green: 0.4, blue: 0.3))
+            }
+            Spacer()
+        }
+        .padding(.horizontal, FELDesign.Space.md)
+        .padding(.top, 56)
+        .allowsHitTesting(false)
+
+        if showWaveClear {
+            VStack {
+                Spacer()
+                Text(karateVictory ? "SURVIVED!" : "WAVE \(waveEngine?.lastClearedWave ?? 0) CLEARED")
+                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color(red: 1.0, green: 0.82, blue: 0.25))
+                    .shadow(color: FELDesign.Colors.glow(FELDesign.Colors.cyan, 0.7), radius: 16)
+                    .scaleEffect(showWaveClear ? 1.0 : 0.6)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.55), value: showWaveClear)
+                Spacer()
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    private func karateChip(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(FELDesign.Colors.textSecondary)
+            Text(value)
+                .font(FELDesign.Typography.stat)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(FELDesign.Colors.surface.opacity(0.8))
+        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
+    }
+
+    private func karateHPBar(label: String, fraction: Double, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(FELDesign.Colors.textSecondary)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.12))
+                    Capsule()
+                        .fill(color)
+                        .frame(width: max(0, geo.size.width * CGFloat(max(0, min(1, fraction)))))
+                        .shadow(color: FELDesign.Colors.glow(color, 0.6), radius: 4)
+                        .animation(.spring(response: 0.35), value: fraction)
+                }
+            }
+            .frame(height: 7)
+        }
+    }
+
+    private func timeString(_ seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+
     // MARK: - Karate Feedback
 
     private func karateSuccessFeedback(action: String, isCritical: Bool, points: Int) -> String {
@@ -3633,6 +3814,199 @@ struct GamePlayView: View {
         Task {
             try? await Task.sleep(for: .milliseconds(120))
             withAnimation(.easeIn(duration: 0.1)) { karateHitFlash = false }
+        }
+    }
+
+    // MARK: - Karate combat resolution
+
+    /// Called on every landed player strike: advances the combo tracker,
+    /// fires the impact hitstop + contact burst, applies damage to the local
+    /// opponent AI (staggering it / spawning the next wave opponent), scores
+    /// the endless wave, and awards named-combo bonuses.
+    private func resolveKarateHit(isCritical: Bool, basePoints: Int) {
+        let now = CACurrentMediaTime()
+        let count = karateCombo.register(at: now)
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+            combo = count
+            maxCombo = max(maxCombo, combo)
+        }
+        scheduleComboExpiry()
+
+        // Impact hitstop + contact burst.
+        karateHitstopCritical = isCritical
+        karateHitstopNonce += 1
+
+        // Named-combo flourish.
+        if let named = KarateNamedCombo.detect(in: recentStrikeButtons) {
+            score += named.bonusPoints
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
+                comboChainText = "\(named.displayName) +\(named.bonusPoints)"
+                showComboChain = true
+            }
+            recentStrikeButtons.removeAll()
+            Task {
+                try? await Task.sleep(for: .seconds(1.1))
+                withAnimation { showComboChain = false }
+            }
+        }
+
+        // Damage the opponent (respecting its guard).
+        guard var ai = opponentAI else { return }
+        if ai.isBlocking {
+            withAnimation { lastAction = "GUARDED!" }
+            return
+        }
+        let dmgBase = isCritical ? basePoints + 8 : basePoints + 4
+        let dmg = Int((Double(dmgBase) * karateCombo.multiplier).rounded())
+        ai.takeDamage(dmg, now: now)
+        opponentAI = ai
+        opponentHP = ai.hp
+        // Opponent visual stagger.
+        karateOpponentEvent = .stagger
+        karateOpponentEventNonce += 1
+
+        if gameMode.id == .karateEndless {
+            waveEngine?.registerPlayerHit(basePoints: basePoints, comboMultiplier: karateCombo.multiplier)
+            if let w = waveEngine { score = w.score }
+        }
+
+        if ai.isDefeated {
+            handleOpponentDefeated()
+        }
+    }
+
+    private func scheduleComboExpiry() {
+        comboExpiryTask?.cancel()
+        comboExpiryTask = Task {
+            try? await Task.sleep(for: .seconds(KarateComboTracker.comboResetWindow + 0.05))
+            guard !Task.isCancelled else { return }
+            if karateCombo.tickExpiry(now: CACurrentMediaTime()) {
+                withAnimation(.easeOut(duration: 0.3)) { combo = 0 }
+            }
+        }
+    }
+
+    private func handleOpponentDefeated() {
+        if gameMode.id == .karateEndless {
+            let cleared = waveEngine?.registerOpponentDefeated() ?? false
+            if let w = waveEngine {
+                score = w.score
+                opponentHP = 0
+            }
+            if cleared {
+                // Intermission beat: the wave tick advances the wave and the
+                // next opponent spawns when combat resumes (see wave tick).
+                opponentAITask?.cancel(); opponentAITask = nil
+                opponentAI = nil
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) { showWaveClear = true }
+                Task {
+                    try? await Task.sleep(for: .seconds(2.2))
+                    withAnimation { showWaveClear = false }
+                }
+            } else {
+                // Next opponent in the same wave.
+                Task {
+                    try? await Task.sleep(for: .milliseconds(550))
+                    if isActive, !(waveEngine?.isOver ?? true) { spawnKarateOpponent() }
+                }
+            }
+        } else {
+            // 1v1 victory.
+            karateVictory = true
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) {
+                showWaveClear = true
+                lastAction = "K.O.!"
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(1.6))
+                endGame()
+            }
+        }
+    }
+
+    // MARK: - Karate opponent AI + waves lifecycle
+
+    /// Build a fresh opponent for the current mode/wave and start (or restart)
+    /// the deterministic AI tick loop.
+    private func spawnKarateOpponent() {
+        let seedBase = GameplaySeed.uint64(from: matchSessionId)
+        let difficulty: KarateOpponentAI.Difficulty
+        let waveSalt: UInt64
+        if gameMode.id == .karateEndless, let w = waveEngine {
+            difficulty = w.currentDifficulty
+            waveSalt = UInt64(w.wave) &* 0x9E37 &+ UInt64(w.opponentsClearedThisWave)
+        } else {
+            difficulty = .normal
+            waveSalt = 0x1F2E
+        }
+        let ai = KarateOpponentAI(difficulty: difficulty, seed: seedBase &+ waveSalt &+ 0xA1)
+        opponentAI = ai
+        opponentMaxHP = ai.maxHP
+        opponentHP = ai.hp
+        startKarateOpponentTick()
+    }
+
+    private func startKarateOpponentTick() {
+        opponentAITask?.cancel()
+        opponentAITask = Task { @MainActor in
+            var lastIntent: KarateOpponentAI.Intent = .idle
+            while !Task.isCancelled, isActive {
+                if var ai = opponentAI, !ai.isDefeated {
+                    let now = CACurrentMediaTime()
+                    let intent = ai.tick(now: now)
+                    opponentAI = ai
+                    if intent != lastIntent {
+                        applyOpponentIntent(intent)
+                        lastIntent = intent
+                    }
+                }
+                try? await Task.sleep(for: .milliseconds(60))
+            }
+        }
+    }
+
+    /// Translate an AI intent into scene events + player-side consequences.
+    private func applyOpponentIntent(_ intent: KarateOpponentAI.Intent) {
+        switch intent {
+        case .idle:
+            break
+        case .telegraph(let attack, _):
+            pendingOpponentAttack = attack
+            karateOpponentEvent = .telegraph(duration: 0.4)
+            karateOpponentEventNonce += 1
+        case .strike(let attack):
+            karateOpponentEvent = .strike(attack.asset)
+            karateOpponentEventNonce += 1
+            resolveOpponentAttack(attack)
+            pendingOpponentAttack = nil
+        case .block:
+            karateOpponentEvent = .guard(duration: 0.5)
+            karateOpponentEventNonce += 1
+        case .stagger:
+            break   // stagger visual already fired from resolveKarateHit
+        }
+    }
+
+    /// The opponent's strike resolves: if the player is guarding (block held in
+    /// the perfect-guard window) it's blocked/countered via the existing combat
+    /// resolver; otherwise the player takes damage.
+    private func resolveOpponentAttack(_ attack: KarateOpponentAI.Attack) {
+        guard isActive, isKarate else { return }
+        let guarding = blockTimestamp > 0
+        if guarding {
+            resolveCombatOnHit()   // perfect-guard / vanish-counter / block path
+            return
+        }
+        // Unblocked hit on the player.
+        triggerScreenShake(intensity: 0.5)
+        combo = 0
+        karateCombo.reset()
+        withAnimation(.spring(response: 0.25)) { lastAction = "HIT! -\(attack.damage)" }
+        if gameMode.id == .karateEndless {
+            waveEngine?.registerPlayerDamage(attack.damage)
+            if let w = waveEngine, w.isOver {
+                endGame()
+            }
         }
     }
 
@@ -4004,6 +4378,12 @@ struct GamePlayView: View {
         timeScaleUpdateTask = nil
         gameTimerTask?.cancel()
         gameTimerTask = nil
+        opponentAITask?.cancel()
+        opponentAITask = nil
+        waveTickTask?.cancel()
+        waveTickTask = nil
+        comboExpiryTask?.cancel()
+        comboExpiryTask = nil
         isSlowMo = false
         showTrickText = false
         showComboChain = false
@@ -4838,6 +5218,9 @@ struct GamePlayView: View {
             }
             karateStrikeAsset = strike
             karateStrikeNonce += 1
+            // Record the input for named-combo detection (tail of last 6).
+            recentStrikeButtons.append(button)
+            if recentStrikeButtons.count > 6 { recentStrikeButtons.removeFirst() }
         }
 
         switch button {
