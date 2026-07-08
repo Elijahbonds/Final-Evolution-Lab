@@ -804,13 +804,16 @@ struct GameSceneFactory {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.03, green: 0.01, blue: 0.01, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 3.5, 6.5), lookAt: SCNVector3(0, 1.2, 0))
+        // Fighting-game side view: close + low, centered between the two
+        // fighters (x=±1.2, grounded below) at chest height. Was (0,3.5,6.5)
+        // which shrank them to specks over a huge floor.
+        addCamera(to: scene, position: SCNVector3(0, 1.7, 4.5), lookAt: SCNVector3(0, 1.0, 0))
         addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.2, blue: 0.1, alpha: 1))
-        // Lower the dojo floor's mirror reflectivity: the reflective SCNFloor
-        // was bouncing the key spot into a clipped white/pink hotspot between
-        // the fighters (adversarial review). This is a material change only —
-        // the lighting rig stays authoritative and untouched.
-        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1), reflectivity: 0.035)
+        // Matte dojo floor (reflectivity 0): the reflective SCNFloor bounced the
+        // key spot into a clipped white/pink hotspot between the fighters. The
+        // dojo cluster lighting is also dropped to interior levels (see
+        // PremiumViewpointConfig .dojo) so the floor no longer blows out.
+        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1), reflectivity: 0.0)
 
         let mat = SCNBox(width: 6, height: 0.05, length: 6, chamferRadius: 0)
         let matMaterial = SCNMaterial()
@@ -897,6 +900,22 @@ struct GameSceneFactory {
             scene.rootNode.addChildNode(opponent)
         } else {
             addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan, name: "fighter2")
+        }
+
+        // Ground both fighters onto the mat. The skinned container's origin
+        // sits well below the feet (feet import ~2.5 world-units up), so without
+        // this the fighters float high above the floor and the camera frames
+        // empty mat. Measure each foot joint's world Y (node is now in the
+        // graph) and drop the node so the feet rest at y≈0. Targeted to the two
+        // dojo fighters — NOT the global normalizer (whose blind offset
+        // overcorrected other modes).
+        for name in ["fighter1", "fighter2"] {
+            guard let f = scene.rootNode.childNode(withName: name, recursively: false) else { continue }
+            let footNode = f.childNode(withName: "LeftFoot", recursively: true)
+                ?? f.childNode(withName: "RightFoot", recursively: true)
+            if let footY = footNode?.worldPosition.y, footY.isFinite {
+                f.position.y -= footY
+            }
         }
 
         addKarateAnimations(to: scene)

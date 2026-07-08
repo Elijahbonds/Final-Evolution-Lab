@@ -132,9 +132,12 @@ enum PremiumViewpointConfig {
             fovNormal: 54, fovAction: 44
         ),
         .dojo: ChaseCamera(
-            offsetX: 0, offsetY: 5.0, offsetZ: 9.0,
-            lookAtY: 1.25, followSpeed: 7.5, targetSpeed: 9.5,
-            fovNormal: 57, fovAction: 47
+            // Fighting-game side view framing BOTH fighters — was a far/high
+            // chase (5.0/9.0) that shrank the pair to specks over a vast floor.
+            // Pulled in close and low, centered on the mat midpoint.
+            offsetX: 0, offsetY: 2.4, offsetZ: 5.4,
+            lookAtY: 1.4, followSpeed: 7.5, targetSpeed: 9.5,
+            fovNormal: 52, fovAction: 44
         ),
         .stadium: ChaseCamera(
             offsetX: 0.5, offsetY: 7.2, offsetZ: 11.0,
@@ -225,8 +228,13 @@ enum PremiumViewpointConfig {
             spotIntensity: 1500, exposureOffset: 0.55
         ),
         .dojo: Lighting(
-            ambientIntensity: 980, venueFillIntensity: 760, avatarFillIntensity: 1050,
-            spotIntensity: 1350, exposureOffset: 0.5
+            // Interior dusk dojo — was copied from the bright outdoor basketball
+            // preset (980/760/1350) which blasted the reflective mat into a
+            // clipped white/pink hotspot between the fighters. Dropped to
+            // moody-interior levels: fighters stay well-lit via avatarFill while
+            // the key spot no longer blows out the floor.
+            ambientIntensity: 500, venueFillIntensity: 360, avatarFillIntensity: 780,
+            spotIntensity: 540, exposureOffset: 0.5
         ),
         .stadium: Lighting(
             ambientIntensity: 430, venueFillIntensity: 300, avatarFillIntensity: 460,
