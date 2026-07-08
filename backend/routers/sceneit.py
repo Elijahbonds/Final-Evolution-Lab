@@ -17,6 +17,8 @@ Endpoints:
   GET  /api/sceneit/stills/{scene_id}.svg        — generated original placeholder still
   GET  /api/creators/{creator_id}                — cached Creator Card deep-dive payload
   GET  /api/creators/{creator_id}/collection     — collection loop stub marker
+  GET  /api/music/creator/{creator_id}/tracks    — jukebox tracks (MusicProviderModule seam)
+  GET  /api/music/preview/{filename}             — Tier-1 CC0 demo audio (discovery only)
   POST /api/sceneit/match/create                 — seeded match (round_types, num_questions)
   GET  /api/sceneit/match/{id}/state             — per-player view (options gated on buzz)
   POST /api/sceneit/match/{id}/buzz              — lock the countdown potential
@@ -32,10 +34,11 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 from lib.match_utils import generate_seed
+from lib.music_providers import CC0_AUDIO_DIR, get_music_provider
 from lib.sceneit.cards import CardProvider
 from lib.sceneit.content import SceneContentModule, get_default_provider
 from lib.sceneit.rounds import Question, get_round, list_rounds
@@ -334,6 +337,44 @@ async def get_creator(creator_id: str) -> Dict[str, Any]:
 @router.get("/api/creators/{creator_id}/collection")
 async def get_creator_collection(creator_id: str, player_id: str = "anonymous") -> Dict[str, Any]:
     return _cards.collection_for(player_id)
+
+
+# ── Jukebox (MusicProviderModule seam) ─────────────────────────────────────
+# DISCOVERY ONLY: playback is deliberately decoupled from match state — no
+# points, unlocks, or penalties may ever hinge on listening (Spotify developer
+# policy prohibits games/gameplay-coupled playback; see lib/music_providers.py).
+
+@router.get("/api/music/creator/{creator_id}/tracks")
+async def get_creator_tracks(creator_id: str, provider: str = "mock_cc0") -> Dict[str, Any]:
+    """Resolve a creator's MUSIC card section through the music provider seam."""
+    card = _cards.card(creator_id)
+    if card is None:
+        raise HTTPException(status_code=404, detail="Creator not found")
+    try:
+        music_provider = get_music_provider(provider)
+    except KeyError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    track_refs = card.get("sections", {}).get("music", [])
+    return {
+        "creator_id": creator_id,
+        "creator_name": card["name"],
+        "provider": music_provider.provider_id,
+        "branding": music_provider.provider_branding(),
+        "tracks": music_provider.get_creator_tracks(creator_id, track_refs),
+    }
+
+
+@router.get("/api/music/preview/{filename}")
+async def music_preview(filename: str) -> FileResponse:
+    """Serve a Tier-1 CC0 demo clip. Whitelisted to the checked-in CC0 pack;
+    higher-tier providers embed from their own hosts (audio is never proxied)."""
+    safe = os.path.basename(filename)
+    path = os.path.join(CC0_AUDIO_DIR, safe)
+    if safe != filename or not os.path.isfile(path) or not safe.endswith((".ogg", ".m4a")):
+        raise HTTPException(status_code=404, detail="Unknown preview clip")
+    media_type = "audio/ogg" if safe.endswith(".ogg") else "audio/mp4"
+    return FileResponse(path, media_type=media_type,
+                        headers={"Cache-Control": "public, max-age=3600"})
 
 
 # ── Match lifecycle ────────────────────────────────────────────────────────

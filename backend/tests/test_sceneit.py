@@ -54,6 +54,13 @@ from lib.sceneit.rounds import (
 )
 from lib.sceneit.scoring import BuzzRiskScoring, ScoringConfig
 from lib.sceneit.stills import render_still
+from lib.creator_cards import (
+    CARD_SCHEMA_VERSION, CREATOR_TYPES, CardSchemaError, build_card,
+    register_creator_type, validate_sections,
+)
+from lib.music_providers import (
+    MUSIC_PROVIDER_REGISTRY, MusicProviderModule, register_music_provider,
+)
 from tools.sceneit_replay_validator import validate_replay
 
 _app = FastAPI()
@@ -531,3 +538,135 @@ class TestCreatorCards:
             assert q.content_refs["card_id"].startswith("card_cr_")
             creator_id = q.content_refs["creator_id"]
             assert client.get(f"/api/creators/{creator_id}").status_code == 200
+
+
+# ── Shared card schema (lib/creator_cards — importable by Brain Brawl etc.) ─
+
+class TestSharedCardSchema:
+    def test_every_creator_has_a_registered_creator_type(self):
+        for creator in get_default_provider().creators():
+            assert creator.get("creator_type") in CREATOR_TYPES, creator["creator_id"]
+
+    def test_creator_type_coverage_includes_new_personas(self):
+        types_present = {c["creator_type"] for c in get_default_provider().creators()}
+        assert {"DJ", "PRODUCER", "DANCER", "EDUCATOR", "DIRECTOR", "ACTOR", "ARTIST"} <= types_present
+
+    def test_all_card_sections_validate_with_provenance(self):
+        for creator in get_default_provider().creators():
+            validate_sections(creator.get("sections", {}))  # raises on violation
+
+    def test_invalid_creator_type_rejected(self):
+        with pytest.raises(CardSchemaError):
+            build_card({"creator_id": "cr_x", "name": "X", "creator_type": "WIZARD"}, lambda _: None)
+
+    def test_track_without_license_rejected(self):
+        with pytest.raises(CardSchemaError):
+            validate_sections({"music": [{"track_id": "t", "title": "T",
+                                          "provider": "mock", "provider_ref": "cc0:x.ogg",
+                                          "source": "original_fel_universe"}]})
+
+    def test_dance_clip_difficulty_and_tags_enforced(self):
+        bad = {"clip_id": "d", "title": "D", "difficulty": "impossible",
+               "style_tags": ["x"], "source": "s", "license": "l"}
+        with pytest.raises(CardSchemaError):
+            validate_sections({"dance": [bad]})
+        bad["difficulty"] = "beginner"
+        bad["style_tags"] = []
+        with pytest.raises(CardSchemaError):
+            validate_sections({"dance": [bad]})
+
+    def test_unknown_section_rejected(self):
+        with pytest.raises(CardSchemaError):
+            validate_sections({"nft_drops": []})
+
+    def test_creator_type_registry_is_extensible(self):
+        register_creator_type("coach")
+        try:
+            assert "COACH" in CREATOR_TYPES
+            card = build_card({"creator_id": "cr_tmp", "name": "Tmp",
+                               "creator_type": "COACH", "source": "s", "license": "l"},
+                              lambda _: None)
+            assert card["creator_type"] == "COACH"
+        finally:
+            CREATOR_TYPES.discard("COACH")
+
+    def test_card_endpoint_exposes_type_sections_and_schema_version(self):
+        card = client.get("/api/creators/cr_dj_riptide").json()
+        assert card["creator_type"] == "DJ"
+        assert card["schema_version"] == CARD_SCHEMA_VERSION
+        assert len(card["sections"]["music"]) == 3
+        assert all(t["license"] for t in card["sections"]["music"])
+        dance = client.get("/api/creators/cr_marisol_vega").json()
+        assert dance["creator_type"] == "DANCER"
+        clips = dance["sections"]["dance"]
+        assert {c["difficulty"] for c in clips} == {"beginner", "intermediate", "advanced"}
+        assert all(c["style_tags"] and c["license"] for c in clips)
+        links = client.get("/api/creators/cr_noor_haddad").json()["sections"]["links"]
+        assert all(l["url"].startswith("https://") and l["license"] for l in links)
+
+
+# ── MusicProviderModule seam (jukebox — discovery only, never gameplay) ────
+
+class TestMusicProviderSeam:
+    def test_creator_tracks_resolve_with_branding_and_embeds(self):
+        data = client.get("/api/music/creator/cr_dj_riptide/tracks").json()
+        assert data["provider"] == "mock_cc0"
+        assert data["branding"]["playback_policy"] == "discovery_only"
+        assert data["branding"]["attribution"]
+        assert len(data["tracks"]) == 3
+        for t in data["tracks"]:
+            assert t["embed"]["kind"] == "local_audio"
+            assert t["embed"]["url"].startswith("/api/music/preview/")
+            assert t["source"] and t["license"] and t["attribution"]
+
+    def test_creator_without_music_returns_empty_tracks(self):
+        data = client.get("/api/music/creator/cr_mara_quill/tracks").json()
+        assert data["tracks"] == []
+
+    def test_unknown_creator_404_unknown_provider_422(self):
+        assert client.get("/api/music/creator/cr_nobody/tracks").status_code == 404
+        assert client.get("/api/music/creator/cr_dj_riptide/tracks",
+                          params={"provider": "spotify"}).status_code == 422
+
+    def test_preview_serves_cc0_audio_under_1mb(self):
+        data = client.get("/api/music/creator/cr_dj_riptide/tracks").json()
+        for t in data["tracks"]:
+            resp = client.get(t["embed"]["url"])
+            assert resp.status_code == 200
+            assert resp.headers["content-type"].startswith("audio/")
+            assert len(resp.content) < 1_000_000
+
+    def test_preview_rejects_traversal_and_unknown_files(self):
+        assert client.get("/api/music/preview/..%2F..%2Fserver.py").status_code == 404
+        assert client.get("/api/music/preview/nope.ogg").status_code == 404
+        assert client.get("/api/music/preview/server.py").status_code == 404
+
+    def test_tier2_provider_swaps_in_through_registry(self):
+        class FakeAudiusProvider(MusicProviderModule):
+            provider_id = "fake_audius"
+            tier = 2
+
+            def get_embed_ref(self, track_ref):
+                return {"kind": "oembed_iframe",
+                        "embed_url": f"https://audius.example/embed/{track_ref['provider_ref']}"}
+
+            def get_creator_tracks(self, creator_id, track_refs):
+                return [{"track_id": r["track_id"], "title": r["title"],
+                         "creator_id": creator_id, "duration_s": r.get("duration_s", 0),
+                         "artwork_ref": "", "embed": self.get_embed_ref(r),
+                         "source": r["source"], "license": r["license"],
+                         "attribution": r.get("attribution", "")}
+                        for r in track_refs]
+
+            def provider_branding(self):
+                return {"name": "Fake Audius", "tier": 2, "attribution": "test",
+                        "playback_policy": "discovery_only"}
+
+        register_music_provider(FakeAudiusProvider())
+        try:
+            data = client.get("/api/music/creator/cr_dj_riptide/tracks",
+                              params={"provider": "fake_audius"}).json()
+            assert data["provider"] == "fake_audius"
+            assert all(t["embed"]["kind"] == "oembed_iframe" for t in data["tracks"])
+        finally:
+            MUSIC_PROVIDER_REGISTRY.pop("fake_audius", None)

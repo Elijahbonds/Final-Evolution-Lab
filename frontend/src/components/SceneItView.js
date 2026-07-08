@@ -15,6 +15,7 @@
  * backend (to be replaced with Meshy-generated stills at design sign-off).
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import SoundtrackMenu from './SoundtrackMenu';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
 const POLL_MS = 400;
@@ -43,7 +44,7 @@ const S = {
     alignItems: 'center',
     padding: '18px 24px',
     background:
-      'radial-gradient(ellipse at 50% 0%, rgba(0,229,255,0.07), transparent 60%), linear-gradient(180deg, #07080c 0%, #050608 100%)',
+      'radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.07), transparent 60%), linear-gradient(180deg, #07080c 0%, #050608 100%)',
     position: 'relative',
   },
   grain: {
@@ -63,7 +64,7 @@ const S = {
     alignItems: 'center',
     marginBottom: '12px',
   },
-  brand: { fontSize: '0.8rem', letterSpacing: '0.35em', color: '#00e5ff', fontWeight: 800, textTransform: 'uppercase' },
+  brand: { fontSize: '0.8rem', letterSpacing: '0.35em', color: '#00D4FF', fontWeight: 800, textTransform: 'uppercase' },
   roundTag: {
     padding: '3px 12px',
     borderRadius: '999px',
@@ -89,8 +90,8 @@ const S = {
     maxWidth: '700px',
     borderRadius: '10px',
     overflow: 'hidden',
-    border: '1px solid rgba(0,229,255,0.18)',
-    boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 40px rgba(0,229,255,0.06)',
+    border: '1px solid rgba(0,212,255,0.18)',
+    boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 40px rgba(0,212,255,0.06)',
     position: 'relative',
     background: '#000',
   },
@@ -107,8 +108,8 @@ const S = {
     fontWeight: 900,
     lineHeight: 1,
     fontVariantNumeric: 'tabular-nums',
-    color: danger ? '#fb7185' : '#00e5ff',
-    textShadow: danger ? '0 0 24px rgba(251,113,133,0.45)' : '0 0 24px rgba(0,229,255,0.35)',
+    color: danger ? '#fb7185' : '#00D4FF',
+    textShadow: danger ? '0 0 24px rgba(251,113,133,0.45)' : '0 0 24px rgba(0,212,255,0.35)',
     transition: 'color 0.4s',
   }),
   potentialLabel: { fontSize: '0.68rem', letterSpacing: '0.3em', color: '#6b7280', textTransform: 'uppercase' },
@@ -142,7 +143,7 @@ const S = {
     color: state === 'correct' ? '#022c22' : state === 'wrong' ? '#fff1f2' : '#e8eaf0',
     background:
       state === 'correct' ? '#34d399' : state === 'wrong' ? 'rgba(225,29,72,0.55)' : 'rgba(255,255,255,0.05)',
-    border: `1px solid ${state === 'correct' ? '#34d399' : state === 'wrong' ? '#e11d48' : 'rgba(0,229,255,0.2)'}`,
+    border: `1px solid ${state === 'correct' ? '#34d399' : state === 'wrong' ? '#e11d48' : 'rgba(0,212,255,0.2)'}`,
     transition: 'all 0.2s',
   }),
   keyHint: {
@@ -181,7 +182,7 @@ const S = {
     padding: '8px 14px',
     borderRadius: '12px',
     background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(0,229,255,0.14)',
+    border: '1px solid rgba(0,212,255,0.14)',
     color: neg ? '#fb7185' : '#e8eaf0',
   }),
   credits: {
@@ -211,7 +212,7 @@ const S = {
     maxHeight: '82vh',
     overflowY: 'auto',
     background: 'linear-gradient(160deg, #10131c 0%, #0a0c12 100%)',
-    border: '1px solid rgba(192,132,252,0.35)',
+    border: '1px solid rgba(153,51,255,0.35)',
     borderRadius: '18px',
     padding: '26px 28px',
     boxShadow: '0 30px 120px rgba(0,0,0,0.8)',
@@ -224,9 +225,9 @@ const S = {
     fontWeight: 800,
     letterSpacing: '0.18em',
     textTransform: 'uppercase',
-    color: '#c084fc',
-    background: 'rgba(192,132,252,0.12)',
-    border: '1px solid rgba(192,132,252,0.3)',
+    color: '#9933FF',
+    background: 'rgba(153,51,255,0.12)',
+    border: '1px solid rgba(153,51,255,0.3)',
   },
   modalSection: { fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6b7280', margin: '18px 0 6px' },
   primaryBtn: {
@@ -239,7 +240,7 @@ const S = {
     fontSize: '0.9rem',
     letterSpacing: '0.08em',
     color: '#04121f',
-    background: 'linear-gradient(90deg, #00e5ff, #38bdf8)',
+    background: 'linear-gradient(90deg, #00D4FF, #38bdf8)',
   },
   cardLinkBtn: {
     marginLeft: '10px',
@@ -248,9 +249,9 @@ const S = {
     cursor: 'pointer',
     fontWeight: 700,
     fontSize: '0.8rem',
-    color: '#c084fc',
-    background: 'rgba(192,132,252,0.1)',
-    border: '1px solid rgba(192,132,252,0.35)',
+    color: '#9933FF',
+    background: 'rgba(153,51,255,0.1)',
+    border: '1px solid rgba(153,51,255,0.35)',
   },
 };
 
@@ -301,9 +302,16 @@ function CreatorCardModal({ creatorId, onClose }) {
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#f3f4f6' }}>{card.name}</h2>
-              <span style={S.rarity}>{card.rarity}</span>
+              <span>
+                {card.creator_type && (
+                  <span style={{ ...S.rarity, color: '#00D4FF', borderColor: 'rgba(0,212,255,0.35)', background: 'rgba(0,212,255,0.08)', marginRight: '8px' }} data-testid="creator-type">
+                    {card.creator_type}
+                  </span>
+                )}
+                <span style={S.rarity}>{card.rarity}</span>
+              </span>
             </div>
-            <p style={{ color: '#c084fc', margin: '4px 0 0', fontStyle: 'italic', fontSize: '0.9rem' }}>
+            <p style={{ color: '#B366FF', margin: '4px 0 0', fontStyle: 'italic', fontSize: '0.9rem' }}>
               “{card.tagline}” — {card.persona.replace('_', ' ')}
             </p>
             <div style={S.modalSection}>Bio</div>
@@ -325,14 +333,54 @@ function CreatorCardModal({ creatorId, onClose }) {
             {card.facts.map((f) => (
               <p key={f} style={{ color: '#9ca3af', fontSize: '0.83rem', margin: '0 0 6px' }}>• {f}</p>
             ))}
+            {card.sections && card.sections.music && card.sections.music.length > 0 && (
+              <>
+                <div style={S.modalSection}>Soundtrack — creator discovery</div>
+                <SoundtrackMenu creatorId={card.creator_id} />
+              </>
+            )}
+            {card.sections && card.sections.dance && card.sections.dance.length > 0 && (
+              <>
+                <div style={S.modalSection}>Dance & choreo lessons</div>
+                {card.sections.dance.map((clip) => (
+                  <div key={clip.clip_id} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                    padding: '9px 12px', borderRadius: '10px', marginBottom: '6px',
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(153,51,255,0.2)',
+                  }} data-testid="dance-clip">
+                    <span style={{ color: '#e8eaf0', fontSize: '0.85rem', fontWeight: 600, flex: 1 }}>{clip.title}</span>
+                    <span style={{ ...S.rarity, color: '#ffd700', borderColor: 'rgba(255,215,0,0.3)', background: 'rgba(255,215,0,0.07)' }}>
+                      {clip.difficulty}
+                    </span>
+                    {clip.style_tags.map((tag) => (
+                      <span key={tag} style={{ color: '#6b7280', fontSize: '0.68rem' }}>#{tag}</span>
+                    ))}
+                  </div>
+                ))}
+              </>
+            )}
+            {card.sections && card.sections.links && card.sections.links.length > 0 && (
+              <>
+                <div style={S.modalSection}>Masterclasses & links</div>
+                {card.sections.links.map((link) => (
+                  <a key={link.url} href={link.url} target="_blank" rel="noreferrer" style={{
+                    display: 'block', padding: '8px 12px', borderRadius: '10px', marginBottom: '6px',
+                    color: '#00D4FF', fontSize: '0.83rem', textDecoration: 'none',
+                    background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.2)',
+                  }} data-testid="masterclass-link">
+                    {link.title} <span style={{ color: '#4b5563', fontSize: '0.68rem' }}>· {link.provider}</span>
+                  </a>
+                ))}
+              </>
+            )}
             {card.lesson_stub && card.lesson_stub.title && (
               <>
                 <div style={S.modalSection}>Linked lesson</div>
                 <div style={{
                   padding: '12px 14px', borderRadius: '12px',
-                  background: 'rgba(0,229,255,0.05)', border: '1px dashed rgba(0,229,255,0.3)',
+                  background: 'rgba(0,212,255,0.05)', border: '1px dashed rgba(0,212,255,0.3)',
                 }}>
-                  <div style={{ fontWeight: 700, color: '#00e5ff', fontSize: '0.9rem' }}>{card.lesson_stub.title}</div>
+                  <div style={{ fontWeight: 700, color: '#00D4FF', fontSize: '0.9rem' }}>{card.lesson_stub.title}</div>
                   <div style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '4px' }}>{card.lesson_stub.summary}</div>
                   <div style={{ color: '#6b7280', fontSize: '0.7rem', marginTop: '6px' }}>Lesson stub — full course lands with the education loop.</div>
                 </div>
@@ -601,7 +649,7 @@ export default function SceneItView({ playerId = 'player_1', onExit }) {
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
             <div style={{ fontSize: '0.8rem', letterSpacing: '0.35em', color: '#ffd700', marginBottom: '14px' }}>THAT'S A WRAP</div>
             {Object.entries(state.scores).map(([pid, score]) => (
-              <div key={pid} style={{ fontSize: '2rem', fontWeight: 900, color: score < 0 ? '#fb7185' : '#00e5ff' }}>
+              <div key={pid} style={{ fontSize: '2rem', fontWeight: 900, color: score < 0 ? '#fb7185' : '#00D4FF' }}>
                 {pid}: {score}
               </div>
             ))}

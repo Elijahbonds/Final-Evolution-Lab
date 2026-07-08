@@ -1,49 +1,23 @@
 """
-cards.py — CardModule seam: collectible Creator Cards.
+cards.py — CardModule seam for Who Scene It.
 
-Each scene/question links to a Creator Card (in-universe director/actor
-persona) carrying educational facts sourced from the content provider.
+The card SCHEMA lives in the shared module `lib.creator_cards` (imported by
+every mode that surfaces Creator Cards — Brain Brawl, Court Carnival, ...).
+This file only binds that schema to the sceneit content provider.
 
 Demo scope: card data model + deep-dive payload (bio, timeline, top works,
-linked lesson stub). The full collection loop (ownership, packs, trading)
-is intentionally STUBBED — see CardProvider.collection_for().
+linked lesson stub, MUSIC/DANCE/LINKS sections). The full collection loop
+(ownership, packs, trading) is intentionally STUBBED — see collection_for().
 """
 from typing import Any, Dict, List, Optional
 
+from lib.creator_cards import build_card  # shared schema — do not fork
 from .content import SceneContentModule, get_default_provider
-
-_RARITY_BY_PERSONA = {
-    "director": "legendary",
-    "actor": "epic",
-    "cinematographer": "rare",
-    "composer": "rare",
-    "science_consultant": "rare",
-}
 
 
 def creator_card_for(creator: Dict[str, Any], content: SceneContentModule) -> Dict[str, Any]:
-    """Build the collectible Creator Card payload for a creator persona."""
-    top_works = []
-    for fid in creator.get("top_work_ids", []):
-        film = content.film(fid)
-        if film:
-            top_works.append({"film_id": fid, "title": film["title"], "year": film["year"]})
-    return {
-        "card_id": f"card_{creator['creator_id']}",
-        "creator_id": creator["creator_id"],
-        "name": creator["name"],
-        "persona": creator["persona"],
-        "tagline": creator.get("tagline", ""),
-        "rarity": _RARITY_BY_PERSONA.get(creator["persona"], "common"),
-        "bio": creator.get("bio", ""),
-        "timeline": creator.get("timeline", []),
-        "top_works": top_works,
-        "facts": creator.get("facts", []),
-        "lesson_stub": creator.get("lesson_stub", {}),
-        "portrait_ref": creator.get("portrait_ref", ""),
-        "source": creator.get("source", ""),
-        "license": creator.get("license", ""),
-    }
+    """Build the shared-schema Creator Card payload for a creator persona."""
+    return build_card(creator, content.film)
 
 
 class CardProvider:
