@@ -29,6 +29,7 @@ from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
 from routers import matches as matches_router
 from routers import dunk as dunk_router
+from routers import sports as sports_router
 from routers.games import router as games_router
 
 # PayPal config
@@ -4054,6 +4055,7 @@ if os.environ.get("MOCK_DB") == "1":
 
     app.dependency_overrides[get_current_user] = _mock_db_user
 app.include_router(dunk_router.router)
+app.include_router(sports_router.router)
 app.include_router(games_router)
 
 @app.on_event("shutdown")

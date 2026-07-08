@@ -27,6 +27,8 @@ if _BACKEND_DIR not in sys.path:
 
 from lib.dunk_scoring import DunkEngine3DInput, score_dunk, score_engine3d_dunk  # noqa: E402
 from lib.match_utils import derive_judge_offsets  # noqa: E402
+from lib.ball_physics import REGISTRY  # noqa: E402
+import lib.sports  # noqa: E402,F401 — registers soccer et al. into REGISTRY
 
 
 def _meta(replay: Dict[str, Any]) -> Dict[str, Any]:
@@ -75,6 +77,32 @@ def validate_replay(replay: Dict[str, Any]) -> List[str]:
             errors.append(
                 f"{match_id} seq={ev.get('seq')}: dunk mismatch "
                 f"recorded={recorded} recomputed={recomputed}"
+            )
+
+    # 2b. Re-derive every soccer_kick_result from its echoed inputs through the
+    #     shared deterministic ball-physics core; outcome + path_hash must match.
+    for ev in events:
+        if ev.get("type") != "soccer_kick_result":
+            continue
+        inputs = ev.get("inputs")
+        if not inputs:
+            errors.append(f"{match_id} seq={ev.get('seq')}: soccer_kick_result has no replayable inputs")
+            continue
+        try:
+            traj, outcome = REGISTRY.resolve("soccer", inputs)
+        except Exception as exc:  # pragma: no cover
+            errors.append(f"{match_id} seq={ev.get('seq')}: soccer re-resolve failed ({exc})")
+            continue
+        if outcome.outcome != ev.get("outcome"):
+            errors.append(
+                f"{match_id} seq={ev.get('seq')}: soccer outcome mismatch "
+                f"recorded={ev.get('outcome')} recomputed={outcome.outcome}"
+            )
+        recorded_hash = ev.get("path_hash")
+        if recorded_hash is not None and traj.path_hash() != recorded_hash:
+            errors.append(
+                f"{match_id} seq={ev.get('seq')}: soccer trajectory path_hash mismatch "
+                f"(non-deterministic replay)"
             )
 
     # 3. Re-accumulate score_events and compare with final match_end score
