@@ -67,8 +67,34 @@ struct FELSceneSnapshotTests {
                         anim += n.animationKeys.count
                     }
                     diagnostics.append("\(mode.rawValue).\(avatarName) pos=\(avatar.worldPosition) scale=\(avatar.scale) geo=\(geo) skin=\(skin) anim=\(anim)")
+                    // Where do this avatar's meshes actually render? Skinned
+                    // meshes follow their joints, statics follow node transform.
+                    avatar.enumerateHierarchy { n, _ in
+                        if n.geometry != nil {
+                            let (c, r) = n.boundingSphere
+                            let wc = n.convertPosition(c, to: nil)
+                            let wt = n.worldTransform
+                            let sx = (wt.m11 * wt.m11 + wt.m12 * wt.m12 + wt.m13 * wt.m13).squareRoot()
+                            diagnostics.append("\(mode.rawValue).\(avatarName)   geo '\(n.name ?? "?")' skinner=\(n.skinner != nil) worldCenter=\(wc) worldR=\(r * sx)")
+                        }
+                        for joint in ["Hips", "Head", "LeftFoot"] where n.name == joint {
+                            diagnostics.append("\(mode.rawValue).\(avatarName)   joint \(joint) world=\(n.worldPosition)")
+                        }
+                    }
                 } else {
                     diagnostics.append("\(mode.rawValue).\(avatarName) MISSING")
+                }
+            }
+            // Any geometry anywhere in the scene with a giant world-space
+            // bounding sphere (excluding skinner nodes whose bbox is padded).
+            scene.rootNode.enumerateHierarchy { n, _ in
+                guard n.geometry != nil, n.skinner == nil else { return }
+                let (c, r) = n.boundingSphere
+                let wt = n.worldTransform
+                let sx = (wt.m11 * wt.m11 + wt.m12 * wt.m12 + wt.m13 * wt.m13).squareRoot()
+                let wr = r * sx
+                if wr > 40 {
+                    diagnostics.append("\(mode.rawValue) BIGGEO '\(n.name ?? "?")' parent='\(n.parent?.name ?? "?")' worldCenter=\(n.convertPosition(c, to: nil)) worldR=\(wr)")
                 }
             }
 

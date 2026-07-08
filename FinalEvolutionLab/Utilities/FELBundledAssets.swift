@@ -126,6 +126,14 @@ enum FELBundledAssets {
     static func characterNode(_ asset: FELBundledAsset, height: Float) -> SCNNode? {
         guard let node = node(for: asset) else { return nil }
         if asset.isPipelineClip {
+            // The mocap-retarget Elijah clips ship with a leftover static
+            // "Alpha_Surface" T-pose mesh in raw centimeter units; under the
+            // joint-normalization container scale (~90x) it becomes a
+            // kilometers-wide statue that swallows whole scenes (the soccer/
+            // golf/baseball cameras sat inside it). It is never the visible
+            // character — the skinned char1 mesh is — so drop it at load.
+            node.childNode(withName: "Alpha_Surface", recursively: true)?
+                .removeFromParentNode()
             let container = SCNNode()
             container.addChildNode(node)
             let head = node.childNode(withName: "head_end", recursively: true)

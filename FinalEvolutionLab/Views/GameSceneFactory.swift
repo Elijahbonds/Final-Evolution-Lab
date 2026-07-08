@@ -329,6 +329,17 @@ struct GameSceneFactory {
             return false
         }
         venue.name = "bundledVenueBackdrop"
+        if mode == .tennis {
+            // VenueTennisCourt photogrammetry quirks: the scanned court's long
+            // axis runs across X (its net along Z, slicing through the default
+            // camera), and the corner palm-tree bases drag the bounding box
+            // ~4.7 units below the playing surface, so bbox-grounding floats
+            // the court in the air with gameplay avatars hidden underneath it.
+            // Rotate the court onto the gameplay axis (net across X at z=0),
+            // drop the playing surface to y~0, and recenter the scanned net.
+            venue.eulerAngles.y = .pi / 2
+            venue.position = SCNVector3(0, -4.75, 0.43)
+        }
         PremiumViewpointConfig.applyBackdropTuning(to: venue, for: mode)
         // Matte response: stylized spots blow out on PBR venue textures.
         venue.enumerateHierarchy { node, _ in
@@ -1195,10 +1206,12 @@ struct GameSceneFactory {
 
         buildGoalNet(in: scene, at: SCNVector3(0, 0, -3.5))
 
-        // Skinned Elijah on the spot (idle stance, facing the goal) with the
+        // Skinned Elijah on the spot (running clip — reads as the penalty
+        // run-up, and its rest pose stays grounded in static renders, unlike
+        // the karate idle whose rest pose floats in a raw T-pose) with the
         // tall athletic NPC in net; procedural avatars remain the fallback.
         let kickerColor = UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1)
-        if !addSkinnedCharacter(.elijahKarateIdle, to: scene, name: "kicker", at: SCNVector3(0, 0, 3.5), facingY: .pi) {
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "kicker", at: SCNVector3(0, 0, 3.5), facingY: .pi) {
             addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3.5), color: kickerColor, name: "kicker")
         }
 
@@ -1406,7 +1419,9 @@ struct GameSceneFactory {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.03, blue: 0.06, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 5, 8), lookAt: SCNVector3(0, 0.8, 0))
+        // Slightly higher/further than the old (0,5,8) baseline vantage so the
+        // near player clears the bottom edge and the full court + net frame.
+        addCamera(to: scene, position: SCNVector3(0, 5.5, 9.5), lookAt: SCNVector3(0, 0.7, 0))
         addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.04, green: 0.06, blue: 0.03, alpha: 1), reflectivity: 0.1)
@@ -1475,11 +1490,13 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(nbNode)
 
         // Skinned Elijah on the baseline (running clip — he chases the rally
-        // snap) vs the Eric Nash NPC across the net; procedural fallback kept.
+        // snap) vs the tall athletic NPC across the net (its baked stance
+        // reads as a natural ready pose in static renders, where Eric Nash's
+        // mesh freezes in a raw T-pose); procedural fallback kept.
         if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "player", at: SCNVector3(0, 0, 4.5), facingY: .pi) {
             addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4.5), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), name: "player")
         }
-        if !addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(0, 0, -4.5)) {
+        if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "opponent", at: SCNVector3(0, 0, -4.5)) {
             addAvatar(to: scene, at: SCNVector3(0, 0, -4.5), color: brandCyan, name: "opponent")
         }
 
