@@ -1,0 +1,55 @@
+.odometer {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--fel-font-mono);
+  font-weight: 700;
+  color: var(--fel-color-text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.digitWindow {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+}
+
+.reel {
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--fel-motion-slow) var(--fel-motion-ease-out);
+  will-change: transform;
+}
+
+.reelDigit {
+  height: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dim {
+  color: var(--fel-color-text-muted);
+}
+
+.bumping {
+  animation: fel-odometer-bump var(--fel-motion-normal) var(--fel-motion-ease);
+}
+
+@keyframes fel-odometer-bump {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bumping {
+    animation: none;
+  }
+}

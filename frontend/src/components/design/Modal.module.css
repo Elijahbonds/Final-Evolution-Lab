@@ -1,0 +1,85 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--fel-space-5);
+  background: var(--fel-color-backdrop);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  animation: fel-backdrop-in var(--fel-motion-normal) var(--fel-motion-ease) both;
+}
+
+.panel {
+  background: var(--fel-color-surface-2);
+  border: 1px solid var(--fel-color-border-strong);
+  border-radius: var(--fel-radius-lg);
+  box-shadow: var(--fel-elevation-3);
+  color: var(--fel-color-text-primary);
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 2 * var(--fel-space-5));
+  overflow-y: auto;
+  padding: var(--fel-space-5);
+  animation: fel-modal-in var(--fel-motion-normal) var(--fel-motion-ease-out) both;
+}
+
+.closing {
+  animation: fel-backdrop-out var(--fel-motion-normal) var(--fel-motion-ease) both;
+}
+
+.closing .panel {
+  animation: fel-modal-out var(--fel-motion-normal) var(--fel-motion-ease-in) both;
+}
+
+.title {
+  font-family: var(--fel-font-display);
+  font-size: var(--fel-text-xl-size);
+  line-height: var(--fel-text-xl-line);
+  font-weight: var(--fel-text-xl-weight);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0 0 var(--fel-space-3);
+}
+
+@keyframes fel-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fel-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fel-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fel-modal-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
