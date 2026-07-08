@@ -30,6 +30,10 @@ from routers import biofuel as biofuel_router
 from routers import matches as matches_router
 from routers import dunk as dunk_router
 from routers.games import router as games_router
+from routers import music as music_router
+from routers import dance as dance_router
+from routers import art as art_router
+from routers import creator_cards as creator_cards_router
 
 # PayPal config
 paypalrestsdk.configure({
@@ -4055,6 +4059,12 @@ if os.environ.get("MOCK_DB") == "1":
     app.dependency_overrides[get_current_user] = _mock_db_user
 app.include_router(dunk_router.router)
 app.include_router(games_router)
+
+# Creative modes foundation (Music Creation / Dance Game / Art Showcase)
+app.include_router(music_router.router)
+app.include_router(dance_router.router)
+app.include_router(art_router.router)
+app.include_router(creator_cards_router.router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

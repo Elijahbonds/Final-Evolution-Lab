@@ -87,3 +87,5 @@ code {
         border-bottom-color: inherit;
     }
 }
+
+@keyframes artFade { from { opacity: 0; } to { opacity: 1; } }
