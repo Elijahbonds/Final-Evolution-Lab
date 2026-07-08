@@ -107,6 +107,32 @@ class TestContentSeeding:
             assert q.get("micro_lesson", {}).get("title")
             assert q.get("micro_lesson", {}).get("takeaway")
 
+    def test_music_and_dance_taxonomy_present(self):
+        """Coordinator scope: music/dance taxonomy for themed packs; demo
+        content must not reference real artists/songs (original CC0 items)."""
+        qs = bb.load_content()["questions"]
+        music = [q for q in qs if q["taxonomy"]["category"] == "music"]
+        dance = [q for q in qs if q["taxonomy"]["category"] == "dance"]
+        assert len(music) >= 4 and len(dance) >= 3
+        for q in music + dance:
+            assert q["id"].startswith("fel_"), "music/dance must be FEL originals"
+            assert q["license"] == "CC0-1.0"
+        # at least one deep-dive explainable in each themed pool
+        assert any("deep_dive" in q["modes"] for q in music)
+        assert any("deep_dive" in q["modes"] for q in dance)
+
+    def test_category_filtered_round_only_serves_that_category(self):
+        order = bb.derive_question_order(SEED, "blitz", 10, category="music")
+        doc = bb.load_content()
+        assert order, "music pack must be startable"
+        assert all(bb.question_by_id(qid, doc)["taxonomy"]["category"] == "music"
+                   for qid in order)
+        r = client.post("/api/brainbrawl/rounds/start",
+                        json={"mode": "blitz", "seed": SEED, "category": "dance",
+                              "question_count": 3})
+        assert r.status_code == 200
+        assert r.json()["question"]["taxonomy"]["category"] == "dance"
+
     def test_content_summary_endpoint_has_no_answers(self):
         r = client.get("/api/brainbrawl/content/summary")
         assert r.status_code == 200

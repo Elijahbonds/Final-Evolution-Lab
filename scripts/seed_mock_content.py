@@ -302,6 +302,47 @@ def original_questions() -> list:
                  "Water is densest at 4°C, not at freezing. Lakes stratify: 4°C water sinks "
                  "to the bottom while ice caps the surface and insulates below.",
                  "One weird molecule property underwrites every frozen lake ecosystem on Earth.")),
+        # Music/dance deep dives — original + factual; deliberately reference
+        # NO real artists, songs, or recordings (demo-content policy).
+        ("fel_dd_013", "Why do DJs beatmatch two tracks before blending them?",
+         ["Aligning tempo and phase keeps one continuous pulse through the transition",
+          "It doubles the playback volume",
+          "It is required by venue licensing",
+          "It prevents the speakers from overheating"], [0], "music", "medium",
+         "Beatmatching sets both tracks to the same tempo (BPM) and aligns their "
+         "downbeats. When the phase lines up, the crossfade reads as one groove "
+         "instead of two clashing pulses.",
+         _lesson("Beatmatching Basics",
+                 "Tempo is the speed (BPM); phase is where the beats land in time. "
+                 "Match tempo first, then nudge until downbeats lock. Modern software "
+                 "can sync tempo automatically, but phrasing choices stay human.",
+                 "A great transition is math plus taste — sync the grid, then mix the energy.")),
+        ("fel_dd_014", "Why do dancers 'spot' by fixing their gaze on one point during turns?",
+         ["Snapping the head keeps visual input stable, reducing dizziness and drift",
+          "It signals the next move to the audience",
+          "It strengthens the neck muscles",
+          "Judges award points for eye contact"], [0], "dance", "medium",
+         "Spinning confuses the inner ear's balance organs. Spotting — holding the "
+         "eyes on one point and whipping the head around last — gives the brain a "
+         "stable visual reference, so dancers stay oriented across many rotations.",
+         _lesson("Spotting",
+                 "The vestibular system tolerates brief head rotation better than "
+                 "continuous spin. By minimizing the time the head is actually turning, "
+                 "spotting keeps balance signals clean and turns on axis.",
+                 "Control the head and the body follows — orientation is a skill you drill.")),
+        ("fel_dd_015", "Why does a minor chord sound darker than a major chord?",
+         ["Its third is a semitone lower, changing the interval ratios the ear hears",
+          "It is always played more quietly",
+          "It uses more notes than a major chord",
+          "It can only be played in low octaves"], [0], "music", "hard",
+         "Major and minor triads share the root and fifth; only the third differs. "
+         "Lowering the third by one semitone changes the frequency ratios, and "
+         "listeners acoustically and culturally read that color as darker or sadder.",
+         _lesson("Thirds Decide the Mood",
+                 "A major third spans four semitones, a minor third three. That one "
+                 "semitone shifts the harmonic blend enough to flip the emotional "
+                 "reading of the whole chord.",
+                 "Tiny interval changes carry huge emotional weight — mood lives in the third.")),
         ("fel_dd_012", "Why is a diversified portfolio considered lower-risk than a single stock?",
          ["Uncorrelated losses offset: no single failure can sink the whole portfolio",
           "Diversified portfolios are government-insured",
@@ -351,6 +392,16 @@ def original_questions() -> list:
          "science", "easy",
          "Solar, wind, and hydro replenish naturally; coal and natural gas are finite "
          "fossil fuels."),
+        ("fel_ms_007", "Select ALL percussion instruments.",
+         ["Snare drum", "Violin", "Timpani", "Flute", "Cymbals"], [0, 2, 4],
+         "music", "easy",
+         "Percussion instruments produce sound by being struck or shaken: snare, "
+         "timpani, and cymbals qualify; violin is a string and flute a woodwind."),
+        ("fel_ms_008", "Select ALL street dance styles.",
+         ["Breaking", "Ballet", "Popping", "Waltz", "Locking"], [0, 2, 4],
+         "dance", "medium",
+         "Breaking, popping, and locking grew out of street and club culture; ballet "
+         "and waltz come from classical and ballroom traditions."),
     ]
     for qid, prompt, options, ans, cat, diff, expl in multi:
         qs.append(_mk_question(qid, prompt, options, ans, "multi", cat,
@@ -371,6 +422,19 @@ def original_questions() -> list:
         ("fel_sg_006", "What does APR stand for on a loan?",
          ["Annual Percentage Rate", "Average Payment Ratio", "Applied Principal Return",
           "Annual Payment Requirement"], [0], "financial_literacy", "easy"),
+        # Music/dance singles — original + factual, no real artists or songs.
+        ("fel_sg_007", "How many beats does a whole note last in 4/4 time?",
+         ["2", "3", "4", "8"], [2], "music", "easy"),
+        ("fel_sg_008", "What does BPM stand for in music production?",
+         ["Bass Per Measure", "Beats Per Minute", "Bars Per Movement", "Balanced Pitch Mode"],
+         [1], "music", "easy"),
+        ("fel_sg_009", "In ballet, what is a plié?",
+         ["A jump with crossed feet", "A bending of the knees", "A full turn on one leg",
+          "A backward arch"], [1], "dance", "easy"),
+        ("fel_sg_010", "Which clef is commonly called the treble clef?",
+         ["G clef", "F clef", "C clef", "Percussion clef"], [0], "music", "medium"),
+        ("fel_sg_011", "What time signature defines a classic waltz rhythm?",
+         ["4/4", "2/4", "3/4", "6/8"], [2], "dance", "medium"),
     ]
     for qid, prompt, options, ans, cat, diff in singles:
         qs.append(_mk_question(qid, prompt, options, ans, "single", cat,

@@ -2,8 +2,8 @@
  "content_id": "brainbrawl_mock_content",
  "version": 1,
  "generated_by": "scripts/seed_mock_content.py",
- "question_count": 104,
- "content_hash": "db030e3fa59063e8",
+ "question_count": 114,
+ "content_hash": "9b14cee7352994bc",
  "sources": {
   "Open Trivia Database (opentdb.com)": {
    "license": "CC BY-SA 4.0",
@@ -12,7 +12,7 @@
   },
   "Final Evolution Lab original": {
    "license": "CC0-1.0",
-   "count": 24
+   "count": 34
   }
  },
  "questions": [
@@ -358,6 +358,99 @@
    }
   },
   {
+   "id": "fel_dd_013",
+   "type": "single",
+   "prompt": "Why do DJs beatmatch two tracks before blending them?",
+   "options": [
+    "Aligning tempo and phase keeps one continuous pulse through the transition",
+    "It doubles the playback volume",
+    "It is required by venue licensing",
+    "It prevents the speakers from overheating"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Beatmatching sets both tracks to the same tempo (BPM) and aligns their downbeats. When the phase lines up, the crossfade reads as one groove instead of two clashing pulses.",
+   "micro_lesson": {
+    "title": "Beatmatching Basics",
+    "body": "Tempo is the speed (BPM); phase is where the beats land in time. Match tempo first, then nudge until downbeats lock. Modern software can sync tempo automatically, but phrasing choices stay human.",
+    "takeaway": "A great transition is math plus taste — sync the grid, then mix the energy."
+   }
+  },
+  {
+   "id": "fel_dd_014",
+   "type": "single",
+   "prompt": "Why do dancers 'spot' by fixing their gaze on one point during turns?",
+   "options": [
+    "Snapping the head keeps visual input stable, reducing dizziness and drift",
+    "It signals the next move to the audience",
+    "It strengthens the neck muscles",
+    "Judges award points for eye contact"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "dance",
+    "skill": "explanation"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Spinning confuses the inner ear's balance organs. Spotting — holding the eyes on one point and whipping the head around last — gives the brain a stable visual reference, so dancers stay oriented across many rotations.",
+   "micro_lesson": {
+    "title": "Spotting",
+    "body": "The vestibular system tolerates brief head rotation better than continuous spin. By minimizing the time the head is actually turning, spotting keeps balance signals clean and turns on axis.",
+    "takeaway": "Control the head and the body follows — orientation is a skill you drill."
+   }
+  },
+  {
+   "id": "fel_dd_015",
+   "type": "single",
+   "prompt": "Why does a minor chord sound darker than a major chord?",
+   "options": [
+    "Its third is a semitone lower, changing the interval ratios the ear hears",
+    "It is always played more quietly",
+    "It uses more notes than a major chord",
+    "It can only be played in low octaves"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "explanation"
+   },
+   "difficulty": "hard",
+   "modes": [
+    "deep_dive",
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Major and minor triads share the root and fifth; only the third differs. Lowering the third by one semitone changes the frequency ratios, and listeners acoustically and culturally read that color as darker or sadder.",
+   "micro_lesson": {
+    "title": "Thirds Decide the Mood",
+    "body": "A major third spans four semitones, a minor third three. That one semitone shifts the harmonic blend enough to flip the emotional reading of the whole chord.",
+    "takeaway": "Tiny interval changes carry huge emotional weight — mood lives in the third."
+   }
+  },
+  {
    "id": "fel_dd_012",
    "type": "single",
    "prompt": "Why is a diversified portfolio considered lower-risk than a single stock?",
@@ -557,6 +650,62 @@
    "explanation": "Solar, wind, and hydro replenish naturally; coal and natural gas are finite fossil fuels."
   },
   {
+   "id": "fel_ms_007",
+   "type": "multi",
+   "prompt": "Select ALL percussion instruments.",
+   "options": [
+    "Snare drum",
+    "Violin",
+    "Timpani",
+    "Flute",
+    "Cymbals"
+   ],
+   "answer": [
+    0,
+    2,
+    4
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "analysis"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Percussion instruments produce sound by being struck or shaken: snare, timpani, and cymbals qualify; violin is a string and flute a woodwind."
+  },
+  {
+   "id": "fel_ms_008",
+   "type": "multi",
+   "prompt": "Select ALL street dance styles.",
+   "options": [
+    "Breaking",
+    "Ballet",
+    "Popping",
+    "Waltz",
+    "Locking"
+   ],
+   "answer": [
+    0,
+    2,
+    4
+   ],
+   "taxonomy": {
+    "category": "dance",
+    "skill": "analysis"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0",
+   "explanation": "Breaking, popping, and locking grew out of street and club culture; ballet and waltz come from classical and ballroom traditions."
+  },
+  {
    "id": "fel_sg_001",
    "type": "single",
    "prompt": "How many players from one team are on a volleyball court?",
@@ -694,6 +843,126 @@
     "skill": "recall"
    },
    "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_007",
+   "type": "single",
+   "prompt": "How many beats does a whole note last in 4/4 time?",
+   "options": [
+    "2",
+    "3",
+    "4",
+    "8"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_008",
+   "type": "single",
+   "prompt": "What does BPM stand for in music production?",
+   "options": [
+    "Bass Per Measure",
+    "Beats Per Minute",
+    "Bars Per Movement",
+    "Balanced Pitch Mode"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_009",
+   "type": "single",
+   "prompt": "In ballet, what is a plié?",
+   "options": [
+    "A jump with crossed feet",
+    "A bending of the knees",
+    "A full turn on one leg",
+    "A backward arch"
+   ],
+   "answer": [
+    1
+   ],
+   "taxonomy": {
+    "category": "dance",
+    "skill": "recall"
+   },
+   "difficulty": "easy",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_010",
+   "type": "single",
+   "prompt": "Which clef is commonly called the treble clef?",
+   "options": [
+    "G clef",
+    "F clef",
+    "C clef",
+    "Percussion clef"
+   ],
+   "answer": [
+    0
+   ],
+   "taxonomy": {
+    "category": "music",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
+   "modes": [
+    "blitz"
+   ],
+   "source": "Final Evolution Lab original",
+   "license": "CC0-1.0"
+  },
+  {
+   "id": "fel_sg_011",
+   "type": "single",
+   "prompt": "What time signature defines a classic waltz rhythm?",
+   "options": [
+    "4/4",
+    "2/4",
+    "3/4",
+    "6/8"
+   ],
+   "answer": [
+    2
+   ],
+   "taxonomy": {
+    "category": "dance",
+    "skill": "recall"
+   },
+   "difficulty": "medium",
    "modes": [
     "blitz"
    ],
