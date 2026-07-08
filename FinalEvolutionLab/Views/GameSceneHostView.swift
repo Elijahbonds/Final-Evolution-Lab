@@ -175,6 +175,7 @@ struct GameSceneHostView: UIViewRepresentable {
         var isSlowMotion: Bool = false
         private var lastAvatarAppearance: GameplayAvatarAppearance = .default
         private var dunkClipNode: SCNNode?
+        private var ai3v3: Basketball3v3AIController?
         var lastKarateStrikeNonce: Int = 0
         private var strikeClipNode: SCNNode?
         private var strikeRestoreTask: Task<Void, Never>?
@@ -197,11 +198,135 @@ struct GameSceneHostView: UIViewRepresentable {
                 (dunker.parent ?? scene.rootNode).addChildNode(clip)
                 dunker.isHidden = true
                 dunkClipNode = clip
+                startDunkCinematic()          // begin approach beat
             } else {
                 dunkClipNode?.removeFromParentNode()
                 dunkClipNode = nil
                 dunker.isHidden = false
+                setDunkClipTimeScale(1.0)
+                // Clip cleared = the dunk has landed; play land -> restore even
+                // if approach/apex hadn't finished (short dunks still get a beat).
+                if dunkCinePhase != .inactive {
+                    advanceDunkCine(to: .land)
+                }
             }
+        }
+
+        // MARK: - Dunk cinematic helpers
+
+        /// Time-dilate ONLY the baked dunk-clip animation (not the whole scene
+        /// clock — that would slow crowd/judges/particles too). No-op if the
+        /// clip has no animation players (procedural fallback avatar).
+        private func setDunkClipTimeScale(_ scale: CGFloat) {
+            guard let clip = dunkClipNode else { return }
+            clip.enumerateHierarchy { node, _ in
+                for key in node.animationKeys {
+                    node.animationPlayer(forKey: key)?.speed = scale
+                }
+            }
+        }
+
+        private func advanceDunkCine(to phase: DunkCinePhase) {
+            dunkCinePhase = phase
+            dunkCineElapsed = 0
+        }
+
+        private func startDunkCinematic() {
+            guard gameMode == .basketballDunkContest3D else { return }
+            dunkCineOrbit = .pi * 0.15   // start slightly off-axis for a 3/4 hero look
+            dunkCineTimeScale = 1.0
+            advanceDunkCine(to: .approach)
+        }
+
+        private func endDunkCinematic() {
+            dunkCinePhase = .inactive
+            dunkCineTimeScale = 1.0
+            setDunkClipTimeScale(1.0)
+        }
+
+        private func resolveDunkRimTarget(in scene: SCNScene) -> SCNVector3 {
+            if let hoop = scene.rootNode.childNode(withName: "hoop", recursively: true) {
+                return hoop.presentation.position
+            }
+            return dunkRimFallback
+        }
+
+        /// Drives the cinematic camera during a dunk. Returns true if it owns
+        /// the frame (caller skips the normal chase switch). Writes desired
+        /// pos/lookAt/FOV that the shared smoothing tail then consumes.
+        private func computeDunkCinematic(
+            in scene: SCNScene,
+            delta: Float,
+            desiredCamPos: inout SCNVector3,
+            desiredLookAt: inout SCNVector3,
+            targetFOV: inout CGFloat,
+            followSpeedMult: inout Float,
+            targetSpeedMult: inout Float
+        ) -> Bool {
+            guard gameMode == .basketballDunkContest3D, dunkCinePhase != .inactive else { return false }
+            let trackedName = dunkClipNode != nil ? "dunkerClip" : "dunker"
+            guard let dunkerNode = scene.rootNode.childNode(withName: trackedName, recursively: true) else {
+                endDunkCinematic()
+                return false   // fall through to normal chase; never freeze
+            }
+            let p = dunkerNode.presentation.position
+            let r = resolveDunkRimTarget(in: scene)
+
+            dunkCineElapsed += delta            // wall-clock phase timing (real)
+            let cineDelta = delta * dunkCineTimeScale
+
+            switch dunkCinePhase {
+            case .approach:
+                dunkCineTimeScale = 1.0
+                setDunkClipTimeScale(1.0)
+                desiredCamPos = SCNVector3(p.x + 1.6, p.y + 1.3, p.z + 3.2)
+                desiredLookAt = lerpVec3(SCNVector3(p.x, p.y + 1.4, p.z), r, t: 0.35)
+                targetFOV = 34
+                followSpeedMult = 2.2; targetSpeedMult = 2.4
+                if dunkCineElapsed >= dunkApproachDur { advanceDunkCine(to: .apex) }
+
+            case .apex:
+                dunkCineTimeScale = 0.3
+                setDunkClipTimeScale(0.3)
+                let m = lerpVec3(p, r, t: 0.5)
+                dunkCineOrbit += cineDelta * 0.75
+                let radius: Float = 3.4
+                desiredCamPos = SCNVector3(
+                    m.x + radius * sin(dunkCineOrbit),
+                    m.y + 2.2,
+                    m.z + radius * cos(dunkCineOrbit)
+                )
+                desiredLookAt = m
+                let e = min(1, dunkCineElapsed / dunkApexDur)
+                targetFOV = 28 - CGFloat(e) * 4     // 28 -> 24
+                followSpeedMult = 3.5; targetSpeedMult = 3.5
+                if dunkCineElapsed >= dunkApexDur { advanceDunkCine(to: .land) }
+
+            case .land:
+                let ramp = min(1, dunkCineElapsed / 0.15)
+                dunkCineTimeScale = 0.3 + 0.7 * ramp
+                setDunkClipTimeScale(CGFloat(dunkCineTimeScale))
+                desiredCamPos = SCNVector3(p.x + 0.8, p.y + 2.4, p.z + 4.4)
+                desiredLookAt = SCNVector3(p.x, p.y + 1.2, p.z)
+                targetFOV = 40
+                if cameraShakeIntensity < 0.55 { cameraShakeIntensity = 0.6 }
+                followSpeedMult = 2.2; targetSpeedMult = 2.2
+                if dunkCineElapsed >= dunkLandDur { advanceDunkCine(to: .restore) }
+
+            case .restore:
+                dunkCineTimeScale = 1.0
+                setDunkClipTimeScale(1.0)
+                let cfg = cameraConfig
+                desiredCamPos = SCNVector3(p.x + cfg.offsetX, p.y + cfg.offsetY, p.z + cfg.offsetZ)
+                desiredLookAt = SCNVector3(p.x, p.y + cfg.lookAtY, p.z)
+                targetFOV = cfg.fovNormal
+                followSpeedMult = 1.4; targetSpeedMult = 1.6
+                if dunkCineElapsed >= dunkRestoreDur { endDunkCinematic() }
+
+            case .inactive:
+                return false
+            }
+            return true
         }
 
         /// Karate strike one-shot: swaps "fighter1" for the requested Meshy
@@ -263,6 +388,20 @@ struct GameSceneHostView: UIViewRepresentable {
         private var smoothedCameraPosition = SCNVector3(0, 4, 8)
         private var smoothedCameraTarget = SCNVector3(0, 1.2, 0)
         private var cameraShakeIntensity: Float = 0
+
+        // MARK: Dunk cinematic camera (approach -> apex slow-mo -> land -> restore)
+        private enum DunkCinePhase { case inactive, approach, apex, land, restore }
+        private var dunkCinePhase: DunkCinePhase = .inactive
+        private var dunkCineElapsed: Float = 0        // seconds within current phase
+        private var dunkCineTimeScale: Float = 1.0    // 1.0 normal, 0.3 at apex
+        private var dunkCineOrbit: Float = 0          // apex hero-orbit angle
+        // Fail-soft rim target derived from addHoop(x:-4.5, flip:true): rim at
+        // x - dir*0.65 = -4.5 - (-1)*0.65 = -3.85, y=3.05.
+        private let dunkRimFallback = SCNVector3(-3.85, 3.05, 0)
+        private let dunkApproachDur: Float = 0.8
+        private let dunkApexDur: Float = 0.6
+        private let dunkLandDur: Float = 0.4
+        private let dunkRestoreDur: Float = 0.6
         private var cinematicZoomOffset: Float = 0
         private var cinematicHeightOffset: Float = 0
         private var cinematicAngleOffset: Float = 0
@@ -389,6 +528,7 @@ struct GameSceneHostView: UIViewRepresentable {
             syncInitialCameraToPlayer(in: scnView.scene)
             startCameraFollowLoop()
             startPlayerMovementLoop()
+            startAI3v3Loop()
             applyPerformanceTier(FELPerformanceMonitor.shared.currentTier)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 self.reportViewportReadyIfNeeded()
@@ -460,6 +600,7 @@ struct GameSceneHostView: UIViewRepresentable {
             syncInitialCameraToPlayer(in: overlay.scene)
             startCameraFollowLoop()
             startPlayerMovementLoop()
+            startAI3v3Loop()
             applyPerformanceTier(FELPerformanceMonitor.shared.currentTier)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 self.reportViewportReadyIfNeeded()
@@ -735,6 +876,23 @@ struct GameSceneHostView: UIViewRepresentable {
             scene.rootNode.runAction(SCNAction.repeatForever(moveAction), forKey: "playerMoveLoop")
         }
 
+        /// 3v3: an AI tick drives the five non-player nodes (offense spacing +
+        /// cuts, man-mark + help-defense rotation) so they move believably
+        /// instead of a static shuffle/homing fight. Player (blue1) stays under
+        /// stick control. No-op for other modes.
+        func startAI3v3Loop() {
+            guard gameMode == .basketball3v3, let scene = activeSceneKitView?.scene else { return }
+            let controller = Basketball3v3AIController(
+                config: .init(seed: 0xB0A11, offenseSide: .blue, neuralDrive: neuralDrive)
+            )
+            ai3v3 = controller
+            let aiAction = SCNAction.customAction(duration: 100000) { [weak self, weak scene] _, _ in
+                guard let self, let scene else { return }
+                self.ai3v3?.tick(dt: max(self.latestFrameDelta, 1.0 / 240.0), in: scene)
+            }
+            scene.rootNode.runAction(SCNAction.repeatForever(aiAction), forKey: "ai3v3Loop")
+        }
+
         private func updateCameraFollow() {
             guard let scene = activeSceneKitView?.scene,
                   let camNode = scene.rootNode.childNode(withName: "mainCamera", recursively: false) else { return }
@@ -753,6 +911,17 @@ struct GameSceneHostView: UIViewRepresentable {
             var followSpeedMult: Float = 1.0
             var targetSpeedMult: Float = 1.0
 
+            // Dunk cinematic owns the camera while active (approach/apex/land/
+            // restore). It writes the same desired* vars the smoothing tail
+            // consumes, so it inherits the exponential ease + shake for free.
+            let dunkCineActive = computeDunkCinematic(
+                in: scene, delta: delta,
+                desiredCamPos: &desiredCamPos, desiredLookAt: &desiredLookAt,
+                targetFOV: &targetFOV,
+                followSpeedMult: &followSpeedMult, targetSpeedMult: &targetSpeedMult
+            )
+
+            if !dunkCineActive {
             switch activeAngle {
             case .chase:
                 let currentState = determineCinematicState()
@@ -867,6 +1036,7 @@ struct GameSceneHostView: UIViewRepresentable {
                 followSpeedMult = 1.6
                 targetSpeedMult = 2.0
             }
+            } // end if !dunkCineActive
 
             let cameraLerp = 1.0 - exp(-config.followSpeed * followSpeedMult * delta)
             let targetLerp = 1.0 - exp(-config.targetSpeed * targetSpeedMult * delta)
@@ -1005,6 +1175,10 @@ struct GameSceneHostView: UIViewRepresentable {
             strikeRestoreTask?.cancel()
             strikeRestoreTask = nil
             strikeClipNode = nil
+            dunkClipNode = nil
+            dunkCinePhase = .inactive
+            dunkCineTimeScale = 1.0
+            ai3v3 = nil
             avatarFocusOverride = nil
             if let container = view as? NexusHybridGameplayContainerView {
                 container.overlayView.delegate = nil
@@ -1019,6 +1193,7 @@ struct GameSceneHostView: UIViewRepresentable {
                 }
                 container.overlayView.scene?.rootNode.removeAction(forKey: "cameraFollowLoop")
                 container.overlayView.scene?.rootNode.removeAction(forKey: "playerMoveLoop")
+                container.overlayView.scene?.rootNode.removeAction(forKey: "ai3v3Loop")
                 container.overlayView.isPlaying = false
                 container.overlayView.scene = nil
                 container.metalView.isPaused = true
@@ -1050,6 +1225,7 @@ struct GameSceneHostView: UIViewRepresentable {
                 }
                 scnView.scene?.rootNode.removeAction(forKey: "cameraFollowLoop")
                 scnView.scene?.rootNode.removeAction(forKey: "playerMoveLoop")
+                scnView.scene?.rootNode.removeAction(forKey: "ai3v3Loop")
                 scnView.isPlaying = false
                 scnView.scene = nil
                 self.scnView = nil
