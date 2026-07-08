@@ -397,12 +397,71 @@ function CreatorCardModal({ creatorId, onClose }) {
   );
 }
 
+const RARITY_COLOR = { legendary: '#ffd700', epic: '#9933FF', rare: '#00D4FF', common: '#9ca3af' };
+
+function CreatorGallery({ onPick, onClose }) {
+  const [list, setList] = useState(null);
+  const [err, setErr] = useState(null);
+  useEffect(() => {
+    fetch(`${API_BASE}/api/sceneit/creators`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(setList)
+      .catch((e) => setErr(String(e)));
+  }, []);
+  return (
+    <div style={S.modalScrim} onClick={onClose} data-testid="creator-gallery">
+      <div style={{ ...S.modal, width: 'min(680px, 94vw)' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#f3f4f6' }}>Creator Cards</h2>
+          <span style={{ color: '#6b7280', fontSize: '0.78rem' }}>{list ? `${list.count} personas` : ''}</span>
+        </div>
+        <p style={{ color: '#9ca3af', fontSize: '0.82rem', margin: '4px 0 14px' }}>
+          Directors, actors, DJs, producers, dancers & educators of the Final Evolution universe.
+          Open a card for bio, timeline, soundtrack, and dance lessons.
+        </p>
+        {err && <p style={{ color: '#fb7185' }}>Gallery unavailable: {err}</p>}
+        {!list && !err && <p style={{ color: '#6b7280' }}>Shuffling the deck…</p>}
+        {list && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {list.creators.map((c) => (
+              <div
+                key={c.creator_id}
+                onClick={() => onPick(c.creator_id)}
+                data-testid={`gallery-card-${c.creator_id}`}
+                style={{
+                  cursor: 'pointer', padding: '12px 14px', borderRadius: '12px',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${RARITY_COLOR[c.rarity]}44`,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#e8eaf0', fontWeight: 700, fontSize: '0.92rem' }}>{c.name}</span>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.12em', color: RARITY_COLOR[c.rarity] }}>
+                    {c.creator_type}
+                  </span>
+                </div>
+                <div style={{ color: '#9ca3af', fontSize: '0.75rem', fontStyle: 'italic', marginTop: '3px' }}>“{c.tagline}”</div>
+                <div style={{ marginTop: '6px', display: 'flex', gap: '6px' }}>
+                  {c.has_music && <span style={{ fontSize: '0.62rem', color: '#00D4FF' }}>♪ soundtrack</span>}
+                  {c.has_dance && <span style={{ fontSize: '0.62rem', color: '#9933FF' }}>◈ dance</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <button style={S.primaryBtn} onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+}
+
 export default function SceneItView({ playerId = 'player_1', onExit }) {
   const [match, setMatch] = useState(null); // {match_id, ...}
   const [state, setState] = useState(null); // /state payload
   const [displayPotential, setDisplayPotential] = useState(0);
   const [grain, setGrain] = useState(true);
   const [cardCreator, setCardCreator] = useState(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [error, setError] = useState(null);
   const lastFetch = useRef({ at: 0, elapsed: 0 });
   const stateRef = useRef(null);
@@ -544,7 +603,14 @@ export default function SceneItView({ playerId = 'player_1', onExit }) {
             {finished ? 'Final Cut' : `${(q.round_type || '').replace('_', ' ')} · Q${state.question_index + 1}/${state.question_count}`}
           </span>
           <span>
-            <button style={S.ghostBtn} onClick={() => setGrain((g) => !g)}>
+            <button
+              style={{ ...S.ghostBtn, color: '#9933FF', borderColor: 'rgba(153,51,255,0.4)' }}
+              onClick={() => setGalleryOpen(true)}
+              data-testid="open-gallery"
+            >
+              ★ creators
+            </button>
+            <button style={{ ...S.ghostBtn, marginLeft: '8px' }} onClick={() => setGrain((g) => !g)}>
               grain {grain ? 'on' : 'off'}
             </button>
             {onExit && (
@@ -674,6 +740,12 @@ export default function SceneItView({ playerId = 'player_1', onExit }) {
         </div>
       </div>
       <div style={S.letterbox} />
+      {galleryOpen && (
+        <CreatorGallery
+          onClose={() => setGalleryOpen(false)}
+          onPick={(id) => { setGalleryOpen(false); setCardCreator(id); }}
+        />
+      )}
       {cardCreator && <CreatorCardModal creatorId={cardCreator} onClose={() => setCardCreator(null)} />}
     </div>
   );

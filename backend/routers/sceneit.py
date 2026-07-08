@@ -325,6 +325,27 @@ async def sceneit_still(scene_id: str, mask: Optional[str] = None,
 
 # ── Creator metadata (CardModule seam) ─────────────────────────────────────
 
+@router.get("/api/sceneit/creators")
+async def sceneit_creators() -> Dict[str, Any]:
+    """Creator Card gallery: compact index of every card for discovery.
+
+    Keeps the deep-dive payload (music/dance/links) behind /api/creators/{id};
+    this is the browse list that makes the discovery cards reachable in the UI.
+    """
+    cards = [c for c in _cards.all_cards() if c is not None]
+    return {
+        "count": len(cards),
+        "creators": [
+            {"creator_id": c["creator_id"], "name": c["name"],
+             "creator_type": c["creator_type"], "rarity": c["rarity"],
+             "tagline": c["tagline"],
+             "has_music": bool(c.get("sections", {}).get("music")),
+             "has_dance": bool(c.get("sections", {}).get("dance"))}
+            for c in cards
+        ],
+    }
+
+
 @router.get("/api/creators/{creator_id}")
 async def get_creator(creator_id: str) -> Dict[str, Any]:
     """Cached Creator Card deep-dive: bio, timeline, top works, lesson stub."""

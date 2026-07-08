@@ -590,6 +590,15 @@ class TestSharedCardSchema:
         finally:
             CREATOR_TYPES.discard("COACH")
 
+    def test_gallery_index_lists_all_creators_with_discovery_flags(self):
+        data = client.get("/api/sceneit/creators").json()
+        assert data["count"] == len(get_default_provider().creators())
+        by_id = {c["creator_id"]: c for c in data["creators"]}
+        assert by_id["cr_dj_riptide"]["has_music"] is True
+        assert by_id["cr_marisol_vega"]["has_dance"] is True
+        assert by_id["cr_mara_quill"]["has_music"] is False
+        assert all(c["creator_type"] in CREATOR_TYPES for c in data["creators"])
+
     def test_card_endpoint_exposes_type_sections_and_schema_version(self):
         card = client.get("/api/creators/cr_dj_riptide").json()
         assert card["creator_type"] == "DJ"
