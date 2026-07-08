@@ -170,8 +170,10 @@ class SceneItMatch:
         self.active_buzz = None
         if resolution.correct or len(self.attempted) >= len(self.players):
             self.resolved = True
+            # content_refs (creator card link) only surface AFTER resolution —
+            # pre-reveal they would leak the correct film.
             self.last_result = {**result, "correct_option_id": q.correct_option_id,
-                                "options": q.options}
+                                "options": q.options, "content_refs": q.content_refs}
             self.timeline.append({
                 "question_index": self.current_index, "round_type": q.round_type,
                 "winner": player_id if resolution.correct else None,
