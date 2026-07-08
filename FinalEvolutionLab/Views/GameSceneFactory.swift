@@ -2622,6 +2622,27 @@ struct GameSceneFactory {
     }
 
     private static func addHoop(to scene: SCNScene, x: Float, flip: Bool = false, rimName: String? = nil) {
+        // Prefer the bundled Venice Beach hoop mesh (static Meshy: pole +
+        // backboard + rim + net). Placed so the rim sits at regulation ~3.05m,
+        // pole base on the court, backboard facing the court center. The
+        // `rimName` locator ("hoop") is preserved AT the rim so the dunk
+        // cinematic camera / rim-distortion lookup still find it. Fail-soft:
+        // if the USDZ is missing, fall through to the procedural hoop below.
+        if let hoop = FELBundledAssets.basketballHoopNode(rimHeight: 3.05, rimLocatorName: rimName, flip: !flip) {
+            hoop.position = SCNVector3(x, 0, 0)
+            // Matte the PBR textures under the stylized cluster spots (same
+            // treatment as bundled venues).
+            hoop.enumerateHierarchy { node, _ in
+                for material in node.geometry?.materials ?? [] {
+                    material.metalness.contents = 0.0
+                    material.roughness.contents = 1.0
+                    material.specular.contents = UIColor.black
+                }
+            }
+            scene.rootNode.addChildNode(hoop)
+            return
+        }
+
         let dir: Float = flip ? -1 : 1
 
         let pole = SCNCylinder(radius: 0.06, height: 3.05)

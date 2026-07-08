@@ -18,6 +18,11 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     case venueGymnasticsGym = "VenueGymnasticsGym"
     case venueMuscleBeachStage = "VenueMuscleBeachStage"
     case venueMuscleBeachGym = "VenueMuscleBeachGym"
+    // Venice Beach basketball standard (pole + backboard + rim + net), a single
+    // static Meshy mesh. Not a full court — it replaces the procedural
+    // pole/backboard/rim in the basketball family. isVenue=true so it loads via
+    // the cached+cloned static-mesh path (never a skinned clone).
+    case venueVeniceBasketballHoop = "VeniceBasketballHoop"
 
     // Prop packs (per-sport equipment sets, staged for mode wiring)
     case propsTennis = "PropsTennis"
@@ -70,6 +75,7 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
              .venueSkatePark, .venueMountainSlope, .venueSurfBreak,
              .venueLinksGolf, .venueSoccerStadium, .venueBallpark,
              .venueGymnasticsGym, .venueMuscleBeachStage, .venueMuscleBeachGym,
+             .venueVeniceBasketballHoop,
              .propsTennis, .propsVolleyball, .propsBaseball,
              .propsFootball, .propsSoccer, .propsBoardSports, .propsSedan:
             return true
@@ -130,6 +136,52 @@ enum FELBundledAssets {
     static func venueNode(_ asset: FELBundledAsset, footprint: Float) -> SCNNode? {
         guard let node = node(for: asset) else { return nil }
         return normalized(node, longestSide: footprint, sizeAxis: .horizontal)
+    }
+
+    /// Venice Beach basketball standard (static Meshy mesh: pole + backboard +
+    /// rim + net) placed so the RIM sits at `rimHeight` world units (≈3.05m
+    /// regulation) and the pole base rests on the floor. Returns a container
+    /// whose transform origin is at the rim: callers position the container at
+    /// the desired rim x/z, and it auto-grounds the pole. A child locator named
+    /// `rimLocatorName` (if given) is added AT the rim so the dunk cinematic
+    /// camera can target it by name (matches the old procedural rim node).
+    ///
+    /// The mesh's rim sits ~50% up its own height (short pole, tall backboard
+    /// above — measured from the source FBX), unlike a regulation standard, so
+    /// the whole prop is scaled to land the rim at `rimHeight` rather than
+    /// scaling to a real overall height. Fail-soft: nil if the USDZ is missing.
+    static func basketballHoopNode(rimHeight: Float, rimLocatorName: String? = nil, flip: Bool = false) -> SCNNode? {
+        guard let node = node(for: .venueVeniceBasketballHoop) else { return nil }
+        // Ground the loaded mesh: measure its own bbox (static mesh -> reliable).
+        let (minVec, maxVec) = node.boundingBox
+        let totalH = maxVec.y - minVec.y
+        guard totalH > 0.0001 else { return nil }
+        // Rim vertical fraction within the mesh (measured from source: rim ring
+        // sits at the backboard's lower edge, ~0.50 up the total height).
+        let rimFrac: Float = 0.50
+        // Scale so the rim distance above the base equals rimHeight.
+        let rimFromBase = totalH * rimFrac
+        let scale = rimHeight / rimFromBase
+        node.scale = SCNVector3(scale, scale, scale)
+        // Center horizontally, base on y=0.
+        let centerX = (minVec.x + maxVec.x) / 2 * scale
+        let centerZ = (minVec.z + maxVec.z) / 2 * scale
+        let baseY = minVec.y * scale
+        node.position = SCNVector3(-centerX, -baseY, -centerZ)
+
+        let container = SCNNode()
+        container.addChildNode(node)
+        if flip { container.eulerAngles.y = .pi }
+
+        if let rimLocatorName {
+            // Locator at the rim world position so `presentation.position`
+            // resolves to the rim for the dunk camera / rim-distortion lookup.
+            let rim = SCNNode()
+            rim.name = rimLocatorName
+            rim.position = SCNVector3(0, rimHeight, 0)
+            container.addChildNode(rim)
+        }
+        return container
     }
 
     /// Skinned character normalized to `height` world units, feet at y=0.
