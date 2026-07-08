@@ -142,6 +142,12 @@ class ScoreRequest(BaseModel):
     difficulty: str = Field(dance_beatmap.DEFAULT_DIFFICULTY)
     beats: int = Field(32, ge=4, le=256)
     subdivision: int = Field(2, ge=1, le=8)
+    # Beatmap variant to score against — must mirror what the client played so the
+    # server rebuilds the identical map. Defaults reproduce the classic map.
+    style: str = Field("classic", description="classic (default) | phrased")
+    curve: bool = Field(False, description="Density ramp (phrased only)")
+    holds: bool = Field(False, description="Annotate hold events with duration fields")
+    chords: bool = Field(False, description="2-lane chords on hard/expert (phrased only)")
     contest_seed: Optional[int] = Field(None, ge=0, lt=1 << 64,
                                         description="Seeded judge offsets for reproducible contests")
 
@@ -155,10 +161,14 @@ class ChoreographyRequest(BaseModel):
     save_as_pack: bool = Field(False, description="Creator Card tie-in: card_choreo_01 pack")
 
 
-def _beatmap_for(project: Dict[str, Any], *, difficulty: str, beats: int, subdivision: int) -> Dict[str, Any]:
+def _beatmap_for(
+    project: Dict[str, Any], *, difficulty: str, beats: int, subdivision: int,
+    style: str = "classic", curve: bool = False, holds: bool = False, chords: bool = False,
+) -> Dict[str, Any]:
     return dance_beatmap.generate_beatmap(
         project["seed"], project["bpm"],
         beats=beats, subdivision=subdivision, difficulty=difficulty,
+        style=style, curve=curve, holds=holds, chords=chords,
     )
 
 
@@ -168,16 +178,23 @@ async def get_beatmap(
     difficulty: str = Query(dance_beatmap.DEFAULT_DIFFICULTY),
     beats: int = Query(32, ge=4, le=256),
     subdivision: int = Query(2, ge=1, le=8),
+    style: str = Query("classic", description="classic (default, byte-identical) | phrased"),
+    curve: bool = Query(False, description="Density ramp (phrased only)"),
+    holds: bool = Query(False, description="Annotate hold events with duration fields"),
+    chords: bool = Query(False, description="2-lane chords on hard/expert (phrased only)"),
 ) -> Dict[str, Any]:
     """Deterministic beatmap from the project's persisted seed + bpm.
 
     The frontend generates the identical beatmap so the scrolling notes match
-    exactly what the server scores against.
+    exactly what the server scores against. The default (style="classic") is
+    byte-identical to the first pass; style="phrased" + curve/holds/chords opt
+    into the richer engine.
     """
     project = await creative_store.load_project("dance", project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Dance project not found")
-    return _beatmap_for(project, difficulty=difficulty, beats=beats, subdivision=subdivision)
+    return _beatmap_for(project, difficulty=difficulty, beats=beats, subdivision=subdivision,
+                        style=style, curve=curve, holds=holds, chords=chords)
 
 
 @router.post("/api/dance/projects/{project_id}/score")
@@ -191,7 +208,8 @@ async def score_run(project_id: str, body: ScoreRequest) -> Dict[str, Any]:
     if not project:
         raise HTTPException(status_code=404, detail="Dance project not found")
     beatmap = _beatmap_for(project, difficulty=body.difficulty, beats=body.beats,
-                           subdivision=body.subdivision)
+                           subdivision=body.subdivision, style=body.style,
+                           curve=body.curve, holds=body.holds, chords=body.chords)
     result = dance_beatmap.score_performance(
         beatmap,
         [h.model_dump() for h in body.hits],
@@ -216,7 +234,8 @@ async def record_run(
     if not project:
         raise HTTPException(status_code=404, detail="Dance project not found")
     beatmap = _beatmap_for(project, difficulty=body.difficulty, beats=body.beats,
-                           subdivision=body.subdivision)
+                           subdivision=body.subdivision, style=body.style,
+                           curve=body.curve, holds=body.holds, chords=body.chords)
     result = dance_beatmap.score_performance(
         beatmap,
         [h.model_dump() for h in body.hits],
@@ -230,11 +249,15 @@ async def record_run(
         "player_id": user.user_id,
         "seed": project["seed"],
         "difficulty": body.difficulty,
+        "style": body.style,
         "recording": body.recording,
         "score": result["score"],
+        "score_with_bonus": result["score_with_bonus"],
         "max_combo": result["max_combo"],
         "accuracy": result["accuracy"],
         "grade": result["grade"],
+        "sub_grade": result["sub_grade"],
+        "full_combo": result["full_combo"],
         "tallies": result["tallies"],
         "hit_count": len(body.hits),
         "contest_seed": body.contest_seed,
