@@ -164,3 +164,7 @@ assets/motion/clips/
 assets/motion/external/cmu/
 scripts/asset_pipeline/.env
 assets/motion/external/meshy/
+
+# CI/session artifacts — never track
+.gitconfig
+.emergent/

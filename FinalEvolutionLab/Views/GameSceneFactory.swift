@@ -272,6 +272,7 @@ struct GameSceneFactory {
         case .snowboarding: return "BackgroundSnowboarding"
         case .surfing: return "BackgroundSurfing"
         case .marketBrowse: return "BackgroundMuscleBeachGym"
+        case .whoSceneIt: return "BackgroundMuscleBeach"
         default: return nil
         }
     }
@@ -316,6 +317,9 @@ struct GameSceneFactory {
             footprint = 30
         case .marketBrowse:
             asset = .venueMuscleBeachGym
+            footprint = 30
+        case .whoSceneIt:
+            asset = .venueMuscleBeachStage
             footprint = 30
         default:
             asset = nil
@@ -934,8 +938,13 @@ struct GameSceneFactory {
         line2Node.eulerAngles.y = .pi / 6.5
         scene.rootNode.addChildNode(line2Node)
 
+        // Skinned Elijah at the plate (ready-stance idle, facing the mound);
+        // procedural avatar stays as the fail-soft fallback. Node name/position
+        // are load-bearing: movement + camera-follow find "batter" by name.
         let batterColor = UIColor(red: 0.1, green: 0.5, blue: 0.9, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(0.4, 0, 2.8), color: batterColor, name: "batter")
+        if !addSkinnedCharacter(.elijahKarateIdle, to: scene, name: "batter", at: SCNVector3(0.4, 0, 2.8), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0.4, 0, 2.8), color: batterColor, name: "batter")
+        }
 
         let pitcherColor = UIColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1)
         addAvatar(to: scene, at: SCNVector3(0, 0.25, -1.0), color: pitcherColor, name: "pitcher")
@@ -1186,11 +1195,17 @@ struct GameSceneFactory {
 
         buildGoalNet(in: scene, at: SCNVector3(0, 0, -3.5))
 
+        // Skinned Elijah on the spot (idle stance, facing the goal) with the
+        // tall athletic NPC in net; procedural avatars remain the fallback.
         let kickerColor = UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3.5), color: kickerColor, name: "kicker")
+        if !addSkinnedCharacter(.elijahKarateIdle, to: scene, name: "kicker", at: SCNVector3(0, 0, 3.5), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3.5), color: kickerColor, name: "kicker")
+        }
 
         let gkColor = UIColor(red: 0.9, green: 0.8, blue: 0.1, alpha: 1)
-        addAvatar(to: scene, at: SCNVector3(0, 0, -3.2), color: gkColor, name: "goalkeeper")
+        if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "goalkeeper", at: SCNVector3(0, 0, -3.2)) {
+            addAvatar(to: scene, at: SCNVector3(0, 0, -3.2), color: gkColor, name: "goalkeeper")
+        }
 
         if let gk = scene.rootNode.childNode(withName: "goalkeeper", recursively: true) {
             let sway = SCNAction.sequence([
@@ -1298,7 +1313,11 @@ struct GameSceneFactory {
         holeNode.position = SCNVector3(0, 0.025, -2)
         scene.rootNode.addChildNode(holeNode)
 
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
+        // Skinned Elijah at the tee (idle stance, facing the pin); procedural
+        // avatar stays as the fail-soft fallback.
+        if !addSkinnedCharacter(.elijahKarateIdle, to: scene, name: "golfer", at: SCNVector3(0, 0, 3), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
+        }
 
         let club = SCNCylinder(radius: 0.012, height: 1.0)
         let clubMat = SCNMaterial()
@@ -1455,8 +1474,14 @@ struct GameSceneFactory {
         nbNode.position = SCNVector3(0, 1.3, 0)
         scene.rootNode.addChildNode(nbNode)
 
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4.5), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), name: "player")
-        addAvatar(to: scene, at: SCNVector3(0, 0, -4.5), color: brandCyan, name: "opponent")
+        // Skinned Elijah on the baseline (running clip — he chases the rally
+        // snap) vs the Eric Nash NPC across the net; procedural fallback kept.
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "player", at: SCNVector3(0, 0, 4.5), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4.5), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), name: "player")
+        }
+        if !addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(0, 0, -4.5)) {
+            addAvatar(to: scene, at: SCNVector3(0, 0, -4.5), color: brandCyan, name: "opponent")
+        }
 
         let ball = SCNSphere(radius: 0.035)
         let bMat = SCNMaterial()
@@ -1582,8 +1607,12 @@ struct GameSceneFactory {
         nbNode.position = SCNVector3(0, 2.6, 0)
         scene.rootNode.addChildNode(nbNode)
 
+        // Skinned Elijah on the sand (running clip — he chases the rally
+        // snap); teammate/opponents stay procedural, fallback kept.
         let playerColor = UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(-1.0, 0, 2.5), color: playerColor, name: "vPlayer1")
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "vPlayer1", at: SCNVector3(-1.0, 0, 2.5), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(-1.0, 0, 2.5), color: playerColor, name: "vPlayer1")
+        }
         addAvatar(to: scene, at: SCNVector3(1.5, 0, 3.5), color: playerColor, name: "vPlayer2")
 
         let oppColor = brandCyan

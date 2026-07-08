@@ -58,7 +58,7 @@ struct FELSceneSnapshotTests {
                 }
             }
             diagnostics.append("\(mode.rawValue) camera=\(cameraNode?.name ?? "NONE") pos=\(cameraNode.map { "\($0.worldPosition)" } ?? "-") lights=\(lights)")
-            for avatarName in ["fighter1", "fighter2", "dunker"] {
+            for avatarName in ["fighter1", "fighter2", "dunker", "batter", "kicker", "goalkeeper", "golfer", "player", "opponent", "vPlayer1"] {
                 if let avatar = scene.rootNode.childNode(withName: avatarName, recursively: true) {
                     var geo = 0, skin = 0, anim = 0
                     avatar.enumerateHierarchy { n, _ in

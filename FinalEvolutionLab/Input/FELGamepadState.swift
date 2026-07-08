@@ -1,5 +1,22 @@
 import SwiftUI
 
+// Legacy pad vocabulary — kept because the FELGamepadState bridge
+// (legacyFaceButton/legacyDirection) and the per-mode GamePlayView handlers
+// still speak it. Moved here from the retired ArenaPadOverlay view.
+nonisolated enum ArenaPadFaceButton: String, Sendable {
+    case triangle
+    case square
+    case circle
+    case cross
+}
+
+nonisolated enum ArenaPadDPadDirection: String, Sendable {
+    case up
+    case down
+    case left
+    case right
+}
+
 /// One controller vocabulary for every game mode. Face buttons keep the arcade
 /// glyph identity (△ ○ ✕ □); shoulders and triggers are digital on-screen.
 nonisolated enum FELPadButton: String, Sendable, CaseIterable, Hashable {
