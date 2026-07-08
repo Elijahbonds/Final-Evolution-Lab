@@ -137,21 +137,43 @@ class GuessAnswerRequest(BaseModel):
     seed: int
     question_id: str
     selected: str
+    token: Optional[str] = None  # echo of the round's answer_token (integrity)
     exhibit_id: Optional[str] = None  # optional: attach reveal to a replay
 
 
 @router.get("/api/art/guess-technique/round")
-async def guess_technique_round(seed: int = 1, count: int = 5) -> Dict[str, Any]:
+async def guess_technique_round(
+    seed: int = 1,
+    count: int = 5,
+    category: Optional[str] = None,
+    difficulty: Optional[str] = None,
+) -> Dict[str, Any]:
     """Deterministic guess-the-technique round.
 
-    Question and option order are a pure function of `seed`. The correct
-    answer and the micro-lesson are NEVER present in this payload — each
-    question carries an opaque `answer_token`; the client must POST an answer
-    to resolve + reveal. Same seed always yields the identical round.
+    Question and option order are a pure function of `seed` (plus the optional
+    `category`/`difficulty` filters). The correct answer and the micro-lesson
+    are NEVER present in this payload — each question carries an opaque
+    `answer_token`; the client must POST an answer to resolve + reveal. Same
+    (seed, filters) always yields the identical round.
+
+    Optional filters:
+      - category:   composition | color | rendering | mark_making | media_3d
+      - difficulty: easy | medium | hard
+    A filter that matches no questions yields an empty round (count 0), not 404.
     """
     if count < 1:
         raise HTTPException(status_code=422, detail="count must be >= 1")
-    return art_content.build_round(seed, count)
+    if category and category not in art_content.TECHNIQUE_CATEGORIES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"category must be one of {list(art_content.TECHNIQUE_CATEGORIES)}",
+        )
+    if difficulty and difficulty not in art_content.TECHNIQUE_DIFFICULTIES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"difficulty must be one of {list(art_content.TECHNIQUE_DIFFICULTIES)}",
+        )
+    return art_content.build_round(seed, count, category=category, difficulty=difficulty)
 
 
 @router.post("/api/art/guess-technique/answer")
@@ -160,7 +182,9 @@ async def guess_technique_answer(
     user: User = Depends(get_creative_user),
 ) -> Dict[str, Any]:
     """Resolve a submitted answer server-side; return correctness + lesson."""
-    result = art_content.resolve_answer(body.seed, body.question_id, body.selected)
+    result = art_content.resolve_answer(
+        body.seed, body.question_id, body.selected, token=body.token
+    )
     if result is None:
         raise HTTPException(status_code=404, detail="Unknown question id")
 

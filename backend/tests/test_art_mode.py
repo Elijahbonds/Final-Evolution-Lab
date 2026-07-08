@@ -86,13 +86,14 @@ def _create_exhibit():
 # ── Sample content ─────────────────────────────────────────────────────────
 
 class TestSampleExhibit:
-    def test_sample_has_three_images_and_one_model(self):
+    def test_sample_has_multiple_images_and_models(self):
         data = _client().get("/api/art/sample-exhibit").json()
         items = data["items"]
         images = [i for i in items if i["type"] == "image"]
         models = [i for i in items if i["type"] == "model"]
-        assert len(images) == 3
-        assert len(models) == 1
+        # Enriched gallery: several images + more than one 3D model.
+        assert len(images) >= 3
+        assert len(models) >= 2
 
     def test_every_item_has_alt_and_license(self):
         items = _client().get("/api/art/sample-exhibit").json()["items"]
@@ -100,6 +101,19 @@ class TestSampleExhibit:
             assert i["meta"].get("alt"), f"missing alt: {i}"
             assert i["meta"].get("license"), f"missing license: {i}"
             assert i["meta"].get("source"), f"missing source: {i}"
+
+    def test_every_item_is_cc0_or_original(self):
+        items = _client().get("/api/art/sample-exhibit").json()["items"]
+        for i in items:
+            # IP constraint: only CC0 / public-domain licensing ships.
+            assert i["meta"]["license"] == "CC0-1.0", f"non-CC0 asset: {i}"
+
+    def test_model_paths_point_at_gltf_assets(self):
+        items = _client().get("/api/art/sample-exhibit").json()["items"]
+        models = [i for i in items if i["type"] == "model"]
+        for m in models:
+            assert m["path"].startswith("/nexus-art-assets/models/")
+            assert m["path"].endswith(".gltf")
 
     def test_items_link_creator_cards(self):
         items = _client().get("/api/art/sample-exhibit").json()["items"]
@@ -167,6 +181,95 @@ class TestGuessTechnique:
         assert exp.status_code == 200
         assert eid in _events
         assert any(e["type"] == "guess_technique_answered" for e in _events[eid])
+
+    # ── deepened bank: categories, difficulty, size ────────────────────────
+    def test_bank_is_deeper_than_baseline(self):
+        # count is clamped to available questions; a big count reveals bank size.
+        data = _client().get("/api/art/guess-technique/round?seed=1&count=99").json()
+        assert data["count"] >= 12  # meaningfully larger than the original 6
+
+    def test_questions_carry_category_and_difficulty(self):
+        data = _client().get("/api/art/guess-technique/round?seed=5&count=8").json()
+        cats = {"composition", "color", "rendering", "mark_making", "media_3d"}
+        diffs = {"easy", "medium", "hard"}
+        for q in data["questions"]:
+            assert q["category"] in cats, q
+            assert q["difficulty"] in diffs, q
+            # metadata only — still no answer leaked
+            assert "correct" not in q and "lesson" not in q
+
+    def test_category_filter_returns_only_that_category(self):
+        data = _client().get(
+            "/api/art/guess-technique/round?seed=2&count=99&category=composition"
+        ).json()
+        assert data["count"] >= 1
+        assert all(q["category"] == "composition" for q in data["questions"])
+
+    def test_difficulty_filter_returns_only_that_difficulty(self):
+        data = _client().get(
+            "/api/art/guess-technique/round?seed=2&count=99&difficulty=hard"
+        ).json()
+        assert data["count"] >= 1
+        assert all(q["difficulty"] == "hard" for q in data["questions"])
+
+    def test_filtered_round_is_deterministic(self):
+        a = _client().get(
+            "/api/art/guess-technique/round?seed=9&count=4&category=color"
+        ).json()
+        b = _client().get(
+            "/api/art/guess-technique/round?seed=9&count=4&category=color"
+        ).json()
+        assert a == b
+
+    def test_invalid_category_rejected(self):
+        assert _client().get(
+            "/api/art/guess-technique/round?seed=1&category=nope"
+        ).status_code == 422
+
+    def test_invalid_difficulty_rejected(self):
+        assert _client().get(
+            "/api/art/guess-technique/round?seed=1&difficulty=impossible"
+        ).status_code == 422
+
+    def test_empty_filter_match_is_not_error(self):
+        # A valid category with no overlap is possible only via combined filters;
+        # a lone valid filter should still return questions, never 404/500.
+        r = _client().get("/api/art/guess-technique/round?seed=1&category=rendering")
+        assert r.status_code == 200
+        assert r.json()["count"] >= 1
+
+    # ── answer_token integrity (real verification, not a tautology) ─────────
+    def test_valid_token_verifies_true(self):
+        rnd = _client().get("/api/art/guess-technique/round?seed=11&count=3").json()
+        q = rnd["questions"][0]
+        res = _client().post("/api/art/guess-technique/answer", json={
+            "seed": 11, "question_id": q["id"], "selected": q["options"][0],
+            "token": q["answer_token"],
+        }).json()
+        assert res["token_valid"] is True
+
+    def test_tampered_token_verifies_false(self):
+        rnd = _client().get("/api/art/guess-technique/round?seed=11&count=3").json()
+        q = rnd["questions"][0]
+        res = _client().post("/api/art/guess-technique/answer", json={
+            "seed": 11, "question_id": q["id"], "selected": q["options"][0],
+            "token": "deadbeefdeadbeef",
+        }).json()
+        assert res["token_valid"] is False
+
+    def test_missing_token_verifies_false_but_still_resolves(self):
+        res = _client().post("/api/art/guess-technique/answer", json={
+            "seed": 1, "question_id": "gt_lowpoly", "selected": "Low-poly",
+        }).json()
+        assert res["token_valid"] is False
+        assert res["is_correct"] is True  # resolution still authoritative
+
+    def test_reveal_carries_category_and_difficulty(self):
+        res = _client().post("/api/art/guess-technique/answer", json={
+            "seed": 1, "question_id": "gt_pbr", "selected": "Flat shading",
+        }).json()
+        assert res["category"] == "media_3d"
+        assert res["difficulty"] == "hard"
 
 
 # ── Timed sketch ───────────────────────────────────────────────────────────
