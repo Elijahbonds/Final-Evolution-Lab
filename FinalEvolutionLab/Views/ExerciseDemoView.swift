@@ -65,12 +65,31 @@ struct ExerciseDemoView: View {
                 )
 
             Group {
-                if demoEngine.currentMode == .coach && demoEngine.isVideoAvailable {
+                switch demoEngine.currentMode {
+                case .model3D:
+                    // Primary: skinned 3D demonstrator. Fails soft to the 2D
+                    // avatar via the `demo3DFailed` binding so it never blanks.
+                    if demoEngine.demo3DFailed {
+                        AvatarDemoView(exercise: exercise)
+                            .transition(.opacity)
+                    } else {
+                        ExerciseDemo3DView(
+                            exerciseId: exercise.id,
+                            category: exercise.category,
+                            difficulty: exercise.difficulty,
+                            renderFailed: $demoEngine.demo3DFailed
+                        )
+                        .transition(.opacity)
+                    }
+                case .coach:
                     if case .ready(let url) = demoEngine.videoLoadState {
                         VideoPlayerView(url: url)
                             .transition(.opacity)
+                    } else {
+                        AvatarDemoView(exercise: exercise)
+                            .transition(.opacity)
                     }
-                } else {
+                case .avatar:
                     AvatarDemoView(exercise: exercise)
                         .transition(.opacity)
                 }
@@ -99,18 +118,16 @@ struct ExerciseDemoView: View {
     private var modeToggle: some View {
         HStack(spacing: 0) {
             ForEach(DemoMode.allCases, id: \.self) { mode in
+                let disabled = mode == .coach && !demoEngine.isVideoAvailable
                 Button {
-                    guard demoEngine.currentMode != mode else { return }
-                    if mode == .coach && !demoEngine.isVideoAvailable {
-                        return
-                    }
-                    demoEngine.toggleMode()
+                    guard !disabled else { return }
+                    demoEngine.setMode(mode)
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: mode == .coach ? "play.rectangle.fill" : "figure.mixed.cardio")
+                    HStack(spacing: 5) {
+                        Image(systemName: iconName(for: mode))
                             .font(.system(size: 12, weight: .bold))
-                        Text(mode == .coach ? "COACH" : "AVATAR")
-                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                        Text(label(for: mode))
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
                             .tracking(1)
                     }
                     .frame(maxWidth: .infinity)
@@ -123,10 +140,10 @@ struct ExerciseDemoView: View {
                     .foregroundStyle(
                         demoEngine.currentMode == mode
                             ? Theme.brandBlue
-                            : (mode == .coach && !demoEngine.isVideoAvailable ? Color.white.opacity(0.15) : Color.white.opacity(0.4))
+                            : (disabled ? Color.white.opacity(0.15) : Color.white.opacity(0.4))
                     )
                 }
-                .disabled(mode == .coach && !demoEngine.isVideoAvailable)
+                .disabled(disabled)
             }
         }
         .clipShape(.rect(cornerRadius: 12))
@@ -134,6 +151,22 @@ struct ExerciseDemoView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Theme.brandBlue.opacity(0.1), lineWidth: 0.5)
         )
+    }
+
+    private func iconName(for mode: DemoMode) -> String {
+        switch mode {
+        case .model3D: "cube.transparent.fill"
+        case .coach: "play.rectangle.fill"
+        case .avatar: "figure.mixed.cardio"
+        }
+    }
+
+    private func label(for mode: DemoMode) -> String {
+        switch mode {
+        case .model3D: "3D MODEL"
+        case .coach: "COACH"
+        case .avatar: "2D"
+        }
     }
 
     private var exerciseInfo: some View {

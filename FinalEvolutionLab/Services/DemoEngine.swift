@@ -2,7 +2,10 @@ import SwiftUI
 import AVFoundation
 
 nonisolated enum DemoMode: String, Sendable, CaseIterable {
+    /// Primary: skinned 3D demonstrator model performing the exercise.
+    case model3D = "3D Model"
     case coach = "Coach"
+    /// 2D stick-figure fallback (also the ultimate fail-soft if 3D can't render).
     case avatar = "Avatar"
 }
 
@@ -16,9 +19,12 @@ nonisolated enum VideoLoadState: Sendable {
 @Observable
 @MainActor
 class DemoEngine {
-    var currentMode: DemoMode = .coach
+    var currentMode: DemoMode = .model3D
     var videoLoadState: VideoLoadState = .idle
     var isTransitioning: Bool = false
+    /// Set by ``ExerciseDemo3DView`` when the 3D skinned demo cannot render, so
+    /// the view can fall back to the 2D avatar without changing the user's mode.
+    var demo3DFailed: Bool = false
 
     private static let videoMap: [String: String] = [
         "f1": "https://share.icloud.com/photos/0c16kro59r04sOvqojl-LJswQ#ScaledPogos",
@@ -44,7 +50,8 @@ class DemoEngine {
         guard let urlString = Self.videoMap[exerciseId],
               let url = URL(string: urlString) else {
             videoLoadState = .failed
-            currentMode = .avatar
+            // 3D model demo is the primary experience; only the Coach tab is
+            // gated on a video being available, so no mode change is needed.
             return
         }
 
@@ -56,24 +63,23 @@ class DemoEngine {
                     videoLoadState = .ready(url)
                 } else {
                     videoLoadState = .failed
-                    currentMode = .avatar
                 }
             } catch {
                 videoLoadState = .failed
-                currentMode = .avatar
             }
         }
     }
 
-    func toggleMode() {
+    /// Switch to a specific demo mode with the neural-scan transition sweep.
+    func setMode(_ mode: DemoMode) {
+        guard mode != currentMode else { return }
         withAnimation(.easeInOut(duration: 0.4)) {
             isTransitioning = true
         }
-
         Task {
             try? await Task.sleep(for: .milliseconds(400))
             withAnimation(.easeInOut(duration: 0.3)) {
-                currentMode = currentMode == .coach ? .avatar : .coach
+                currentMode = mode
             }
             try? await Task.sleep(for: .milliseconds(300))
             withAnimation(.easeOut(duration: 0.3)) {
