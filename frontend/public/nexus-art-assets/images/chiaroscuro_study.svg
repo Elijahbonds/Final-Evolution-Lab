@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="A chiaroscuro value study: a rounded form lit by a single cyan key light from the upper-left dissolves through graduated tonal bands into deep near-black shadow, with a faint violet bounce light on the lower-right edge.">
+  <defs>
+    <radialGradient id="key" cx="0.36" cy="0.32" r="0.85"><stop offset="0.0" stop-color="#eafcff"/><stop offset="0.14" stop-color="#00D4FF"/><stop offset="0.34" stop-color="#0f6fa8"/><stop offset="0.5" stop-color="#123a66"/><stop offset="0.66" stop-color="#101a33"/><stop offset="0.82" stop-color="#0a1022"/><stop offset="1.0" stop-color="#04060d"/></radialGradient>
+    <radialGradient id="bounce" cx="0.74" cy="0.82" r="0.4"><stop offset="0" stop-color="#9933FF" stop-opacity="0.5"/><stop offset="1" stop-color="#9933FF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.75"><stop offset="0.5" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.85"/></radialGradient>
+  </defs>
+  <rect width="800" height="600" fill="#03040a"/>
+  <ellipse cx="360" cy="300" rx="300" ry="270" fill="url(#key)"/>
+  <ellipse cx="360" cy="300" rx="300" ry="270" fill="url(#bounce)"/>
+  <rect width="800" height="600" fill="url(#vignette)"/>
+</svg>
