@@ -498,11 +498,15 @@ struct GameSceneFactory {
         if isPickup {
             // 2v2 run: a teammate on the wing + a second defender. Unique
             // non-load-bearing names; fail-soft procedural fallbacks.
-            let teammateTint = brandCyan.withAlphaComponent(0.85)
+            // Pale jersey tints, not full-saturation multiplies — a solid
+            // cyan/red multiply silhouettes the character; a near-white tint
+            // reads as a team color while the skin/clothing texture survives.
+            let teammateTint = UIColor(red: 0.72, green: 0.90, blue: 1.0, alpha: 1)
+            let opponent2Tint = UIColor(red: 1.0, green: 0.72, blue: 0.66, alpha: 1)
             if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "teammate1", at: SCNVector3(-2.4, 0, 1.8), facingY: .pi / 3, tint: teammateTint) {
                 addAvatar(to: scene, at: SCNVector3(-2.4, 0, 1.8), color: brandCyan, name: "teammate1")
             }
-            if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "opponent2", at: SCNVector3(2.4, 0, 1.6), facingY: -.pi / 3, tint: opponentRed.withAlphaComponent(0.7)) {
+            if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "opponent2", at: SCNVector3(2.4, 0, 1.6), facingY: -.pi / 3, tint: opponent2Tint) {
                 addAvatar(to: scene, at: SCNVector3(2.4, 0, 1.6), color: opponentRed, name: "opponent2")
             }
         }
