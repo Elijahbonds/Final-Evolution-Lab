@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Flowing monochrome ink-wash curves suggesting movement.">
+  <defs>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8ecf5"/>
+      <stop offset="1" stop-color="#c3ccdd"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#ink)"/>
+  <g fill="none" stroke="#10151f" stroke-linecap="round">
+    <path d="M60,480 C220,300 260,120 420,140 C560,158 560,340 720,300" stroke-width="34" opacity="0.85"/>
+    <path d="M90,520 C260,360 300,200 460,220 C600,238 600,400 740,360" stroke-width="14" opacity="0.55"/>
+    <path d="M120,150 C260,200 300,320 200,420" stroke-width="8" opacity="0.4"/>
+  </g>
+  <circle cx="470" cy="180" r="10" fill="#10151f" opacity="0.7"/>
+</svg>

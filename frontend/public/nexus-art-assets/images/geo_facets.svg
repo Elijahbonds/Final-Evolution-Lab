@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Low-poly faceted triangular composition in purple and blue tones.">
+  <rect width="800" height="600" fill="#0a0e1a"/>
+  <g stroke="#0a0e1a" stroke-width="1.5">
+    <polygon points="0,0 260,0 120,200" fill="#00D4FF"/>
+    <polygon points="260,0 520,0 320,180 120,200" fill="#1e88c9"/>
+    <polygon points="520,0 800,0 640,240 320,180" fill="#3355aa"/>
+    <polygon points="0,0 120,200 0,340" fill="#123a66"/>
+    <polygon points="120,200 320,180 260,400 0,340" fill="#6633cc"/>
+    <polygon points="320,180 640,240 520,440 260,400" fill="#9933FF"/>
+    <polygon points="640,240 800,0 800,300 520,440" fill="#5522aa"/>
+    <polygon points="0,340 260,400 140,600 0,600" fill="#2a1a55"/>
+    <polygon points="260,400 520,440 460,600 140,600" fill="#00D4FF" opacity="0.85"/>
+    <polygon points="520,440 800,300 800,600 460,600" fill="#7a2fd0"/>
+  </g>
+</svg>

@@ -21,6 +21,7 @@ import DownloadPage from "@/components/DownloadPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
 import GameView from "@/components/GameView";
+import ArtShowcase from "@/components/ArtShowcase";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
@@ -1749,6 +1750,7 @@ function AppRouter() {
       <Route path="/hud" element={<Phase3HUD />} />
       <Route path="/download" element={<DownloadPage />} />
       <Route path="/nexus/game" element={<GameViewRoute />} />
+      <Route path="/nexus/art" element={<ArtShowcase />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
