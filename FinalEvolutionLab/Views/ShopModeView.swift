@@ -364,9 +364,10 @@ struct ShopModeView: View {
 /// Deliberately isolated from GameSceneFactory so it never conflicts with the
 /// karate/game scene builders.
 ///
-/// NOTE: the bundled asset is a Venice-beach *rainbow basketball* (a ~1.85m
-/// sphere), not a storefront building, so it is framed as a floating hero prop
-/// rather than an interior the camera orbits inside.
+/// The bundled asset is a Venice-beach ball-shop kiosk (a ~2m stall with a
+/// counter, product shelves and signage), so it is framed as a hero storefront
+/// that gently rocks to keep its front face toward the camera (a full spin
+/// would swing the plain back of the stall into view).
 ///
 /// Fail-soft: if the USDZ cannot be loaded (nil node), it renders nothing and the
 /// parent view's gradient scrim carries the look on its own.
@@ -402,16 +403,19 @@ private struct VeniceBallShopBackdrop: UIViewRepresentable {
         cameraNode.eulerAngles = SCNVector3(-0.08, 0, 0)
         scene.rootNode.addChildNode(cameraNode)
 
-        // Hero mesh — normalized to a compact size and spun on its own axis.
-        // Fail-soft: only add if it loads.
+        // Hero storefront — normalized to a compact size. Fail-soft: only add
+        // if it loads. Start turned to a 3/4 front angle, then GENTLY ROCK
+        // (±22°) around that so the counter/signage stay facing the camera
+        // instead of swinging the plain back of the stall into frame.
         if let hero = FELBundledAssets.venueNode(.venueVeniceBallShop, footprint: 4.2) {
-            // Frame it toward the upper area so the storefront cards read below it.
             hero.position = SCNVector3(0, 1.6, 0)
-            hero.runAction(
-                SCNAction.repeatForever(
-                    SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 26)
-                )
-            )
+            hero.eulerAngles.y = -0.5   // 3/4 view of the storefront face
+            let rock = SCNAction.sequence([
+                SCNAction.rotateBy(x: 0, y: 0.38, z: 0, duration: 6),
+                SCNAction.rotateBy(x: 0, y: -0.38, z: 0, duration: 6)
+            ])
+            rock.timingMode = .easeInEaseOut
+            hero.runAction(SCNAction.repeatForever(rock))
             scene.rootNode.addChildNode(hero)
         }
 
