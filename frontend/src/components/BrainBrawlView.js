@@ -24,18 +24,20 @@ import { API_URL, getStoredUserId } from '@/lib/apiClient';
 import { scoreAnswer } from '@/lib/brainbrawlScoring';
 import { saveLesson } from '@/lib/creatorCardSeam';
 
+// Premium dark ink palette — coordinator-approved accents:
+// cyan #00D4FF (primary), purple #9933FF (deep-dive / creator).
 const T = {
   bg: '#08090b',
   panel: '#0d1018',
-  panelBorder: 'rgba(0,229,255,0.15)',
+  panelBorder: 'rgba(0,212,255,0.15)',
   text: '#e8eaf0',
   dim: '#6b7280',
   soft: '#9ca3af',
-  accent: '#00e5ff',
+  accent: '#00D4FF',
   gold: '#ffd700',
   green: '#34d399',
   red: '#f87171',
-  purple: '#c084fc',
+  purple: '#9933FF',
 };
 
 const styles = {
@@ -130,7 +132,7 @@ function AnswerButton({ option, index, state, multi, selected, onPress, disabled
   // state: 'idle' | 'selected' | 'correct' | 'wrong' | 'missed'
   const palette = {
     idle: { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.12)', color: T.text },
-    selected: { bg: 'rgba(0,229,255,0.12)', border: T.accent, color: T.accent },
+    selected: { bg: 'rgba(0,212,255,0.12)', border: T.accent, color: T.accent },
     correct: { bg: 'rgba(52,211,153,0.15)', border: T.green, color: T.green },
     wrong: { bg: 'rgba(248,113,113,0.13)', border: T.red, color: T.red },
     missed: { bg: 'rgba(52,211,153,0.06)', border: 'rgba(52,211,153,0.45)', color: T.green },
@@ -203,7 +205,7 @@ function LessonOverlay({ result, question, onContinue, finished }) {
         )}
         {lesson && (
           <div style={{
-            background: 'rgba(192,132,252,0.07)', border: '1px solid rgba(192,132,252,0.25)',
+            background: 'rgba(153,51,255,0.07)', border: '1px solid rgba(153,51,255,0.25)',
             borderRadius: 14, padding: '16px 18px', marginBottom: 16,
           }}>
             <div style={{ ...styles.label, color: T.purple, marginBottom: 6 }}>Micro-lesson · {lesson.title}</div>
@@ -215,8 +217,8 @@ function LessonOverlay({ result, question, onContinue, finished }) {
           {(lesson || result.explanation) && (
             <button
               style={{
-                ...styles.btn, background: 'rgba(192,132,252,0.14)', color: T.purple,
-                border: '1px solid rgba(192,132,252,0.35)',
+                ...styles.btn, background: 'rgba(153,51,255,0.14)', color: T.purple,
+                border: '1px solid rgba(153,51,255,0.35)',
               }}
               onClick={handleSave}
               disabled={saveState !== 'idle'}
