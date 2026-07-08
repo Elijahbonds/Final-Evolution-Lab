@@ -2,6 +2,15 @@ import SwiftUI
 import SceneKit
 import MetalKit
 
+/// One-shot opponent (fighter2) animation event, driven from GamePlayView's
+/// local opponent AI through the nonce bridge.
+enum KarateOpponentEvent: Equatable, Sendable {
+    case telegraph(duration: Double)
+    case strike(FELBundledAsset)
+    case `guard`(duration: Double)
+    case stagger
+}
+
 public enum ScenicCameraAngle: String, CaseIterable, Codable, Sendable {
     case chase = "Chase Cam"
     case broadcast = "Broadcast Cam"
@@ -105,6 +114,15 @@ struct GameSceneHostView: UIViewRepresentable {
     var karateStrikeNonce: Int = 0
     var karateStrikeAsset: FELBundledAsset? = nil
 
+    /// One-shot opponent (fighter2) animation event, nonce-triggered like the
+    /// player strike above. Set `karateOpponentEvent` then bump the nonce.
+    var karateOpponentEventNonce: Int = 0
+    var karateOpponentEvent: KarateOpponentEvent? = nil
+
+    /// One-shot impact hitstop + contact-burst signal (nonce-triggered).
+    var karateHitstopNonce: Int = 0
+    var karateHitstopCritical: Bool = false
+
     func makeUIView(context: Context) -> UIView {
         if Nexus3DGameplayCoordinator.shouldUseHybridMetal(for: gameMode, explicit3D: useNexus3DEngine) {
             return context.coordinator.makeHybridView()
@@ -130,6 +148,20 @@ struct GameSceneHostView: UIViewRepresentable {
             if let asset = karateStrikeAsset {
                 context.coordinator.playKarateStrike(asset)
             }
+        }
+        if context.coordinator.lastOpponentEventNonce != karateOpponentEventNonce {
+            context.coordinator.lastOpponentEventNonce = karateOpponentEventNonce
+            switch karateOpponentEvent {
+            case .telegraph(let dur): context.coordinator.showOpponentTelegraph(duration: dur)
+            case .strike(let asset): context.coordinator.playOpponentStrike(asset)
+            case .guard(let dur): context.coordinator.playOpponentGuard(duration: dur)
+            case .stagger: context.coordinator.playOpponentStagger()
+            case .none: break
+            }
+        }
+        if context.coordinator.lastHitstopNonce != karateHitstopNonce {
+            context.coordinator.lastHitstopNonce = karateHitstopNonce
+            context.coordinator.triggerKarateImpact(critical: karateHitstopCritical)
         }
         context.coordinator.isSpecialMove = isSpecialMove
         context.coordinator.isSlowMotion = isSlowMotion
@@ -178,6 +210,15 @@ struct GameSceneHostView: UIViewRepresentable {
         var lastKarateStrikeNonce: Int = 0
         private var strikeClipNode: SCNNode?
         private var strikeRestoreTask: Task<Void, Never>?
+
+        // Opponent (fighter2) runtime animation state.
+        var lastOpponentEventNonce: Int = 0
+        private var opponentClipNode: SCNNode?
+        private var opponentRestoreTask: Task<Void, Never>?
+        private var telegraphGlowNode: SCNNode?
+        // Impact hitstop.
+        var lastHitstopNonce: Int = 0
+        private var hitstopTask: Task<Void, Never>?
 
         /// Dunk contest: while airborne the dunker swaps to the retargeted
         /// mocap dunk clip (Elijah Bonds model, rim-normalized to the 3.05m
@@ -251,6 +292,171 @@ struct GameSceneHostView: UIViewRepresentable {
                 self.strikeRestoreTask = nil
                 self.activeSceneKitView?.scene?.rootNode
                     .childNode(withName: "fighter1", recursively: true)?.isHidden = false
+            }
+        }
+
+        // MARK: - Opponent (fighter2) runtime animation
+
+        /// Opponent attack: swap "fighter2" for a fresh baked strike clip
+        /// (never cloned — SCNSkinner nodes must not be cloned), restoring the
+        /// base fighter after the clip finishes. Mirrors ``playKarateStrike``.
+        func playOpponentStrike(_ asset: FELBundledAsset) {
+            guard gameMode == .karate || gameMode == .karateEndless,
+                  let scene = activeSceneKitView?.scene,
+                  let fighter = scene.rootNode.childNode(withName: "fighter2", recursively: true) else {
+                return
+            }
+            removeTelegraphGlow()
+            teardownOpponentClip()
+            guard let clip = FELBundledAssets.characterNode(asset, height: 1.75) else { return }
+            clip.name = "fighter2StrikeClip"
+            clip.position = fighter.position
+            clip.eulerAngles = fighter.eulerAngles
+            (fighter.parent ?? scene.rootNode).addChildNode(clip)
+            fighter.isHidden = true
+            opponentClipNode = clip
+
+            var clipDuration: Double = 0
+            clip.enumerateHierarchy { node, _ in
+                for key in node.animationKeys {
+                    if let player = node.animationPlayer(forKey: key) {
+                        clipDuration = max(clipDuration, player.animation.duration)
+                    }
+                }
+            }
+            if clipDuration <= 0 { clipDuration = 0.8 }
+            scheduleOpponentRestore(after: clipDuration)
+        }
+
+        /// Opponent guard: hold the ElijahGuard pose for `duration`.
+        func playOpponentGuard(duration: Double) {
+            guard gameMode == .karate || gameMode == .karateEndless,
+                  let scene = activeSceneKitView?.scene,
+                  let fighter = scene.rootNode.childNode(withName: "fighter2", recursively: true),
+                  let clip = FELBundledAssets.characterNode(.elijahGuard, height: 1.75) else {
+                return
+            }
+            removeTelegraphGlow()
+            teardownOpponentClip()
+            clip.name = "fighter2GuardClip"
+            clip.position = fighter.position
+            clip.eulerAngles = fighter.eulerAngles
+            (fighter.parent ?? scene.rootNode).addChildNode(clip)
+            fighter.isHidden = true
+            opponentClipNode = clip
+            scheduleOpponentRestore(after: max(0.35, duration))
+        }
+
+        /// Opponent stagger: quick backward knockback + twist on the live
+        /// fighter node (no clip clone), then settle.
+        func playOpponentStagger() {
+            guard let scene = activeSceneKitView?.scene,
+                  let fighter = scene.rootNode.childNode(withName: "fighter2", recursively: true) else {
+                return
+            }
+            removeTelegraphGlow()
+            teardownOpponentClip()   // if mid-attack, drop the clip and show base
+            // Knock back along +X (away from the player at -X).
+            let knock = SCNAction.sequence([
+                SCNAction.moveBy(x: 0.35, y: 0, z: 0, duration: 0.09),
+                SCNAction.moveBy(x: -0.2, y: 0, z: 0, duration: 0.22)
+            ])
+            knock.timingMode = .easeOut
+            fighter.runAction(knock, forKey: "stagger")
+            let baseYaw = fighter.eulerAngles.y
+            let twist = SCNAction.sequence([
+                SCNAction.rotateTo(x: 0, y: CGFloat(baseYaw) + 0.18, z: -0.14, duration: 0.09),
+                SCNAction.rotateTo(x: 0, y: CGFloat(baseYaw), z: 0, duration: 0.26)
+            ])
+            fighter.runAction(twist, forKey: "staggerTwist")
+        }
+
+        /// Telegraph glow: a brief pulsing halo at the opponent so an incoming
+        /// attack is readable (fair blocking).
+        func showOpponentTelegraph(duration: Double) {
+            guard let scene = activeSceneKitView?.scene,
+                  let fighter = scene.rootNode.childNode(withName: "fighter2", recursively: true) else {
+                return
+            }
+            removeTelegraphGlow()
+            let glow = SCNNode(geometry: SCNSphere(radius: 0.55))
+            let mat = SCNMaterial()
+            mat.diffuse.contents = UIColor.clear
+            mat.emission.contents = UIColor(red: 1.0, green: 0.5, blue: 0.15, alpha: 1)
+            mat.blendMode = .add
+            mat.writesToDepthBuffer = false
+            mat.lightingModel = .constant
+            glow.geometry?.materials = [mat]
+            glow.opacity = 0.0
+            glow.name = "oppTelegraphGlow"
+            glow.position = SCNVector3(fighter.position.x, 1.2, fighter.position.z)
+            scene.rootNode.addChildNode(glow)
+            telegraphGlowNode = glow
+            glow.runAction(.sequence([
+                .group([.fadeOpacity(to: 0.6, duration: duration * 0.5),
+                        .scale(to: 1.25, duration: duration * 0.5)]),
+                .fadeOut(duration: duration * 0.5)
+            ]))
+        }
+
+        private func removeTelegraphGlow() {
+            telegraphGlowNode?.removeFromParentNode()
+            telegraphGlowNode = nil
+        }
+
+        private func teardownOpponentClip() {
+            opponentRestoreTask?.cancel()
+            opponentRestoreTask = nil
+            opponentClipNode?.removeFromParentNode()
+            opponentClipNode = nil
+            activeSceneKitView?.scene?.rootNode
+                .childNode(withName: "fighter2", recursively: true)?.isHidden = false
+        }
+
+        private func scheduleOpponentRestore(after duration: Double) {
+            opponentRestoreTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(duration))
+                guard let self, !Task.isCancelled else { return }
+                self.opponentClipNode?.removeFromParentNode()
+                self.opponentClipNode = nil
+                self.opponentRestoreTask = nil
+                self.activeSceneKitView?.scene?.rootNode
+                    .childNode(withName: "fighter2", recursively: true)?.isHidden = false
+            }
+        }
+
+        // MARK: - Impact hitstop + VFX
+
+        /// Freeze the active strike/opponent clips for a beat to sell impact,
+        /// spawn a contact burst at mid-ring, then resume. `critical` deepens
+        /// the freeze and the burst.
+        func triggerKarateImpact(critical: Bool) {
+            guard let scene = activeSceneKitView?.scene else { return }
+            // Contact burst between the fighters, chest height.
+            let f1x = scene.rootNode.childNode(withName: "fighter1", recursively: true)?.position.x ?? -1.2
+            let f2x = scene.rootNode.childNode(withName: "fighter2", recursively: true)?.position.x ?? 1.2
+            let midX = (f1x + f2x) / 2
+            KarateImpactVFX.burst(in: scene, at: SCNVector3(midX, 1.2, 0), critical: critical)
+
+            // Hitstop: pause the strike/opponent clip animations briefly.
+            hitstopTask?.cancel()
+            let clips = [strikeClipNode, opponentClipNode].compactMap { $0 }
+            guard !clips.isEmpty else { return }
+            for clip in clips { setAnimationSpeed(0.0, on: clip) }
+            let freeze: Double = critical ? 0.12 : 0.06
+            hitstopTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(freeze))
+                guard let self, !Task.isCancelled else { return }
+                for clip in clips { self.setAnimationSpeed(1.0, on: clip) }
+                self.hitstopTask = nil
+            }
+        }
+
+        private func setAnimationSpeed(_ speed: CGFloat, on node: SCNNode) {
+            node.enumerateHierarchy { n, _ in
+                for key in n.animationKeys {
+                    n.animationPlayer(forKey: key)?.speed = speed
+                }
             }
         }
 

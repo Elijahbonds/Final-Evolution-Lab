@@ -794,8 +794,16 @@ struct GameSceneFactory {
         } else {
             addPlayerAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
         }
-        // Mirror-match opponent (Elijah combo clip, red-tinted) — Meshy NPC
-        // clips render in open venues but not the dojo; tracked follow-up.
+        // Opponent: prefer the distinct Eric Nash rival for real visual variety;
+        // fall back to the (proven-in-dojo) red-tinted Elijah combo clip, then
+        // to a procedural avatar. The AI drives attacks by swapping in fresh
+        // strike clips at runtime (see GameSceneHostView.playOpponentStrike),
+        // so the opponent is no longer a static mirror.
+        // Opponent = red-tinted Elijah combo clip. The Eric Nash NPC rig still
+        // mis-normalizes in the dojo (skinned mesh collapses; only a static
+        // T-pose mesh survives — confirmed via snapshot diagnostics), so the
+        // proven mirror stays the base. Variety now comes from the runtime AI
+        // swapping in distinct baked strike/guard clips on fighter2.
         if let opponent = FELBundledAssets.characterNode(.elijahKarateCombo, height: 1.75) {
             opponent.name = "fighter2"
             opponent.position = SCNVector3(1.2, 0, 0)
@@ -823,43 +831,29 @@ struct GameSceneFactory {
         guard let fighter1 = scene.rootNode.childNode(withName: "fighter1", recursively: true),
               let fighter2 = scene.rootNode.childNode(withName: "fighter2", recursively: true) else { return }
 
+        // Gentle footwork sway (kept small so the runtime AI's telegraph and
+        // strike clip-swaps read clearly). Both fighters hold their lanes.
         let f1Circle = SCNAction.sequence([
-            SCNAction.moveBy(x: 0.4, y: 0, z: 0.3, duration: 1.2),
-            SCNAction.moveBy(x: -0.3, y: 0, z: -0.5, duration: 1.0),
-            SCNAction.moveBy(x: -0.1, y: 0, z: 0.2, duration: 0.8)
+            SCNAction.moveBy(x: 0.18, y: 0, z: 0.16, duration: 1.2),
+            SCNAction.moveBy(x: -0.14, y: 0, z: -0.24, duration: 1.0),
+            SCNAction.moveBy(x: -0.04, y: 0, z: 0.08, duration: 0.8)
         ])
         f1Circle.timingMode = .easeInEaseOut
         fighter1.runAction(SCNAction.repeatForever(f1Circle), forKey: "circle")
 
         let f2Circle = SCNAction.sequence([
-            SCNAction.moveBy(x: -0.3, y: 0, z: -0.3, duration: 1.0),
-            SCNAction.moveBy(x: 0.4, y: 0, z: 0.5, duration: 1.2),
-            SCNAction.moveBy(x: -0.1, y: 0, z: -0.2, duration: 0.8)
+            SCNAction.moveBy(x: -0.14, y: 0, z: -0.16, duration: 1.0),
+            SCNAction.moveBy(x: 0.18, y: 0, z: 0.24, duration: 1.2),
+            SCNAction.moveBy(x: -0.04, y: 0, z: -0.08, duration: 0.8)
         ])
         f2Circle.timingMode = .easeInEaseOut
         fighter2.runAction(SCNAction.repeatForever(f2Circle), forKey: "circle")
 
-        if let rArm = fighter1.childNode(withName: "rArm", recursively: false) {
-            let punch = SCNAction.sequence([
-                SCNAction.wait(duration: 2.0),
-                SCNAction.rotateTo(x: -1.8, y: 0, z: -0.4, duration: 0.08),
-                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.2),
-                SCNAction.wait(duration: 1.5),
-                SCNAction.rotateTo(x: -1.5, y: 0.3, z: -0.6, duration: 0.1),
-                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.25)
-            ])
-            rArm.runAction(SCNAction.repeatForever(punch), forKey: "punch")
-        }
-
-        if let lLeg = fighter2.childNode(withName: "lLeg", recursively: false) {
-            let kick = SCNAction.sequence([
-                SCNAction.wait(duration: 3.0),
-                SCNAction.rotateTo(x: 1.2, y: 0, z: 0, duration: 0.1),
-                SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: 0.3),
-                SCNAction.wait(duration: 2.5)
-            ])
-            lLeg.runAction(SCNAction.repeatForever(kick), forKey: "kick")
-        }
+        // NOTE: per-limb "rArm"/"lLeg" child actions only existed on the old
+        // procedural stick avatars. On the skinned Meshy rigs those child names
+        // are absent, so real strikes are now driven by runtime baked-clip
+        // swaps (GameSceneHostView playKarateStrike / playOpponentStrike)
+        // rather than dead per-joint rotations here.
     }
 
     // MARK: - Baseball (Stadium Diamond with Pitcher/Catcher/Mound)
