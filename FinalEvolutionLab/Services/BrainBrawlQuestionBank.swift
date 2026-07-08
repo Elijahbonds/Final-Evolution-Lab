@@ -175,59 +175,59 @@ public enum BrainBrawlQuestionBank {
     private static let entertainmentQuestions: [BrainBrawlQuestion] = [
         BrainBrawlQuestion(
             category: .entertainment,
-            text: "Which studio created the Mario franchise?",
-            choices: ["Sega", "Nintendo", "Capcom", "Sony"],
+            text: "How many squares are on a chessboard?",
+            choices: ["32", "64", "72", "81"],
             correctIndex: 1,
-            explanation: "Mario debuted in Donkey Kong (1981) from Nintendo."
+            explanation: "A chessboard is an 8x8 grid — 64 squares."
         ),
         BrainBrawlQuestion(
             category: .entertainment,
-            text: "Who directed the film Jurassic Park (1993)?",
-            choices: ["James Cameron", "Steven Spielberg", "George Lucas", "Ridley Scott"],
-            correctIndex: 1,
-            explanation: "Spielberg adapted Michael Crichton's novel."
+            text: "What is a perfect score in ten-pin bowling?",
+            choices: ["200", "250", "300", "500"],
+            correctIndex: 2,
+            explanation: "Twelve consecutive strikes score a perfect 300."
         ),
         BrainBrawlQuestion(
             category: .entertainment,
-            text: "Which artist released the album Thriller?",
-            choices: ["Prince", "Michael Jackson", "Madonna", "Whitney Houston"],
-            correctIndex: 1,
-            explanation: "Thriller (1982) is the best-selling album of all time."
+            text: "How many cards are in a standard deck, not counting jokers?",
+            choices: ["48", "50", "52", "54"],
+            correctIndex: 2,
+            explanation: "Four suits of thirteen cards make 52."
         ),
         BrainBrawlQuestion(
             category: .entertainment,
-            text: "What is the highest-grossing film franchise globally (as of 2024)?",
-            choices: ["Star Wars", "Marvel Cinematic Universe", "Harry Potter", "James Bond"],
+            text: "Karaoke singing originated in which country?",
+            choices: ["China", "Japan", "South Korea", "United States"],
             correctIndex: 1,
-            explanation: "The MCU has earned over $30 billion worldwide."
+            explanation: "Karaoke — 'empty orchestra' — began in Japan in the 1970s."
         ),
         BrainBrawlQuestion(
             category: .entertainment,
-            text: "Which streaming service produced Stranger Things?",
-            choices: ["Hulu", "Netflix", "Disney+", "HBO Max"],
-            correctIndex: 1,
-            explanation: "Stranger Things premiered on Netflix in 2016."
+            text: "In darts, what is the highest score from a single throw?",
+            choices: ["20", "40", "50", "60"],
+            correctIndex: 3,
+            explanation: "A triple 20 scores 60 — the bullseye is only 50."
         ),
         BrainBrawlQuestion(
             category: .entertainment,
-            text: "In The Lion King, what is Simba's father's name?",
-            choices: ["Scar", "Mufasa", "Rafiki", "Zazu"],
+            text: "Competitive organized video gaming is commonly known as what?",
+            choices: ["Cybergames", "Esports", "Prohacking", "Speedplay"],
             correctIndex: 1,
-            explanation: "Mufasa is king of the Pride Lands before Scar's betrayal."
+            explanation: "Esports tournaments now fill arenas worldwide."
         ),
         BrainBrawlQuestion(
             category: .entertainment,
-            text: "Which band performed Bohemian Rhapsody?",
-            choices: ["The Beatles", "Queen", "Led Zeppelin", "Pink Floyd"],
+            text: "On a film set, what does the clapperboard help synchronize?",
+            choices: ["Lighting cues", "Sound and picture", "Actor blocking", "Camera focus"],
             correctIndex: 1,
-            explanation: "Queen released the operatic rock epic in 1975."
+            explanation: "The clap gives editors a sharp sync point for audio and video."
         ),
         BrainBrawlQuestion(
             category: .entertainment,
-            text: "What video game features a character named Master Chief?",
-            choices: ["Gears of War", "Halo", "Destiny", "Doom"],
+            text: "In improv comedy, what is the classic guiding principle called?",
+            choices: ["No, but", "Yes, and", "Go big", "Freeze frame"],
             correctIndex: 1,
-            explanation: "Master Chief is the protagonist of the Halo series."
+            explanation: "'Yes, and' keeps a scene building instead of stalling."
         )
     ]
 
