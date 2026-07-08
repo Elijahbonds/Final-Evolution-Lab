@@ -1,0 +1,1833 @@
+{
+  "datadump_version": "1.1",
+  "universe": "Final Evolution — Venice Beach cinematic universe",
+  "notice": "ALL content in this file is ORIGINAL fiction authored for the Final Evolution Lab demo. No real films, actors, studios, or IMDb-derived data. Every item carries source + license fields for QA shippability review.",
+  "default_source": "original_fel_universe",
+  "default_license": "FEL-Original-1.0 (authored in-repo by nexus/sceneit-demo; all rights held by Final Evolution Lab)",
+  "films": [
+    {
+      "film_id": "film_boardwalk_renaissance",
+      "title": "Boardwalk Renaissance",
+      "year": 2019,
+      "director_id": "cr_mara_quill",
+      "cast_ids": [
+        "cr_dez_okafor",
+        "cr_june_calaveras"
+      ],
+      "logline": "A washed-up street baller rebuilds a condemned Venice court one plank at a time — and rebuilds himself with it.",
+      "credits": [
+        "A NEON SHORE PICTURES PRODUCTION",
+        "Directed by MARA QUILL",
+        "Starring DEZ OKAFOR",
+        "and JUNE CALAVERAS",
+        "Cinematography — TOVE LINDGREN",
+        "Score — THE PACIFIC STATIC",
+        "Filmed on location at Neon Shore Court"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_br_sunrise_court",
+          "description": "Sunrise over the rebuilt court; a lone hoop silhouetted against the pier.",
+          "still": {
+            "palette": [
+              "#0b1026",
+              "#f97316",
+              "#fbbf24",
+              "#1e293b"
+            ],
+            "seed": 411,
+            "elements": [
+              {
+                "id": "el_hoop",
+                "label": "the hoop",
+                "shape": "hoop",
+                "x": 480,
+                "y": 120,
+                "w": 120,
+                "h": 160
+              },
+              {
+                "id": "el_ball",
+                "label": "the ball",
+                "shape": "circle",
+                "x": 250,
+                "y": 300,
+                "w": 48,
+                "h": 48
+              },
+              {
+                "id": "el_pier",
+                "label": "the pier",
+                "shape": "pier",
+                "x": 40,
+                "y": 200,
+                "w": 260,
+                "h": 60
+              }
+            ],
+            "invisibles_element": "el_hoop"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_last_dunk_neon_shore",
+      "title": "The Last Dunk of Neon Shore",
+      "year": 2021,
+      "director_id": "cr_hollis_vane",
+      "cast_ids": [
+        "cr_dez_okafor",
+        "cr_priya_sundaram"
+      ],
+      "logline": "On the night the city unplugs the boardwalk's neon forever, one final dunk contest decides who keeps the lights.",
+      "credits": [
+        "VANE BROTHERS FILMWORKS presents",
+        "A film by HOLLIS VANE",
+        "DEZ OKAFOR",
+        "PRIYA SUNDARAM",
+        "Edited by OCTAVIO REN",
+        "Neon design — LUMEN & DAUGHTERS",
+        "Score — THE PACIFIC STATIC"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_ld_neon_rim",
+          "description": "A neon-wrapped rim glowing over a midnight crowd.",
+          "still": {
+            "palette": [
+              "#050514",
+              "#e11d48",
+              "#22d3ee",
+              "#312e81"
+            ],
+            "seed": 902,
+            "elements": [
+              {
+                "id": "el_rim",
+                "label": "the neon rim",
+                "shape": "hoop",
+                "x": 300,
+                "y": 90,
+                "w": 140,
+                "h": 180
+              },
+              {
+                "id": "el_crowd",
+                "label": "the crowd",
+                "shape": "crowd",
+                "x": 30,
+                "y": 330,
+                "w": 640,
+                "h": 60
+              },
+              {
+                "id": "el_sign",
+                "label": "the neon sign",
+                "shape": "sign",
+                "x": 520,
+                "y": 60,
+                "w": 140,
+                "h": 90
+              }
+            ],
+            "invisibles_element": "el_sign"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_chalk_dust_symphony",
+      "title": "Chalk Dust Symphony",
+      "year": 2016,
+      "director_id": "cr_mara_quill",
+      "cast_ids": [
+        "cr_june_calaveras",
+        "cr_bo_tanaka"
+      ],
+      "logline": "A gymnastics prodigy who hears routines as music must compose her boldest piece for the Venice Invitational.",
+      "credits": [
+        "NEON SHORE PICTURES",
+        "Directed by MARA QUILL",
+        "JUNE CALAVERAS",
+        "BO TANAKA",
+        "Choreography — the VENICE FLIGHT COLLECTIVE",
+        "Original symphony — ORA BELLWEATHER"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_cd_beam_solo",
+          "description": "A balance beam floating in a shaft of chalk-dusted light.",
+          "still": {
+            "palette": [
+              "#111827",
+              "#a78bfa",
+              "#f9fafb",
+              "#4c1d95"
+            ],
+            "seed": 133,
+            "elements": [
+              {
+                "id": "el_beam",
+                "label": "the beam",
+                "shape": "beam",
+                "x": 140,
+                "y": 250,
+                "w": 420,
+                "h": 30
+              },
+              {
+                "id": "el_dust",
+                "label": "the chalk dust",
+                "shape": "dust",
+                "x": 260,
+                "y": 80,
+                "w": 180,
+                "h": 160
+              },
+              {
+                "id": "el_athlete",
+                "label": "the athlete",
+                "shape": "figure",
+                "x": 320,
+                "y": 160,
+                "w": 60,
+                "h": 100
+              }
+            ],
+            "invisibles_element": "el_athlete"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_half_pipe_horizon",
+      "title": "Half-Pipe Horizon",
+      "year": 2018,
+      "director_id": "cr_ossian_brick",
+      "cast_ids": [
+        "cr_bo_tanaka",
+        "cr_rocket_amaya"
+      ],
+      "logline": "Two rival skaters discover the abandoned mega-ramp at the edge of the marsh was built for exactly two riders.",
+      "credits": [
+        "BRICKWORK STUDIOS",
+        "An OSSIAN BRICK picture",
+        "BO TANAKA",
+        "ROCKET AMAYA",
+        "Ramp engineering — the TIDEWATER CREW",
+        "Score — GULLS AT NOON"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_hp_ramp_dusk",
+          "description": "The mega-ramp curling against a dusk gradient, marsh birds overhead.",
+          "still": {
+            "palette": [
+              "#1a1033",
+              "#fb7185",
+              "#fde68a",
+              "#0f766e"
+            ],
+            "seed": 577,
+            "elements": [
+              {
+                "id": "el_ramp",
+                "label": "the ramp",
+                "shape": "ramp",
+                "x": 80,
+                "y": 180,
+                "w": 480,
+                "h": 200
+              },
+              {
+                "id": "el_skater",
+                "label": "the skater",
+                "shape": "figure",
+                "x": 420,
+                "y": 120,
+                "w": 50,
+                "h": 90
+              },
+              {
+                "id": "el_birds",
+                "label": "the birds",
+                "shape": "birds",
+                "x": 120,
+                "y": 60,
+                "w": 220,
+                "h": 70
+              }
+            ],
+            "invisibles_element": "el_skater"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_free_throw_midnight",
+      "title": "Free Throw at Midnight",
+      "year": 2014,
+      "director_id": "cr_hollis_vane",
+      "cast_ids": [
+        "cr_priya_sundaram",
+        "cr_dez_okafor"
+      ],
+      "logline": "A night-shift physio and an insomniac point guard meet at the only court that never closes, one free throw at a time.",
+      "credits": [
+        "VANE BROTHERS FILMWORKS",
+        "Directed by HOLLIS VANE",
+        "PRIYA SUNDARAM",
+        "DEZ OKAFOR",
+        "Night photography — TOVE LINDGREN",
+        "Songs — MUSCLE BEACH NOCTURNE ENSEMBLE"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_ft_floodlight",
+          "description": "A single floodlight cone over the free-throw line, moths in the beam.",
+          "still": {
+            "palette": [
+              "#020617",
+              "#38bdf8",
+              "#e2e8f0",
+              "#334155"
+            ],
+            "seed": 245,
+            "elements": [
+              {
+                "id": "el_floodlight",
+                "label": "the floodlight",
+                "shape": "light",
+                "x": 320,
+                "y": 40,
+                "w": 160,
+                "h": 240
+              },
+              {
+                "id": "el_line",
+                "label": "the free-throw line",
+                "shape": "line",
+                "x": 200,
+                "y": 340,
+                "w": 300,
+                "h": 14
+              },
+              {
+                "id": "el_ball",
+                "label": "the ball",
+                "shape": "circle",
+                "x": 350,
+                "y": 280,
+                "w": 44,
+                "h": 44
+              }
+            ],
+            "invisibles_element": "el_ball"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_sandcastle_gambit",
+      "title": "The Sandcastle Gambit",
+      "year": 2022,
+      "director_id": "cr_vada_moon",
+      "cast_ids": [
+        "cr_june_calaveras",
+        "cr_felix_marrow"
+      ],
+      "logline": "Venice's beach-chess hustlers stake their whole boardwalk on a tournament played on a board sculpted from sand.",
+      "credits": [
+        "MOONTIDE PICTURES",
+        "A film by VADA MOON",
+        "JUNE CALAVERAS",
+        "FELIX MARROW",
+        "Sand sculpture — the GRAIN GUILD",
+        "Score — ORA BELLWEATHER"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_sg_board",
+          "description": "A chessboard carved into wet sand as the tide creeps in.",
+          "still": {
+            "palette": [
+              "#1c1917",
+              "#f59e0b",
+              "#0ea5e9",
+              "#78350f"
+            ],
+            "seed": 688,
+            "elements": [
+              {
+                "id": "el_board",
+                "label": "the board",
+                "shape": "board",
+                "x": 180,
+                "y": 220,
+                "w": 340,
+                "h": 170
+              },
+              {
+                "id": "el_king",
+                "label": "the sand king",
+                "shape": "piece",
+                "x": 330,
+                "y": 150,
+                "w": 40,
+                "h": 90
+              },
+              {
+                "id": "el_tide",
+                "label": "the tide",
+                "shape": "wave",
+                "x": 20,
+                "y": 350,
+                "w": 660,
+                "h": 50
+              }
+            ],
+            "invisibles_element": "el_king"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_zen_dojo_diaries",
+      "title": "Zen Dojo Diaries",
+      "year": 2015,
+      "director_id": "cr_ossian_brick",
+      "cast_ids": [
+        "cr_kensei_arau",
+        "cr_rocket_amaya"
+      ],
+      "logline": "A retired karate master agrees to train exactly one more student — the loud skate kid who broke his window.",
+      "credits": [
+        "BRICKWORK STUDIOS",
+        "Directed by OSSIAN BRICK",
+        "KENSEI ARAU",
+        "ROCKET AMAYA",
+        "Fight choreography — KENSEI ARAU",
+        "Score — GULLS AT NOON"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_zd_paper_door",
+          "description": "Silhouettes sparring behind a lantern-lit paper door.",
+          "still": {
+            "palette": [
+              "#180a0a",
+              "#ef4444",
+              "#fef3c7",
+              "#7f1d1d"
+            ],
+            "seed": 351,
+            "elements": [
+              {
+                "id": "el_door",
+                "label": "the paper door",
+                "shape": "door",
+                "x": 200,
+                "y": 80,
+                "w": 300,
+                "h": 300
+              },
+              {
+                "id": "el_lantern",
+                "label": "the lantern",
+                "shape": "lantern",
+                "x": 120,
+                "y": 110,
+                "w": 60,
+                "h": 90
+              },
+              {
+                "id": "el_silhouettes",
+                "label": "the silhouettes",
+                "shape": "duel",
+                "x": 250,
+                "y": 160,
+                "w": 200,
+                "h": 180
+              }
+            ],
+            "invisibles_element": "el_lantern"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_wavelength",
+      "title": "Wavelength",
+      "year": 2020,
+      "director_id": "cr_vada_moon",
+      "cast_ids": [
+        "cr_rocket_amaya",
+        "cr_priya_sundaram"
+      ],
+      "logline": "A big-wave surfer who lost her hearing learns to read the ocean through vibration — and rides the ninth wave nobody else can feel coming.",
+      "credits": [
+        "MOONTIDE PICTURES",
+        "Directed by VADA MOON",
+        "ROCKET AMAYA",
+        "PRIYA SUNDARAM",
+        "Underwater unit — the TIDEWATER CREW",
+        "Vibration score — THE PACIFIC STATIC"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_wl_ninth_wave",
+          "description": "A towering wave face with a lone surf line etched down it.",
+          "still": {
+            "palette": [
+              "#04121f",
+              "#06b6d4",
+              "#f0fdfa",
+              "#155e75"
+            ],
+            "seed": 764,
+            "elements": [
+              {
+                "id": "el_wave",
+                "label": "the wave",
+                "shape": "bigwave",
+                "x": 40,
+                "y": 60,
+                "w": 620,
+                "h": 300
+              },
+              {
+                "id": "el_surfer",
+                "label": "the surfer",
+                "shape": "figure",
+                "x": 380,
+                "y": 220,
+                "w": 46,
+                "h": 80
+              },
+              {
+                "id": "el_moon",
+                "label": "the moon",
+                "shape": "circle",
+                "x": 560,
+                "y": 70,
+                "w": 70,
+                "h": 70
+              }
+            ],
+            "invisibles_element": "el_surfer"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_full_court_alchemy",
+      "title": "Full Court Alchemy",
+      "year": 2023,
+      "director_id": "cr_lux_ferreira",
+      "cast_ids": [
+        "cr_dez_okafor",
+        "cr_felix_marrow",
+        "cr_june_calaveras"
+      ],
+      "logline": "A disgraced sports scientist swears he can turn five strangers into a championship team in ninety days, using nothing but the boardwalk.",
+      "credits": [
+        "FERREIRA LIGHTWORKS",
+        "A LUX FERREIRA film",
+        "DEZ OKAFOR",
+        "FELIX MARROW",
+        "JUNE CALAVERAS",
+        "Training design — DR. NOOR HADDAD",
+        "Score — ORA BELLWEATHER"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_fc_whiteboard",
+          "description": "A play diagrammed in glowing chalk lines hovering over the court.",
+          "still": {
+            "palette": [
+              "#0a0a1a",
+              "#84cc16",
+              "#f8fafc",
+              "#3f6212"
+            ],
+            "seed": 519,
+            "elements": [
+              {
+                "id": "el_diagram",
+                "label": "the play diagram",
+                "shape": "diagram",
+                "x": 160,
+                "y": 90,
+                "w": 380,
+                "h": 200
+              },
+              {
+                "id": "el_court",
+                "label": "the court",
+                "shape": "court",
+                "x": 60,
+                "y": 300,
+                "w": 580,
+                "h": 90
+              },
+              {
+                "id": "el_coach",
+                "label": "the coach",
+                "shape": "figure",
+                "x": 90,
+                "y": 190,
+                "w": 54,
+                "h": 96
+              }
+            ],
+            "invisibles_element": "el_diagram"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_gull_and_grind",
+      "title": "The Gull and the Grind",
+      "year": 2017,
+      "director_id": "cr_lux_ferreira",
+      "cast_ids": [
+        "cr_bo_tanaka",
+        "cr_kensei_arau"
+      ],
+      "logline": "A stop-motion fable about a seagull who apprentices himself to the boardwalk's oldest skate-shop machinist.",
+      "credits": [
+        "FERREIRA LIGHTWORKS",
+        "Directed by LUX FERREIRA",
+        "Voices — BO TANAKA & KENSEI ARAU",
+        "Animated frame by frame by the GRAIN GUILD",
+        "Score — GULLS AT NOON"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_gg_workbench",
+          "description": "A cluttered workbench, one gull-shaped shadow across the trucks and wheels.",
+          "still": {
+            "palette": [
+              "#141210",
+              "#fdba74",
+              "#57534e",
+              "#7c2d12"
+            ],
+            "seed": 826,
+            "elements": [
+              {
+                "id": "el_bench",
+                "label": "the workbench",
+                "shape": "bench",
+                "x": 80,
+                "y": 260,
+                "w": 540,
+                "h": 120
+              },
+              {
+                "id": "el_gull",
+                "label": "the gull",
+                "shape": "gull",
+                "x": 300,
+                "y": 120,
+                "w": 120,
+                "h": 90
+              },
+              {
+                "id": "el_wheel",
+                "label": "the wheel",
+                "shape": "circle",
+                "x": 500,
+                "y": 220,
+                "w": 50,
+                "h": 50
+              }
+            ],
+            "invisibles_element": "el_gull"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_muscle_beach_nocturne",
+      "title": "Muscle Beach Nocturne",
+      "year": 2013,
+      "director_id": "cr_hollis_vane",
+      "cast_ids": [
+        "cr_felix_marrow",
+        "cr_kensei_arau"
+      ],
+      "logline": "After closing time, the weight pit becomes an open-air jazz club — until the city threatens to haul the dumbbells and the double bass away together.",
+      "credits": [
+        "VANE BROTHERS FILMWORKS",
+        "Directed by HOLLIS VANE",
+        "FELIX MARROW",
+        "KENSEI ARAU",
+        "Live music — MUSCLE BEACH NOCTURNE ENSEMBLE",
+        "Photographed by TOVE LINDGREN"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_mb_bass_and_bar",
+          "description": "A double bass leaning against a loaded barbell under string lights.",
+          "still": {
+            "palette": [
+              "#0c0a09",
+              "#eab308",
+              "#a8a29e",
+              "#422006"
+            ],
+            "seed": 190,
+            "elements": [
+              {
+                "id": "el_bass",
+                "label": "the double bass",
+                "shape": "bass",
+                "x": 280,
+                "y": 130,
+                "w": 120,
+                "h": 240
+              },
+              {
+                "id": "el_barbell",
+                "label": "the barbell",
+                "shape": "barbell",
+                "x": 120,
+                "y": 320,
+                "w": 460,
+                "h": 50
+              },
+              {
+                "id": "el_lights",
+                "label": "the string lights",
+                "shape": "stringlights",
+                "x": 40,
+                "y": 50,
+                "w": 620,
+                "h": 60
+              }
+            ],
+            "invisibles_element": "el_bass"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_ninth_wave_prophets",
+      "title": "Ninth Wave Prophets",
+      "year": 2024,
+      "director_id": "cr_vada_moon",
+      "cast_ids": [
+        "cr_rocket_amaya",
+        "cr_dez_okafor",
+        "cr_june_calaveras"
+      ],
+      "logline": "Three retired athletes reunite to forecast a once-a-century swell — and to settle, on the water, everything they left unsaid on land.",
+      "credits": [
+        "MOONTIDE PICTURES",
+        "A VADA MOON film",
+        "ROCKET AMAYA",
+        "DEZ OKAFOR",
+        "JUNE CALAVERAS",
+        "Swell science — DR. NOOR HADDAD",
+        "Final wave photographed in one take"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_np_three_boards",
+          "description": "Three longboards planted upright in the sand at first light.",
+          "still": {
+            "palette": [
+              "#101828",
+              "#fda4af",
+              "#fef9c3",
+              "#1d4ed8"
+            ],
+            "seed": 933,
+            "elements": [
+              {
+                "id": "el_boards",
+                "label": "the three boards",
+                "shape": "boards",
+                "x": 220,
+                "y": 120,
+                "w": 260,
+                "h": 230
+              },
+              {
+                "id": "el_sun",
+                "label": "the sun",
+                "shape": "circle",
+                "x": 90,
+                "y": 90,
+                "w": 80,
+                "h": 80
+              },
+              {
+                "id": "el_horizon",
+                "label": "the horizon",
+                "shape": "line",
+                "x": 20,
+                "y": 250,
+                "w": 660,
+                "h": 8
+              }
+            ],
+            "invisibles_element": "el_boards"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "film_id": "film_foundation_flow",
+      "title": "Foundation Flow",
+      "year": 2012,
+      "director_id": "cr_ossian_brick",
+      "cast_ids": [
+        "cr_kensei_arau",
+        "cr_priya_sundaram",
+        "cr_bo_tanaka"
+      ],
+      "logline": "The documentary-styled origin of the Venice movement school where karate, skate, and dance were first taught as one discipline.",
+      "credits": [
+        "BRICKWORK STUDIOS",
+        "Directed by OSSIAN BRICK",
+        "With KENSEI ARAU",
+        "PRIYA SUNDARAM",
+        "BO TANAKA",
+        "Archive recreations — FERREIRA LIGHTWORKS",
+        "Score — THE PACIFIC STATIC"
+      ],
+      "scenes": [
+        {
+          "scene_id": "sc_ff_circle",
+          "description": "A chalk circle on concrete, three pairs of feet at its edge.",
+          "still": {
+            "palette": [
+              "#111113",
+              "#2dd4bf",
+              "#e7e5e4",
+              "#134e4a"
+            ],
+            "seed": 68,
+            "elements": [
+              {
+                "id": "el_circle",
+                "label": "the chalk circle",
+                "shape": "chalkcircle",
+                "x": 170,
+                "y": 140,
+                "w": 360,
+                "h": 220
+              },
+              {
+                "id": "el_feet",
+                "label": "the feet",
+                "shape": "feet",
+                "x": 240,
+                "y": 180,
+                "w": 220,
+                "h": 140
+              },
+              {
+                "id": "el_crack",
+                "label": "the crack in the concrete",
+                "shape": "crack",
+                "x": 60,
+                "y": 320,
+                "w": 250,
+                "h": 40
+              }
+            ],
+            "invisibles_element": "el_circle"
+          },
+          "source": "original_fel_universe",
+          "license": "FEL-Original-1.0"
+        }
+      ],
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    }
+  ],
+  "creators": [
+    {
+      "creator_id": "cr_mara_quill",
+      "name": "Mara Quill",
+      "persona": "director",
+      "tagline": "Poet laureate of the pick-up game",
+      "bio": "Mara Quill shot her first short on a borrowed camcorder from the top row of the Neon Shore bleachers and never stopped framing sport as ritual. Her films treat courts, beams, and boardwalks as sacred architecture.",
+      "timeline": [
+        {
+          "year": 2008,
+          "event": "Wins the Venice Boardwalk Short Film Open with 'Bleacher Hymn'"
+        },
+        {
+          "year": 2016,
+          "event": "Chalk Dust Symphony premieres at the Pier Festival"
+        },
+        {
+          "year": 2019,
+          "event": "Boardwalk Renaissance sweeps the Neon Shore Circle Awards"
+        }
+      ],
+      "top_work_ids": [
+        "film_boardwalk_renaissance",
+        "film_chalk_dust_symphony"
+      ],
+      "facts": [
+        "Storyboards every match sequence as sheet music before shooting.",
+        "Refuses to shoot a sports scene with more than two cuts per possession.",
+        "Founded the Neon Shore youth film lab, tuition paid in volunteer court-repair hours."
+      ],
+      "lesson_stub": {
+        "title": "Framing Motion: Rhythm in Sports Cinematography",
+        "summary": "How Quill maps athletic rhythm onto shot length — a starter lesson on editing to physical tempo."
+      },
+      "portrait_ref": "svg:creator/cr_mara_quill",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "DIRECTOR"
+    },
+    {
+      "creator_id": "cr_hollis_vane",
+      "name": "Hollis Vane",
+      "persona": "director",
+      "tagline": "The night-shift romantic",
+      "bio": "Hollis Vane only shoots after sundown. His Venice is floodlights, insomnia, and the small mercies strangers show each other at 2 a.m. courts.",
+      "timeline": [
+        {
+          "year": 2013,
+          "event": "Muscle Beach Nocturne filmed in eleven consecutive nights"
+        },
+        {
+          "year": 2014,
+          "event": "Free Throw at Midnight becomes a word-of-mouth boardwalk classic"
+        },
+        {
+          "year": 2021,
+          "event": "The Last Dunk of Neon Shore closes the Pier Festival"
+        }
+      ],
+      "top_work_ids": [
+        "film_free_throw_midnight",
+        "film_last_dunk_neon_shore",
+        "film_muscle_beach_nocturne"
+      ],
+      "facts": [
+        "Has never released a frame shot in daylight.",
+        "Casts real night-shift workers as extras and pays them double scale.",
+        "Keeps the same floodlight from his first film in every subsequent picture."
+      ],
+      "lesson_stub": {
+        "title": "Available Darkness: Lighting with What the City Gives You",
+        "summary": "Vane's floodlight-and-neon toolkit for cinematic night scenes on zero budget."
+      },
+      "portrait_ref": "svg:creator/cr_hollis_vane",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "DIRECTOR"
+    },
+    {
+      "creator_id": "cr_ossian_brick",
+      "name": "Ossian Brick",
+      "persona": "director",
+      "tagline": "Builder of impossible ramps",
+      "bio": "A former ramp carpenter, Ossian Brick directs like he builds: measure twice, cut once, land clean. His movement films double as engineering documentaries.",
+      "timeline": [
+        {
+          "year": 2012,
+          "event": "Foundation Flow documents the Venice movement school"
+        },
+        {
+          "year": 2015,
+          "event": "Zen Dojo Diaries wins the Circle Award for choreography"
+        },
+        {
+          "year": 2018,
+          "event": "Builds the actual mega-ramp used in Half-Pipe Horizon"
+        }
+      ],
+      "top_work_ids": [
+        "film_half_pipe_horizon",
+        "film_zen_dojo_diaries",
+        "film_foundation_flow"
+      ],
+      "facts": [
+        "Holds a real carpentry license and stamps his ramps like blueprints.",
+        "Every stunt in his films is performed full-contact, no wires.",
+        "Donated the Half-Pipe Horizon mega-ramp to the city as a public park."
+      ],
+      "lesson_stub": {
+        "title": "Set as Structure: Building Rigs You Can Ride",
+        "summary": "From sketch to send: Brick's process for practical builds that survive both stunts and inspections."
+      },
+      "portrait_ref": "svg:creator/cr_ossian_brick",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "DIRECTOR"
+    },
+    {
+      "creator_id": "cr_vada_moon",
+      "name": "Vada Moon",
+      "persona": "director",
+      "tagline": "Reads tide charts like scripts",
+      "bio": "Vada Moon grew up on a fishing pier and directs the ocean the way others direct actors — with patience, respect, and a very long lens.",
+      "timeline": [
+        {
+          "year": 2020,
+          "event": "Wavelength pioneers her vibration-scored sound design"
+        },
+        {
+          "year": 2022,
+          "event": "The Sandcastle Gambit shot entirely between two tides"
+        },
+        {
+          "year": 2024,
+          "event": "Ninth Wave Prophets captures its finale in a single take"
+        }
+      ],
+      "top_work_ids": [
+        "film_wavelength",
+        "film_ninth_wave_prophets",
+        "film_sandcastle_gambit"
+      ],
+      "facts": [
+        "Schedules entire productions around NOAA-style swell forecasts.",
+        "Insists every crew member can swim a rescue lap before day one.",
+        "Her production office is a decommissioned lifeguard tower."
+      ],
+      "lesson_stub": {
+        "title": "Shooting the Uncontrollable: Ocean as Scene Partner",
+        "summary": "Moon's playbook for planning shots around forces you cannot direct."
+      },
+      "portrait_ref": "svg:creator/cr_vada_moon",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "DIRECTOR"
+    },
+    {
+      "creator_id": "cr_lux_ferreira",
+      "name": "Lux Ferreira",
+      "persona": "director",
+      "tagline": "One frame at a time, forever",
+      "bio": "Animator-turned-director Lux Ferreira treats live action like stop-motion: nothing moves in a Ferreira frame unless it means something.",
+      "timeline": [
+        {
+          "year": 2017,
+          "event": "The Gull and the Grind, five years in the making, premieres"
+        },
+        {
+          "year": 2023,
+          "event": "Full Court Alchemy blends animation overlays with live sport"
+        }
+      ],
+      "top_work_ids": [
+        "film_gull_and_grind",
+        "film_full_court_alchemy"
+      ],
+      "facts": [
+        "Animated The Gull and the Grind at twelve frames per second on principle.",
+        "Draws every storyboard cell by hand on recycled skate-shop receipts.",
+        "Keeps the original gull puppet in a glass case in the Grain Guild workshop."
+      ],
+      "lesson_stub": {
+        "title": "Deliberate Frames: Stop-Motion Discipline in Live Action",
+        "summary": "What animating one frame at a time teaches about blocking, patience, and intent."
+      },
+      "portrait_ref": "svg:creator/cr_lux_ferreira",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "DIRECTOR"
+    },
+    {
+      "creator_id": "cr_dez_okafor",
+      "name": "Dez Okafor",
+      "persona": "actor",
+      "tagline": "The boardwalk's leading man",
+      "bio": "A former streetball legend who walked off the pro circuit and onto a film set, Dez Okafor does his own dunks, his own stunts, and famously, his own catering.",
+      "timeline": [
+        {
+          "year": 2014,
+          "event": "Screen debut in Free Throw at Midnight"
+        },
+        {
+          "year": 2019,
+          "event": "Boardwalk Renaissance makes him a festival favorite"
+        },
+        {
+          "year": 2024,
+          "event": "Ninth Wave Prophets marks his first surf role"
+        }
+      ],
+      "top_work_ids": [
+        "film_boardwalk_renaissance",
+        "film_last_dunk_neon_shore",
+        "film_free_throw_midnight"
+      ],
+      "facts": [
+        "Sank 41 consecutive free throws on camera in a single take.",
+        "Learned to surf at age 39 for Ninth Wave Prophets.",
+        "Runs a free Sunday clinic on the court his first film rebuilt."
+      ],
+      "lesson_stub": {
+        "title": "Playing Yourself: Athlete-to-Actor Transitions",
+        "summary": "Okafor on keeping athletic truth intact when the cameras start rolling."
+      },
+      "portrait_ref": "svg:creator/cr_dez_okafor",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ACTOR"
+    },
+    {
+      "creator_id": "cr_june_calaveras",
+      "name": "June Calaveras",
+      "persona": "actor",
+      "tagline": "Balance is a character trait",
+      "bio": "A gymnast who retired at nineteen and reinvented herself as Venice's most precise physical performer, June Calaveras acts with her center of gravity first.",
+      "timeline": [
+        {
+          "year": 2016,
+          "event": "Carries Chalk Dust Symphony in her screen debut"
+        },
+        {
+          "year": 2022,
+          "event": "Learns tournament chess for The Sandcastle Gambit"
+        },
+        {
+          "year": 2024,
+          "event": "Ninth Wave Prophets reunites her with Vada Moon"
+        }
+      ],
+      "top_work_ids": [
+        "film_chalk_dust_symphony",
+        "film_sandcastle_gambit",
+        "film_ninth_wave_prophets"
+      ],
+      "facts": [
+        "Performed the beam solo in Chalk Dust Symphony without a double.",
+        "Reached a real competitive chess rating preparing for The Sandcastle Gambit.",
+        "Choreographs her own falls — insists falling is a skill, not an accident."
+      ],
+      "lesson_stub": {
+        "title": "Center of Gravity: Physical Character Building",
+        "summary": "Calaveras' method for building a character from posture and balance outward."
+      },
+      "portrait_ref": "svg:creator/cr_june_calaveras",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ACTOR",
+      "sections": {
+        "dance": [
+          {
+            "clip_id": "dnc_calaveras_beam_phrase",
+            "title": "Beam Phrase — falling as a skill",
+            "difficulty": "intermediate",
+            "style_tags": [
+              "gymnastics",
+              "floorwork",
+              "balance"
+            ],
+            "clip_ref": "svg:dance/dnc_calaveras_beam_phrase",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          }
+        ]
+      }
+    },
+    {
+      "creator_id": "cr_bo_tanaka",
+      "name": "Bo Tanaka",
+      "persona": "actor",
+      "tagline": "Venice's quietest daredevil",
+      "bio": "Bo Tanaka speaks maybe ten lines a film and lands every one. A skater first, actor second, he claims the board does his monologues.",
+      "timeline": [
+        {
+          "year": 2012,
+          "event": "Appears as himself in Foundation Flow"
+        },
+        {
+          "year": 2017,
+          "event": "Voices the machinist's apprentice gull in The Gull and the Grind"
+        },
+        {
+          "year": 2018,
+          "event": "Half-Pipe Horizon rivalry role opposite Rocket Amaya"
+        }
+      ],
+      "top_work_ids": [
+        "film_half_pipe_horizon",
+        "film_gull_and_grind",
+        "film_chalk_dust_symphony"
+      ],
+      "facts": [
+        "Has never used a stunt double on a skateboard.",
+        "Recorded all his Gull and the Grind voice work in one afternoon.",
+        "Hand-builds a new deck for every role and retires it at wrap."
+      ],
+      "lesson_stub": {
+        "title": "Less Is Louder: Minimalist Screen Presence",
+        "summary": "Tanaka's case for stillness, economy, and letting movement carry the line."
+      },
+      "portrait_ref": "svg:creator/cr_bo_tanaka",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ACTOR"
+    },
+    {
+      "creator_id": "cr_priya_sundaram",
+      "name": "Priya Sundaram",
+      "persona": "actor",
+      "tagline": "The healer in frame",
+      "bio": "Priya Sundaram was a working sports physiotherapist when Hollis Vane cast her as one — she kept both jobs and her performances have carried clinical truth ever since.",
+      "timeline": [
+        {
+          "year": 2014,
+          "event": "Debut as the night-shift physio in Free Throw at Midnight"
+        },
+        {
+          "year": 2020,
+          "event": "Learns tactile sign language for Wavelength"
+        },
+        {
+          "year": 2021,
+          "event": "The Last Dunk of Neon Shore earns her a Circle Award"
+        }
+      ],
+      "top_work_ids": [
+        "film_free_throw_midnight",
+        "film_wavelength",
+        "film_last_dunk_neon_shore"
+      ],
+      "facts": [
+        "Still treats patients two mornings a week between shoots.",
+        "Consulted on every on-screen injury in the Vane filmography.",
+        "Taught the Wavelength crew vibration-based cue signals used ever since."
+      ],
+      "lesson_stub": {
+        "title": "Clinical Truth on Camera: Playing Expertise You Own",
+        "summary": "Sundaram on porting real professional skill into performance without breaking it."
+      },
+      "portrait_ref": "svg:creator/cr_priya_sundaram",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ACTOR"
+    },
+    {
+      "creator_id": "cr_kensei_arau",
+      "name": "Kensei Arau",
+      "persona": "actor",
+      "tagline": "Master of the held breath",
+      "bio": "A seventh-degree karate master who came to film late, Kensei Arau choreographs every fight he appears in and forbids the camera from cutting away.",
+      "timeline": [
+        {
+          "year": 2012,
+          "event": "Co-founds the movement school documented in Foundation Flow"
+        },
+        {
+          "year": 2013,
+          "event": "Plays the upright bassist-sensei in Muscle Beach Nocturne"
+        },
+        {
+          "year": 2015,
+          "event": "Zen Dojo Diaries built around his real teaching method"
+        }
+      ],
+      "top_work_ids": [
+        "film_zen_dojo_diaries",
+        "film_foundation_flow",
+        "film_muscle_beach_nocturne"
+      ],
+      "facts": [
+        "His fight scenes average one cut per ninety seconds.",
+        "Actually plays the double bass heard in Muscle Beach Nocturne.",
+        "Grades his film students with the same belt system as his dojo."
+      ],
+      "lesson_stub": {
+        "title": "The Uncut Fight: Choreography for Long Takes",
+        "summary": "Arau's belt-by-belt approach to staging screen combat that never hides behind edits."
+      },
+      "portrait_ref": "svg:creator/cr_kensei_arau",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ACTOR",
+      "sections": {
+        "dance": [
+          {
+            "clip_id": "dnc_arau_uncut_kata_1",
+            "title": "Uncut Kata I — entries and exits",
+            "difficulty": "beginner",
+            "style_tags": [
+              "karate",
+              "screen-combat",
+              "long-take"
+            ],
+            "clip_ref": "svg:dance/dnc_arau_uncut_kata_1",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          },
+          {
+            "clip_id": "dnc_arau_uncut_kata_3",
+            "title": "Uncut Kata III — ninety-second exchange",
+            "difficulty": "advanced",
+            "style_tags": [
+              "karate",
+              "screen-combat",
+              "choreography"
+            ],
+            "clip_ref": "svg:dance/dnc_arau_uncut_kata_3",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          }
+        ]
+      }
+    },
+    {
+      "creator_id": "cr_rocket_amaya",
+      "name": "Rocket Amaya",
+      "persona": "actor",
+      "tagline": "Fastest thing on four wheels or one board",
+      "bio": "Rocket Amaya turned pro in three board sports before turning twenty, then turned actor. Directors write chase scenes just to keep her interested.",
+      "timeline": [
+        {
+          "year": 2018,
+          "event": "Breakout rivalry role in Half-Pipe Horizon"
+        },
+        {
+          "year": 2020,
+          "event": "Learns deaf-community sign fluency for Wavelength"
+        },
+        {
+          "year": 2024,
+          "event": "Rides the single-take finale wave of Ninth Wave Prophets"
+        }
+      ],
+      "top_work_ids": [
+        "film_wavelength",
+        "film_half_pipe_horizon",
+        "film_ninth_wave_prophets"
+      ],
+      "facts": [
+        "Holds the unofficial boardwalk speed record, pier to pier.",
+        "Her Wavelength wave was ridden for real — the crew got one attempt.",
+        "Donates all stunt pay to the Tidewater Crew's junior surf program."
+      ],
+      "lesson_stub": {
+        "title": "Speed with Intent: Performing at the Edge of Control",
+        "summary": "Amaya on rehearsal, risk budgets, and making velocity readable on camera."
+      },
+      "portrait_ref": "svg:creator/cr_rocket_amaya",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ACTOR"
+    },
+    {
+      "creator_id": "cr_felix_marrow",
+      "name": "Felix Marrow",
+      "persona": "actor",
+      "tagline": "The boardwalk's beloved schemer",
+      "bio": "Nobody plays a lovable hustler like Felix Marrow, mostly because he spent a decade as one — running chess tables and protein-shake stands before the movies found him.",
+      "timeline": [
+        {
+          "year": 2013,
+          "event": "Discovered performing between sets in Muscle Beach Nocturne"
+        },
+        {
+          "year": 2022,
+          "event": "Leads The Sandcastle Gambit as the sand-chess kingpin"
+        },
+        {
+          "year": 2023,
+          "event": "Full Court Alchemy ensemble earns a Circle Award"
+        }
+      ],
+      "top_work_ids": [
+        "film_sandcastle_gambit",
+        "film_full_court_alchemy",
+        "film_muscle_beach_nocturne"
+      ],
+      "facts": [
+        "Genuinely undefeated at beach chess on the boardwalk since 2011.",
+        "Improvised the sand-king monologue in a single take.",
+        "Still owns the original protein-shake stand — it appears in all his films."
+      ],
+      "lesson_stub": {
+        "title": "The Honest Con: Charm, Timing, and Improvisation",
+        "summary": "Marrow's street-honed rules for improvising inside a scripted scene."
+      },
+      "portrait_ref": "svg:creator/cr_felix_marrow",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ACTOR"
+    },
+    {
+      "creator_id": "cr_tove_lindgren",
+      "name": "Tove Lindgren",
+      "persona": "cinematographer",
+      "tagline": "Chases light down the boardwalk",
+      "bio": "Cinematographer Tove Lindgren shoots Venice like it owes her money — hard, patient, and always at the exact minute the light turns. Every Vane and Quill picture bears her frames.",
+      "timeline": [
+        {
+          "year": 2013,
+          "event": "Night photography on Muscle Beach Nocturne"
+        },
+        {
+          "year": 2019,
+          "event": "Sunrise court sequence in Boardwalk Renaissance"
+        },
+        {
+          "year": 2021,
+          "event": "Circle Award for The Last Dunk of Neon Shore"
+        }
+      ],
+      "top_work_ids": [
+        "film_boardwalk_renaissance",
+        "film_free_throw_midnight",
+        "film_last_dunk_neon_shore"
+      ],
+      "facts": [
+        "Keeps a hand-drawn sun chart of every block of the boardwalk.",
+        "Shot the Boardwalk Renaissance sunrise over nine consecutive mornings.",
+        "Mentors one first-time camera operator on every production."
+      ],
+      "lesson_stub": {
+        "title": "The Golden Ledger: Scheduling Around Natural Light",
+        "summary": "Lindgren's sun-chart method for planning shoots minute by minute."
+      },
+      "portrait_ref": "svg:creator/cr_tove_lindgren",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ARTIST"
+    },
+    {
+      "creator_id": "cr_ora_bellweather",
+      "name": "Ora Bellweather",
+      "persona": "composer",
+      "tagline": "Scores for sand and strings",
+      "bio": "Composer Ora Bellweather writes for whatever the beach hands her — bottle organs, wind chimes, a forty-piece string section on a barge. Three directors refuse to work with anyone else.",
+      "timeline": [
+        {
+          "year": 2016,
+          "event": "The original symphony for Chalk Dust Symphony"
+        },
+        {
+          "year": 2022,
+          "event": "Tide-clock score for The Sandcastle Gambit"
+        },
+        {
+          "year": 2023,
+          "event": "Full Court Alchemy training montage suite"
+        }
+      ],
+      "top_work_ids": [
+        "film_chalk_dust_symphony",
+        "film_sandcastle_gambit",
+        "film_full_court_alchemy"
+      ],
+      "facts": [
+        "Tuned fourteen glass bottles to score the tide in The Sandcastle Gambit.",
+        "Conducts barefoot, claiming the sand keeps tempo.",
+        "Archives every score in a fireproof case inside the old lifeguard tower."
+      ],
+      "lesson_stub": {
+        "title": "Found Orchestras: Scoring with Non-Instruments",
+        "summary": "Bellweather's technique for building themes from objects the location provides."
+      },
+      "portrait_ref": "svg:creator/cr_ora_bellweather",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "ARTIST",
+      "sections": {
+        "music": [
+          {
+            "track_id": "trk_bellweather_tide_glass",
+            "title": "Tide Glass (bottle-organ theme)",
+            "duration_s": 2,
+            "artwork_ref": "svg:track/trk_bellweather_tide_glass",
+            "provider": "mock",
+            "provider_ref": "cc0:celebrate_chime.ogg",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0",
+            "attribution": "Audio stand-in: Kenney Interface Sounds (kenney.nl), CC0 1.0 — via nexus/asset-fetch-demo PR #128"
+          },
+          {
+            "track_id": "trk_bellweather_chalk_overture",
+            "title": "Chalk Dust Overture (excerpt)",
+            "duration_s": 2,
+            "artwork_ref": "svg:track/trk_bellweather_chalk_overture",
+            "provider": "mock",
+            "provider_ref": "cc0:question_sting.ogg",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0",
+            "attribution": "Audio stand-in: Kenney Interface Sounds (kenney.nl), CC0 1.0 — via nexus/asset-fetch-demo PR #128"
+          }
+        ],
+        "links": [
+          {
+            "title": "Masterclass — Found Orchestras: Scoring with Non-Instruments",
+            "url": "https://learn.finalevolutionlab.com/masterclass/found-orchestras",
+            "provider": "fel_learn",
+            "kind": "masterclass",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          }
+        ]
+      }
+    },
+    {
+      "creator_id": "cr_noor_haddad",
+      "name": "Dr. Noor Haddad",
+      "persona": "science_consultant",
+      "tagline": "The evidence behind the montage",
+      "bio": "Sports scientist Dr. Noor Haddad keeps Venice's filmmakers honest: if a training montage appears in a boardwalk picture, she designed it, tested it, and published the protocol.",
+      "timeline": [
+        {
+          "year": 2020,
+          "event": "Swell forecasting consultant on Wavelength"
+        },
+        {
+          "year": 2023,
+          "event": "Designs the ninety-day protocol in Full Court Alchemy"
+        },
+        {
+          "year": 2024,
+          "event": "Swell science lead for Ninth Wave Prophets"
+        }
+      ],
+      "top_work_ids": [
+        "film_full_court_alchemy",
+        "film_wavelength",
+        "film_ninth_wave_prophets"
+      ],
+      "facts": [
+        "Every training regimen shown on screen is a real published protocol.",
+        "Ran the Full Court Alchemy program on volunteers before filming.",
+        "Hosts a free boardwalk lecture series titled 'The Montage Is Lying To You'."
+      ],
+      "lesson_stub": {
+        "title": "Show Your Work: Real Science in Sports Stories",
+        "summary": "Dr. Haddad on keeping training arcs dramatic without breaking the evidence."
+      },
+      "portrait_ref": "svg:creator/cr_noor_haddad",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0",
+      "creator_type": "EDUCATOR",
+      "sections": {
+        "links": [
+          {
+            "title": "Masterclass — Show Your Work: Real Science in Sports Stories",
+            "url": "https://learn.finalevolutionlab.com/masterclass/show-your-work",
+            "provider": "fel_learn",
+            "kind": "masterclass",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          },
+          {
+            "title": "Lecture series — The Montage Is Lying To You",
+            "url": "https://learn.finalevolutionlab.com/series/montage-lying",
+            "provider": "fel_learn",
+            "kind": "lecture",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          }
+        ]
+      }
+    },
+    {
+      "creator_id": "cr_dj_riptide",
+      "name": "DJ Riptide",
+      "creator_type": "DJ",
+      "persona": "dj",
+      "tagline": "Spins the tide in",
+      "bio": "Resident selector of the Neon Shore night courts, DJ Riptide scores pick-up games like title fights. Her boardwalk sets — half breakbeat, half ocean recording — kept the lights on for The Last Dunk of Neon Shore.",
+      "timeline": [
+        {
+          "year": 2017,
+          "event": "First all-night set at the Neon Shore courts"
+        },
+        {
+          "year": 2021,
+          "event": "Live sets anchor the neon-night sequences in The Last Dunk of Neon Shore"
+        },
+        {
+          "year": 2025,
+          "event": "Launches the Riptide Frequencies boardwalk residency"
+        }
+      ],
+      "top_work_ids": [
+        "film_last_dunk_neon_shore"
+      ],
+      "facts": [
+        "Records the tide every morning and cuts it into that night's set.",
+        "Has never repeated a set — every mix is stamped with its date and swell height.",
+        "Mentors young selectors through the Riptide Frequencies open-decks night."
+      ],
+      "lesson_stub": {
+        "title": "Reading the Room, Reading the Tide",
+        "summary": "Riptide on pacing a live set to a crowd's energy — and why silence is a track too."
+      },
+      "sections": {
+        "music": [
+          {
+            "track_id": "trk_riptide_neon_undertow",
+            "title": "Neon Undertow (set opener)",
+            "duration_s": 2,
+            "artwork_ref": "svg:track/trk_riptide_neon_undertow",
+            "provider": "mock",
+            "provider_ref": "cc0:reveal_sting.ogg",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0",
+            "attribution": "Audio stand-in: Kenney Interface Sounds (kenney.nl), CC0 1.0 — via nexus/asset-fetch-demo PR #128"
+          },
+          {
+            "track_id": "trk_riptide_pier_pressure",
+            "title": "Pier Pressure",
+            "duration_s": 2,
+            "artwork_ref": "svg:track/trk_riptide_pier_pressure",
+            "provider": "mock",
+            "provider_ref": "cc0:ui_confirm.ogg",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0",
+            "attribution": "Audio stand-in: Kenney Interface Sounds (kenney.nl), CC0 1.0 — via nexus/asset-fetch-demo PR #128"
+          },
+          {
+            "track_id": "trk_riptide_ninth_swell",
+            "title": "Ninth Swell (closing loop)",
+            "duration_s": 2,
+            "artwork_ref": "svg:track/trk_riptide_ninth_swell",
+            "provider": "mock",
+            "provider_ref": "cc0:countdown_tick.ogg",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0",
+            "attribution": "Audio stand-in: Kenney Interface Sounds (kenney.nl), CC0 1.0 — via nexus/asset-fetch-demo PR #128"
+          }
+        ],
+        "links": [
+          {
+            "title": "Riptide Frequencies — artist profile (Tier-2 provider slot)",
+            "url": "https://learn.finalevolutionlab.com/creators/dj-riptide",
+            "provider": "fel_learn",
+            "kind": "profile",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          }
+        ]
+      },
+      "portrait_ref": "svg:creator/cr_dj_riptide",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "creator_id": "cr_sable_cutz",
+      "name": "Sable Cutz",
+      "creator_type": "PRODUCER",
+      "persona": "producer",
+      "tagline": "The boardwalk's low end",
+      "bio": "Producer Sable Cutz builds beats out of gym sounds — rope skips, rim rattles, chalk claps — and rents his converted lifeguard-tower studio to any Venice artist for one dollar and a verse.",
+      "timeline": [
+        {
+          "year": 2019,
+          "event": "Produces the Muscle Beach Nocturne Ensemble's live album"
+        },
+        {
+          "year": 2023,
+          "event": "Full Court Alchemy montage remixes chart on the boardwalk"
+        },
+        {
+          "year": 2026,
+          "event": "Opens the Dollar-and-a-Verse studio residency"
+        }
+      ],
+      "top_work_ids": [
+        "film_full_court_alchemy",
+        "film_muscle_beach_nocturne"
+      ],
+      "facts": [
+        "Every drum hit in his catalog was sampled inside a Venice venue.",
+        "Keeps a wall of one-dollar bills from every artist who ever recorded with him.",
+        "Refuses reverb plugins — records real echoes under the pier instead."
+      ],
+      "lesson_stub": {
+        "title": "Found Percussion: Producing from the Court Up",
+        "summary": "Cutz's workflow for turning venue noise into drum kits — sampling, tuning, arrangement."
+      },
+      "sections": {
+        "music": [
+          {
+            "track_id": "trk_cutz_rim_rattle",
+            "title": "Rim Rattle (beat tape #4)",
+            "duration_s": 2,
+            "artwork_ref": "svg:track/trk_cutz_rim_rattle",
+            "provider": "mock",
+            "provider_ref": "cc0:correct_ding.ogg",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0",
+            "attribution": "Audio stand-in: Kenney Interface Sounds (kenney.nl), CC0 1.0 — via nexus/asset-fetch-demo PR #128"
+          },
+          {
+            "track_id": "trk_cutz_chalk_clap",
+            "title": "Chalk Clap",
+            "duration_s": 2,
+            "artwork_ref": "svg:track/trk_cutz_chalk_clap",
+            "provider": "mock",
+            "provider_ref": "cc0:buzzer.ogg",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0",
+            "attribution": "Audio stand-in: Kenney Interface Sounds (kenney.nl), CC0 1.0 — via nexus/asset-fetch-demo PR #128"
+          }
+        ],
+        "links": [
+          {
+            "title": "Masterclass — Found Percussion",
+            "url": "https://learn.finalevolutionlab.com/masterclass/found-percussion",
+            "provider": "fel_learn",
+            "kind": "masterclass",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          }
+        ]
+      },
+      "portrait_ref": "svg:creator/cr_sable_cutz",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    },
+    {
+      "creator_id": "cr_marisol_vega",
+      "name": "Marisol Vega",
+      "creator_type": "DANCER",
+      "persona": "choreographer",
+      "tagline": "Gravity is negotiable",
+      "bio": "Founder of the Venice Flight Collective, Marisol Vega choreographed the beam solo in Chalk Dust Symphony and teaches movement as a language every athlete already speaks.",
+      "timeline": [
+        {
+          "year": 2014,
+          "event": "Founds the Venice Flight Collective"
+        },
+        {
+          "year": 2016,
+          "event": "Choreographs Chalk Dust Symphony's beam solo"
+        },
+        {
+          "year": 2024,
+          "event": "Stages the opening ceremony of the Venice Invitational"
+        }
+      ],
+      "top_work_ids": [
+        "film_chalk_dust_symphony",
+        "film_foundation_flow"
+      ],
+      "facts": [
+        "Notates choreography in surf wax pencil on the studio's mirror wall.",
+        "Every Flight Collective class ends with sixty seconds of stillness.",
+        "Trained half the stunt performers in the Brickwork Studios filmography."
+      ],
+      "lesson_stub": {
+        "title": "Movement as a First Language",
+        "summary": "Vega's foundation course: posture, weight transfer, and phrasing for athletes who don't call themselves dancers."
+      },
+      "sections": {
+        "dance": [
+          {
+            "clip_id": "dnc_vega_first_flight",
+            "title": "First Flight — weight transfer basics",
+            "difficulty": "beginner",
+            "style_tags": [
+              "contemporary",
+              "floorwork",
+              "foundation"
+            ],
+            "clip_ref": "svg:dance/dnc_vega_first_flight",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          },
+          {
+            "clip_id": "dnc_vega_beam_solo_breakdown",
+            "title": "Beam Solo Breakdown (Chalk Dust Symphony)",
+            "difficulty": "advanced",
+            "style_tags": [
+              "gymnastics",
+              "contemporary",
+              "screen-choreo"
+            ],
+            "clip_ref": "svg:dance/dnc_vega_beam_solo_breakdown",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          },
+          {
+            "clip_id": "dnc_vega_boardwalk_phrase",
+            "title": "Boardwalk Phrase — travel steps",
+            "difficulty": "intermediate",
+            "style_tags": [
+              "street",
+              "travel",
+              "musicality"
+            ],
+            "clip_ref": "svg:dance/dnc_vega_boardwalk_phrase",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          }
+        ],
+        "links": [
+          {
+            "title": "Masterclass — Movement as a First Language",
+            "url": "https://learn.finalevolutionlab.com/masterclass/movement-first-language",
+            "provider": "fel_learn",
+            "kind": "masterclass",
+            "source": "original_fel_universe",
+            "license": "FEL-Original-1.0"
+          }
+        ]
+      },
+      "portrait_ref": "svg:creator/cr_marisol_vega",
+      "source": "original_fel_universe",
+      "license": "FEL-Original-1.0"
+    }
+  ]
+}
