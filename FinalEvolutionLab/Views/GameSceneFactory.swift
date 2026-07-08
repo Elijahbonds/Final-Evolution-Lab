@@ -729,7 +729,11 @@ struct GameSceneFactory {
 
         addCamera(to: scene, position: SCNVector3(0, 3.5, 6.5), lookAt: SCNVector3(0, 1.2, 0))
         addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.2, blue: 0.1, alpha: 1))
-        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1), reflectivity: 0.1)
+        // Lower the dojo floor's mirror reflectivity: the reflective SCNFloor
+        // was bouncing the key spot into a clipped white/pink hotspot between
+        // the fighters (adversarial review). This is a material change only —
+        // the lighting rig stays authoritative and untouched.
+        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1), reflectivity: 0.035)
 
         let mat = SCNBox(width: 6, height: 0.05, length: 6, chamferRadius: 0)
         let matMaterial = SCNMaterial()
