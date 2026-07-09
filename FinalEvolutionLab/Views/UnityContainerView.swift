@@ -2,9 +2,36 @@ import SwiftUI
 import UIKit
 
 nonisolated enum UnityMode: String, Sendable {
-    case freestyleDunk
+    // Training / generic
     case training
     case arcade
+
+    // Basketball
+    case basketballDunkContest
+    case basketball3v3
+    case basketballHeadToHead
+    case basketballIRL
+
+    // Karate
+    case karate
+    case karateEndless
+
+    // Other sports
+    case baseball
+    case football
+    case soccer
+    case golf
+    case tennis
+    case volleyball
+    case gymnastics
+    case surfing
+    case skateboarding
+    case snowboarding
+
+    // Non-sport modes — kept for routing completeness; Unity may not render these
+    case brainBrawl
+    case whoSceneIt
+    case courtCarnival
 }
 
 struct UnityContainerView: View {

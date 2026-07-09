@@ -22,11 +22,15 @@ final class UnityManager {
 
     private init() {}
 
+    private(set) var receivedPRQScore: Int = 0
+
+    func updateReceivedPRQ(_ score: Int) {
+        receivedPRQScore = score
+    }
+
     private func loadUnity() {
         guard !isUnityLoaded else { return }
 
-        // Legacy: Unity embedding is being phased out in favor of Unreal-as-host.
-        // Keep this code path inert unless UnityFramework is actually present.
         let bundlePath = Bundle.main.privateFrameworksPath ?? ""
         let frameworkPath = bundlePath + "/UnityFramework.framework"
         guard let bundle = Bundle(path: frameworkPath) else {
@@ -91,5 +95,14 @@ final class UnityManager {
         return renderer.image { context in
             view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
         }
+    }
+}
+
+// C-callable symbol that Unity exports via [DllImport("__Internal")] to post PRQ scores back to Swift.
+// Must be a top-level function — cannot live inside the class.
+@_cdecl("_PostRorkScore")
+func postRorkScoreFromUnity(_ score: Int32) {
+    Task { @MainActor in
+        UnityManager.shared.updateReceivedPRQ(Int(score))
     }
 }
