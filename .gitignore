@@ -171,3 +171,4 @@ assets/motion/external/meshy/
 
 # CMU clip library — 8.8GB local working set, referenced by registry.json
 assets/motion/clips_cmu/
+Vendor/

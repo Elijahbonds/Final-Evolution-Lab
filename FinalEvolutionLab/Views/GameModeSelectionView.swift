@@ -53,12 +53,29 @@ struct GameModeSelectionView: View {
                 )
                 .id(gameplayLaunchId)
             } else if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
+                #if FEL_UNITY_EMBEDDED
+                // UaaL pilot: karate endless renders in the embedded Unity engine
+                // (FELGameplay project). Other modes keep the SceneKit path until
+                // their Unity port is device-verified, one mode at a time.
+                if modeId == .karateEndless {
+                    FELUnityGameView(modeId: "karateEndless")
+                        .id(gameplayLaunchId)
+                } else {
+                    GamePlayView(
+                        viewModel: viewModel,
+                        gameMode: mode,
+                        sessionReadiness: sessionReadiness
+                    )
+                    .id(gameplayLaunchId)
+                }
+                #else
                 GamePlayView(
                     viewModel: viewModel,
                     gameMode: mode,
                     sessionReadiness: sessionReadiness
                 )
                 .id(gameplayLaunchId)
+                #endif
             }
         }
         .fullScreenCover(isPresented: $showNeuralScan) {
