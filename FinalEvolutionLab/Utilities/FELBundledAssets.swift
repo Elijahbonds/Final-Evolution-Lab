@@ -47,6 +47,12 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     case elijahKarateIdle = "ElijahKarateIdle"
     case elijahKarateCombo = "ElijahKarateCombo"
     case elijahDunk = "ElijahDunk"
+    // Basketball action one-shots retargeted from Elijah's DeepMotion on the
+    // Elijah rig (same pipeline as the dribble/dunk clips). JumpShot is played
+    // as a one-shot on a shoot input (then reverts to dribble/locomotion);
+    // DunkPower is a second dunk-contest option alongside elijahDunk for variety.
+    case elijahJumpShot = "ElijahJumpShot"
+    case elijahDunkPower = "ElijahDunkPower"
 
     // Karate strike one-shots — Meshy preset animations on the Elijah Bonds
     // model, converted via blender_to_usdz.py (see PR context: strike playback).
@@ -104,6 +110,7 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     var isPipelineClip: Bool {
         switch self {
         case .elijahKarateIdle, .elijahKarateCombo, .elijahDunk,
+             .elijahJumpShot, .elijahDunkPower,
              .elijahStrikeJab, .elijahStrikeHook, .elijahStrikeUppercut,
              .elijahStrikeRoundhouse, .elijahStrikeHighKick, .elijahGuard,
              .npcEricNashIdle, .npcEricNashKarateCombo,

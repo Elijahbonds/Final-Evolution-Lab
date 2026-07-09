@@ -211,6 +211,18 @@ struct GamePlayView: View {
         gameMode.id == .basketballHeadToHead || gameMode.id.is3DDunkContest || gameMode.id == .basketball3v3
     }
 
+    /// Modes that run the dribble-vs-walk possession system in the scene host
+    /// (mirror of GameSceneHostView.isBasketballPossessionMode). Jumpshot /
+    /// crossover clip-swaps only make sense in these.
+    private var isBasketballPossession: Bool {
+        switch gameMode.id {
+        case .basketballHeadToHead, .venicePickup, .basketball3v3, .basketballDunkContest3D:
+            return true
+        default:
+            return false
+        }
+    }
+
     private var supportsDefense: Bool {
         gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3
     }
@@ -248,6 +260,23 @@ struct GamePlayView: View {
     /// One-shot karate strike playback signal (see GameSceneHostView).
     @State private var karateStrikeNonce = 0
     @State private var karateStrikeAsset: FELBundledAsset?
+
+    /// One-shot basketball crossover / jumpshot playback signals (see
+    /// GameSceneHostView). Bumped when the matching action fires in a basketball
+    /// possession mode; the scene host swaps in the baked dribble-crossover /
+    /// jumpshot clip once, then reverts to dribble/locomotion.
+    @State private var basketballCrossoverNonce = 0
+    @State private var basketballJumpShotNonce = 0
+    /// Which baked dunk clip the dunk contest plays next (alternates between the
+    /// two retargeted power dunks for variety; see setDunkClipActive).
+    @State private var basketballDunkClipAsset: FELBundledAsset = .elijahDunk
+
+    /// One-shot per-sport action playback signal (see SportActionAnimationLibrary
+    /// / GameSceneHostView.playSportAction). Bumped when a covered sport's action
+    /// fires; the scene host prefers a bundled full-body Action_ clip and falls
+    /// back to the procedural arm-swing.
+    @State private var sportActionNonce = 0
+    @State private var sportActionLabel = ""
 
     // MARK: - Karate Excellence: combo / opponent AI / waves
     @State private var karateCombo = KarateComboTracker()
@@ -780,6 +809,11 @@ struct GamePlayView: View {
                 karateOpponentEvent: karateOpponentEvent,
                 karateHitstopNonce: karateHitstopNonce,
                 karateHitstopCritical: karateHitstopCritical,
+                basketballCrossoverNonce: basketballCrossoverNonce,
+                basketballJumpShotNonce: basketballJumpShotNonce,
+                basketballDunkClipAsset: basketballDunkClipAsset,
+                sportActionNonce: sportActionNonce,
+                sportActionLabel: sportActionLabel,
                 onKarateStrike: { inRange in karateInStrikeRange = inRange }
             )
             .clipShape(.rect(cornerRadius: 0))
@@ -3551,6 +3585,28 @@ struct GamePlayView: View {
             return
         }
 
+        // Basketball possession modes: fire the matching baked clip on the scene
+        // host. Shoot swaps in the JumpShot one-shot (releasing the ball);
+        // Crossover swaps in the DribbleCrossover clip. Fail-soft: the host
+        // no-ops if the clip is missing. This only drives visuals — scoring below
+        // is unchanged.
+        if isBasketballPossession {
+            switch action {
+            case "Shoot": basketballJumpShotNonce += 1
+            case "Crossover": basketballCrossoverNonce += 1
+            default: break
+            }
+        }
+
+        // Per-sport action: drive the scene host's action animation, which
+        // prefers a bundled full-body Action_<mode>_<action>.usdz clip and falls
+        // back to the procedural arm-swing. Only fire for modes the registry
+        // covers (golf/tennis/baseball/soccer/volleyball/football).
+        if SportActionAnimationLibrary.modeToken(for: gameMode.id) != nil {
+            sportActionLabel = action
+            sportActionNonce += 1
+        }
+
         playerActionCount += 1
 
         let physics = leakageAdjustedPhysics
@@ -4140,9 +4196,27 @@ struct GamePlayView: View {
         }
     }
 
+    /// Maps a dunk trick to one of the two retargeted power-dunk clips so the
+    /// dunk contest varies its full-body animation. Two-handed power jams use the
+    /// ElijahDunkPower capture; the rest keep the original ElijahDunk. Both wire
+    /// through the same setDunkClipActive path (never cloned skinned nodes).
+    private func dunkClipAsset(for trick: DunkTrickSlot) -> FELBundledAsset {
+        switch trick {
+        case .tomahawk, .reverseJam, .doubleClutch:
+            return .elijahDunkPower
+        default:
+            return .elijahDunk
+        }
+    }
+
     private func confirmDunkLaunch() {
         guard dunkEngine.phase == .launch else { return }
         dunkTimerTask?.cancel()
+        // Pick which baked power-dunk clip this launch plays, for visual variety.
+        // Two-handed power tricks use the ElijahDunkPower capture; the rest use
+        // the original ElijahDunk. Set BEFORE the phase flips to launch/airborne
+        // (which drives isMidAir → setDunkClipActive in the scene host).
+        basketballDunkClipAsset = dunkClipAsset(for: dunkEngine.selectedTrick)
         let inGreen = dunkEngine.launchGreenZone.contains(dunkEngine.launchTiming)
         if inGreen {
             triggerFlash()

@@ -114,6 +114,23 @@ struct GameSceneFactory {
         return true
     }
 
+    /// Drops a skinned character so its feet rest at y≈0. The pipeline-clip
+    /// container's origin sits well below the feet (feet import ~2.5 world-units
+    /// up), so an un-grounded reuse floats high above the floor — this is the
+    /// exact bug the dojo fighters hit, fixed the same way here: measure the
+    /// LeftFoot/RightFoot joint world Y (the node must already be in the graph)
+    /// and subtract it. Fail-soft: no foot joint ⇒ position unchanged. Targeted
+    /// per call site rather than folded into the global normalizer, whose blind
+    /// offset overcorrected other modes.
+    private static func groundSkinnedCharacter(named name: String, in scene: SCNScene) {
+        guard let node = scene.rootNode.childNode(withName: name, recursively: false) else { return }
+        let footNode = node.childNode(withName: "LeftFoot", recursively: true)
+            ?? node.childNode(withName: "RightFoot", recursively: true)
+        if let footY = footNode?.worldPosition.y, footY.isFinite {
+            node.position.y -= footY
+        }
+    }
+
     static func primaryGameplayAvatarName(for mode: GameModeId) -> String {
         switch mode {
         case .basketballHeadToHead, .venicePickup, .marketBrowse: return "player1"
@@ -1050,6 +1067,9 @@ struct GameSceneFactory {
         if !addSkinnedCharacter(.elijahKarateIdle, to: scene, name: "batter", at: SCNVector3(0.4, 0, 2.8), facingY: .pi) {
             addPlayerAvatar(to: scene, at: SCNVector3(0.4, 0, 2.8), color: batterColor, name: "batter")
         }
+        // Ground the reused karate-idle clip: without this the batter floats
+        // ~2.5m off the plate (same bug the dojo fighters had).
+        groundSkinnedCharacter(named: "batter", in: scene)
 
         let pitcherColor = UIColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1)
         addAvatar(to: scene, at: SCNVector3(0, 0.25, -1.0), color: pitcherColor, name: "pitcher")
@@ -1425,6 +1445,9 @@ struct GameSceneFactory {
         if !addSkinnedCharacter(.elijahKarateIdle, to: scene, name: "golfer", at: SCNVector3(0, 0, 3), facingY: .pi) {
             addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
         }
+        // Ground the reused karate-idle clip so the golfer stands at the tee
+        // instead of floating above it (same fix as the dojo fighters/batter).
+        groundSkinnedCharacter(named: "golfer", in: scene)
 
         let club = SCNCylinder(radius: 0.012, height: 1.0)
         let clubMat = SCNMaterial()

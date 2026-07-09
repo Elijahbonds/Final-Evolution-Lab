@@ -128,6 +128,26 @@ struct GameSceneHostView: UIViewRepresentable {
     /// the ball, then fall back to loop/idle. Defaults keep call sites unchanged.
     var basketballCrossoverNonce: Int = 0
 
+    /// One-shot basketball jumpshot signal (nonce-triggered): bump on a shoot
+    /// input to swap the possession player to the baked JumpShot clip once
+    /// (releasing the ball), then revert to dribble/locomotion. Default keeps
+    /// existing call sites compiling unchanged.
+    var basketballJumpShotNonce: Int = 0
+
+    /// Which baked dunk clip the dunk contest plays on its next launch. Lets the
+    /// dunk flow vary between the two retargeted power dunks (elijahDunk /
+    /// elijahDunkPower). Default preserves the original elijahDunk behavior.
+    var basketballDunkClipAsset: FELBundledAsset = .elijahDunk
+
+    /// One-shot per-sport action signal (nonce-triggered): bump with
+    /// `sportActionLabel` set to the action name (e.g. "Swing", "Serve", "Spike")
+    /// when a sport action fires. The scene host prefers a bundled full-body clip
+    /// (`Action_<mode>_<action>.usdz`, see SportActionAnimationLibrary) and falls
+    /// back to the existing procedural arm-swing when none is bundled. Default
+    /// keeps existing call sites compiling unchanged.
+    var sportActionNonce: Int = 0
+    var sportActionLabel: String = ""
+
     /// Fired the instant a player strike clip starts, reporting whether the two
     /// fighters are close enough for the strike to connect (range gate). Lets
     /// GamePlayView apply damage only when the strike would actually land.
@@ -149,6 +169,9 @@ struct GameSceneHostView: UIViewRepresentable {
         context.coordinator.neuralDrive = neuralDrive
         context.coordinator.leftStickInput = leftStickInput
         context.coordinator.rightStickInput = rightStickInput
+        // Choose the dunk clip BEFORE the isMidAir edge fires setDunkClipActive,
+        // so the launch swaps in whichever power dunk the UI selected.
+        context.coordinator.activeDunkClipAsset = basketballDunkClipAsset
         if context.coordinator.isMidAir != isMidAir {
             context.coordinator.setDunkClipActive(isMidAir)
         }
@@ -175,6 +198,14 @@ struct GameSceneHostView: UIViewRepresentable {
             context.coordinator.triggerKarateImpact(critical: karateHitstopCritical)
         }
         context.coordinator.crossoverNonce = basketballCrossoverNonce
+        if context.coordinator.lastJumpShotNonce != basketballJumpShotNonce {
+            context.coordinator.lastJumpShotNonce = basketballJumpShotNonce
+            context.coordinator.playJumpShot()
+        }
+        if context.coordinator.lastSportActionNonce != sportActionNonce {
+            context.coordinator.lastSportActionNonce = sportActionNonce
+            context.coordinator.playSportAction(sportActionLabel)
+        }
         context.coordinator.isSpecialMove = isSpecialMove
         context.coordinator.isSlowMotion = isSlowMotion
         context.coordinator.updateAvatarAppearanceIfNeeded(avatarAppearance, in: scnView.scene)
@@ -219,6 +250,12 @@ struct GameSceneHostView: UIViewRepresentable {
         var isSlowMotion: Bool = false
         private var lastAvatarAppearance: GameplayAvatarAppearance = .default
         private var dunkClipNode: SCNNode?
+        /// Which baked dunk clip the next dunk-contest launch plays. Set by the
+        /// UI (via ``dunkClipAsset``) so the dunk flow can vary between the two
+        /// retargeted power dunks; defaults to the original elijahDunk. Both are
+        /// isPipelineClip skinned clips wired through the same setDunkClipActive
+        /// path — never cloned. Fail-soft: a missing clip leaves the base avatar.
+        var activeDunkClipAsset: FELBundledAsset = .elijahDunk
         private var ai3v3: Basketball3v3AIController?
 
         // MARK: - Basketball dribble / possession
@@ -245,6 +282,22 @@ struct GameSceneHostView: UIViewRepresentable {
         /// The original (locomotion) player node, hidden while a dribble clip is
         /// active so movement/camera keep finding exactly one node by name.
         private weak var stashedLocomotionNode: SCNNode?
+
+        /// One-shot jumpshot signal (nonce-triggered, like the karate strike):
+        /// swaps the possession player's skinned clip to the baked JumpShot,
+        /// releases the ball, then restores dribble/locomotion after the clip.
+        var jumpShotNonce: Int = 0
+        var lastJumpShotNonce: Int = 0
+        /// The fresh JumpShot clip currently substituted for the player node.
+        private var jumpShotClipNode: SCNNode?
+        private var jumpShotRestoreTask: Task<Void, Never>?
+
+        /// One-shot per-sport action (golf swing / tennis serve / …). When a
+        /// bundled `Action_<mode>_<action>.usdz` exists it is swapped in as a
+        /// full-body one-shot; otherwise the arm-only procedural swing runs.
+        var lastSportActionNonce: Int = 0
+        private var sportActionClipNode: SCNNode?
+        private var sportActionRestoreTask: Task<Void, Never>?
 
         /// Modes that use the dribble-vs-walk possession system.
         private var isBasketballPossessionMode: Bool {
@@ -295,7 +348,8 @@ struct GameSceneHostView: UIViewRepresentable {
             }
             if active {
                 guard dunkClipNode == nil,
-                      let clip = FELBundledAssets.characterNode(.elijahDunk, height: 1.85) else { return }
+                      let clip = FELBundledAssets.characterNode(activeDunkClipAsset, height: 1.85)
+                        ?? FELBundledAssets.characterNode(.elijahDunk, height: 1.85) else { return }
                 clip.name = "dunkerClip"
                 clip.position = dunker.position
                 clip.eulerAngles = dunker.eulerAngles
@@ -1557,6 +1611,104 @@ struct GameSceneHostView: UIViewRepresentable {
             return clip
         }
 
+        /// One-shot basketball jumpshot. Swaps the possession player's active
+        /// skinned node for a fresh baked JumpShot clip (never cloned — SCNSkinner
+        /// nodes must not be cloned), releases the ball (`playerHasBall = false`),
+        /// and restores dribble/locomotion after the clip finishes. Mirrors
+        /// ``playKarateStrike`` / the dunk clip-swap: preserves the load-bearing
+        /// player node name and transform so movement/camera keep finding it.
+        ///
+        /// Fail-soft: if the clip is missing/unloadable, nothing swaps and the
+        /// existing dribble/locomotion behavior is untouched.
+        func playJumpShot() {
+            guard isBasketballPossessionMode,
+                  let scene = activeSceneKitView?.scene else { return }
+            // A dunk swap owns the avatar in the dunk contest — don't fight it.
+            if dunkClipNode != nil || isMidAir { return }
+            // Overlapping shot: tear down the active jumpshot clip first.
+            if jumpShotClipNode != nil {
+                jumpShotRestoreTask?.cancel()
+                jumpShotRestoreTask = nil
+                restoreFromJumpShot(in: scene)
+            }
+            let name = playerNodeName
+            // Restore locomotion first so the jumpshot swaps off the REAL player
+            // node, never off a live dribble clip (the swaps must not fight).
+            if dribbleClipNode != nil {
+                _ = applyDribbleState(.locomotion,
+                                      playerNode: scene.rootNode.childNode(withName: name, recursively: true) ?? SCNNode(),
+                                      in: scene)
+            }
+            guard let current = scene.rootNode.childNode(withName: name, recursively: true),
+                  let clip = FELBundledAssets.characterNode(.elijahJumpShot, height: 1.85) else { return }
+
+            // Release the ball for the shot — the dribble state machine goes to
+            // locomotion (no-ball) while the shot plays and stays there until the
+            // ball is regained on restore.
+            playerHasBall = false
+
+            let pos = current.position
+            let rot = current.eulerAngles
+            current.isHidden = true
+            current.name = name + "_jumpshotStash"
+            stashedLocomotionNode = current
+            clip.name = name
+            clip.position = pos
+            clip.eulerAngles = rot
+            scene.rootNode.addChildNode(clip)
+            jumpShotClipNode = clip
+
+            // Restore after the baked clip's duration (longest player in the
+            // hierarchy; 1.0s fallback).
+            var clipDuration: Double = 0
+            clip.enumerateHierarchy { node, _ in
+                for key in node.animationKeys {
+                    if let player = node.animationPlayer(forKey: key) {
+                        clipDuration = max(clipDuration, player.animation.duration)
+                    }
+                }
+            }
+            if clipDuration <= 0 { clipDuration = 1.0 }
+
+            jumpShotRestoreTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(clipDuration))
+                guard let self, !Task.isCancelled,
+                      let scene = self.activeSceneKitView?.scene else { return }
+                self.restoreFromJumpShot(in: scene)
+                self.jumpShotRestoreTask = nil
+                // Regain possession so the dribble system resumes on the next
+                // movement tick (fail-soft: if the mode doesn't want the ball back,
+                // the state machine still resolves to locomotion).
+                self.playerHasBall = true
+            }
+        }
+
+        /// Drops the active JumpShot clip and un-hides the stashed player node,
+        /// restoring the load-bearing name + transform. Idempotent.
+        private func restoreFromJumpShot(in scene: SCNScene) {
+            guard let clip = jumpShotClipNode else { return }
+            let name = playerNodeName
+            let pos = clip.position, rot = clip.eulerAngles
+            clip.removeFromParentNode()
+            jumpShotClipNode = nil
+            if let stashed = stashedLocomotionNode {
+                stashed.position = pos
+                stashed.eulerAngles = rot
+                stashed.isHidden = false
+                stashed.name = name
+                stashedLocomotionNode = nil
+            } else {
+                // Belt-and-suspenders: find the stash by its renamed handle.
+                scene.rootNode.childNode(withName: name + "_jumpshotStash", recursively: true)
+                    .map { node in
+                        node.position = pos
+                        node.eulerAngles = rot
+                        node.isHidden = false
+                        node.name = name
+                    }
+            }
+        }
+
         /// Hand-tracks the ball beside/in front of the dribbling player and
         /// bounces it sinusoidally (faster while moving, slower while standing).
         /// The ball sits on the player's right side at roughly hip depth, and
@@ -1793,6 +1945,85 @@ struct GameSceneHostView: UIViewRepresentable {
 
         private func triggerPlayerAction(in scene: SCNScene?) {
             triggerAvatarAction(named: playerNodeName, in: scene)
+        }
+
+        /// Plays a per-sport action on the player node, preferring a bundled
+        /// full-body clip (`Action_<mode>_<action>.usdz`, resolved via
+        /// ``SportActionAnimationLibrary``) over the arm-only procedural swing.
+        /// Fail-soft: if no clip is bundled (or it fails to load), this falls back
+        /// to the existing ``triggerAvatarAction`` arm-swing — identical behavior
+        /// to before this seam existed. The user's future DeepMotion captures wire
+        /// with ZERO code change by dropping the named USDZ into Resources3D.
+        func playSportAction(_ action: String) {
+            let name = playerNodeName
+            let resolved = SportActionAnimationLibrary.resolve(mode: gameMode, action: action)
+            guard case let .bundledClip(resource) = resolved,
+                  let asset = FELBundledAsset(rawValue: resource),
+                  let scene = activeSceneKitView?.scene,
+                  let current = scene.rootNode.childNode(withName: name, recursively: true),
+                  let clip = FELBundledAssets.characterNode(asset, height: 1.85) else {
+                // Tier 2: no bundled full-body clip — keep the arm-only swing.
+                triggerAvatarAction(named: name)
+                return
+            }
+            // Full-body one-shot clip-swap (never clone skinned nodes): stash the
+            // player node under a renamed handle, hide it, swap in the fresh clip
+            // under the load-bearing name, then restore after the clip duration.
+            if sportActionClipNode != nil {
+                sportActionRestoreTask?.cancel()
+                sportActionRestoreTask = nil
+                restoreFromSportAction(in: scene)
+            }
+            let pos = current.position, rot = current.eulerAngles
+            current.isHidden = true
+            current.name = name + "_sportActionStash"
+            sportActionStashedNode = current
+            clip.name = name
+            clip.position = pos
+            clip.eulerAngles = rot
+            scene.rootNode.addChildNode(clip)
+            sportActionClipNode = clip
+
+            var clipDuration: Double = 0
+            clip.enumerateHierarchy { node, _ in
+                for key in node.animationKeys {
+                    if let player = node.animationPlayer(forKey: key) {
+                        clipDuration = max(clipDuration, player.animation.duration)
+                    }
+                }
+            }
+            if clipDuration <= 0 { clipDuration = 1.0 }
+
+            sportActionRestoreTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(clipDuration))
+                guard let self, !Task.isCancelled,
+                      let scene = self.activeSceneKitView?.scene else { return }
+                self.restoreFromSportAction(in: scene)
+                self.sportActionRestoreTask = nil
+            }
+        }
+
+        /// The player node stashed (hidden, renamed) while a sport-action clip is
+        /// active, so restore can un-hide exactly one node by the load-bearing name.
+        private weak var sportActionStashedNode: SCNNode?
+
+        /// Drops the active sport-action clip and un-hides the stashed player
+        /// node, restoring the load-bearing name + transform. Idempotent.
+        private func restoreFromSportAction(in scene: SCNScene) {
+            guard let clip = sportActionClipNode else { return }
+            let name = playerNodeName
+            let pos = clip.position, rot = clip.eulerAngles
+            clip.removeFromParentNode()
+            sportActionClipNode = nil
+            let stash = sportActionStashedNode
+                ?? scene.rootNode.childNode(withName: name + "_sportActionStash", recursively: true)
+            if let stash {
+                stash.position = pos
+                stash.eulerAngles = rot
+                stash.isHidden = false
+                stash.name = name
+                sportActionStashedNode = nil
+            }
         }
 
         private func triggerAvatarAction(named avatarName: String, in scene: SCNScene? = nil) {
