@@ -56,6 +56,7 @@ private struct DunkCourtCanvas: View {
     let isPerfect: Bool
     let postDunk: Bool
     let selectedStyleName: String
+    var isSceneBacked: Bool = false
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -64,7 +65,8 @@ private struct DunkCourtCanvas: View {
                 var d = CourtDraw(size: size, t: t, phase: phase,
                                   power: powerLevel, exec: execProgress,
                                   crowd: crowdLevel, perfect: isPerfect,
-                                  postDunk: postDunk, styleName: selectedStyleName)
+                                  postDunk: postDunk, styleName: selectedStyleName,
+                                  sceneBacked: isSceneBacked)
                 d.render(into: &ctx)
             }
         }
@@ -79,6 +81,7 @@ private struct CourtDraw {
     let power: Double; let exec: Double
     let crowd: Double; let perfect: Bool; let postDunk: Bool
     let styleName: String
+    var sceneBacked: Bool = false
 
     var W: CGFloat { size.width }
     var H: CGFloat { size.height }
@@ -130,9 +133,11 @@ private struct CourtDraw {
     // MARK: - Scene 1: Court BG (#1-#10)
 
     private func drawCourtBG(ctx: inout GraphicsContext) {
-        // #1 Deep arena dark background fill
-        ctx.fill(Path(CGRect(origin: .zero, size: size)),
-                 with: .color(Color(red: 0.01, green: 0.03, blue: 0.09)))
+        // #1 Deep arena dark background fill — skipped when CourtSceneView provides the background
+        if !sceneBacked {
+            ctx.fill(Path(CGRect(origin: .zero, size: size)),
+                     with: .color(Color(red: 0.01, green: 0.03, blue: 0.09)))
+        }
 
         // #2 NBA hardwood floor base rectangle
         ctx.fill(Path(CGRect(x: 0, y: floorY, width: W, height: H - floorY)),
@@ -230,9 +235,11 @@ private struct CourtDraw {
     // MARK: - Scene 2: Arena (#25–#48)
 
     private func drawArena(ctx: inout GraphicsContext) {
-        // #25 Arena ceiling / upper dark band
-        ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H * 0.06)),
-                 with: .color(Color(red: 0.00, green: 0.01, blue: 0.04)))
+        // #25 Arena ceiling / upper dark band — skipped when 3D scene provides sky
+        if !sceneBacked {
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: W, height: H * 0.06)),
+                     with: .color(Color(red: 0.00, green: 0.01, blue: 0.04)))
+        }
 
         // #26–#30 Six overhead arena light cones
         for li in 0..<6 {
@@ -254,34 +261,37 @@ private struct CourtDraw {
             ctx.fill(bulb, with: .color(Color.white.opacity(0.9)))
         }
 
-        // #32 Crowd tier 1 background band
-        ctx.fill(Path(CGRect(x: 0, y: H * 0.06, width: W, height: H * 0.08)),
-                 with: .color(Color(red: 0.04, green: 0.06, blue: 0.14)))
+        // #32–#38 Crowd background bands and silhouettes — skipped when 3D Venice environment handles these
+        if !sceneBacked {
+            // #32 Crowd tier 1 background band
+            ctx.fill(Path(CGRect(x: 0, y: H * 0.06, width: W, height: H * 0.08)),
+                     with: .color(Color(red: 0.04, green: 0.06, blue: 0.14)))
 
-        // #33 Crowd tier 2 background band
-        ctx.fill(Path(CGRect(x: 0, y: H * 0.14, width: W, height: H * 0.08)),
-                 with: .color(Color(red: 0.05, green: 0.07, blue: 0.16)))
+            // #33 Crowd tier 2 background band
+            ctx.fill(Path(CGRect(x: 0, y: H * 0.14, width: W, height: H * 0.08)),
+                     with: .color(Color(red: 0.05, green: 0.07, blue: 0.16)))
 
-        // #34 Crowd tier 3 background band
-        ctx.fill(Path(CGRect(x: 0, y: H * 0.22, width: W, height: H * 0.08)),
-                 with: .color(Color(red: 0.06, green: 0.08, blue: 0.18)))
+            // #34 Crowd tier 3 background band
+            ctx.fill(Path(CGRect(x: 0, y: H * 0.22, width: W, height: H * 0.08)),
+                     with: .color(Color(red: 0.06, green: 0.08, blue: 0.18)))
 
-        // #35–#37 Three rows of crowd silhouettes (35+ silhouettes across all rows)
-        drawCrowdTier(ctx: &ctx, row: 0, baseY: H * 0.085, count: 16, rowTag: 35)
-        drawCrowdTier(ctx: &ctx, row: 1, baseY: H * 0.165, count: 20, rowTag: 36)
-        drawCrowdTier(ctx: &ctx, row: 2, baseY: H * 0.255, count: 24, rowTag: 37)
+            // #35–#37 Three rows of crowd silhouettes (35+ silhouettes across all rows)
+            drawCrowdTier(ctx: &ctx, row: 0, baseY: H * 0.085, count: 16, rowTag: 35)
+            drawCrowdTier(ctx: &ctx, row: 1, baseY: H * 0.165, count: 20, rowTag: 36)
+            drawCrowdTier(ctx: &ctx, row: 2, baseY: H * 0.255, count: 24, rowTag: 37)
 
-        // #38 Photo flash dots in crowd (random white pops)
-        for fi in 0..<12 {
-            let flashPhase = sin(t * 4.5 + Double(fi) * 2.1)
-            if flashPhase > 0.85 {
-                let fx = W * (CGFloat(fi % 6) + 0.5) / 6.0 + CGFloat(sin(Double(fi) * 3.7)) * W * 0.06
-                let fy = H * 0.06 + CGFloat(fi % 3) * H * 0.09
-                var flash = Path()
-                flash.addEllipse(in: CGRect(x: fx - 4, y: fy - 4, width: 8, height: 8))
-                var gc = ctx; gc.addFilter(.blur(radius: 5))
-                gc.fill(flash, with: .color(Color.white.opacity(0.8)))
-                ctx.fill(flash, with: .color(Color.white.opacity(0.95)))
+            // #38 Photo flash dots in crowd (random white pops)
+            for fi in 0..<12 {
+                let flashPhase = sin(t * 4.5 + Double(fi) * 2.1)
+                if flashPhase > 0.85 {
+                    let fx = W * (CGFloat(fi % 6) + 0.5) / 6.0 + CGFloat(sin(Double(fi) * 3.7)) * W * 0.06
+                    let fy = H * 0.06 + CGFloat(fi % 3) * H * 0.09
+                    var flash = Path()
+                    flash.addEllipse(in: CGRect(x: fx - 4, y: fy - 4, width: 8, height: 8))
+                    var gc = ctx; gc.addFilter(.blur(radius: 5))
+                    gc.fill(flash, with: .color(Color.white.opacity(0.8)))
+                    ctx.fill(flash, with: .color(Color.white.opacity(0.95)))
+                }
             }
         }
 
@@ -985,9 +995,70 @@ struct BasketballDunkGameView: View {
     @State private var burstParticles: [(id: Int, x: CGFloat, y: CGFloat, angle: Double, distance: CGFloat, opacity: Double, color: Color)] = []
     @State private var burstCounter: Int = 0
 
+    // MARK: - CourtSceneView backing properties
+
+    private let veniceMovementSig = MovementSignature(
+        style: .explosive,
+        jumpApex: 0.92,
+        hangTimeFactor: 1.25,
+        firstStepBurst: 0.80,
+        limbEmission: 0.65,
+        trailColor: Color(red: 0.0, green: 0.85, blue: 1.0)
+    )
+
+    private var sceneAuraLevel: AuraLevel {
+        switch phase {
+        case .approach:    return .active
+        case .execution:   return isPerfect ? .maxIntent : .primed
+        case .judgeReveal: return perfectFlash ? .maxIntent : .active
+        default:           return .baseline
+        }
+    }
+
+    private var sceneDunkPhase: DunkPhase {
+        switch phase {
+        case .ready, .styleSelect, .roundTransition, .result: return .idle
+        case .approach:   return powerLevel > 3 ? .approach : .idle
+        case .execution:
+            if execProgress < 0.30 { return .launch }
+            if execProgress < 0.82 { return .airborne }
+            return .landing
+        case .judgeReveal: return .scored
+        }
+    }
+
+    private var sceneTrick: DunkTrickSlot {
+        switch selectedStyle.id {
+        case "windmill":     return .windmill
+        case "three_sixty":  return .threeSixty
+        case "tomahawk":     return .tomahawk
+        case "between_legs": return .betweenLegs
+        case "reverse":      return .reverseJam
+        case "alley_oop":    return .reverseJam
+        default:             return .tomahawk
+        }
+    }
+
     var body: some View {
         ZStack {
-            Color(red: 0.02, green: 0.06, blue: 0.12).ignoresSafeArea()
+            // 3D Venice beach environment as the full backdrop
+            CourtSceneView(
+                neuralDrive: min(1.0, viewModel.effectiveMetrics.prqScore / 100.0),
+                verticalPotential: min(1.0, 0.55 + viewModel.effectiveMetrics.prqScore / 200.0),
+                auraLevel: sceneAuraLevel,
+                movementSignature: veniceMovementSig,
+                onDunkTriggered: { },
+                dunkPhase: sceneDunkPhase,
+                selectedTrick: sceneTrick,
+                sprintCharge: powerLevel / 100.0,
+                jumpHeight: phase == .execution ? execProgress : 0,
+                rotationProgress: phase == .execution ? max(0, (execProgress - 0.30) / 0.70) : 0
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+
+            // Dark tint to keep 2D gameplay UI readable over the 3D scene
+            Color.black.opacity(0.40).ignoresSafeArea()
 
             Group {
                 switch phase {
@@ -1041,7 +1112,7 @@ struct BasketballDunkGameView: View {
     private var courtCanvas: some View {
         DunkCourtCanvas(phase: phase, powerLevel: powerLevel, execProgress: execProgress,
                         crowdLevel: crowdLevel, isPerfect: isPerfect, postDunk: postDunk,
-                        selectedStyleName: selectedStyle.name)
+                        selectedStyleName: selectedStyle.name, isSceneBacked: true)
             .frame(height: phase == .execution ? 280 : 240)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(accent.opacity(0.14), lineWidth: 1))
