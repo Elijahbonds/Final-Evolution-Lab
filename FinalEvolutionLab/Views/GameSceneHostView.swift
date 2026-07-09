@@ -86,12 +86,15 @@ struct GameSceneHostView: UIViewRepresentable {
         if env["NEXUS_USE_METAL"] == "1" {
             return true
         }
-        guard nexus_metal_bridge_is_linked() else {
-            return false
-        }
-        return gameMode.nexusRuntimeModeId.withCString { modeCStr in
-            nexus_metal_bridge_bundled_venue_mesh_loadable(modeCStr)
-        }
+        // DEFAULT TO SCENEKIT. The bundled Metal ("NEXUS 3D") venue engine ships
+        // incomplete: on device it renders venue meshes untextured/gray, drops
+        // scene lighting to near-black, or fails to load the venue at all
+        // (empty blue void), while the SceneKit player overlay floats over it.
+        // The pure SceneKit path renders venue + textures + lighting + grounded
+        // animated characters correctly (this is what the snapshot suite
+        // verifies). Route everything through SceneKit; opt into the Metal
+        // engine only explicitly via NEXUS_USE_METAL=1 or the build flag.
+        return false
         #endif
     }
 
