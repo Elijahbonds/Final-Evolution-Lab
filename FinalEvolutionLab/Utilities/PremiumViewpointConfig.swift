@@ -224,8 +224,11 @@ enum PremiumViewpointConfig {
 
     private static let lightingByCluster: [Cluster: Lighting] = [
         .basketball: Lighting(
-            ambientIntensity: 1050, venueFillIntensity: 820, avatarFillIntensity: 1100,
-            spotIntensity: 1500, exposureOffset: 0.55
+            // Toned down from 1050/820/1500: the bright outdoor preset blew out
+            // the real 3D Venice blacktop court (reflective USDZ surface) into a
+            // white hotspot. These levels keep the court readable + avatars lit.
+            ambientIntensity: 780, venueFillIntensity: 520, avatarFillIntensity: 950,
+            spotIntensity: 800, exposureOffset: 0.42
         ),
         .dojo: Lighting(
             // Interior dusk dojo — was copied from the bright outdoor basketball

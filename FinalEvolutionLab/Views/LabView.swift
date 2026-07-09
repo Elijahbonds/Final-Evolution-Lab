@@ -47,7 +47,8 @@ struct LabView: View {
                 creatorHubEntry
                 athleteProfileBanner
                 globalArenaCard
-                courtSection
+                // Freestyle Dunk Practice slot removed per direction — the dunk
+                // gameplay lives in the Play tab's 3D Dunk Contest mode only.
                 neuralDriveCard
                 hrvReadinessCard
                 metricsGrid

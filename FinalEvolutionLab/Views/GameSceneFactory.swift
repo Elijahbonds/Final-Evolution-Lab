@@ -175,6 +175,11 @@ struct GameSceneFactory {
         if name.hasPrefix("derbyBall-") || ["bat", "pitcherHand", "ballFlight"].contains(name) {
             return true
         }
+        // The dunk hoop is gameplay geometry (camera target + rim), so it must
+        // survive the procedural-cleanup pass that runs when a USDZ venue loads.
+        if ["hoop", "hoopMesh"].contains(name) {
+            return true
+        }
         return false
     }
 
@@ -371,6 +376,12 @@ struct GameSceneFactory {
         case .whoSceneIt:
             asset = .venueMuscleBeachStage
             footprint = 30
+        case .basketballDunkContest3D:
+            // Real 3D Venice Beach blacktop court (textured USDZ) replaces the
+            // procedural gray box; cleanProceduralEnvironment prunes the box
+            // once this loads. The dunk hoop is placed separately (mesh hoop).
+            asset = .venueVeniceBlacktop
+            footprint = 34
         default:
             asset = nil
             footprint = 0
@@ -581,7 +592,7 @@ struct GameSceneFactory {
         spotCenter.light = SCNLight()
         spotCenter.light?.type = .spot
         spotCenter.light?.color = UIColor(red: 1.0, green: 0.9, blue: 0.7, alpha: 1)
-        spotCenter.light?.intensity = 1800
+        spotCenter.light?.intensity = 550
         spotCenter.light?.spotInnerAngle = 15
         spotCenter.light?.spotOuterAngle = 40
         spotCenter.light?.castsShadow = true
@@ -595,14 +606,14 @@ struct GameSceneFactory {
         spotRim.light = SCNLight()
         spotRim.light?.type = .spot
         spotRim.light?.color = UIColor.orange.withAlphaComponent(0.8)
-        spotRim.light?.intensity = 800
+        spotRim.light?.intensity = 300
         spotRim.light?.spotInnerAngle = 10
         spotRim.light?.spotOuterAngle = 30
         spotRim.position = SCNVector3(-2, 8, -3)
         spotRim.look(at: SCNVector3(2.5, 3, -1))
         scene.rootNode.addChildNode(spotRim)
 
-        addFloor(to: scene, color: UIColor(red: 0.05, green: 0.28, blue: 0.55, alpha: 0.35), reflectivity: 0.25)
+        addFloor(to: scene, color: UIColor(red: 0.05, green: 0.28, blue: 0.55, alpha: 0.35), reflectivity: 0.0)
 
         let court = SCNBox(width: 12, height: 0.02, length: 8, chamferRadius: 0)
         let courtMat = SCNMaterial()
@@ -641,28 +652,35 @@ struct GameSceneFactory {
         // the hoop sat off at x=-4.5 while the runway/dunker pointed down -z, so
         // the dunk played in empty space misaligned with the rim.
         let rimZ: Float = -2.3
-        let dPole = SCNNode(geometry: SCNCylinder(radius: 0.06, height: 3.05))
-        dPole.geometry?.firstMaterial?.diffuse.contents = UIColor(white: 0.2, alpha: 1)
-        dPole.geometry?.firstMaterial?.metalness.contents = 0.8
-        dPole.position = SCNVector3(0, 1.525, rimZ - 0.75)
-        scene.rootNode.addChildNode(dPole)
-        let dBoard = SCNNode(geometry: SCNBox(width: 1.8, height: 1.05, length: 0.05, chamferRadius: 0.02))
-        dBoard.geometry?.firstMaterial?.diffuse.contents = UIColor(white: 0.92, alpha: 1)
-        dBoard.geometry?.firstMaterial?.transparency = 0.85
-        dBoard.position = SCNVector3(0, 3.5, rimZ - 0.4)
-        scene.rootNode.addChildNode(dBoard)
-        let dRim = SCNNode(geometry: SCNTorus(ringRadius: 0.23, pipeRadius: 0.02))  // lies flat (horizontal rim)
-        dRim.geometry?.firstMaterial?.diffuse.contents = UIColor.orange
-        dRim.geometry?.firstMaterial?.emission.contents = UIColor.orange.withAlphaComponent(0.35)
-        dRim.geometry?.firstMaterial?.metalness.contents = 0.9
-        dRim.position = SCNVector3(0, 3.05, rimZ)
-        dRim.name = "hoop"
-        scene.rootNode.addChildNode(dRim)
-        let dNet = SCNNode(geometry: SCNCone(topRadius: 0.21, bottomRadius: 0.12, height: 0.42))
-        dNet.geometry?.firstMaterial?.diffuse.contents = UIColor.white.withAlphaComponent(0.22)
-        dNet.geometry?.firstMaterial?.isDoubleSided = true
-        dNet.position = SCNVector3(0, 2.83, rimZ)
-        scene.rootNode.addChildNode(dNet)
+        // Real 3D basketball hoop mesh (VeniceBasketballHoop USDZ), rim at 3.05m,
+        // at the end of the runway facing the dunker. Container named "hoopMesh"
+        // (kept through the venue-cleanup pass); its inner "hoop" locator is the
+        // dunk camera's rim target. Fail-soft to a procedural hoop.
+        if let hoop = FELBundledAssets.basketballHoopNode(rimHeight: 3.05, rimLocatorName: "hoop", flip: true) {
+            hoop.name = "hoopMesh"
+            hoop.position = SCNVector3(0, 0, rimZ)
+            scene.rootNode.addChildNode(hoop)
+        } else {
+            let fbHoop = SCNNode()
+            fbHoop.name = "hoopMesh"
+            let fbPole = SCNNode(geometry: SCNCylinder(radius: 0.06, height: 3.05))
+            fbPole.geometry?.firstMaterial?.diffuse.contents = UIColor(white: 0.2, alpha: 1)
+            fbPole.position = SCNVector3(0, 1.525, rimZ - 0.75)
+            fbHoop.addChildNode(fbPole)
+            let fbBoard = SCNNode(geometry: SCNBox(width: 1.8, height: 1.05, length: 0.05, chamferRadius: 0.02))
+            fbBoard.geometry?.firstMaterial?.diffuse.contents = UIColor(white: 0.92, alpha: 1)
+            fbBoard.geometry?.firstMaterial?.transparency = 0.85
+            fbBoard.position = SCNVector3(0, 3.5, rimZ - 0.4)
+            fbHoop.addChildNode(fbBoard)
+            let fbRim = SCNNode(geometry: SCNTorus(ringRadius: 0.23, pipeRadius: 0.02))
+            fbRim.geometry?.firstMaterial?.diffuse.contents = UIColor.orange
+            fbRim.geometry?.firstMaterial?.emission.contents = UIColor.orange.withAlphaComponent(0.35)
+            fbRim.position = SCNVector3(0, 3.05, rimZ)
+            fbHoop.addChildNode(fbRim)
+            let rimLoc = SCNNode(); rimLoc.name = "hoop"; rimLoc.position = SCNVector3(0, 3.05, rimZ)
+            fbHoop.addChildNode(rimLoc)
+            scene.rootNode.addChildNode(fbHoop)
+        }
 
         let dunker = brandBlue
         let opponentColor = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
