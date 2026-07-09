@@ -56,10 +56,28 @@ enum UnityBridgeShim {
         }
         framework = ufw
 
-        // C# FELUnityBridge.EmitToHost lands here (see FELUnityEmitter.mm note
-        // in FEL-unity/README.md): route JSON back onto the main actor.
+        // C# FELUnityBridge.EmitToHost -> FELNativeBridge.mm (in the framework)
+        // -> the C callback we register here -> main-actor host.receive.
         FELUnityEventPump.shared.onEvent = { json in
             Task { @MainActor in host.receive(json: json) }
+        }
+        registerNativeEmitter()
+    }
+
+    /// Resolve FELRegisterEmitter from the loaded UnityFramework and register a
+    /// C-convention trampoline into the event pump. dlsym keeps this decoupled
+    /// from the framework's headers (the symbol ships in FELNativeBridge.mm).
+    private static func registerNativeEmitter() {
+        typealias RegisterFn = @convention(c) (@convention(c) (UnsafePointer<CChar>?) -> Void) -> Void
+        guard let sym = dlsym(dlopen(nil, RTLD_NOW), "FELRegisterEmitter") else {
+            print("[UnityShim] FELRegisterEmitter not found — Unity->Swift events disabled")
+            return
+        }
+        let register = unsafeBitCast(sym, to: RegisterFn.self)
+        register { cJson in
+            guard let cJson else { return }
+            let json = String(cString: cJson)
+            DispatchQueue.main.async { FELUnityEventPump.shared.pump(json) }
         }
     }
 

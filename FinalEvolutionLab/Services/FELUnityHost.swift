@@ -104,11 +104,50 @@ final class FELUnityHost: ObservableObject {
     }
 }
 
-/// SwiftUI container for the Unity render view. Shows a placeholder until the
-/// framework is embedded; afterwards it hosts UnityFramework's root view.
+/// Per-mode mapping from the shared pad vocabulary to bridge action verbs.
+/// Karate: □ jab, △ kick, ✕ block (hold), ○ special — mirroring the SceneKit
+/// karate layout so muscle memory transfers.
+private enum FELUnityPadMap {
+    static func action(for button: FELPadButton, modeId: String) -> String? {
+        switch modeId {
+        case "karate", "karateEndless":
+            switch button {
+            case .square: return "jab"
+            case .triangle: return "kick"
+            case .cross: return "block"
+            case .circle: return "special"
+            default: return nil
+            }
+        case "basketballDunkContest3D":
+            switch button {
+            case .cross: return "dunk"
+            case .square, .triangle, .circle: return "jump"
+            default: return nil
+            }
+        default:
+            // Generic verbs; mode controllers ignore what they don't use.
+            switch button {
+            case .cross: return "action"
+            case .square: return "shoot"
+            case .triangle: return "jump"
+            case .circle: return "special"
+            default: return nil
+            }
+        }
+    }
+
+    /// Buttons whose release matters (held states like block).
+    static func isHold(_ action: String) -> Bool { action == "block" }
+}
+
+/// SwiftUI container for the Unity render view + the shared gamepad overlay.
+/// Shows a placeholder until the framework is embedded.
 struct FELUnityGameView: View {
     let modeId: String
     @ObservedObject private var host = FELUnityHost.shared
+    @Environment(\.dismiss) private var dismiss
+    @State private var pad = FELGamepadState()
+    @State private var stickPump: Timer?
 
     var body: some View {
         ZStack {
@@ -130,9 +169,88 @@ struct FELUnityGameView: View {
                     .foregroundStyle(.tertiary)
             }
             #endif
+
+            // Shared controller overlay -> bridge input.
+            FELGamepadView(state: pad, isActive: true)
+
+            // Minimal chrome: exit top-left, live score chip top-right
+            // (the chip is fed by the Unity->Swift event pump — its updating
+            // on device is the visible proof the C#->Swift loop is closed).
+            VStack {
+                HStack {
+                    Button {
+                        host.quit()
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 13, weight: .bold))
+                            Text("EXIT")
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .tracking(1.5)
+                        }
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(.black.opacity(0.55))
+                        .clipShape(Capsule())
+                    }
+                    Spacer()
+                    if let evt = host.lastEvent {
+                        Text("\(evt.score)")
+                            .font(.system(size: 22, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .contentTransition(.numericText())
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(.black.opacity(0.55))
+                            .clipShape(Capsule())
+                    }
+                }
+                Spacer()
+            }
+            .padding(12)
         }
-        .onAppear { host.startMode(modeId) }
-        .onDisappear { host.quit() }
+        .navigationBarBackButtonHidden(true)
+        .onAppear {
+            host.startMode(modeId)
+            wireInput()
+        }
+        .onDisappear {
+            stickPump?.invalidate()
+            stickPump = nil
+            host.quit()
+        }
+    }
+
+    private func wireInput() {
+        // Discrete edges: buttons -> mode verbs (dpad handled by moveVector).
+        pad.onEvent = { event in
+            switch event {
+            case .buttonDown(let button):
+                if let action = FELUnityPadMap.action(for: button, modeId: modeId) {
+                    FELUnityHost.shared.sendAction(action, value: 1)
+                }
+            case .buttonUp(let button):
+                if let action = FELUnityPadMap.action(for: button, modeId: modeId),
+                   FELUnityPadMap.isHold(action) {
+                    FELUnityHost.shared.sendAction(action, value: 0)
+                }
+            case .dpadDown, .dpadUp:
+                break
+            }
+        }
+        // Continuous movement: pump the merged stick+dpad vector at 30Hz,
+        // sending only on change (and a final zero so the player stops).
+        var lastSent = CGPoint.zero
+        stickPump = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { _ in
+            Task { @MainActor in
+                let v = pad.moveVector
+                guard v != lastSent else { return }
+                lastSent = v
+                FELUnityHost.shared.sendStick(x: Float(v.x), y: Float(v.y))
+            }
+        }
     }
 }
 
