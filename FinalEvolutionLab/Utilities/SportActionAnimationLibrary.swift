@@ -74,13 +74,22 @@ enum SportActionAnimationLibrary {
     /// baked-clip systems) or the non-physical minigames.
     static func modeToken(for mode: GameModeId) -> String? {
         switch mode {
-        case .golf:       return "golf"
-        case .tennis:     return "tennis"
-        case .baseball:   return "baseball"
-        case .soccer:     return "soccer"
-        case .volleyball: return "volleyball"
-        case .football:   return "football"
-        default:          return nil
+        case .golf:         return "golf"
+        case .tennis:       return "tennis"
+        case .baseball:     return "baseball"
+        case .soccer:       return "soccer"
+        case .volleyball:   return "volleyball"
+        case .football:     return "football"
+        // Board / precision rhythm modes: registered so the per-action trigger
+        // consults the registry and — until a bundled Action_<mode>_<action>.usdz
+        // ships — fires the procedural full-body pulse/arm-swing on the avatar.
+        // Without this, landing a trick left the avatar in idle (the "idle-only"
+        // complaint). Real ollie/aerial/tumble/carve clips drop in by convention.
+        case .skateboarding: return "skateboarding"
+        case .snowboarding:  return "snowboarding"
+        case .surfing:       return "surfing"
+        case .gymnastics:    return "gymnastics"
+        default:            return nil
         }
     }
 
@@ -103,6 +112,48 @@ enum SportActionAnimationLibrary {
     static func bundledActionClipName(mode: GameModeId, action: String) -> String? {
         guard let modeTok = modeToken(for: mode) else { return nil }
         return "Action_\(modeTok)_\(actionToken(for: action))"
+    }
+
+    /// Explicit (mode, action) → shipped mocap clip resource, for actions whose
+    /// UI label doesn't equal the capture's token. Consulted BEFORE the generic
+    /// `Action_<mode>_<action>` convention so EVERY gameplay action a mode fires
+    /// resolves to a real DeepMotion clip: tennis Volley/Baseline reuse the serve
+    /// capture, football "Break Away" plays the scramble capture, and each
+    /// extreme-mode trick name maps to that board's single ride/trick capture.
+    /// Returns nil to fall through to the generic convention (which already
+    /// catches golf "Swing", tennis "Serve", volleyball "Spike", baseball
+    /// "Swing", football "Catch").
+    static func bundledActionOverride(mode: GameModeId, action: String) -> String? {
+        let tok = actionToken(for: action)
+        switch mode {
+        case .golf:
+            return "Action_golf_swing"
+        case .tennis:
+            return "Action_tennis_serve"
+        case .volleyball:
+            return "Action_volleyball_spike"
+        case .baseball:
+            switch tok {
+            case "pitch": return "Action_baseball_pitch"
+            case "field", "throw": return "Action_baseball_field"
+            default: return "Action_baseball_swing"   // swing / bunt
+            }
+        case .football:
+            switch tok {
+            case "catch": return "Action_football_catch"
+            case "throw", "pass": return "Action_football_throw"
+            case "juke": return "Action_football_juke"
+            default: return "Action_football_scramble" // "Break Away" / run
+            }
+        case .surfing:
+            return "Action_surfing_ride"
+        case .skateboarding:
+            return "Action_skateboarding_trick"
+        case .snowboarding:
+            return "Action_snowboarding_trick"
+        default:
+            return nil
+        }
     }
 
     /// Whether a bundled full-body clip is present for `(mode, action)`.
@@ -128,14 +179,20 @@ enum SportActionAnimationLibrary {
     /// exercised without a real bundle.
     ///
     /// Resolution order:
-    ///  1. **Bundled full-body clip** — `Action_<mode>_<action>.usdz` if present.
-    ///  2. **Procedural arm swing** — the existing arm-only fallback (always
+    ///  1. **Explicit override clip** — `bundledActionOverride`, for the shipped
+    ///     mocap captures whose action token differs from the UI label.
+    ///  2. **Bundled full-body clip** — `Action_<mode>_<action>.usdz` if present.
+    ///  3. **Procedural arm swing** — the existing arm-only fallback (always
     ///     available, so resolution never dead-ends).
     static func resolve(
         mode: GameModeId,
         action: String,
         bundleProbe: (String) -> Bool = defaultBundleProbe
     ) -> ActionAnimation {
+        if let override = bundledActionOverride(mode: mode, action: action),
+           bundleProbe(override) {
+            return .bundledClip(resource: override)
+        }
         if let name = bundledActionClipName(mode: mode, action: action),
            bundleProbe(name) {
             return .bundledClip(resource: name)

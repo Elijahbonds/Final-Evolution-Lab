@@ -89,6 +89,26 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     case dribbleIdle = "DribbleIdle"           // dribble in place, "has ball + standing"
     case dribbleCrossover = "DribbleCrossover" // shorter crossover variation (one-shot)
 
+    // Per-sport ACTION one-shots — real DeepMotion captures retargeted onto the
+    // Elijah rig via the mocap pipeline (absolute meter units, root-locked).
+    // rawValue MUST equal the SportActionAnimationLibrary drop-in filename
+    // (Action_<mode>_<action>) so resolve()→playSportAction auto-loads them by
+    // FELBundledAsset(rawValue:). Full-body clips; the trigger swaps them in for
+    // the player node for the clip duration, then restores locomotion/idle.
+    case actionBaseballSwing = "Action_baseball_swing"
+    case actionBaseballPitch = "Action_baseball_pitch"
+    case actionBaseballField = "Action_baseball_field"
+    case actionFootballThrow = "Action_football_throw"
+    case actionFootballCatch = "Action_football_catch"
+    case actionFootballJuke = "Action_football_juke"
+    case actionFootballScramble = "Action_football_scramble"
+    case actionGolfSwing = "Action_golf_swing"
+    case actionTennisServe = "Action_tennis_serve"
+    case actionVolleyballSpike = "Action_volleyball_spike"
+    case actionSurfingRide = "Action_surfing_ride"
+    case actionSkateboardingTrick = "Action_skateboarding_trick"
+    case actionSnowboardingTrick = "Action_snowboarding_trick"
+
     var isVenue: Bool {
         switch self {
         case .venueShimogamoDojo, .venueVeniceBlacktop, .venueTennisCourt,
@@ -118,7 +138,12 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
              .npcEricNashWalk, .npcEricNashRun,
              .npcTallAthleticWalk, .npcTallAthleticRun,
              .characterElijahWalkAnim, .characterElijahRunAnim,
-             .dribbleLoop, .dribbleIdle, .dribbleCrossover:
+             .dribbleLoop, .dribbleIdle, .dribbleCrossover,
+             .actionBaseballSwing, .actionBaseballPitch, .actionBaseballField,
+             .actionFootballThrow, .actionFootballCatch, .actionFootballJuke,
+             .actionFootballScramble, .actionGolfSwing, .actionTennisServe,
+             .actionVolleyballSpike, .actionSurfingRide,
+             .actionSkateboardingTrick, .actionSnowboardingTrick:
             return true
         default:
             return false

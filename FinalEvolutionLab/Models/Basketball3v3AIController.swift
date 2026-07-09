@@ -468,6 +468,14 @@ final class Basketball3v3AIController {
     private func checkScore(nodes: [String: SCNNode], in scene: SCNScene) {
         guard !passActive else { return }
         let handlerName = offenseNames[ballHandlerIndex]
+        // The human owns blue1's shot — it's scored by their manual tap
+        // (performAction), never by this proximity auto-scorer. Without this the
+        // same drive to the rim is credited twice (auto + tap). Let the
+        // possession still turn over so play keeps flowing.
+        if config.humanControlledBlue1 && handlerName == "blue1" {
+            reset(in: scene)
+            return
+        }
         guard let handlerNode = nodes[handlerName] else { return }
         let hp = simd3(handlerNode.position)
 

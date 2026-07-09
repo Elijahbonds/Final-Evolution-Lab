@@ -153,6 +153,12 @@ struct GameSceneHostView: UIViewRepresentable {
     /// GamePlayView apply damage only when the strike would actually land.
     var onKarateStrike: (_ inRange: Bool) -> Void = { _ in }
 
+    /// Fired when the 3v3 on-court AI actually sinks a basket, reporting which
+    /// team scored and that team's running total. Lets GamePlayView surface the
+    /// simulated ballplay to the HUD scoreboard instead of the AI's makes being
+    /// purely cosmetic.
+    var onAI3v3Score: (_ isPlayerTeam: Bool, _ teamTotal: Int) -> Void = { _, _ in }
+
     func makeUIView(context: Context) -> UIView {
         if Nexus3DGameplayCoordinator.shouldUseHybridMetal(for: gameMode, explicit3D: useNexus3DEngine) {
             return context.coordinator.makeHybridView()
@@ -177,6 +183,7 @@ struct GameSceneHostView: UIViewRepresentable {
         }
         context.coordinator.isMidAir = isMidAir
         context.coordinator.onKarateStrike = onKarateStrike
+        context.coordinator.onAI3v3Score = onAI3v3Score
         if context.coordinator.lastKarateStrikeNonce != karateStrikeNonce {
             context.coordinator.lastKarateStrikeNonce = karateStrikeNonce
             if let asset = karateStrikeAsset {
@@ -311,6 +318,7 @@ struct GameSceneHostView: UIViewRepresentable {
         }
         var lastKarateStrikeNonce: Int = 0
         var onKarateStrike: (_ inRange: Bool) -> Void = { _ in }
+        var onAI3v3Score: (_ isPlayerTeam: Bool, _ teamTotal: Int) -> Void = { _, _ in }
         /// Max horizontal separation (meters) at which a player strike connects.
         /// Spawn spacing is ~2.4m; this reach lets a strike land at spacing and
         /// while closing, but a retreating player (>reach) whiffs.
@@ -1225,6 +1233,12 @@ struct GameSceneHostView: UIViewRepresentable {
             let controller = Basketball3v3AIController(
                 config: .init(seed: 0xB0A11, offenseSide: .blue, neuralDrive: neuralDrive)
             )
+            // Surface the AI's made baskets to the HUD (player = blue team). Was
+            // never assigned, so the on-court simulation's scoring never reached
+            // the scoreboard — the ballplay looked live but was cosmetic.
+            controller.onScore = { [weak self] team, teamTotal in
+                self?.onAI3v3Score(team == .blue, teamTotal)
+            }
             ai3v3 = controller
             let aiAction = SCNAction.customAction(duration: 100000) { [weak self, weak scene] _, _ in
                 guard let self, let scene else { return }
@@ -1485,6 +1499,11 @@ struct GameSceneHostView: UIViewRepresentable {
                 // Movement loop owns this node's transform this frame — drop the
                 // procedural idle so the bob/sway doesn't fight position writes.
                 FELBundledAssets.stopAliveIdle(activePlayer)
+                // Karate attaches a repeatForever "circle" footwork moveBy to
+                // fighter1; it writes relative deltas that fight the absolute
+                // stick-driven .position here (jitter/drift, and it can nudge the
+                // fighter past strike range). Stop it once the player takes over.
+                activePlayer.removeAction(forKey: "circle")
 
                 let bounds = movementBounds
                 let speed = bounds.speed * Float(1.0 + neuralDrive / 200.0)

@@ -145,4 +145,31 @@ struct FELSceneSnapshotTests {
             ambient.removeFromParentNode()
         }
     }
+
+    /// The 13 shipped DeepMotion sport-action captures must each load as a
+    /// skinned node carrying a real animation (anim-keys > 0). A clip that loads
+    /// with zero animation would swap in a frozen T-pose on the action trigger.
+    @Test func sportActionMocapClipsLoadWithAnimation() throws {
+        let clips: [FELBundledAsset] = [
+            .actionBaseballSwing, .actionBaseballPitch, .actionBaseballField,
+            .actionFootballThrow, .actionFootballCatch, .actionFootballJuke,
+            .actionFootballScramble, .actionGolfSwing, .actionTennisServe,
+            .actionVolleyballSpike, .actionSurfingRide,
+            .actionSkateboardingTrick, .actionSnowboardingTrick,
+        ]
+        for clip in clips {
+            guard let node = FELBundledAssets.characterNode(clip, height: 1.85) else {
+                Issue.record("\(clip.rawValue): failed to load USDZ")
+                continue
+            }
+            var animKeys = 0
+            var skinners = 0
+            node.enumerateHierarchy { n, _ in
+                animKeys += n.animationKeys.count
+                if n.skinner != nil { skinners += 1 }
+            }
+            #expect(animKeys > 0, "\(clip.rawValue): loaded but has NO animation keys (frozen pose)")
+            #expect(skinners > 0, "\(clip.rawValue): loaded but is not skinned")
+        }
+    }
 }

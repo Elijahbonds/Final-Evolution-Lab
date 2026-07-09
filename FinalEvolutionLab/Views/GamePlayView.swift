@@ -19,6 +19,10 @@ struct GamePlayView: View {
 
     @State private var score: Int = 0
     @State private var opponentScore: Int = 0
+    /// Last-seen 3v3 controller team totals, so onAI3v3Score adds deltas (not a
+    /// max/sum hybrid) and composes with the player's manual-tap scoring.
+    @State private var ai3v3BlueSeen: Int = 0
+    @State private var ai3v3RedSeen: Int = 0
     @State private var timeRemaining: Int = 60
     @State private var isActive = false
     @State private var showResults = false
@@ -814,7 +818,31 @@ struct GamePlayView: View {
                 basketballDunkClipAsset: basketballDunkClipAsset,
                 sportActionNonce: sportActionNonce,
                 sportActionLabel: sportActionLabel,
-                onKarateStrike: { inRange in karateInStrikeRange = inRange }
+                onKarateStrike: { inRange in karateInStrikeRange = inRange },
+                onAI3v3Score: { isPlayerTeam, teamTotal in
+                    // The on-court AI scored (never blue1 — the human's makes go
+                    // through performAction). teamTotal is the controller's
+                    // cumulative team score; add the DELTA since we last saw it so
+                    // it composes additively with the player's own manual taps
+                    // instead of a max/sum hybrid (P2). Blue teammates (blue2/
+                    // blue3) assist the player's side → player score; red → the
+                    // scoreboard opponent. Both feed the target-21 / countdown end.
+                    guard isActive else { return }
+                    withAnimation(.spring(response: 0.25)) {
+                        if isPlayerTeam {
+                            let delta = max(0, teamTotal - ai3v3BlueSeen)
+                            ai3v3BlueSeen = teamTotal
+                            score += delta
+                        } else {
+                            let delta = max(0, teamTotal - ai3v3RedSeen)
+                            ai3v3RedSeen = teamTotal
+                            opponentScore += delta
+                        }
+                    }
+                    if isBlacktop && gameRules.usesTargetScoreWin {
+                        if score >= targetScore || opponentScore >= targetScore { endGame() }
+                    }
+                }
             )
             .clipShape(.rect(cornerRadius: 0))
 
@@ -3414,6 +3442,8 @@ struct GamePlayView: View {
         withAnimation { isActive = true }
         score = 0
         opponentScore = 0
+        ai3v3BlueSeen = 0
+        ai3v3RedSeen = 0
         combo = 0
         maxCombo = 0
         criticalHits = 0
@@ -3707,6 +3737,13 @@ struct GamePlayView: View {
                         aiScore: opponentScore,
                         maxPoints: DynamicDifficulty.prqScaledOpponentMaxPoints(playerPRQ: playerPRQ, mode: gameMode.id)
                     )
+                }
+                // Symmetric target-score end: the AI can now actually WIN by
+                // reaching 21 (blacktop h2h/3v3). Previously only the player's
+                // score could trigger the target end, so the ghost could never
+                // close out a match — it only inflated the results comparison.
+                if isBlacktop && gameRules.usesTargetScoreWin && opponentScore >= targetScore {
+                    endGame()
                 }
             }
         }
@@ -4556,6 +4593,18 @@ struct GamePlayView: View {
         let success = Double.random(in: 0...1) < baseChance
         let action = actionsForMode.first ?? "Action"
 
+        // Drive the per-sport action animation for registry-covered modes
+        // (golf/tennis/baseball/soccer/volleyball/football). The gesture handlers
+        // route through here, so this is the single place that fires the swing/
+        // serve/spike/kick clip — GameSceneHostView.playSportAction prefers a
+        // bundled Action_<mode>_<action>.usdz and fails soft to the procedural
+        // arm-swing. Previously only performAction() bumped this, so through
+        // normal gesture play the action animation never triggered.
+        if SportActionAnimationLibrary.modeToken(for: gameMode.id) != nil {
+            sportActionLabel = action
+            sportActionNonce += 1
+        }
+
         if success {
             let isCritical = Double.random(in: 0...1) < physics.criticalHitChance
             let basePoints = pointsForAction(action, success: true)
@@ -5228,6 +5277,16 @@ struct GamePlayView: View {
 
         matrixState = matrixState.resolveAction(at: CACurrentMediaTime())
 
+        // Animate the avatar on a landed trick (board/precision extreme modes).
+        // The trick system previously fired only screen FX, so the on-court
+        // avatar never visibly performed the trick — the "idle-only" complaint.
+        // Routes through the same sport-action seam: a bundled Action_ clip if it
+        // ships, else the procedural full-body pulse (registered in modeToken).
+        if SportActionAnimationLibrary.modeToken(for: gameMode.id) != nil {
+            sportActionLabel = trick.name
+            sportActionNonce += 1
+        }
+
         Task {
             try? await Task.sleep(for: .seconds(2.0))
             withAnimation { showTrickText = false; lastTrickName = ""; showQTEGrade = false }
@@ -5344,6 +5403,13 @@ struct GamePlayView: View {
             return
         }
 
+        // Non-basketball pad modes: route face buttons to the mode's REAL action
+        // handler instead of bleeding into the basketball performAction("Shoot"/
+        // "Dunk"/…) fall-through below. These modes show FELGamepadView
+        // (usesGamepadOverlay) but are ball/board sports — a face press must fire
+        // the sport action, not a basketball verb.
+        if routeFaceButtonToModeAction(button) { return }
+
         switch button {
         case .triangle:
             performAction("Shoot")
@@ -5353,6 +5419,77 @@ struct GamePlayView: View {
             performAction("Sprint")
         case .cross:
             performAction("Style")
+        }
+    }
+
+    /// Maps a pad face button to the current mode's real action for the modes
+    /// that show the shared gamepad but are NOT basketball/karate/dunk. Returns
+    /// true when it handled the press (caller must then `return`), false to let
+    /// the basketball fall-through run (basketball family modes). Keeps every
+    /// pad mode's face buttons firing the correct sport action — no bleed-through.
+    private func routeFaceButtonToModeAction(_ button: ArenaPadFaceButton) -> Bool {
+        switch gameMode.id {
+        case .tennis:
+            let type: String
+            switch button {
+            case .triangle: type = "Serve"
+            case .square:   type = "Forehand"
+            case .circle:   type = "Volley"
+            case .cross:    type = "Baseline"
+            }
+            handleRallyHit(type: type)
+            return true
+        case .volleyball:
+            // Aim already tracked via stick/drag; any face button spikes.
+            handleVolleyballSpike()
+            return true
+        case .soccer:
+            let power: KickPower
+            switch button {
+            case .triangle: power = .high
+            case .cross:    power = .low
+            default:        power = .mid
+            }
+            handlePenaltyKick(power: power)
+            return true
+        case .football:
+            // Phase-aware: catch the kick, then tap-in-zone to break away.
+            if footballPhase == .catch {
+                handleCatchTap()
+            } else {
+                handleRunTap()
+            }
+            return true
+        case .skateboarding, .snowboarding, .surfing, .gymnastics:
+            // Board/precision rhythm modes: a face button performs the mode's
+            // primary/secondary/tertiary action (same set the on-screen rhythm
+            // buttons use), routing through performAction so the round advances
+            // and the sport-action clip fires. Cross = special/first action.
+            let actions = actionsForMode
+            let idx: Int
+            switch button {
+            case .square:   idx = 0
+            case .circle:   idx = 1
+            case .triangle: idx = 2
+            case .cross:    idx = 0
+            }
+            if actions.indices.contains(idx) { performAction(actions[idx]) }
+            return true
+        case .courtCarnival:
+            // Party board: a face button rolls the quantum dice when idle. It
+            // does NOT fire performAction directly — the board flow is
+            // roll → land on tile → event card resolves via its own button →
+            // performAction (round advance). Calling performAction here would
+            // double-advance the 5-round loop and end the match early (the bug
+            // the audit flagged from the basketball fall-through). When an event
+            // is active the dice is guarded, so the press is a safe no-op and
+            // the player resolves the event on its dedicated card.
+            rollQuantumDice()
+            return true
+        default:
+            // Basketball family (h2h/3v3/dunk) — let the caller's basketball
+            // fall-through handle Shoot/Dunk/Sprint/Style.
+            return false
         }
     }
 

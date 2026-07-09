@@ -684,4 +684,48 @@ struct GameLogicTests {
             #expect(floorNodes.isEmpty, "Bundled mesh path should strip procedural floor")
         }
     }
+
+    /// Guards the whoSceneIt off-by-one: the film-quiz round count must equal the
+    /// shipped question bank size, or the last round re-shows the final question
+    /// with a "QUESTION N OF 6" mismatch.
+    @Test func filmQuizRoundLimitMatchesQuestionBank() {
+        #expect(GameModeRules.forMode(.whoSceneIt).roundLimit == FilmQuestion.filmQuestions.count)
+    }
+
+    /// Every mode whose left-stick movement + chase camera are driven by
+    /// `primaryGameplayAvatarName` must actually build that node, or the movement
+    /// loop and camera-follow silently track nil (avatar "lost in space").
+    @Test func everyGameplayAvatarNodeExistsInItsScene() {
+        let modes: [GameModeId] = [
+            .basketballHeadToHead, .basketballDunkContest3D, .basketball3v3,
+            .karate, .karateEndless, .baseball, .football, .soccer, .golf,
+            .tennis, .volleyball, .gymnastics, .surfing, .skateboarding,
+            .snowboarding, .brainBrawl, .whoSceneIt, .courtCarnival,
+        ]
+        for mode in modes {
+            let scene = GameSceneFactory.buildScene(for: mode)
+            let name = GameSceneFactory.primaryGameplayAvatarName(for: mode)
+            #expect(
+                scene.rootNode.childNode(withName: name, recursively: true) != nil,
+                "\(mode.rawValue): gameplay avatar node '\(name)' missing from built scene"
+            )
+        }
+    }
+
+    /// The board/precision extreme modes must be registered in the sport-action
+    /// registry so landing a trick / tapping an action fires the avatar animation
+    /// (procedural fallback) instead of leaving it idle.
+    @Test func extremeModesConsultSportActionRegistry() {
+        for mode in [GameModeId.skateboarding, .snowboarding, .surfing, .gymnastics] {
+            #expect(SportActionAnimationLibrary.modeToken(for: mode) != nil)
+        }
+    }
+
+    /// Extreme-sport tricks must resolve to board/surf/gymnastics names, not the
+    /// basketball dunk pool (content bleed-through).
+    @Test func extremeTricksUseBoardPoolNotDunkPool() {
+        let trick = DirectionalTrick.resolve(direction: .up, modifier: .none, mode: .skateboarding)
+        #expect(DirectionalTrick.boardTricks.contains { $0.id == trick.id })
+        #expect(!DirectionalTrick.dunkTricks.contains { $0.id == trick.id })
+    }
 }
