@@ -104,6 +104,35 @@ final class FELUnityHost: ObservableObject {
     }
 }
 
+/// Single gameplay entry point used by every mode-launching screen. Routes the
+/// Unity-ported hero modes into the embedded engine and everything else to the
+/// legacy SceneKit GamePlayView — so entry point (Play tab, Dashboard, Lab)
+/// can't bypass the Unity path.
+struct FELModeLauncherView: View {
+    let viewModel: LabViewModel
+    let gameMode: GameMode
+    var sessionReadiness: Double = 0
+
+    /// Modes whose Unity port is live (device-verified one at a time), mapped
+    /// from the Swift snake_case GameModeId to the Unity FELModeRegistry id.
+    private static let unityModeIds: [GameModeId: String] = [
+        .karateEndless: "karateEndless",
+        .basketballDunkContest3D: "basketballDunkContest3D",
+    ]
+
+    var body: some View {
+        #if FEL_UNITY_EMBEDDED
+        if let unityId = Self.unityModeIds[gameMode.id] {
+            FELUnityGameView(modeId: unityId)
+        } else {
+            GamePlayView(viewModel: viewModel, gameMode: gameMode, sessionReadiness: sessionReadiness)
+        }
+        #else
+        GamePlayView(viewModel: viewModel, gameMode: gameMode, sessionReadiness: sessionReadiness)
+        #endif
+    }
+}
+
 /// Per-mode mapping from the shared pad vocabulary to bridge action verbs.
 /// Karate: □ jab, △ kick, ✕ block (hold), ○ special — mirroring the SceneKit
 /// karate layout so muscle memory transfers.
