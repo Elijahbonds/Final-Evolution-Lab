@@ -94,12 +94,49 @@ enum UnityBridgeShim {
     }
 }
 
-/// Hosts Unity's render UIView inside SwiftUI.
+/// Hosts Unity's render UIView inside SwiftUI. Unity boots asynchronously, so
+/// the root view may not exist at makeUIView time — the wrapper polls until
+/// Unity's view appears, then adopts it (and stops polling).
 struct UnityContainerView: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        UnityBridgeShim.unityRootView ?? UIView()
+    func makeUIView(context: Context) -> UnityAdoptingView {
+        let v = UnityAdoptingView()
+        v.backgroundColor = .black
+        v.beginAdoption()
+        return v
     }
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    func updateUIView(_ uiView: UnityAdoptingView, context: Context) {
+        uiView.adoptIfPossible()
+    }
+}
+
+final class UnityAdoptingView: UIView {
+    private var poll: Timer?
+    private weak var adopted: UIView?
+
+    func beginAdoption() {
+        adoptIfPossible()
+        guard adopted == nil else { return }
+        poll = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async { self?.adoptIfPossible() }
+        }
+    }
+
+    func adoptIfPossible() {
+        guard adopted == nil, let unityView = UnityBridgeShim.unityRootView else { return }
+        adopted = unityView
+        poll?.invalidate()
+        poll = nil
+        unityView.frame = bounds
+        unityView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(unityView)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        adopted?.frame = bounds
+    }
+
+    deinit { poll?.invalidate() }
 }
 
 /// Singleton relay for the C# emitter callback (registered via the tiny ObjC

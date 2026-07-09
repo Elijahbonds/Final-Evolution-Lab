@@ -51,20 +51,44 @@ final class FELUnityHost: ObservableObject {
 
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+    private var loadRetry: Timer?
 
     private init() {}
 
     // MARK: Lifecycle
 
     /// Load the Unity player and present the gameplay for a mode.
+    ///
+    /// Unity boots asynchronously after runEmbedded — a loadMode sent
+    /// immediately lands before the FELUnityBridge GameObject exists and is
+    /// silently dropped. So we retry every 0.7s until the mode's "ready"
+    /// event arrives (LoadMode is convergent on the C# side; last one wins).
     func startMode(_ modeId: String) {
         loadUnityIfNeeded()
+        isReady = false
+        loadRetry?.invalidate()
         send(FELHostCommand(type: "loadMode", modeId: modeId))
+        loadRetry = Timer.scheduledTimer(withTimeInterval: 0.7, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                if self.isReady {
+                    self.loadRetry?.invalidate()
+                    self.loadRetry = nil
+                } else {
+                    self.send(FELHostCommand(type: "loadMode", modeId: modeId))
+                }
+            }
+        }
     }
 
     func pause()  { send(FELHostCommand(type: "pause")) }
     func resume() { send(FELHostCommand(type: "resume")) }
-    func quit()   { send(FELHostCommand(type: "quit")); isReady = false }
+    func quit() {
+        loadRetry?.invalidate()
+        loadRetry = nil
+        send(FELHostCommand(type: "quit"))
+        isReady = false
+    }
 
     // MARK: Input (called from FELGamepadView / GCController handlers)
 
