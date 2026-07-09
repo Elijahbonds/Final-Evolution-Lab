@@ -368,6 +368,15 @@ struct GameSceneHostView: UIViewRepresentable {
                 dunker.isHidden = true
                 dunkClipNode = clip
                 startDunkCinematic()          // begin approach beat
+                // Run the dunker UP THE LANE to the rim so the baked jam lands AT
+                // the hoop, not in place at the start. The node travel supplies
+                // the horizontal approach; the baked clip supplies the jump +
+                // dunk motion on top. Gather just in front of the rim.
+                let rim = resolveDunkRimTarget(in: scene)
+                let gather = SCNVector3(rim.x, clip.position.y, rim.z + 1.15)
+                let runUp = SCNAction.move(to: gather, duration: TimeInterval(max(0.2, dunkApproachDur)))
+                runUp.timingMode = .easeIn
+                clip.runAction(runUp, forKey: "dunkApproach")
             } else {
                 dunkClipNode?.removeFromParentNode()
                 dunkClipNode = nil

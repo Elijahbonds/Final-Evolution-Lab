@@ -572,7 +572,9 @@ struct GameSceneFactory {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.01, green: 0.01, blue: 0.03, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(2, 5.5, 9), lookAt: SCNVector3(0, 2.0, -1))
+        // 3/4 view down the runway toward the hoop (rim ~z=-2.3), so the whole
+        // approach + jam reads. The dunk cinematic camera takes over mid-dunk.
+        addCamera(to: scene, position: SCNVector3(3.4, 3.4, 7.0), lookAt: SCNVector3(0, 2.4, -1.5))
         addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1))
 
         let spotCenter = SCNNode()
@@ -633,41 +635,73 @@ struct GameSceneFactory {
         }
 
         addCourtLines(to: scene)
-        addHoop(to: scene, x: -4.5, flip: true, rimName: "hoop")
+        // Forward-facing hoop at the END of the runway, directly ahead of the
+        // dunker (who runs down -z toward it). Rim node named "hoop" so the dunk
+        // cinematic camera targets it and the dunker travels to it. Previously
+        // the hoop sat off at x=-4.5 while the runway/dunker pointed down -z, so
+        // the dunk played in empty space misaligned with the rim.
+        let rimZ: Float = -2.3
+        let dPole = SCNNode(geometry: SCNCylinder(radius: 0.06, height: 3.05))
+        dPole.geometry?.firstMaterial?.diffuse.contents = UIColor(white: 0.2, alpha: 1)
+        dPole.geometry?.firstMaterial?.metalness.contents = 0.8
+        dPole.position = SCNVector3(0, 1.525, rimZ - 0.75)
+        scene.rootNode.addChildNode(dPole)
+        let dBoard = SCNNode(geometry: SCNBox(width: 1.8, height: 1.05, length: 0.05, chamferRadius: 0.02))
+        dBoard.geometry?.firstMaterial?.diffuse.contents = UIColor(white: 0.92, alpha: 1)
+        dBoard.geometry?.firstMaterial?.transparency = 0.85
+        dBoard.position = SCNVector3(0, 3.5, rimZ - 0.4)
+        scene.rootNode.addChildNode(dBoard)
+        let dRim = SCNNode(geometry: SCNTorus(ringRadius: 0.23, pipeRadius: 0.02))  // lies flat (horizontal rim)
+        dRim.geometry?.firstMaterial?.diffuse.contents = UIColor.orange
+        dRim.geometry?.firstMaterial?.emission.contents = UIColor.orange.withAlphaComponent(0.35)
+        dRim.geometry?.firstMaterial?.metalness.contents = 0.9
+        dRim.position = SCNVector3(0, 3.05, rimZ)
+        dRim.name = "hoop"
+        scene.rootNode.addChildNode(dRim)
+        let dNet = SCNNode(geometry: SCNCone(topRadius: 0.21, bottomRadius: 0.12, height: 0.42))
+        dNet.geometry?.firstMaterial?.diffuse.contents = UIColor.white.withAlphaComponent(0.22)
+        dNet.geometry?.firstMaterial?.isDoubleSided = true
+        dNet.position = SCNVector3(0, 2.83, rimZ)
+        scene.rootNode.addChildNode(dNet)
 
         let dunker = brandBlue
         let opponentColor = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
-        // Elijah Bonds Meshy character (baked running loop) as the dunker;
-        // procedural avatar remains the fallback.
+        // Dunker starts at the BACK of the runway (z=5.5), facing -z straight
+        // down the lane at the hoop. The dunk cinematic translates this node to
+        // the rim during the approach so the jam lands at the rim, not in place.
         if let elijah = FELBundledAssets.characterNode(.characterElijahRunning, height: 1.85) {
             elijah.name = "dunker"
-            elijah.position = SCNVector3(0, 0, 4)
-            elijah.eulerAngles.y = .pi // face the hoop at -z/-x
+            elijah.position = SCNVector3(0, 0, 5.5)
+            elijah.eulerAngles.y = .pi   // face -z, down the runway at the hoop
             scene.rootNode.addChildNode(elijah)
         } else {
-            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4), color: dunker, name: "dunker")
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 5.5), color: dunker, name: "dunker")
         }
-        _ = addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(2.8, 0, 2.5), facingY: -.pi / 3)
-        addBall(to: scene, at: SCNVector3(0, 1.4, 4), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
+        // Opponent waits off to the side of the runway, out of the lane.
+        _ = addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(3.4, 0, 3.5), facingY: -.pi / 2)
+        addBall(to: scene, at: SCNVector3(0.28, 1.05, 5.3), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
 
+        // Judges sit behind the baseline (beyond the hoop at z=-2.3), facing +z
+        // toward the incoming dunker so they watch the jam come at them — out of
+        // the runway/lane, not under the rim.
         let judgeColor = UIColor(white: 0.45, alpha: 1)
         let judgeCast: [FELBundledAsset] = [.npcEricNashIdle, .npcTallAthleticIdle, .npcEricNashIdle]
-        for (i, x) in ([-3.6, 0.0, 3.6] as [Float]).enumerated() {
+        for (i, x) in ([-2.6, 0.0, 2.6] as [Float]).enumerated() {
             let table = SCNBox(width: 1.2, height: 0.7, length: 0.4, chamferRadius: 0.02)
             let tMat = SCNMaterial()
             tMat.diffuse.contents = UIColor(red: 0.08, green: 0.06, blue: 0.04, alpha: 1)
             table.materials = [tMat]
             let tNode = SCNNode(geometry: table)
-            tNode.position = SCNVector3(x, 0.35, -2.6)
+            tNode.position = SCNVector3(x, 0.35, -4.7)
             scene.rootNode.addChildNode(tNode)
             // Skinned NPC judges (auto-rigged Meshy models, idle loops);
-            // procedural avatars remain the fallback.
+            // procedural avatars remain the fallback. Face +z (toward dunker).
             if let judge = FELBundledAssets.characterNode(judgeCast[i], height: 1.8) {
                 judge.name = "judge\(i)"
-                judge.position = SCNVector3(x, 0, -2.0)
+                judge.position = SCNVector3(x, 0, -4.3)
                 scene.rootNode.addChildNode(judge)
             } else {
-                addAvatar(to: scene, at: SCNVector3(x, 0, -2.0), color: judgeColor, name: "judge\(i)")
+                addAvatar(to: scene, at: SCNVector3(x, 0, -4.3), color: judgeColor, name: "judge\(i)")
             }
         }
 
