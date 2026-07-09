@@ -75,6 +75,14 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
     case characterElijahWalkAnim = "CharacterElijahWalkAnim"
     case characterElijahRunAnim = "CharacterElijahRunAnim"
 
+    // Basketball dribble clips — retargeted from Elijah's DeepMotion dribble
+    // capture (IMG_0949) onto the Elijah rig, root-locked-ish in place so the
+    // cycle dribbles on the spot. Skinned clips like the other retargeted
+    // characters; auto-played + joint-normalized via the isPipelineClip path.
+    case dribbleLoop = "DribbleLoop"           // sustained dribble, "has ball + moving"
+    case dribbleIdle = "DribbleIdle"           // dribble in place, "has ball + standing"
+    case dribbleCrossover = "DribbleCrossover" // shorter crossover variation (one-shot)
+
     var isVenue: Bool {
         switch self {
         case .venueShimogamoDojo, .venueVeniceBlacktop, .venueTennisCourt,
@@ -102,7 +110,8 @@ nonisolated enum FELBundledAsset: String, CaseIterable, Sendable {
              .npcTallAthleticIdle,
              .npcEricNashWalk, .npcEricNashRun,
              .npcTallAthleticWalk, .npcTallAthleticRun,
-             .characterElijahWalkAnim, .characterElijahRunAnim:
+             .characterElijahWalkAnim, .characterElijahRunAnim,
+             .dribbleLoop, .dribbleIdle, .dribbleCrossover:
             return true
         default:
             return false

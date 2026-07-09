@@ -123,6 +123,11 @@ struct GameSceneHostView: UIViewRepresentable {
     var karateHitstopNonce: Int = 0
     var karateHitstopCritical: Bool = false
 
+    /// One-shot basketball crossover signal (nonce-triggered, like the karate
+    /// strike): bump to play the DribbleCrossover clip once while the player has
+    /// the ball, then fall back to loop/idle. Defaults keep call sites unchanged.
+    var basketballCrossoverNonce: Int = 0
+
     /// Fired the instant a player strike clip starts, reporting whether the two
     /// fighters are close enough for the strike to connect (range gate). Lets
     /// GamePlayView apply damage only when the strike would actually land.
@@ -169,6 +174,7 @@ struct GameSceneHostView: UIViewRepresentable {
             context.coordinator.lastHitstopNonce = karateHitstopNonce
             context.coordinator.triggerKarateImpact(critical: karateHitstopCritical)
         }
+        context.coordinator.crossoverNonce = basketballCrossoverNonce
         context.coordinator.isSpecialMove = isSpecialMove
         context.coordinator.isSlowMotion = isSlowMotion
         context.coordinator.updateAvatarAppearanceIfNeeded(avatarAppearance, in: scnView.scene)
@@ -214,6 +220,42 @@ struct GameSceneHostView: UIViewRepresentable {
         private var lastAvatarAppearance: GameplayAvatarAppearance = .default
         private var dunkClipNode: SCNNode?
         private var ai3v3: Basketball3v3AIController?
+
+        // MARK: - Basketball dribble / possession
+        //
+        // Possession model: in the basketball modes the human/tracked player
+        // starts WITH the ball. `playerHasBall` gates dribble animation + hand-
+        // tracked ball bounce; when false the ball is free and the player uses
+        // the pre-existing walk/run/idle locomotion. See BasketballDribbleState.
+        private var playerHasBall: Bool = true
+        /// The fresh skinned dribble clip currently substituted for the player
+        /// node (named as the load-bearing player node). nil ⇒ locomotion.
+        private var dribbleClipNode: SCNNode?
+        /// Which dribble asset `dribbleClipNode` was loaded from (avoids
+        /// reloading the same clip every frame).
+        private var activeDribbleAsset: FELBundledAsset?
+        /// Monotonic clock (seconds) driving the sinusoidal ball bounce.
+        private var dribbleClock: Float = 0
+        /// Remaining seconds of a one-shot crossover before returning to
+        /// loop/idle. 0 ⇒ no crossover playing.
+        private var crossoverRemaining: Float = 0
+        /// Last-seen crossover trigger nonce (a face-button / flick from the UI).
+        var crossoverNonce: Int = 0
+        private var lastCrossoverNonce: Int = 0
+        /// The original (locomotion) player node, hidden while a dribble clip is
+        /// active so movement/camera keep finding exactly one node by name.
+        private weak var stashedLocomotionNode: SCNNode?
+
+        /// Modes that use the dribble-vs-walk possession system.
+        private var isBasketballPossessionMode: Bool {
+            switch gameMode {
+            case .basketballHeadToHead, .venicePickup,
+                 .basketball3v3, .basketballDunkContest3D:
+                return true
+            default:
+                return false
+            }
+        }
         var lastKarateStrikeNonce: Int = 0
         var onKarateStrike: (_ inRange: Bool) -> Void = { _ in }
         /// Max horizontal separation (meters) at which a player strike connects.
@@ -237,8 +279,18 @@ struct GameSceneHostView: UIViewRepresentable {
         /// hoop); the running-loop character returns on landing.
         func setDunkClipActive(_ active: Bool) {
             guard gameMode == .basketballDunkContest3D,
-                  let scene = activeSceneKitView?.scene,
-                  let dunker = scene.rootNode.childNode(withName: "dunker", recursively: false) else {
+                  let scene = activeSceneKitView?.scene else {
+                return
+            }
+            // A dribble clip may currently be substituted for "dunker" — restore
+            // the real locomotion node first so the dunk swap acts on it, not on
+            // the dribble clip (the two clip-swaps must never fight).
+            if active, dribbleClipNode != nil {
+                _ = applyDribbleState(.locomotion, playerNode:
+                    scene.rootNode.childNode(withName: "dunker", recursively: true)
+                    ?? SCNNode(), in: scene)
+            }
+            guard let dunker = scene.rootNode.childNode(withName: "dunker", recursively: false) else {
                 return
             }
             if active {
@@ -1342,61 +1394,198 @@ struct GameSceneHostView: UIViewRepresentable {
             guard let scene = activeSceneKitView?.scene,
                   let playerNode = scene.rootNode.childNode(withName: playerNodeName, recursively: true) else { return }
 
+            let delta = max(latestFrameDelta, 1.0 / 240.0)
+            let tickScale = delta * 60.0
+            dribbleClock += delta
+
             let stickX = Float(leftStickInput.x)
             let stickY = Float(leftStickInput.y)
             let magnitude = hypot(stickX, stickY)
-            guard magnitude > 0.08 else {
-                // Standing still: restore the gentle procedural "alive" idle so
-                // the player node breathes instead of freezing (skinned chars
-                // keep their embedded loop; this is the no-embedded fallback).
-                FELBundledAssets.applyAliveIdle(to: playerNode, force: false,
-                                                alreadyAnimated: playerHasEmbeddedAnimation(playerNode))
-                animateIdleState(playerNode)
-                return
+            let moving = magnitude > BasketballDribbleLogic.moveThreshold
+
+            // --- Possession + dribble animation state (basketball modes only) ---
+            // Consume a one-shot crossover trigger (a face-button / flick), then
+            // tick down any crossover already playing.
+            if isBasketballPossessionMode, playerHasBall,
+               crossoverNonce != lastCrossoverNonce {
+                lastCrossoverNonce = crossoverNonce
+                crossoverRemaining = 0.8   // ~clip length; then back to loop/idle
             }
-            // Moving: the movement loop owns this node's transform this frame —
-            // drop the procedural idle so the bob/sway doesn't fight position writes.
-            FELBundledAssets.stopAliveIdle(playerNode)
+            if crossoverRemaining > 0 { crossoverRemaining = max(0, crossoverRemaining - delta) }
 
-            let bounds = movementBounds
-            let speed = bounds.speed * Float(1.0 + neuralDrive / 200.0)
-            let delta = max(latestFrameDelta, 1.0 / 240.0)
-            let tickScale = delta * 60.0
+            // While the dunk cinematic owns the avatar (airborne swap to the
+            // baked dunk clip) the player has released the ball — yield fully to
+            // that system so the two clip-swaps never fight over the node.
+            let dunkOwnsAvatar = isMidAir || dunkClipNode != nil
+            let dribbleState = BasketballDribbleLogic.state(
+                hasBall: isBasketballPossessionMode && playerHasBall && !dunkOwnsAvatar,
+                stickMagnitude: magnitude,
+                crossoverActive: crossoverRemaining > 0
+            )
+            // Swap the player's skinned clip to match the state. Fail-soft: if a
+            // dribble clip is missing this restores locomotion and simple follow.
+            let activePlayer = applyDribbleState(dribbleState, playerNode: playerNode, in: scene)
 
-            let moveX = stickX * speed * tickScale
-            let moveZ = -stickY * speed * tickScale
+            // --- Locomotion transform (applies whether moving or standing) ---
+            if moving {
+                // Movement loop owns this node's transform this frame — drop the
+                // procedural idle so the bob/sway doesn't fight position writes.
+                FELBundledAssets.stopAliveIdle(activePlayer)
 
-            var newPos = playerNode.position
-            newPos.x = min(bounds.maxX, max(bounds.minX, newPos.x + moveX))
-            newPos.z = min(bounds.maxZ, max(bounds.minZ, newPos.z + moveZ))
+                let bounds = movementBounds
+                let speed = bounds.speed * Float(1.0 + neuralDrive / 200.0)
+                let moveX = stickX * speed * tickScale
+                let moveZ = -stickY * speed * tickScale
 
-            playerNode.position = newPos
+                var newPos = activePlayer.position
+                newPos.x = min(bounds.maxX, max(bounds.minX, newPos.x + moveX))
+                newPos.z = min(bounds.maxZ, max(bounds.minZ, newPos.z + moveZ))
+                activePlayer.position = newPos
 
-            let targetAngle = atan2(stickX * speed, -stickY * speed)
-            let currentAngle = playerNode.eulerAngles.y
-            var angleDiff = targetAngle - currentAngle
-            if angleDiff > .pi { angleDiff -= .pi * 2 }
-            if angleDiff < -.pi { angleDiff += .pi * 2 }
-            playerNode.eulerAngles.y += angleDiff * 0.15 * tickScale
+                let targetAngle = atan2(stickX * speed, -stickY * speed)
+                let currentAngle = activePlayer.eulerAngles.y
+                var angleDiff = targetAngle - currentAngle
+                if angleDiff > .pi { angleDiff -= .pi * 2 }
+                if angleDiff < -.pi { angleDiff += .pi * 2 }
+                activePlayer.eulerAngles.y += angleDiff * 0.15 * tickScale
 
-            animateRunState(playerNode, speed: magnitude)
+                // Skinned dribble clips animate themselves; the procedural
+                // run-bob is only for the non-embedded fallback avatar.
+                if !dribbleState.hasBall {
+                    animateRunState(activePlayer, speed: magnitude)
+                }
+            } else {
+                // Standing still: restore the gentle procedural "alive" idle so a
+                // non-embedded avatar breathes instead of freezing (skinned chars
+                // and dribble clips keep their embedded loop — no-op for them).
+                FELBundledAssets.applyAliveIdle(to: activePlayer, force: false,
+                                                alreadyAnimated: playerHasEmbeddedAnimation(activePlayer))
+                if !dribbleState.hasBall {
+                    animateIdleState(activePlayer)
+                }
+            }
 
+            // --- Ball tracking + bounce (runs in BOTH moving and standing) ---
             if let ball = findBallNode(in: scene) {
-                let ballOffset = SCNVector3(0, 1.4, 0)
-                let targetBallPos = SCNVector3(newPos.x + ballOffset.x, ballOffset.y, newPos.z + ballOffset.z)
-                let followT = min(0.35, 0.2 * tickScale)
-                ball.position = lerpVec3(ball.position, targetBallPos, t: followT)
+                if dribbleState.hasBall {
+                    trackDribbledBall(ball, player: activePlayer, moving: moving, tickScale: tickScale)
+                }
+                // No ball ⇒ leave the ball free (a shot/dunk owns it).
             }
 
-            let rightMag = hypot(Float(rightStickInput.x), Float(rightStickInput.y))
-            if rightMag > 0.3 {
-                let lookAngle = atan2(Float(rightStickInput.x), Float(rightStickInput.y))
-                let currentY = playerNode.eulerAngles.y
-                var diff = lookAngle - currentY
-                if diff > .pi { diff -= .pi * 2 }
-                if diff < -.pi { diff += .pi * 2 }
-                playerNode.eulerAngles.y += diff * 0.1 * tickScale
+            // --- Right-stick free look (only meaningful while moving) ---
+            if moving {
+                let rightMag = hypot(Float(rightStickInput.x), Float(rightStickInput.y))
+                if rightMag > 0.3 {
+                    let lookAngle = atan2(Float(rightStickInput.x), Float(rightStickInput.y))
+                    let currentY = activePlayer.eulerAngles.y
+                    var diff = lookAngle - currentY
+                    if diff > .pi { diff -= .pi * 2 }
+                    if diff < -.pi { diff += .pi * 2 }
+                    activePlayer.eulerAngles.y += diff * 0.1 * tickScale
+                }
             }
+        }
+
+        /// Swaps the player's active skinned clip to match `state`, reusing the
+        /// dunk-swap pattern: NEVER clone skinned nodes — load a fresh clip via
+        /// `FELBundledAssets.characterNode`, transfer the load-bearing player
+        /// node name + transform, and hide the previous node so movement/camera
+        /// keep finding exactly one node by name. Returns the node the caller
+        /// should drive this frame (the new clip, or the original on fallback).
+        ///
+        /// Fail-soft: if the dribble USDZ is missing/unloadable, the locomotion
+        /// node stays active and the caller falls through to walk/idle.
+        private func applyDribbleState(_ state: DribbleAnimationState,
+                                       playerNode: SCNNode,
+                                       in scene: SCNScene) -> SCNNode {
+            let wantAsset = state.dribbleClip
+            guard wantAsset != activeDribbleAsset else {
+                // Already showing the right clip (or already in locomotion).
+                return dribbleClipNode ?? playerNode
+            }
+
+            let name = playerNodeName
+            // Restore locomotion: drop any dribble clip, un-hide the original.
+            func restoreLocomotion() {
+                if let clip = dribbleClipNode {
+                    let pos = clip.position, rot = clip.eulerAngles
+                    clip.removeFromParentNode()
+                    dribbleClipNode = nil
+                    if let stashed = stashedLocomotionNode {
+                        stashed.position = pos
+                        stashed.eulerAngles = rot
+                        stashed.isHidden = false
+                        stashed.name = name
+                        stashedLocomotionNode = nil
+                    }
+                }
+                activeDribbleAsset = nil
+            }
+
+            guard let wantAsset else {
+                restoreLocomotion()
+                return scene.rootNode.childNode(withName: name, recursively: true) ?? playerNode
+            }
+
+            // Want a dribble clip. Find the node we are swapping FROM (the
+            // current on-court node with the load-bearing name).
+            guard let current = scene.rootNode.childNode(withName: name, recursively: true),
+                  let clip = FELBundledAssets.characterNode(wantAsset, height: 1.85) else {
+                // Fail-soft: keep whatever is on court (locomotion or prior clip).
+                return dribbleClipNode ?? playerNode
+            }
+
+            let pos = current.position
+            let rot = current.eulerAngles
+            if dribbleClipNode == nil {
+                // Swapping OUT of locomotion: stash the original, rename it so it
+                // no longer answers to the load-bearing name while hidden.
+                current.isHidden = true
+                current.name = name + "_locomotion"
+                stashedLocomotionNode = current
+            } else {
+                // Swapping between dribble clips: retire the old clip node.
+                dribbleClipNode?.removeFromParentNode()
+            }
+            clip.name = name
+            clip.position = pos
+            clip.eulerAngles = rot
+            scene.rootNode.addChildNode(clip)
+            dribbleClipNode = clip
+            activeDribbleAsset = wantAsset
+            return clip
+        }
+
+        /// Hand-tracks the ball beside/in front of the dribbling player and
+        /// bounces it sinusoidally (faster while moving, slower while standing).
+        /// The ball sits on the player's right side at roughly hip depth, and
+        /// its Y oscillates between ~floor and ~waist in sync with the dribble.
+        private func trackDribbledBall(_ ball: SCNNode, player: SCNNode,
+                                       moving: Bool, tickScale: Float) {
+            let p = player.presentation.position
+            let yaw = player.presentation.eulerAngles.y
+            // Offset in the player's local frame: to the right and slightly
+            // forward, at the dribbling hand. Rotate into world space by yaw.
+            let localX: Float = 0.34   // right of center
+            let localZ: Float = 0.22   // slightly in front
+            let worldOffX = localX * cos(yaw) + localZ * sin(yaw)
+            let worldOffZ = -localX * sin(yaw) + localZ * cos(yaw)
+
+            let hz = moving ? BasketballDribbleLogic.bounceHzMoving
+                            : BasketballDribbleLogic.bounceHzIdle
+            let bounceY = BasketballDribbleLogic.bounceY(t: dribbleClock, hz: hz)
+
+            let target = SCNVector3(p.x + worldOffX, bounceY, p.z + worldOffZ)
+            // Snappy XZ follow (stays glued to the hand) but let Y jump so the
+            // rhythmic bounce reads crisply rather than being smoothed to mush.
+            let followT = min(0.5, 0.35 * tickScale)
+            let cur = ball.position
+            ball.position = SCNVector3(
+                cur.x + (target.x - cur.x) * followT,
+                bounceY,
+                cur.z + (target.z - cur.z) * followT
+            )
         }
 
         func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
