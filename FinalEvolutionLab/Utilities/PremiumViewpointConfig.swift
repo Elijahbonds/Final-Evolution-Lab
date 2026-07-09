@@ -64,7 +64,7 @@ enum PremiumViewpointConfig {
     }
 
     static func lighting(for mode: GameModeId) -> Lighting {
-        lightingByCluster[cluster(for: mode)] ?? lightingByCluster[.basketball]!
+        modeLighting[mode] ?? lightingByCluster[cluster(for: mode)] ?? lightingByCluster[.basketball]!
     }
 
     static func defaultFieldOfView(for mode: GameModeId) -> CGFloat {
@@ -94,6 +94,10 @@ enum PremiumViewpointConfig {
     static func applyToScene(_ scene: SCNScene, for mode: GameModeId) {
         let lighting = lighting(for: mode)
         applyClusterLighting(to: scene, lighting: lighting, hybridOverlay: false)
+        // Pure-SceneKit (device) path: ensure the avatar key light exists with the
+        // per-mode intensity + tint so mode art direction (e.g. karate's cool
+        // Matrix rim) actually reaches the fighters, not just the hybrid overlay.
+        attachAvatarFillLight(to: scene, intensity: lighting.avatarFillIntensity, tint: clusterTint(for: mode))
         tuneAtmosphereNodes(in: scene, for: mode)
 
         if let camNode = scene.rootNode.childNode(withName: "mainCamera", recursively: true),
@@ -111,6 +115,7 @@ enum PremiumViewpointConfig {
     }
 
     private static func clusterTint(for mode: GameModeId) -> UIColor {
+        if let tint = modeTint[mode] { return tint }
         switch cluster(for: mode) {
         case .basketball:
             return UIColor(red: 0.55, green: 0.82, blue: 1.0, alpha: 1)
@@ -251,6 +256,38 @@ enum PremiumViewpointConfig {
             ambientIntensity: 400, venueFillIntensity: 260, avatarFillIntensity: 440,
             spotIntensity: 320, exposureOffset: 0.48
         ),
+    ]
+
+    /// Per-mode lighting art direction, overriding the shared cluster preset.
+    /// Used where a single mode needs a distinct look the cluster can't carry.
+    private static let modeLighting: [GameModeId: Lighting] = [
+        // NBA Live 07 presentation: bright, clean arena. The basketball cluster
+        // was dimmed to 780/520/950/800 to stop the reflective Venice court from
+        // blowing out — but the dunk stage should read bright and arcade-clean.
+        // We push arena light back up here; the court no longer clips because
+        // GameSceneFactory mattes the bundled venue floor for this mode (kills the
+        // glossy sunset reflection that caused the hotspot). Fighters/dunker stay
+        // crisply keyed via the strong avatar fill.
+        .basketballDunkContest3D: Lighting(
+            ambientIntensity: 1020, venueFillIntensity: 720, avatarFillIntensity: 1200,
+            spotIntensity: 1050, exposureOffset: 0.52
+        ),
+        // Matrix Revolutions / Naruto Storm x zombies: deep-dark environment with
+        // the fighters carved out in high contrast. Environment light drops well
+        // below the dojo cluster so the venue falls into shadow, while the avatar
+        // fill is pushed HIGH (cool tint, see modeTint) so the pair stay razor
+        // readable against the dark — dramatic, not murky.
+        .karateEndless: Lighting(
+            ambientIntensity: 320, venueFillIntensity: 210, avatarFillIntensity: 1180,
+            spotIntensity: 620, exposureOffset: 0.46
+        ),
+    ]
+
+    /// Per-mode avatar fill tint, overriding the cluster's warm/cool default.
+    private static let modeTint: [GameModeId: UIColor] = [
+        // Matrix key light: cool blue-green rim carving the fighters out of the
+        // dark instead of the dojo's warm orange.
+        .karateEndless: UIColor(red: 0.45, green: 0.95, blue: 0.78, alpha: 1),
     ]
 
     private static func applyClusterLighting(to scene: SCNScene, lighting: Lighting, hybridOverlay: Bool) {

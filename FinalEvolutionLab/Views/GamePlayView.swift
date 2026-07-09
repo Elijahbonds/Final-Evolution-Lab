@@ -563,7 +563,9 @@ struct GamePlayView: View {
                             .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Circle())
                     }
-                    NeuralAuraBadge(auraLevel: arcadePhysics.auraLevel)
+                    // (NeuralAuraBadge removed from the live toolbar — a pulsing
+                    // "aura level" sim readout that cluttered the top-right corner.
+                    // Aura still drives effects mechanically; no persistent badge.)
                     peerStatusBadge
                 }
             }
@@ -664,16 +666,11 @@ struct GamePlayView: View {
                             .accessibilityIdentifier("GeneratorHudBadgeLabel")
                     }
                     Text("\(score)")
-                        .font(.system(size: 36, weight: .bold, design: .monospaced))
+                        .font(.system(size: 40, weight: .bold, design: .monospaced))
                         .foregroundStyle(FELDesign.Colors.textPrimary)
                         .contentTransition(.numericText())
-                    HStack(spacing: 3) {
-                        Image(systemName: "brain.head.profile.fill")
-                            .font(.system(size: 8))
-                        Text("\(prqAttributeLabel) \(Int(prqAttributeValue * 100))")
-                            .font(FELDesign.Typography.statSmall)
-                    }
-                    .foregroundStyle(playerPRQ >= PRQ.legendaryThreshold ? FELDesign.Colors.purple : FELDesign.Colors.textTertiary)
+                    // (PRQ "IQ" attribute label removed — sim chrome that
+                    // cluttered the live HUD; PRQ still shows on results/lab.)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -706,28 +703,10 @@ struct GamePlayView: View {
                             .foregroundStyle(FELDesign.Colors.textPrimary)
                     }
 
-                    if arcadePhysics.neuralBurstActive {
-                        HStack(spacing: 3) {
-                            Image(systemName: "bolt.fill")
-                                .font(.system(size: 8))
-                            Text("1.5x")
-                                .font(FELDesign.Typography.statSmall)
-                        }
-                        .foregroundStyle(FELDesign.Colors.purple)
-                    }
-
-                    if nexusEngine.isLinked {
-                        HStack(spacing: 3) {
-                            Circle()
-                                .fill(FELDesign.Colors.cyan)
-                                .frame(width: 5, height: 5)
-                            Text("NEXUS \(nexusEngine.throwCatchPhase.label)")
-                                .font(FELDesign.Typography.statSmall)
-                            Text(String(format: "%.2fx", nexusEngine.powerMultiplier))
-                                .font(FELDesign.Typography.statSmall)
-                        }
-                        .foregroundStyle(FELDesign.Colors.cyan)
-                    }
+                    // (Neural-burst + "NEXUS <phase> x" multiplier chrome removed
+                    // from the live HUD — sim readouts that cluttered the top bar.
+                    // The burst still applies mechanically; a brief on-activation
+                    // flash conveys it without a persistent readout.)
                 }
 
                 VStack(alignment: .trailing, spacing: FELDesign.Space.xxs) {
