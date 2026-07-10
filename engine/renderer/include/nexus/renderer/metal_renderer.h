@@ -62,6 +62,7 @@ private:
   void* m_device{nullptr};
   void* m_commandQueue{nullptr};
   void* m_pipelineState{nullptr};
+  void* m_instancedPipelineState{nullptr};
   void* m_depthStencilState{nullptr};
   std::vector<GpuMesh> m_gpuMeshes;
   std::size_t m_uploadedMeshCount{0};

@@ -1,11 +1,14 @@
 #include "nexus/renderer/metal_renderer.h"
 
+#include "nexus/core/env_flag.h"
 #include "nexus/core/log.h"
 #include "nexus/core/engine_scale_policy.h"
 #include "nexus/renderer/console_tier_lod.h"
 #include "nexus/renderer/scene.h"
 
+#include <algorithm>
 #include <cmath>
+#include <vector>
 
 #if defined(__APPLE__)
 #import <Metal/Metal.h>
@@ -165,6 +168,17 @@ vertex VertexOut nexus_vertex(VertexIn in [[stage_in]], constant float4x4& mvp [
 fragment float4 nexus_fragment(VertexOut in [[stage_in]]) {
   return float4(in.color, 1.0);
 }
+
+// Instanced variant (NEXUS_METAL_INSTANCED=1): one draw per unique mesh,
+// per-instance MVPs supplied via setVertexBytes in <=4KB chunks.
+vertex VertexOut nexus_vertex_instanced(VertexIn in [[stage_in]],
+                                        constant float4x4* mvps [[buffer(1)]],
+                                        uint iid [[instance_id]]) {
+  VertexOut out;
+  out.position = mvps[iid] * float4(in.position, 1.0);
+  out.color = in.color;
+  return out;
+}
 )";
 
   NSError* error = nil;
@@ -198,12 +212,21 @@ fragment float4 nexus_fragment(VertexOut in [[stage_in]]) {
     return Result<void>::err(m_lastError);
   }
 
+  pipelineDesc.vertexFunction = [library newFunctionWithName:@"nexus_vertex_instanced"];
+  id<MTLRenderPipelineState> instancedPipeline =
+      [device newRenderPipelineStateWithDescriptor:pipelineDesc error:&error];
+  if (instancedPipeline == nil) {
+    m_lastError = "Metal instanced pipeline creation failed";
+    return Result<void>::err(m_lastError);
+  }
+
   MTLDepthStencilDescriptor* depthDesc = [[MTLDepthStencilDescriptor alloc] init];
   depthDesc.depthCompareFunction = MTLCompareFunctionLess;
   depthDesc.depthWriteEnabled = YES;
   id<MTLDepthStencilState> depthState = [device newDepthStencilStateWithDescriptor:depthDesc];
 
   m_pipelineState = (__bridge_retained void*)pipeline;
+  m_instancedPipelineState = (__bridge_retained void*)instancedPipeline;
   m_depthStencilState = (__bridge_retained void*)depthState;
   m_pipelineReady = true;
   return Result<void>::ok();
@@ -350,6 +373,46 @@ auto MetalRenderer::render(const RenderScene& scene) -> Result<void> {
                                     0.0,
                                     1.0}];
 
+  const bool useInstancing = nexus::core::envFlagEnabled("NEXUS_METAL_INSTANCED") &&
+                             m_instancedPipelineState != nullptr;
+  if (useInstancing) {
+    // Prototype: consume the previously stats-only batch plan as real instanced draws.
+    // setVertexBytes caps at 4KB -> 64 float4x4 MVPs per chunk.
+    constexpr std::size_t kInstancesPerChunk = 64;
+    [encoder setRenderPipelineState:(__bridge id)m_instancedPipelineState];
+    const BatchedDrawList instanced = batchDrawCommands(batch.commands);
+    for (const InstancedBatch& meshBatch : instanced.batches) {
+      if (meshBatch.meshIndex >= m_gpuMeshes.size()) {
+        continue;
+      }
+      const GpuMesh& gpuMesh = m_gpuMeshes[meshBatch.meshIndex];
+      if (gpuMesh.vertexBuffer == nullptr || gpuMesh.indexBuffer == nullptr ||
+          gpuMesh.indexCount == 0) {
+        continue;
+      }
+      [encoder setVertexBuffer:(__bridge id)gpuMesh.vertexBuffer offset:0 atIndex:0];
+      std::vector<float> mvps;
+      mvps.reserve(kInstancesPerChunk * 16);
+      for (std::size_t first = 0; first < meshBatch.instanceTransforms.size();
+           first += kInstancesPerChunk) {
+        const std::size_t count =
+            std::min(kInstancesPerChunk, meshBatch.instanceTransforms.size() - first);
+        mvps.clear();
+        for (std::size_t i = 0; i < count; ++i) {
+          const auto mvp = RenderScene::multiplyMatrix(
+              viewProjection, meshBatch.instanceTransforms[first + i]);
+          mvps.insert(mvps.end(), mvp.begin(), mvp.end());
+        }
+        [encoder setVertexBytes:mvps.data() length:mvps.size() * sizeof(float) atIndex:1];
+        [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                            indexCount:gpuMesh.indexCount
+                             indexType:MTLIndexTypeUInt32
+                           indexBuffer:(__bridge id)gpuMesh.indexBuffer
+                     indexBufferOffset:0
+                         instanceCount:count];
+      }
+    }
+  } else {
   for (const RenderScene::DrawCommand& command : batch.commands) {
     if (command.meshIndex >= m_gpuMeshes.size()) {
       continue;
@@ -370,6 +433,7 @@ auto MetalRenderer::render(const RenderScene& scene) -> Result<void> {
                        indexBuffer:indexBuffer
                  indexBufferOffset:0];
   }
+  }
 
   [encoder endEncoding];
   [commandBuffer presentDrawable:drawable];
@@ -386,6 +450,7 @@ auto MetalRenderer::shutdown() -> void {
 #if defined(__APPLE__)
   releaseGpuMeshes();
   releaseMetalObject(m_depthStencilState);
+  releaseMetalObject(m_instancedPipelineState);
   releaseMetalObject(m_pipelineState);
   releaseMetalObject(m_commandQueue);
   releaseMetalObject(m_device);
