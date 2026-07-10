@@ -1,0 +1,54 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "FEL Dance Mode placeholder (CC0)"
+  },
+  "extras": {
+    "fel_placeholder": true,
+    "note": "Tiny placeholder clip. Real mocap/Meshy/DeepMotion clips retarget to humanoid_v1 and replace this file in place.",
+    "clip": {
+      "id": "clip_jump",
+      "name": "Jump",
+      "duration_sec": 0.8,
+      "loop": true
+    },
+    "target_skeleton": "humanoid_v1"
+  },
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0,
+  "nodes": [
+    {
+      "name": "Hips"
+    }
+  ],
+  "animations": [
+    {
+      "name": "Jump",
+      "channels": [
+        {
+          "sampler": 0,
+          "target": {
+            "node": 0,
+            "path": "translation"
+          }
+        }
+      ],
+      "samplers": [
+        {
+          "input": 0,
+          "output": 0,
+          "interpolation": "LINEAR"
+        }
+      ],
+      "extras": {
+        "placeholder": true
+      }
+    }
+  ]
+}
