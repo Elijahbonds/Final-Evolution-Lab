@@ -27,14 +27,100 @@ if _BACKEND_DIR not in sys.path:
 
 from lib.dunk_scoring import DunkEngine3DInput, score_dunk, score_engine3d_dunk  # noqa: E402
 from lib.match_utils import derive_judge_offsets  # noqa: E402
+from lib import carnival as _carnival  # noqa: E402
 
 
 def _meta(replay: Dict[str, Any]) -> Dict[str, Any]:
     return replay.get("metadata") or replay  # tolerate old flat exports
 
 
+def validate_carnival_replay(replay: Dict[str, Any]) -> List[str]:
+    """Validate a Carnival Board replay.
+
+    Reproduces determinism guarantees:
+      1. seed -> board layout must match the recorded carnival_match_start board.
+      2. every carnival_spin roll must equal spinner_roll(seed, turn_index).
+      3. every carnival_minigame_result must re-resolve identically from its
+         echoed instance + inputs (raw scores + normalization).
+      4. seq ordering strictly increasing.
+    """
+    errors: List[str] = []
+    meta = _meta(replay)
+    mid = meta.get("match_id", "<unknown>")
+    seed = meta.get("seed")
+    events = replay.get("events", [])
+    if seed is None:
+        errors.append(f"{mid}: metadata.seed missing")
+        return errors
+
+    for ev in events:
+        if ev.get("type") == "carnival_match_start":
+            recomputed = _carnival.build_board(seed)
+            if [s["type"] for s in recomputed] != [s["type"] for s in ev.get("board", [])]:
+                errors.append(f"{mid}: board layout does not re-derive from seed")
+
+    for ev in events:
+        if ev.get("type") == "carnival_spin":
+            ti = ev.get("turn_index")
+            expected = _carnival.spinner_roll(seed, ti)
+            if expected != ev.get("roll"):
+                errors.append(
+                    f"{mid} turn={ti}: spinner roll recorded={ev.get('roll')} "
+                    f"but spinner_roll(seed,{ti})={expected}"
+                )
+
+    for ev in events:
+        if ev.get("type") != "carnival_minigame_result":
+            continue
+        game = ev.get("game")
+        inst = ev.get("instance")
+        inputs = ev.get("inputs")
+        rnd = ev.get("round_index")
+        if inst is None or inputs is None:
+            errors.append(f"{mid} round={rnd}: minigame_result missing instance/inputs")
+            continue
+        try:
+            result = _carnival.resolve_minigame(game, inst, inputs)
+        except Exception as exc:  # pragma: no cover - corrupt replay
+            errors.append(f"{mid} round={rnd}: re-resolve raised {exc}")
+            continue
+        if result["raw"] != ev.get("raw"):
+            errors.append(
+                f"{mid} round={rnd} ({game}): raw mismatch "
+                f"recorded={ev.get('raw')} recomputed={result['raw']}"
+            )
+        recomputed_norm = _carnival.normalize_scores(result["raw"], result["raw_max"])
+        if recomputed_norm != ev.get("normalized"):
+            errors.append(
+                f"{mid} round={rnd} ({game}): normalized mismatch "
+                f"recorded={ev.get('normalized')} recomputed={recomputed_norm}"
+            )
+
+    seqs = [ev["seq"] for ev in events if "seq" in ev]
+    if seqs != sorted(seqs):
+        errors.append(f"{mid}: event seq values are not monotonically ordered")
+    return errors
+
+
 def validate_replay(replay: Dict[str, Any]) -> List[str]:
-    """Returns a list of human-readable mismatch descriptions (empty = OK)."""
+    """Returns a list of human-readable mismatch descriptions (empty = OK).
+
+    Dispatches by ``metadata.replay_kind``: authoritative carnival replays are
+    validated by :func:`validate_carnival_replay`; everything else uses the
+    dunk/match path.
+
+    Client-local carnival captures are tagged ``replay_kind == "carnival_local"``
+    (``authoritative: false``) — their mini-game scores come from the browser
+    engine whose PRNG is not byte-identical to the Python engine, so they are
+    intentionally NOT re-resolved here (doing so would report a false mismatch).
+    They pass through as OK; the authoritative record is the backend export.
+    """
+    meta = _meta(replay)
+    meta_kind = meta.get("replay_kind")
+    if meta_kind == "carnival_local" or meta.get("authoritative") is False:
+        return []  # self-consistent client capture; not server-re-resolvable
+    if meta_kind == "carnival" or meta.get("mode_id") == "carnival_board":
+        return validate_carnival_replay(replay)
     errors: List[str] = []
     meta = _meta(replay)
     match_id = meta.get("match_id", "<unknown>")
