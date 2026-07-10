@@ -1,79 +1,42 @@
 {
   "nexus_gameplay_audit": {
-    "branch": "claude/nexus-engine-setup-2qgkik",
-    "head_sha": "d203de3",
-    "head_message": "Replace React frontend with static landing page, fix CI pipeline",
+    "branch": "integration/nexus-gameview-stub",
     "audit_date": "2026-07-01",
     "presence_checks": {
-      "system_scan_unified_router": true,
-      "system_scan_unified_path": "backend/routers/system_scan.py",
-      "pass_image_router": true,
-      "pass_image_path": "backend/routers/pass_image.py",
-      "realtime_ws_router": true,
-      "realtime_ws_path": "backend/routers/matches.py",
-      "matches_router": true,
-      "matches_router_path": "backend/routers/matches.py",
-      "frontend_game_view": true,
-      "frontend_game_view_path": "frontend/src/components/GameView.js",
-      "frontend_fel_os_dashboard": true,
-      "frontend_fel_os_dashboard_path": "frontend/src/components/FELOSDashboard.js",
-      "nexus_engine_swift": true,
-      "nexus_engine_swift_path": "FinalEvolutionLab/Models/NexusEngine.swift",
-      "nexus_bridge_swift": true,
-      "nexus_bridge_swift_path": "FinalEvolutionLab/Services/NexusBridge.swift",
-      "nexus_starter_config": true,
-      "nexus_starter_path": "NexusStarter/",
-      "creator_card_loadout_in_match": true,
-      "creator_card_note": "Loadout included in match_start payload via matches.py _load_loadout(). Modifiers not yet applied to scoring.",
-      "coach_critique_hooks": false,
-      "coach_critique_note": "No timestamp/frame anchoring for critique to match event seq"
+      "backend/routers/system_scan.py": true,
+      "backend/routers/matches.py": true,
+      "backend/routers/sovereign.py": true,
+      "backend/schemas/": true,
+      "frontend/src/components/GameView.js": true,
+      "infra/nexus_payload_examples.json": true
     },
-    "infra_checks": {
-      "gcp_app_yaml": false,
-      "gcp_app_yaml_note": "Not found at backend/.gcp/app.yaml — App Engine deploy is unplanned",
-      "system_scan_firestore_schema": true,
-      "nexus_payload_examples": true,
-      "nexus_payload_examples_path": "infra/nexus_payload_examples.json",
-      "required_env_vars": ["MONGO_URL", "DB_NAME", "EMERGENT_LLM_KEY", "PAYPAL_CLIENT_ID", "PAYPAL_SECRET", "FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB"],
-      "documented_envs": ["MONGO_URL", "DB_NAME", "EMERGENT_LLM_KEY"],
-      "undocumented_envs": ["PAYPAL_CLIENT_ID", "PAYPAL_SECRET", "FIREBASE_SERVICE_ACCOUNT_FINAL_EVOLUTION_LAB"]
-    },
-    "failing_backend_tests": {
-      "status": "MISSING_ENV_MOCKED",
-      "missing_envs": ["MONGO_URL", "DB_NAME"],
-      "new_tests_passed": {
-        "test_system_scan": "24/24",
-        "test_matches": "20/20"
-      }
-    },
-    "frontend_build_status": {
-      "status": "STATIC_ONLY",
-      "note": "public/index.html serves as landing page. React build disabled in CI."
-    },
-    "nexus_gameplay_gaps": [
-      {"priority": 1, "title": "Match WS stub + GameView MVP", "status": "DONE", "hours_est": 4, "risk": "low"},
-      {"priority": 2, "title": "Authoritative scoring via Nexus physics input", "status": "TODO", "hours_est": 8, "risk": "high"},
-      {"priority": 3, "title": "Creator Card modifier application in match", "status": "TODO", "hours_est": 3, "risk": "medium"},
-      {"priority": 4, "title": "Match replay / clip upload endpoint", "status": "TODO", "hours_est": 4, "risk": "low"},
-      {"priority": 5, "title": "Coach critique anchored to match event seq", "status": "TODO", "hours_est": 3, "risk": "low"},
-      {"priority": 6, "title": "Leaderboard + sovereign sessions endpoint", "status": "TODO", "hours_est": 2, "risk": "low"},
-      {"priority": 7, "title": "Anti-cheat: input rate limiting + seq validation", "status": "TODO", "hours_est": 6, "risk": "medium"},
-      {"priority": 8, "title": "Multi-player lobby support (3+ players)", "status": "TODO", "hours_est": 8, "risk": "medium"}
+    "required_env_vars": ["MONGODB_URI", "JWT_SECRET", "EMERGENT_LLM_KEY", "MOCK_DB"],
+    "quick_recommendations": [
+      {"gap": "Authoritative scoring via Nexus physics input", "est_hours": 8},
+      {"gap": "Creator Card modifier application in scoring", "est_hours": 3},
+      {"gap": "Match replay / clip upload endpoint", "est_hours": 4},
+      {"gap": "Coach critique anchored to match event seq", "est_hours": 3},
+      {"gap": "Anti-cheat: input rate limiting + seq validation", "est_hours": 6},
+      {"gap": "Multi-player lobby support (3+ players)", "est_hours": 8}
     ],
-    "files_changed": [
-      {"path": "backend/routers/system_scan.py", "change": "Added pydantic models, null-safe defaults, modes_unlocked, last_game key fix, snapshot cache"},
-      {"path": "backend/routers/matches.py", "change": "NEW — match lifecycle, WS broadcast, Creator Card loadout, Nexus debug probes"},
-      {"path": "backend/tests/test_system_scan.py", "change": "NEW — 24 unit tests, full/partial/new-user cases, all mocked"},
-      {"path": "backend/tests/test_matches.py", "change": "NEW — 20 unit tests, create/join lifecycle, loadout, debug endpoints"},
-      {"path": "backend/server.py", "change": "Register matches_router"},
-      {"path": "frontend/src/components/GameView.js", "change": "NEW — Nexus-ready match UI with WS event stream"},
-      {"path": "frontend/src/test_ws_client.js", "change": "NEW — two-client WS sim for local dev testing"},
-      {"path": "infra/nexus_payload_examples.json", "change": "NEW — match_start, score_event, match_end sample JSON with curl QA commands"},
-      {"path": "infra/claude_audit.json", "change": "NEW — system audit output"},
-      {"path": "infra/claude_nexus_gameplay_audit.json", "change": "NEW — nexus gameplay audit"},
-      {"path": "public/index.html", "change": "NEW — static FEL landing page"},
-      {"path": "firebase.json", "change": "Updated public dir from frontend/build → public"},
-      {"path": ".github/workflows/firebase-deploy.yml", "change": "Removed build-frontend job; CI now deploy-only"}
-    ]
+    "files_present": [
+      "backend/routers/matches.py",
+      "backend/routers/system_scan.py",
+      "backend/routers/sovereign.py",
+      "backend/schemas/match.py",
+      "backend/tests/test_matches.py",
+      "frontend/src/components/GameView.js",
+      "frontend/public/playtest.html",
+      "infra/nexus_payload_examples.json",
+      "infra/NEXUS_INTEGRATION.md",
+      "infra/NEXUS_QA_CHECKLIST.md",
+      "infra/mode_template.md",
+      ".github/workflows/ci.yml",
+      ".github/workflows/build-aab.yml"
+    ],
+    "test_results": {
+      "backend/tests/test_matches.py": "20/20 passed",
+      "mock_db": true
+    }
   }
 }

@@ -45,9 +45,11 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
         "xp": user.xp,
         "streak_days": user.streak_days,
         "coins": user.coins,
-        "metrics": {k: prq_doc.get(k) for k in ("strength", "speed", "endurance", "agility", "power", "flexibility", "recovery", "mental")},
-        "health": {k: health_doc.get(k) for k in ("resting_hr", "hrv", "sleep_hours", "vo2_max")} if health_doc else None,
-        "last_vertical_jump": last_vj,
+        "metrics": {k: (prq_doc.get(k) if prq_doc.get(k) is not None else 0.0)
+                    for k in ("strength", "speed", "endurance", "agility", "power", "flexibility", "recovery", "mental")},
+        "health": {k: (health_doc.get(k) if health_doc.get(k) is not None else 0.0)
+                   for k in ("resting_hr", "hrv", "sleep_hours", "vo2_max")},
+        "last_vertical_jump": last_vj or {},
     }
 
     # ---- 2. CARDS ----
@@ -63,9 +65,20 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
     game_count = await db.game_sessions.count_documents({"user_id": user.user_id})
     last_game = await db.game_sessions.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(1).to_list(1)
     sov_count = await db.vault_sessions.count_documents({"user_id": user.user_id}) if "vault_sessions" in await db.list_collection_names() else 0
+    modes_unlocked = []
+    if game_count > 0:
+        try:
+            mode_docs = await db.game_sessions.find(
+                {"user_id": user.user_id}, {"_id": 0, "mode_id": 1}
+            ).to_list(500)
+            modes_unlocked = list({d["mode_id"] for d in mode_docs if d.get("mode_id")})
+        except Exception:
+            modes_unlocked = []
     arena = {
         "modes_played": game_count,
         "last_session": last_game[0] if last_game else None,
+        "last_game": last_game[0] if last_game else {},
+        "modes_unlocked": modes_unlocked,
         "vault_sessions": sov_count,
         "ue5_bridge": "ready",  # native iOS deep-link bridge present
     }
@@ -99,6 +112,11 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
         "lessons_completed": total_done,
         "lessons_total": total_lessons,
         "tracks": academy_tracks,
+        "certificates": [
+            {"track_id": t["track_id"], "certificate_id": t["certificate_id"], "issued": t["certificate_issued"]}
+            for t in academy_tracks
+            if t["is_certificate"] and t["certificate_issued"]
+        ],
         "kinesiology_certificate": {
             "eligibility": kin_elig,
             "issued": any(t["certificate_issued"] for t in academy_tracks if t["track_id"] == "kinesiology"),

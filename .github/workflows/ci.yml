@@ -1,0 +1,25 @@
+name: CI
+on:
+  pull_request:
+    branches: [main, "integration/*", "claude/*"]
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.11' }
+      - run: pip install -r backend/requirements.txt
+      - run: MOCK_DB=1 python -m pytest backend/tests/ -v --tb=short
+        env: { MOCK_DB: "1" }
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: cd frontend && yarn install --frozen-lockfile
+      - run: cd frontend && yarn build
+        env:
+          REACT_APP_API_URL: http://localhost:8000
+          REACT_APP_WS_URL: ws://localhost:8000

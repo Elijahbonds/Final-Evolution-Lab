@@ -67,6 +67,9 @@
     "test": "craco test",
     "deploy:hosting": "npm run build && firebase deploy --only hosting:fel-dashboard"
   },
+  "engines": {
+    "node": "18.x"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -97,7 +100,6 @@
   "overrides": {
     "react-day-picker": {
       "react": "$react"
-    },
-    "ajv": "^8.12.0"
+    }
   }
 }

@@ -2069,7 +2069,9 @@ struct BasketballH2HGameView: View {
 
     private func cancelAllTasks() {
         shotClockTask?.cancel(); opponentTask?.cancel()
-        shotAnimTask?.cancel()
+        shotAnimTask?.cancel(); shotTimingTask?.cancel()
+        autoFireTask?.cancel(); feedbackTask?.cancel()
         shotClockTask = nil; opponentTask = nil; shotAnimTask = nil
+        shotTimingTask = nil; autoFireTask = nil; feedbackTask = nil
     }
 }

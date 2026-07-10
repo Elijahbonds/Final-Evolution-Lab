@@ -61,6 +61,23 @@ let webpackConfig = {
 };
 
 webpackConfig.devServer = (devServerConfig) => {
+  // Dev-only proxy to the Nexus backend (e.g. the MOCK_DB=1 sim harness:
+  //   cd backend && MOCK_DB=1 python3 -m uvicorn sim_app:app --port 8000
+  // ). Forwards REST (/api) and match WebSockets (/ws/match) so GameView works
+  // without REACT_APP_BACKEND_URL or backend CORS config. Override the target
+  // with FEL_BACKEND_PROXY. Production builds are unaffected. NOTE: keep the
+  // ws context scoped to /ws/match — webpack-dev-server's own HMR socket
+  // lives at /ws and must not be proxied.
+  const backendProxy = process.env.FEL_BACKEND_PROXY || "http://localhost:8000";
+  devServerConfig.proxy = [
+    {
+      context: ["/api", "/ws/match"],
+      target: backendProxy,
+      ws: true,
+      changeOrigin: true,
+    },
+  ];
+
   // Add health check endpoints if enabled
   if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
     const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
