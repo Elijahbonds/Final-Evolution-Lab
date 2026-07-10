@@ -1,0 +1,132 @@
+{
+  "sprint": "nexus-aaa-sprint-0",
+  "coordinator": "cursor-sprint0-coordinator",
+  "date": "2026-07-01",
+  "repo": "github.com/Elijahbonds/Final-Evolution-Lab",
+  "integration_branch": "integration/nexus-aaa",
+  "fork_point": "427aee2",
+  "integration_head_at_handoff": "e65f7a5",
+  "merge_order": ["#95", "#96", "#97", "#98", "#99", "#101"],
+  "environment": {
+    "python": "3.9.6",
+    "node": "v22.22.2",
+    "mock_db": true,
+    "notes": "All tests run with MOCK_DB=1; no real DB. backend/server.py on this lineage needs emergentintegrations (unavailable locally) — sim_app.py used for live verification."
+  },
+  "workstreams": [
+    {
+      "agent": 1,
+      "name": "Judge/Seed Authority",
+      "branch": "nexus/judge-offsets",
+      "head_sha": "92d627f",
+      "pr": "https://github.com/Elijahbonds/Final-Evolution-Lab/pull/95",
+      "files_changed": [
+        "backend/tests/test_match_seed_offsets.py",
+        "(inherited from prior sprint commits on branch: backend/lib/match_utils.py, backend/routers/matches.py, backend/lib/card_effects.py, backend/schemas/match.py, backend/tests/test_matches.py, backend/tests/test_dunk_scoring.py)"
+      ],
+      "pytest": "tests/test_match_seed_offsets.py: 9 passed",
+      "sample_curl": "curl -s -X POST http://localhost:8000/api/matches/create -H 'Content-Type: application/json' -H 'X-FEL-Sim-Player: p1' -d '{\"mode_id\":\"basketball_dunk_3d\"}' -> {\"match_id\":\"37a8a15f-ccd\",\"status\":\"waiting\",\"mode_id\":\"basketball_dunk_3d\"}; GET /api/matches/{id} -> seed: 5677334660623524875, judge_offsets: [3,-2,0]",
+      "blockers": [],
+      "readiness": "Match creation persists a 64-bit seed and 3 deterministic judge offsets (random.Random(seed).randint(-5,5)), pinned by tests against the reference RNG; ready for stack merge."
+    },
+    {
+      "agent": 2,
+      "name": "Server Dunk Scoring",
+      "branch": "nexus/dunk-server-scoring",
+      "head_sha": "d1ca595",
+      "pr": "https://github.com/Elijahbonds/Final-Evolution-Lab/pull/96",
+      "files_changed": [
+        "backend/lib/dunk_scoring.py",
+        "backend/routers/dunk.py",
+        "backend/routers/matches.py",
+        "backend/server.py",
+        "backend/tests/test_dunk_scoring.py"
+      ],
+      "pytest": "tests/test_dunk_scoring.py: 30 passed (4 pinned deterministic vectors)",
+      "sample_curl": "curl -s -X POST http://localhost:8000/api/matches/{id}/score_dunk -H 'Content-Type: application/json' -d '{\"engine3d\":{\"jump_height\":0.9,\"launch_quality\":0.85,\"landing_quality\":0.8,\"completed_rotation\":1.0,\"trick\":\"three_sixty\",\"freestyle_points\":18,\"mid_air_branch_count\":2,\"style_landing_success\":true,\"modifier_score_multiplier\":1.35}}' -> {\"j1\":30,\"j2\":8,\"j3\":10,\"total\":48,\"message\":\"PERFECT DUNK!\",\"is_perfect\":true,\"scoring_model\":\"wda_engine3d\"}",
+      "blockers": [],
+      "readiness": "Faithful pure-function port of the Swift WDAScoringEngine engine-3D path with seeded judge panel; endpoint persists dunk_result with echoed inputs; ready."
+    },
+    {
+      "agent": 3,
+      "name": "Match Events + Replay Export",
+      "branch": "nexus/match-replay",
+      "head_sha": "c8ea469",
+      "pr": "https://github.com/Elijahbonds/Final-Evolution-Lab/pull/97",
+      "files_changed": [
+        "backend/routers/matches.py",
+        "backend/tests/test_replay_export.py"
+      ],
+      "pytest": "tests/test_replay_export.py: 13 passed",
+      "sample_curl": "curl -s http://localhost:8000/api/matches/{id}/export-replay -> {\"metadata\":{\"match_id\":\"...\",\"mode_id\":\"basketball_dunk_3d\",\"seed\":5677334660623524875,\"judge_offsets\":[3,-2,0],\"players\":[\"p1\",\"p2\"],\"start_time\":\"2026-07-01T...\"},\"events\":[...]}",
+      "blockers": [],
+      "readiness": "match_start/input/score_event/dunk_result/match_end all land in the in-memory event log with monotonic seq, and export-replay returns the {metadata,events} contract; ready."
+    },
+    {
+      "agent": 4,
+      "name": "Simulation & Replay Validator",
+      "branch": "nexus/sim-harness",
+      "head_sha": "18acf2e",
+      "pr": "https://github.com/Elijahbonds/Final-Evolution-Lab/pull/98",
+      "files_changed": [
+        "scripts/simulate_matches.py",
+        "backend/tools/replay_validator.py",
+        "backend/sim_app.py",
+        "backend/routers/matches.py",
+        "backend/tests/test_matches.py",
+        "backend/tests/test_dunk_scoring.py",
+        "backend/tests/test_match_seed_offsets.py",
+        "backend/tests/test_replay_export.py"
+      ],
+      "pytest": "chain suite: 72 passed at this commit",
+      "verification": "simulate_matches.py --base http://localhost:8003 --count 3 -> 3/3 replays; replay_validator.py --dir -> all OK exit 0; tampered dunk total -> FAIL exit 1",
+      "sample_curl": "curl -s -X POST http://localhost:8003/api/matches/create -H 'X-FEL-Sim-Player: sim_p1' -H 'Content-Type: application/json' -d '{\"mode_id\":\"basketball_dunk_3d\",\"player_id\":\"sim_p1\"}'",
+      "blockers": [
+        "backend/server.py needs emergentintegrations locally; sim_app.py used instead"
+      ],
+      "readiness": "HTTP sim harness and deterministic replay validator run green end-to-end against a live MOCK_DB server, and the validator provably fails on tampering; ready."
+    },
+    {
+      "agent": 5,
+      "name": "Snapshot Netcode Foundation",
+      "branch": "nexus/netcode-snapshot",
+      "head_sha": "2321194",
+      "pr": "https://github.com/Elijahbonds/Final-Evolution-Lab/pull/99",
+      "files_changed": [
+        "backend/routers/matches.py",
+        "backend/tests/test_netcode_snapshot.py",
+        "infra/netcode_contract.md",
+        "scripts/netcode_client_example.py"
+      ],
+      "pytest": "tests/test_netcode_snapshot.py: 7 passed (full chain: 79 passed)",
+      "verification": "netcode_client_example.py --inputs 8 -> 19 snapshots received, 8/8 inputs persisted, ack-based reconciliation demonstrated",
+      "sample_ws": "-> {\"type\":\"input\",\"player_id\":\"p1\",\"seq\":42,\"input\":{\"action\":\"charge\",\"power\":0.83},\"ts\":1234.5} | <- {\"type\":\"snapshot\",\"tick\":1287,\"authoritative_state\":{...},\"last_input_seq_ack\":{\"p1\":42}}",
+      "blockers": [
+        "WS player_id is client-asserted under MOCK_DB; per-connection auth binding is a pre-production TODO",
+        "Snapshot exposes match-level state only until the NEXUS C++ engine publishes world state (TODO in contract, no invented engine APIs)"
+      ],
+      "readiness": "INPUT ingestion (WS + REST), 20-30Hz clamped snapshot loop, contract doc, and a working reconciliation client are in place; ready as the sprint-0 netcode foundation."
+    },
+    {
+      "agent": 6,
+      "name": "Frontend GameView QA & Replay UX",
+      "branch": "nexus/gameview-debug",
+      "head_sha": "aaf81ee",
+      "pr": "https://github.com/Elijahbonds/Final-Evolution-Lab/pull/101",
+      "files_changed": [
+        "frontend/src/components/GameView.js",
+        "frontend/package.json"
+      ],
+      "build": "npm install && npm run build -> success (npm; no yarn.lock). Fixed by removing broken global ajv override.",
+      "sample_usage": "Route /playtest/match -> QA panel shows seed + judge_offsets + snapshot tick; 'Download Replay JSON' calls export-replay; 'Score Dunk (server)' posts engine3d payload; results render inline. Panel hidden in production unless REACT_APP_FEL_DEBUG_PANEL=1.",
+      "blockers": [],
+      "readiness": "QA panel, replay download, inline server-scored dunk results, and production gating all working with a green npm build; ready."
+    }
+  ],
+  "acceptance": {
+    "tests_mock_db": "79 passed on chain head (test_matches, test_dunk_scoring, test_match_seed_offsets, test_replay_export, test_netcode_snapshot); repo-wide pytest backend/tests/ additionally hits pre-existing suites that require live Postgres/session seeds (documented Sprint-1 blocker #3)",
+    "determinism": "fixed seed + same inputs -> identical scores (pinned vectors + repeat-run tests)",
+    "replay_validator": "reproduces dunk scores and final score accumulation from exported replays; non-zero exit on mismatch (verified both directions)"
+  },
+  "secrets": "none required, none touched"
+}

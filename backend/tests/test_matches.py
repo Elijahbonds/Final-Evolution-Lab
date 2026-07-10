@@ -39,7 +39,7 @@ from fastapi.testclient import TestClient
 
 import core
 from core import User
-from routers.matches import router as match_router, get_current_user, _matches, _events
+from routers.matches import router as match_router, get_match_user, _matches, _events
 
 _app = FastAPI()
 _app.include_router(match_router)
@@ -51,7 +51,7 @@ _USER_B = User(user_id="player_b", email="b@fellab.io", name="Player B",
 
 
 def _client_as(user: User) -> TestClient:
-    _app.dependency_overrides[get_current_user] = lambda: user
+    _app.dependency_overrides[get_match_user] = lambda: user
     return TestClient(_app, raise_server_exceptions=True)
 
 

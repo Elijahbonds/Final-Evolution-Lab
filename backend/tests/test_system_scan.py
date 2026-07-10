@@ -161,7 +161,7 @@ class TestUnifiedScanFullData:
             cards=[{"card_id": "c1", "name": "KD"}, {"card_id": "c2", "name": "LBJ"}],
             payments=5, games=12,
             last_game=[{"mode": "basketball_h2h", "score": 88}],
-            mode_docs=[{"mode": "basketball_h2h"}, {"mode": "court_carnival"}],
+            mode_docs=[{"mode_id": "basketball_h2h"}, {"mode_id": "court_carnival"}],
             edu=[{"track_id": "common_core", "completed_lessons": ["cc_ela_1", "cc_math_1"]}],
         )
         with patch("routers.system_scan.db", mock_db), \
@@ -176,7 +176,7 @@ class TestUnifiedScanFullData:
             health={"resting_hr": 58},
             games=3,
             last_game=[{"mode": "basketball_h2h"}],
-            mode_docs=[{"mode": "basketball_h2h"}],
+            mode_docs=[{"mode_id": "basketball_h2h"}],
         )
         with patch("routers.system_scan.db", mock_db), \
              patch("routers.education_tracks.db", mock_db):
@@ -191,7 +191,7 @@ class TestUnifiedScanFullData:
             health={"resting_hr": 58},
             games=2,
             last_game=[{"mode": "surf"}],
-            mode_docs=[{"mode": "surf"}],
+            mode_docs=[{"mode_id": "surf"}],
         )
         with patch("routers.system_scan.db", mock_db), \
              patch("routers.education_tracks.db", mock_db):
@@ -248,7 +248,7 @@ class TestUnifiedScanFullData:
         mock_db = _make_db(
             games=12,
             last_game=[{"mode": "basketball_h2h", "score": 88, "created_at": "2026-01-01"}],
-            mode_docs=[{"mode": "basketball_h2h"}, {"mode": "court_carnival"}, {"mode": "surf"}],
+            mode_docs=[{"mode_id": "basketball_h2h"}, {"mode_id": "court_carnival"}, {"mode_id": "surf"}],
         )
         with patch("routers.system_scan.db", mock_db), \
              patch("routers.education_tracks.db", mock_db):

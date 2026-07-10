@@ -1,0 +1,271 @@
+/* Dance Mode — rhythm performance + choreography editor
+   Premium dark theme, cyan #00D4FF / purple #9933FF accents. */
+
+.dm-root {
+  --dm-cyan: #00D4FF;
+  --dm-purple: #9933FF;
+  --dm-bg: #07080d;
+  --dm-panel: #10131f;
+  --dm-panel-2: #171b2b;
+  --dm-line: #232a42;
+  --dm-text: #e8ecf7;
+  --dm-dim: #8a92ad;
+  --dm-perfect: #00D4FF;
+  --dm-good: #9933FF;
+  --dm-miss: #ff4d6d;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(0,212,255,0.10), transparent 60%),
+    radial-gradient(1000px 500px at 90% 110%, rgba(153,51,255,0.12), transparent 60%),
+    var(--dm-bg);
+  color: var(--dm-text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.dm-root * { box-sizing: border-box; }
+
+.dm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.dm-title {
+  font-size: 1.5rem; font-weight: 800; margin: 0;
+  background: linear-gradient(90deg, var(--dm-cyan), var(--dm-purple));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: 0.3px;
+}
+.dm-sub { color: var(--dm-dim); font-size: 0.82rem; margin-top: 2px; }
+
+.dm-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.dm-tab {
+  min-height: 44px; padding: 0 18px; border-radius: 12px; cursor: pointer;
+  background: var(--dm-panel); color: var(--dm-dim); border: 1px solid var(--dm-line);
+  font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center;
+  transition: all 0.15s ease;
+}
+.dm-tab:hover { color: var(--dm-text); border-color: #33406a; }
+.dm-tab.active {
+  color: #061018; background: linear-gradient(135deg, var(--dm-cyan), var(--dm-purple));
+  border-color: transparent; box-shadow: 0 4px 18px rgba(0,212,255,0.28);
+}
+
+.dm-panel {
+  background: var(--dm-panel); border: 1px solid var(--dm-line);
+  border-radius: 16px; padding: 16px;
+}
+.dm-flag {
+  font-size: 0.75rem; color: #ffd479; background: rgba(255,212,121,0.08);
+  border: 1px solid rgba(255,212,121,0.25); border-radius: 8px; padding: 6px 10px;
+  margin: 8px 0;
+}
+
+/* ── Performance stage ── */
+.dm-stage {
+  position: relative; height: 420px; overflow: hidden; border-radius: 16px;
+  background: linear-gradient(180deg, #0a0d18 0%, #05060c 100%);
+  border: 1px solid var(--dm-line);
+}
+.dm-lanes { position: absolute; inset: 0; display: flex; }
+.dm-lane {
+  flex: 1; position: relative; border-right: 1px solid rgba(255,255,255,0.04);
+}
+.dm-lane:last-child { border-right: none; }
+.dm-lane.flash { background: radial-gradient(circle at 50% 88%, rgba(0,212,255,0.18), transparent 60%); }
+
+.dm-hitline {
+  position: absolute; left: 0; right: 0; bottom: 64px; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--dm-cyan), var(--dm-purple), transparent);
+  box-shadow: 0 0 18px var(--dm-cyan); z-index: 5;
+}
+.dm-note {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  width: 62%; height: 22px; border-radius: 8px; z-index: 4;
+  background: linear-gradient(135deg, var(--dm-cyan), #0090c8);
+  box-shadow: 0 0 14px rgba(0,212,255,0.5); will-change: top;
+}
+.dm-note.l1 { background: linear-gradient(135deg, var(--dm-purple), #5f1fb0); box-shadow: 0 0 14px rgba(153,51,255,0.5); }
+.dm-note.hold { height: 40px; opacity: 0.92; }
+
+.dm-keys { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; z-index: 6; }
+.dm-key {
+  flex: 1; margin: 0 6px; height: 44px; border-radius: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-weight: 800;
+  color: var(--dm-dim); background: var(--dm-panel-2); border: 1px solid var(--dm-line);
+  user-select: none; transition: transform 0.05s ease, background 0.05s ease;
+}
+.dm-key:active, .dm-key.down {
+  transform: scale(0.96);
+  background: linear-gradient(135deg, rgba(0,212,255,0.35), rgba(153,51,255,0.35));
+  color: #fff; border-color: var(--dm-cyan);
+}
+
+/* judge popup */
+.dm-judge {
+  position: absolute; top: 40%; left: 50%; transform: translateX(-50%);
+  font-size: 2.2rem; font-weight: 900; z-index: 7; pointer-events: none;
+  animation: dm-pop 0.45s ease-out forwards; text-shadow: 0 2px 20px currentColor;
+}
+.dm-judge.perfect { color: var(--dm-perfect); }
+.dm-judge.good { color: var(--dm-good); }
+.dm-judge.miss { color: var(--dm-miss); }
+@keyframes dm-pop {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.6); }
+  30% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1); }
+}
+
+/* combo meter */
+.dm-combo {
+  position: absolute; top: 14px; right: 18px; z-index: 7; text-align: right;
+}
+.dm-combo .n {
+  font-size: 2.4rem; font-weight: 900; line-height: 1;
+  background: linear-gradient(90deg, var(--dm-cyan), var(--dm-purple));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.dm-combo.pulse .n { animation: dm-combopulse 0.25s ease; }
+@keyframes dm-combopulse { 0% { transform: scale(1); } 50% { transform: scale(1.22); filter: brightness(1.4); } 100% { transform: scale(1); } }
+.dm-combo .l { font-size: 0.7rem; color: var(--dm-dim); letter-spacing: 2px; }
+
+.dm-scorebar { position: absolute; top: 14px; left: 18px; z-index: 7; }
+.dm-scorebar .s { font-size: 1.6rem; font-weight: 800; color: #fff; }
+.dm-scorebar .l { font-size: 0.7rem; color: var(--dm-dim); letter-spacing: 2px; }
+
+/* slow-mo cinematic overlay */
+.dm-stage.slowmo::after {
+  content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none;
+  background: radial-gradient(circle at 50% 60%, rgba(153,51,255,0.10), rgba(0,212,255,0.06) 40%, transparent 70%);
+  animation: dm-slowmo 1.1s ease-out;
+}
+@keyframes dm-slowmo { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+.dm-stage.slowmo .dm-note { transition: none; }
+
+.dm-btn {
+  min-height: 44px; padding: 0 22px; border-radius: 12px; cursor: pointer;
+  font-weight: 800; font-size: 0.95rem; border: none; color: #061018;
+  background: linear-gradient(135deg, var(--dm-cyan), var(--dm-purple));
+  box-shadow: 0 4px 18px rgba(0,212,255,0.28); transition: transform 0.1s ease;
+}
+.dm-btn:hover { transform: translateY(-1px); }
+.dm-btn.ghost { background: var(--dm-panel); color: var(--dm-text); border: 1px solid var(--dm-line); box-shadow: none; }
+.dm-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.dm-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.dm-field { display: flex; flex-direction: column; gap: 4px; }
+.dm-field label { font-size: 0.72rem; color: var(--dm-dim); letter-spacing: 1px; text-transform: uppercase; }
+.dm-input, .dm-select {
+  min-height: 44px; padding: 0 12px; border-radius: 10px; color: var(--dm-text);
+  background: var(--dm-panel-2); border: 1px solid var(--dm-line); font-size: 0.9rem;
+}
+.dm-seedchip {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.8rem;
+  color: var(--dm-cyan); background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.25);
+  padding: 6px 10px; border-radius: 8px;
+}
+
+/* results */
+.dm-results { text-align: center; padding: 26px; }
+.dm-grade {
+  font-size: 5rem; font-weight: 900; line-height: 1;
+  background: linear-gradient(135deg, var(--dm-cyan), var(--dm-purple));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.dm-stats { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+.dm-stat .v { font-size: 1.4rem; font-weight: 800; }
+.dm-stat .k { font-size: 0.72rem; color: var(--dm-dim); letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── Choreography editor timeline ── */
+.dm-timeline {
+  position: relative; background: var(--dm-panel-2); border: 1px solid var(--dm-line);
+  border-radius: 12px; padding: 12px; overflow-x: auto;
+}
+.dm-track { position: relative; height: 56px; }
+.dm-beatgrid { position: absolute; inset: 0; }
+.dm-beatline { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.06); }
+.dm-beatline.bar { background: rgba(0,212,255,0.18); }
+.dm-clip {
+  position: absolute; top: 8px; height: 40px; border-radius: 8px; cursor: pointer;
+  background: linear-gradient(135deg, rgba(0,212,255,0.85), rgba(153,51,255,0.85));
+  border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center;
+  padding: 0 8px; font-size: 0.75rem; font-weight: 700; color: #061018; overflow: hidden;
+  white-space: nowrap;
+}
+.dm-clip.sel { outline: 2px solid #fff; box-shadow: 0 0 14px rgba(0,212,255,0.5); }
+.dm-clip .tr { position: absolute; left: -2px; top: 0; bottom: 0; width: 4px; background: #ffd479; border-radius: 3px 0 0 3px; }
+
+.dm-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--dm-miss); z-index: 3; box-shadow: 0 0 8px var(--dm-miss); }
+
+.dm-avatar {
+  width: 120px; height: 160px; margin: 0 auto; position: relative;
+}
+.dm-avatar .body {
+  position: absolute; inset: 0; border-radius: 50% 50% 12px 12px / 40% 40% 10px 10px;
+  background: linear-gradient(160deg, rgba(0,212,255,0.7), rgba(153,51,255,0.7));
+  box-shadow: 0 0 30px rgba(0,212,255,0.3);
+}
+.dm-clip-lib { display: flex; gap: 8px; flex-wrap: wrap; }
+.dm-clip-card {
+  min-height: 44px; padding: 8px 12px; border-radius: 10px; cursor: pointer;
+  background: var(--dm-panel-2); border: 1px solid var(--dm-line); font-size: 0.82rem;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.dm-clip-card:hover { border-color: var(--dm-cyan); }
+.dm-clip-card .d { color: var(--dm-dim); font-size: 0.7rem; }
+
+.dm-muted { color: var(--dm-dim); font-size: 0.82rem; }
+.dm-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .dm-grid2 { grid-template-columns: 1fr; } }
+
+/* ── Performance stage: reactive avatar + progress bar ─────────────────────── */
+.dm-stage-avatar {
+  position: absolute; bottom: 60px; left: 12px; z-index: 6; opacity: 0.9;
+  pointer-events: none;
+}
+.dm-progress {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 6;
+  background: rgba(255,255,255,0.06);
+}
+.dm-progress .fill {
+  height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--dm-cyan), var(--dm-purple));
+  box-shadow: 0 0 10px var(--dm-cyan); transition: width 0.08s linear;
+}
+
+/* ── Accessibility ─────────────────────────────────────────────────────────── */
+/* Visually-hidden helper for assertive screen-reader announcements. */
+.dm-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Colorblind-safe lane markers: a distinct glyph per lane, not just hue. */
+.dm-note[data-lane]::after,
+.dm-key[data-lane]::before {
+  position: absolute; font-size: 0.8rem; font-weight: 900; line-height: 1;
+  color: #061018; opacity: 0.85; pointer-events: none;
+}
+.dm-note[data-lane]::after { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.dm-key[data-lane]::before  { top: 4px; right: 6px; color: var(--dm-text); opacity: 0.6; }
+.dm-note[data-lane="0"]::after, .dm-key[data-lane="0"]::before { content: "\25CF"; } /* ● circle */
+.dm-note[data-lane="1"]::after, .dm-key[data-lane="1"]::before { content: "\25B2"; } /* ▲ triangle */
+.dm-note[data-lane="2"]::after, .dm-key[data-lane="2"]::before { content: "\25A0"; } /* ■ square */
+.dm-note[data-lane="3"]::after, .dm-key[data-lane="3"]::before { content: "\2726"; } /* ✦ star */
+
+/* Judge text also carries a symbol so PERFECT/GOOD/MISS aren't color-only. */
+.dm-judge.perfect::before { content: "\2713 "; } /* ✓ */
+.dm-judge.good::before    { content: "\2022 "; } /* • */
+.dm-judge.miss::before    { content: "\2715 "; } /* ✕ */
+
+/* Focus-visible ring for keyboard users on the lane pads. */
+.dm-key:focus-visible { outline: 2px solid var(--dm-cyan); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Kill decorative animations; keep the game legible & static-ish. */
+  .dm-judge      { animation: none; opacity: 1; }
+  .dm-combo.pulse .n { animation: none; }
+  .dm-stage.slowmo::after { animation: none; opacity: 0; }
+  .dm-note       { transition: none; }
+  .dm-btn, .dm-tab, .dm-key { transition: none; }
+  .dm-progress .fill { transition: none; }
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><title>Nexus Playtest</title></head>
+<body>
+<h1>Nexus Match Playtest</h1>
+<button onclick="createMatch()">Create Match</button>
+<input id="userId" placeholder="user_id" value="alice" />
+<button onclick="joinMatch()">Join Match</button>
+<div id="log"></div>
+<script>
+const API = 'http://localhost:8000';
+let matchId = null;
+async function createMatch() {
+  const r = await fetch(`${API}/api/matches/create`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:document.getElementById('userId').value,mode_id:'basketball_h2h'})});
+  const d = await r.json();
+  matchId = d.match_id;
+  log('Created: ' + matchId);
+  connectWS(matchId);
+}
+async function joinMatch() {
+  const r = await fetch(`${API}/api/matches/join`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({match_id:matchId,user_id:document.getElementById('userId').value+'_2'})});
+  const d = await r.json();
+  log('Joined: ' + JSON.stringify(d.state));
+}
+function connectWS(mid) {
+  const ws = new WebSocket(`ws://localhost:8000/ws/match/${mid}`);
+  ws.onmessage = e => log('WS: ' + e.data);
+}
+function log(msg) { document.getElementById('log').innerHTML += '<br>' + msg; }
+</script>
+</body>
+</html>

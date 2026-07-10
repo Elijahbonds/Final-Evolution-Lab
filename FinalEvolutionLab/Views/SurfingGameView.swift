@@ -11,10 +11,73 @@ private func hapticNotification(_ type: UINotificationFeedbackGenerator.Feedback
     UINotificationFeedbackGenerator().notificationOccurred(type)
 }
 
+// MARK: - Surf Mode
+
+enum SurfMode { case competition, endless }
+
+// MARK: - Wave Type
+
+private enum SurfWaveType {
+    case mellow, solid, overhead, barrel, closeout
+
+    var label: String {
+        switch self {
+        case .mellow:   return "MELLOW"
+        case .solid:    return "SOLID"
+        case .overhead: return "OVERHEAD"
+        case .barrel:   return "BARREL"
+        case .closeout: return "CLOSEOUT"
+        }
+    }
+
+    var pointMultiplier: Double {
+        switch self {
+        case .mellow:   return 0.7
+        case .solid:    return 1.0
+        case .overhead: return 1.4
+        case .barrel:   return 2.2
+        case .closeout: return 0.0
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .mellow:   return Color(red: 0.3, green: 0.8, blue: 0.6)
+        case .solid:    return Color(red: 0.2, green: 0.75, blue: 1.0)
+        case .overhead: return Color(red: 0.9, green: 0.7, blue: 0.1)
+        case .barrel:   return Color(red: 0.0, green: 0.9, blue: 0.85)
+        case .closeout: return Color(red: 0.9, green: 0.2, blue: 0.2)
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .mellow:   return "Gentle arc — easy ride"
+        case .solid:    return "Medium face — good points"
+        case .overhead: return "Steep & tall — big points"
+        case .barrel:   return "HOLD CENTER for BARREL BONUS"
+        case .closeout: return "SWIPE DOWN to duck dive!"
+        }
+    }
+
+    static func random() -> SurfWaveType {
+        let weights: [(SurfWaveType, Int)] = [
+            (.mellow, 20), (.solid, 35), (.overhead, 25), (.barrel, 10), (.closeout, 10)
+        ]
+        let total = weights.reduce(0) { $0 + $1.1 }
+        var rand = Int.random(in: 0..<total)
+        for (type, w) in weights {
+            rand -= w
+            if rand < 0 { return type }
+        }
+        return .solid
+    }
+}
+
 // MARK: - Phase
 
 private enum SurfingPhase {
-    case ready, paddleIn, riding, trickWindow, wipeout, waveResult, heatResult, result
+    case lobby, ready, paddleIn, riding, trickWindow, barrelRide, duckDive, wipeout, waveResult, heatResult, sessionSummary, result
 }
 
 // MARK: - Trick Type

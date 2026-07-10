@@ -160,3 +160,9 @@ scratch/
 dataconnect/.dataconnect/
 
 
+
+# Dance Mode: Mixamo/mocap assets are MANUAL-download only, never committed
+assets/external/mixamo/*.fbx
+assets/external/mixamo/*.gltf
+assets/external/mixamo/*.glb
+!assets/external/mixamo/README.md

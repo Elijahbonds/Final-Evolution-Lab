@@ -18,16 +18,19 @@ a match becomes 'active'. This lets two WS clients or Nexus observe
 a full match lifecycle without a real physics engine.
 """
 import asyncio
+import json
 import os
 import sys
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from core import db, get_current_user, User
+from lib.match_utils import generate_seed, derive_judge_offsets
+from lib.card_effects import compute_loadout_modifiers
 
 router = APIRouter(tags=["matches"])
 
@@ -35,6 +38,23 @@ router = APIRouter(tags=["matches"])
 _MOCK_DB = os.environ.get("MOCK_DB", "0") == "1" or (
     len(sys.argv) > 0 and "pytest" in sys.argv[0]
 )
+
+
+async def get_match_user(request: Request) -> User:
+    """Auth for match endpoints.
+
+    Production (MOCK_DB unset): identical to get_current_user.
+    MOCK_DB=1: falls back to a guest identity so the local sim harness
+    (scripts/simulate_matches.py) can drive matches without a session.
+    Guest player id may be supplied via the X-FEL-Sim-Player header.
+    """
+    try:
+        return await get_current_user(request)
+    except Exception:
+        if not _MOCK_DB:
+            raise
+        pid = request.headers.get("X-FEL-Sim-Player", "sim_guest")
+        return User(user_id=pid, email=f"{pid}@sim.fellab.io", name=pid)
 
 # ── In-memory stores (used when _MOCK_DB=True) ─────────────────────────────
 _matches: Dict[str, Dict[str, Any]] = {}
@@ -48,6 +68,7 @@ _ws_connections: Dict[str, Set[WebSocket]] = {}
 class CreateMatchRequest(BaseModel):
     mode_id: str = "basketball_h2h"
     player_id: Optional[str] = None  # override; defaults to authenticated user
+    auto_simulate: bool = False  # demo mode: emit random score_events in background
 
 
 class JoinMatchRequest(BaseModel):
@@ -66,6 +87,8 @@ class MatchResponse(BaseModel):
     score: Dict[str, int]
     loadouts: Dict[str, List[Dict[str, Any]]]
     events: List[Dict[str, Any]]
+    seed: Optional[int] = None
+    judge_offsets: List[int] = []
 
 
 # ── Internal helpers ───────────────────────────────────────────────────────
@@ -104,6 +127,9 @@ async def _persist_match(match: Dict[str, Any]) -> None:
 
 
 async def _persist_event(match_id: str, event: Dict[str, Any]) -> None:
+    # Server-authoritative sequence number for replay ordering (Agent 3).
+    if "seq" not in event:
+        event["seq"] = len(_events.get(match_id, []))
     if _MOCK_DB:
         _events.setdefault(match_id, []).append(event)
         return
@@ -217,12 +243,14 @@ async def _simulate_scoring(
 @router.post("/api/matches/create")
 async def create_match(
     body: CreateMatchRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_match_user),
 ) -> Dict[str, Any]:
     """Create a new match and return its match_id."""
     match_id = str(uuid.uuid4())[:12]
     player_id = body.player_id or user.user_id
     loadout = await _load_loadout(player_id)
+    seed = generate_seed()
+    judge_offsets = derive_judge_offsets(seed)
     match: Dict[str, Any] = {
         "match_id": match_id,
         "mode_id": body.mode_id,
@@ -234,15 +262,25 @@ async def create_match(
         "score": {player_id: 0},
         "loadouts": {player_id: loadout},
         "events": [],
+        "auto_simulate": body.auto_simulate,
+        "seed": seed,
+        "judge_offsets": judge_offsets,
     }
     await _persist_match(match)
-    return {"match_id": match_id, "status": "waiting", "mode_id": body.mode_id}
+    return {
+        "match_id": match_id,
+        "state": "waiting",
+        "status": "waiting",  # legacy alias for existing clients
+        "mode_id": body.mode_id,
+        "seed": seed,
+        "judge_offsets": judge_offsets,
+    }
 
 
 @router.post("/api/matches/join")
 async def join_match(
     body: JoinMatchRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_match_user),
 ) -> Dict[str, Any]:
     """Join an existing match. When the second player joins, match becomes active."""
     match = await _load_match(body.match_id)
@@ -266,15 +304,24 @@ async def join_match(
             "type": "match_start",
             "match_id": body.match_id,
             "mode_id": match["mode_id"],
+            "seed": match.get("seed"),
+            "judge_offsets": match.get("judge_offsets", []),
             "players": [
-                {"user_id": p, "loadout": match["loadouts"].get(p, [])}
+                {
+                    "user_id": p,
+                    "loadout": match["loadouts"].get(p, []),
+                    "computed_modifiers": compute_loadout_modifiers(match["loadouts"].get(p, [])),
+                }
                 for p in match["players"]
             ],
             "start_time": match["started_at"],
         }
+        await _persist_event(body.match_id, start_event)
         await _broadcast(body.match_id, start_event)
-        # Kick off simulated scoring in background
-        asyncio.create_task(_simulate_scoring(body.match_id, match["players"], match["loadouts"]))
+        # Demo-only random scoring loop. Opt-in: it emits non-deterministic
+        # events, which breaks replay validation (Agent 4) if always on.
+        if match.get("auto_simulate"):
+            asyncio.create_task(_simulate_scoring(body.match_id, match["players"], match["loadouts"]))
     else:
         await _persist_match(match)
 
@@ -299,14 +346,212 @@ async def get_match(match_id: str, limit: int = 20) -> MatchResponse:
         score=match.get("score", {}),
         loadouts=match.get("loadouts", {}),
         events=events,
+        seed=match.get("seed"),
+        judge_offsets=match.get("judge_offsets", []),
     )
+
+
+# NOTE (Agent 2): POST /api/matches/{match_id}/score_dunk moved to routers/dunk.py
+# (server-authoritative WDA engine-3D scoring with seeded judge_offsets).
+
+
+class AppendEventRequest(BaseModel):
+    type: str  # e.g. "input" | "score_event"
+    payload: Dict[str, Any] = {}
+    player_id: Optional[str] = None
+
+
+class EndMatchRequest(BaseModel):
+    score: Optional[Dict[str, int]] = None
+    reason: str = "completed"
+
+
+@router.post("/api/matches/{match_id}/events")
+async def append_match_event(match_id: str, body: AppendEventRequest) -> Dict[str, Any]:
+    """Append a server-stamped event (input, score_event, ...) to the match log."""
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if match["status"] == "finished":
+        raise HTTPException(status_code=409, detail="Match already finished")
+    allowed = {"input", "score_event", "checkpoint", "custom"}
+    if body.type not in allowed:
+        raise HTTPException(status_code=422, detail=f"Event type must be one of {sorted(allowed)}")
+
+    event: Dict[str, Any] = {
+        "type": body.type,
+        "match_id": match_id,
+        "player_id": body.player_id,
+        "payload": body.payload,
+        "timestamp": _now(),
+    }
+    if body.type == "input":
+        # Track last acked input seq for snapshot broadcasts (netcode contract).
+        seq = int(body.payload.get("seq", 0))
+        pid = body.player_id or "rest_player"
+        acks = _last_input_seq_ack.setdefault(match_id, {})
+        acks[pid] = max(acks.get(pid, 0), seq)
+    if body.type == "score_event":
+        points = int(body.payload.get("points", 0))
+        pid = body.player_id or (match["players"][0] if match["players"] else "unknown")
+        match["score"][pid] = match["score"].get(pid, 0) + points
+        event["points"] = points
+        event["score_snapshot"] = dict(match["score"])
+        await _persist_match(match)
+
+    await _persist_event(match_id, event)
+    await _broadcast(match_id, event)
+    return {"ok": True, "seq": event["seq"], "type": body.type}
+
+
+@router.post("/api/matches/{match_id}/end")
+async def end_match(match_id: str, body: EndMatchRequest) -> Dict[str, Any]:
+    """Finish a match: sets status, stamps finished_at, appends match_end event."""
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if match["status"] == "finished":
+        raise HTTPException(status_code=409, detail="Match already finished")
+    if body.score:
+        match["score"].update(body.score)
+    match["status"] = "finished"
+    match["finished_at"] = _now()
+    await _persist_match(match)
+    end_event = {
+        "type": "match_end",
+        "match_id": match_id,
+        "score": dict(match["score"]),
+        "reason": body.reason,
+        "timestamp": match["finished_at"],
+    }
+    await _persist_event(match_id, end_event)
+    await _broadcast(match_id, end_event)
+    return {"match_id": match_id, "status": "finished", "score": match["score"]}
+
+
+@router.get("/api/matches/{match_id}/export-replay")
+async def export_replay(match_id: str) -> Dict[str, Any]:
+    """Export full match replay: {metadata: {...}, events: [...]} (Agent 3 contract).
+
+    Flat top-level fields are kept for backwards compatibility with older
+    clients; the canonical shape is `metadata` + `events`.
+    """
+    match = await _load_match(match_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    events = await _load_events(match_id, limit=10_000)
+    # Guarantee chronological order regardless of storage backend: `seq` is
+    # server-stamped at append time, so it is the authoritative replay order.
+    events = sorted(events, key=lambda e: e.get("seq", 0))
+    metadata = {
+        "match_id": match_id,
+        "mode_id": match.get("mode_id"),
+        "seed": match.get("seed"),
+        "judge_offsets": match.get("judge_offsets", []),
+        "players": match.get("players", []),
+        "start_time": match.get("started_at"),
+        "finished_at": match.get("finished_at"),
+        "status": match.get("status"),
+        "export_version": "1.1",
+        "event_count": len(events),
+    }
+    return {
+        "metadata": metadata,
+        "events": events,
+        # Back-compat flat fields (deprecated; prefer metadata.*)
+        "match_id": match_id,
+        "mode_id": match.get("mode_id"),
+        "seed": match.get("seed"),
+        "judge_offsets": match.get("judge_offsets", []),
+        "players": match.get("players", []),
+        "started_at": match.get("started_at"),
+        "finished_at": match.get("finished_at"),
+        "status": match.get("status"),
+    }
 
 
 # ── WebSocket ──────────────────────────────────────────────────────────────
 
+# ── Snapshot netcode foundation (Agent 5) ─────────────────────────────────
+# Contract: infra/netcode_contract.md
+#   client -> server INPUT : {"type":"input","player_id",?,"seq":int,"input":{},"ts":float}
+#   server -> client SNAP  : {"type":"snapshot","tick":int,
+#                             "authoritative_state":{...},"last_input_seq_ack":{player:seq}}
+
+def _snapshot_hz() -> float:
+    """Broadcast rate, clamped to the 20-30 Hz contract window."""
+    try:
+        hz = float(os.environ.get("FEL_SNAPSHOT_HZ", "24"))
+    except ValueError:
+        hz = 24.0
+    return max(20.0, min(30.0, hz))
+
+
+_snapshot_tasks: Dict[str, "asyncio.Task"] = {}
+_last_input_seq_ack: Dict[str, Dict[str, int]] = {}  # match_id -> {player_id: seq}
+_snapshot_ticks: Dict[str, int] = {}
+
+
+def _build_snapshot(match: Dict[str, Any], match_id: str) -> Dict[str, Any]:
+    return {
+        "type": "snapshot",
+        "tick": _snapshot_ticks.get(match_id, 0),
+        "authoritative_state": {
+            "match_id": match_id,
+            "status": match["status"],
+            "score": dict(match.get("score", {})),
+            "players": list(match.get("players", [])),
+            "event_count": len(_events.get(match_id, [])),
+        },
+        "last_input_seq_ack": dict(_last_input_seq_ack.get(match_id, {})),
+    }
+
+
+async def _snapshot_loop(match_id: str) -> None:
+    """Broadcast authoritative snapshots at 20-30 Hz while the match is active
+    and at least one WS client is connected."""
+    interval = 1.0 / _snapshot_hz()
+    try:
+        while _ws_connections.get(match_id):
+            match = await _load_match(match_id)
+            if not match:
+                break
+            _snapshot_ticks[match_id] = _snapshot_ticks.get(match_id, 0) + 1
+            await _broadcast(match_id, _build_snapshot(match, match_id))
+            if match["status"] == "finished":
+                break
+            await asyncio.sleep(interval)
+    finally:
+        _snapshot_tasks.pop(match_id, None)
+
+
+def _ensure_snapshot_loop(match_id: str) -> None:
+    task = _snapshot_tasks.get(match_id)
+    if task is None or task.done():
+        _snapshot_tasks[match_id] = asyncio.get_event_loop().create_task(_snapshot_loop(match_id))
+
+
+async def _handle_input_message(match_id: str, msg: Dict[str, Any],
+                                default_player: str = "ws_player") -> Dict[str, Any]:
+    """Persist a client INPUT message as a match event and update the seq ack."""
+    seq = int(msg.get("seq", 0))
+    player_id = msg.get("player_id") or default_player
+    event = {
+        "type": "input",
+        "match_id": match_id,
+        "player_id": player_id,
+        "payload": {"seq": seq, "input": msg.get("input", {}), "ts": msg.get("ts")},
+        "timestamp": _now(),
+    }
+    await _persist_event(match_id, event)
+    acks = _last_input_seq_ack.setdefault(match_id, {})
+    acks[player_id] = max(acks.get(player_id, 0), seq)
+    return {"type": "input_ack", "player_id": player_id, "seq": acks[player_id]}
+
+
 @router.websocket("/ws/match/{match_id}")
 async def ws_match(websocket: WebSocket, match_id: str):
-    """Subscribe to live match events. Receives match_start and score_event messages."""
+    """Live match channel: match events, INPUT ingestion, and 20-30 Hz snapshots."""
     await websocket.accept()
     _ws_connections.setdefault(match_id, set()).add(websocket)
     # Send current match state on connect
@@ -318,6 +563,8 @@ async def ws_match(websocket: WebSocket, match_id: str):
             "players": match["players"],
             "score": match["score"],
         }})
+        if match["status"] == "active":
+            _ensure_snapshot_loop(match_id)
     try:
         while True:
             try:
@@ -325,6 +572,14 @@ async def ws_match(websocket: WebSocket, match_id: str):
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 if data == "ping":
                     await websocket.send_text("pong")
+                    continue
+                try:
+                    msg = json.loads(data)
+                except ValueError:
+                    continue
+                if isinstance(msg, dict) and msg.get("type") == "input":
+                    ack = await _handle_input_message(match_id, msg)
+                    await websocket.send_json(ack)
             except asyncio.TimeoutError:
                 # Send ping; if client is gone this will raise on next iteration
                 await websocket.send_json({"type": "ping"})
