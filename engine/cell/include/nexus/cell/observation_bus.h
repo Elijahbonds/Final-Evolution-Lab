@@ -17,13 +17,14 @@
 namespace nexus::cell {
 
 enum class ObservationType : std::uint8_t {
-  kFrameTelemetry,  ///< fps, frameTimeMs, tier from PerfMonitor
-  kAgentInput,      ///< AgentMessage received
-  kAgentOutput,     ///< AgentResponse emitted (status + payload)
-  kGameplayOutcome, ///< scores, events from ApplicationUpdateHook
-  kGenerativeEvent, ///< scan/model generation results
-  kError,           ///< error or failure record
-  kManual,          ///< manually injected via cell.observe command
+  kFrameTelemetry,   ///< fps, frameTimeMs, tier from PerfMonitor
+  kAgentInput,       ///< AgentMessage received
+  kAgentOutput,      ///< AgentResponse emitted (status + payload)
+  kGameplayOutcome,  ///< scores, events from ApplicationUpdateHook
+  kGenerativeEvent,  ///< scan/model generation results
+  kError,            ///< error or failure record
+  kManual,           ///< manually injected via cell.observe command
+  kHardwareTelemetry,///< raw frame from an external hardware device (e.g., AI camera)
 };
 
 struct Observation {

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace nexus::cell {
@@ -42,6 +43,34 @@ struct CellStatus {
   double            model_accuracy{0.0};
   std::size_t       observation_queue_size{0};
   std::string       phase_name;
+};
+
+// ── Policy model weights ─────────────────────────────────────────────────────
+
+/// Snapshot of the current linear model weights used for policy-guided
+/// physics parameter scaling (Phase A of the Policy vs. Heuristic split).
+struct PolicyWeights {
+  std::unordered_map<std::string, double> weights;
+  double        bias{0.0};
+  std::uint32_t model_version{0};
+};
+
+// ── Parameter sandbox for active experimentation ─────────────────────────────
+
+/// Describes a single parameter that CELL is allowed to nudge during the
+/// ExperimentationPhase. The delegate enforces physical limits; the sandbox
+/// tracks rollback state and evaluation progress.
+struct ParameterSandbox {
+  std::string   name;
+  double        current_value{0.0};
+  double        min_value{0.0};
+  double        max_value{1.0};
+  double        step_size{0.01};
+  double        rollback_value{0.0};       ///< snapshot before experiment
+  std::uint64_t experiment_start_cycle{0}; ///< ResearchLoop cycle when nudge applied
+  std::uint32_t evaluation_cycles{5};      ///< cycles to observe before deciding
+  double        baseline_reward{0.0};      ///< pre-experiment mean reward
+  bool          active{false};
 };
 
 } // namespace nexus::cell
